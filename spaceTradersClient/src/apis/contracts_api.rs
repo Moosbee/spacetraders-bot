@@ -12,7 +12,7 @@
 use reqwest;
 use serde::{Deserialize, Serialize};
 use crate::{apis::ResponseContent, models};
-use super::{Error, configuration};
+use super::{configuration, Error, ResponseContentEntity};
 
 
 /// struct for typed errors of method [`accept_contract`]
@@ -76,7 +76,7 @@ pub async fn accept_contract(configuration: &configuration::Configuration, contr
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
         serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
-        let local_var_entity: Option<AcceptContractError> = serde_json::from_str(&local_var_content).ok();
+        let local_var_entity: Option<ResponseContentEntity<AcceptContractError>> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
         Err(Error::ResponseError(local_var_error))
     }
@@ -108,7 +108,7 @@ pub async fn deliver_contract(configuration: &configuration::Configuration, cont
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
         serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
-        let local_var_entity: Option<DeliverContractError> = serde_json::from_str(&local_var_content).ok();
+        let local_var_entity: Option<ResponseContentEntity<DeliverContractError>> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
         Err(Error::ResponseError(local_var_error))
     }
@@ -139,7 +139,7 @@ pub async fn fulfill_contract(configuration: &configuration::Configuration, cont
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
         serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
-        let local_var_entity: Option<FulfillContractError> = serde_json::from_str(&local_var_content).ok();
+        let local_var_entity: Option<ResponseContentEntity<FulfillContractError>> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
         Err(Error::ResponseError(local_var_error))
     }
@@ -170,7 +170,7 @@ pub async fn get_contract(configuration: &configuration::Configuration, contract
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
         serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
-        let local_var_entity: Option<GetContractError> = serde_json::from_str(&local_var_content).ok();
+        let local_var_entity: Option<ResponseContentEntity<GetContractError>> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
         Err(Error::ResponseError(local_var_error))
     }
@@ -207,9 +207,10 @@ pub async fn get_contracts(configuration: &configuration::Configuration, page: O
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
         serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
-        let local_var_entity: Option<GetContractsError> = serde_json::from_str(&local_var_content).ok();
+        let local_var_entity: Option<ResponseContentEntity<GetContractsError>> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
         Err(Error::ResponseError(local_var_error))
     }
 }
 
+ 

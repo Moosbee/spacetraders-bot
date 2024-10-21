@@ -1,29 +1,26 @@
 use async_recursion::async_recursion;
 use chrono::{DateTime, Local};
+
+use log::{error,info};
+
 use serde_json::Value;
 use spaceTradersClient::apis::agents_api::get_my_agent;
 use spaceTradersClient::apis::configuration::Configuration;
 use spaceTradersClient::apis::contracts_api::{
-    accept_contract, deliver_contract, fulfill_contract, get_contract, get_contracts,
-    AcceptContractParams, DeliverContractParams, FulfillContractParams, GetContractParams,
-    GetContractsParams,
+    accept_contract, deliver_contract, fulfill_contract, get_contract, get_contracts
 };
-use spaceTradersClient::apis::default_api::{register, RegisterParams};
+use spaceTradersClient::apis::default_api::register;
 use spaceTradersClient::apis::fleet_api::{
     dock_ship, extract_resources, get_my_ship, get_my_ships, navigate_ship, orbit_ship,
-    purchase_ship, refuel_ship, sell_cargo, DockShipParams, ExtractResourcesParams,
-    GetMyShipParams, GetMyShipsParams, NavigateShipParams, OrbitShipParams, PurchaseShipParams,
-    RefuelShipParams, SellCargoParams,
+    purchase_ship, refuel_ship, sell_cargo
 };
 use spaceTradersClient::apis::systems_api::{
-    get_shipyard, get_system_waypoints, get_waypoint, GetShipyardParams, GetSystemWaypointsParams,
-    GetWaypointParams,
+    get_shipyard, get_system_waypoints, get_waypoint
 };
 use spaceTradersClient::apis::Error;
-use spaceTradersClient::models::register_request::Faction;
+use spaceTradersClient::models::Faction;
 use spaceTradersClient::models::{
-    Agent, Contract, DeliverContractRequest, NavigateShipRequest, PurchaseShipRequest,
-    Register201Response, Register201ResponseData, RegisterRequest, SellCargoRequest, Ship,
+    Agent, Contract, DeliverContractRequest, NavigateShipRequest, PurchaseShipRequest, Register201ResponseData, RegisterRequest, SellCargoRequest, Ship,
     ShipCargo, ShipFuel, ShipNav, ShipType, Shipyard, Waypoint,
 };
 
@@ -136,7 +133,7 @@ impl Api {
         }
     }
 
-    async fn handle_error(error: Error) -> ApiError {
+    async fn handle_error<T: std::fmt::Debug>(error: Error<T>) -> ApiError {
         match error {
             Error::Reqwest(re) => ApiError::Generic(ErrorInfo {
                 code: -1,

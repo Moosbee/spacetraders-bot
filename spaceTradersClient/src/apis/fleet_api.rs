@@ -12,7 +12,7 @@
 use reqwest;
 use serde::{Deserialize, Serialize};
 use crate::{apis::ResponseContent, models};
-use super::{Error, configuration};
+use super::{configuration, Error, ResponseContentEntity};
 
 
 /// struct for typed errors of method [`create_chart`]
@@ -279,7 +279,7 @@ pub async fn create_chart(configuration: &configuration::Configuration, ship_sym
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
         serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
-        let local_var_entity: Option<CreateChartError> = serde_json::from_str(&local_var_content).ok();
+        let local_var_entity: Option<ResponseContentEntity<CreateChartError>> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
         Err(Error::ResponseError(local_var_error))
     }
@@ -310,7 +310,7 @@ pub async fn create_ship_ship_scan(configuration: &configuration::Configuration,
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
         serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
-        let local_var_entity: Option<CreateShipShipScanError> = serde_json::from_str(&local_var_content).ok();
+        let local_var_entity: Option<ResponseContentEntity<CreateShipShipScanError>> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
         Err(Error::ResponseError(local_var_error))
     }
@@ -341,7 +341,7 @@ pub async fn create_ship_system_scan(configuration: &configuration::Configuratio
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
         serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
-        let local_var_entity: Option<CreateShipSystemScanError> = serde_json::from_str(&local_var_content).ok();
+        let local_var_entity: Option<ResponseContentEntity<CreateShipSystemScanError>> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
         Err(Error::ResponseError(local_var_error))
     }
@@ -372,7 +372,7 @@ pub async fn create_ship_waypoint_scan(configuration: &configuration::Configurat
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
         serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
-        let local_var_entity: Option<CreateShipWaypointScanError> = serde_json::from_str(&local_var_content).ok();
+        let local_var_entity: Option<ResponseContentEntity<CreateShipWaypointScanError>> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
         Err(Error::ResponseError(local_var_error))
     }
@@ -403,7 +403,7 @@ pub async fn create_survey(configuration: &configuration::Configuration, ship_sy
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
         serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
-        let local_var_entity: Option<CreateSurveyError> = serde_json::from_str(&local_var_content).ok();
+        let local_var_entity: Option<ResponseContentEntity<CreateSurveyError>> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
         Err(Error::ResponseError(local_var_error))
     }
@@ -434,7 +434,7 @@ pub async fn dock_ship(configuration: &configuration::Configuration, ship_symbol
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
         serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
-        let local_var_entity: Option<DockShipError> = serde_json::from_str(&local_var_content).ok();
+        let local_var_entity: Option<ResponseContentEntity<DockShipError>> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
         Err(Error::ResponseError(local_var_error))
     }
@@ -466,7 +466,7 @@ pub async fn extract_resources(configuration: &configuration::Configuration, shi
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
         serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
-        let local_var_entity: Option<ExtractResourcesError> = serde_json::from_str(&local_var_content).ok();
+        let local_var_entity: Option<ResponseContentEntity<ExtractResourcesError>> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
         Err(Error::ResponseError(local_var_error))
     }
@@ -498,7 +498,7 @@ pub async fn extract_resources_with_survey(configuration: &configuration::Config
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
         serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
-        let local_var_entity: Option<ExtractResourcesWithSurveyError> = serde_json::from_str(&local_var_content).ok();
+        let local_var_entity: Option<ResponseContentEntity<ExtractResourcesWithSurveyError>> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
         Err(Error::ResponseError(local_var_error))
     }
@@ -529,7 +529,7 @@ pub async fn get_mounts(configuration: &configuration::Configuration, ship_symbo
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
         serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
-        let local_var_entity: Option<GetMountsError> = serde_json::from_str(&local_var_content).ok();
+        let local_var_entity: Option<ResponseContentEntity<GetMountsError>> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
         Err(Error::ResponseError(local_var_error))
     }
@@ -560,7 +560,7 @@ pub async fn get_my_ship(configuration: &configuration::Configuration, ship_symb
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
         serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
-        let local_var_entity: Option<GetMyShipError> = serde_json::from_str(&local_var_content).ok();
+        let local_var_entity: Option<ResponseContentEntity<GetMyShipError>> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
         Err(Error::ResponseError(local_var_error))
     }
@@ -591,7 +591,7 @@ pub async fn get_my_ship_cargo(configuration: &configuration::Configuration, shi
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
         serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
-        let local_var_entity: Option<GetMyShipCargoError> = serde_json::from_str(&local_var_content).ok();
+        let local_var_entity: Option<ResponseContentEntity<GetMyShipCargoError>> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
         Err(Error::ResponseError(local_var_error))
     }
@@ -628,7 +628,7 @@ pub async fn get_my_ships(configuration: &configuration::Configuration, page: Op
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
         serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
-        let local_var_entity: Option<GetMyShipsError> = serde_json::from_str(&local_var_content).ok();
+        let local_var_entity: Option<ResponseContentEntity<GetMyShipsError>> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
         Err(Error::ResponseError(local_var_error))
     }
@@ -659,7 +659,7 @@ pub async fn get_repair_ship(configuration: &configuration::Configuration, ship_
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
         serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
-        let local_var_entity: Option<GetRepairShipError> = serde_json::from_str(&local_var_content).ok();
+        let local_var_entity: Option<ResponseContentEntity<GetRepairShipError>> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
         Err(Error::ResponseError(local_var_error))
     }
@@ -690,7 +690,7 @@ pub async fn get_scrap_ship(configuration: &configuration::Configuration, ship_s
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
         serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
-        let local_var_entity: Option<GetScrapShipError> = serde_json::from_str(&local_var_content).ok();
+        let local_var_entity: Option<ResponseContentEntity<GetScrapShipError>> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
         Err(Error::ResponseError(local_var_error))
     }
@@ -721,7 +721,7 @@ pub async fn get_ship_cooldown(configuration: &configuration::Configuration, shi
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
         serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
-        let local_var_entity: Option<GetShipCooldownError> = serde_json::from_str(&local_var_content).ok();
+        let local_var_entity: Option<ResponseContentEntity<GetShipCooldownError>> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
         Err(Error::ResponseError(local_var_error))
     }
@@ -752,7 +752,7 @@ pub async fn get_ship_nav(configuration: &configuration::Configuration, ship_sym
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
         serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
-        let local_var_entity: Option<GetShipNavError> = serde_json::from_str(&local_var_content).ok();
+        let local_var_entity: Option<ResponseContentEntity<GetShipNavError>> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
         Err(Error::ResponseError(local_var_error))
     }
@@ -784,7 +784,7 @@ pub async fn install_mount(configuration: &configuration::Configuration, ship_sy
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
         serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
-        let local_var_entity: Option<InstallMountError> = serde_json::from_str(&local_var_content).ok();
+        let local_var_entity: Option<ResponseContentEntity<InstallMountError>> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
         Err(Error::ResponseError(local_var_error))
     }
@@ -816,7 +816,7 @@ pub async fn jettison(configuration: &configuration::Configuration, ship_symbol:
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
         serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
-        let local_var_entity: Option<JettisonError> = serde_json::from_str(&local_var_content).ok();
+        let local_var_entity: Option<ResponseContentEntity<JettisonError>> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
         Err(Error::ResponseError(local_var_error))
     }
@@ -848,7 +848,7 @@ pub async fn jump_ship(configuration: &configuration::Configuration, ship_symbol
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
         serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
-        let local_var_entity: Option<JumpShipError> = serde_json::from_str(&local_var_content).ok();
+        let local_var_entity: Option<ResponseContentEntity<JumpShipError>> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
         Err(Error::ResponseError(local_var_error))
     }
@@ -880,7 +880,7 @@ pub async fn navigate_ship(configuration: &configuration::Configuration, ship_sy
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
         serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
-        let local_var_entity: Option<NavigateShipError> = serde_json::from_str(&local_var_content).ok();
+        let local_var_entity: Option<ResponseContentEntity<NavigateShipError>> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
         Err(Error::ResponseError(local_var_error))
     }
@@ -911,7 +911,7 @@ pub async fn negotiate_contract(configuration: &configuration::Configuration, sh
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
         serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
-        let local_var_entity: Option<NegotiateContractError> = serde_json::from_str(&local_var_content).ok();
+        let local_var_entity: Option<ResponseContentEntity<NegotiateContractError>> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
         Err(Error::ResponseError(local_var_error))
     }
@@ -942,7 +942,7 @@ pub async fn orbit_ship(configuration: &configuration::Configuration, ship_symbo
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
         serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
-        let local_var_entity: Option<OrbitShipError> = serde_json::from_str(&local_var_content).ok();
+        let local_var_entity: Option<ResponseContentEntity<OrbitShipError>> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
         Err(Error::ResponseError(local_var_error))
     }
@@ -974,7 +974,7 @@ pub async fn patch_ship_nav(configuration: &configuration::Configuration, ship_s
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
         serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
-        let local_var_entity: Option<PatchShipNavError> = serde_json::from_str(&local_var_content).ok();
+        let local_var_entity: Option<ResponseContentEntity<PatchShipNavError>> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
         Err(Error::ResponseError(local_var_error))
     }
@@ -1006,7 +1006,7 @@ pub async fn purchase_cargo(configuration: &configuration::Configuration, ship_s
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
         serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
-        let local_var_entity: Option<PurchaseCargoError> = serde_json::from_str(&local_var_content).ok();
+        let local_var_entity: Option<ResponseContentEntity<PurchaseCargoError>> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
         Err(Error::ResponseError(local_var_error))
     }
@@ -1038,7 +1038,7 @@ pub async fn purchase_ship(configuration: &configuration::Configuration, purchas
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
         serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
-        let local_var_entity: Option<PurchaseShipError> = serde_json::from_str(&local_var_content).ok();
+        let local_var_entity: Option<ResponseContentEntity<PurchaseShipError>> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
         Err(Error::ResponseError(local_var_error))
     }
@@ -1070,7 +1070,7 @@ pub async fn refuel_ship(configuration: &configuration::Configuration, ship_symb
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
         serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
-        let local_var_entity: Option<RefuelShipError> = serde_json::from_str(&local_var_content).ok();
+        let local_var_entity: Option<ResponseContentEntity<RefuelShipError>> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
         Err(Error::ResponseError(local_var_error))
     }
@@ -1102,7 +1102,7 @@ pub async fn remove_mount(configuration: &configuration::Configuration, ship_sym
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
         serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
-        let local_var_entity: Option<RemoveMountError> = serde_json::from_str(&local_var_content).ok();
+        let local_var_entity: Option<ResponseContentEntity<RemoveMountError>> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
         Err(Error::ResponseError(local_var_error))
     }
@@ -1133,7 +1133,7 @@ pub async fn repair_ship(configuration: &configuration::Configuration, ship_symb
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
         serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
-        let local_var_entity: Option<RepairShipError> = serde_json::from_str(&local_var_content).ok();
+        let local_var_entity: Option<ResponseContentEntity<RepairShipError>> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
         Err(Error::ResponseError(local_var_error))
     }
@@ -1164,7 +1164,7 @@ pub async fn scrap_ship(configuration: &configuration::Configuration, ship_symbo
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
         serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
-        let local_var_entity: Option<ScrapShipError> = serde_json::from_str(&local_var_content).ok();
+        let local_var_entity: Option<ResponseContentEntity<ScrapShipError>> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
         Err(Error::ResponseError(local_var_error))
     }
@@ -1196,7 +1196,7 @@ pub async fn sell_cargo(configuration: &configuration::Configuration, ship_symbo
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
         serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
-        let local_var_entity: Option<SellCargoError> = serde_json::from_str(&local_var_content).ok();
+        let local_var_entity: Option<ResponseContentEntity<SellCargoError>> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
         Err(Error::ResponseError(local_var_error))
     }
@@ -1228,7 +1228,7 @@ pub async fn ship_refine(configuration: &configuration::Configuration, ship_symb
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
         serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
-        let local_var_entity: Option<ShipRefineError> = serde_json::from_str(&local_var_content).ok();
+        let local_var_entity: Option<ResponseContentEntity<ShipRefineError>> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
         Err(Error::ResponseError(local_var_error))
     }
@@ -1259,7 +1259,7 @@ pub async fn siphon_resources(configuration: &configuration::Configuration, ship
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
         serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
-        let local_var_entity: Option<SiphonResourcesError> = serde_json::from_str(&local_var_content).ok();
+        let local_var_entity: Option<ResponseContentEntity<SiphonResourcesError>> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
         Err(Error::ResponseError(local_var_error))
     }
@@ -1291,7 +1291,7 @@ pub async fn transfer_cargo(configuration: &configuration::Configuration, ship_s
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
         serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
-        let local_var_entity: Option<TransferCargoError> = serde_json::from_str(&local_var_content).ok();
+        let local_var_entity: Option<ResponseContentEntity<TransferCargoError>> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
         Err(Error::ResponseError(local_var_error))
     }
@@ -1323,7 +1323,7 @@ pub async fn warp_ship(configuration: &configuration::Configuration, ship_symbol
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
         serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
-        let local_var_entity: Option<WarpShipError> = serde_json::from_str(&local_var_content).ok();
+        let local_var_entity: Option<ResponseContentEntity<WarpShipError>> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
         Err(Error::ResponseError(local_var_error))
     }

@@ -12,7 +12,7 @@
 use reqwest;
 use serde::{Deserialize, Serialize};
 use crate::{apis::ResponseContent, models};
-use super::{Error, configuration};
+use super::{configuration, Error, ResponseContentEntity};
 
 
 /// struct for typed errors of method [`get_faction`]
@@ -55,7 +55,7 @@ pub async fn get_faction(configuration: &configuration::Configuration, faction_s
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
         serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
-        let local_var_entity: Option<GetFactionError> = serde_json::from_str(&local_var_content).ok();
+        let local_var_entity: Option<ResponseContentEntity<GetFactionError>> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
         Err(Error::ResponseError(local_var_error))
     }
@@ -92,7 +92,7 @@ pub async fn get_factions(configuration: &configuration::Configuration, page: Op
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
         serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
-        let local_var_entity: Option<GetFactionsError> = serde_json::from_str(&local_var_content).ok();
+        let local_var_entity: Option<ResponseContentEntity<GetFactionsError>> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
         Err(Error::ResponseError(local_var_error))
     }

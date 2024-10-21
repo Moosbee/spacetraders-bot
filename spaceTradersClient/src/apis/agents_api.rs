@@ -12,7 +12,7 @@
 use reqwest;
 use serde::{Deserialize, Serialize};
 use crate::{apis::ResponseContent, models};
-use super::{Error, configuration};
+use super::{configuration, Error, ResponseContentEntity};
 
 
 /// struct for typed errors of method [`get_agent`]
@@ -62,7 +62,7 @@ pub async fn get_agent(configuration: &configuration::Configuration, agent_symbo
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
         serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
-        let local_var_entity: Option<GetAgentError> = serde_json::from_str(&local_var_content).ok();
+        let local_var_entity: Option<ResponseContentEntity<GetAgentError>> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
         Err(Error::ResponseError(local_var_error))
     }
@@ -99,7 +99,7 @@ pub async fn get_agents(configuration: &configuration::Configuration, page: Opti
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
         serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
-        let local_var_entity: Option<GetAgentsError> = serde_json::from_str(&local_var_content).ok();
+        let local_var_entity: Option<ResponseContentEntity<GetAgentsError>> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
         Err(Error::ResponseError(local_var_error))
     }
@@ -130,7 +130,7 @@ pub async fn get_my_agent(configuration: &configuration::Configuration, ) -> Res
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
         serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
-        let local_var_entity: Option<GetMyAgentError> = serde_json::from_str(&local_var_content).ok();
+        let local_var_entity: Option<ResponseContentEntity<GetMyAgentError>> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
         Err(Error::ResponseError(local_var_error))
     }

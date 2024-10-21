@@ -12,7 +12,7 @@
 use reqwest;
 use serde::{Deserialize, Serialize};
 use crate::{apis::ResponseContent, models};
-use super::{Error, configuration};
+use super::{configuration, Error, ResponseContentEntity};
 
 
 /// struct for typed errors of method [`get_construction`]
@@ -104,7 +104,7 @@ pub async fn get_construction(configuration: &configuration::Configuration, syst
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
         serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
-        let local_var_entity: Option<GetConstructionError> = serde_json::from_str(&local_var_content).ok();
+        let local_var_entity: Option<ResponseContentEntity<GetConstructionError>> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
         Err(Error::ResponseError(local_var_error))
     }
@@ -135,7 +135,7 @@ pub async fn get_jump_gate(configuration: &configuration::Configuration, system_
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
         serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
-        let local_var_entity: Option<GetJumpGateError> = serde_json::from_str(&local_var_content).ok();
+        let local_var_entity: Option<ResponseContentEntity<GetJumpGateError>> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
         Err(Error::ResponseError(local_var_error))
     }
@@ -166,7 +166,7 @@ pub async fn get_market(configuration: &configuration::Configuration, system_sym
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
         serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
-        let local_var_entity: Option<GetMarketError> = serde_json::from_str(&local_var_content).ok();
+        let local_var_entity: Option<ResponseContentEntity<GetMarketError>> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
         Err(Error::ResponseError(local_var_error))
     }
@@ -197,7 +197,7 @@ pub async fn get_shipyard(configuration: &configuration::Configuration, system_s
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
         serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
-        let local_var_entity: Option<GetShipyardError> = serde_json::from_str(&local_var_content).ok();
+        let local_var_entity: Option<ResponseContentEntity<GetShipyardError>> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
         Err(Error::ResponseError(local_var_error))
     }
@@ -228,7 +228,7 @@ pub async fn get_system(configuration: &configuration::Configuration, system_sym
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
         serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
-        let local_var_entity: Option<GetSystemError> = serde_json::from_str(&local_var_content).ok();
+        let local_var_entity: Option<ResponseContentEntity<GetSystemError>> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
         Err(Error::ResponseError(local_var_error))
     }
@@ -271,7 +271,7 @@ pub async fn get_system_waypoints(configuration: &configuration::Configuration, 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
         serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
-        let local_var_entity: Option<GetSystemWaypointsError> = serde_json::from_str(&local_var_content).ok();
+        let local_var_entity: Option<ResponseContentEntity<GetSystemWaypointsError>> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
         Err(Error::ResponseError(local_var_error))
     }
@@ -308,7 +308,7 @@ pub async fn get_systems(configuration: &configuration::Configuration, page: Opt
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
         serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
-        let local_var_entity: Option<GetSystemsError> = serde_json::from_str(&local_var_content).ok();
+        let local_var_entity: Option<ResponseContentEntity<GetSystemsError>> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
         Err(Error::ResponseError(local_var_error))
     }
@@ -339,7 +339,7 @@ pub async fn get_waypoint(configuration: &configuration::Configuration, system_s
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
         serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
-        let local_var_entity: Option<GetWaypointError> = serde_json::from_str(&local_var_content).ok();
+        let local_var_entity: Option<ResponseContentEntity<GetWaypointError>> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
         Err(Error::ResponseError(local_var_error))
     }
@@ -371,7 +371,7 @@ pub async fn supply_construction(configuration: &configuration::Configuration, s
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
         serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
-        let local_var_entity: Option<SupplyConstructionError> = serde_json::from_str(&local_var_content).ok();
+        let local_var_entity: Option<ResponseContentEntity<SupplyConstructionError>> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
         Err(Error::ResponseError(local_var_error))
     }

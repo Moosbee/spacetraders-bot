@@ -1,12 +1,14 @@
 use std::error;
 use std::fmt;
 
-#[derive(Debug, Clone)]
-pub struct ResponseContent<T> {
-    pub status: reqwest::StatusCode,
-    pub content: String,
-    pub entity: Option<T>,
-}
+use serde::{Deserialize, Serialize};
+
+// #[derive(Debug, Clone)]
+// pub struct ResponseContent<T> {
+//     pub status: reqwest::StatusCode,
+//     pub content: String,
+//     pub entity: Option<T>,
+// }
 
 #[derive(Debug)]
 pub enum Error<T> {
@@ -14,6 +16,26 @@ pub enum Error<T> {
     Serde(serde_json::Error),
     Io(std::io::Error),
     ResponseError(ResponseContent<T>),
+}
+
+
+#[derive(Debug, Clone)]
+pub struct ResponseContent<T> {
+    pub status: reqwest::StatusCode,
+    pub content: String,
+    pub entity: Option<ResponseContentEntity<T>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ResponseContentEntityData<T> {
+    pub message: String,
+    pub code: u32,
+    pub data: T,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ResponseContentEntity<T> {
+    pub error: ResponseContentEntityData<T>,
 }
 
 impl <T> fmt::Display for Error<T> {
