@@ -3,6 +3,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use governor::{Quota, RateLimiter};
+use log::debug;
 use space_traders_client::apis::agents_api::{GetAgentError, GetAgentsError, GetMyAgentError};
 use space_traders_client::apis::configuration::Configuration;
 use space_traders_client::apis::contracts_api::{
@@ -25,82 +26,82 @@ use space_traders_client::apis::systems_api::{
     GetConstructionError, GetJumpGateError, GetMarketError, GetShipyardError, GetSystemError,
     GetSystemWaypointsError, GetSystemsError, GetWaypointError, SupplyConstructionError,
 };
-use space_traders_client::apis::Error;
-use space_traders_client::models::{self, FactionSymbol};
+use space_traders_client::apis::{Error, ResponseContent, ResponseContentEntity};
+use space_traders_client::models::{self, FactionSymbol, System};
 use space_traders_client::models::{Register201ResponseData, RegisterRequest};
 
-// General error codes
-const UNAUTHORIZED: u32 = 401;
-const COOLDOWN_CONFLICT_ERROR: u32 = 4000;
-const WAYPOINT_NO_ACCESS_ERROR: u32 = 4001;
-const TOKEN_EMPTY_ERROR: u32 = 4100;
-// Account error codes
-const TOKEN_MISSING_SUBJECT_ERROR: u32 = 4101;
-const TOKEN_INVALID_SUBJECT_ERROR: u32 = 4102;
-const MISSING_TOKEN_REQUEST_ERROR: u32 = 4103;
-const INVALID_TOKEN_REQUEST_ERROR: u32 = 4104;
-const INVALID_TOKEN_SUBJECT_ERROR: u32 = 4105;
-const ACCOUNT_NOT_EXISTS_ERROR: u32 = 4106;
-const AGENT_NOT_EXISTS_ERROR: u32 = 4107;
-const ACCOUNT_HAS_NO_AGENT_ERROR: u32 = 4108;
-const REGISTER_AGENT_EXISTS_ERROR: u32 = 4109;
-// Ship error codes
-const NAVIGATE_IN_TRANSIT_ERROR: u32 = 4200;
-const NAVIGATE_INVALID_DESTINATION_ERROR: u32 = 4201;
-const NAVIGATE_OUTSIDE_SYSTEM_ERROR: u32 = 4202;
-const NAVIGATE_INSUFFICIENT_FUEL_ERROR: u32 = 4203;
-const NAVIGATE_SAME_DESTINATION_ERROR: u32 = 4204;
-const SHIP_EXTRACT_INVALID_WAYPOINT_ERROR: u32 = 4205;
-const SHIP_EXTRACT_PERMISSION_ERROR: u32 = 4206;
-const SHIP_JUMP_NO_SYSTEM_ERROR: u32 = 4207;
-const SHIP_JUMP_SAME_SYSTEM_ERROR: u32 = 4208;
-const SHIP_JUMP_MISSING_MODULE_ERROR: u32 = 4210;
-const SHIP_JUMP_NO_VALID_WAYPOINT_ERROR: u32 = 4211;
-const SHIP_JUMP_MISSING_ANTIMATTER_ERROR: u32 = 4212;
-const SHIP_IN_TRANSIT_ERROR: u32 = 4214;
-const SHIP_MISSING_SENSOR_ARRAYS_ERROR: u32 = 4215;
-const PURCHASE_SHIP_CREDITS_ERROR: u32 = 4216;
-const SHIP_CARGO_EXCEEDS_LIMIT_ERROR: u32 = 4217;
-const SHIP_CARGO_MISSING_ERROR: u32 = 4218;
-const SHIP_CARGO_UNIT_COUNT_ERROR: u32 = 4219;
-const SHIP_SURVEY_VERIFICATION_ERROR: u32 = 4220;
-const SHIP_SURVEY_EXPIRATION_ERROR: u32 = 4221;
-const SHIP_SURVEY_WAYPOINT_TYPE_ERROR: u32 = 4222;
-const SHIP_SURVEY_ORBIT_ERROR: u32 = 4223;
-const SHIP_SURVEY_EXHAUSTED_ERROR: u32 = 4224;
-const SHIP_REFUEL_DOCKED_ERROR: u32 = 4225;
-const SHIP_REFUEL_INVALID_WAYPOINT_ERROR: u32 = 4226;
-const SHIP_MISSING_MOUNTS_ERROR: u32 = 4227;
-const SHIP_CARGO_FULL_ERROR: u32 = 4228;
-const SHIP_JUMP_FROM_GATE_TO_GATE_ERROR: u32 = 4229;
-const WAYPOINT_CHARTED_ERROR: u32 = 4230;
-const SHIP_TRANSFER_SHIP_NOT_FOUND: u32 = 4231;
-const SHIP_TRANSFER_AGENT_CONFLICT: u32 = 4232;
-const SHIP_TRANSFER_SAME_SHIP_CONFLICT: u32 = 4233;
-const SHIP_TRANSFER_LOCATION_CONFLICT: u32 = 4234;
-const WARP_INSIDE_SYSTEM_ERROR: u32 = 4235;
-const SHIP_NOT_IN_ORBIT_ERROR: u32 = 4236;
-const SHIP_INVALID_REFINERY_GOOD_ERROR: u32 = 4237;
-const SHIP_INVALID_REFINERY_TYPE_ERROR: u32 = 4238;
-const SHIP_MISSING_REFINERY_ERROR: u32 = 4239;
-const SHIP_MISSING_SURVEYOR_ERROR: u32 = 4240;
-// Contract error codes
-const ACCEPT_CONTRACT_NOT_AUTHORIZED_ERROR: u32 = 4500;
-const ACCEPT_CONTRACT_CONFLICT_ERROR: u32 = 4501;
-const FULFILL_CONTRACT_DELIVERY_ERROR: u32 = 4502;
-const CONTRACT_DEADLINE_ERROR: u32 = 4503;
-const CONTRACT_FULFILLED_ERROR: u32 = 4504;
-const CONTRACT_NOT_ACCEPTED_ERROR: u32 = 4505;
-const CONTRACT_NOT_AUTHORIZED_ERROR: u32 = 4506;
-const SHIP_DELIVER_TERMS_ERROR: u32 = 4508;
-const SHIP_DELIVER_FULFILLED_ERROR: u32 = 4509;
-const SHIP_DELIVER_INVALID_LOCATION_ERROR: u32 = 4510;
-// Market error codes
-const MARKET_TRADE_INSUFFICIENT_CREDITS_ERROR: u32 = 4600;
-const MARKET_TRADE_NO_PURCHASE_ERROR: u32 = 4601;
-const MARKET_TRADE_NOT_SOLD_ERROR: u32 = 4602;
-const MARKET_NOT_FOUND_ERROR: u32 = 4603;
-const MARKET_TRADE_UNIT_LIMIT_ERROR: u32 = 4604;
+// // General error codes
+// const UNAUTHORIZED: u32 = 401;
+// const COOLDOWN_CONFLICT_ERROR: u32 = 4000;
+// const WAYPOINT_NO_ACCESS_ERROR: u32 = 4001;
+// const TOKEN_EMPTY_ERROR: u32 = 4100;
+// // Account error codes
+// const TOKEN_MISSING_SUBJECT_ERROR: u32 = 4101;
+// const TOKEN_INVALID_SUBJECT_ERROR: u32 = 4102;
+// const MISSING_TOKEN_REQUEST_ERROR: u32 = 4103;
+// const INVALID_TOKEN_REQUEST_ERROR: u32 = 4104;
+// const INVALID_TOKEN_SUBJECT_ERROR: u32 = 4105;
+// const ACCOUNT_NOT_EXISTS_ERROR: u32 = 4106;
+// const AGENT_NOT_EXISTS_ERROR: u32 = 4107;
+// const ACCOUNT_HAS_NO_AGENT_ERROR: u32 = 4108;
+// const REGISTER_AGENT_EXISTS_ERROR: u32 = 4109;
+// // Ship error codes
+// const NAVIGATE_IN_TRANSIT_ERROR: u32 = 4200;
+// const NAVIGATE_INVALID_DESTINATION_ERROR: u32 = 4201;
+// const NAVIGATE_OUTSIDE_SYSTEM_ERROR: u32 = 4202;
+// const NAVIGATE_INSUFFICIENT_FUEL_ERROR: u32 = 4203;
+// const NAVIGATE_SAME_DESTINATION_ERROR: u32 = 4204;
+// const SHIP_EXTRACT_INVALID_WAYPOINT_ERROR: u32 = 4205;
+// const SHIP_EXTRACT_PERMISSION_ERROR: u32 = 4206;
+// const SHIP_JUMP_NO_SYSTEM_ERROR: u32 = 4207;
+// const SHIP_JUMP_SAME_SYSTEM_ERROR: u32 = 4208;
+// const SHIP_JUMP_MISSING_MODULE_ERROR: u32 = 4210;
+// const SHIP_JUMP_NO_VALID_WAYPOINT_ERROR: u32 = 4211;
+// const SHIP_JUMP_MISSING_ANTIMATTER_ERROR: u32 = 4212;
+// const SHIP_IN_TRANSIT_ERROR: u32 = 4214;
+// const SHIP_MISSING_SENSOR_ARRAYS_ERROR: u32 = 4215;
+// const PURCHASE_SHIP_CREDITS_ERROR: u32 = 4216;
+// const SHIP_CARGO_EXCEEDS_LIMIT_ERROR: u32 = 4217;
+// const SHIP_CARGO_MISSING_ERROR: u32 = 4218;
+// const SHIP_CARGO_UNIT_COUNT_ERROR: u32 = 4219;
+// const SHIP_SURVEY_VERIFICATION_ERROR: u32 = 4220;
+// const SHIP_SURVEY_EXPIRATION_ERROR: u32 = 4221;
+// const SHIP_SURVEY_WAYPOINT_TYPE_ERROR: u32 = 4222;
+// const SHIP_SURVEY_ORBIT_ERROR: u32 = 4223;
+// const SHIP_SURVEY_EXHAUSTED_ERROR: u32 = 4224;
+// const SHIP_REFUEL_DOCKED_ERROR: u32 = 4225;
+// const SHIP_REFUEL_INVALID_WAYPOINT_ERROR: u32 = 4226;
+// const SHIP_MISSING_MOUNTS_ERROR: u32 = 4227;
+// const SHIP_CARGO_FULL_ERROR: u32 = 4228;
+// const SHIP_JUMP_FROM_GATE_TO_GATE_ERROR: u32 = 4229;
+// const WAYPOINT_CHARTED_ERROR: u32 = 4230;
+// const SHIP_TRANSFER_SHIP_NOT_FOUND: u32 = 4231;
+// const SHIP_TRANSFER_AGENT_CONFLICT: u32 = 4232;
+// const SHIP_TRANSFER_SAME_SHIP_CONFLICT: u32 = 4233;
+// const SHIP_TRANSFER_LOCATION_CONFLICT: u32 = 4234;
+// const WARP_INSIDE_SYSTEM_ERROR: u32 = 4235;
+// const SHIP_NOT_IN_ORBIT_ERROR: u32 = 4236;
+// const SHIP_INVALID_REFINERY_GOOD_ERROR: u32 = 4237;
+// const SHIP_INVALID_REFINERY_TYPE_ERROR: u32 = 4238;
+// const SHIP_MISSING_REFINERY_ERROR: u32 = 4239;
+// const SHIP_MISSING_SURVEYOR_ERROR: u32 = 4240;
+// // Contract error codes
+// const ACCEPT_CONTRACT_NOT_AUTHORIZED_ERROR: u32 = 4500;
+// const ACCEPT_CONTRACT_CONFLICT_ERROR: u32 = 4501;
+// const FULFILL_CONTRACT_DELIVERY_ERROR: u32 = 4502;
+// const CONTRACT_DEADLINE_ERROR: u32 = 4503;
+// const CONTRACT_FULFILLED_ERROR: u32 = 4504;
+// const CONTRACT_NOT_ACCEPTED_ERROR: u32 = 4505;
+// const CONTRACT_NOT_AUTHORIZED_ERROR: u32 = 4506;
+// const SHIP_DELIVER_TERMS_ERROR: u32 = 4508;
+// const SHIP_DELIVER_FULFILLED_ERROR: u32 = 4509;
+// const SHIP_DELIVER_INVALID_LOCATION_ERROR: u32 = 4510;
+// // Market error codes
+// const MARKET_TRADE_INSUFFICIENT_CREDITS_ERROR: u32 = 4600;
+// const MARKET_TRADE_NO_PURCHASE_ERROR: u32 = 4601;
+// const MARKET_TRADE_NOT_SOLD_ERROR: u32 = 4602;
+// const MARKET_NOT_FOUND_ERROR: u32 = 4603;
+// const MARKET_TRADE_UNIT_LIMIT_ERROR: u32 = 4604;
 
 #[derive(Debug, Clone)]
 pub struct Api {
@@ -193,6 +194,40 @@ impl Api {
         Ok(result)
     }
 
+    pub async fn get_all_agents(
+        &self,
+        limit: i32,
+    ) -> Result<Vec<models::Agent>, Error<GetAgentsError>> {
+        if !(limit >= 1 && limit <= 20) {
+            panic!("Invalid limit must be between 1 and 20");
+        }
+        let mut current_page = 1;
+
+        let mut agents = Vec::new();
+
+        loop {
+            let page = self.get_agents(Some(current_page), Some(limit)).await?;
+            agents.extend(page.data);
+            let total = page.meta.total;
+
+            debug!(
+                "limit: {}, page {} of {}, agents: {} of {}",
+                limit,
+                current_page,
+                total / limit + 1,
+                agents.len(),
+                total
+            );
+
+            if agents.len() >= total.try_into().unwrap() {
+                break;
+            }
+
+            current_page += 1;
+        }
+        Ok(agents)
+    }
+
     /// Fetch your agent's details.
     pub async fn get_my_agent(
         &self,
@@ -283,6 +318,41 @@ impl Api {
         Ok(result)
     }
 
+    /// Returns ALL your contracts.
+    pub async fn get_all_contracts(
+        &self,
+        limit: i32,
+    ) -> Result<Vec<models::Contract>, Error<GetContractsError>> {
+        if !(limit >= 1 && limit <= 20) {
+            panic!("Invalid limit must be between 1 and 20");
+        }
+        let mut current_page = 1;
+
+        let mut contracts: Vec<models::Contract> = Vec::new();
+
+        loop {
+            let page = self.get_contracts(Some(current_page), Some(limit)).await?;
+            contracts.extend(page.data);
+            let total = page.meta.total;
+
+            debug!(
+                "limit: {}, page {} of {}, contracts: {} of {}",
+                limit,
+                current_page,
+                total / limit + 1,
+                contracts.len(),
+                total
+            );
+
+            if contracts.len() >= total.try_into().unwrap() {
+                break;
+            }
+
+            current_page += 1;
+        }
+        Ok(contracts)
+    }
+
     /// View the details of a faction.
     pub async fn get_faction(
         &self,
@@ -313,6 +383,40 @@ impl Api {
         .await?;
 
         Ok(result)
+    }
+
+    pub async fn get_all_factions(
+        &self,
+        limit: i32,
+    ) -> Result<Vec<models::Faction>, Error<GetFactionsError>> {
+        if !(limit >= 1 && limit <= 20) {
+            panic!("Invalid limit must be between 1 and 20");
+        }
+        let mut current_page = 1;
+
+        let mut factions: Vec<models::Faction> = Vec::new();
+
+        loop {
+            let page = self.get_factions(Some(current_page), Some(limit)).await?;
+            factions.extend(page.data);
+            let total = page.meta.total;
+
+            debug!(
+                "limit: {}, page {} of {}, factions: {} of {}",
+                limit,
+                current_page,
+                total / limit + 1,
+                factions.len(),
+                total
+            );
+
+            if factions.len() >= total.try_into().unwrap() {
+                break;
+            }
+
+            current_page += 1;
+        }
+        Ok(factions)
     }
 
     /// Command a ship to chart the waypoint at its current location.  Most waypoints in the universe are uncharted by default. These waypoints have their traits hidden until they have been charted by a ship.  Charting a waypoint will record your agent as the one who created the chart, and all other agents would also be able to see the waypoint's traits.
@@ -486,6 +590,41 @@ impl Api {
                 .await?;
 
         Ok(result)
+    }
+
+    /// Returns ALL ships under your agent's ownership.
+    pub async fn get_all_my_ships(
+        &self,
+        limit: i32,
+    ) -> Result<Vec<models::Ship>, Error<GetMyShipsError>> {
+        if !(limit >= 1 && limit <= 20) {
+            panic!("Invalid limit must be between 1 and 20");
+        }
+        let mut current_page = 1;
+
+        let mut ships: Vec<models::Ship> = Vec::new();
+
+        loop {
+            let page = self.get_my_ships(Some(current_page), Some(limit)).await?;
+            ships.extend(page.data);
+            let total = page.meta.total;
+
+            debug!(
+                "limit: {}, page {} of {}, ships: {} of {}",
+                limit,
+                current_page,
+                total / limit + 1,
+                ships.len(),
+                total
+            );
+
+            if ships.len() >= total.try_into().unwrap() {
+                break;
+            }
+
+            current_page += 1;
+        }
+        Ok(ships)
     }
 
     /// Get the cost of repairing a ship.
@@ -936,6 +1075,44 @@ impl Api {
         Ok(result)
     }
 
+    /// Returns ALL waypoints for a given system.  If a waypoint is uncharted, it will return the `Uncharted` trait instead of its actual traits.
+    pub async fn get_all_waypoints(
+        &self,
+        system_symbol: &str,
+        limit: i32,
+    ) -> Result<Vec<models::Waypoint>, Error<GetSystemWaypointsError>> {
+        if !(limit >= 1 && limit <= 20) {
+            panic!("Invalid limit must be between 1 and 20");
+        }
+        let mut current_page = 1;
+
+        let mut waypoints = Vec::new();
+
+        loop {
+            let page = self
+                .get_system_waypoints(system_symbol, Some(current_page), Some(limit), None, None)
+                .await?;
+            waypoints.extend(page.data);
+            let total = page.meta.total;
+
+            debug!(
+                "limit: {}, page {} of {}, waypoints: {} of {}",
+                limit,
+                current_page,
+                total / limit + 1,
+                waypoints.len(),
+                total
+            );
+
+            if waypoints.len() >= total.try_into().unwrap() {
+                break;
+            }
+
+            current_page += 1;
+        }
+        Ok(waypoints)
+    }
+
     /// Return a paginated list of all systems.
     pub async fn get_systems(
         &self,
@@ -948,6 +1125,80 @@ impl Api {
                 .await?;
 
         Ok(result)
+    }
+
+    /// Return a list of ALL systems by paginating over all pages.
+    pub async fn get_all_systems(&self, limit: i32) -> Result<Vec<System>, Error<GetSystemsError>> {
+        if !(limit >= 1 && limit <= 20) {
+            panic!("Invalid limit must be between 1 and 20");
+        }
+        let mut current_page = 1;
+
+        let mut systems = Vec::new();
+
+        loop {
+            let page = self.get_systems(Some(current_page), Some(limit)).await?;
+            systems.extend(page.data);
+            let total = page.meta.total;
+
+            debug!(
+                "limit: {}, page {} of {}, systems: {} of {}",
+                limit,
+                current_page,
+                total / limit + 1,
+                systems.len(),
+                total
+            );
+
+            if systems.len() >= total.try_into().unwrap() {
+                break;
+            }
+
+            current_page += 1;
+        }
+
+        debug!("total systems: {}", systems.len());
+
+        Ok(systems)
+    }
+
+    /// Return a list of ALL systems using the undocumented `/systems.json` endpoint
+    pub async fn get_all_systems_json(&self) -> Result<Vec<System>, Error<GetSystemsError>> {
+        self.limiter.until_ready().await;
+        let local_var_configuration = &self.configuration;
+
+        let local_var_client = &local_var_configuration.client;
+
+        let local_var_uri_str = format!("{}/systems.json", local_var_configuration.base_path);
+        let mut local_var_req_builder =
+            local_var_client.request(reqwest::Method::GET, local_var_uri_str.as_str());
+
+        if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
+            local_var_req_builder = local_var_req_builder
+                .header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
+        }
+        if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+            local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+        };
+
+        let local_var_req = local_var_req_builder.build()?;
+        let local_var_resp = local_var_client.execute(local_var_req).await?;
+
+        let local_var_status = local_var_resp.status();
+        let local_var_content = local_var_resp.text().await?;
+
+        if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
+            serde_json::from_str(&local_var_content).map_err(Error::from)
+        } else {
+            let local_var_entity: Option<ResponseContentEntity<GetSystemsError>> =
+                serde_json::from_str(&local_var_content).ok();
+            let local_var_error = ResponseContent {
+                status: local_var_status,
+                content: local_var_content,
+                entity: local_var_entity,
+            };
+            Err(Error::ResponseError(local_var_error))
+        }
     }
 
     /// View the details of a waypoint.  If the waypoint is uncharted, it will return the 'Uncharted' trait instead of its actual traits.
