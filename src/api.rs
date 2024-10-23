@@ -117,7 +117,7 @@ pub struct Api {
 }
 
 impl Api {
-    pub fn new(access_token: String, quota: u64, burst: NonZeroU32) -> Api {
+    pub fn new(access_token: Option<String>, quota: u64, burst: NonZeroU32) -> Api {
         // Create a rate limiter: 2 requests per 1 seconds
         // let quota = Quota::with_period(Duration::from_millis(550)).unwrap();
         let quota = Quota::with_period(Duration::from_millis(quota))
@@ -130,7 +130,7 @@ impl Api {
 
         Api {
             configuration: Configuration {
-                bearer_access_token: Some(access_token),
+                bearer_access_token: access_token,
                 client: reqwest::Client::new(),
                 ..Default::default()
             },
@@ -244,6 +244,9 @@ impl Api {
         &self,
         contract_id: &str,
     ) -> Result<models::AcceptContract200Response, Error<AcceptContractError>> {
+        if self.configuration.bearer_access_token.is_none() {
+            panic!("Invalid bearer_access_token");
+        }
         self.limiter.until_ready().await;
         let result = space_traders_client::apis::contracts_api::accept_contract(
             &self.configuration,
@@ -260,6 +263,9 @@ impl Api {
         contract_id: &str,
         deliver_contract_request: Option<models::DeliverContractRequest>,
     ) -> Result<models::DeliverContract200Response, Error<DeliverContractError>> {
+        if self.configuration.bearer_access_token.is_none() {
+            panic!("Invalid bearer_access_token");
+        }
         self.limiter.until_ready().await;
         let result = space_traders_client::apis::contracts_api::deliver_contract(
             &self.configuration,
@@ -276,6 +282,9 @@ impl Api {
         &self,
         contract_id: &str,
     ) -> Result<models::FulfillContract200Response, Error<FulfillContractError>> {
+        if self.configuration.bearer_access_token.is_none() {
+            panic!("Invalid bearer_access_token");
+        }
         self.limiter.until_ready().await;
         let result = space_traders_client::apis::contracts_api::fulfill_contract(
             &self.configuration,
@@ -291,6 +300,9 @@ impl Api {
         &self,
         contract_id: &str,
     ) -> Result<models::GetContract200Response, Error<GetContractError>> {
+        if self.configuration.bearer_access_token.is_none() {
+            panic!("Invalid bearer_access_token");
+        }
         self.limiter.until_ready().await;
         let result = space_traders_client::apis::contracts_api::get_contract(
             &self.configuration,
@@ -307,6 +319,9 @@ impl Api {
         page: Option<i32>,
         limit: Option<i32>,
     ) -> Result<models::GetContracts200Response, Error<GetContractsError>> {
+        if self.configuration.bearer_access_token.is_none() {
+            panic!("Invalid bearer_access_token");
+        }
         self.limiter.until_ready().await;
         let result = space_traders_client::apis::contracts_api::get_contracts(
             &self.configuration,
@@ -323,6 +338,9 @@ impl Api {
         &self,
         limit: i32,
     ) -> Result<Vec<models::Contract>, Error<GetContractsError>> {
+        if self.configuration.bearer_access_token.is_none() {
+            panic!("Invalid bearer_access_token");
+        }
         if !(limit >= 1 && limit <= 20) {
             panic!("Invalid limit must be between 1 and 20");
         }
@@ -424,6 +442,9 @@ impl Api {
         &self,
         ship_symbol: &str,
     ) -> Result<models::CreateChart201Response, Error<CreateChartError>> {
+        if self.configuration.bearer_access_token.is_none() {
+            panic!("Invalid bearer_access_token");
+        }
         self.limiter.until_ready().await;
         let result =
             space_traders_client::apis::fleet_api::create_chart(&self.configuration, ship_symbol)
@@ -437,6 +458,9 @@ impl Api {
         &self,
         ship_symbol: &str,
     ) -> Result<models::CreateShipShipScan201Response, Error<CreateShipShipScanError>> {
+        if self.configuration.bearer_access_token.is_none() {
+            panic!("Invalid bearer_access_token");
+        }
         self.limiter.until_ready().await;
         let result = space_traders_client::apis::fleet_api::create_ship_ship_scan(
             &self.configuration,
@@ -452,6 +476,9 @@ impl Api {
         &self,
         ship_symbol: &str,
     ) -> Result<models::CreateShipSystemScan201Response, Error<CreateShipSystemScanError>> {
+        if self.configuration.bearer_access_token.is_none() {
+            panic!("Invalid bearer_access_token");
+        }
         self.limiter.until_ready().await;
         let result = space_traders_client::apis::fleet_api::create_ship_system_scan(
             &self.configuration,
@@ -467,6 +494,9 @@ impl Api {
         &self,
         ship_symbol: &str,
     ) -> Result<models::CreateShipWaypointScan201Response, Error<CreateShipWaypointScanError>> {
+        if self.configuration.bearer_access_token.is_none() {
+            panic!("Invalid bearer_access_token");
+        }
         self.limiter.until_ready().await;
         let result = space_traders_client::apis::fleet_api::create_ship_waypoint_scan(
             &self.configuration,
@@ -482,6 +512,9 @@ impl Api {
         &self,
         ship_symbol: &str,
     ) -> Result<models::CreateSurvey201Response, Error<CreateSurveyError>> {
+        if self.configuration.bearer_access_token.is_none() {
+            panic!("Invalid bearer_access_token");
+        }
         self.limiter.until_ready().await;
         let result =
             space_traders_client::apis::fleet_api::create_survey(&self.configuration, ship_symbol)
@@ -495,6 +528,9 @@ impl Api {
         &self,
         ship_symbol: &str,
     ) -> Result<models::DockShip200Response, Error<DockShipError>> {
+        if self.configuration.bearer_access_token.is_none() {
+            panic!("Invalid bearer_access_token");
+        }
         self.limiter.until_ready().await;
         let result =
             space_traders_client::apis::fleet_api::dock_ship(&self.configuration, ship_symbol)
@@ -509,6 +545,9 @@ impl Api {
         ship_symbol: &str,
         extract_resources_request: Option<models::ExtractResourcesRequest>,
     ) -> Result<models::ExtractResources201Response, Error<ExtractResourcesError>> {
+        if self.configuration.bearer_access_token.is_none() {
+            panic!("Invalid bearer_access_token");
+        }
         self.limiter.until_ready().await;
         let result = space_traders_client::apis::fleet_api::extract_resources(
             &self.configuration,
@@ -526,6 +565,9 @@ impl Api {
         ship_symbol: &str,
         survey: Option<models::Survey>,
     ) -> Result<models::ExtractResources201Response, Error<ExtractResourcesWithSurveyError>> {
+        if self.configuration.bearer_access_token.is_none() {
+            panic!("Invalid bearer_access_token");
+        }
         self.limiter.until_ready().await;
         let result = space_traders_client::apis::fleet_api::extract_resources_with_survey(
             &self.configuration,
@@ -542,6 +584,9 @@ impl Api {
         &self,
         ship_symbol: &str,
     ) -> Result<models::GetMounts200Response, Error<GetMountsError>> {
+        if self.configuration.bearer_access_token.is_none() {
+            panic!("Invalid bearer_access_token");
+        }
         self.limiter.until_ready().await;
         let result =
             space_traders_client::apis::fleet_api::get_mounts(&self.configuration, ship_symbol)
@@ -555,6 +600,9 @@ impl Api {
         &self,
         ship_symbol: &str,
     ) -> Result<models::GetMyShip200Response, Error<GetMyShipError>> {
+        if self.configuration.bearer_access_token.is_none() {
+            panic!("Invalid bearer_access_token");
+        }
         self.limiter.until_ready().await;
         let result =
             space_traders_client::apis::fleet_api::get_my_ship(&self.configuration, ship_symbol)
@@ -568,6 +616,9 @@ impl Api {
         &self,
         ship_symbol: &str,
     ) -> Result<models::GetMyShipCargo200Response, Error<GetMyShipCargoError>> {
+        if self.configuration.bearer_access_token.is_none() {
+            panic!("Invalid bearer_access_token");
+        }
         self.limiter.until_ready().await;
         let result = space_traders_client::apis::fleet_api::get_my_ship_cargo(
             &self.configuration,
@@ -584,6 +635,9 @@ impl Api {
         page: Option<i32>,
         limit: Option<i32>,
     ) -> Result<models::GetMyShips200Response, Error<GetMyShipsError>> {
+        if self.configuration.bearer_access_token.is_none() {
+            panic!("Invalid bearer_access_token");
+        }
         self.limiter.until_ready().await;
         let result =
             space_traders_client::apis::fleet_api::get_my_ships(&self.configuration, page, limit)
@@ -597,6 +651,9 @@ impl Api {
         &self,
         limit: i32,
     ) -> Result<Vec<models::Ship>, Error<GetMyShipsError>> {
+        if self.configuration.bearer_access_token.is_none() {
+            panic!("Invalid bearer_access_token");
+        }
         if !(limit >= 1 && limit <= 20) {
             panic!("Invalid limit must be between 1 and 20");
         }
@@ -632,6 +689,9 @@ impl Api {
         &self,
         ship_symbol: &str,
     ) -> Result<models::GetRepairShip200Response, Error<GetRepairShipError>> {
+        if self.configuration.bearer_access_token.is_none() {
+            panic!("Invalid bearer_access_token");
+        }
         self.limiter.until_ready().await;
         let result = space_traders_client::apis::fleet_api::get_repair_ship(
             &self.configuration,
@@ -647,6 +707,9 @@ impl Api {
         &self,
         ship_symbol: &str,
     ) -> Result<models::GetScrapShip200Response, Error<GetScrapShipError>> {
+        if self.configuration.bearer_access_token.is_none() {
+            panic!("Invalid bearer_access_token");
+        }
         self.limiter.until_ready().await;
         let result =
             space_traders_client::apis::fleet_api::get_scrap_ship(&self.configuration, ship_symbol)
@@ -660,6 +723,9 @@ impl Api {
         &self,
         ship_symbol: &str,
     ) -> Result<models::GetShipCooldown200Response, Error<GetShipCooldownError>> {
+        if self.configuration.bearer_access_token.is_none() {
+            panic!("Invalid bearer_access_token");
+        }
         self.limiter.until_ready().await;
         let result = space_traders_client::apis::fleet_api::get_ship_cooldown(
             &self.configuration,
@@ -675,6 +741,9 @@ impl Api {
         &self,
         ship_symbol: &str,
     ) -> Result<models::GetShipNav200Response, Error<GetShipNavError>> {
+        if self.configuration.bearer_access_token.is_none() {
+            panic!("Invalid bearer_access_token");
+        }
         self.limiter.until_ready().await;
         let result =
             space_traders_client::apis::fleet_api::get_ship_nav(&self.configuration, ship_symbol)
@@ -689,6 +758,9 @@ impl Api {
         ship_symbol: &str,
         install_mount_request: Option<models::InstallMountRequest>,
     ) -> Result<models::InstallMount201Response, Error<InstallMountError>> {
+        if self.configuration.bearer_access_token.is_none() {
+            panic!("Invalid bearer_access_token");
+        }
         self.limiter.until_ready().await;
         let result = space_traders_client::apis::fleet_api::install_mount(
             &self.configuration,
@@ -706,6 +778,9 @@ impl Api {
         ship_symbol: &str,
         jettison_request: Option<models::JettisonRequest>,
     ) -> Result<models::Jettison200Response, Error<JettisonError>> {
+        if self.configuration.bearer_access_token.is_none() {
+            panic!("Invalid bearer_access_token");
+        }
         self.limiter.until_ready().await;
         let result = space_traders_client::apis::fleet_api::jettison(
             &self.configuration,
@@ -723,6 +798,9 @@ impl Api {
         ship_symbol: &str,
         jump_ship_request: Option<models::JumpShipRequest>,
     ) -> Result<models::JumpShip200Response, Error<JumpShipError>> {
+        if self.configuration.bearer_access_token.is_none() {
+            panic!("Invalid bearer_access_token");
+        }
         self.limiter.until_ready().await;
         let result = space_traders_client::apis::fleet_api::jump_ship(
             &self.configuration,
@@ -740,6 +818,9 @@ impl Api {
         ship_symbol: &str,
         navigate_ship_request: Option<models::NavigateShipRequest>,
     ) -> Result<models::NavigateShip200Response, Error<NavigateShipError>> {
+        if self.configuration.bearer_access_token.is_none() {
+            panic!("Invalid bearer_access_token");
+        }
         self.limiter.until_ready().await;
         let result = space_traders_client::apis::fleet_api::navigate_ship(
             &self.configuration,
@@ -756,6 +837,9 @@ impl Api {
         &self,
         ship_symbol: &str,
     ) -> Result<models::NegotiateContract200Response, Error<NegotiateContractError>> {
+        if self.configuration.bearer_access_token.is_none() {
+            panic!("Invalid bearer_access_token");
+        }
         self.limiter.until_ready().await;
         let result = space_traders_client::apis::fleet_api::negotiate_contract(
             &self.configuration,
@@ -771,6 +855,9 @@ impl Api {
         &self,
         ship_symbol: &str,
     ) -> Result<models::OrbitShip200Response, Error<OrbitShipError>> {
+        if self.configuration.bearer_access_token.is_none() {
+            panic!("Invalid bearer_access_token");
+        }
         self.limiter.until_ready().await;
         let result =
             space_traders_client::apis::fleet_api::orbit_ship(&self.configuration, ship_symbol)
@@ -785,6 +872,9 @@ impl Api {
         ship_symbol: &str,
         patch_ship_nav_request: Option<models::PatchShipNavRequest>,
     ) -> Result<models::GetShipNav200Response, Error<PatchShipNavError>> {
+        if self.configuration.bearer_access_token.is_none() {
+            panic!("Invalid bearer_access_token");
+        }
         self.limiter.until_ready().await;
         let result = space_traders_client::apis::fleet_api::patch_ship_nav(
             &self.configuration,
@@ -802,6 +892,9 @@ impl Api {
         ship_symbol: &str,
         purchase_cargo_request: Option<models::PurchaseCargoRequest>,
     ) -> Result<models::PurchaseCargo201Response, Error<PurchaseCargoError>> {
+        if self.configuration.bearer_access_token.is_none() {
+            panic!("Invalid bearer_access_token");
+        }
         self.limiter.until_ready().await;
         let result = space_traders_client::apis::fleet_api::purchase_cargo(
             &self.configuration,
@@ -818,6 +911,9 @@ impl Api {
         &self,
         purchase_ship_request: Option<models::PurchaseShipRequest>,
     ) -> Result<models::PurchaseShip201Response, Error<PurchaseShipError>> {
+        if self.configuration.bearer_access_token.is_none() {
+            panic!("Invalid bearer_access_token");
+        }
         self.limiter.until_ready().await;
         let result = space_traders_client::apis::fleet_api::purchase_ship(
             &self.configuration,
@@ -834,6 +930,9 @@ impl Api {
         ship_symbol: &str,
         refuel_ship_request: Option<models::RefuelShipRequest>,
     ) -> Result<models::RefuelShip200Response, Error<RefuelShipError>> {
+        if self.configuration.bearer_access_token.is_none() {
+            panic!("Invalid bearer_access_token");
+        }
         self.limiter.until_ready().await;
         let result = space_traders_client::apis::fleet_api::refuel_ship(
             &self.configuration,
@@ -851,6 +950,9 @@ impl Api {
         ship_symbol: &str,
         remove_mount_request: Option<models::RemoveMountRequest>,
     ) -> Result<models::RemoveMount201Response, Error<RemoveMountError>> {
+        if self.configuration.bearer_access_token.is_none() {
+            panic!("Invalid bearer_access_token");
+        }
         self.limiter.until_ready().await;
         let result = space_traders_client::apis::fleet_api::remove_mount(
             &self.configuration,
@@ -867,6 +969,9 @@ impl Api {
         &self,
         ship_symbol: &str,
     ) -> Result<models::RepairShip200Response, Error<RepairShipError>> {
+        if self.configuration.bearer_access_token.is_none() {
+            panic!("Invalid bearer_access_token");
+        }
         self.limiter.until_ready().await;
         let result =
             space_traders_client::apis::fleet_api::repair_ship(&self.configuration, ship_symbol)
@@ -880,6 +985,9 @@ impl Api {
         &self,
         ship_symbol: &str,
     ) -> Result<models::ScrapShip200Response, Error<ScrapShipError>> {
+        if self.configuration.bearer_access_token.is_none() {
+            panic!("Invalid bearer_access_token");
+        }
         self.limiter.until_ready().await;
         let result =
             space_traders_client::apis::fleet_api::scrap_ship(&self.configuration, ship_symbol)
@@ -894,6 +1002,9 @@ impl Api {
         ship_symbol: &str,
         sell_cargo_request: Option<models::SellCargoRequest>,
     ) -> Result<models::SellCargo201Response, Error<SellCargoError>> {
+        if self.configuration.bearer_access_token.is_none() {
+            panic!("Invalid bearer_access_token");
+        }
         self.limiter.until_ready().await;
         let result = space_traders_client::apis::fleet_api::sell_cargo(
             &self.configuration,
@@ -911,6 +1022,9 @@ impl Api {
         ship_symbol: &str,
         ship_refine_request: Option<models::ShipRefineRequest>,
     ) -> Result<models::ShipRefine201Response, Error<ShipRefineError>> {
+        if self.configuration.bearer_access_token.is_none() {
+            panic!("Invalid bearer_access_token");
+        }
         self.limiter.until_ready().await;
         let result = space_traders_client::apis::fleet_api::ship_refine(
             &self.configuration,
@@ -927,6 +1041,9 @@ impl Api {
         &self,
         ship_symbol: &str,
     ) -> Result<models::SiphonResources201Response, Error<SiphonResourcesError>> {
+        if self.configuration.bearer_access_token.is_none() {
+            panic!("Invalid bearer_access_token");
+        }
         self.limiter.until_ready().await;
         let result = space_traders_client::apis::fleet_api::siphon_resources(
             &self.configuration,
@@ -943,6 +1060,9 @@ impl Api {
         ship_symbol: &str,
         transfer_cargo_request: Option<models::TransferCargoRequest>,
     ) -> Result<models::TransferCargo200Response, Error<TransferCargoError>> {
+        if self.configuration.bearer_access_token.is_none() {
+            panic!("Invalid bearer_access_token");
+        }
         self.limiter.until_ready().await;
         let result = space_traders_client::apis::fleet_api::transfer_cargo(
             &self.configuration,
@@ -960,6 +1080,9 @@ impl Api {
         ship_symbol: &str,
         navigate_ship_request: Option<models::NavigateShipRequest>,
     ) -> Result<models::WarpShip200Response, Error<WarpShipError>> {
+        if self.configuration.bearer_access_token.is_none() {
+            panic!("Invalid bearer_access_token");
+        }
         self.limiter.until_ready().await;
         let result = space_traders_client::apis::fleet_api::warp_ship(
             &self.configuration,
@@ -1225,6 +1348,9 @@ impl Api {
         waypoint_symbol: &str,
         supply_construction_request: Option<models::SupplyConstructionRequest>,
     ) -> Result<models::SupplyConstruction201Response, Error<SupplyConstructionError>> {
+        if self.configuration.bearer_access_token.is_none() {
+            panic!("Invalid bearer_access_token");
+        }
         self.limiter.until_ready().await;
         let result = space_traders_client::apis::systems_api::supply_construction(
             &self.configuration,
@@ -1235,5 +1361,41 @@ impl Api {
         .await?;
 
         Ok(result)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+
+    #[tokio::test]
+    #[ignore]
+    async fn get_systems_test() {
+        let api = super::Api::new(None, 550, std::num::NonZeroU32::new(2).unwrap());
+        let response_json = api.get_all_systems_json().await.unwrap();
+        let result = api.get_all_systems(20).await.unwrap();
+        assert_eq!(response_json, result, "response_json != result!()");
+    }
+
+    #[tokio::test]
+    async fn get_systems_json_test() {
+        let api = super::Api::new(None, 550, std::num::NonZeroU32::new(2).unwrap());
+        let response_json = api.get_all_systems_json().await.unwrap();
+        assert!(response_json.len() > 0);
+    }
+
+    #[tokio::test]
+    #[should_panic]
+    async fn get_system_waypoints_test() {
+        let api = super::Api::new(None, 550, std::num::NonZeroU32::new(2).unwrap());
+        let result = api.get_all_waypoints("test", 22).await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    #[should_panic]
+    async fn get_my_agent_test() {
+        let api = super::Api::new(None, 550, std::num::NonZeroU32::new(2).unwrap());
+        let response = api.get_my_agent().await;
+        assert!(response.is_ok());
     }
 }
