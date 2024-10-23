@@ -1,7 +1,7 @@
 /*
  * SpaceTraders API
  *
- * SpaceTraders is an open-universe game and learning platform that offers a set of HTTP endpoints to control a fleet of ships and explore a multiplayer universe.  The API is documented using [OpenAPI](https://github.com/SpaceTradersAPI/api-docs). You can send your first request right here in your browser to check the status of the game server.  ```json http {   \"method\": \"GET\",   \"url\": \"https://api.spacetraders.io/v2\", } ```  Unlike a traditional game, SpaceTraders does not have a first-party client or app to play the game. Instead, you can use the API to build your own client, write a script to automate your ships, or try an app built by the community.  We have a [Discord channel](https://discord.com/invite/jh6zurdWk5) where you can share your projects, ask questions, and get help from other players.   
+ * SpaceTraders is an open-universe game and learning platform that offers a set of HTTP endpoints to control a fleet of ships and explore a multiplayer universe.  The API is documented using [OpenAPI](https://github.com/SpaceTradersAPI/api-docs). You can send your first request right here in your browser to check the status of the game server.  ```json http {   \"method\": \"GET\",   \"url\": \"https://api.spacetraders.io/v2\", } ```  Unlike a traditional game, SpaceTraders does not have a first-party client or app to play the game. Instead, you can use the API to build your own client, write a script to automate your ships, or try an app built by the community.  We have a [Discord channel](https://discord.com/invite/jh6zurdWk5) where you can share your projects, ask questions, and get help from other players.
  *
  * The version of the OpenAPI document: 2.0.0
  * Contact: joel@spacetraders.io
@@ -13,295 +13,440 @@ use serde::{Deserialize, Serialize};
 
 /// TradeSymbol : The good's symbol.
 /// The good's symbol.
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize)]
+#[derive(
+    Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize, sqlx::Type,
+)]
+#[sqlx(type_name = "trade_symbol")]
 pub enum TradeSymbol {
     #[serde(rename = "PRECIOUS_STONES")]
+    #[sqlx(rename = "PRECIOUS_STONES")]
     PreciousStones,
     #[serde(rename = "QUARTZ_SAND")]
+    #[sqlx(rename = "QUARTZ_SAND")]
     QuartzSand,
     #[serde(rename = "SILICON_CRYSTALS")]
+    #[sqlx(rename = "SILICON_CRYSTALS")]
     SiliconCrystals,
     #[serde(rename = "AMMONIA_ICE")]
+    #[sqlx(rename = "AMMONIA_ICE")]
     AmmoniaIce,
     #[serde(rename = "LIQUID_HYDROGEN")]
+    #[sqlx(rename = "LIQUID_HYDROGEN")]
     LiquidHydrogen,
     #[serde(rename = "LIQUID_NITROGEN")]
+    #[sqlx(rename = "LIQUID_NITROGEN")]
     LiquidNitrogen,
     #[serde(rename = "ICE_WATER")]
+    #[sqlx(rename = "ICE_WATER")]
     IceWater,
     #[serde(rename = "EXOTIC_MATTER")]
+    #[sqlx(rename = "EXOTIC_MATTER")]
     ExoticMatter,
     #[serde(rename = "ADVANCED_CIRCUITRY")]
+    #[sqlx(rename = "ADVANCED_CIRCUITRY")]
     AdvancedCircuitry,
     #[serde(rename = "GRAVITON_EMITTERS")]
+    #[sqlx(rename = "GRAVITON_EMITTERS")]
     GravitonEmitters,
     #[serde(rename = "IRON")]
+    #[sqlx(rename = "IRON")]
     Iron,
     #[serde(rename = "IRON_ORE")]
+    #[sqlx(rename = "IRON_ORE")]
     IronOre,
     #[serde(rename = "COPPER")]
+    #[sqlx(rename = "COPPER")]
     Copper,
     #[serde(rename = "COPPER_ORE")]
+    #[sqlx(rename = "COPPER_ORE")]
     CopperOre,
     #[serde(rename = "ALUMINUM")]
+    #[sqlx(rename = "ALUMINUM")]
     Aluminum,
     #[serde(rename = "ALUMINUM_ORE")]
+    #[sqlx(rename = "ALUMINUM_ORE")]
     AluminumOre,
     #[serde(rename = "SILVER")]
+    #[sqlx(rename = "SILVER")]
     Silver,
     #[serde(rename = "SILVER_ORE")]
+    #[sqlx(rename = "SILVER_ORE")]
     SilverOre,
     #[serde(rename = "GOLD")]
+    #[sqlx(rename = "GOLD")]
     Gold,
     #[serde(rename = "GOLD_ORE")]
+    #[sqlx(rename = "GOLD_ORE")]
     GoldOre,
     #[serde(rename = "PLATINUM")]
+    #[sqlx(rename = "PLATINUM")]
     Platinum,
     #[serde(rename = "PLATINUM_ORE")]
+    #[sqlx(rename = "PLATINUM_ORE")]
     PlatinumOre,
     #[serde(rename = "DIAMONDS")]
+    #[sqlx(rename = "DIAMONDS")]
     Diamonds,
     #[serde(rename = "URANITE")]
+    #[sqlx(rename = "URANITE")]
     Uranite,
     #[serde(rename = "URANITE_ORE")]
+    #[sqlx(rename = "URANITE_ORE")]
     UraniteOre,
     #[serde(rename = "MERITIUM")]
+    #[sqlx(rename = "MERITIUM")]
     Meritium,
     #[serde(rename = "MERITIUM_ORE")]
+    #[sqlx(rename = "MERITIUM_ORE")]
     MeritiumOre,
     #[serde(rename = "HYDROCARBON")]
+    #[sqlx(rename = "HYDROCARBON")]
     Hydrocarbon,
     #[serde(rename = "ANTIMATTER")]
+    #[sqlx(rename = "ANTIMATTER")]
     Antimatter,
     #[serde(rename = "FAB_MATS")]
+    #[sqlx(rename = "FAB_MATS")]
     FabMats,
     #[serde(rename = "FERTILIZERS")]
+    #[sqlx(rename = "FERTILIZERS")]
     Fertilizers,
     #[serde(rename = "FABRICS")]
+    #[sqlx(rename = "FABRICS")]
     Fabrics,
     #[serde(rename = "FOOD")]
+    #[sqlx(rename = "FOOD")]
     Food,
     #[serde(rename = "JEWELRY")]
+    #[sqlx(rename = "JEWELRY")]
     Jewelry,
     #[serde(rename = "MACHINERY")]
+    #[sqlx(rename = "MACHINERY")]
     Machinery,
     #[serde(rename = "FIREARMS")]
+    #[sqlx(rename = "FIREARMS")]
     Firearms,
     #[serde(rename = "ASSAULT_RIFLES")]
+    #[sqlx(rename = "ASSAULT_RIFLES")]
     AssaultRifles,
     #[serde(rename = "MILITARY_EQUIPMENT")]
+    #[sqlx(rename = "MILITARY_EQUIPMENT")]
     MilitaryEquipment,
     #[serde(rename = "EXPLOSIVES")]
+    #[sqlx(rename = "EXPLOSIVES")]
     Explosives,
     #[serde(rename = "LAB_INSTRUMENTS")]
+    #[sqlx(rename = "LAB_INSTRUMENTS")]
     LabInstruments,
     #[serde(rename = "AMMUNITION")]
+    #[sqlx(rename = "AMMUNITION")]
     Ammunition,
     #[serde(rename = "ELECTRONICS")]
+    #[sqlx(rename = "ELECTRONICS")]
     Electronics,
     #[serde(rename = "SHIP_PLATING")]
+    #[sqlx(rename = "SHIP_PLATING")]
     ShipPlating,
     #[serde(rename = "SHIP_PARTS")]
+    #[sqlx(rename = "SHIP_PARTS")]
     ShipParts,
     #[serde(rename = "EQUIPMENT")]
+    #[sqlx(rename = "EQUIPMENT")]
     Equipment,
     #[serde(rename = "FUEL")]
+    #[sqlx(rename = "FUEL")]
     Fuel,
     #[serde(rename = "MEDICINE")]
+    #[sqlx(rename = "MEDICINE")]
     Medicine,
     #[serde(rename = "DRUGS")]
+    #[sqlx(rename = "DRUGS")]
     Drugs,
     #[serde(rename = "CLOTHING")]
+    #[sqlx(rename = "CLOTHING")]
     Clothing,
     #[serde(rename = "MICROPROCESSORS")]
+    #[sqlx(rename = "MICROPROCESSORS")]
     Microprocessors,
     #[serde(rename = "PLASTICS")]
+    #[sqlx(rename = "PLASTICS")]
     Plastics,
     #[serde(rename = "POLYNUCLEOTIDES")]
+    #[sqlx(rename = "POLYNUCLEOTIDES")]
     Polynucleotides,
     #[serde(rename = "BIOCOMPOSITES")]
+    #[sqlx(rename = "BIOCOMPOSITES")]
     Biocomposites,
     #[serde(rename = "QUANTUM_STABILIZERS")]
+    #[sqlx(rename = "QUANTUM_STABILIZERS")]
     QuantumStabilizers,
     #[serde(rename = "NANOBOTS")]
+    #[sqlx(rename = "NANOBOTS")]
     Nanobots,
     #[serde(rename = "AI_MAINFRAMES")]
+    #[sqlx(rename = "AI_MAINFRAMES")]
     AiMainframes,
     #[serde(rename = "QUANTUM_DRIVES")]
+    #[sqlx(rename = "QUANTUM_DRIVES")]
     QuantumDrives,
     #[serde(rename = "ROBOTIC_DRONES")]
+    #[sqlx(rename = "ROBOTIC_DRONES")]
     RoboticDrones,
     #[serde(rename = "CYBER_IMPLANTS")]
+    #[sqlx(rename = "CYBER_IMPLANTS")]
     CyberImplants,
     #[serde(rename = "GENE_THERAPEUTICS")]
+    #[sqlx(rename = "GENE_THERAPEUTICS")]
     GeneTherapeutics,
     #[serde(rename = "NEURAL_CHIPS")]
+    #[sqlx(rename = "NEURAL_CHIPS")]
     NeuralChips,
     #[serde(rename = "MOOD_REGULATORS")]
+    #[sqlx(rename = "MOOD_REGULATORS")]
     MoodRegulators,
     #[serde(rename = "VIRAL_AGENTS")]
+    #[sqlx(rename = "VIRAL_AGENTS")]
     ViralAgents,
     #[serde(rename = "MICRO_FUSION_GENERATORS")]
+    #[sqlx(rename = "MICRO_FUSION_GENERATORS")]
     MicroFusionGenerators,
     #[serde(rename = "SUPERGRAINS")]
+    #[sqlx(rename = "SUPERGRAINS")]
     Supergrains,
     #[serde(rename = "LASER_RIFLES")]
+    #[sqlx(rename = "LASER_RIFLES")]
     LaserRifles,
     #[serde(rename = "HOLOGRAPHICS")]
+    #[sqlx(rename = "HOLOGRAPHICS")]
     Holographics,
     #[serde(rename = "SHIP_SALVAGE")]
+    #[sqlx(rename = "SHIP_SALVAGE")]
     ShipSalvage,
     #[serde(rename = "RELIC_TECH")]
+    #[sqlx(rename = "RELIC_TECH")]
     RelicTech,
     #[serde(rename = "NOVEL_LIFEFORMS")]
+    #[sqlx(rename = "NOVEL_LIFEFORMS")]
     NovelLifeforms,
     #[serde(rename = "BOTANICAL_SPECIMENS")]
+    #[sqlx(rename = "BOTANICAL_SPECIMENS")]
     BotanicalSpecimens,
     #[serde(rename = "CULTURAL_ARTIFACTS")]
+    #[sqlx(rename = "CULTURAL_ARTIFACTS")]
     CulturalArtifacts,
     #[serde(rename = "FRAME_PROBE")]
+    #[sqlx(rename = "FRAME_PROBE")]
     FrameProbe,
     #[serde(rename = "FRAME_DRONE")]
+    #[sqlx(rename = "FRAME_DRONE")]
     FrameDrone,
     #[serde(rename = "FRAME_INTERCEPTOR")]
+    #[sqlx(rename = "FRAME_INTERCEPTOR")]
     FrameInterceptor,
     #[serde(rename = "FRAME_RACER")]
+    #[sqlx(rename = "FRAME_RACER")]
     FrameRacer,
     #[serde(rename = "FRAME_FIGHTER")]
+    #[sqlx(rename = "FRAME_FIGHTER")]
     FrameFighter,
     #[serde(rename = "FRAME_FRIGATE")]
+    #[sqlx(rename = "FRAME_FRIGATE")]
     FrameFrigate,
     #[serde(rename = "FRAME_SHUTTLE")]
+    #[sqlx(rename = "FRAME_SHUTTLE")]
     FrameShuttle,
     #[serde(rename = "FRAME_EXPLORER")]
+    #[sqlx(rename = "FRAME_EXPLORER")]
     FrameExplorer,
     #[serde(rename = "FRAME_MINER")]
+    #[sqlx(rename = "FRAME_MINER")]
     FrameMiner,
     #[serde(rename = "FRAME_LIGHT_FREIGHTER")]
+    #[sqlx(rename = "FRAME_LIGHT_FREIGHTER")]
     FrameLightFreighter,
     #[serde(rename = "FRAME_HEAVY_FREIGHTER")]
+    #[sqlx(rename = "FRAME_HEAVY_FREIGHTER")]
     FrameHeavyFreighter,
     #[serde(rename = "FRAME_TRANSPORT")]
+    #[sqlx(rename = "FRAME_TRANSPORT")]
     FrameTransport,
     #[serde(rename = "FRAME_DESTROYER")]
+    #[sqlx(rename = "FRAME_DESTROYER")]
     FrameDestroyer,
     #[serde(rename = "FRAME_CRUISER")]
+    #[sqlx(rename = "FRAME_CRUISER")]
     FrameCruiser,
     #[serde(rename = "FRAME_CARRIER")]
+    #[sqlx(rename = "FRAME_CARRIER")]
     FrameCarrier,
     #[serde(rename = "REACTOR_SOLAR_I")]
+    #[sqlx(rename = "REACTOR_SOLAR_I")]
     ReactorSolarI,
     #[serde(rename = "REACTOR_FUSION_I")]
+    #[sqlx(rename = "REACTOR_FUSION_I")]
     ReactorFusionI,
     #[serde(rename = "REACTOR_FISSION_I")]
+    #[sqlx(rename = "REACTOR_FISSION_I")]
     ReactorFissionI,
     #[serde(rename = "REACTOR_CHEMICAL_I")]
+    #[sqlx(rename = "REACTOR_CHEMICAL_I")]
     ReactorChemicalI,
     #[serde(rename = "REACTOR_ANTIMATTER_I")]
+    #[sqlx(rename = "REACTOR_ANTIMATTER_I")]
     ReactorAntimatterI,
     #[serde(rename = "ENGINE_IMPULSE_DRIVE_I")]
+    #[sqlx(rename = "ENGINE_IMPULSE_DRIVE_I")]
     EngineImpulseDriveI,
     #[serde(rename = "ENGINE_ION_DRIVE_I")]
+    #[sqlx(rename = "ENGINE_ION_DRIVE_I")]
     EngineIonDriveI,
     #[serde(rename = "ENGINE_ION_DRIVE_II")]
+    #[sqlx(rename = "ENGINE_ION_DRIVE_II")]
     EngineIonDriveIi,
     #[serde(rename = "ENGINE_HYPER_DRIVE_I")]
+    #[sqlx(rename = "ENGINE_HYPER_DRIVE_I")]
     EngineHyperDriveI,
     #[serde(rename = "MODULE_MINERAL_PROCESSOR_I")]
+    #[sqlx(rename = "MODULE_MINERAL_PROCESSOR_I")]
     ModuleMineralProcessorI,
     #[serde(rename = "MODULE_GAS_PROCESSOR_I")]
+    #[sqlx(rename = "MODULE_GAS_PROCESSOR_I")]
     ModuleGasProcessorI,
     #[serde(rename = "MODULE_CARGO_HOLD_I")]
+    #[sqlx(rename = "MODULE_CARGO_HOLD_I")]
     ModuleCargoHoldI,
     #[serde(rename = "MODULE_CARGO_HOLD_II")]
+    #[sqlx(rename = "MODULE_CARGO_HOLD_II")]
     ModuleCargoHoldIi,
     #[serde(rename = "MODULE_CARGO_HOLD_III")]
+    #[sqlx(rename = "MODULE_CARGO_HOLD_III")]
     ModuleCargoHoldIii,
     #[serde(rename = "MODULE_CREW_QUARTERS_I")]
+    #[sqlx(rename = "MODULE_CREW_QUARTERS_I")]
     ModuleCrewQuartersI,
     #[serde(rename = "MODULE_ENVOY_QUARTERS_I")]
+    #[sqlx(rename = "MODULE_ENVOY_QUARTERS_I")]
     ModuleEnvoyQuartersI,
     #[serde(rename = "MODULE_PASSENGER_CABIN_I")]
+    #[sqlx(rename = "MODULE_PASSENGER_CABIN_I")]
     ModulePassengerCabinI,
     #[serde(rename = "MODULE_MICRO_REFINERY_I")]
+    #[sqlx(rename = "MODULE_MICRO_REFINERY_I")]
     ModuleMicroRefineryI,
     #[serde(rename = "MODULE_SCIENCE_LAB_I")]
+    #[sqlx(rename = "MODULE_SCIENCE_LAB_I")]
     ModuleScienceLabI,
     #[serde(rename = "MODULE_JUMP_DRIVE_I")]
+    #[sqlx(rename = "MODULE_JUMP_DRIVE_I")]
     ModuleJumpDriveI,
     #[serde(rename = "MODULE_JUMP_DRIVE_II")]
+    #[sqlx(rename = "MODULE_JUMP_DRIVE_II")]
     ModuleJumpDriveIi,
     #[serde(rename = "MODULE_JUMP_DRIVE_III")]
+    #[sqlx(rename = "MODULE_JUMP_DRIVE_III")]
     ModuleJumpDriveIii,
     #[serde(rename = "MODULE_WARP_DRIVE_I")]
+    #[sqlx(rename = "MODULE_WARP_DRIVE_I")]
     ModuleWarpDriveI,
     #[serde(rename = "MODULE_WARP_DRIVE_II")]
+    #[sqlx(rename = "MODULE_WARP_DRIVE_II")]
     ModuleWarpDriveIi,
     #[serde(rename = "MODULE_WARP_DRIVE_III")]
+    #[sqlx(rename = "MODULE_WARP_DRIVE_III")]
     ModuleWarpDriveIii,
     #[serde(rename = "MODULE_SHIELD_GENERATOR_I")]
+    #[sqlx(rename = "MODULE_SHIELD_GENERATOR_I")]
     ModuleShieldGeneratorI,
     #[serde(rename = "MODULE_SHIELD_GENERATOR_II")]
+    #[sqlx(rename = "MODULE_SHIELD_GENERATOR_II")]
     ModuleShieldGeneratorIi,
     #[serde(rename = "MODULE_ORE_REFINERY_I")]
+    #[sqlx(rename = "MODULE_ORE_REFINERY_I")]
     ModuleOreRefineryI,
     #[serde(rename = "MODULE_FUEL_REFINERY_I")]
+    #[sqlx(rename = "MODULE_FUEL_REFINERY_I")]
     ModuleFuelRefineryI,
     #[serde(rename = "MOUNT_GAS_SIPHON_I")]
+    #[sqlx(rename = "MOUNT_GAS_SIPHON_I")]
     MountGasSiphonI,
     #[serde(rename = "MOUNT_GAS_SIPHON_II")]
+    #[sqlx(rename = "MOUNT_GAS_SIPHON_II")]
     MountGasSiphonIi,
     #[serde(rename = "MOUNT_GAS_SIPHON_III")]
+    #[sqlx(rename = "MOUNT_GAS_SIPHON_III")]
     MountGasSiphonIii,
     #[serde(rename = "MOUNT_SURVEYOR_I")]
+    #[sqlx(rename = "MOUNT_SURVEYOR_I")]
     MountSurveyorI,
     #[serde(rename = "MOUNT_SURVEYOR_II")]
+    #[sqlx(rename = "MOUNT_SURVEYOR_II")]
     MountSurveyorIi,
     #[serde(rename = "MOUNT_SURVEYOR_III")]
+    #[sqlx(rename = "MOUNT_SURVEYOR_III")]
     MountSurveyorIii,
     #[serde(rename = "MOUNT_SENSOR_ARRAY_I")]
+    #[sqlx(rename = "MOUNT_SENSOR_ARRAY_I")]
     MountSensorArrayI,
     #[serde(rename = "MOUNT_SENSOR_ARRAY_II")]
+    #[sqlx(rename = "MOUNT_SENSOR_ARRAY_II")]
     MountSensorArrayIi,
     #[serde(rename = "MOUNT_SENSOR_ARRAY_III")]
+    #[sqlx(rename = "MOUNT_SENSOR_ARRAY_III")]
     MountSensorArrayIii,
     #[serde(rename = "MOUNT_MINING_LASER_I")]
+    #[sqlx(rename = "MOUNT_MINING_LASER_I")]
     MountMiningLaserI,
     #[serde(rename = "MOUNT_MINING_LASER_II")]
+    #[sqlx(rename = "MOUNT_MINING_LASER_II")]
     MountMiningLaserIi,
     #[serde(rename = "MOUNT_MINING_LASER_III")]
+    #[sqlx(rename = "MOUNT_MINING_LASER_III")]
     MountMiningLaserIii,
     #[serde(rename = "MOUNT_LASER_CANNON_I")]
+    #[sqlx(rename = "MOUNT_LASER_CANNON_I")]
     MountLaserCannonI,
     #[serde(rename = "MOUNT_MISSILE_LAUNCHER_I")]
+    #[sqlx(rename = "MOUNT_MISSILE_LAUNCHER_I")]
     MountMissileLauncherI,
     #[serde(rename = "MOUNT_TURRET_I")]
+    #[sqlx(rename = "MOUNT_TURRET_I")]
     MountTurretI,
     #[serde(rename = "SHIP_PROBE")]
+    #[sqlx(rename = "SHIP_PROBE")]
     ShipProbe,
     #[serde(rename = "SHIP_MINING_DRONE")]
+    #[sqlx(rename = "SHIP_MINING_DRONE")]
     ShipMiningDrone,
     #[serde(rename = "SHIP_SIPHON_DRONE")]
+    #[sqlx(rename = "SHIP_SIPHON_DRONE")]
     ShipSiphonDrone,
     #[serde(rename = "SHIP_INTERCEPTOR")]
+    #[sqlx(rename = "SHIP_INTERCEPTOR")]
     ShipInterceptor,
     #[serde(rename = "SHIP_LIGHT_HAULER")]
+    #[sqlx(rename = "SHIP_LIGHT_HAULER")]
     ShipLightHauler,
     #[serde(rename = "SHIP_COMMAND_FRIGATE")]
+    #[sqlx(rename = "SHIP_COMMAND_FRIGATE")]
     ShipCommandFrigate,
     #[serde(rename = "SHIP_EXPLORER")]
+    #[sqlx(rename = "SHIP_EXPLORER")]
     ShipExplorer,
     #[serde(rename = "SHIP_HEAVY_FREIGHTER")]
+    #[sqlx(rename = "SHIP_HEAVY_FREIGHTER")]
     ShipHeavyFreighter,
     #[serde(rename = "SHIP_LIGHT_SHUTTLE")]
+    #[sqlx(rename = "SHIP_LIGHT_SHUTTLE")]
     ShipLightShuttle,
     #[serde(rename = "SHIP_ORE_HOUND")]
+    #[sqlx(rename = "SHIP_ORE_HOUND")]
     ShipOreHound,
     #[serde(rename = "SHIP_REFINING_FREIGHTER")]
+    #[sqlx(rename = "SHIP_REFINING_FREIGHTER")]
     ShipRefiningFreighter,
     #[serde(rename = "SHIP_SURVEYOR")]
+    #[sqlx(rename = "SHIP_SURVEYOR")]
     ShipSurveyor,
-
 }
 
 impl std::fmt::Display for TradeSymbol {
@@ -459,4 +604,3 @@ impl Default for TradeSymbol {
         Self::PreciousStones
     }
 }
-

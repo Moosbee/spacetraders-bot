@@ -1,12 +1,14 @@
 mod api;
 mod my_ship;
 
+mod sql;
 mod workers;
 
 use std::env;
 
 use env_logger::{Env, Target};
 use my_ship::MyShip;
+use space_traders_client::models::{self, TradeSymbol};
 
 use crate::api::Api;
 use log::info;
@@ -41,19 +43,22 @@ async fn main() -> anyhow::Result<()> {
     let pool = PgPoolOptions::new()
         .max_connections(5)
         .connect(
-            format!(
-                "postgres://{}:{}@{}/{}",
-                env::var("POSTGRES_USER").unwrap(),
-                env::var("POSTGRES_PASSWORD").unwrap(),
-                "localhost",
-                env::var("POSTGRES_DB").unwrap()
-            )
-            .as_str(),
+            // format!(
+            //     "postgres://{}:{}@{}/{}",
+            //     env::var("POSTGRES_USER").unwrap(),
+            //     env::var("POSTGRES_PASSWORD").unwrap(),
+            //     "localhost",
+            //     env::var("POSTGRES_DB").unwrap()
+            // )
+            // .as_str(),
+            env::var("DATABASE_URL").unwrap().as_str(),
         )
         .await?;
 
     // Make a simple query to return the given parameter (use a question mark `?` instead of `$1` for MySQL/MariaDB)
-    let row = sqlx::query("select * from waypoint").execute(&pool).await?;
+    let row = sqlx::query_as!(sql::MarketTradeGood, r#"SELECT created_at, created, waypoint_symbol, symbol as "symbol: TradeSymbol", "type" as "type: models::market_trade_good::Type", trade_volume, supply as "supply: models::SupplyLevel", activity as "activity: models::ActivityLevel", purchase_price, sell_price FROM public.market_trade_good"#)
+            .fetch_all(&pool)
+            .await?;
 
     info!("Row: {:?}", row);
 
@@ -91,6 +96,20 @@ async fn main() -> anyhow::Result<()> {
         .await?;
     info!("Waypoints: {:?}", waypoints.len());
 
+    // Make a simple query to return the given parameter (use a question mark `?` instead of `$1` for MySQL/MariaDB)
+
+    for waypoint in &waypoints {
+        let insert = sqlx::query(
+        "INSERT INTO waypoint (symbol, system_symbol) VALUES ($1, $2) ON CONFLICT (symbol) DO NOTHING;",
+    )
+    .bind(waypoint.symbol.clone())
+    .bind(waypoint.system_symbol.clone())
+    .execute(&pool)
+    .await?;
+
+        info!("Insert: {:?}", insert);
+    }
+
     let contracts = api.get_all_contracts(20).await?;
     info!("Contracts: {:?}", contracts.len());
 
@@ -108,7 +127,7 @@ async fn main() -> anyhow::Result<()> {
         workers::contract_fleet::contract_conductor().await;
     });
     let scrapping = tokio::spawn(async move {
-        workers::market_scrapers::scrapping_conductor().await;
+        workers::market_scrapers::scrapping_conductor(&api, &pool, waypoints).await;
     });
     let mining = tokio::spawn(async move {
         workers::mining_fleet::mining_conductor().await;

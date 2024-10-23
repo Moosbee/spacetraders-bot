@@ -13,3 +13,4 @@ serde_repr = "^0.1"
 url = "^2.5"
 uuid = { version = "^1.8", features = ["serde", "v4"] }
 reqwest = { version = "^0.12", features = ["json", "multipart"] }
+sqlx = { version = "0.8" }
