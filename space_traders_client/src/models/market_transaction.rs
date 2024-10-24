@@ -12,7 +12,7 @@ use crate::models;
 use serde::{Deserialize, Serialize};
 
 /// MarketTransaction : Result of a transaction with a market.
-#[derive(Clone, Default, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Default, Debug, PartialEq, Serialize, Deserialize, sqlx::FromRow)]
 pub struct MarketTransaction {
     /// The symbol of the waypoint.
     #[serde(rename = "waypointSymbol")]

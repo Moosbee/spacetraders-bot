@@ -10,7 +10,6 @@ use std::{env, sync::Arc};
 
 use env_logger::{Env, Target};
 use my_ship::MyShip;
-use space_traders_client::models::{self, TradeSymbol};
 use sql::insert_waypoint;
 
 use crate::api::Api;
@@ -95,8 +94,6 @@ async fn main() -> anyhow::Result<()> {
         .get_all_waypoints(&ships[0].nav.system_symbol, 20)
         .await?;
     info!("Waypoints: {:?}", waypoints.len());
-
-    // Make a simple query to return the given parameter (use a question mark `?` instead of `$1` for MySQL/MariaDB)
 
     insert_waypoint(&pool, &waypoints).await;
 

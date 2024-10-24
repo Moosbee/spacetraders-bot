@@ -1,7 +1,10 @@
 use log::{debug, info};
 use space_traders_client::models;
 
-use crate::{api, sql::insert_market_trade_good};
+use crate::{
+    api,
+    sql::{self, insert_market_trade_good, insert_market_transactions},
+};
 pub async fn scrapping_conductor(
     api: &api::Api,
     pool: sqlx::PgPool,
@@ -53,6 +56,17 @@ pub async fn scrapping_conductor(
             })
             .flatten()
             .collect(),
+    )
+    .await;
+    insert_market_transactions(
+        &pool,
+        markets
+            .iter()
+            .filter(|m| m.transactions.is_some())
+            .map(|m| m.transactions.clone().unwrap())
+            .flatten()
+            .map(|mt| sql::MarketTransaction::try_from(mt).unwrap())
+            .collect::<Vec<_>>(),
     )
     .await;
 

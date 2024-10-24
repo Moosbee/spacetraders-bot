@@ -1,5 +1,7 @@
+use std::str::FromStr;
+
 use log::debug;
-use space_traders_client::models;
+use space_traders_client::models::{self, TradeSymbol};
 
 #[derive(Debug, Clone, sqlx::FromRow, PartialEq, Eq)]
 pub struct MarketTradeGood {
@@ -26,6 +28,59 @@ impl Into<models::MarketTradeGood> for MarketTradeGood {
             trade_volume: self.trade_volume,
             r#type: self.r#type,
         }
+    }
+}
+
+#[derive(Clone, Default, Debug, PartialEq, sqlx::FromRow)]
+pub struct MarketTransaction {
+    /// The symbol of the waypoint.
+    pub waypoint_symbol: String,
+    /// The symbol of the ship that made the transaction.
+    pub ship_symbol: String,
+    /// The symbol of the trade good.
+    pub trade_symbol: TradeSymbol,
+    /// The type of transaction.
+    pub r#type: models::market_transaction::Type,
+    /// The number of units of the transaction.
+    pub units: i32,
+    /// The price per unit of the transaction.
+    pub price_per_unit: i32,
+    /// The total price of the transaction.
+    pub total_price: i32,
+    /// The timestamp of the transaction.
+    pub timestamp: String,
+}
+
+impl Into<models::MarketTransaction> for MarketTransaction {
+    fn into(self) -> models::MarketTransaction {
+        models::MarketTransaction {
+            ship_symbol: self.ship_symbol,
+            trade_symbol: self.trade_symbol.to_string(),
+            r#type: self.r#type,
+            units: self.units,
+            price_per_unit: self.price_per_unit,
+            total_price: self.total_price,
+            timestamp: self.timestamp,
+            waypoint_symbol: self.waypoint_symbol,
+        }
+    }
+}
+
+impl TryFrom<models::MarketTransaction> for MarketTransaction {
+    type Error = anyhow::Error;
+    fn try_from(value: models::MarketTransaction) -> Result<Self, Self::Error> {
+        let tr_symbol = TradeSymbol::from_str(&value.trade_symbol)?;
+
+        Ok(MarketTransaction {
+            ship_symbol: value.ship_symbol,
+            trade_symbol: tr_symbol,
+            r#type: value.r#type,
+            units: value.units,
+            price_per_unit: value.price_per_unit,
+            total_price: value.total_price,
+            timestamp: value.timestamp,
+            waypoint_symbol: value.waypoint_symbol,
+        })
     }
 }
 
@@ -222,4 +277,90 @@ pub async fn insert_waypoint(pool: &sqlx::PgPool, waypoints: &Vec<models::Waypoi
     .execute(pool)
     .await
     .unwrap();
+}
+
+pub async fn insert_market_transaction(pool: &sqlx::PgPool, transaction: &MarketTransaction) {
+    sqlx::query!(
+        r#"
+            INSERT INTO market_transaction (waypoint_symbol, ship_symbol, trade_symbol, "type", units, price_per_unit, total_price, "timestamp")
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            ON CONFLICT (waypoint_symbol, ship_symbol, trade_symbol, "timestamp") DO NOTHING
+        "#,
+        transaction.waypoint_symbol,
+        transaction.ship_symbol,
+        transaction.trade_symbol as models::TradeSymbol,
+        transaction.r#type as models::market_transaction::Type,
+        transaction.units,
+        transaction.price_per_unit,
+        transaction.total_price,
+        transaction.timestamp
+    )
+    .execute(pool)
+    .await
+    .unwrap();
+}
+
+pub async fn insert_market_transactions(pool: &sqlx::PgPool, transactions: Vec<MarketTransaction>) {
+    let (
+        ((t_waypoint_symbol, t_ship_symbol), (t_trade_symbol, t_type)),
+        ((t_units, t_timestamp), (t_price_per_unit, t_total_price)),
+    ): (
+        (
+            (Vec<String>, Vec<String>),
+            (Vec<TradeSymbol>, Vec<models::market_transaction::Type>),
+        ),
+        ((Vec<i32>, Vec<String>), (Vec<i32>, Vec<i32>)),
+    ) = transactions
+        .iter()
+        .map(|t| {
+            (
+                (
+                    (t.waypoint_symbol.clone(), t.ship_symbol.clone()),
+                    (t.trade_symbol.clone(), t.r#type.clone()),
+                ),
+                (
+                    (t.units.clone(), t.timestamp.clone()),
+                    (t.price_per_unit.clone(), t.total_price.clone()),
+                ),
+            )
+        })
+        .unzip();
+
+    sqlx::query!(
+        r#"
+            INSERT INTO market_transaction (waypoint_symbol, ship_symbol,trade_symbol, "type", units, price_per_unit, total_price, "timestamp")
+              SELECT * FROM UNNEST(
+                $1::character varying[],
+                $2::character varying[],
+                $3::trade_symbol[],
+                $4::market_transaction_type[],
+                $5::integer[],
+                $6::integer[],
+                $7::integer[],
+                $8::character varying[]
+            )
+            ON CONFLICT (waypoint_symbol, ship_symbol, trade_symbol, "timestamp") DO NOTHING
+        "#,
+        &t_waypoint_symbol,
+        &t_ship_symbol,
+        &t_trade_symbol as &[models::TradeSymbol],
+        &t_type as &[models::market_transaction::Type],
+        &t_units,
+        &t_price_per_unit,
+        &t_total_price,
+        &t_timestamp
+    )
+    .execute(pool)
+    .await
+    .unwrap();
+}
+
+pub async fn get_market_transactions(pool: &sqlx::PgPool) -> Vec<MarketTransaction> {
+    let row: Vec<MarketTransaction> = sqlx::query_as!(
+      MarketTransaction,
+        r#"
+      select waypoint_symbol, ship_symbol,trade_symbol as "trade_symbol: models::TradeSymbol", "type" as "type: models::market_transaction::Type", units, price_per_unit, total_price, "timestamp" from market_transaction
+    "#
+    ).fetch_all(pool).await.unwrap();
+    row
 }

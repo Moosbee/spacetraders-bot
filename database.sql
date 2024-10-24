@@ -207,6 +207,12 @@ CREATE TABLE
     price_per_unit integer NOT NULL,
     total_price integer NOT NULL,
     "timestamp" character varying(255) COLLATE pg_catalog."default" NOT NULL,
-    CONSTRAINT market_transaction_pkey PRIMARY KEY (waypoint_symbol, ship_symbol, "timestamp"),
+    trade_symbol trade_symbol NOT NULL,
+    CONSTRAINT market_transaction_pkey PRIMARY KEY (
+      waypoint_symbol,
+      ship_symbol,
+      trade_symbol,
+      "timestamp"
+    ),
     CONSTRAINT market_transaction_relation_1 FOREIGN KEY (waypoint_symbol) REFERENCES public.waypoint (symbol) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION
-  );
+  ) TABLESPACE pg_default;
