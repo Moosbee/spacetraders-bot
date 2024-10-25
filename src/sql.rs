@@ -85,7 +85,7 @@ impl TryFrom<models::MarketTransaction> for MarketTransaction {
 }
 
 pub async fn insert_market_trade_good(
-    pool: &sqlx::PgPool,
+    database_pool: &sqlx::PgPool,
     trade_goods: Vec<(String, models::MarketTradeGood)>,
 ) {
     let (
@@ -167,12 +167,12 @@ pub async fn insert_market_trade_good(
         &f_sell_price,
     );
 
-    let insert = insert.execute(pool).await.unwrap();
+    let insert = insert.execute(database_pool).await.unwrap();
     debug!("Insert: {:?}", insert);
 }
 
 pub async fn get_last_waypoint_trade_goods(
-    pool: &sqlx::PgPool,
+    database_pool: &sqlx::PgPool,
     waypoint_symbol: &str,
 ) -> Vec<MarketTradeGood> {
     let row = sqlx::query_as!(
@@ -195,14 +195,14 @@ pub async fn get_last_waypoint_trade_goods(
         "#,
         waypoint_symbol,
     )
-    .fetch_all(pool)
+    .fetch_all(database_pool)
     .await
     .unwrap();
 
     row
 }
 
-pub async fn get_last_market_trade_goods(pool: &sqlx::PgPool) -> Vec<MarketTradeGood> {
+pub async fn get_last_market_trade_goods(database_pool: &sqlx::PgPool) -> Vec<MarketTradeGood> {
     let row = sqlx::query_as!(
         crate::sql::MarketTradeGood,
         r#"
@@ -221,7 +221,7 @@ pub async fn get_last_market_trade_goods(pool: &sqlx::PgPool) -> Vec<MarketTrade
             ORDER BY symbol, waypoint_symbol, created DESC
         "#,
     )
-    .fetch_all(pool)
+    .fetch_all(database_pool)
     .await
     .unwrap();
 
@@ -229,7 +229,7 @@ pub async fn get_last_market_trade_goods(pool: &sqlx::PgPool) -> Vec<MarketTrade
 }
 
 pub async fn get_last_trade_markets(
-    pool: &sqlx::PgPool,
+    database_pool: &sqlx::PgPool,
     trade_symbol: &models::TradeSymbol,
 ) -> Vec<MarketTradeGood> {
     let row = sqlx::query_as!(
@@ -252,14 +252,14 @@ pub async fn get_last_trade_markets(
         "#,
         *trade_symbol as models::TradeSymbol
     )
-    .fetch_all(pool)
+    .fetch_all(database_pool)
     .await
     .unwrap();
 
     row
 }
 
-pub async fn insert_waypoint(pool: &sqlx::PgPool, waypoints: &Vec<models::Waypoint>) {
+pub async fn insert_waypoint(database_pool: &sqlx::PgPool, waypoints: &Vec<models::Waypoint>) {
     let (m_symbols, f_symbols): (Vec<String>, Vec<String>) = waypoints
         .iter()
         .map(|w| (w.symbol.clone(), w.system_symbol.clone()))
@@ -274,12 +274,15 @@ pub async fn insert_waypoint(pool: &sqlx::PgPool, waypoints: &Vec<models::Waypoi
         &m_symbols,
         &f_symbols
     )
-    .execute(pool)
+    .execute(database_pool)
     .await
     .unwrap();
 }
 
-pub async fn insert_market_transaction(pool: &sqlx::PgPool, transaction: &MarketTransaction) {
+pub async fn insert_market_transaction(
+    database_pool: &sqlx::PgPool,
+    transaction: &MarketTransaction,
+) {
     sqlx::query!(
         r#"
             INSERT INTO market_transaction (waypoint_symbol, ship_symbol, trade_symbol, "type", units, price_per_unit, total_price, "timestamp")
@@ -295,12 +298,15 @@ pub async fn insert_market_transaction(pool: &sqlx::PgPool, transaction: &Market
         transaction.total_price,
         transaction.timestamp
     )
-    .execute(pool)
+    .execute(database_pool)
     .await
     .unwrap();
 }
 
-pub async fn insert_market_transactions(pool: &sqlx::PgPool, transactions: Vec<MarketTransaction>) {
+pub async fn insert_market_transactions(
+    database_pool: &sqlx::PgPool,
+    transactions: Vec<MarketTransaction>,
+) {
     let (
         ((t_waypoint_symbol, t_ship_symbol), (t_trade_symbol, t_type)),
         ((t_units, t_timestamp), (t_price_per_unit, t_total_price)),
@@ -350,17 +356,17 @@ pub async fn insert_market_transactions(pool: &sqlx::PgPool, transactions: Vec<M
         &t_total_price,
         &t_timestamp
     )
-    .execute(pool)
+    .execute(database_pool)
     .await
     .unwrap();
 }
 
-pub async fn get_market_transactions(pool: &sqlx::PgPool) -> Vec<MarketTransaction> {
+pub async fn get_market_transactions(database_pool: &sqlx::PgPool) -> Vec<MarketTransaction> {
     let row: Vec<MarketTransaction> = sqlx::query_as!(
       MarketTransaction,
         r#"
       select waypoint_symbol, ship_symbol,trade_symbol as "trade_symbol: models::TradeSymbol", "type" as "type: models::market_transaction::Type", units, price_per_unit, total_price, "timestamp" from market_transaction
     "#
-    ).fetch_all(pool).await.unwrap();
+    ).fetch_all(database_pool).await.unwrap();
     row
 }

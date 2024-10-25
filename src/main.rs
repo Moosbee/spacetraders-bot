@@ -35,11 +35,11 @@ async fn main() -> anyhow::Result<()> {
 
     let api: Api = Api::new(access_token, 550, NonZeroU32::new(2).unwrap());
 
-    // Create a connection pool
+    // Create a connection database_pool
     //  for MySQL/MariaDB, use MySqlPoolOptions::new()
     //  for SQLite, use SqlitePoolOptions::new()
     //  etc.
-    let pool = PgPoolOptions::new()
+    let database_pool = PgPoolOptions::new()
         .max_connections(5)
         .connect(
             // format!(
@@ -56,21 +56,10 @@ async fn main() -> anyhow::Result<()> {
 
     // Make a simple query to return the given parameter (use a question mark `?` instead of `$1` for MySQL/MariaDB)
     // let row = sqlx::query_as!(sql::MarketTradeGood, r#"SELECT created_at, created, waypoint_symbol, symbol as "symbol: TradeSymbol", "type" as "type: models::market_trade_good::Type", trade_volume, supply as "supply: models::SupplyLevel", activity as "activity: models::ActivityLevel", purchase_price, sell_price FROM public.market_trade_good"#)
-    //         .fetch_all(&pool)
+    //         .fetch_all(&database_pool)
     //         .await?;
 
     // info!("Row: {:?}", row);
-
-    // Make a simple query to return the given parameter (use a question mark `?` instead of `$1` for MySQL/MariaDB)
-    // let insert = sqlx::query(
-    //     "INSERT INTO waypoint (symbol, system_symbol) VALUES ($1, $2) ON CONFLICT (symbol) DO NOTHING;",
-    // )
-    // .bind(waypoint.symbol.clone())
-    // .bind(waypoint.system_symbol.clone())
-    // .execute(&pool)
-    // .await?;
-
-    // info!("Insert: {:?}", insert);
 
     let my_agent = api.get_my_agent().await?;
     info!("My agent: {:?}", my_agent);
@@ -95,39 +84,90 @@ async fn main() -> anyhow::Result<()> {
         .await?;
     info!("Waypoints: {:?}", waypoints.len());
 
-    insert_waypoint(&pool, &waypoints).await;
+    insert_waypoint(&database_pool, &waypoints).await;
 
-    let contracts = api.get_all_contracts(20).await?;
-    info!("Contracts: {:?}", contracts.len());
+    let ship_roles: std::collections::HashMap<String, my_ship::Role> = vec![
+        ("MOOSBEE-1".to_string(), my_ship::Role::Manuel),
+        ("MOOSBEE-2".to_string(), my_ship::Role::Scraper),
+        ("MOOSBEE-3".to_string(), my_ship::Role::Trader),
+        ("MOOSBEE-4".to_string(), my_ship::Role::Trader),
+        ("MOOSBEE-5".to_string(), my_ship::Role::Manuel),
+        ("MOOSBEE-6".to_string(), my_ship::Role::Scraper),
+        ("MOOSBEE-7".to_string(), my_ship::Role::Trader),
+        ("MOOSBEE-8".to_string(), my_ship::Role::Trader),
+        ("MOOSBEE-9".to_string(), my_ship::Role::Trader),
+        ("MOOSBEE-A".to_string(), my_ship::Role::Scraper),
+        ("MOOSBEE-B".to_string(), my_ship::Role::Scraper),
+        ("MOOSBEE-C".to_string(), my_ship::Role::Scraper),
+        ("MOOSBEE-D".to_string(), my_ship::Role::Scraper),
+        ("MOOSBEE-E".to_string(), my_ship::Role::Scraper),
+        ("MOOSBEE-F".to_string(), my_ship::Role::Scraper),
+        ("MOOSBEE-10".to_string(), my_ship::Role::Scraper),
+        ("MOOSBEE-11".to_string(), my_ship::Role::Scraper),
+        ("MOOSBEE-12".to_string(), my_ship::Role::Scraper),
+        ("MOOSBEE-13".to_string(), my_ship::Role::Scraper),
+        ("MOOSBEE-14".to_string(), my_ship::Role::Scraper),
+        ("MOOSBEE-15".to_string(), my_ship::Role::Scraper),
+        ("MOOSBEE-16".to_string(), my_ship::Role::Scraper),
+        ("MOOSBEE-17".to_string(), my_ship::Role::Scraper),
+        ("MOOSBEE-18".to_string(), my_ship::Role::Scraper),
+        ("MOOSBEE-19".to_string(), my_ship::Role::Scraper),
+        ("MOOSBEE-1A".to_string(), my_ship::Role::Scraper),
+        ("MOOSBEE-1B".to_string(), my_ship::Role::Scraper),
+    ]
+    .clone()
+    .into_iter()
+    .collect();
 
     let my_ships = Arc::new(
         ships
             .iter()
-            .map(|s| (s.symbol.clone(), MyShip::from_ship(s.clone())))
+            .map(|s| {
+                let mut shipi = MyShip::from_ship(s.clone());
+                shipi.role = ship_roles
+                    .get(&s.symbol)
+                    .unwrap_or(&my_ship::Role::Manuel)
+                    .clone();
+
+                (s.symbol.clone(), shipi)
+            })
             .collect::<dashmap::DashMap<String, MyShip>>(),
     );
 
-    info!("My ship: {:?}", my_ships.get("MOOSBEE-1").unwrap().value());
+    info!("My ship: {:?}", my_ships);
 
     let construction = tokio::spawn(async move {
         workers::construction_fleet::construction_conductor().await;
     });
+
+    let pool_2 = database_pool.clone();
+    let api_2 = api.clone();
+    let waypoints_2 = waypoints.clone();
+    let ship_roles_2 = ship_roles.clone();
+    let my_ships_2: Arc<dashmap::DashMap<String, MyShip>> = my_ships.clone();
     let contract = tokio::spawn(async move {
-        workers::contract_fleet::contract_conductor().await;
+        workers::contract_fleet::contract_conductor(
+            api_2,
+            pool_2,
+            ship_roles_2,
+            my_ships_2,
+            waypoints_2,
+        )
+        .await
     });
-    let peel = pool.clone();
+    let pool_3 = database_pool.clone();
     let scrapping = tokio::spawn(async move {
-        workers::market_scrapers::scrapping_conductor(&api, peel, waypoints).await;
+        workers::market_scrapers::scrapping_conductor(api, pool_3, waypoints).await;
     });
     let mining = tokio::spawn(async move {
         workers::mining_fleet::mining_conductor().await;
     });
     let trading = tokio::spawn(async move {
-        workers::trading_fleet::trading_conductor(pool).await;
+        workers::trading_fleet::trading_conductor(database_pool).await;
     });
 
     construction.await?;
-    contract.await?;
+    let _ = contract.await?;
     scrapping.await?;
     mining.await?;
     trading.await?;

@@ -1,9 +1,8 @@
 use anyhow::Ok;
 use chrono::{DateTime, Utc};
 use space_traders_client::models;
-use sqlx::types::time::Time;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Role {
     Construction,
     Trader,
@@ -15,8 +14,9 @@ pub enum Role {
 
 #[derive(Debug)]
 pub struct MyShip {
-    role: Role,
+    pub role: Role,
     registration_role: models::ShipRole,
+    symbol: String,
     engine_speed: i32,
     cooldown_expiration: Option<DateTime<Utc>>,
     cargo_capacity: i32,
@@ -47,6 +47,7 @@ impl MyShip {
         // ship.engine.condition
         // ship.engine.integrity
         MyShip {
+            symbol: ship.symbol,
             role: Role::Manuel,
             engine_speed: ship.engine.speed,
             registration_role: ship.registration.role,

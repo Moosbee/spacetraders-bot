@@ -6,8 +6,8 @@ use crate::{
     sql::{self, insert_market_trade_good, insert_market_transactions},
 };
 pub async fn scrapping_conductor(
-    api: &api::Api,
-    pool: sqlx::PgPool,
+    api: api::Api,
+    database_pool: sqlx::PgPool,
     waypoints: Vec<models::Waypoint>,
 ) {
     info!("Starting market scrapping workers");
@@ -42,7 +42,7 @@ pub async fn scrapping_conductor(
     info!("Markets: {:?}", markets.len());
 
     insert_market_trade_good(
-        &pool,
+        &database_pool,
         markets
             .iter()
             .filter(|m| m.trade_goods.is_some())
@@ -59,7 +59,7 @@ pub async fn scrapping_conductor(
     )
     .await;
     insert_market_transactions(
-        &pool,
+        &database_pool,
         markets
             .iter()
             .filter(|m| m.transactions.is_some())
