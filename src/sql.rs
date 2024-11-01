@@ -1,7 +1,9 @@
 use std::str::FromStr;
 
+use chrono::DateTime;
 use log::debug;
 use space_traders_client::models::{self, TradeSymbol};
+use sqlx::types::time::{Date, Time};
 
 #[derive(Debug, Clone, sqlx::FromRow, PartialEq, Eq)]
 pub struct MarketTradeGood {
@@ -256,6 +258,103 @@ pub async fn get_last_trade_markets(
     .await
     .unwrap();
 
+    row
+}
+
+#[derive(Debug, Clone, sqlx::FromRow, PartialEq, Eq)]
+pub struct MarketTrade {
+    pub waypoint_symbol: String,
+    pub symbol: models::TradeSymbol,
+    pub created_at: sqlx::types::time::PrimitiveDateTime,
+    pub r#type: models::market_trade_good::Type,
+}
+
+impl Default for MarketTrade {
+    fn default() -> MarketTrade {
+        MarketTrade {
+            waypoint_symbol: String::new(),
+            symbol: models::TradeSymbol::PreciousStones,
+            created_at: sqlx::types::time::PrimitiveDateTime::MIN,
+            r#type: models::market_trade_good::Type::Exchange,
+        }
+    }
+}
+
+pub async fn insert_market_trade(database_pool: &sqlx::PgPool, market_trades: Vec<MarketTrade>) {
+    let waypoint_symbols = market_trades
+        .iter()
+        .map(|m| m.waypoint_symbol.clone())
+        .collect::<Vec<String>>();
+
+    let symbols = market_trades
+        .iter()
+        .map(|m| m.symbol)
+        .collect::<Vec<models::TradeSymbol>>();
+    let types = market_trades
+        .iter()
+        .map(|m| m.r#type as models::market_trade_good::Type)
+        .collect::<Vec<models::market_trade_good::Type>>();
+    let insert = sqlx::query!(
+        r#"
+            INSERT INTO market_trade (
+                waypoint_symbol,
+                symbol,
+                type
+            )
+            SELECT * FROM UNNEST(
+                $1::character varying[],
+                $2::trade_symbol[],
+                $3::market_trade_good_type[]
+            )
+        "#,
+        &waypoint_symbols,
+        &symbols as &[models::TradeSymbol],
+        &types as &[models::market_trade_good::Type]
+    );
+
+    let insert = insert.execute(database_pool).await.unwrap();
+    debug!("Insert: {:?}", insert);
+}
+
+pub async fn get_last_market_trades_symbol(
+    database_pool: &sqlx::PgPool,
+    trade_symbol: &models::TradeSymbol,
+) -> Vec<MarketTrade> {
+    let row: Vec<MarketTrade> = sqlx::query_as!(
+        MarketTrade,
+        r#"
+            SELECT DISTINCT ON (waypoint_symbol, symbol)
+            waypoint_symbol, 
+            symbol as "symbol: models::TradeSymbol",
+            "type" as "type: models::market_trade_good::Type",
+            created_at
+            FROM public.market_trade WHERE symbol = $1
+            ORDER BY waypoint_symbol, symbol, created_at DESC
+    "#,
+        *trade_symbol as models::TradeSymbol
+    )
+    .fetch_all(database_pool)
+    .await
+    .unwrap();
+    row
+}
+
+pub async fn get_last_market_trades(database_pool: &sqlx::PgPool) -> Vec<MarketTrade> {
+    let row: Vec<MarketTrade> = sqlx::query_as!(
+        MarketTrade,
+        r#"
+            SELECT DISTINCT ON (waypoint_symbol, symbol)
+            waypoint_symbol, 
+            symbol as "symbol: models::TradeSymbol",
+            "type" as "type: models::market_trade_good::Type",
+            created_at
+            FROM public.market_trade
+            ORDER BY waypoint_symbol, symbol, created_at DESC
+    "#,
+    )
+    .fetch_all(database_pool)
+    .await
+    .unwrap();
     row
 }
 

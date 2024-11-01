@@ -1,8 +1,6 @@
 -- Database: spaceTrader
 -- DROP DATABASE IF EXISTS "spaceTrader";
-CREATE DATABASE "spaceTrader"
-WITH
-  OWNER = "spTrader" ENCODING = 'UTF8' LC_COLLATE = 'en_US.utf8' LC_CTYPE = 'en_US.utf8' TABLESPACE = pg_default CONNECTION
+CREATE DATABASE "spaceTrader" WITH OWNER = "spTrader" ENCODING = 'UTF8' LC_COLLATE = 'en_US.utf8' LC_CTYPE = 'en_US.utf8' TABLESPACE = pg_default CONNECTION
 LIMIT
   = -1 IS_TEMPLATE = False;
 
@@ -170,49 +168,54 @@ CREATE TYPE activity_level AS ENUM ('WEAK', 'GROWING', 'STRONG', 'RESTRICTED');
 
 -- Table: public.waypoint
 -- DROP TABLE IF EXISTS public.waypoint;
-CREATE TABLE
-  IF NOT EXISTS public.waypoint (
-    symbol character varying(255) COLLATE pg_catalog."default" NOT NULL,
-    system_symbol character varying(255) COLLATE pg_catalog."default" NOT NULL,
-    created_at timestamp without time zone NOT NULL DEFAULT now (),
-    CONSTRAINT waypoint_pkey PRIMARY KEY (symbol)
-  );
+CREATE TABLE IF NOT EXISTS public.waypoint (
+  symbol character varying(255) COLLATE pg_catalog."default" NOT NULL,
+  system_symbol character varying(255) COLLATE pg_catalog."default" NOT NULL,
+  created_at timestamp without time zone NOT NULL DEFAULT now (),
+  CONSTRAINT waypoint_pkey PRIMARY KEY (symbol)
+);
 
 -- Table: public.market_trade_good
 -- DROP TABLE IF EXISTS public.market_trade_good;
-CREATE TABLE
-  IF NOT EXISTS public.market_trade_good (
-    created_at timestamp without time zone NOT NULL DEFAULT now (),
-    created timestamp without time zone NOT NULL DEFAULT now (),
-    waypoint_symbol character varying(255) COLLATE pg_catalog."default" NOT NULL,
-    symbol trade_symbol NOT NULL,
-    type market_trade_good_type NOT NULL,
-    trade_volume integer NOT NULL,
-    supply supply_level NOT NULL,
-    activity activity_level,
-    purchase_price integer NOT NULL,
-    sell_price integer NOT NULL,
-    CONSTRAINT market_trade_good_pkey PRIMARY KEY (created, symbol, waypoint_symbol),
-    CONSTRAINT market_trade_good_relation_1 FOREIGN KEY (waypoint_symbol) REFERENCES public.waypoint (symbol) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION
-  );
+CREATE TABLE IF NOT EXISTS public.market_trade_good (
+  created_at timestamp without time zone NOT NULL DEFAULT now (),
+  created timestamp without time zone NOT NULL DEFAULT now (),
+  waypoint_symbol character varying(255) COLLATE pg_catalog."default" NOT NULL,
+  symbol trade_symbol NOT NULL,
+  type market_trade_good_type NOT NULL,
+  trade_volume integer NOT NULL,
+  supply supply_level NOT NULL,
+  activity activity_level,
+  purchase_price integer NOT NULL,
+  sell_price integer NOT NULL,
+  CONSTRAINT market_trade_good_pkey PRIMARY KEY (created, symbol, waypoint_symbol),
+  CONSTRAINT market_trade_good_relation_1 FOREIGN KEY (waypoint_symbol) REFERENCES public.waypoint (symbol) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION
+);
 
 -- Table: public.market_transaction
 -- DROP TABLE IF EXISTS public.market_transaction;
-CREATE TABLE
-  IF NOT EXISTS public.market_transaction (
-    waypoint_symbol character varying(255) COLLATE pg_catalog."default" NOT NULL,
-    ship_symbol character varying(255) COLLATE pg_catalog."default" NOT NULL,
-    type market_transaction_type NOT NULL,
-    units integer NOT NULL,
-    price_per_unit integer NOT NULL,
-    total_price integer NOT NULL,
-    "timestamp" character varying(255) COLLATE pg_catalog."default" NOT NULL,
-    trade_symbol trade_symbol NOT NULL,
-    CONSTRAINT market_transaction_pkey PRIMARY KEY (
-      waypoint_symbol,
-      ship_symbol,
-      trade_symbol,
-      "timestamp"
-    ),
-    CONSTRAINT market_transaction_relation_1 FOREIGN KEY (waypoint_symbol) REFERENCES public.waypoint (symbol) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION
-  ) TABLESPACE pg_default;
+CREATE TABLE IF NOT EXISTS public.market_transaction (
+  waypoint_symbol character varying(255) COLLATE pg_catalog."default" NOT NULL,
+  ship_symbol character varying(255) COLLATE pg_catalog."default" NOT NULL,
+  type market_transaction_type NOT NULL,
+  units integer NOT NULL,
+  price_per_unit integer NOT NULL,
+  total_price integer NOT NULL,
+  "timestamp" character varying(255) COLLATE pg_catalog."default" NOT NULL,
+  trade_symbol trade_symbol NOT NULL,
+  CONSTRAINT market_transaction_pkey PRIMARY KEY (
+    waypoint_symbol,
+    ship_symbol,
+    trade_symbol,
+    "timestamp"
+  ),
+  CONSTRAINT market_transaction_relation_1 FOREIGN KEY (waypoint_symbol) REFERENCES public.waypoint (symbol) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION
+) TABLESPACE pg_default;
+
+CREATE TABLE public.market_trade (
+  waypoint_symbol character varying(255) NOT NULL,
+  symbol trade_symbol NOT NULL,
+  type market_trade_good_type NOT NULL,
+  created_at timestamp without time zone NOT NULL DEFAULT now(),
+  PRIMARY KEY (created_at, symbol, waypoint_symbol)
+);

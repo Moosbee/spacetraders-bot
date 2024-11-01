@@ -3,7 +3,7 @@ use space_traders_client::models;
 
 use crate::{
     api,
-    sql::{self, insert_market_trade_good, insert_market_transactions},
+    sql::{self, insert_market_trade, insert_market_trade_good, insert_market_transactions},
 };
 pub async fn scrapping_conductor(
     api: api::Api,
@@ -69,6 +69,43 @@ pub async fn scrapping_conductor(
             .collect::<Vec<_>>(),
     )
     .await;
+    let market_trades: Vec<_> = markets
+        .iter()
+        .map(|m| {
+            vec![
+                m.exchange
+                    .iter()
+                    .map(|e| sql::MarketTrade {
+                        waypoint_symbol: m.symbol.clone(),
+                        symbol: e.symbol.clone(),
+                        r#type: models::market_trade_good::Type::Exchange,
+                        ..Default::default()
+                    })
+                    .collect::<Vec<_>>(),
+                m.exports
+                    .iter()
+                    .map(|e| sql::MarketTrade {
+                        waypoint_symbol: m.symbol.clone(),
+                        symbol: e.symbol.clone(),
+                        r#type: models::market_trade_good::Type::Export,
+                        ..Default::default()
+                    })
+                    .collect::<Vec<_>>(),
+                m.imports
+                    .iter()
+                    .map(|e| sql::MarketTrade {
+                        waypoint_symbol: m.symbol.clone(),
+                        symbol: e.symbol.clone(),
+                        r#type: models::market_trade_good::Type::Import,
+                        ..Default::default()
+                    })
+                    .collect::<Vec<_>>(),
+            ]
+        })
+        .flatten()
+        .flatten()
+        .collect();
+    insert_market_trade(&database_pool, market_trades).await;
 
     info!("Market scrapping workers done");
 }
