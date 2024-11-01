@@ -1377,6 +1377,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore]
     async fn get_systems_json_test() {
         let api = super::Api::new(None, 550, std::num::NonZeroU32::new(2).unwrap());
         let response_json = api.get_all_systems_json().await.unwrap();

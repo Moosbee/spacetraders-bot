@@ -1,6 +1,11 @@
+use std::collections::HashMap;
+
 use anyhow::Ok;
 use chrono::{DateTime, Utc};
-use space_traders_client::models;
+use priority_queue::PriorityQueue;
+use space_traders_client::models::{self, waypoint, Waypoint};
+
+use crate::path_finding;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Role {
@@ -119,4 +124,27 @@ impl MyShip {
         tokio::time::sleep(std::time::Duration::from_secs(t)).await;
         Ok(())
     }
+
+    pub fn get_dijkstra(
+        &self,
+        waypoints: Vec<models::Waypoint>,
+    ) -> Result<HashMap<String, path_finding::RouteConnection>, anyhow::Error> {
+        let routes = path_finding::get_full_dijkstra(
+            waypoints,
+            self.nav_waypoint_symbol.clone(),
+            self.fuel_current,
+            path_finding::NavMode::BurnAndCruiseAndDrift,
+            true,
+        );
+
+        routes
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    // #[test]
+    // fn it_works() {
+    //     assert_eq!(2 + 2, 4);
+    // }
 }

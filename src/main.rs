@@ -4,12 +4,15 @@ mod my_ship;
 mod sql;
 mod workers;
 
+mod path_finding;
 mod tests;
 
-use std::{env, sync::Arc};
+use std::{collections::HashMap, env, sync::Arc};
 
+use dashmap::DashMap;
 use env_logger::{Env, Target};
 use my_ship::MyShip;
+use space_traders_client::models::waypoint;
 use sql::insert_waypoint;
 
 use crate::api::Api;
@@ -87,39 +90,14 @@ async fn main() -> anyhow::Result<()> {
     insert_waypoint(&database_pool, &waypoints).await;
 
     let ship_roles: std::collections::HashMap<String, my_ship::Role> = vec![
-        ("MOOSBEE-1".to_string(), my_ship::Role::Manuel),
+        ("MOOSBEE-1".to_string(), my_ship::Role::Contract),
         ("MOOSBEE-2".to_string(), my_ship::Role::Scraper),
-        ("MOOSBEE-3".to_string(), my_ship::Role::Trader),
-        ("MOOSBEE-4".to_string(), my_ship::Role::Trader),
-        ("MOOSBEE-5".to_string(), my_ship::Role::Manuel),
-        ("MOOSBEE-6".to_string(), my_ship::Role::Scraper),
-        ("MOOSBEE-7".to_string(), my_ship::Role::Trader),
-        ("MOOSBEE-8".to_string(), my_ship::Role::Trader),
-        ("MOOSBEE-9".to_string(), my_ship::Role::Trader),
-        ("MOOSBEE-A".to_string(), my_ship::Role::Scraper),
-        ("MOOSBEE-B".to_string(), my_ship::Role::Scraper),
-        ("MOOSBEE-C".to_string(), my_ship::Role::Scraper),
-        ("MOOSBEE-D".to_string(), my_ship::Role::Scraper),
-        ("MOOSBEE-E".to_string(), my_ship::Role::Scraper),
-        ("MOOSBEE-F".to_string(), my_ship::Role::Scraper),
-        ("MOOSBEE-10".to_string(), my_ship::Role::Scraper),
-        ("MOOSBEE-11".to_string(), my_ship::Role::Scraper),
-        ("MOOSBEE-12".to_string(), my_ship::Role::Scraper),
-        ("MOOSBEE-13".to_string(), my_ship::Role::Scraper),
-        ("MOOSBEE-14".to_string(), my_ship::Role::Scraper),
-        ("MOOSBEE-15".to_string(), my_ship::Role::Scraper),
-        ("MOOSBEE-16".to_string(), my_ship::Role::Scraper),
-        ("MOOSBEE-17".to_string(), my_ship::Role::Scraper),
-        ("MOOSBEE-18".to_string(), my_ship::Role::Scraper),
-        ("MOOSBEE-19".to_string(), my_ship::Role::Scraper),
-        ("MOOSBEE-1A".to_string(), my_ship::Role::Scraper),
-        ("MOOSBEE-1B".to_string(), my_ship::Role::Scraper),
     ]
     .clone()
     .into_iter()
     .collect();
 
-    let my_ships = Arc::new(
+    let my_ships: Arc<dashmap::DashMap<String, MyShip>> = Arc::new(
         ships
             .iter()
             .map(|s| {
@@ -131,10 +109,22 @@ async fn main() -> anyhow::Result<()> {
 
                 (s.symbol.clone(), shipi)
             })
-            .collect::<dashmap::DashMap<String, MyShip>>(),
+            .collect(),
     );
 
-    info!("My ship: {:?}", my_ships);
+    let all_waypoints: Arc<dashmap::DashMap<String, HashMap<String, waypoint::Waypoint>>> =
+        Arc::new(DashMap::new());
+
+    {
+        let mut a_wps = all_waypoints
+            .entry(waypoints[0].system_symbol.clone())
+            .or_insert_with(HashMap::new);
+        for wp in waypoints.iter() {
+            a_wps.insert(wp.symbol.clone(), wp.clone());
+        }
+    }
+
+    // info!("My ship: {:?}", my_ships);
 
     let construction = tokio::spawn(async move {
         workers::construction_fleet::construction_conductor().await;
@@ -142,7 +132,7 @@ async fn main() -> anyhow::Result<()> {
 
     let pool_2 = database_pool.clone();
     let api_2 = api.clone();
-    let waypoints_2 = waypoints.clone();
+    let waypoints_2 = all_waypoints.clone();
     let ship_roles_2 = ship_roles.clone();
     let my_ships_2: Arc<dashmap::DashMap<String, MyShip>> = my_ships.clone();
     let contract = tokio::spawn(async move {
@@ -166,11 +156,13 @@ async fn main() -> anyhow::Result<()> {
         workers::trading_fleet::trading_conductor(database_pool).await;
     });
 
-    construction.await?;
-    let _ = contract.await?;
-    scrapping.await?;
-    mining.await?;
-    trading.await?;
+    let _construction_status = construction.await?;
+    let _contract_status = contract.await?;
+    let _scrapping_status = scrapping.await?;
+    let _mining_status = mining.await?;
+    let _trading_status = trading.await?;
+
+    info!("All workers have finished with status:\n construction: {:?}\n contract: {:?}\n scrapping: {:?}\n mining: {:?}\n trading: {:?}", _construction_status, _contract_status, _scrapping_status, _mining_status, _trading_status);
 
     Ok(())
 }
