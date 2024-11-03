@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO waypoint (symbol, system_symbol)\n            SELECT * FROM UNNEST($1::character varying[], $2::character varying[])\n            ON CONFLICT (symbol) DO NOTHING\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "VarcharArray",
+        "VarcharArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "90cce65a19511a85390614c2257b488f98b0c938f4c8781eebe749d6ae012853"
+}
