@@ -1,8 +1,9 @@
 use std::{cmp::Reverse, collections::HashMap};
 
 use anyhow::{Error, Ok};
+use chrono::{Duration, TimeDelta};
 use priority_queue::PriorityQueue;
-use space_traders_client::models;
+use space_traders_client::models::{self, Waypoint};
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum NavMode {
@@ -14,12 +15,12 @@ pub enum NavMode {
     BurnAndDrift,
     BurnAndCruiseAndDrift,
 }
-pub struct Mode {
+struct Mode {
     radius: f64,
     cost_multiplier: f64,
     mode: models::ShipNavFlightMode,
 }
-pub struct Modes {
+struct Modes {
     burn: Mode,
     cruise: Mode,
     drift: Mode,
@@ -81,18 +82,18 @@ impl std::hash::Hash for RouteConnection {
 }
 
 pub fn get_route_a_star(
-    waypoints: Vec<models::Waypoint>,
+    waypoints: &HashMap<String, models::Waypoint>,
     start_symbol: String,
     end_symbol: String,
     max_fuel: i32,
     nav_mode: NavMode,
     only_markets: bool,
 ) -> Result<Vec<RouteConnection>, Error> {
-    let mut unvisited: HashMap<String, models::Waypoint> = waypoints
-        .clone()
-        .iter()
-        .map(|w| (w.symbol.clone(), w.clone()))
-        .collect();
+    let mut unvisited: HashMap<String, models::Waypoint> = waypoints.clone();
+    // .clone()
+    // .iter()
+    // .map(|w| (w.symbol.clone(), w.clone()))
+    // .collect();
     let mut visited: HashMap<String, RouteConnection> = HashMap::new();
     let mut to_visit: PriorityQueue<RouteConnection, Reverse<i64>> = PriorityQueue::new();
 
@@ -222,18 +223,65 @@ pub fn get_route(
     Ok(route)
 }
 
+pub fn calc_route_stats(
+    waypoints: &HashMap<String, models::Waypoint>,
+    route: &Vec<RouteConnection>,
+    engine_speed: i32,
+) -> (Vec<ConnectionDetails>, f64, i32, TimeDelta) {
+    let stats = route
+        .iter()
+        .map(|conn| {
+            let start = waypoints.get(&conn.start_symbol).unwrap();
+            let end = waypoints.get(&conn.end_symbol).unwrap();
+            let stat = get_inter_system_travel_stats(
+                engine_speed,
+                conn.flight_mode,
+                (start.x, start.y),
+                (end.x, end.y),
+            );
+            ConnectionDetails {
+                start: start.clone(),
+                end: end.clone(),
+                flight_mode: conn.flight_mode,
+                distance: stat.distance,
+                fuel_cost: stat.fuel_cost,
+                travel_time: stat.travel_time,
+            }
+        })
+        .collect::<Vec<_>>();
+
+    let total_distance = stats.iter().map(|s| s.distance).sum::<f64>();
+    let total_fuel_cost = stats.iter().map(|s| s.fuel_cost).sum::<i32>();
+    let total_travel_time = stats
+        .iter()
+        .map(|s| s.travel_time + TimeDelta::seconds(1))
+        .sum::<Duration>();
+
+    (stats, total_distance, total_fuel_cost, total_travel_time)
+}
+
+#[derive(Debug, Clone)]
+pub struct ConnectionDetails {
+    pub start: Waypoint,
+    pub end: Waypoint,
+    pub flight_mode: models::ShipNavFlightMode,
+    pub distance: f64,
+    pub fuel_cost: i32,
+    pub travel_time: Duration,
+}
+
 pub fn get_full_dijkstra(
-    waypoints: Vec<models::Waypoint>,
+    waypoints: &HashMap<String, models::Waypoint>,
     start_symbol: String,
     max_fuel: i32,
     nav_mode: NavMode,
     only_markets: bool,
 ) -> Result<HashMap<String, RouteConnection>, Error> {
-    let mut unvisited: HashMap<String, models::Waypoint> = waypoints
-        .clone()
-        .iter()
-        .map(|w| (w.symbol.clone(), w.clone()))
-        .collect();
+    let mut unvisited: HashMap<String, models::Waypoint> = waypoints.clone();
+    // .clone()
+    // .iter()
+    // .map(|w| (w.symbol.clone(), w.clone()))
+    // .collect();
     let mut visited: HashMap<String, RouteConnection> = HashMap::new();
     let mut to_visit: PriorityQueue<RouteConnection, Reverse<i64>> = PriorityQueue::new();
 
@@ -343,7 +391,7 @@ fn get_waypoints_within_radius(
 pub struct Stat {
     distance: f64,
     fuel_cost: i32,
-    travel_time: f64,
+    travel_time: Duration,
 }
 pub fn get_inter_system_travel_stats(
     engine_speed: i32,
@@ -365,7 +413,7 @@ pub fn get_inter_system_travel_stats(
     Stat {
         distance,
         fuel_cost,
-        travel_time,
+        travel_time: Duration::milliseconds((travel_time * 1000.0) as i64),
     }
 }
 
@@ -393,7 +441,9 @@ pub mod tests {
             get_inter_system_travel_stats(10, models::ShipNavFlightMode::Cruise, (0, 0), (3, 4));
 
         assert!(
-            erg.distance == 5.0 && erg.fuel_cost == 5 && erg.travel_time == 27.5,
+            erg.distance == 5.0
+                && erg.fuel_cost == 5
+                && erg.travel_time == Duration::milliseconds((27.5 * 1000.0) as i64),
             "erg != 5.0, 5, 27.5 was {:?}",
             erg
         );

@@ -1,9 +1,7 @@
 use std::str::FromStr;
 
-use chrono::DateTime;
 use log::debug;
 use space_traders_client::models::{self, TradeSymbol};
-use sqlx::types::time::{Date, Time};
 
 #[derive(Debug, Clone, sqlx::FromRow, PartialEq, Eq)]
 pub struct MarketTradeGood {

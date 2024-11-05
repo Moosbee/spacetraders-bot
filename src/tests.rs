@@ -35,7 +35,7 @@ mod tests {
             .collect();
 
         let mut routes = crate::path_finding::get_full_dijkstra(
-            waypoints.clone(),
+            &wayps,
             "X1-KC3-D42".to_string(),
             400,
             crate::path_finding::NavMode::BurnAndCruise,
@@ -104,7 +104,7 @@ mod tests {
             .map(|w| (w.symbol.clone(), w.clone()))
             .collect();
 
-        for i in 0..40 {
+        for _i in 0..40 {
             let index_s = (rand::random::<f32>() * waypoints.len() as f32).floor() as usize;
             let index_e = (rand::random::<f32>() * waypoints.len() as f32).floor() as usize;
             // let st = waypoints.choose(&mut rand::thread_rng());
@@ -117,7 +117,7 @@ mod tests {
             let start_time = Instant::now();
 
             let all_routes = crate::path_finding::get_full_dijkstra(
-                waypoints.clone(),
+                &wayps,
                 start.clone(),
                 400,
                 crate::path_finding::NavMode::BurnAndCruiseAndDrift,
@@ -135,7 +135,7 @@ mod tests {
             let start_time = Instant::now();
 
             let star_route = crate::path_finding::get_route_a_star(
-                waypoints.clone(),
+                &wayps,
                 start.clone(),
                 end.clone(),
                 400,

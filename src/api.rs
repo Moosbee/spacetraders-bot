@@ -131,7 +131,6 @@ impl Api {
         Api {
             configuration: Configuration {
                 bearer_access_token: access_token,
-                client: reqwest::Client::new(),
                 ..Default::default()
             },
             limiter,

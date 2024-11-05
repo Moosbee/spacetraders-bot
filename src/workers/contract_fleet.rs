@@ -90,11 +90,17 @@ async fn do_contract_trade_contract(
 ) -> Result<(), Error> {
     let procurements = contract.terms.deliver.clone().unwrap();
 
-    let ship = my_ships.get(&ship_symbol).unwrap();
-    info!("Ship i i {:?}", ship);
+    let mut ship = my_ships.get_mut(&ship_symbol).unwrap();
+    // info!("Ship i i {:?}", ship);
 
-    let djirk = ship.get_dijkstra(waypoints.clone());
-    info!("Ship dijkstra: {:?}", djirk);
+    // let djirk = ship.get_dijkstra(waypoints.clone());
+    // info!("Ship dijkstra: {:?}", djirk);
+
+    let wayps: HashMap<String, models::Waypoint> = waypoints
+        .clone()
+        .iter()
+        .map(|w| (w.symbol.clone(), w.clone()))
+        .collect();
 
     for procurement in procurements {
         let trade_symbol = models::TradeSymbol::from_str(&procurement.trade_symbol)?;
@@ -130,6 +136,17 @@ async fn do_contract_trade_contract(
             );
             market_trade_good.waypoint_symbol.clone()
         };
+
+        ship.nav_to(
+            buy_waypoint_symbol,
+            true,
+            &wayps,
+            api.clone(),
+            database_pool.clone(),
+        )
+        .await?;
+
+        todo!()
     }
 
     Ok(())
@@ -146,6 +163,18 @@ fn is_in_deadline(contract: &models::Contract) -> bool {
     let now = chrono::Utc::now();
     now < deadline
 }
+
+// fn can_still_be_accepted(contract: &models::Contract) -> bool {
+//     let deadline = chrono::DateTime::parse_from_rfc3339(&contract.terms.deadline);
+
+//     if deadline.is_err() {
+//         return false;
+//     }
+//     let deadline = deadline.unwrap();
+
+//     let now = chrono::Utc::now();
+//     now < deadline
+// }
 
 async fn is_possible_contract(contract: &models::Contract, database_pool: sqlx::PgPool) -> bool {
     match contract.r#type {
