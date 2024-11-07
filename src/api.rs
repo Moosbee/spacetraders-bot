@@ -1361,6 +1361,13 @@ impl Api {
 
         Ok(result)
     }
+
+    pub fn system_symbol(waypoint_symbol: &str) -> String {
+        let waypoint_symbol_split = waypoint_symbol.split("-").collect::<Vec<&str>>();
+
+        let system_symbol = format!("{}-{}", waypoint_symbol_split[0], waypoint_symbol_split[1]);
+        system_symbol
+    }
 }
 
 #[cfg(test)]

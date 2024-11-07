@@ -5,7 +5,7 @@ use std::{
     time::Duration,
 };
 
-use anyhow::Error;
+use anyhow::{Error, Ok};
 use log::{debug, info};
 use space_traders_client::models::{self, market_trade_good};
 use tokio::time::sleep;
@@ -42,59 +42,128 @@ pub async fn contract_conductor(
     );
 
     while let Some(contract) = contract_que.pop_front() {
-        info!("Contract: {:?}", contract);
-        if is_possible_contract(&contract, database_pool.clone()).await && is_in_deadline(&contract)
-        {
-            info!("Contract is possible");
+        info!("Contract contract_que: {:?}", contract);
+        do_contract(
+            all_waypoints
+                .get(&get_system_symbol(&contract))
+                .unwrap()
+                .clone(),
+            my_ships.clone(),
+            api.clone(),
+            database_pool.clone(),
+            contract,
+            contract_ships[0].clone(),
+        )
+        .await?;
+    }
 
-            let destination_symbol_split = &contract.terms.deliver.as_ref().unwrap()[0]
-                .destination_symbol
-                .split("-")
-                .collect::<Vec<&str>>();
-
-            let system_symbol = format!(
-                "{}-{}",
-                destination_symbol_split[0], destination_symbol_split[1]
-            );
-
-            do_contract_trade_contract(
-                contract.clone(),
-                contract_ships[0].clone(),
-                api.clone(),
-                my_ships.clone(),
-                database_pool.clone(),
-                all_waypoints
-                    .get(&system_symbol)
-                    .unwrap()
-                    .values()
-                    .cloned()
-                    .collect(),
-            )
-            .await?;
-        } else {
-            info!("Contract is not possible");
-        }
+    for _i in 0..5 {
+        info!("Contract loop: {}", _i);
+        let next_contract =
+            negotiate_next_contract(my_ships.clone(), api.clone(), contract_ships.clone()).await?;
+        info!("Next contract: {:?}", next_contract);
+        do_contract(
+            all_waypoints
+                .get(&get_system_symbol(&next_contract))
+                .unwrap()
+                .clone(),
+            my_ships.clone(),
+            api.clone(),
+            database_pool.clone(),
+            next_contract,
+            contract_ships[0].clone(),
+        )
+        .await?;
     }
 
     info!("Contract workers done");
     Ok(())
 }
 
-async fn do_contract_trade_contract(
+async fn negotiate_next_contract(
+    my_ships: Arc<dashmap::DashMap<String, my_ship::MyShip>>,
+    api: api::Api,
+    contract_ships: Vec<&String>,
+) -> Result<models::Contract, Error> {
+    for ship in contract_ships.iter() {
+        let mut current_ship = my_ships.get_mut(*ship).unwrap();
+        let current_nav = current_ship.get_nav_status();
+        if current_nav != models::ShipNavStatus::InTransit {
+            if current_nav == models::ShipNavStatus::InOrbit {
+                current_ship.dock(&api).await?;
+            }
+
+            let next_contract = api.negotiate_contract(contract_ships[0]).await?;
+            return Ok(*next_contract.data.contract);
+        }
+    }
+
+    Err(Error::msg(
+        "No ships available to negotiate contracts. Could not negotiate next contract",
+    ))
+}
+
+async fn do_contract(
+    waypoints: HashMap<String, models::waypoint::Waypoint>,
+    my_ships: Arc<dashmap::DashMap<String, my_ship::MyShip>>,
+    api: api::Api,
+    database_pool: sqlx::PgPool,
+    contract: models::Contract,
+    ship_symbol: String,
+) -> anyhow::Result<()> {
+    info!("Contract: {:?}", contract);
+    if is_possible_contract(&contract, database_pool.clone()).await && is_in_deadline(&contract) {
+        info!("Contract is possible");
+        let contract = if !contract.accepted {
+            let accept_data = api.accept_contract(&contract.id).await?;
+
+            *accept_data.data.contract
+        } else {
+            contract
+        };
+
+        let finished_contract = do_trade_contract(
+            contract.clone(),
+            ship_symbol,
+            api.clone(),
+            my_ships.clone(),
+            database_pool.clone(),
+            waypoints.values().cloned().collect(),
+        )
+        .await?;
+
+        if can_fulfill_trade(&finished_contract) {
+            let _fulfilled_data = api.fulfill_contract(&finished_contract.id).await?;
+
+            Ok(())
+        } else {
+            Err(anyhow::anyhow!("Contract could not be fulfilled"))
+        }
+    } else {
+        Err(anyhow::anyhow!("Contract is not possible"))
+    }
+}
+
+fn get_system_symbol(contract: &models::Contract) -> String {
+    let waypoint_symbol = &contract.terms.deliver.clone().unwrap()[0].destination_symbol;
+    api::Api::system_symbol(waypoint_symbol)
+}
+
+/// Does the actual contract trade using one ship
+async fn do_trade_contract(
     contract: models::Contract,
     ship_symbol: String,
     api: api::Api,
     my_ships: Arc<dashmap::DashMap<String, my_ship::MyShip>>,
     database_pool: sqlx::PgPool,
     waypoints: Vec<models::Waypoint>,
-) -> Result<(), Error> {
+) -> Result<models::Contract, Error> {
     let procurements = contract.terms.deliver.clone().unwrap();
 
+    let mut current_contract = contract.clone();
     let mut ship = my_ships.get_mut(&ship_symbol).unwrap();
-    // info!("Ship i i {:?}", ship);
 
-    // let djirk = ship.get_dijkstra(waypoints.clone());
-    // info!("Ship dijkstra: {:?}", djirk);
+    info!("Contract: {:?}", current_contract);
 
     let wayps: HashMap<String, models::Waypoint> = waypoints
         .clone()
@@ -104,52 +173,158 @@ async fn do_contract_trade_contract(
 
     for procurement in procurements {
         let trade_symbol = models::TradeSymbol::from_str(&procurement.trade_symbol)?;
-        let market_trades = sql::get_last_market_trades_symbol(&database_pool, &trade_symbol).await;
-        let market_trade_goods = sql::get_last_trade_markets(&database_pool, &trade_symbol).await;
+        let buy_waypoint_symbol =
+            get_purchase_waypoint(procurement.clone(), database_pool.clone()).await?;
 
-        let buy_waypoint_symbol = if market_trades.len() == market_trade_goods.len() {
-            let mut market_trade_goods = market_trade_goods
-                .iter()
-                .filter(|f| !(f.r#type == market_trade_good::Type::Export))
-                .collect::<Vec<_>>();
+        let mut current_procurement = procurement.clone();
 
-            market_trade_goods.sort_by(|a, b| a.purchase_price.cmp(&b.purchase_price));
+        info!("Procurement: {:?}", current_procurement);
 
-            let market_trade_good = market_trade_goods.first().unwrap();
-            debug!(
-                "Market Trade Goods: {:?}, Market Trade Good: {:?}",
-                market_trade_goods, market_trade_good
+        while current_procurement.units_fulfilled < current_procurement.units_required {
+            info!(
+                "Fulfilled: {}, Required: {} going to {}",
+                current_procurement.units_fulfilled,
+                current_procurement.units_required,
+                buy_waypoint_symbol
             );
 
-            market_trade_good.waypoint_symbol.clone()
-        } else {
-            let market_trades = market_trades
+            let cargo_in_ship = ship
+                .cargo
                 .iter()
-                .filter(|f| !(f.r#type == market_trade_good::Type::Export))
-                .collect::<Vec<_>>();
+                .find(|f| f.0 == trade_symbol)
+                .map(|f| f.1)
+                .unwrap_or(0);
+            if cargo_in_ship == 0 {
+                ship.nav_to(
+                    &buy_waypoint_symbol,
+                    true,
+                    &wayps,
+                    &api,
+                    database_pool.clone(),
+                )
+                .await?;
 
-            let market_trade_good = market_trades.first().unwrap();
+                info!("Arrived on waypoint {}", buy_waypoint_symbol);
+                ship.dock(&api).await?;
 
-            debug!(
-                "Market Trades: {:?}, Market Trade Good: {:?}",
-                market_trades, market_trade_good
+                let still_required_cargo =
+                    current_procurement.units_required - current_procurement.units_fulfilled;
+
+                let purchase_volume =
+                    (ship.cargo_capacity - ship.cargo_units).min(still_required_cargo);
+                ship.purchase_cargo(&api, trade_symbol, purchase_volume, &database_pool)
+                    .await?;
+
+                info!(
+                    "Purchased {} {} going to {}",
+                    purchase_volume, trade_symbol, current_procurement.destination_symbol
+                );
+            } else {
+                info!(
+                    "Ship already has {} {} going to {}",
+                    trade_symbol, cargo_in_ship, current_procurement.destination_symbol
+                );
+            }
+
+            ship.nav_to(
+                &current_procurement.destination_symbol,
+                true,
+                &wayps,
+                &api,
+                database_pool.clone(),
+            )
+            .await
+            .unwrap();
+
+            ship.dock(&api).await?;
+
+            info!(
+                "Arrived on waypoint {}",
+                current_procurement.destination_symbol
             );
-            market_trade_good.waypoint_symbol.clone()
-        };
 
-        ship.nav_to(
-            buy_waypoint_symbol,
-            true,
-            &wayps,
-            api.clone(),
-            database_pool.clone(),
-        )
-        .await?;
+            let cargo_in_ship = ship
+                .cargo
+                .iter()
+                .find(|f| f.0 == trade_symbol)
+                .map(|f| f.1)
+                .unwrap_or(0);
 
-        todo!()
+            let delivery_result = ship
+                .deliver_contract(&contract.id, trade_symbol, cargo_in_ship, &api)
+                .await
+                .unwrap();
+
+            current_contract = *delivery_result.data.contract.clone();
+
+            let new_current_procurement = current_contract
+                .terms
+                .deliver
+                .clone()
+                .unwrap()
+                .iter()
+                .find(|f| {
+                    f.trade_symbol == current_procurement.trade_symbol
+                        && f.destination_symbol == current_procurement.destination_symbol
+                })
+                .unwrap()
+                .clone();
+
+            info!("New procurement: {:?}", new_current_procurement);
+            current_procurement = new_current_procurement;
+        }
     }
 
-    Ok(())
+    Ok(current_contract)
+}
+
+fn can_fulfill_trade(contract: &models::Contract) -> bool {
+    contract
+        .terms
+        .deliver
+        .clone()
+        .is_some_and(|f| f.iter().all(|d| d.units_fulfilled >= d.units_required))
+}
+
+async fn get_purchase_waypoint(
+    procurement: models::ContractDeliverGood,
+    database_pool: sqlx::PgPool,
+) -> Result<String, Error> {
+    let trade_symbol = models::TradeSymbol::from_str(&procurement.trade_symbol)?;
+    let market_trades = sql::get_last_market_trades_symbol(&database_pool, &trade_symbol).await;
+    let market_trade_goods = sql::get_last_trade_markets(&database_pool, &trade_symbol).await;
+
+    let buy_waypoint_symbol = if market_trades.len() == market_trade_goods.len() {
+        let mut market_trade_goods = market_trade_goods
+            .iter()
+            .filter(|f| !(f.r#type == market_trade_good::Type::Export))
+            .collect::<Vec<_>>();
+
+        market_trade_goods.sort_by(|a, b| a.purchase_price.cmp(&b.purchase_price));
+
+        let market_trade_good = market_trade_goods.first().unwrap();
+        debug!(
+            "Market Trade Goods: {:?}, Market Trade Good: {:?}",
+            market_trade_goods, market_trade_good
+        );
+
+        market_trade_good.waypoint_symbol.clone()
+    } else {
+        let market_trades = market_trades
+            .iter()
+            .filter(|f| !(f.r#type == market_trade_good::Type::Export))
+            .collect::<Vec<_>>();
+
+        let market_trade_good = market_trades.first().unwrap();
+
+        debug!(
+            "Market Trades: {:?}, Market Trade Good: {:?}",
+            market_trades, market_trade_good
+        );
+        market_trade_good.waypoint_symbol.clone()
+    };
+
+    Ok(buy_waypoint_symbol)
 }
 
 fn is_in_deadline(contract: &models::Contract) -> bool {

@@ -3,9 +3,15 @@ use std::collections::HashMap;
 use anyhow::Ok;
 use chrono::{DateTime, Utc};
 use log::info;
-use space_traders_client::models::{self, PurchaseCargoRequest, WaypointTraitSymbol};
+use space_traders_client::{
+    apis,
+    models::{self, PurchaseCargoRequest, WaypointTraitSymbol},
+};
 
-use crate::{api, path_finding, sql::MarketTransaction};
+use crate::{
+    api, path_finding,
+    sql::{self, MarketTransaction},
+};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Role {
@@ -20,25 +26,25 @@ pub enum Role {
 #[derive(Debug)]
 pub struct MyShip {
     pub role: Role,
-    registration_role: models::ShipRole,
-    symbol: String,
-    engine_speed: i32,
-    cooldown_expiration: Option<DateTime<Utc>>,
-    cargo_capacity: i32,
-    cargo_units: i32,
-    cargo: Vec<(models::TradeSymbol, i32)>,
-    fuel_capacity: i32,
-    fuel_current: i32,
-    nav_flight_mode: models::ShipNavFlightMode,
-    nav_status: models::ShipNavStatus,
-    nav_system_symbol: String,
-    nav_waypoint_symbol: String,
-    nav_route_arrival: DateTime<Utc>,
-    nav_route_departure_time: DateTime<Utc>,
-    nav_route_destination_symbol: String,
-    nav_route_destination_system_symbol: String,
-    nav_route_origin_symbol: String,
-    nav_route_origin_system_symbol: String,
+    pub registration_role: models::ShipRole,
+    pub symbol: String,
+    pub engine_speed: i32,
+    pub cooldown_expiration: Option<DateTime<Utc>>,
+    pub cargo_capacity: i32,
+    pub cargo_units: i32,
+    pub cargo: Vec<(models::TradeSymbol, i32)>,
+    pub fuel_capacity: i32,
+    pub fuel_current: i32,
+    pub nav_flight_mode: models::ShipNavFlightMode,
+    pub nav_status: models::ShipNavStatus,
+    pub nav_system_symbol: String,
+    pub nav_waypoint_symbol: String,
+    pub nav_route_arrival: DateTime<Utc>,
+    pub nav_route_departure_time: DateTime<Utc>,
+    pub nav_route_destination_symbol: String,
+    pub nav_route_destination_system_symbol: String,
+    pub nav_route_origin_symbol: String,
+    pub nav_route_origin_system_symbol: String,
 }
 
 impl MyShip {
@@ -151,6 +157,20 @@ impl MyShip {
         }
     }
 
+    pub fn get_nav_status(&self) -> models::ShipNavStatus {
+        match self.nav_status {
+            models::ShipNavStatus::Docked => models::ShipNavStatus::Docked,
+            models::ShipNavStatus::InOrbit => models::ShipNavStatus::InOrbit,
+            models::ShipNavStatus::InTransit => {
+                if self.is_in_transit() {
+                    models::ShipNavStatus::InTransit
+                } else {
+                    models::ShipNavStatus::InOrbit
+                }
+            }
+        }
+    }
+
     pub async fn wait_for_arrival(&self) -> anyhow::Result<()> {
         let t = self.nav_route_arrival - Utc::now();
         let t = t.num_seconds().try_into()?;
@@ -158,35 +178,103 @@ impl MyShip {
         Ok(())
     }
 
+    pub async fn deliver_contract(
+        &mut self,
+        contract_id: &str,
+        trade_symbol: models::TradeSymbol,
+        units: i32,
+        api: &api::Api,
+    ) -> anyhow::Result<models::DeliverContract200Response> {
+        let delivery_result: models::DeliverContract200Response = api
+            .deliver_contract(
+                contract_id,
+                Some(models::DeliverContractRequest {
+                    units,
+                    ship_symbol: self.symbol.clone(),
+                    trade_symbol: trade_symbol.to_string(),
+                }),
+            )
+            .await?;
+
+        self.update_cargo(&delivery_result.data.cargo);
+
+        Ok(delivery_result)
+    }
+
+    pub async fn dock(
+        &mut self,
+        api: &api::Api,
+    ) -> Result<models::DockShip200Response, apis::Error<apis::fleet_api::DockShipError>> {
+        let dock_data = api.dock_ship(&self.symbol).await?;
+        self.update_nav(&dock_data.data.nav);
+        core::result::Result::Ok(dock_data)
+    }
+
+    pub async fn undock(
+        &mut self,
+        api: &api::Api,
+    ) -> anyhow::Result<models::OrbitShip200Response, apis::Error<apis::fleet_api::OrbitShipError>>
+    {
+        let undock_data: models::OrbitShip200Response = api.orbit_ship(&self.symbol).await?;
+        self.update_nav(&undock_data.data.nav);
+        core::result::Result::Ok(undock_data)
+    }
+
+    pub async fn navigate(
+        &mut self,
+        api: &api::Api,
+        waypoint_symbol: &str,
+    ) -> anyhow::Result<models::NavigateShip200Response> {
+        let nav_data = api
+            .navigate_ship(
+                &self.symbol,
+                Some(models::NavigateShipRequest {
+                    waypoint_symbol: waypoint_symbol.to_string(),
+                }),
+            )
+            .await
+            .unwrap();
+
+        self.update_fuel(&nav_data.data.fuel);
+        self.update_nav(&nav_data.data.nav);
+
+        core::result::Result::Ok(nav_data)
+    }
+
     pub async fn nav_to(
         &mut self,
-        waypoint: String,
+        waypoint: &str,
         update_market: bool,
         waypoints: &HashMap<String, models::Waypoint>,
-        api: api::Api,
+        api: &api::Api,
         database_pool: sqlx::PgPool,
     ) -> anyhow::Result<()> {
         let route = path_finding::get_route_a_star(
             waypoints,
             self.nav_waypoint_symbol.clone(),
-            waypoint.clone(),
+            waypoint.to_string(),
             self.fuel_capacity,
             path_finding::NavMode::BurnAndCruiseAndDrift,
             true,
         )?;
 
-        let stats = path_finding::calc_route_stats(waypoints, &route, self.engine_speed);
+        let stats: (
+            Vec<path_finding::ConnectionDetails>,
+            f64,
+            i32,
+            chrono::TimeDelta,
+        ) = path_finding::calc_route_stats(waypoints, &route, self.engine_speed);
 
         let instructions: Vec<RouteInstruction> = self.route_instructions(stats.0.clone());
 
-        info!("Instructions: {:?}, stats: {:?}", instructions, stats);
+        info!("Instructions: {:?}", instructions);
 
         for inst in instructions {
-            if !(inst.start.symbol == self.nav_waypoint_symbol) {
+            if !(inst.start_symbol == self.nav_waypoint_symbol) {
                 return Err(anyhow::anyhow!(
                     "Not on waypoint {} {}",
                     self.nav_waypoint_symbol,
-                    inst.start.symbol
+                    inst.start_symbol
                 ));
             }
 
@@ -196,10 +284,10 @@ impl MyShip {
 
             info!(
                 "Arrived on waypoint {} {}",
-                self.nav_waypoint_symbol, inst.end.symbol
+                self.nav_waypoint_symbol, inst.end_symbol
             );
 
-            self.nav_refuel(&inst, api.clone(), database_pool.clone(), update_market)
+            self.nav_refuel(&inst, &api, database_pool.clone(), update_market)
                 .await?;
 
             if inst.flight_mode != self.nav_flight_mode {
@@ -214,22 +302,15 @@ impl MyShip {
                 .unwrap();
             }
 
-            let nav_data = api
-                .navigate_ship(
-                    &self.symbol,
-                    Some(models::NavigateShipRequest {
-                        waypoint_symbol: inst.end.symbol.clone(),
-                    }),
-                )
-                .await
-                .unwrap();
+            if self.nav_status == models::ShipNavStatus::Docked {
+                self.undock(api).await?;
+            }
 
-            self.update_fuel(&nav_data.data.fuel);
-            self.update_nav(&nav_data.data.nav);
+            let _nav_data = self.navigate(api, &inst.end_symbol).await?;
 
             info!(
                 "Navigated to waypoint {} {} {:?}",
-                self.nav_waypoint_symbol, inst.end.symbol, self.nav_route_arrival
+                self.nav_waypoint_symbol, inst.end_symbol, self.nav_route_arrival
             );
         }
 
@@ -238,20 +319,20 @@ impl MyShip {
         Ok(())
     }
 
-    pub fn get_dijkstra(
-        &self,
-        waypoints: &HashMap<String, models::Waypoint>,
-    ) -> Result<HashMap<String, path_finding::RouteConnection>, anyhow::Error> {
-        let routes = path_finding::get_full_dijkstra(
-            waypoints,
-            self.nav_waypoint_symbol.clone(),
-            self.fuel_current,
-            path_finding::NavMode::BurnAndCruiseAndDrift,
-            true,
-        );
+    // pub fn get_dijkstra(
+    //     &self,
+    //     waypoints: &HashMap<String, models::Waypoint>,
+    // ) -> Result<HashMap<String, path_finding::RouteConnection>, anyhow::Error> {
+    //     let routes = path_finding::get_full_dijkstra(
+    //         waypoints,
+    //         self.nav_waypoint_symbol.clone(),
+    //         self.fuel_current,
+    //         path_finding::NavMode::BurnAndCruiseAndDrift,
+    //         true,
+    //     );
 
-        routes
-    }
+    //     routes
+    // }
 
     pub fn route_instructions(
         &self,
@@ -262,23 +343,27 @@ impl MyShip {
         let mut last_fuel_cap = 0;
 
         for conn in route.iter().rev() {
-            let start_is_market = conn
+            let start_is_marketplace = conn
                 .start
                 .traits
                 .iter()
                 .any(|t| t.symbol == WaypointTraitSymbol::Marketplace);
 
-            last_fuel_cap = last_fuel_cap + conn.fuel_cost;
+            if !start_is_marketplace {
+                last_fuel_cap = last_fuel_cap + conn.fuel_cost;
+            }
 
             instructions.push(RouteInstruction {
-                start: conn.start.clone(),
-                end: conn.end.clone(),
+                start_symbol: conn.start.symbol.clone(),
+                end_symbol: conn.end.symbol.clone(),
+                start_is_marketplace,
+
                 flight_mode: conn.flight_mode,
                 refuel_to: conn.fuel_cost,
                 fuel_in_cargo: last_fuel_cap,
             });
 
-            if start_is_market {
+            if start_is_marketplace {
                 last_fuel_cap = 0;
             }
         }
@@ -290,7 +375,7 @@ impl MyShip {
     async fn nav_refuel(
         &mut self,
         instruction: &RouteInstruction,
-        api: api::Api,
+        api: &api::Api,
         database_pool: sqlx::PgPool,
         update_market: bool,
     ) -> anyhow::Result<()> {
@@ -302,7 +387,7 @@ impl MyShip {
             return Ok(());
         }
 
-        if instruction.is_marketplace() {
+        if instruction.start_is_marketplace {
             self.handle_marketplace_refuel(&api, &database_pool, refuel_requirements, update_market)
                 .await
         } else {
@@ -345,11 +430,11 @@ impl MyShip {
         info!("Marketplace refueling");
 
         // Dock the ship
-        let dock_data = api.dock_ship(&self.symbol).await?;
-        self.update_nav(&dock_data.data.nav);
+        self.dock(&api).await.unwrap();
 
         // Perform refueling if needed
         if requirements.refuel_amount > 0 {
+            info!("Marketplace refueling to fuel");
             let refuel_data = api
                 .refuel_ship(
                     &self.symbol,
@@ -358,7 +443,8 @@ impl MyShip {
                         units: Some(requirements.refuel_amount),
                     }),
                 )
-                .await?;
+                .await
+                .unwrap();
             let transaction =
                 MarketTransaction::try_from(refuel_data.data.transaction.as_ref().clone())?;
             crate::sql::insert_market_transaction(&database_pool, &transaction).await;
@@ -366,23 +452,38 @@ impl MyShip {
 
         // Restock fuel cargo if needed
         if requirements.restock_amount > 0 {
-            let restock_data = self.restock_fuel(api, requirements.restock_amount).await?;
-            let transaction =
-                MarketTransaction::try_from(restock_data.data.transaction.as_ref().clone())?;
-            crate::sql::insert_market_transaction(&database_pool, &transaction).await;
+            info!("Marketplace refueling to cargo");
+            let _restock_data = self
+                .purchase_cargo(
+                    api,
+                    models::TradeSymbol::Fuel,
+                    requirements.restock_amount,
+                    database_pool,
+                )
+                .await
+                .unwrap();
         }
 
         // Return to orbit
-        let undock_data = api.orbit_ship(&self.symbol).await?;
-        self.update_nav(&undock_data.data.nav);
+        self.undock(&api).await.unwrap();
 
         // Update market data if requested
         if update_market {
-            let market_data = api
-                .get_market(&self.nav_system_symbol, &self.nav_waypoint_symbol)
-                .await?;
-            crate::workers::market_scrapers::update_market(*market_data.data, &database_pool).await;
+            self.update_market(api, database_pool).await?;
         }
+
+        Ok(())
+    }
+
+    async fn update_market(
+        &self,
+        api: &api::Api,
+        database_pool: &sqlx::PgPool,
+    ) -> anyhow::Result<()> {
+        let market_data = api
+            .get_market(&self.nav_system_symbol, &self.nav_waypoint_symbol)
+            .await?;
+        crate::workers::market_scrapers::update_market(*market_data.data, &database_pool).await;
 
         Ok(())
     }
@@ -416,23 +517,55 @@ impl MyShip {
         Ok(())
     }
 
-    async fn restock_fuel(
+    pub async fn purchase_cargo(
         &mut self,
         api: &api::Api,
-        amount: i32,
-    ) -> anyhow::Result<models::PurchaseCargo201Response> {
-        let restock_data = api
-            .purchase_cargo(
-                &self.symbol,
-                Some(PurchaseCargoRequest {
-                    symbol: models::TradeSymbol::Fuel,
-                    units: amount,
-                }),
-            )
-            .await?;
+        symbol: models::TradeSymbol,
+        units: i32,
+        database_pool: &sqlx::PgPool,
+    ) -> anyhow::Result<()> {
+        let market_info =
+            sql::get_last_waypoint_trade_goods(database_pool, &self.nav_waypoint_symbol).await;
+        let market_info = if market_info.is_empty() {
+            self.update_market(api, database_pool).await?;
+            sql::get_last_waypoint_trade_goods(database_pool, &self.nav_waypoint_symbol).await
+        } else {
+            market_info
+        };
+        let max_purchase_volume = market_info
+            .iter()
+            .find(|m| m.symbol == symbol)
+            .map(|m| m.trade_volume)
+            .ok_or(anyhow::anyhow!("Could not find symbol in market info"))?;
 
-        self.update_cargo(&restock_data.data.cargo);
-        Ok(restock_data)
+        let full_purchases = units / max_purchase_volume;
+        let last_purchase_volume = units % max_purchase_volume;
+
+        let purchases = (0..full_purchases)
+            .map(|_| max_purchase_volume)
+            .chain(std::iter::once(last_purchase_volume))
+            .collect::<Vec<i32>>();
+
+        assert_eq!(purchases.iter().sum::<i32>(), units);
+
+        for purchase_volume in purchases {
+            let purchase_data = api
+                .purchase_cargo(
+                    &self.symbol,
+                    Some(PurchaseCargoRequest {
+                        symbol,
+                        units: purchase_volume,
+                    }),
+                )
+                .await?;
+            self.update_cargo(&purchase_data.data.cargo);
+
+            let transaction =
+                MarketTransaction::try_from(purchase_data.data.transaction.as_ref().clone())?;
+            crate::sql::insert_market_transaction(&database_pool, &transaction).await;
+        }
+
+        Ok(())
     }
 }
 
@@ -452,23 +585,12 @@ impl RefuelRequirements {
     }
 }
 
-trait RouteInstructionExt {
-    fn is_marketplace(&self) -> bool;
-}
-
-impl RouteInstructionExt for RouteInstruction {
-    fn is_marketplace(&self) -> bool {
-        self.start
-            .traits
-            .iter()
-            .any(|t| t.symbol == models::WaypointTraitSymbol::Marketplace)
-    }
-}
 #[derive(Debug)]
 pub struct RouteInstruction {
-    start: models::Waypoint,
-    end: models::Waypoint,
+    start_symbol: String,
+    end_symbol: String,
     flight_mode: models::ShipNavFlightMode,
+    start_is_marketplace: bool,
 
     /// The amount of fuel that needs to be in the Tanks to do the Current jump
     refuel_to: i32,

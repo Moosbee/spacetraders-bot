@@ -1,4 +1,3 @@
-use std::error;
 use std::fmt;
 
 use serde::{Deserialize, Serialize};
@@ -51,8 +50,8 @@ impl<T: std::clone::Clone> fmt::Display for Error<T> {
     }
 }
 
-impl<T: fmt::Debug + std::clone::Clone> error::Error for Error<T> {
-    fn source(&self) -> Option<&(dyn error::Error + 'static)> {
+impl<T: fmt::Debug + std::clone::Clone> std::error::Error for Error<T> {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         Some(match self {
             Error::Reqwest(e) => e,
             Error::ReqwestMiddleware(e) => e,

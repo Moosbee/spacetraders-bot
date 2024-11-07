@@ -15,45 +15,75 @@ pub enum NavMode {
     BurnAndDrift,
     BurnAndCruiseAndDrift,
 }
+
 struct Mode {
     radius: f64,
     cost_multiplier: f64,
     mode: models::ShipNavFlightMode,
 }
+
 struct Modes {
     burn: Mode,
     cruise: Mode,
     drift: Mode,
 }
+
 impl NavMode {
     fn get_modes(&self, all_modes: Modes) -> Vec<Mode> {
         let mut modes = Vec::new();
-        if self == &NavMode::Burn
-            || self == &NavMode::BurnAndCruise
-            || self == &NavMode::BurnAndDrift
-            || self == &NavMode::BurnAndCruiseAndDrift
-        {
+        if self.is_burn_mode() {
             modes.push(all_modes.burn);
         }
-        if self == &NavMode::Cruise
-            || self == &NavMode::BurnAndCruise
-            || self == &NavMode::CruiseAndDrift
-            || self == &NavMode::BurnAndCruiseAndDrift
-        {
+        if self.is_cruise_mode() {
             modes.push(all_modes.cruise);
         }
-        if self == &NavMode::Drift
-            || self == &NavMode::CruiseAndDrift
-            || self == &NavMode::BurnAndDrift
-            || self == &NavMode::BurnAndCruiseAndDrift
-        {
+        if self.is_drift_mode() {
             modes.push(all_modes.drift);
         }
-
         modes
+    }
+
+    fn is_burn_mode(&self) -> bool {
+        *self == NavMode::Burn
+            || *self == NavMode::BurnAndCruise
+            || *self == NavMode::BurnAndDrift
+            || *self == NavMode::BurnAndCruiseAndDrift
+    }
+
+    fn is_cruise_mode(&self) -> bool {
+        *self == NavMode::Cruise
+            || *self == NavMode::BurnAndCruise
+            || *self == NavMode::CruiseAndDrift
+            || *self == NavMode::BurnAndCruiseAndDrift
+    }
+
+    fn is_drift_mode(&self) -> bool {
+        *self == NavMode::Drift
+            || *self == NavMode::CruiseAndDrift
+            || *self == NavMode::BurnAndDrift
+            || *self == NavMode::BurnAndCruiseAndDrift
     }
 }
 
+fn get_flight_mode_configs(max_fuel: i32) -> Modes {
+    Modes {
+        burn: Mode {
+            radius: (max_fuel as f64) / 2.0,
+            cost_multiplier: 0.5,
+            mode: models::ShipNavFlightMode::Burn,
+        },
+        cruise: Mode {
+            radius: (max_fuel as f64),
+            cost_multiplier: 1.0,
+            mode: models::ShipNavFlightMode::Cruise,
+        },
+        drift: Mode {
+            radius: f64::INFINITY,
+            cost_multiplier: 10.0,
+            mode: models::ShipNavFlightMode::Drift,
+        },
+    }
+}
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct RouteConnection {
     pub start_symbol: String,
@@ -89,102 +119,56 @@ pub fn get_route_a_star(
     nav_mode: NavMode,
     only_markets: bool,
 ) -> Result<Vec<RouteConnection>, Error> {
-    let mut unvisited: HashMap<String, models::Waypoint> = waypoints.clone();
-    // .clone()
-    // .iter()
-    // .map(|w| (w.symbol.clone(), w.clone()))
-    // .collect();
-    let mut visited: HashMap<String, RouteConnection> = HashMap::new();
-    let mut to_visit: PriorityQueue<RouteConnection, Reverse<i64>> = PriorityQueue::new();
+    let mut unvisited = waypoints.clone();
+    let mut visited = HashMap::new();
+    let mut to_visit = PriorityQueue::new();
 
-    let start = match unvisited.get(&start_symbol) {
-        Some(it) => it,
-        None => return Err(anyhow::anyhow!("Could not find start waypoint")),
-    };
-
-    let modes = nav_mode.get_modes(Modes {
-        burn: Mode {
-            radius: (max_fuel as f64) / 2.0,
-            cost_multiplier: 0.5,
-            mode: models::ShipNavFlightMode::Burn,
-        },
-        cruise: Mode {
-            radius: (max_fuel as f64),
-            cost_multiplier: 1.0,
-            mode: models::ShipNavFlightMode::Cruise,
-        },
-        drift: Mode {
-            radius: f64::INFINITY,
-            cost_multiplier: 10.0,
-            mode: models::ShipNavFlightMode::Drift,
-        },
-    });
-
-    to_visit.push(
-        RouteConnection {
-            start_symbol: "".to_string(),
-            end_symbol: start.symbol.clone(),
-            distance: 0.0,
-            cost: 0.0,
-            flight_mode: models::ShipNavFlightMode::Drift,
-            re_cost: 0.0,
-        },
-        Reverse(0),
-    );
-
+    let start = unvisited
+        .get(&start_symbol)
+        .ok_or_else(|| anyhow::anyhow!("Could not find start waypoint"))?;
     let end_waypoint = unvisited
         .get(&end_symbol)
-        .ok_or(anyhow::anyhow!(
-            "Could not find end waypoint: {}",
-            end_symbol
-        ))?
+        .ok_or_else(|| anyhow::anyhow!("Could not find end waypoint: {}", end_symbol))?
         .clone();
 
-    while !to_visit.is_empty() {
-        let (current_route, _) = to_visit
-            .pop()
-            .ok_or(anyhow::anyhow!("Could not pop from queue"))?;
+    let modes = nav_mode.get_modes(get_flight_mode_configs(max_fuel));
+    let start_route = RouteConnection {
+        start_symbol: "".to_string(),
+        end_symbol: start.symbol.clone(),
+        distance: 0.0,
+        cost: 0.0,
+        flight_mode: models::ShipNavFlightMode::Drift,
+        re_cost: 0.0,
+    };
+    to_visit.push(start_route, Reverse(0));
+
+    while let Some((current_route, _)) = to_visit.pop() {
         to_visit = to_visit
             .into_iter()
-            .filter(|(c, _)| current_route.end_symbol != c.end_symbol)
+            .filter(|(c, _)| c.end_symbol != current_route.end_symbol)
             .collect();
         visited.insert(current_route.end_symbol.clone(), current_route.clone());
         let current = unvisited
             .remove(&current_route.end_symbol)
-            .ok_or(anyhow::anyhow!("Could not remove from queue"))?;
+            .ok_or_else(|| anyhow::anyhow!("Could not remove from queue"))?;
 
         if current.symbol == end_symbol {
             break;
         }
 
-        if !only_markets
-            || current
-                .traits
-                .iter()
-                .any(|t| t.symbol == models::WaypointTraitSymbol::Marketplace)
-        {
+        if !only_markets || has_marketplace_trait(&current) {
             for mode in &modes {
                 let next_waypoints =
-                    get_waypoints_within_radius(&unvisited, (current.x, current.y), mode.radius);
-
-                // depends on luck what waypoints are chosen first on same cost
-                // next_waypoints.sort_by(|a, b| a.symbol.cmp(&b.symbol));
-                // next_waypoints.sort_by(|a, b| b.symbol.cmp(&a.symbol));
-                // next_waypoints.reverse();
-
-                for waypoint in next_waypoints.iter() {
+                    get_nearby_waypoints(&unvisited, (current.x, current.y), mode.radius);
+                for waypoint in next_waypoints {
                     let distance = distance_between_waypoints(
                         (current.x, current.y),
                         (waypoint.x, waypoint.y),
                     );
-
                     let heuristic_cost = distance_between_waypoints(
                         (waypoint.x, waypoint.y),
                         (end_waypoint.x, end_waypoint.y),
                     ) * 0.4;
-
-                    // let heuristic_cost = 0.0;
-
                     let cost = current_route.cost + (distance * mode.cost_multiplier) + 1.0;
                     let re_cost = cost + heuristic_cost;
                     let next_route = RouteConnection {
@@ -195,8 +179,7 @@ pub fn get_route_a_star(
                         flight_mode: mode.mode,
                         re_cost,
                     };
-
-                    to_visit.push_increase(next_route, Reverse((re_cost * 1000000.0) as i64));
+                    to_visit.push_increase(next_route, Reverse((re_cost * 1_000_000.0) as i64));
                 }
             }
         }
@@ -206,16 +189,16 @@ pub fn get_route_a_star(
 }
 
 pub fn get_route(
-    waypoints: HashMap<String, RouteConnection>,
+    visited: HashMap<String, RouteConnection>,
     start_symbol: String,
     end_symbol: String,
 ) -> Result<Vec<RouteConnection>, Error> {
     let mut route = Vec::new();
     let mut current = end_symbol;
     while current != start_symbol {
-        let connection = waypoints
+        let connection = visited
             .get(&current)
-            .ok_or(anyhow::anyhow!("Could not find connection"))?;
+            .ok_or_else(|| anyhow::anyhow!("Could not find connection"))?;
         route.push(connection.clone());
         current = connection.start_symbol.clone();
     }
@@ -341,7 +324,7 @@ pub fn get_full_dijkstra(
         {
             for mode in &modes {
                 let next_waypoints =
-                    get_waypoints_within_radius(&unvisited, (current.x, current.y), mode.radius);
+                    get_nearby_waypoints(&unvisited, (current.x, current.y), mode.radius);
 
                 // depends on luck what waypoints are chosen first on same cost
                 // next_waypoints.sort_by(|a, b| a.symbol.cmp(&b.symbol));
@@ -372,19 +355,26 @@ pub fn get_full_dijkstra(
     Ok(visited)
 }
 
-fn get_waypoints_within_radius(
+fn get_nearby_waypoints(
     waypoints: &HashMap<String, models::Waypoint>,
     start_waypoint: (i32, i32),
     radius: f64,
 ) -> Vec<&models::Waypoint> {
     waypoints
-        .iter()
-        .filter(|w| {
-            let distance = distance_between_waypoints(start_waypoint, (w.1.x, w.1.y));
-            distance <= radius
-        })
-        .map(|w| w.1)
+        .values()
+        .filter(|w| distance_between_waypoints(start_waypoint, (w.x, w.y)) <= radius)
         .collect()
+}
+
+fn has_marketplace_trait(waypoint: &models::Waypoint) -> bool {
+    waypoint
+        .traits
+        .iter()
+        .any(|t| t.symbol == models::WaypointTraitSymbol::Marketplace)
+}
+
+fn distance_between_waypoints(start: (i32, i32), end: (i32, i32)) -> f64 {
+    (((end.0 - start.0).pow(2) + (end.1 - start.1).pow(2)) as f64).sqrt()
 }
 
 #[derive(Debug, Clone)]
@@ -415,19 +405,6 @@ pub fn get_inter_system_travel_stats(
         fuel_cost,
         travel_time: Duration::milliseconds((travel_time * 1000.0) as i64),
     }
-}
-
-pub fn distance_between_waypoints_sqrt(
-    start_waypoint: (i32, i32),
-    end_waypoint: (i32, i32),
-) -> f64 {
-    let sqrt =
-        (end_waypoint.0 - start_waypoint.0).pow(2) + (end_waypoint.1 - start_waypoint.1).pow(2);
-    sqrt as f64
-}
-pub fn distance_between_waypoints(start_waypoint: (i32, i32), end_waypoint: (i32, i32)) -> f64 {
-    let sqrt = distance_between_waypoints_sqrt(start_waypoint, end_waypoint).sqrt();
-    sqrt
 }
 
 #[cfg(test)]
