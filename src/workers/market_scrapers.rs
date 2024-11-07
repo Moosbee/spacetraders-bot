@@ -14,7 +14,7 @@ pub async fn scrapping_conductor(
 
     // sleep(Duration::from_secs(10)).await;
 
-    let future_markets: Vec<_> = waypoints
+    let future_markets = waypoints
         .iter()
         .filter(|w| {
             w.traits
@@ -29,7 +29,7 @@ pub async fn scrapping_conductor(
                 api.get_market(&w.system_symbol, &w.symbol).await.unwrap()
             })
         })
-        .collect();
+        .collect::<Vec<_>>();
 
     let mut markets = Vec::new();
 
@@ -172,4 +172,6 @@ pub async fn update_market(market: models::Market, database_pool: &sqlx::PgPool)
     .map(|f| f.clone())
     .collect();
     insert_market_trade(&database_pool, market_trades).await;
+
+    ()
 }

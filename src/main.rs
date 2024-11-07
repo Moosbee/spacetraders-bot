@@ -163,6 +163,16 @@ async fn main() -> anyhow::Result<()> {
     let _trading_status = trading.await?;
 
     info!("All workers have finished with status:\n construction: {:?}\n contract: {:?}\n scrapping: {:?}\n mining: {:?}\n trading: {:?}", _construction_status, _contract_status, _scrapping_status, _mining_status, _trading_status);
+    if _contract_status.is_err() {
+        let errror = _contract_status.unwrap_err();
+        println!(
+            "Contract error: {} {:?} {:?} {:?}",
+            errror,
+            errror.backtrace(),
+            errror.source(),
+            errror.root_cause()
+        );
+    }
 
     Ok(())
 }

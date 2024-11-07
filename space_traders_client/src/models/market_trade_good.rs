@@ -62,12 +62,12 @@ pub enum Type {
     #[serde(rename = "EXPORT")]
     #[sqlx(rename = "EXPORT")]
     Export,
-    #[serde(rename = "IMPORT")]
-    #[sqlx(rename = "IMPORT")]
-    Import,
     #[serde(rename = "EXCHANGE")]
     #[sqlx(rename = "EXCHANGE")]
     Exchange,
+    #[serde(rename = "IMPORT")]
+    #[sqlx(rename = "IMPORT")]
+    Import,
 }
 
 impl Default for Type {

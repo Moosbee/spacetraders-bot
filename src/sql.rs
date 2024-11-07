@@ -168,6 +168,7 @@ pub async fn insert_market_trade_good(
     );
 
     let insert = insert.execute(database_pool).await.unwrap();
+
     debug!("Insert: {:?}", insert);
 }
 

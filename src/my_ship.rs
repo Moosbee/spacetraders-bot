@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use anyhow::Ok;
 use chrono::{DateTime, Utc};
-use log::info;
+use log::{debug, info};
 use space_traders_client::{
     apis,
     models::{self, PurchaseCargoRequest, WaypointTraitSymbol},
@@ -123,6 +123,17 @@ impl MyShip {
             .iter()
             .map(|f| (f.symbol, f.units))
             .collect();
+    }
+
+    pub fn get_cargo_amount(&self, symbol: &models::TradeSymbol) -> i32 {
+        self.cargo
+            .iter()
+            .find_map(|(k, v)| if k == symbol { Some(*v) } else { None })
+            .unwrap_or(0)
+    }
+
+    pub fn has_cargo(&self, symbol: &models::TradeSymbol) -> bool {
+        self.get_cargo_amount(symbol) > 0
     }
 
     pub fn is_on_cooldown(&self) -> bool {
@@ -249,6 +260,7 @@ impl MyShip {
         api: &api::Api,
         database_pool: sqlx::PgPool,
     ) -> anyhow::Result<()> {
+        info!("Nav from {} to {}", self.nav_waypoint_symbol, waypoint);
         let route = path_finding::get_route_a_star(
             waypoints,
             self.nav_waypoint_symbol.clone(),
@@ -267,7 +279,7 @@ impl MyShip {
 
         let instructions: Vec<RouteInstruction> = self.route_instructions(stats.0.clone());
 
-        info!("Instructions: {:?}", instructions);
+        // info!("Instructions: {:?}", instructions);
 
         for inst in instructions {
             if !(inst.start_symbol == self.nav_waypoint_symbol) {
@@ -278,11 +290,11 @@ impl MyShip {
                 ));
             }
 
-            info!("Instruction: {:?} waiting", inst);
+            debug!("Instruction: {:?} waiting", inst);
 
             let _ = self.wait_for_arrival().await;
 
-            info!(
+            debug!(
                 "Arrived on waypoint {} {}",
                 self.nav_waypoint_symbol, inst.end_symbol
             );
@@ -291,7 +303,7 @@ impl MyShip {
                 .await?;
 
             if inst.flight_mode != self.nav_flight_mode {
-                info!("Changing flight mode to {:?}", inst.flight_mode);
+                debug!("Changing flight mode to {:?}", inst.flight_mode);
                 api.patch_ship_nav(
                     &self.symbol,
                     Some(models::PatchShipNavRequest {
@@ -305,12 +317,13 @@ impl MyShip {
             if self.nav_status == models::ShipNavStatus::Docked {
                 self.undock(api).await?;
             }
+            let start_waypoint = self.nav_waypoint_symbol.clone();
 
             let _nav_data = self.navigate(api, &inst.end_symbol).await?;
 
             info!(
-                "Navigated to waypoint {} {} {:?}",
-                self.nav_waypoint_symbol, inst.end_symbol, self.nav_route_arrival
+                "Navigated to waypoint {} from {} arrived in {:?} being at waypoint {}",
+                start_waypoint, inst.end_symbol, self.nav_route_arrival, self.nav_waypoint_symbol
             );
         }
 
@@ -427,14 +440,12 @@ impl MyShip {
             return Ok(());
         }
 
-        info!("Marketplace refueling");
-
         // Dock the ship
         self.dock(&api).await.unwrap();
 
         // Perform refueling if needed
         if requirements.refuel_amount > 0 {
-            info!("Marketplace refueling to fuel");
+            debug!("Marketplace refueling to fuel");
             let refuel_data = api
                 .refuel_ship(
                     &self.symbol,
@@ -452,7 +463,7 @@ impl MyShip {
 
         // Restock fuel cargo if needed
         if requirements.restock_amount > 0 {
-            info!("Marketplace refueling to cargo");
+            debug!("Marketplace refueling to cargo");
             let _restock_data = self
                 .purchase_cargo(
                     api,
@@ -475,7 +486,7 @@ impl MyShip {
         Ok(())
     }
 
-    async fn update_market(
+    pub async fn update_market(
         &self,
         api: &api::Api,
         database_pool: &sqlx::PgPool,
@@ -495,7 +506,7 @@ impl MyShip {
         requirements: RefuelRequirements,
     ) -> anyhow::Result<()> {
         if requirements.refuel_amount > 0 {
-            info!("Space refueling");
+            debug!("Space refueling");
             let refuel_data = api
                 .refuel_ship(
                     &self.symbol,
@@ -527,7 +538,9 @@ impl MyShip {
         let market_info =
             sql::get_last_waypoint_trade_goods(database_pool, &self.nav_waypoint_symbol).await;
         let market_info = if market_info.is_empty() {
+            tokio::time::sleep(std::time::Duration::from_secs(1)).await;
             self.update_market(api, database_pool).await?;
+            tokio::time::sleep(std::time::Duration::from_secs(1)).await;
             sql::get_last_waypoint_trade_goods(database_pool, &self.nav_waypoint_symbol).await
         } else {
             market_info
@@ -536,7 +549,10 @@ impl MyShip {
             .iter()
             .find(|m| m.symbol == symbol)
             .map(|m| m.trade_volume)
-            .ok_or(anyhow::anyhow!("Could not find symbol in market info"))?;
+            .ok_or(anyhow::anyhow!(
+                "Could not find symbol in market info {:?}",
+                market_info
+            ))?;
 
         let full_purchases = units / max_purchase_volume;
         let last_purchase_volume = units % max_purchase_volume;
@@ -557,7 +573,8 @@ impl MyShip {
                         units: purchase_volume,
                     }),
                 )
-                .await?;
+                .await
+                .unwrap();
             self.update_cargo(&purchase_data.data.cargo);
 
             let transaction =
