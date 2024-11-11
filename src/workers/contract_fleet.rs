@@ -124,6 +124,8 @@ async fn process_contract(
         .context("System not found")?
         .clone();
 
+    sql::update_contract(database_pool, &contract).await;
+
     let finished_contract = execute_trade_contract(
         contract.clone(),
         ship_symbol.to_string(),
@@ -136,7 +138,9 @@ async fn process_contract(
     .unwrap();
 
     if can_fulfill_trade(&finished_contract) {
-        api.fulfill_contract(&finished_contract.id).await?;
+        let fulfill_contract_data = api.fulfill_contract(&finished_contract.id).await?;
+        sql::update_contract(database_pool, &fulfill_contract_data.data.contract).await;
+
         Ok(())
     } else {
         Err(Error::msg("Contract could not be fulfilled"))
@@ -181,8 +185,11 @@ async fn execute_trade_contract(
                 &waypoints_map,
                 api,
                 database_pool,
+                sql::TransactionReason::Contract(current_contract.id.clone()),
             )
             .await?;
+
+            sql::update_contract(database_pool, &current_contract).await;
 
             procurement = get_updated_procurement(&current_contract, &procurement)?;
         }
@@ -201,19 +208,33 @@ async fn handle_procurement_cycle(
     waypoints: &HashMap<String, Waypoint>,
     api: &Api,
     database_pool: &sqlx::PgPool,
+    reason: sql::TransactionReason,
 ) -> Result<Contract> {
     if !ship.has_cargo(&trade_symbol) {
-        ship.nav_to(buy_waypoint, true, waypoints, api, database_pool.clone())
-            .await
-            .unwrap();
+        ship.nav_to(
+            buy_waypoint,
+            true,
+            waypoints,
+            api,
+            database_pool.clone(),
+            reason.clone(),
+        )
+        .await
+        .unwrap();
         ship.update_market(api, database_pool).await?;
 
         ship.dock(api).await.unwrap();
 
         let purchase_volume = calculate_purchase_volume(ship, procurement);
-        ship.purchase_cargo(api, trade_symbol, purchase_volume, database_pool)
-            .await
-            .unwrap();
+        ship.purchase_cargo(
+            api,
+            trade_symbol,
+            purchase_volume,
+            database_pool,
+            reason.clone(),
+        )
+        .await
+        .unwrap();
     }
 
     ship.nav_to(
@@ -222,6 +243,7 @@ async fn handle_procurement_cycle(
         waypoints,
         api,
         database_pool.clone(),
+        reason,
     )
     .await
     .unwrap();

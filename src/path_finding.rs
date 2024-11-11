@@ -1,4 +1,4 @@
-use std::{cmp::Reverse, collections::HashMap};
+use std::{cmp::Reverse, collections::HashMap, i32};
 
 use anyhow::{Error, Ok};
 use chrono::{Duration, TimeDelta};
@@ -392,9 +392,9 @@ pub fn get_inter_system_travel_stats(
     let distance = distance_between_waypoints(start_waypoint, end_waypoint);
 
     let (fuel_cost, multiplier) = match flight_mode {
-        models::ShipNavFlightMode::Burn => (2 * distance as i32, 12),
-        models::ShipNavFlightMode::Cruise => (distance as i32, 25),
-        models::ShipNavFlightMode::Stealth => (distance as i32, 30),
+        models::ShipNavFlightMode::Burn => ((2.0 * distance.max(1.0)).round() as i32, 12),
+        models::ShipNavFlightMode::Cruise => ((distance.max(1.0)).round() as i32, 25),
+        models::ShipNavFlightMode::Stealth => ((distance.max(1.0)).round() as i32, 30),
         models::ShipNavFlightMode::Drift => (1, 250),
     };
 

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            INSERT INTO market_transaction (waypoint_symbol, ship_symbol, trade_symbol, \"type\", units, price_per_unit, total_price, \"timestamp\")\n            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)\n            ON CONFLICT (waypoint_symbol, ship_symbol, trade_symbol, \"timestamp\") DO NOTHING\n        ",
+  "query": "\n            INSERT INTO market_transaction (waypoint_symbol, ship_symbol, trade_symbol, \"type\", units, price_per_unit, total_price, \"timestamp\", contract)\n            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)\n            ON CONFLICT (waypoint_symbol, ship_symbol, trade_symbol, \"timestamp\") DO NOTHING\n        ",
   "describe": {
     "columns": [],
     "parameters": {
@@ -173,10 +173,11 @@
         "Int4",
         "Int4",
         "Int4",
+        "Varchar",
         "Varchar"
       ]
     },
     "nullable": []
   },
-  "hash": "5e634382d0b400fd54b76c84ab474815d25e33edf5519b16639021e3bc450810"
+  "hash": "b342e22124fda5a50b3d0e8889b9af7741c60ed171e6edb34f111326da3e1f32"
 }

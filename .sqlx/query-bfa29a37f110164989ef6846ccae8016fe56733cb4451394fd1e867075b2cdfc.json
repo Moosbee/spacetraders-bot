@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n      select waypoint_symbol, ship_symbol,trade_symbol as \"trade_symbol: models::TradeSymbol\", \"type\" as \"type: models::market_transaction::Type\", units, price_per_unit, total_price, \"timestamp\" from market_transaction\n    ",
+  "query": "\n      select waypoint_symbol, ship_symbol,trade_symbol as \"trade_symbol: models::TradeSymbol\", \"type\" as \"type: models::market_transaction::Type\", units, price_per_unit, total_price, \"timestamp\", contract from market_transaction\n    ",
   "describe": {
     "columns": [
       {
@@ -203,6 +203,11 @@
         "ordinal": 7,
         "name": "timestamp",
         "type_info": "Varchar"
+      },
+      {
+        "ordinal": 8,
+        "name": "contract",
+        "type_info": "Varchar"
       }
     ],
     "parameters": {
@@ -216,8 +221,9 @@
       false,
       false,
       false,
-      false
+      false,
+      true
     ]
   },
-  "hash": "e288d0e206f4c76a03a836df1e356e4f38c700d78e33ce652028835582c733db"
+  "hash": "bfa29a37f110164989ef6846ccae8016fe56733cb4451394fd1e867075b2cdfc"
 }

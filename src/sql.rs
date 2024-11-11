@@ -1,5 +1,6 @@
-use std::str::FromStr;
+use std::{i32, str::FromStr};
 
+use anyhow::Ok;
 use log::debug;
 use space_traders_client::models::{self, TradeSymbol};
 
@@ -31,7 +32,7 @@ impl Into<models::MarketTradeGood> for MarketTradeGood {
     }
 }
 
-#[derive(Clone, Default, Debug, PartialEq, sqlx::FromRow)]
+#[derive(Clone, Default, Debug, PartialEq)]
 pub struct MarketTransaction {
     /// The symbol of the waypoint.
     pub waypoint_symbol: String,
@@ -49,6 +50,67 @@ pub struct MarketTransaction {
     pub total_price: i32,
     /// The timestamp of the transaction.
     pub timestamp: String,
+    /// The reason for the transaction.
+    // pub reason: TransactionReason,
+    pub contract: Option<String>,
+}
+
+// impl sqlx::FromRow<'_, sqlx::postgres::PgRow> for MarketTransaction {
+//     fn from_row(row: &sqlx::postgres::PgRow) -> Result<Self, sqlx::Error> {
+//         use sqlx::Row;
+//         let waypoint_symbol: String = row.try_get("waypoint_symbol")?;
+//         let ship_symbol: String = row.try_get("ship_symbol")?;
+//         let trade_symbol: TradeSymbol = row.try_get("trade_symbol")?;
+//         let r_type: models::market_transaction::Type = row.try_get("r_type")?;
+//         let units: i32 = row.try_get("units")?;
+//         let price_per_unit: i32 = row.try_get("price_per_unit")?;
+//         let total_price: i32 = row.try_get("total_price")?;
+//         let timestamp: String = row.try_get("timestamp")?;
+//         let contract: Option<String> = row.try_get("contract")?;
+
+//         let reason = match contract {
+//             Some(contract) => TransactionReason::Contract(contract),
+//             None => TransactionReason::None,
+//         };
+
+//         sqlx::Result::Ok(MarketTransaction {
+//             waypoint_symbol,
+//             ship_symbol,
+//             trade_symbol,
+//             r#type: r_type,
+//             units,
+//             price_per_unit,
+//             total_price,
+//             timestamp,
+//             reason,
+//         })
+//     }
+// }
+
+#[derive(Clone, Debug, PartialEq, Default)]
+pub enum TransactionReason {
+    Contract(String),
+    #[default]
+    None,
+}
+
+pub trait With<T> {
+    fn with(self, reason: T) -> Self;
+}
+
+impl With<TransactionReason> for MarketTransaction {
+    fn with(self, reason: TransactionReason) -> Self {
+        match reason {
+            TransactionReason::Contract(contract) => MarketTransaction {
+                contract: Some(contract),
+                ..self
+            },
+            TransactionReason::None => MarketTransaction {
+                contract: None,
+                ..self
+            },
+        }
+    }
 }
 
 impl Into<models::MarketTransaction> for MarketTransaction {
@@ -80,6 +142,8 @@ impl TryFrom<models::MarketTransaction> for MarketTransaction {
             total_price: value.total_price,
             timestamp: value.timestamp,
             waypoint_symbol: value.waypoint_symbol,
+            // reason: TransactionReason::None,
+            contract: None,
         })
     }
 }
@@ -383,8 +447,8 @@ pub async fn insert_market_transaction(
 ) {
     sqlx::query!(
         r#"
-            INSERT INTO market_transaction (waypoint_symbol, ship_symbol, trade_symbol, "type", units, price_per_unit, total_price, "timestamp")
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            INSERT INTO market_transaction (waypoint_symbol, ship_symbol, trade_symbol, "type", units, price_per_unit, total_price, "timestamp", contract)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
             ON CONFLICT (waypoint_symbol, ship_symbol, trade_symbol, "timestamp") DO NOTHING
         "#,
         transaction.waypoint_symbol,
@@ -394,7 +458,8 @@ pub async fn insert_market_transaction(
         transaction.units,
         transaction.price_per_unit,
         transaction.total_price,
-        transaction.timestamp
+        transaction.timestamp,
+        transaction.contract
     )
     .execute(database_pool)
     .await
@@ -407,13 +472,16 @@ pub async fn insert_market_transactions(
 ) {
     let (
         ((t_waypoint_symbol, t_ship_symbol), (t_trade_symbol, t_type)),
-        ((t_units, t_timestamp), (t_price_per_unit, t_total_price)),
+        ((t_units, t_timestamp_and_contract), (t_price_per_unit, t_total_price)),
     ): (
         (
             (Vec<String>, Vec<String>),
             (Vec<TradeSymbol>, Vec<models::market_transaction::Type>),
         ),
-        ((Vec<i32>, Vec<String>), (Vec<i32>, Vec<i32>)),
+        (
+            (Vec<i32>, Vec<(String, Option<String>)>),
+            (Vec<i32>, Vec<i32>),
+        ),
     ) = transactions
         .iter()
         .map(|t| {
@@ -423,16 +491,28 @@ pub async fn insert_market_transactions(
                     (t.trade_symbol.clone(), t.r#type.clone()),
                 ),
                 (
-                    (t.units.clone(), t.timestamp.clone()),
+                    (t.units.clone(), (t.timestamp.clone(), t.contract.clone())),
                     (t.price_per_unit.clone(), t.total_price.clone()),
                 ),
             )
         })
+        .map(
+            |f: (
+                (
+                    (String, String),
+                    (TradeSymbol, models::market_transaction::Type),
+                ),
+                ((i32, (String, Option<String>)), (i32, i32)),
+            )| f,
+        )
         .unzip();
+
+    let (t_timestamp, t_contract): (Vec<String>, Vec<Option<String>>) =
+        t_timestamp_and_contract.into_iter().unzip();
 
     sqlx::query!(
         r#"
-            INSERT INTO market_transaction (waypoint_symbol, ship_symbol,trade_symbol, "type", units, price_per_unit, total_price, "timestamp")
+            INSERT INTO market_transaction (waypoint_symbol, ship_symbol,trade_symbol, "type", units, price_per_unit, total_price, "timestamp", contract)
               SELECT * FROM UNNEST(
                 $1::character varying[],
                 $2::character varying[],
@@ -441,7 +521,8 @@ pub async fn insert_market_transactions(
                 $5::integer[],
                 $6::integer[],
                 $7::integer[],
-                $8::character varying[]
+                $8::character varying[],
+                $9::character varying[]
             )
             ON CONFLICT (waypoint_symbol, ship_symbol, trade_symbol, "timestamp") DO NOTHING
         "#,
@@ -452,7 +533,8 @@ pub async fn insert_market_transactions(
         &t_units,
         &t_price_per_unit,
         &t_total_price,
-        &t_timestamp
+        &t_timestamp,
+        &t_contract as &[Option<String>]
     )
     .execute(database_pool)
     .await
@@ -463,8 +545,122 @@ pub async fn get_market_transactions(database_pool: &sqlx::PgPool) -> Vec<Market
     let row: Vec<MarketTransaction> = sqlx::query_as!(
       MarketTransaction,
         r#"
-      select waypoint_symbol, ship_symbol,trade_symbol as "trade_symbol: models::TradeSymbol", "type" as "type: models::market_transaction::Type", units, price_per_unit, total_price, "timestamp" from market_transaction
+      select waypoint_symbol, ship_symbol,trade_symbol as "trade_symbol: models::TradeSymbol", "type" as "type: models::market_transaction::Type", units, price_per_unit, total_price, "timestamp", contract from market_transaction
     "#
     ).fetch_all(database_pool).await.unwrap();
     row
+}
+
+pub async fn update_contract(database_pool: &sqlx::PgPool, contract: &models::Contract) {
+    update_base_contract(database_pool, contract).await;
+    if let Some(deliveries) = &contract.terms.deliver {
+        update_contract_deliveries(database_pool, &contract.id, deliveries).await;
+    }
+}
+
+pub async fn update_base_contract(database_pool: &sqlx::PgPool, contract: &models::Contract) {
+    sqlx::query!(
+        r#"
+            INSERT INTO contract (
+              id,
+              faction_symbol,
+              contract_type,
+              accepted,
+              fulfilled,
+              deadline_to_accept,
+              on_accepted,
+              on_fulfilled,
+              deadline
+            )
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+            ON CONFLICT (id) DO UPDATE SET 
+              faction_symbol = EXCLUDED.faction_symbol,
+              contract_type = EXCLUDED.contract_type,
+              accepted = EXCLUDED.accepted,
+              fulfilled = EXCLUDED.fulfilled,
+              deadline_to_accept = EXCLUDED.deadline_to_accept,
+              on_accepted = EXCLUDED.on_accepted,
+              on_fulfilled = EXCLUDED.on_fulfilled,
+              deadline = EXCLUDED.deadline
+        "#,
+        contract.id,
+        contract.faction_symbol,
+        contract.r#type as models::contract::Type,
+        contract.accepted,
+        contract.fulfilled,
+        contract.deadline_to_accept,
+        contract.terms.payment.on_accepted,
+        contract.terms.payment.on_fulfilled,
+        contract.terms.deadline
+    )
+    .execute(database_pool)
+    .await
+    .unwrap();
+}
+
+pub async fn update_contract_deliveries(
+    database_pool: &sqlx::PgPool,
+    contract_id: &str,
+    contract_deliveries: &Vec<models::ContractDeliverGood>,
+) {
+    let (
+        ((contract_ids, trade_symbols), (units_fulfilled, units_required)),
+        ((destination_symbols, _), (_, _)),
+    ): (
+        ((Vec<String>, Vec<TradeSymbol>), (Vec<i32>, Vec<i32>)),
+        ((Vec<String>, Vec<()>), (Vec<()>, Vec<()>)),
+    ) = contract_deliveries
+        .iter()
+        .map(|c| {
+            let res = (
+                (
+                    (
+                        contract_id.to_string(),
+                        models::TradeSymbol::try_from(c.trade_symbol.as_str()).clone()?,
+                    ),
+                    (c.units_fulfilled.clone(), c.units_required.clone()),
+                ),
+                ((c.destination_symbol.clone(), ()), ((), ())),
+            );
+            Ok(res)
+        })
+        .filter_map(
+            |c: Result<
+                (
+                    ((String, TradeSymbol), (i32, i32)),
+                    ((String, ()), ((), ())),
+                ),
+                _,
+            >| c.ok(),
+        )
+        .unzip();
+
+    sqlx::query!(
+        r#"
+            INSERT INTO contract_delivery (
+              contract_id,
+              trade_symbol,
+              destination_symbol,
+              units_required,
+              units_fulfilled
+            )
+              SELECT * FROM UNNEST(
+                $1::character varying[],
+                $2::trade_symbol[],
+                $3::character varying[],
+                $4::integer[],
+                $5::integer[]
+            )
+            ON CONFLICT (contract_id, trade_symbol, destination_symbol) DO UPDATE
+            SET units_fulfilled = EXCLUDED.units_fulfilled
+        "#,
+        &contract_ids,
+        &trade_symbols as &[models::TradeSymbol],
+        &destination_symbols,
+        &units_required,
+        &units_fulfilled
+    )
+    .execute(database_pool)
+    .await
+    .unwrap();
 }

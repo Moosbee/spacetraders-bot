@@ -10,7 +10,7 @@ use space_traders_client::{
 
 use crate::{
     api, path_finding,
-    sql::{self, MarketTransaction},
+    sql::{self, MarketTransaction, TransactionReason, With},
 };
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -259,6 +259,7 @@ impl MyShip {
         waypoints: &HashMap<String, models::Waypoint>,
         api: &api::Api,
         database_pool: sqlx::PgPool,
+        reason: TransactionReason,
     ) -> anyhow::Result<()> {
         info!("Nav from {} to {}", self.nav_waypoint_symbol, waypoint);
         let route = path_finding::get_route_a_star(
@@ -299,8 +300,14 @@ impl MyShip {
                 self.nav_waypoint_symbol, inst.end_symbol
             );
 
-            self.nav_refuel(&inst, &api, database_pool.clone(), update_market)
-                .await?;
+            self.nav_refuel(
+                &inst,
+                &api,
+                database_pool.clone(),
+                update_market,
+                reason.clone(),
+            )
+            .await?;
 
             if inst.flight_mode != self.nav_flight_mode {
                 debug!("Changing flight mode to {:?}", inst.flight_mode);
@@ -391,6 +398,7 @@ impl MyShip {
         api: &api::Api,
         database_pool: sqlx::PgPool,
         update_market: bool,
+        reason: TransactionReason,
     ) -> anyhow::Result<()> {
         let refuel_requirements = self.calculate_refuel_requirements(instruction);
 
@@ -401,15 +409,22 @@ impl MyShip {
         }
 
         if instruction.start_is_marketplace {
-            self.handle_marketplace_refuel(&api, &database_pool, refuel_requirements, update_market)
-                .await
+            self.handle_marketplace_refuel(
+                &api,
+                &database_pool,
+                refuel_requirements,
+                update_market,
+                reason,
+            )
+            .await
         } else {
-            self.handle_space_refuel(&api, &database_pool, refuel_requirements)
+            self.handle_space_refuel(&api, &database_pool, refuel_requirements, reason)
                 .await
         }
     }
 
     fn calculate_refuel_requirements(&self, instruction: &RouteInstruction) -> RefuelRequirements {
+        debug!("Calculating refuel requirements: {:?}", instruction);
         let current_fuel_stock = self
             .cargo
             .iter()
@@ -435,6 +450,7 @@ impl MyShip {
         database_pool: &sqlx::PgPool,
         requirements: RefuelRequirements,
         update_market: bool,
+        reason: TransactionReason,
     ) -> anyhow::Result<()> {
         if !requirements.needs_marketplace_action() {
             return Ok(());
@@ -457,7 +473,8 @@ impl MyShip {
                 .await
                 .unwrap();
             let transaction =
-                MarketTransaction::try_from(refuel_data.data.transaction.as_ref().clone())?;
+                MarketTransaction::try_from(refuel_data.data.transaction.as_ref().clone())?
+                    .with(reason.clone());
             crate::sql::insert_market_transaction(&database_pool, &transaction).await;
         }
 
@@ -470,6 +487,7 @@ impl MyShip {
                     models::TradeSymbol::Fuel,
                     requirements.restock_amount,
                     database_pool,
+                    reason,
                 )
                 .await
                 .unwrap();
@@ -504,6 +522,7 @@ impl MyShip {
         api: &api::Api,
         database_pool: &sqlx::PgPool,
         requirements: RefuelRequirements,
+        reason: TransactionReason,
     ) -> anyhow::Result<()> {
         if requirements.refuel_amount > 0 {
             debug!("Space refueling");
@@ -517,7 +536,8 @@ impl MyShip {
                 )
                 .await?;
             let transaction =
-                MarketTransaction::try_from(refuel_data.data.transaction.as_ref().clone())?;
+                MarketTransaction::try_from(refuel_data.data.transaction.as_ref().clone())?
+                    .with(reason);
             crate::sql::insert_market_transaction(&database_pool, &transaction).await;
 
             self.cargo
@@ -534,6 +554,7 @@ impl MyShip {
         symbol: models::TradeSymbol,
         units: i32,
         database_pool: &sqlx::PgPool,
+        reason: TransactionReason,
     ) -> anyhow::Result<()> {
         let market_info =
             sql::get_last_waypoint_trade_goods(database_pool, &self.nav_waypoint_symbol).await;
@@ -578,7 +599,8 @@ impl MyShip {
             self.update_cargo(&purchase_data.data.cargo);
 
             let transaction =
-                MarketTransaction::try_from(purchase_data.data.transaction.as_ref().clone())?;
+                MarketTransaction::try_from(purchase_data.data.transaction.as_ref().clone())?
+                    .with(reason.clone());
             crate::sql::insert_market_transaction(&database_pool, &transaction).await;
         }
 
