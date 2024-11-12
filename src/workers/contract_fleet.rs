@@ -12,23 +12,19 @@ use log::{debug, info};
 use space_traders_client::models::{self, Contract, ContractDeliverGood, TradeSymbol, Waypoint};
 use tokio::time::sleep;
 
-use crate::{
-    api::Api,
-    my_ship::{MyShip, Role},
-    sql,
-};
+use crate::{api::Api, ship, sql};
 
 // Constants
 const SLEEP_DURATION: u64 = 500;
 const MAX_CONTRACTS: i32 = 20;
-const MAX_CONTRACT_ATTEMPTS: u32 = 5;
+const MAX_CONTRACT_ATTEMPTS: u32 = 10;
 
 /// Main contract conductor that manages contract operations
 pub async fn contract_conductor(
     api: Api,
     database_pool: sqlx::PgPool,
-    ship_roles: HashMap<String, Role>,
-    my_ships: Arc<DashMap<String, MyShip>>,
+    ship_roles: HashMap<String, ship::Role>,
+    my_ships: Arc<DashMap<String, ship::MyShip>>,
     all_waypoints: Arc<DashMap<String, HashMap<String, Waypoint>>>,
 ) -> Result<()> {
     info!("Starting contract workers");
@@ -72,10 +68,10 @@ pub async fn contract_conductor(
 }
 
 /// Get ships assigned to contract role
-fn get_contract_ships(ship_roles: &HashMap<String, Role>) -> Result<Vec<String>> {
+fn get_contract_ships(ship_roles: &HashMap<String, ship::Role>) -> Result<Vec<String>> {
     let ships: Vec<String> = ship_roles
         .iter()
-        .filter(|(_, role)| **role == Role::Contract)
+        .filter(|(_, role)| **role == ship::Role::Contract)
         .map(|(symbol, _)| symbol.clone())
         .collect();
 
@@ -102,7 +98,7 @@ async fn process_contract(
     ship_symbol: &str,
     api: &Api,
     database_pool: &sqlx::PgPool,
-    my_ships: &Arc<DashMap<String, MyShip>>,
+    my_ships: &Arc<DashMap<String, ship::MyShip>>,
     all_waypoints: &Arc<DashMap<String, HashMap<String, Waypoint>>>,
 ) -> Result<()> {
     info!("Processing contract: {:?}", contract);
@@ -152,7 +148,7 @@ async fn execute_trade_contract(
     contract: Contract,
     ship_symbol: String,
     api: &Api,
-    my_ships: &Arc<DashMap<String, MyShip>>,
+    my_ships: &Arc<DashMap<String, ship::MyShip>>,
     database_pool: &sqlx::PgPool,
     waypoints: Vec<Waypoint>,
 ) -> Result<Contract> {
@@ -200,7 +196,7 @@ async fn execute_trade_contract(
 
 /// Handle a single procurement cycle (buy and deliver)
 async fn handle_procurement_cycle(
-    ship: &mut MyShip,
+    ship: &mut ship::MyShip,
     contract: &Contract,
     procurement: &ContractDeliverGood,
     trade_symbol: TradeSymbol,
@@ -210,7 +206,7 @@ async fn handle_procurement_cycle(
     database_pool: &sqlx::PgPool,
     reason: sql::TransactionReason,
 ) -> Result<Contract> {
-    if !ship.has_cargo(&trade_symbol) {
+    if !ship.cargo.has(&trade_symbol) {
         ship.nav_to(
             buy_waypoint,
             true,
@@ -223,7 +219,7 @@ async fn handle_procurement_cycle(
         .unwrap();
         ship.update_market(api, database_pool).await?;
 
-        ship.dock(api).await.unwrap();
+        ship.ensure_docked(api).await.unwrap();
 
         let purchase_volume = calculate_purchase_volume(ship, procurement);
         ship.purchase_cargo(
@@ -247,9 +243,9 @@ async fn handle_procurement_cycle(
     )
     .await
     .unwrap();
-    ship.dock(api).await.unwrap();
+    ship.ensure_docked(api).await.unwrap();
 
-    let cargo_amount = ship.get_cargo_amount(&trade_symbol);
+    let cargo_amount = ship.cargo.get_amount(&trade_symbol);
     let delivery_result = ship
         .deliver_contract(&contract.id, trade_symbol, cargo_amount, api)
         .await
@@ -259,16 +255,16 @@ async fn handle_procurement_cycle(
 }
 
 async fn negotiate_next_contract(
-    my_ships: Arc<dashmap::DashMap<String, MyShip>>,
+    my_ships: Arc<dashmap::DashMap<String, ship::MyShip>>,
     api: &Api,
     contract_ships: &Vec<String>,
 ) -> Result<models::Contract, Error> {
     for ship in contract_ships.iter() {
         let mut current_ship = my_ships.get_mut(ship).unwrap();
-        let current_nav = current_ship.get_nav_status();
+        let current_nav = current_ship.nav.get_status();
         if current_nav != models::ShipNavStatus::InTransit {
             if current_nav == models::ShipNavStatus::InOrbit {
-                current_ship.dock(&api).await?;
+                current_ship.ensure_docked(&api).await?;
             }
 
             let next_contract = api.negotiate_contract(&current_ship.symbol).await?;
@@ -287,9 +283,9 @@ fn get_system_symbol(contract: &Contract) -> String {
     Api::system_symbol(waypoint_symbol)
 }
 
-fn calculate_purchase_volume(ship: &MyShip, procurement: &ContractDeliverGood) -> i32 {
+fn calculate_purchase_volume(ship: &ship::MyShip, procurement: &ContractDeliverGood) -> i32 {
     let remaining_required = procurement.units_required - procurement.units_fulfilled;
-    (ship.cargo_capacity - ship.cargo_units).min(remaining_required)
+    (ship.cargo.capacity - ship.cargo.units).min(remaining_required)
 }
 
 fn can_fulfill_trade(contract: &Contract) -> bool {

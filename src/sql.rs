@@ -51,7 +51,7 @@ pub struct MarketTransaction {
     /// The timestamp of the transaction.
     pub timestamp: String,
     /// The reason for the transaction.
-    // pub reason: TransactionReason,
+    /// pub reason: TransactionReason,
     pub contract: Option<String>,
 }
 

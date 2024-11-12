@@ -255,3 +255,26 @@ CREATE TABLE
     PRIMARY KEY (contract_id, trade_symbol, destination_symbol),
     CONSTRAINT contract_delivery_relation_1 FOREIGN KEY (contract_id) REFERENCES public.contract (id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION
   );
+
+-- Select statements
+-- Get all contracts and how much profit they made
+SELECT
+  contract.id,
+  contract.faction_symbol,
+  contract.contract_type,
+  contract.accepted,
+  contract.fulfilled,
+  contract.deadline_to_accept,
+  contract.on_accepted,
+  contract.on_fulfilled,
+  contract.deadline,
+  contract.on_accepted + contract.on_fulfilled as "totalprofit",
+  sum(market_transaction.total_price) as "total_expenses",
+  contract.on_accepted + contract.on_fulfilled - sum(market_transaction.total_price) as "net_profit"
+FROM
+  public.contract
+  join public.market_transaction ON market_transaction.contract = contract.id
+group by
+  contract.id
+order by
+  contract.deadline_to_accept DESC;

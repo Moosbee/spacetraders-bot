@@ -1,5 +1,5 @@
 mod api;
-mod my_ship;
+mod ship;
 
 mod sql;
 mod workers;
@@ -11,7 +11,6 @@ use std::{collections::HashMap, env, sync::Arc};
 
 use dashmap::DashMap;
 use env_logger::{Env, Target};
-use my_ship::MyShip;
 use space_traders_client::models::waypoint;
 use sql::insert_waypoint;
 
@@ -89,22 +88,22 @@ async fn main() -> anyhow::Result<()> {
 
     insert_waypoint(&database_pool, &waypoints).await;
 
-    let ship_roles: std::collections::HashMap<String, my_ship::Role> = vec![
-        ("MOOSBEE-1".to_string(), my_ship::Role::Contract),
-        ("MOOSBEE-2".to_string(), my_ship::Role::Scraper),
+    let ship_roles: std::collections::HashMap<String, ship::Role> = vec![
+        ("MOOSBEE-1".to_string(), ship::Role::Contract),
+        ("MOOSBEE-2".to_string(), ship::Role::Scraper),
     ]
     .clone()
     .into_iter()
     .collect();
 
-    let my_ships: Arc<dashmap::DashMap<String, MyShip>> = Arc::new(
+    let my_ships: Arc<dashmap::DashMap<String, ship::MyShip>> = Arc::new(
         ships
             .iter()
             .map(|s| {
-                let mut shipi = MyShip::from_ship(s.clone());
+                let mut shipi = ship::MyShip::from_ship(s.clone());
                 shipi.role = ship_roles
                     .get(&s.symbol)
-                    .unwrap_or(&my_ship::Role::Manuel)
+                    .unwrap_or(&ship::Role::Manuel)
                     .clone();
 
                 (s.symbol.clone(), shipi)
@@ -134,7 +133,7 @@ async fn main() -> anyhow::Result<()> {
     let api_2 = api.clone();
     let waypoints_2 = all_waypoints.clone();
     let ship_roles_2 = ship_roles.clone();
-    let my_ships_2: Arc<dashmap::DashMap<String, MyShip>> = my_ships.clone();
+    let my_ships_2: Arc<dashmap::DashMap<String, ship::MyShip>> = my_ships.clone();
     let contract = tokio::spawn(async move {
         workers::contract_fleet::contract_conductor(
             api_2,
