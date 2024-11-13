@@ -12,6 +12,7 @@ use dashmap::DashMap;
 use env_logger::{Env, Target};
 use space_traders_client::models::waypoint;
 use sql::insert_waypoint;
+use workers::types::Conductor;
 
 use crate::api::Api;
 use log::info;
@@ -124,52 +125,55 @@ async fn main() -> anyhow::Result<()> {
 
     // info!("My ship: {:?}", my_ships);
 
-    let construction = tokio::spawn(async move {
-        workers::construction_fleet::construction_conductor().await;
-    });
+    let context = workers::types::ConductorContext {
+        api: api.clone(),
+        database_pool: database_pool.clone(),
+        my_ships: my_ships.clone(),
+        all_waypoints: all_waypoints.clone(),
+        ship_roles: ship_roles.clone(),
+    };
 
-    let pool_2 = database_pool.clone();
-    let api_2 = api.clone();
-    let waypoints_2 = all_waypoints.clone();
-    let ship_roles_2 = ship_roles.clone();
-    let my_ships_2: Arc<dashmap::DashMap<String, ship::MyShip>> = my_ships.clone();
-    let contract = tokio::spawn(async move {
-        workers::contract_fleet::contract_conductor(
-            api_2,
-            pool_2,
-            ship_roles_2,
-            my_ships_2,
-            waypoints_2,
-        )
-        .await
-    });
-    let pool_3 = database_pool.clone();
-    let scrapping = tokio::spawn(async move {
-        workers::market_scrapers::scrapping_conductor(api, pool_3, waypoints).await;
-    });
-    let mining = tokio::spawn(async move {
-        workers::mining_fleet::mining_conductor().await;
-    });
-    let trading = tokio::spawn(async move {
-        workers::trading_fleet::trading_conductor(database_pool).await;
-    });
+    let conductors: Vec<Box<dyn Conductor>> = vec![
+        Box::new(workers::construction_fleet::ConstructionFleet::new(
+            context.clone(),
+        )),
+        Box::new(workers::contract_fleet::ContractFleet::new(context.clone())),
+        Box::new(workers::market_scrapers::MarketScraper::new(
+            context.clone(),
+        )),
+        Box::new(workers::mining_fleet::MiningFleet::new(context.clone())),
+        Box::new(workers::trading_fleet::TradingFleet::new(context.clone())),
+    ];
 
-    let _construction_status = construction.await?;
-    let _contract_status = contract.await?;
-    let _scrapping_status = scrapping.await?;
-    let _mining_status = mining.await?;
-    let _trading_status = trading.await?;
+    let conductor_join_handles = conductors
+        .into_iter()
+        .map(|c| {
+            (
+                c.get_name(),
+                tokio::task::spawn(async move { c.run().await }),
+            )
+        })
+        .collect::<Vec<_>>();
 
-    info!("All workers have finished with status:\n construction: {:?}\n contract: {:?}\n scrapping: {:?}\n mining: {:?}\n trading: {:?}", _construction_status, _contract_status, _scrapping_status, _mining_status, _trading_status);
-    if _contract_status.is_err() {
-        let errror = _contract_status.unwrap_err();
-        println!(
-            "Contract error: {} {:?} {:?} {:?}",
-            errror,
-            errror.backtrace(),
-            errror.source(),
-            errror.root_cause()
-        );
+    for handle in conductor_join_handles {
+        let name = handle.0;
+        let erg = handle.1.await;
+        println!("{}: {:?}", name, erg);
+        if let Err(errror) = erg {
+            println!("{} error: {} {:?}", name, errror, errror);
+        } else if let Ok(r_erg) = erg {
+            if let Err(errror) = r_erg {
+                println!(
+                    "{} error: {} {:?} {:?} {:?}",
+                    name,
+                    errror,
+                    errror.backtrace(),
+                    errror.source(),
+                    errror.root_cause()
+                );
+            } else if let Ok(res) = r_erg {
+            }
+        }
     }
 
     Ok(())

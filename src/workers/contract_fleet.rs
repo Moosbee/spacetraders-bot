@@ -19,52 +19,70 @@ const SLEEP_DURATION: u64 = 500;
 const MAX_CONTRACTS: i32 = 20;
 const MAX_CONTRACT_ATTEMPTS: u32 = 10;
 
-/// Main contract conductor that manages contract operations
-pub async fn contract_conductor(
-    api: Api,
-    database_pool: sqlx::PgPool,
-    ship_roles: HashMap<String, ship::models::Role>,
-    my_ships: Arc<DashMap<String, ship::MyShip>>,
-    all_waypoints: Arc<DashMap<String, HashMap<String, Waypoint>>>,
-) -> Result<()> {
-    info!("Starting contract workers");
-    sleep(Duration::from_millis(SLEEP_DURATION)).await;
+pub struct ContractFleet {
+    context: super::types::ConductorContext,
+}
 
-    let contract_ships = get_contract_ships(&ship_roles)?;
-    let primary_ship = &contract_ships[0];
+impl ContractFleet {
+    pub fn new(context: super::types::ConductorContext) -> Self {
+        ContractFleet { context }
+    }
+}
 
-    // Process existing contracts
-    let mut contract_queue = get_unfulfilled_contracts(&api).await?;
-    while let Some(contract) = contract_queue.pop_front() {
-        process_contract(
-            &contract,
-            primary_ship,
-            &api,
-            &database_pool,
-            &my_ships,
-            &all_waypoints,
-        )
-        .await?;
+impl super::types::Conductor for ContractFleet {
+    /// Main contract conductor that manages contract operations
+    fn run(
+        &self,
+    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = anyhow::Result<()>> + Send + '_>> {
+        Box::pin(async move {
+            info!("Starting contract workers");
+            sleep(Duration::from_millis(SLEEP_DURATION)).await;
+
+            let contract_ships = get_contract_ships(&self.context.ship_roles)?;
+            let primary_ship = &contract_ships[0];
+
+            // Process existing contracts
+            let mut contract_queue = get_unfulfilled_contracts(&self.context.api).await?;
+            while let Some(contract) = contract_queue.pop_front() {
+                process_contract(
+                    &contract,
+                    primary_ship,
+                    &self.context.api,
+                    &self.context.database_pool,
+                    &self.context.my_ships,
+                    &self.context.all_waypoints,
+                )
+                .await?;
+            }
+
+            // Process new contracts
+            for i in 0..MAX_CONTRACT_ATTEMPTS {
+                info!("Contract loop: {}", i);
+                let next_contract = negotiate_next_contract(
+                    self.context.my_ships.clone(),
+                    &self.context.api,
+                    &contract_ships,
+                )
+                .await?;
+                process_contract(
+                    &next_contract,
+                    primary_ship,
+                    &self.context.api,
+                    &self.context.database_pool,
+                    &self.context.my_ships,
+                    &self.context.all_waypoints,
+                )
+                .await?;
+            }
+
+            info!("Contract workers done");
+            Ok(())
+        })
     }
 
-    // Process new contracts
-    for i in 0..MAX_CONTRACT_ATTEMPTS {
-        info!("Contract loop: {}", i);
-        let next_contract =
-            negotiate_next_contract(my_ships.clone(), &api, &contract_ships).await?;
-        process_contract(
-            &next_contract,
-            primary_ship,
-            &api,
-            &database_pool,
-            &my_ships,
-            &all_waypoints,
-        )
-        .await?;
+    fn get_name(&self) -> String {
+        "ContractFleet".to_string()
     }
-
-    info!("Contract workers done");
-    Ok(())
 }
 
 /// Get ships assigned to contract role

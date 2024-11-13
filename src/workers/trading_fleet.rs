@@ -5,16 +5,40 @@ use log::{debug, info};
 use space_traders_client::models::{self, TradeSymbol};
 
 use crate::sql::{self, get_last_market_trade_goods};
-pub async fn trading_conductor(database_pool: sqlx::PgPool) {
-    info!("Starting trading workers");
-    let trade_goods: Vec<sql::MarketTradeGood> = get_last_market_trade_goods(&database_pool).await;
-    let mut routes = calc_possible_trade_routes(trade_goods);
-    routes.sort();
-    for route in routes {
-        println!("Route: {}", route);
+
+pub struct TradingFleet {
+    context: super::types::ConductorContext,
+}
+
+impl TradingFleet {
+    pub fn new(context: super::types::ConductorContext) -> Self {
+        TradingFleet { context }
+    }
+}
+
+impl super::types::Conductor for TradingFleet {
+    fn run(
+        &self,
+    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = anyhow::Result<()>> + Send + '_>> {
+        Box::pin(async move {
+            info!("Starting trading workers");
+            let trade_goods: Vec<sql::MarketTradeGood> =
+                get_last_market_trade_goods(&self.context.database_pool).await;
+            let mut routes = calc_possible_trade_routes(trade_goods);
+            routes.sort();
+            for route in routes {
+                println!("Route: {}", route);
+            }
+
+            info!("Trading workers done");
+
+            Ok(())
+        })
     }
 
-    info!("Trading workers done");
+    fn get_name(&self) -> String {
+        "TradingFleet".to_string()
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
