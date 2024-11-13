@@ -4,9 +4,9 @@ use log::debug;
 use space_traders_client::{apis, models};
 use std::collections::HashMap;
 
-use crate::{api, path_finding, sql::TransactionReason};
+use crate::{api, ship::models::MyShip, sql::TransactionReason};
 
-use super::{models::NavigationState, MyShip, RouteInstruction};
+use super::nav_models::{NavigationState, RouteInstruction};
 
 impl MyShip {
     pub async fn nav_to(
@@ -19,8 +19,8 @@ impl MyShip {
         reason: TransactionReason,
     ) -> Result<()> {
         let route = self.calculate_route(waypoints, waypoint)?;
-        let instructions = self.generate_route_instructions(
-            path_finding::calc_route_stats(waypoints, &route, self.engine_speed).0,
+        let instructions = super::stats::generate_route_instructions(
+            super::stats::calc_route_stats(waypoints, &route, self.engine_speed).0,
         );
 
         for instruction in instructions {
@@ -34,7 +34,7 @@ impl MyShip {
             .await?;
         }
 
-        self.nav.wait_for_arrival().await?;
+        let _ = self.nav.wait_for_arrival().await;
         Ok(())
     }
 
@@ -42,55 +42,15 @@ impl MyShip {
         &self,
         waypoints: &HashMap<String, models::Waypoint>,
         waypoint: &str,
-    ) -> Result<Vec<path_finding::RouteConnection>> {
-        let route = path_finding::get_route_a_star(
+    ) -> Result<Vec<super::nav_models::RouteConnection>> {
+        let route = self.find_route(
             waypoints,
             self.nav.waypoint_symbol.clone(),
             waypoint.to_string(),
-            self.fuel.capacity,
-            path_finding::NavMode::BurnAndCruiseAndDrift,
+            &super::nav_models::NavMode::BurnAndCruiseAndDrift,
             true,
         )?;
         Ok(route)
-    }
-
-    fn generate_route_instructions(
-        &self,
-        route: Vec<path_finding::ConnectionDetails>,
-    ) -> Vec<RouteInstruction> {
-        let mut instructions = Vec::new();
-
-        let mut last_fuel_cap = 0;
-
-        for conn in route.iter().rev() {
-            let start_is_marketplace = conn
-                .start
-                .traits
-                .iter()
-                .any(|t| t.symbol == models::WaypointTraitSymbol::Marketplace);
-
-            if !start_is_marketplace {
-                last_fuel_cap = last_fuel_cap + conn.fuel_cost;
-            }
-
-            instructions.push(RouteInstruction {
-                start_symbol: conn.start.symbol.clone(),
-                end_symbol: conn.end.symbol.clone(),
-                start_is_marketplace,
-
-                flight_mode: conn.flight_mode,
-                refuel_to: conn.fuel_cost,
-                fuel_in_cargo: last_fuel_cap,
-            });
-
-            if start_is_marketplace {
-                last_fuel_cap = 0;
-            }
-        }
-
-        instructions.reverse();
-
-        instructions
     }
 
     async fn execute_navigation_step(
@@ -102,7 +62,7 @@ impl MyShip {
         reason: TransactionReason,
     ) -> Result<()> {
         self.validate_current_waypoint(&instruction)?;
-        self.nav.wait_for_arrival().await?;
+        let _ = self.nav.wait_for_arrival().await;
 
         self.handle_refueling(
             &instruction,
@@ -239,6 +199,7 @@ impl NavigationState {
         self.route.destination_symbol = nav.route.destination.symbol.clone();
         self.route.destination_system_symbol = nav.route.destination.system_symbol.clone();
         self.route.origin_symbol = nav.route.origin.symbol.clone();
+        self.route.origin_system_symbol = nav.route.origin.system_symbol.clone();
     }
 
     pub fn is_in_transit(&self) -> bool {

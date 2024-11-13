@@ -116,6 +116,7 @@ pub struct Api {
     >,
 }
 
+#[allow(dead_code)]
 impl Api {
     pub fn new(access_token: Option<String>, quota: u64, burst: NonZeroU32) -> Api {
         // Create a rate limiter: 2 requests per 1 seconds

@@ -1,6 +1,6 @@
 mod cargo;
-mod models;
-mod navigation;
+mod nav;
 mod refueling;
 
-pub use models::{MyShip, Role, RouteInstruction};
+pub mod models;
+pub use models::MyShip;

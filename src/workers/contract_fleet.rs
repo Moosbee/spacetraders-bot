@@ -23,7 +23,7 @@ const MAX_CONTRACT_ATTEMPTS: u32 = 10;
 pub async fn contract_conductor(
     api: Api,
     database_pool: sqlx::PgPool,
-    ship_roles: HashMap<String, ship::Role>,
+    ship_roles: HashMap<String, ship::models::Role>,
     my_ships: Arc<DashMap<String, ship::MyShip>>,
     all_waypoints: Arc<DashMap<String, HashMap<String, Waypoint>>>,
 ) -> Result<()> {
@@ -68,10 +68,10 @@ pub async fn contract_conductor(
 }
 
 /// Get ships assigned to contract role
-fn get_contract_ships(ship_roles: &HashMap<String, ship::Role>) -> Result<Vec<String>> {
+fn get_contract_ships(ship_roles: &HashMap<String, ship::models::Role>) -> Result<Vec<String>> {
     let ships: Vec<String> = ship_roles
         .iter()
-        .filter(|(_, role)| **role == ship::Role::Contract)
+        .filter(|(_, role)| **role == ship::models::Role::Contract)
         .map(|(symbol, _)| symbol.clone())
         .collect();
 

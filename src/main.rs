@@ -4,7 +4,6 @@ mod ship;
 mod sql;
 mod workers;
 
-mod path_finding;
 mod tests;
 
 use std::{collections::HashMap, env, sync::Arc};
@@ -88,9 +87,9 @@ async fn main() -> anyhow::Result<()> {
 
     insert_waypoint(&database_pool, &waypoints).await;
 
-    let ship_roles: std::collections::HashMap<String, ship::Role> = vec![
-        ("MOOSBEE-1".to_string(), ship::Role::Contract),
-        ("MOOSBEE-2".to_string(), ship::Role::Scraper),
+    let ship_roles: std::collections::HashMap<String, ship::models::Role> = vec![
+        ("MOOSBEE-1".to_string(), ship::models::Role::Contract),
+        ("MOOSBEE-2".to_string(), ship::models::Role::Scraper),
     ]
     .clone()
     .into_iter()
@@ -103,7 +102,7 @@ async fn main() -> anyhow::Result<()> {
                 let mut shipi = ship::MyShip::from_ship(s.clone());
                 shipi.role = ship_roles
                     .get(&s.symbol)
-                    .unwrap_or(&ship::Role::Manuel)
+                    .unwrap_or(&ship::models::Role::Manuel)
                     .clone();
 
                 (s.symbol.clone(), shipi)
@@ -174,4 +173,16 @@ async fn main() -> anyhow::Result<()> {
     }
 
     Ok(())
+}
+
+pub trait IsMarketplace {
+    fn is_marketplace(&self) -> bool;
+}
+
+impl IsMarketplace for space_traders_client::models::Waypoint {
+    fn is_marketplace(&self) -> bool {
+        self.traits
+            .iter()
+            .any(|t| t.symbol == space_traders_client::models::WaypointTraitSymbol::Marketplace)
+    }
 }

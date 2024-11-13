@@ -5,7 +5,10 @@ use crate::{
     sql::{TransactionReason, With},
 };
 
-use super::{models::FuelState, MyShip, RouteInstruction};
+use super::{
+    models::{FuelState, MyShip},
+    nav::nav_models::RouteInstruction,
+};
 
 #[derive(Debug)]
 pub struct RefuelRequirements {

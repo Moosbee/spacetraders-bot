@@ -1,5 +1,5 @@
 use chrono::{DateTime, Utc};
-use space_traders_client::models::{self, ShipNavFlightMode, ShipNavStatus, ShipRole, TradeSymbol};
+use space_traders_client::models::{self, ShipRole, TradeSymbol};
 
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub enum Role {
@@ -20,30 +20,11 @@ pub struct MyShip {
     pub engine_speed: i32,
     pub cooldown_expiration: Option<DateTime<Utc>>,
     // Navigation state
-    pub nav: NavigationState,
+    pub nav: super::nav::nav_models::NavigationState,
     // Cargo state
     pub cargo: CargoState,
     // Fuel state
     pub fuel: FuelState,
-}
-
-#[derive(Debug, Default)]
-pub struct NavigationState {
-    pub flight_mode: ShipNavFlightMode,
-    pub status: ShipNavStatus,
-    pub system_symbol: String,
-    pub waypoint_symbol: String,
-    pub route: RouteState,
-}
-
-#[derive(Debug, Default)]
-pub struct RouteState {
-    pub arrival: DateTime<Utc>,
-    pub departure_time: DateTime<Utc>,
-    pub destination_symbol: String,
-    pub destination_system_symbol: String,
-    pub origin_symbol: String,
-    pub origin_system_symbol: String,
 }
 
 #[derive(Debug, Default)]
@@ -57,20 +38,6 @@ pub struct CargoState {
 pub struct FuelState {
     pub capacity: i32,
     pub current: i32,
-}
-
-#[derive(Debug)]
-pub struct RouteInstruction {
-    pub start_symbol: String,
-    pub end_symbol: String,
-    pub flight_mode: models::ShipNavFlightMode,
-    pub start_is_marketplace: bool,
-
-    /// The amount of fuel that needs to be in the Tanks to do the Current jump
-    pub refuel_to: i32,
-
-    /// The amount of fuel in the cargo to get to the next Market
-    pub fuel_in_cargo: i32,
 }
 
 impl MyShip {

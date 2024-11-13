@@ -5,7 +5,7 @@ use crate::{
     sql::{self, TransactionReason, With},
 };
 
-use super::MyShip;
+use super::models::MyShip;
 
 impl MyShip {
     pub async fn purchase_cargo(

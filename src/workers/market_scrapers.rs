@@ -4,6 +4,7 @@ use space_traders_client::models;
 use crate::{
     api,
     sql::{self, insert_market_trade, insert_market_trade_good, insert_market_transactions},
+    IsMarketplace,
 };
 pub async fn scrapping_conductor(
     api: api::Api,
@@ -16,11 +17,7 @@ pub async fn scrapping_conductor(
 
     let future_markets = waypoints
         .iter()
-        .filter(|w| {
-            w.traits
-                .iter()
-                .any(|t| t.symbol == models::WaypointTraitSymbol::Marketplace)
-        })
+        .filter(|w| w.is_marketplace())
         .map(|w| {
             let api = api.clone();
             let w = w.clone();
