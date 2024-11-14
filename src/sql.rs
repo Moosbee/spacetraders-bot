@@ -431,7 +431,7 @@ pub async fn insert_waypoint(database_pool: &sqlx::PgPool, waypoints: &Vec<model
         r#"
             INSERT INTO waypoint (symbol, system_symbol)
             SELECT * FROM UNNEST($1::character varying[], $2::character varying[])
-            ON CONFLICT (symbol) DO NOTHING
+            ON CONFLICT (symbol) DO UPDATE SET system_symbol = EXCLUDED.system_symbol
         "#,
         &m_symbols,
         &f_symbols
@@ -449,7 +449,10 @@ pub async fn insert_market_transaction(
         r#"
             INSERT INTO market_transaction (waypoint_symbol, ship_symbol, trade_symbol, "type", units, price_per_unit, total_price, "timestamp", contract)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-            ON CONFLICT (waypoint_symbol, ship_symbol, trade_symbol, "timestamp") DO NOTHING
+            ON CONFLICT (waypoint_symbol, ship_symbol, trade_symbol, "timestamp") DO UPDATE
+            SET units = EXCLUDED.units,
+            price_per_unit = EXCLUDED.price_per_unit,
+            total_price = EXCLUDED.total_price
         "#,
         transaction.waypoint_symbol,
         transaction.ship_symbol,
@@ -524,7 +527,10 @@ pub async fn insert_market_transactions(
                 $8::character varying[],
                 $9::character varying[]
             )
-            ON CONFLICT (waypoint_symbol, ship_symbol, trade_symbol, "timestamp") DO NOTHING
+            ON CONFLICT (waypoint_symbol, ship_symbol, trade_symbol, "timestamp") DO UPDATE
+            SET units = EXCLUDED.units,
+            price_per_unit = EXCLUDED.price_per_unit,
+            total_price = EXCLUDED.total_price
         "#,
         &t_waypoint_symbol,
         &t_ship_symbol,

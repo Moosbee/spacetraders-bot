@@ -1,12 +1,17 @@
+use std::time::Duration;
+
 use anyhow::Ok;
 use log::{debug, info};
 use space_traders_client::models;
+use tokio::time::sleep;
 
 use crate::{
-    api,
     sql::{self, insert_market_trade, insert_market_trade_good, insert_market_transactions},
     IsMarketplace,
 };
+
+const MAX_SCRAPS: u32 = 1;
+const SCRAP_INTERVAL: u64 = 10;
 
 pub struct MarketScraper {
     context: super::types::ConductorContext,
@@ -16,50 +21,62 @@ impl MarketScraper {
     pub fn new_box(context: super::types::ConductorContext) -> Box<Self> {
         Box::new(MarketScraper { context })
     }
+
+    async fn run_market_scraper(&self) -> anyhow::Result<()> {
+        info!("Starting market scrapping workers");
+
+        for i in 0..MAX_SCRAPS {
+            if i != 0 {
+                sleep(Duration::from_secs(SCRAP_INTERVAL)).await;
+            }
+
+            let markets = self.get_all_markets().await?;
+
+            info!("Markets: {:?}", markets.len());
+            update_markets(markets, self.context.database_pool.clone()).await;
+        }
+
+        info!("Market scrapping workers done");
+
+        Ok(())
+    }
+
+    async fn get_all_markets(&self) -> anyhow::Result<Vec<models::Market>> {
+        let future_markets = self
+            .context
+            .all_waypoints
+            .iter()
+            .map(|f| f.clone().into_iter())
+            .flatten()
+            .map(|w| w.1.clone())
+            .filter(|w| w.is_marketplace())
+            .map(|w| {
+                let api = self.context.api.clone();
+                let w = w.clone();
+                tokio::spawn(async move {
+                    debug!("Market: {:?}", w);
+                    api.get_market(&w.system_symbol, &w.symbol).await.unwrap()
+                })
+            })
+            .collect::<Vec<_>>();
+
+        let mut markets = Vec::new();
+
+        for market in future_markets {
+            let market_data = market.await.unwrap().data;
+            debug!("Market: {:?}", market_data.symbol);
+            markets.push(*market_data);
+        }
+
+        Ok(markets)
+    }
 }
 
 impl super::types::Conductor for MarketScraper {
     fn run(
         &self,
     ) -> std::pin::Pin<Box<dyn std::future::Future<Output = anyhow::Result<()>> + Send + '_>> {
-        Box::pin(async move {
-            info!("Starting market scrapping workers");
-
-            // sleep(Duration::from_secs(10)).await;
-
-            let future_markets = self
-                .context
-                .all_waypoints
-                .iter()
-                .map(|f| f.clone().into_iter())
-                .flatten()
-                .map(|w| w.1.clone())
-                .filter(|w| w.is_marketplace())
-                .map(|w| {
-                    let api = self.context.api.clone();
-                    let w = w.clone();
-                    tokio::spawn(async move {
-                        debug!("Market: {:?}", w);
-                        api.get_market(&w.system_symbol, &w.symbol).await.unwrap()
-                    })
-                })
-                .collect::<Vec<_>>();
-
-            let mut markets = Vec::new();
-
-            for market in future_markets {
-                let market_data = market.await.unwrap().data;
-                debug!("Market: {:?}", market_data.symbol);
-                markets.push(*market_data);
-            }
-
-            info!("Markets: {:?}", markets.len());
-            update_markets(markets, self.context.database_pool.clone()).await;
-
-            info!("Market scrapping workers done");
-
-            Ok(())
-        })
+        Box::pin(async move { self.run_market_scraper().await })
     }
 
     fn get_name(&self) -> String {

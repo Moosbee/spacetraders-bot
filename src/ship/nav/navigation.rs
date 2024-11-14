@@ -76,6 +76,11 @@ impl MyShip {
             .await?;
         self.ensure_undocked(api).await?;
 
+        debug!(
+            "Navigating from {} to {} waiting",
+            self.nav.waypoint_symbol, instruction.end_symbol
+        );
+
         self.navigate(api, &instruction.end_symbol).await?;
         Ok(())
     }

@@ -1,10 +1,16 @@
-use core::fmt;
 use std::collections::HashMap;
 
 use log::{debug, info};
-use space_traders_client::models::{self, TradeSymbol};
+use space_traders_client::models;
 
 use crate::sql::{self, get_last_market_trade_goods};
+
+use super::types::PossibleTradeRoute;
+
+const BLACKLIST: [models::TradeSymbol; 2] = [
+    models::TradeSymbol::AdvancedCircuitry,
+    models::TradeSymbol::FabMats,
+];
 
 pub struct TradingFleet {
     context: super::types::ConductorContext,
@@ -14,66 +20,37 @@ impl TradingFleet {
     pub fn new_box(context: super::types::ConductorContext) -> Box<Self> {
         Box::new(TradingFleet { context })
     }
+
+    async fn run_trade_worker(&self) -> anyhow::Result<()> {
+        info!("Starting trading workers");
+        let trade_goods: Vec<sql::MarketTradeGood> =
+            get_last_market_trade_goods(&self.context.database_pool).await;
+        let mut routes = calc_possible_trade_routes(trade_goods)
+            .into_iter()
+            .filter(|route| !BLACKLIST.contains(&route.symbol))
+            .collect::<Vec<_>>();
+        routes.sort();
+        for route in routes {
+            info!("Route: {}", route);
+        }
+
+        info!("Trading workers done");
+
+        Ok(())
+    }
+
+    async fn process_trade_route(&self, route: PossibleTradeRoute) {}
 }
 
 impl super::types::Conductor for TradingFleet {
     fn run(
         &self,
     ) -> std::pin::Pin<Box<dyn std::future::Future<Output = anyhow::Result<()>> + Send + '_>> {
-        Box::pin(async move {
-            info!("Starting trading workers");
-            let trade_goods: Vec<sql::MarketTradeGood> =
-                get_last_market_trade_goods(&self.context.database_pool).await;
-            let mut routes = calc_possible_trade_routes(trade_goods);
-            routes.sort();
-            for route in routes {
-                println!("Route: {}", route);
-            }
-
-            info!("Trading workers done");
-
-            Ok(())
-        })
+        Box::pin(async move { self.run_trade_worker().await })
     }
 
     fn get_name(&self) -> String {
         "TradingFleet".to_string()
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-struct PossibleTradeRoute {
-    symbol: TradeSymbol,
-    export: sql::MarketTradeGood,
-    import: sql::MarketTradeGood,
-    min_trade_volume: i32,
-    max_trade_volume: i32,
-    purchase_wp_symbol: String,
-    sell_wp_symbol: String,
-    purchase_price: i32,
-    sell_price: i32,
-    profit: i32,
-}
-
-impl PartialOrd for PossibleTradeRoute {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        self.profit.partial_cmp(&other.profit)
-    }
-}
-
-impl Ord for PossibleTradeRoute {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.profit.cmp(&other.profit)
-    }
-}
-
-impl fmt::Display for PossibleTradeRoute {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(
-            f,
-            "{}: {} -> {} {}",
-            self.symbol, self.purchase_wp_symbol, self.sell_wp_symbol, self.profit
-        )
     }
 }
 
