@@ -134,15 +134,11 @@ async fn main() -> anyhow::Result<()> {
     };
 
     let conductors: Vec<Box<dyn Conductor>> = vec![
-        Box::new(workers::construction_fleet::ConstructionFleet::new(
-            context.clone(),
-        )),
-        Box::new(workers::contract_fleet::ContractFleet::new(context.clone())),
-        Box::new(workers::market_scrapers::MarketScraper::new(
-            context.clone(),
-        )),
-        Box::new(workers::mining_fleet::MiningFleet::new(context.clone())),
-        Box::new(workers::trading_fleet::TradingFleet::new(context.clone())),
+        workers::construction_fleet::ConstructionFleet::new_box(context.clone()),
+        workers::contract_fleet::ContractFleet::new_box(context.clone()),
+        workers::market_scrapers::MarketScraper::new_box(context.clone()),
+        workers::mining_fleet::MiningFleet::new_box(context.clone()),
+        workers::trading_fleet::TradingFleet::new_box(context.clone()),
     ];
 
     let conductor_join_handles = conductors

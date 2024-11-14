@@ -13,8 +13,8 @@ pub struct MarketScraper {
 }
 
 impl MarketScraper {
-    pub fn new(context: super::types::ConductorContext) -> Self {
-        MarketScraper { context }
+    pub fn new_box(context: super::types::ConductorContext) -> Box<Self> {
+        Box::new(MarketScraper { context })
     }
 }
 

@@ -6,8 +6,8 @@ use tokio::time::sleep;
 pub struct ConstructionFleet {}
 
 impl ConstructionFleet {
-    pub fn new(context: super::types::ConductorContext) -> Self {
-        ConstructionFleet {}
+    pub fn new_box(context: super::types::ConductorContext) -> Box<Self> {
+        Box::new(ConstructionFleet {})
     }
 }
 

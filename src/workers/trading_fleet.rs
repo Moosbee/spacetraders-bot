@@ -11,8 +11,8 @@ pub struct TradingFleet {
 }
 
 impl TradingFleet {
-    pub fn new(context: super::types::ConductorContext) -> Self {
-        TradingFleet { context }
+    pub fn new_box(context: super::types::ConductorContext) -> Box<Self> {
+        Box::new(TradingFleet { context })
     }
 }
 
