@@ -2,7 +2,7 @@ use std::{i32, ops::SubAssign};
 
 use crate::{
     api,
-    sql::{self, TransactionReason, With},
+    sql::{self, DatabaseConnector},
 };
 
 use super::models::MyShip;
@@ -14,7 +14,7 @@ impl MyShip {
         symbol: space_traders_client::models::TradeSymbol,
         units: i32,
         database_pool: &sqlx::PgPool,
-        reason: TransactionReason,
+        reason: sql::TransactionReason,
     ) -> anyhow::Result<()> {
         let market_info = self.get_market_info(api, database_pool).await?;
         let purchase_volumes = self.calculate_purchase_volumes(units, &market_info, symbol)?;
@@ -33,17 +33,19 @@ impl MyShip {
         database_pool: &sqlx::PgPool,
     ) -> anyhow::Result<Vec<sql::MarketTradeGood>> {
         let market_info =
-            sql::get_last_waypoint_trade_goods(database_pool, &self.nav.waypoint_symbol).await;
+            sql::MarketTradeGood::get_last_by_waypoint(database_pool, &self.nav.waypoint_symbol)
+                .await?;
         let market_info = if market_info.is_empty() {
             tokio::time::sleep(std::time::Duration::from_secs(1)).await;
             self.update_market(api, database_pool).await?;
             tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-            sql::get_last_waypoint_trade_goods(database_pool, &self.nav.waypoint_symbol).await
+            sql::MarketTradeGood::get_last_by_waypoint(database_pool, &self.nav.waypoint_symbol)
+                .await
         } else {
-            market_info
+            sqlx::Result::Ok(market_info)
         };
 
-        anyhow::Ok(market_info)
+        Ok(market_info?)
     }
 
     fn calculate_purchase_volumes(
@@ -76,7 +78,7 @@ impl MyShip {
         good: space_traders_client::models::TradeSymbol,
         volume: i32,
         database_pool: &sqlx::PgPool,
-        reason: TransactionReason,
+        reason: sql::TransactionReason,
     ) -> anyhow::Result<()> {
         let purchase_data = api
             .purchase_cargo(
@@ -93,8 +95,8 @@ impl MyShip {
 
         let transaction =
             sql::MarketTransaction::try_from(purchase_data.data.transaction.as_ref().clone())?
-                .with(reason.clone());
-        crate::sql::insert_market_transaction(&database_pool, &transaction).await;
+                .with(reason);
+        sql::MarketTransaction::insert(&database_pool, &transaction).await?;
 
         Ok(())
     }

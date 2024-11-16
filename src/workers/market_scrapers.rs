@@ -6,7 +6,7 @@ use space_traders_client::models;
 use tokio::time::sleep;
 
 use crate::{
-    sql::{self, insert_market_trade, insert_market_trade_good, insert_market_transactions},
+    sql::{self, DatabaseConnector},
     IsMarketplace,
 };
 
@@ -18,6 +18,7 @@ pub struct MarketScraper {
 }
 
 impl MarketScraper {
+    #[allow(dead_code)]
     pub fn new_box(context: super::types::ConductorContext) -> Box<Self> {
         Box::new(MarketScraper { context })
     }
@@ -85,34 +86,28 @@ impl super::types::Conductor for MarketScraper {
 }
 
 pub async fn update_markets(markets: Vec<models::Market>, database_pool: sqlx::PgPool) {
-    insert_market_trade_good(
-        &database_pool,
-        markets
-            .iter()
-            .filter(|m| m.trade_goods.is_some())
-            .map(|m| {
-                m.trade_goods
-                    .clone()
-                    .unwrap()
-                    .iter()
-                    .map(|f| (m.symbol.clone(), f.clone()))
-                    .collect::<Vec<_>>()
-            })
-            .flatten()
-            .collect(),
-    )
-    .await;
-    insert_market_transactions(
-        &database_pool,
-        markets
-            .iter()
-            .filter(|m| m.transactions.is_some())
-            .map(|m| m.transactions.clone().unwrap())
-            .flatten()
-            .map(|mt| sql::MarketTransaction::try_from(mt).unwrap())
-            .collect::<Vec<_>>(),
-    )
-    .await;
+    let market_goods = markets
+        .iter()
+        .filter(|m| m.trade_goods.is_some())
+        .map(|m| {
+            m.trade_goods
+                .clone()
+                .unwrap()
+                .iter()
+                .map(|f| sql::MarketTradeGood::from(f.clone(), &m.symbol))
+                .collect::<Vec<_>>()
+        })
+        .flatten()
+        .collect::<Vec<_>>();
+
+    let market_transactions = markets
+        .iter()
+        .filter(|m| m.transactions.is_some())
+        .map(|m| m.transactions.clone().unwrap())
+        .flatten()
+        .map(|mt| sql::MarketTransaction::try_from(mt).unwrap())
+        .collect::<Vec<_>>();
+
     let market_trades: Vec<_> = markets
         .iter()
         .map(|m| {
@@ -149,29 +144,39 @@ pub async fn update_markets(markets: Vec<models::Market>, database_pool: sqlx::P
         .flatten()
         .flatten()
         .collect();
-    insert_market_trade(&database_pool, market_trades).await;
+    sql::MarketTrade::insert_bulk(&database_pool, &market_trades)
+        .await
+        .unwrap();
+    sql::MarketTradeGood::insert_bulk(&database_pool, &market_goods)
+        .await
+        .unwrap();
+    sql::MarketTransaction::insert_bulk(&database_pool, &market_transactions)
+        .await
+        .unwrap();
 }
 
 pub async fn update_market(market: models::Market, database_pool: &sqlx::PgPool) {
     if let Some(trade_goods) = market.trade_goods {
-        insert_market_trade_good(
+        sql::MarketTradeGood::insert_bulk(
             &database_pool,
-            trade_goods
+            &trade_goods
                 .iter()
-                .map(|f| (market.symbol.clone(), f.clone()))
+                .map(|f| sql::MarketTradeGood::from(f.clone(), &market.symbol))
                 .collect::<Vec<_>>(),
         )
-        .await;
+        .await
+        .unwrap();
     }
     if let Some(transactions) = market.transactions {
-        insert_market_transactions(
+        sql::MarketTransaction::insert_bulk(
             &database_pool,
-            transactions
+            &transactions
                 .iter()
                 .map(|f| sql::MarketTransaction::try_from(f.clone()).unwrap())
                 .collect::<Vec<_>>(),
         )
-        .await;
+        .await
+        .unwrap();
     }
 
     let market_trades = vec![
@@ -210,7 +215,7 @@ pub async fn update_market(market: models::Market, database_pool: &sqlx::PgPool)
     .flatten()
     .map(|f| f.clone())
     .collect();
-    insert_market_trade(&database_pool, market_trades).await;
+    sql::MarketTrade::insert_bulk(&database_pool, &market_trades).await;
 
     ()
 }

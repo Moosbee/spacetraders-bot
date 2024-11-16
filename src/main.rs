@@ -11,7 +11,7 @@ use std::{collections::HashMap, env, sync::Arc};
 use dashmap::DashMap;
 use env_logger::{Env, Target};
 use space_traders_client::models::waypoint;
-use sql::insert_waypoint;
+use sql::DatabaseConnector;
 use workers::types::Conductor;
 
 use crate::api::Api;
@@ -86,7 +86,14 @@ async fn main() -> anyhow::Result<()> {
         .await?;
     info!("Waypoints: {:?}", waypoints.len());
 
-    insert_waypoint(&database_pool, &waypoints).await;
+    sql::Waypoint::insert_bulk(
+        &database_pool,
+        &waypoints
+            .iter()
+            .map(|w| sql::Waypoint::from(w))
+            .collect::<Vec<_>>(),
+    )
+    .await;
 
     let ship_roles: std::collections::HashMap<String, ship::models::Role> = vec![
         ("MOOSBEE-1".to_string(), ship::models::Role::Contract),

@@ -2,7 +2,7 @@ use log::debug;
 
 use crate::{
     api,
-    sql::{TransactionReason, With},
+    sql::{self, DatabaseConnector},
 };
 
 use super::{
@@ -33,7 +33,7 @@ impl MyShip {
         api: &api::Api,
         database_pool: &sqlx::PgPool,
         update_market: bool,
-        reason: TransactionReason,
+        reason: sql::TransactionReason,
     ) -> anyhow::Result<()> {
         let requirements = self.calculate_refuel_requirements(instruction);
 
@@ -74,7 +74,7 @@ impl MyShip {
         api: &api::Api,
         database_pool: &sqlx::PgPool,
         requirements: RefuelRequirements,
-        reason: TransactionReason,
+        reason: sql::TransactionReason,
     ) -> anyhow::Result<()> {
         if requirements.refuel_amount > 0 {
             debug!("Space refueling");
@@ -89,11 +89,10 @@ impl MyShip {
                 .await?;
             self.fuel.update(&refuel_data.data.fuel);
 
-            let transaction = crate::sql::MarketTransaction::try_from(
-                refuel_data.data.transaction.as_ref().clone(),
-            )?
-            .with(reason);
-            crate::sql::insert_market_transaction(&database_pool, &transaction).await;
+            let transaction =
+                sql::MarketTransaction::try_from(refuel_data.data.transaction.as_ref().clone())?
+                    .with(reason);
+            sql::MarketTransaction::insert(&database_pool, &transaction).await?;
 
             self.cargo
                 .remove_cargo(
@@ -111,7 +110,7 @@ impl MyShip {
         database_pool: &sqlx::PgPool,
         requirements: RefuelRequirements,
         update_market: bool,
-        reason: TransactionReason,
+        reason: sql::TransactionReason,
     ) -> anyhow::Result<()> {
         if !requirements.needs_marketplace_action() {
             return Ok(());
@@ -134,11 +133,10 @@ impl MyShip {
                 )
                 .await?;
             self.fuel.update(&refuel_data.data.fuel);
-            let transaction = crate::sql::MarketTransaction::try_from(
-                refuel_data.data.transaction.as_ref().clone(),
-            )?
-            .with(reason.clone());
-            crate::sql::insert_market_transaction(&database_pool, &transaction).await;
+            let transaction =
+                sql::MarketTransaction::try_from(refuel_data.data.transaction.as_ref().clone())?
+                    .with(reason.clone());
+            sql::MarketTransaction::insert(&database_pool, &transaction).await?;
         }
 
         // Restock fuel cargo if needed

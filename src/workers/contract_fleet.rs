@@ -22,6 +22,7 @@ pub struct ContractFleet {
 }
 
 impl ContractFleet {
+    #[allow(dead_code)]
     pub fn new_box(context: super::types::ConductorContext) -> Box<Self> {
         Box::new(ContractFleet { context })
     }
@@ -72,7 +73,7 @@ impl ContractFleet {
             .context("System not found")?
             .clone();
 
-        sql::update_contract(&self.context.database_pool, &contract).await;
+        sql::Contract::insert_contract(&self.context.database_pool, contract.clone()).await?;
 
         let finished_contract = self
             .execute_trade_contract(
@@ -89,11 +90,11 @@ impl ContractFleet {
                 .api
                 .fulfill_contract(&finished_contract.id)
                 .await?;
-            sql::update_contract(
+            sql::Contract::insert_contract(
                 &self.context.database_pool,
-                &fulfill_contract_data.data.contract,
+                (*fulfill_contract_data.data.contract).clone(),
             )
-            .await;
+            .await?;
 
             Ok(())
         } else {
@@ -142,7 +143,12 @@ impl ContractFleet {
                     )
                     .await?;
 
-                sql::update_contract(&self.context.database_pool, &current_contract).await;
+                // sql::update_contract(&self.context.database_pool, &current_contract).await;
+                sql::Contract::insert_contract(
+                    &self.context.database_pool,
+                    current_contract.clone(),
+                )
+                .await?;
 
                 procurement = self.get_updated_procurement(&current_contract, &procurement)?;
             }
@@ -228,7 +234,7 @@ impl ContractFleet {
             return Ok(false);
         };
 
-        let market_trade_goods = sql::get_last_market_trades(&self.context.database_pool).await;
+        let market_trade_goods = sql::MarketTrade::get_last(&self.context.database_pool).await?;
 
         for delivery in deliveries {
             if delivery.units_required <= delivery.units_fulfilled {
@@ -250,9 +256,11 @@ impl ContractFleet {
     async fn get_purchase_waypoint(&self, procurement: &ContractDeliverGood) -> Result<String> {
         let trade_symbol = TradeSymbol::from_str(&procurement.trade_symbol)?;
         let market_trades =
-            sql::get_last_market_trades_symbol(&self.context.database_pool, &trade_symbol).await;
+            sql::MarketTrade::get_last_by_symbol(&self.context.database_pool, &trade_symbol)
+                .await?;
         let market_trade_goods =
-            sql::get_last_trade_markets(&self.context.database_pool, &trade_symbol).await;
+            sql::MarketTradeGood::get_last_by_symbol(&self.context.database_pool, &trade_symbol)
+                .await?;
 
         if market_trades.len() == market_trade_goods.len() {
             let best_market = market_trade_goods

@@ -209,6 +209,7 @@ CREATE TABLE
     "timestamp" character varying(255) COLLATE pg_catalog."default" NOT NULL,
     trade_symbol trade_symbol NOT NULL,
     contract character varying(255) COLLATE pg_catalog."default",
+    trade_route integer,
     CONSTRAINT market_transaction_pkey PRIMARY KEY (
       waypoint_symbol,
       ship_symbol,
@@ -216,7 +217,14 @@ CREATE TABLE
       "timestamp"
     ),
     CONSTRAINT market_transaction_relation_1 FOREIGN KEY (waypoint_symbol) REFERENCES public.waypoint (symbol) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
-    CONSTRAINT market_transaction_relation_2 FOREIGN KEY (contract) REFERENCES public.contract (id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION
+    CONSTRAINT market_transaction_relation_2 FOREIGN KEY (contract) REFERENCES public.contract (id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
+    CONSTRAINT market_transaction_relation_3 FOREIGN KEY (trade_route) REFERENCES public.trade_route (id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
+    CONSTRAINT market_transaction_check CHECK (
+      contract IS NOT NULL
+      AND trade_route IS NULL
+      OR contract IS NULL
+      AND trade_route IS NOT NULL
+    ) NOT VALID
   ) TABLESPACE pg_default;
 
 CREATE TABLE
@@ -236,8 +244,8 @@ CREATE TABLE
     id character varying(255) PRIMARY KEY,
     faction_symbol character varying(255) NOT NULL,
     contract_type contract_type NOT NULL,
-    accepted BOOLEAN DEFAULT false,
-    fulfilled BOOLEAN DEFAULT false,
+    accepted BOOLEAN NOT NULL DEFAULT false,
+    fulfilled BOOLEAN NOT NULL DEFAULT false,
     deadline_to_accept character varying(255),
     on_accepted INTEGER NOT NULL,
     on_fulfilled INTEGER NOT NULL,
@@ -255,6 +263,21 @@ CREATE TABLE
     PRIMARY KEY (contract_id, trade_symbol, destination_symbol),
     CONSTRAINT contract_delivery_relation_1 FOREIGN KEY (contract_id) REFERENCES public.contract (id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION
   );
+
+-- Table: public.trade_route
+-- DROP TABLE IF EXISTS public.trade_route;
+CREATE TABLE
+  IF NOT EXISTS public.trade_route (
+    id integer NOT NULL AUTO_INCREMENT,
+    symbol trade_symbol NOT NULL,
+    ship_symbol "char" NOT NULL,
+    purchase_waypoint "char" NOT NULL,
+    ell_waypoint "char" NOT NULL,
+    finished boolean NOT NULL DEFAULT false,
+    predicted_purchase_price integer NOT NULL,
+    predicted_sell_price integer NOT NULL,
+    CONSTRAINT trade_route_pkey PRIMARY KEY (id)
+  ) TABLESPACE pg_default;
 
 -- Select statements
 -- Get all contracts and how much profit they made

@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use log::{debug, info};
 use space_traders_client::models;
 
-use crate::sql::{self, get_last_market_trade_goods};
+use crate::sql;
 
 use super::types::PossibleTradeRoute;
 
@@ -17,6 +17,7 @@ pub struct TradingFleet {
 }
 
 impl TradingFleet {
+    #[allow(dead_code)]
     pub fn new_box(context: super::types::ConductorContext) -> Box<Self> {
         Box::new(TradingFleet { context })
     }
@@ -24,7 +25,7 @@ impl TradingFleet {
     async fn run_trade_worker(&self) -> anyhow::Result<()> {
         info!("Starting trading workers");
         let trade_goods: Vec<sql::MarketTradeGood> =
-            get_last_market_trade_goods(&self.context.database_pool).await;
+            sql::MarketTradeGood::get_last(&self.context.database_pool).await?;
         let mut routes = calc_possible_trade_routes(trade_goods)
             .into_iter()
             .filter(|route| !BLACKLIST.contains(&route.symbol))
