@@ -168,6 +168,22 @@ CREATE TYPE supply_level AS ENUM (
 
 CREATE TYPE activity_level AS ENUM ('WEAK', 'GROWING', 'STRONG', 'RESTRICTED');
 
+CREATE TYPE contract_type AS ENUM ('PROCUREMENT', 'TRANSPORT', 'SHUTTLE');
+
+-- Table: public.agent
+-- DROP TABLE IF EXISTS public.agent;
+CREATE TABLE
+  IF NOT EXISTS public.agent (
+    id integer NOT NULL DEFAULT AUTO_INCREMENT,
+    symbol character varying COLLATE pg_catalog."default" NOT NULL,
+    account_id character varying COLLATE pg_catalog."default",
+    headquarters character varying COLLATE pg_catalog."default" NOT NULL,
+    credits bigint NOT NULL,
+    starting_faction character varying COLLATE pg_catalog."default" NOT NULL,
+    ship_count integer NOT NULL,
+    created_at timestamp without time zone NOT NULL DEFAULT now ()
+  ) TABLESPACE pg_default;
+
 -- Table: public.waypoint
 -- DROP TABLE IF EXISTS public.waypoint;
 CREATE TABLE
@@ -224,6 +240,8 @@ CREATE TABLE
       AND trade_route IS NULL
       OR contract IS NULL
       AND trade_route IS NOT NULL
+      OR contract IS NULL
+      AND trade_route IS NULL
     ) NOT VALID
   ) TABLESPACE pg_default;
 
@@ -235,8 +253,6 @@ CREATE TABLE
     created_at timestamp without time zone NOT NULL DEFAULT now (),
     PRIMARY KEY (created_at, symbol, waypoint_symbol)
   );
-
-CREATE TYPE contract_type AS ENUM ('PROCUREMENT', 'TRANSPORT', 'SHUTTLE');
 
 -- Table for the main contract details
 CREATE TABLE

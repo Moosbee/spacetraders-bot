@@ -93,6 +93,8 @@ impl MyShip {
 
         self.cargo.update(&purchase_data.data.cargo);
 
+        sql::Agent::insert(&database_pool, &sql::Agent::from(*purchase_data.data.agent)).await?;
+
         let transaction =
             sql::MarketTransaction::try_from(purchase_data.data.transaction.as_ref().clone())?
                 .with(reason);

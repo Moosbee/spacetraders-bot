@@ -92,6 +92,16 @@ pub struct ContractDelivery {
     pub units_fulfilled: i32,
 }
 
+pub struct Agent {
+    pub symbol: String,
+    pub account_id: Option<String>,
+    pub headquarters: String,
+    pub credits: i64,
+    pub starting_faction: String,
+    pub ship_count: i32,
+    pub created_at: sqlx::types::time::PrimitiveDateTime,
+}
+
 pub trait DatabaseConnector<T> {
     /// Insert a new item into the database, or update it if it already exists.
     async fn insert(database_pool: &sqlx::PgPool, item: &T) -> sqlx::Result<()>;

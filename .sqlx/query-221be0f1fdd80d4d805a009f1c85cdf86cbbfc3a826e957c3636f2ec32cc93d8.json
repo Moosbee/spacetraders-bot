@@ -1,11 +1,10 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            INSERT INTO market_transaction (waypoint_symbol, ship_symbol, trade_symbol, \"type\", units, price_per_unit, total_price, \"timestamp\", contract)\n            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)\n            ON CONFLICT (waypoint_symbol, ship_symbol, trade_symbol, \"timestamp\") DO NOTHING\n        ",
+  "query": "\n                INSERT INTO contract_delivery (contract_id, trade_symbol, destination_symbol, units_required, units_fulfilled)\n                VALUES ($1, $2, $3, $4, $5)\n                ON CONFLICT (contract_id, trade_symbol, destination_symbol) DO UPDATE\n                SET units_required = EXCLUDED.units_required,\n                units_fulfilled = EXCLUDED.units_fulfilled\n            ",
   "describe": {
     "columns": [],
     "parameters": {
       "Left": [
-        "Varchar",
         "Varchar",
         {
           "Custom": {
@@ -159,25 +158,12 @@
             }
           }
         },
-        {
-          "Custom": {
-            "name": "market_transaction_type",
-            "kind": {
-              "Enum": [
-                "PURCHASE",
-                "SELL"
-              ]
-            }
-          }
-        },
-        "Int4",
-        "Int4",
-        "Int4",
         "Varchar",
-        "Varchar"
+        "Int4",
+        "Int4"
       ]
     },
     "nullable": []
   },
-  "hash": "b342e22124fda5a50b3d0e8889b9af7741c60ed171e6edb34f111326da3e1f32"
+  "hash": "221be0f1fdd80d4d805a009f1c85cdf86cbbfc3a826e957c3636f2ec32cc93d8"
 }

@@ -93,7 +93,8 @@ async fn main() -> anyhow::Result<()> {
             .map(|w| sql::Waypoint::from(w))
             .collect::<Vec<_>>(),
     )
-    .await;
+    .await
+    .unwrap();
 
     let ship_roles: std::collections::HashMap<String, ship::models::Role> = vec![
         ("MOOSBEE-1".to_string(), ship::models::Role::Contract),
@@ -172,10 +173,10 @@ async fn main() -> anyhow::Result<()> {
 
     let conductors: Vec<Box<dyn Conductor>> = vec![
         // workers::construction_fleet::ConstructionFleet::new_box(context.clone()),
-        // workers::contract_fleet::ContractFleet::new_box(context.clone()),
+        workers::contract_fleet::ContractFleet::new_box(context.clone()),
         workers::market_scrapers::MarketScraper::new_box(context.clone()),
         // workers::mining_fleet::MiningFleet::new_box(context.clone()),
-        workers::trading_fleet::TradingFleet::new_box(context.clone()),
+        // workers::trading_fleet::TradingFleet::new_box(context.clone()),
     ];
 
     let conductor_join_handles = conductors

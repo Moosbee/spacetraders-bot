@@ -215,7 +215,9 @@ pub async fn update_market(market: models::Market, database_pool: &sqlx::PgPool)
     .flatten()
     .map(|f| f.clone())
     .collect();
-    sql::MarketTrade::insert_bulk(&database_pool, &market_trades).await;
+    sql::MarketTrade::insert_bulk(&database_pool, &market_trades)
+        .await
+        .unwrap();
 
     ()
 }

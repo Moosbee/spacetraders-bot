@@ -89,6 +89,8 @@ impl MyShip {
                 .await?;
             self.fuel.update(&refuel_data.data.fuel);
 
+            sql::Agent::insert(&database_pool, &sql::Agent::from(*refuel_data.data.agent)).await?;
+
             let transaction =
                 sql::MarketTransaction::try_from(refuel_data.data.transaction.as_ref().clone())?
                     .with(reason);
@@ -133,6 +135,9 @@ impl MyShip {
                 )
                 .await?;
             self.fuel.update(&refuel_data.data.fuel);
+
+            sql::Agent::insert(&database_pool, &sql::Agent::from(*refuel_data.data.agent)).await?;
+
             let transaction =
                 sql::MarketTransaction::try_from(refuel_data.data.transaction.as_ref().clone())?
                     .with(reason.clone());

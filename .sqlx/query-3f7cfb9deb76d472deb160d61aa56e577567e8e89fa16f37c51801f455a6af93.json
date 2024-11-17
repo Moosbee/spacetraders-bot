@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                INSERT INTO waypoint (symbol, system_symbol)\n                VALUES ($1, $2)\n                ON CONFLICT (symbol) DO UPDATE SET system_symbol = EXCLUDED.system_symbol\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Varchar",
+        "Varchar"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "3f7cfb9deb76d472deb160d61aa56e577567e8e89fa16f37c51801f455a6af93"
+}

@@ -1,3 +1,4 @@
+mod agent;
 mod contract;
 mod contract_delivery;
 mod market_trade;
@@ -6,6 +7,7 @@ mod market_transaction;
 mod sql_models;
 mod waypoint;
 
+pub use sql_models::Agent;
 pub use sql_models::Contract;
 pub use sql_models::DatabaseConnector;
 pub use sql_models::MarketTrade;

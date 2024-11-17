@@ -10,12 +10,16 @@ use log::{debug, info};
 use space_traders_client::models::{self, Contract, ContractDeliverGood, TradeSymbol, Waypoint};
 use tokio::time::sleep;
 
-use crate::{api::Api, ship, sql};
+use crate::{
+    api::Api,
+    ship,
+    sql::{self, DatabaseConnector},
+};
 
 // Constants
 const SLEEP_DURATION: u64 = 500;
 const MAX_CONTRACTS: i32 = 20;
-const MAX_CONTRACT_ATTEMPTS: u32 = 10;
+const MAX_CONTRACT_ATTEMPTS: u32 = 1000;
 
 pub struct ContractFleet {
     context: super::types::ConductorContext,
@@ -61,6 +65,12 @@ impl ContractFleet {
         let contract = if !contract.accepted {
             info!("Accepting contract: {}", contract.id);
             let accept_data = self.context.api.accept_contract(&contract.id).await?;
+            sql::Agent::insert(
+                &self.context.database_pool,
+                &sql::Agent::from(*accept_data.data.agent),
+            )
+            .await?;
+
             accept_data.data.contract.as_ref().clone()
         } else {
             contract.clone()
@@ -90,6 +100,13 @@ impl ContractFleet {
                 .api
                 .fulfill_contract(&finished_contract.id)
                 .await?;
+
+            sql::Agent::insert(
+                &self.context.database_pool,
+                &sql::Agent::from(*fulfill_contract_data.data.agent),
+            )
+            .await?;
+
             sql::Contract::insert_contract(
                 &self.context.database_pool,
                 (*fulfill_contract_data.data.contract).clone(),
