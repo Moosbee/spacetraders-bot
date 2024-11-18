@@ -8,7 +8,7 @@ impl super::sql_models::ContractDelivery {
         contract_id: &str,
     ) -> Result<Self, anyhow::Error> {
         let trade_symbol =
-            models::TradeSymbol::try_from(contract_delivery.trade_symbol.as_str()).clone()?;
+            models::TradeSymbol::try_from(contract_delivery.trade_symbol.as_str())?;
 
         Ok(super::sql_models::ContractDelivery {
             contract_id: contract_id.to_string(),
@@ -63,8 +63,8 @@ impl DatabaseConnector<super::sql_models::ContractDelivery>
             .map(|c| {
                 (
                     (
-                        (c.contract_id.clone(), c.trade_symbol.clone()),
-                        (c.units_fulfilled.clone(), c.units_required.clone()),
+                        (c.contract_id.clone(), c.trade_symbol),
+                        (c.units_fulfilled, c.units_required),
                     ),
                     ((c.destination_symbol.clone(), ()), ((), ())),
                 )

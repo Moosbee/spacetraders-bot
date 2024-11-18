@@ -2,16 +2,16 @@ use space_traders_client::models;
 
 use super::sql_models::{DatabaseConnector, MarketTradeGood};
 
-impl Into<models::MarketTradeGood> for MarketTradeGood {
-    fn into(self) -> models::MarketTradeGood {
+impl From<MarketTradeGood> for models::MarketTradeGood {
+    fn from(val: MarketTradeGood) -> Self {
         models::MarketTradeGood {
-            activity: self.activity,
-            purchase_price: self.purchase_price,
-            sell_price: self.sell_price,
-            supply: self.supply,
-            symbol: self.symbol,
-            trade_volume: self.trade_volume,
-            r#type: self.r#type,
+            activity: val.activity,
+            purchase_price: val.purchase_price,
+            sell_price: val.sell_price,
+            supply: val.supply,
+            symbol: val.symbol,
+            trade_volume: val.trade_volume,
+            r#type: val.r#type,
         }
     }
 }
@@ -79,12 +79,12 @@ impl DatabaseConnector<MarketTradeGood> for MarketTradeGood {
                 {
                     (
                         (
-                            (m.waypoint_symbol.clone(), m.symbol.clone()),
-                            (m.r#type.clone(), m.trade_volume.clone()),
+                            (m.waypoint_symbol.clone(), m.symbol),
+                            (m.r#type, m.trade_volume),
                         ),
                         (
-                            (m.supply.clone(), m.activity.clone()),
-                            (m.purchase_price.clone(), m.sell_price.clone()),
+                            (m.supply, m.activity),
+                            (m.purchase_price, m.sell_price),
                         ),
                     )
                 }
@@ -130,7 +130,9 @@ impl DatabaseConnector<MarketTradeGood> for MarketTradeGood {
     }
 
     async fn get_all(database_pool: &sqlx::PgPool) -> sqlx::Result<Vec<MarketTradeGood>> {
-        let row = sqlx::query_as!(
+        
+
+        sqlx::query_as!(
             MarketTradeGood,
             r#"
             SELECT DISTINCT ON (symbol)
@@ -149,9 +151,7 @@ impl DatabaseConnector<MarketTradeGood> for MarketTradeGood {
         "#,
         )
         .fetch_all(database_pool)
-        .await;
-
-        row
+        .await
     }
 }
 
@@ -160,7 +160,9 @@ impl MarketTradeGood {
         database_pool: &sqlx::PgPool,
         waypoint_symbol: &str,
     ) -> sqlx::Result<Vec<MarketTradeGood>> {
-        let row = sqlx::query_as!(
+        
+
+        sqlx::query_as!(
             MarketTradeGood,
             r#"
             SELECT DISTINCT ON (symbol)
@@ -181,9 +183,7 @@ impl MarketTradeGood {
             waypoint_symbol,
         )
         .fetch_all(database_pool)
-        .await;
-
-        row
+        .await
     }
 
     pub async fn get_last_by_symbol(
@@ -217,7 +217,9 @@ impl MarketTradeGood {
     }
 
     pub async fn get_last(database_pool: &sqlx::PgPool) -> sqlx::Result<Vec<MarketTradeGood>> {
-        let row = sqlx::query_as!(
+        
+
+        sqlx::query_as!(
             MarketTradeGood,
             r#"
             SELECT DISTINCT ON (symbol, waypoint_symbol)
@@ -236,8 +238,6 @@ impl MarketTradeGood {
         "#,
         )
         .fetch_all(database_pool)
-        .await;
-
-        row
+        .await
     }
 }

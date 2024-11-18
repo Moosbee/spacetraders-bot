@@ -38,7 +38,7 @@ pub struct PossibleTradeRoute {
 
 impl PartialOrd for PossibleTradeRoute {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        self.profit.partial_cmp(&other.profit)
+        Some(self.cmp(other))
     }
 }
 

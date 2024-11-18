@@ -41,12 +41,12 @@ impl DatabaseConnector<TradeRoute> for TradeRoute {
             .map(|t| {
                 (
                     (
-                        (t.symbol.clone(), t.ship_symbol.clone()),
+                        (t.symbol, t.ship_symbol.clone()),
                         (t.purchase_waypoint.clone(), t.sell_waypoint.clone()),
                     ),
                     (
-                        (t.finished.clone(), t.predicted_purchase_price.clone()),
-                        (t.predicted_sell_price.clone(), ()),
+                        (t.finished, t.predicted_purchase_price),
+                        (t.predicted_sell_price, ()),
                     ),
                 )
             })

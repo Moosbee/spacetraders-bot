@@ -198,7 +198,7 @@ impl Api {
         &self,
         limit: i32,
     ) -> Result<Vec<models::Agent>, Error<GetAgentsError>> {
-        if !(limit >= 1 && limit <= 20) {
+        if !(1..=20).contains(&limit) {
             panic!("Invalid limit must be between 1 and 20");
         }
         let mut current_page = 1;
@@ -341,7 +341,7 @@ impl Api {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
-        if !(limit >= 1 && limit <= 20) {
+        if !(1..=20).contains(&limit) {
             panic!("Invalid limit must be between 1 and 20");
         }
         let mut current_page = 1;
@@ -407,7 +407,7 @@ impl Api {
         &self,
         limit: i32,
     ) -> Result<Vec<models::Faction>, Error<GetFactionsError>> {
-        if !(limit >= 1 && limit <= 20) {
+        if !(1..=20).contains(&limit) {
             panic!("Invalid limit must be between 1 and 20");
         }
         let mut current_page = 1;
@@ -654,7 +654,7 @@ impl Api {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
-        if !(limit >= 1 && limit <= 20) {
+        if !(1..=20).contains(&limit) {
             panic!("Invalid limit must be between 1 and 20");
         }
         let mut current_page = 1;
@@ -1204,7 +1204,7 @@ impl Api {
         system_symbol: &str,
         limit: i32,
     ) -> Result<Vec<models::Waypoint>, Error<GetSystemWaypointsError>> {
-        if !(limit >= 1 && limit <= 20) {
+        if !(1..=20).contains(&limit) {
             panic!("Invalid limit must be between 1 and 20");
         }
         let mut current_page = 1;
@@ -1252,7 +1252,7 @@ impl Api {
 
     /// Return a list of ALL systems by paginating over all pages.
     pub async fn get_all_systems(&self, limit: i32) -> Result<Vec<System>, Error<GetSystemsError>> {
-        if !(limit >= 1 && limit <= 20) {
+        if !(1..=20).contains(&limit) {
             panic!("Invalid limit must be between 1 and 20");
         }
         let mut current_page = 1;
@@ -1388,7 +1388,7 @@ mod tests {
     async fn get_systems_json_test() {
         let api = super::Api::new(None, 550, std::num::NonZeroU32::new(2).unwrap());
         let response_json = api.get_all_systems_json().await.unwrap();
-        assert!(response_json.len() > 0);
+        assert!(!response_json.is_empty());
     }
 
     #[tokio::test]

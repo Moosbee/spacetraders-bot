@@ -43,7 +43,7 @@ impl DatabaseConnector<Agent> for sql_models::Agent {
           (
             (
               (a.account_id.clone(),a.symbol.clone()),
-              (a.credits.clone().try_into(),a.ship_count.clone())
+              (a.credits.try_into(),a.ship_count)
             ),(
               (a.headquarters.clone(), a.starting_faction.clone()),
               ((),())

@@ -26,17 +26,17 @@ impl MarketTransaction {
     }
 }
 
-impl Into<models::MarketTransaction> for MarketTransaction {
-    fn into(self) -> models::MarketTransaction {
+impl From<MarketTransaction> for models::MarketTransaction {
+    fn from(val: MarketTransaction) -> Self {
         models::MarketTransaction {
-            ship_symbol: self.ship_symbol,
-            trade_symbol: self.trade_symbol.to_string(),
-            r#type: self.r#type,
-            units: self.units,
-            price_per_unit: self.price_per_unit,
-            total_price: self.total_price,
-            timestamp: self.timestamp,
-            waypoint_symbol: self.waypoint_symbol,
+            ship_symbol: val.ship_symbol,
+            trade_symbol: val.trade_symbol.to_string(),
+            r#type: val.r#type,
+            units: val.units,
+            price_per_unit: val.price_per_unit,
+            total_price: val.total_price,
+            timestamp: val.timestamp,
+            waypoint_symbol: val.waypoint_symbol,
         }
     }
 }
@@ -118,14 +118,14 @@ impl DatabaseConnector<MarketTransaction> for MarketTransaction {
                 (
                     (
                         (t.waypoint_symbol.clone(), t.ship_symbol.clone()),
-                        (t.trade_symbol.clone(), t.r#type.clone()),
+                        (t.trade_symbol, t.r#type),
                     ),
                     (
                         (
-                            (t.units.clone(), t.trade_route.clone()),
+                            (t.units, t.trade_route),
                             (t.timestamp.clone(), t.contract.clone()),
                         ),
-                        (t.price_per_unit.clone(), t.total_price.clone()),
+                        (t.price_per_unit, t.total_price),
                     ),
                 )
             })

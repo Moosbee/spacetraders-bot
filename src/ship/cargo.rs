@@ -93,12 +93,12 @@ impl MyShip {
 
         self.cargo.update(&purchase_data.data.cargo);
 
-        sql::Agent::insert(&database_pool, &sql::Agent::from(*purchase_data.data.agent)).await?;
+        sql::Agent::insert(database_pool, &sql::Agent::from(*purchase_data.data.agent)).await?;
 
         let transaction =
             sql::MarketTransaction::try_from(purchase_data.data.transaction.as_ref().clone())?
                 .with(reason);
-        sql::MarketTransaction::insert(&database_pool, &transaction).await?;
+        sql::MarketTransaction::insert(database_pool, &transaction).await?;
 
         Ok(())
     }
@@ -134,7 +134,7 @@ impl MyShip {
         let market_data = api
             .get_market(&self.nav.system_symbol, &self.nav.waypoint_symbol)
             .await?;
-        crate::workers::market_scrapers::update_market(*market_data.data, &database_pool).await;
+        crate::workers::market_scrapers::update_market(*market_data.data, database_pool).await;
 
         Ok(())
     }

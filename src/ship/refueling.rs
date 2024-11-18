@@ -89,12 +89,12 @@ impl MyShip {
                 .await?;
             self.fuel.update(&refuel_data.data.fuel);
 
-            sql::Agent::insert(&database_pool, &sql::Agent::from(*refuel_data.data.agent)).await?;
+            sql::Agent::insert(database_pool, &sql::Agent::from(*refuel_data.data.agent)).await?;
 
             let transaction =
                 sql::MarketTransaction::try_from(refuel_data.data.transaction.as_ref().clone())?
                     .with(reason);
-            sql::MarketTransaction::insert(&database_pool, &transaction).await?;
+            sql::MarketTransaction::insert(database_pool, &transaction).await?;
 
             self.cargo
                 .remove_cargo(
@@ -119,7 +119,7 @@ impl MyShip {
         }
 
         // Dock the ship
-        self.ensure_docked(&api).await.unwrap();
+        self.ensure_docked(api).await.unwrap();
 
         // Perform refueling if needed
         if requirements.refuel_amount > 0 {
@@ -136,18 +136,18 @@ impl MyShip {
                 .await?;
             self.fuel.update(&refuel_data.data.fuel);
 
-            sql::Agent::insert(&database_pool, &sql::Agent::from(*refuel_data.data.agent)).await?;
+            sql::Agent::insert(database_pool, &sql::Agent::from(*refuel_data.data.agent)).await?;
 
             let transaction =
                 sql::MarketTransaction::try_from(refuel_data.data.transaction.as_ref().clone())?
                     .with(reason.clone());
-            sql::MarketTransaction::insert(&database_pool, &transaction).await?;
+            sql::MarketTransaction::insert(database_pool, &transaction).await?;
         }
 
         // Restock fuel cargo if needed
         if requirements.restock_amount > 0 {
             debug!("Marketplace refueling to cargo");
-            let _restock_data = self
+            self
                 .purchase_cargo(
                     api,
                     space_traders_client::models::TradeSymbol::Fuel,

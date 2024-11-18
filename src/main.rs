@@ -90,7 +90,7 @@ async fn main() -> anyhow::Result<()> {
         &database_pool,
         &waypoints
             .iter()
-            .map(|w| sql::Waypoint::from(w))
+            .map(sql::Waypoint::from)
             .collect::<Vec<_>>(),
     )
     .await
@@ -139,10 +139,9 @@ async fn main() -> anyhow::Result<()> {
             .iter()
             .map(|s| {
                 let mut shipi = ship::MyShip::from_ship(s.clone());
-                shipi.role = ship_roles
+                shipi.role = *ship_roles
                     .get(&s.symbol)
-                    .unwrap_or(&ship::models::Role::Manuel)
-                    .clone();
+                    .unwrap_or(&ship::models::Role::Manuel);
 
                 (s.symbol.clone(), shipi)
             })
@@ -155,7 +154,7 @@ async fn main() -> anyhow::Result<()> {
     {
         let mut a_wps = all_waypoints
             .entry(waypoints[0].system_symbol.clone())
-            .or_insert_with(HashMap::new);
+            .or_default();
         for wp in waypoints.iter() {
             a_wps.insert(wp.symbol.clone(), wp.clone());
         }

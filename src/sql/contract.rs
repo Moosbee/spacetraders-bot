@@ -73,14 +73,14 @@ impl DatabaseConnector<Contract> for Contract {
                 (
                     (
                         (
-                            (c.id.clone(), c.contract_type.clone()),
+                            (c.id.clone(), c.contract_type),
                             c.faction_symbol.clone(),
                         ),
-                        (c.accepted.clone(), c.fulfilled.clone()),
+                        (c.accepted, c.fulfilled),
                     ),
                     (
                         (c.deadline_to_accept.clone(), c.deadline.clone()),
-                        (c.on_accepted.clone(), c.on_fulfilled.clone()),
+                        (c.on_accepted, c.on_fulfilled),
                     ),
                 )
             })

@@ -44,11 +44,11 @@ pub fn distance_between_waypoints(start: (i32, i32), end: (i32, i32)) -> f64 {
     (((end.0 - start.0).pow(2) + (end.1 - start.1).pow(2)) as f64).sqrt()
 }
 
-pub fn get_nearby_waypoints<'a>(
-    waypoints: &'a HashMap<String, models::Waypoint>,
+pub fn get_nearby_waypoints(
+    waypoints: &HashMap<String, models::Waypoint>,
     start_waypoint: (i32, i32),
     radius: f64,
-) -> Vec<&'a models::Waypoint> {
+) -> Vec<&models::Waypoint> {
     waypoints
         .values()
         .filter(|w| distance_between_waypoints(start_waypoint, (w.x, w.y)) <= radius)

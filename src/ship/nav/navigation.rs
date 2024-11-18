@@ -86,7 +86,7 @@ impl MyShip {
     }
 
     fn validate_current_waypoint(&self, instruction: &RouteInstruction) -> Result<()> {
-        if !(instruction.start_symbol == self.nav.waypoint_symbol) {
+        if instruction.start_symbol != self.nav.waypoint_symbol {
             return Err(anyhow::anyhow!(
                 "Not on waypoint {} {}",
                 self.nav.waypoint_symbol,
@@ -191,8 +191,8 @@ impl MyShip {
 
 impl NavigationState {
     pub fn update(&mut self, nav: &models::ShipNav) {
-        self.flight_mode = nav.flight_mode.clone();
-        self.status = nav.status.clone();
+        self.flight_mode = nav.flight_mode;
+        self.status = nav.status;
         self.system_symbol = nav.system_symbol.clone();
         self.waypoint_symbol = nav.waypoint_symbol.clone();
         self.route.arrival = DateTime::parse_from_rfc3339(&nav.route.arrival)

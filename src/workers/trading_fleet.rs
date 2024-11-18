@@ -52,15 +52,15 @@ impl TradingFleet {
             let v = trades.get(&t.symbol);
 
             let mut trade: (Vec<_>, Vec<_>) =
-                v.clone().unwrap_or(&(Vec::new(), Vec::new())).clone();
-            trade.0.push(t.clone().into());
-            trade.1.push(t.clone().into());
+                v.unwrap_or(&(Vec::new(), Vec::new())).clone();
+            trade.0.push(t.clone());
+            trade.1.push(t.clone());
             trades.insert(t.symbol, trade);
         }
 
         trades
             .iter()
-            .map(|(trade_good, (exports, imports))| {
+            .flat_map(|(trade_good, (exports, imports))| {
                 let exports: Vec<_> = exports
                     .iter()
                     .map(|export| {
@@ -70,7 +70,7 @@ impl TradingFleet {
                                 // (trade_good.clone(), export.clone(), import.clone())
 
                                 PossibleTradeRoute {
-                                    symbol: trade_good.clone(),
+                                    symbol: *trade_good,
                                     export: export.clone(),
                                     import: import.clone(),
                                     min_trade_volume: export.trade_volume.min(import.trade_volume),
@@ -88,7 +88,6 @@ impl TradingFleet {
                     .collect();
                 exports
             })
-            .flatten()
             .flatten()
             .collect()
     }

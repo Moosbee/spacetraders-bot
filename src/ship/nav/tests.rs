@@ -85,9 +85,9 @@ mod tests {
             );
 
             if route != real {
-                println!("is equal: {}", is_equal_route(&wayps, &route, &real));
+                println!("is equal: {}", is_equal_route(&wayps, route, real));
 
-                assert!(is_equal_route(&wayps, &route, &real));
+                assert!(is_equal_route(&wayps, route, real));
             }
         }
 
@@ -230,17 +230,17 @@ mod tests {
     ) -> bool {
         let start_wp_a = waypoints
             .get(&a.start_symbol)
-            .expect(format!("Did not find {:?}", a.start_symbol).as_str());
+            .unwrap_or_else(|| panic!("Did not find {:?}", a.start_symbol));
         let end_wp_a = waypoints
             .get(&a.end_symbol)
-            .expect(format!("Did not find {:?}", a.end_symbol).as_str());
+            .unwrap_or_else(|| panic!("Did not find {:?}", a.end_symbol));
 
         let start_wp_b = waypoints
             .get(&b.start_symbol)
-            .expect(format!("Did not find {:?}", b.start_symbol).as_str());
+            .unwrap_or_else(|| panic!("Did not find {:?}", b.start_symbol));
         let end_wp_b = waypoints
             .get(&b.end_symbol)
-            .expect(format!("Did not find {:?}", b.end_symbol).as_str());
+            .unwrap_or_else(|| panic!("Did not find {:?}", b.end_symbol));
 
         start_wp_a.x == start_wp_b.x
             && start_wp_a.y == start_wp_b.y
