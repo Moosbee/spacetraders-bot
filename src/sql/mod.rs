@@ -5,6 +5,7 @@ mod market_trade;
 mod market_trade_good;
 mod market_transaction;
 mod sql_models;
+mod trade_route;
 mod waypoint;
 
 pub use sql_models::Agent;

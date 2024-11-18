@@ -57,3 +57,16 @@ impl fmt::Display for PossibleTradeRoute {
         )
     }
 }
+
+pub struct ConcreteTradeRoute {
+    pub symbol: space_traders_client::models::TradeSymbol,
+    pub export: sql::MarketTradeGood,
+    pub import: sql::MarketTradeGood,
+    pub min_trade_volume: i32,
+    pub max_trade_volume: i32,
+    pub purchase_wp_symbol: String,
+    pub sell_wp_symbol: String,
+    pub purchase_price: i32,
+    pub sell_price: i32,
+    pub profit: i32,
+}

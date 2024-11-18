@@ -265,7 +265,8 @@ CREATE TABLE
     deadline_to_accept character varying(255),
     on_accepted INTEGER NOT NULL,
     on_fulfilled INTEGER NOT NULL,
-    deadline character varying(255) NOT NULL
+    deadline character varying(255) NOT NULL,
+    created_at timestamp without time zone NOT NULL DEFAULT now ()
   );
 
 -- Table for contract delivery requirements
@@ -276,6 +277,7 @@ CREATE TABLE
     destination_symbol character varying(255) NOT NULL,
     units_required INTEGER NOT NULL,
     units_fulfilled INTEGER NOT NULL,
+    created_at timestamp without time zone NOT NULL DEFAULT now (),
     PRIMARY KEY (contract_id, trade_symbol, destination_symbol),
     CONSTRAINT contract_delivery_relation_1 FOREIGN KEY (contract_id) REFERENCES public.contract (id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION
   );
@@ -286,12 +288,13 @@ CREATE TABLE
   IF NOT EXISTS public.trade_route (
     id integer NOT NULL AUTO_INCREMENT,
     symbol trade_symbol NOT NULL,
-    ship_symbol "char" NOT NULL,
-    purchase_waypoint "char" NOT NULL,
-    ell_waypoint "char" NOT NULL,
+    ship_symbol character varying COLLATE pg_catalog."default" NOT NULL,
+    purchase_waypoint character varying COLLATE pg_catalog."default" NOT NULL,
+    sell_waypoint character varying COLLATE pg_catalog."default" NOT NULL,
     finished boolean NOT NULL DEFAULT false,
     predicted_purchase_price integer NOT NULL,
     predicted_sell_price integer NOT NULL,
+    created_at timestamp without time zone NOT NULL DEFAULT now (),
     CONSTRAINT trade_route_pkey PRIMARY KEY (id)
   ) TABLESPACE pg_default;
 

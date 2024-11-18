@@ -102,6 +102,18 @@ pub struct Agent {
     pub created_at: sqlx::types::time::PrimitiveDateTime,
 }
 
+pub struct TradeRoute {
+    pub id: i32,
+    pub symbol: models::TradeSymbol,
+    pub ship_symbol: String,
+    pub purchase_waypoint: String,
+    pub sell_waypoint: String,
+    pub finished: bool,
+    pub predicted_purchase_price: i32,
+    pub predicted_sell_price: i32,
+    pub created_at: sqlx::types::time::PrimitiveDateTime,
+}
+
 pub trait DatabaseConnector<T> {
     /// Insert a new item into the database, or update it if it already exists.
     async fn insert(database_pool: &sqlx::PgPool, item: &T) -> sqlx::Result<()>;
