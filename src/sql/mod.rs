@@ -14,5 +14,6 @@ pub use sql_models::DatabaseConnector;
 pub use sql_models::MarketTrade;
 pub use sql_models::MarketTradeGood;
 pub use sql_models::MarketTransaction;
+pub use sql_models::TradeRoute;
 pub use sql_models::TransactionReason;
 pub use sql_models::Waypoint;

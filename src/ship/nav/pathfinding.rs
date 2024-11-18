@@ -11,13 +11,47 @@ use std::collections::HashMap;
 
 impl MyShip {
     pub fn find_route(
-        &self,
+        &mut self,
         waypoints: &HashMap<String, models::Waypoint>,
         start_symbol: String,
         end_symbol: String,
         nav_mode: &NavMode,
         only_markets: bool,
     ) -> Result<Vec<RouteConnection>, Error> {
+        let mut cache = self.nav.cache.clone();
+        let erg = self.find_route_cached(
+            waypoints,
+            start_symbol,
+            end_symbol,
+            nav_mode,
+            only_markets,
+            &mut cache,
+        );
+
+        self.nav.cache = cache;
+
+        erg
+    }
+
+    pub fn find_route_cached(
+        &self,
+        waypoints: &HashMap<String, models::Waypoint>,
+        start_symbol: String,
+        end_symbol: String,
+        nav_mode: &NavMode,
+        only_markets: bool,
+        cache: &mut super::nav_models::Cache,
+    ) -> Result<Vec<RouteConnection>, Error> {
+        if let Some(route) = cache.get(
+            start_symbol.clone(),
+            end_symbol.clone(),
+            nav_mode,
+            only_markets,
+            self.fuel.capacity,
+        ) {
+            return Ok(route);
+        }
+
         let mut unvisited = waypoints.clone();
         let mut visited = HashMap::new();
         let mut to_visit = PriorityQueue::new();
@@ -54,7 +88,20 @@ impl MyShip {
             }
         }
 
-        super::utils::get_route(visited, start_symbol, end_symbol)
+        let route = super::utils::get_route(visited, start_symbol.clone(), end_symbol.clone());
+
+        if let Ok(route) = &route {
+            cache.put(
+                start_symbol.clone(),
+                end_symbol.clone(),
+                nav_mode,
+                only_markets,
+                self.fuel.capacity,
+                route.clone(),
+            );
+        }
+
+        route
     }
 
     fn get_waypoint<'a>(

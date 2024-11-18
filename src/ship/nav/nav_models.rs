@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use chrono::{DateTime, Utc};
 use space_traders_client::models;
 
@@ -8,6 +10,7 @@ pub struct NavigationState {
     pub system_symbol: String,
     pub waypoint_symbol: String,
     pub route: RouteState,
+    pub cache: Cache,
 }
 
 #[derive(Debug, Default)]
@@ -20,7 +23,7 @@ pub struct RouteState {
     pub origin_system_symbol: String,
 }
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
 pub enum NavMode {
     Burn,
     Cruise,
@@ -69,4 +72,9 @@ pub struct RouteConnection {
     pub distance: f64,
     pub cost: f64,
     pub re_cost: f64,
+}
+
+#[derive(Debug, Default, Clone)]
+pub struct Cache {
+    pub routes: HashMap<(String, String, NavMode, bool, i32), Vec<RouteConnection>>,
 }

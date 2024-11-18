@@ -7,6 +7,11 @@ use crate::{
 
 use super::models::MyShip;
 
+enum Mode {
+    Sell,
+    Purchase,
+}
+
 impl MyShip {
     pub async fn purchase_cargo(
         &mut self,
@@ -17,11 +22,44 @@ impl MyShip {
         reason: sql::TransactionReason,
     ) -> anyhow::Result<()> {
         let market_info = self.get_market_info(api, database_pool).await?;
-        let purchase_volumes = self.calculate_purchase_volumes(units, &market_info, symbol)?;
+        let purchase_volumes = self.calculate_volumes(units, &market_info, symbol)?;
 
         for volume in purchase_volumes {
-            self.execute_purchase(api, symbol, volume, database_pool, reason.clone())
-                .await?;
+            self.execute_trade(
+                api,
+                symbol,
+                volume,
+                Mode::Purchase,
+                database_pool,
+                reason.clone(),
+            )
+            .await?;
+        }
+
+        Ok(())
+    }
+
+    pub async fn sell_cargo(
+        &mut self,
+        api: &api::Api,
+        symbol: space_traders_client::models::TradeSymbol,
+        units: i32,
+        database_pool: &sqlx::PgPool,
+        reason: sql::TransactionReason,
+    ) -> anyhow::Result<()> {
+        let market_info = self.get_market_info(api, database_pool).await?;
+        let sell_volumes = self.calculate_volumes(units, &market_info, symbol)?;
+
+        for volume in sell_volumes {
+            self.execute_trade(
+                api,
+                symbol,
+                volume,
+                Mode::Sell,
+                database_pool,
+                reason.clone(),
+            )
+            .await?;
         }
 
         Ok(())
@@ -48,7 +86,7 @@ impl MyShip {
         Ok(market_info?)
     }
 
-    fn calculate_purchase_volumes(
+    fn calculate_volumes(
         &self,
         quantity: i32,
         market_info: &[sql::MarketTradeGood],
@@ -72,32 +110,52 @@ impl MyShip {
         Ok(volumes)
     }
 
-    async fn execute_purchase(
+    async fn execute_trade(
         &mut self,
         api: &api::Api,
         good: space_traders_client::models::TradeSymbol,
         volume: i32,
+        r_type: Mode,
         database_pool: &sqlx::PgPool,
         reason: sql::TransactionReason,
     ) -> anyhow::Result<()> {
-        let purchase_data = api
-            .purchase_cargo(
-                &self.symbol,
-                Some(space_traders_client::models::PurchaseCargoRequest {
-                    symbol: good,
-                    units: volume,
-                }),
-            )
-            .await
-            .unwrap();
+        let trade_data = match r_type {
+            Mode::Sell => {
+                let sell_data: space_traders_client::models::SellCargo201Response = api
+                    .sell_cargo(
+                        &self.symbol,
+                        Some(space_traders_client::models::SellCargoRequest {
+                            symbol: good,
+                            units: volume,
+                        }),
+                    )
+                    .await
+                    .unwrap();
 
-        self.cargo.update(&purchase_data.data.cargo);
+                sell_data.data
+            }
+            Mode::Purchase => {
+                let purchase_data: space_traders_client::models::PurchaseCargo201Response = api
+                    .purchase_cargo(
+                        &self.symbol,
+                        Some(space_traders_client::models::PurchaseCargoRequest {
+                            symbol: good,
+                            units: volume,
+                        }),
+                    )
+                    .await
+                    .unwrap();
 
-        sql::Agent::insert(database_pool, &sql::Agent::from(*purchase_data.data.agent)).await?;
+                purchase_data.data
+            }
+        };
+
+        self.cargo.update(&trade_data.cargo);
+
+        sql::Agent::insert(database_pool, &sql::Agent::from(*trade_data.agent)).await?;
 
         let transaction =
-            sql::MarketTransaction::try_from(purchase_data.data.transaction.as_ref().clone())?
-                .with(reason);
+            sql::MarketTransaction::try_from(trade_data.transaction.as_ref().clone())?.with(reason);
         sql::MarketTransaction::insert(database_pool, &transaction).await?;
 
         Ok(())

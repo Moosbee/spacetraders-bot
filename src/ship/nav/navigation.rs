@@ -38,8 +38,8 @@ impl MyShip {
         Ok(())
     }
 
-    fn calculate_route(
-        &self,
+    pub fn calculate_route(
+        &mut self,
         waypoints: &HashMap<String, models::Waypoint>,
         waypoint: &str,
     ) -> Result<Vec<super::nav_models::RouteConnection>> {

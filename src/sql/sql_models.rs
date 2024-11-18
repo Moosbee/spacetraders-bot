@@ -102,6 +102,7 @@ pub struct Agent {
     pub created_at: sqlx::types::time::PrimitiveDateTime,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TradeRoute {
     pub id: i32,
     pub symbol: models::TradeSymbol,
@@ -112,6 +113,31 @@ pub struct TradeRoute {
     pub predicted_purchase_price: i32,
     pub predicted_sell_price: i32,
     pub created_at: sqlx::types::time::PrimitiveDateTime,
+}
+
+impl TradeRoute {
+    pub fn complete(self) -> Self {
+        TradeRoute {
+            finished: true,
+            ..self
+        }
+    }
+}
+
+impl Default for TradeRoute {
+    fn default() -> TradeRoute {
+        TradeRoute {
+            id: 0,
+            symbol: models::TradeSymbol::PreciousStones,
+            ship_symbol: String::new(),
+            purchase_waypoint: String::new(),
+            sell_waypoint: String::new(),
+            finished: false,
+            predicted_purchase_price: 0,
+            predicted_sell_price: 0,
+            created_at: sqlx::types::time::PrimitiveDateTime::MIN,
+        }
+    }
 }
 
 pub trait DatabaseConnector<T> {

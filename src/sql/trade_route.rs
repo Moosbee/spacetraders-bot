@@ -117,3 +117,30 @@ impl DatabaseConnector<TradeRoute> for TradeRoute {
         .await
     }
 }
+
+impl TradeRoute {
+    pub async fn insert_id(database_pool: &sqlx::PgPool, item: &TradeRoute) -> sqlx::Result<i32> {
+      struct Erg {
+        id:i32
+      }
+              let erg= sqlx::query_as!(
+            Erg,          
+            r#"
+            insert into trade_route (symbol, ship_symbol, purchase_waypoint, sell_waypoint, finished, predicted_purchase_price, predicted_sell_price)
+            values ($1, $2, $3, $4, $5, $6, $7)
+            RETURNING id
+            "#,
+            item.symbol as models::TradeSymbol,
+            item.ship_symbol,
+            item.purchase_waypoint,
+            item.sell_waypoint,
+            item.finished,
+            item.predicted_purchase_price,
+            item.predicted_sell_price
+        ).fetch_all(database_pool).await?;
+
+       let erg= erg.first().ok_or_else(||sqlx::Error::RowNotFound)?;
+
+        Ok(erg.id)
+    }
+}
