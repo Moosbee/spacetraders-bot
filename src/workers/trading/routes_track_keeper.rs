@@ -35,7 +35,7 @@ impl RoutesTrackKeeper {
     pub fn is_locked(&self, route: &MinTradeRoute) -> bool {
         self.is_start_locked(route) || self.is_end_locked(route)
     }
-
+    #[allow(dead_code)]
     pub fn is_real_locked(&self, route: &MinTradeRoute) -> bool {
         self.is_start_locked(route) && self.is_end_locked(route)
     }

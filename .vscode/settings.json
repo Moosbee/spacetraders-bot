@@ -1,5 +1,12 @@
 {
-    "cSpell.words": [
-        "sqlx"
-    ]
+  "cSpell.words": ["sqlx"],
+  "sqltools.connections": [
+    {
+      "previewLimit": 50,
+      "server": "localhost",
+      "driver": "PostgreSQL",
+      "name": "spaceTrader",
+      "connectString": "postgres://spTrader:testitest@localhost/spaceTrader"
+    }
+  ]
 }

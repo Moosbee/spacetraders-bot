@@ -99,6 +99,7 @@ pub struct Agent {
     pub credits: i64,
     pub starting_faction: String,
     pub ship_count: i32,
+    #[allow(dead_code)]
     pub created_at: sqlx::types::time::PrimitiveDateTime,
 }
 
@@ -147,6 +148,7 @@ pub trait DatabaseConnector<T> {
     async fn insert(database_pool: &sqlx::PgPool, item: &T) -> sqlx::Result<()>;
     /// Insert multiple items into the database, or update them if they already exist.
     async fn insert_bulk(database_pool: &sqlx::PgPool, items: &Vec<T>) -> sqlx::Result<()>;
+    #[allow(dead_code)]
     /// Get all items from the database.
     async fn get_all(database_pool: &sqlx::PgPool) -> sqlx::Result<Vec<T>>;
 }

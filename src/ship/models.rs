@@ -60,25 +60,25 @@ impl MyShip {
         self.fuel.update(&ship.fuel);
     }
 
-    pub fn is_on_cooldown(&self) -> bool {
-        if self.cooldown_expiration.is_some() {
-            let t = self.cooldown_expiration.unwrap();
-            let t = t - Utc::now();
-            let t = t.num_seconds();
-            t > 0
-        } else {
-            true
-        }
-    }
+    // pub fn is_on_cooldown(&self) -> bool {
+    //     if self.cooldown_expiration.is_some() {
+    //         let t = self.cooldown_expiration.unwrap();
+    //         let t = t - Utc::now();
+    //         let t = t.num_seconds();
+    //         t > 0
+    //     } else {
+    //         true
+    //     }
+    // }
 
-    pub async fn wait_for_cooldown(&self) -> anyhow::Result<()> {
-        if self.cooldown_expiration.is_none() {
-            return Err(anyhow::anyhow!("Is not on cooldown"));
-        }
-        let t = self.cooldown_expiration.unwrap();
-        let t = t - Utc::now();
-        let t = t.num_seconds().try_into()?;
-        tokio::time::sleep(std::time::Duration::from_secs(t)).await;
-        Ok(())
-    }
+    // pub async fn wait_for_cooldown(&self) -> anyhow::Result<()> {
+    //     if self.cooldown_expiration.is_none() {
+    //         return Err(anyhow::anyhow!("Is not on cooldown"));
+    //     }
+    //     let t = self.cooldown_expiration.unwrap();
+    //     let t = t - Utc::now();
+    //     let t = t.num_seconds().try_into()?;
+    //     tokio::time::sleep(std::time::Duration::from_secs(t)).await;
+    //     Ok(())
+    // }
 }
