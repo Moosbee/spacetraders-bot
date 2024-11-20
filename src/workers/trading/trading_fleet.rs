@@ -1,15 +1,19 @@
-use std::sync::{Arc, RwLock};
+use std::{
+    sync::{Arc, RwLock},
+    time::Duration,
+};
 
 use log::{debug, info};
 
 use crate::{
+    config::CONFIG,
     ship::{self, nav_models::Cache},
     sql,
     workers::types::{Conductor, ConductorContext},
 };
 
 use super::{
-    route_calculator::RouteCalculator, routes_track_keeper::RoutesTrackKeeper, t_types::constants,
+    route_calculator::RouteCalculator, routes_track_keeper::RoutesTrackKeeper,
     trade_processor::TradeProcessor,
 };
 
@@ -37,6 +41,8 @@ impl TradingFleet {
 
     async fn run_trade_worker(&self) -> anyhow::Result<()> {
         info!("Starting trading workers");
+
+        tokio::time::sleep(Duration::from_millis(CONFIG.trading.start_sleep_duration)).await;
 
         let ships = self.get_trading_ships();
         let mut handles = Vec::new();
@@ -81,7 +87,7 @@ impl TradingFleet {
             .await;
         }
 
-        for _ in 0..constants::TRADE_CYCLE {
+        for _ in 0..CONFIG.trading.trade_cycle {
             let route = self
                 .route_calculator
                 .get_best_route(&ship, &self.running_routes)

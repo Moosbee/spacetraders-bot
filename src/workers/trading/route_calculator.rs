@@ -8,12 +8,13 @@ use log::debug;
 use space_traders_client::models;
 
 use crate::{
+    config::CONFIG,
     ship::{self, nav_models::Cache},
     sql,
     workers::{
         trading::{
             routes_track_keeper::RoutesTrackKeeper,
-            t_types::{constants, ConcreteTradeRoute, PossibleTradeRoute, TripStats},
+            t_types::{ConcreteTradeRoute, PossibleTradeRoute, TripStats},
         },
         types::ConductorContext,
     },
@@ -41,7 +42,7 @@ impl RouteCalculator {
         let routes = self
             .calc_possible_trade_routes(trade_goods)
             .into_iter()
-            .filter(|route| !constants::BLACKLIST.contains(&route.symbol) && route.profit > 0)
+            .filter(|route| !CONFIG.trading.blacklist.contains(&route.symbol) && route.profit > 0)
             .map(|route| self.calc_concrete_trade_route(ship, route))
             .filter(|route| route.profit > 0)
             .collect::<Vec<_>>();
@@ -154,12 +155,12 @@ impl RouteCalculator {
         total_fuel_cost: i32,
         total_travel_time: chrono::TimeDelta,
     ) -> TripStats {
-        let trip_fuel_cost = (total_fuel_cost * 2) / 100 * constants::FUEL_COST;
+        let trip_fuel_cost = (total_fuel_cost * 2) / 100 * CONFIG.trading.fuel_cost;
 
         let trip_volume = ship
             .cargo
             .capacity
-            .min((trade_route.min_trade_volume as f32 * constants::PURCHASE_MULTIPLIER) as i32);
+            .min((trade_route.min_trade_volume as f32 * CONFIG.trading.purchase_multiplier) as i32);
 
         let trip_total_cost = trade_route.purchase_price * trip_volume + trip_fuel_cost;
         let trip_total_profit = trade_route.sell_price * trip_volume - trip_total_cost;

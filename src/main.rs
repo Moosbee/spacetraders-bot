@@ -4,10 +4,12 @@ mod ship;
 mod sql;
 mod workers;
 
+mod config;
 mod tests;
 
 use std::{collections::HashMap, env, sync::Arc};
 
+use config::CONFIG;
 use dashmap::DashMap;
 use env_logger::{Env, Target};
 use space_traders_client::models::waypoint;
@@ -56,13 +58,6 @@ async fn main() -> anyhow::Result<()> {
         )
         .await?;
 
-    // Make a simple query to return the given parameter (use a question mark `?` instead of `$1` for MySQL/MariaDB)
-    // let row = sqlx::query_as!(sql::MarketTradeGood, r#"SELECT created_at, created, waypoint_symbol, symbol as "symbol: TradeSymbol", "type" as "type: models::market_trade_good::Type", trade_volume, supply as "supply: models::SupplyLevel", activity as "activity: models::ActivityLevel", purchase_price, sell_price FROM public.market_trade_good"#)
-    //         .fetch_all(&database_pool)
-    //         .await?;
-
-    // info!("Row: {:?}", row);
-
     let my_agent = api.get_my_agent().await?;
     info!("My agent: {:?}", my_agent);
 
@@ -77,6 +72,8 @@ async fn main() -> anyhow::Result<()> {
     //     systems_json.len(),
     //     systems.len()
     // );
+
+    info!("{:?}", CONFIG.clone());
 
     let ships = api.get_all_my_ships(20).await?;
     info!("Ships: {:?}", ships.len());

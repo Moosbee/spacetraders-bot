@@ -12,14 +12,12 @@ use tokio::time::sleep;
 
 use crate::{
     api::Api,
+    config::CONFIG,
     ship,
     sql::{self, DatabaseConnector},
 };
 
 // Constants
-const SLEEP_DURATION: u64 = 500;
-const MAX_CONTRACTS: i32 = 20;
-const MAX_CONTRACT_ATTEMPTS: u32 = 1000;
 
 pub struct ContractFleet {
     context: super::types::ConductorContext,
@@ -33,7 +31,7 @@ impl ContractFleet {
 
     async fn run_contract_workers(&self) -> Result<()> {
         info!("Starting contract workers");
-        sleep(Duration::from_millis(SLEEP_DURATION)).await;
+        sleep(Duration::from_millis(CONFIG.contracts.start_sleep_duration)).await;
 
         let contract_ships = self.get_contract_ships()?;
         let primary_ship = &contract_ships[0];
@@ -45,7 +43,7 @@ impl ContractFleet {
         }
 
         // Process new contracts
-        for _ in 0..MAX_CONTRACT_ATTEMPTS {
+        for _ in 0..CONFIG.contracts.max_contracts {
             info!("Negotiating new contract");
             let next_contract = self.negotiate_next_contract(&contract_ships).await?;
             self.process_contract(&next_contract, primary_ship).await?;
@@ -220,7 +218,7 @@ impl ContractFleet {
     }
 
     async fn get_unfulfilled_contracts(&self) -> Result<VecDeque<Contract>> {
-        let contracts = self.context.api.get_all_contracts(MAX_CONTRACTS).await?;
+        let contracts = self.context.api.get_all_contracts(20).await?;
         Ok(VecDeque::from(
             contracts
                 .into_iter()

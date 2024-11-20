@@ -6,12 +6,10 @@ use space_traders_client::models;
 use tokio::time::sleep;
 
 use crate::{
+    config::CONFIG,
     sql::{self, DatabaseConnector},
     IsMarketplace,
 };
-
-const MAX_SCRAPS: u32 = 100;
-const SCRAP_INTERVAL: u64 = 10;
 
 pub struct MarketScraper {
     context: super::types::ConductorContext,
@@ -25,10 +23,11 @@ impl MarketScraper {
 
     async fn run_market_scraper(&self) -> anyhow::Result<()> {
         info!("Starting market scrapping workers");
+        sleep(Duration::from_millis(CONFIG.market.start_sleep_duration)).await;
 
-        for i in 0..MAX_SCRAPS {
+        for i in 0..CONFIG.market.max_scraps {
             if i != 0 {
-                sleep(Duration::from_secs(SCRAP_INTERVAL)).await;
+                sleep(Duration::from_secs(CONFIG.market.scrap_interval)).await;
             }
 
             let markets = self.get_all_markets().await?;
