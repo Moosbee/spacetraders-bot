@@ -155,4 +155,26 @@ impl TradeRoute {
 
         Ok(erg.id)
     }
+
+    pub async fn get_unfinished(database_pool: &sqlx::PgPool) -> sqlx::Result<Vec<TradeRoute>> {
+        sqlx::query_as!(
+            TradeRoute,
+            r#"
+                SELECT 
+                  id,
+                  symbol as "symbol: models::TradeSymbol",
+                  ship_symbol,
+                  purchase_waypoint,
+                  sell_waypoint,
+                  finished,
+                  trade_volume,
+                  predicted_purchase_price,
+                  predicted_sell_price,
+                  created_at
+                 FROM trade_route WHERE finished=false
+            "#
+        )
+        .fetch_all(database_pool)
+        .await
+    }
 }

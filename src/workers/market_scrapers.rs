@@ -11,6 +11,7 @@ use crate::{
     IsMarketplace,
 };
 
+#[derive(Debug, Clone)]
 pub struct MarketScraper {
     context: super::types::ConductorContext,
 }
@@ -23,11 +24,25 @@ impl MarketScraper {
 
     async fn run_market_scraper(&self) -> anyhow::Result<()> {
         info!("Starting market scrapping workers");
-        sleep(Duration::from_millis(CONFIG.market.start_sleep_duration)).await;
+
+        if !CONFIG.market.active {
+            info!("Market scrapping not active, exiting");
+
+            return Ok(());
+        }
+
+        tokio::time::sleep(Duration::from_millis(CONFIG.market.start_sleep_duration)).await;
+
+        let handle = if CONFIG.market.agents {
+            let my_agent = self.clone();
+            tokio::spawn(async move { my_agent.run_agent_scraper().await })
+        } else {
+            tokio::spawn(async move { Ok(()) })
+        };
 
         for i in 0..CONFIG.market.max_scraps {
             if i != 0 {
-                sleep(Duration::from_secs(CONFIG.market.scrap_interval)).await;
+                sleep(Duration::from_millis(CONFIG.market.scrap_interval)).await;
             }
 
             let markets = self.get_all_markets().await?;
@@ -36,7 +51,30 @@ impl MarketScraper {
             update_markets(markets, self.context.database_pool.clone()).await;
         }
 
+        handle.await??;
+
         info!("Market scrapping workers done");
+
+        Ok(())
+    }
+
+    pub async fn run_agent_scraper(&self) -> anyhow::Result<()> {
+        for _i in 0..CONFIG.market.max_agent_scraps {
+            self.update_all_agents().await?;
+            sleep(Duration::from_millis(CONFIG.market.agent_interval)).await;
+        }
+
+        Ok(())
+    }
+
+    async fn update_all_agents(&self) -> anyhow::Result<()> {
+        let agents = self.context.api.get_all_agents(20).await?;
+        let all_agents = agents.into_iter().map(sql::Agent::from).collect::<Vec<_>>();
+
+        for agent in &all_agents {
+            info!("Agent: {}", agent.symbol);
+            sql::Agent::insert(&self.context.database_pool, &agent).await?;
+        }
 
         Ok(())
     }

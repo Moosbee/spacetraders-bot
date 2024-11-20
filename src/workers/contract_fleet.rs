@@ -8,7 +8,6 @@ use anyhow::{Context, Error, Result};
 use chrono::{DateTime, Utc};
 use log::{debug, info};
 use space_traders_client::models::{self, Contract, ContractDeliverGood, TradeSymbol, Waypoint};
-use tokio::time::sleep;
 
 use crate::{
     api::Api,
@@ -31,7 +30,14 @@ impl ContractFleet {
 
     async fn run_contract_workers(&self) -> Result<()> {
         info!("Starting contract workers");
-        sleep(Duration::from_millis(CONFIG.contracts.start_sleep_duration)).await;
+
+        if !CONFIG.contracts.active {
+            info!("contract workers not active, exiting");
+
+            return Ok(());
+        }
+
+        tokio::time::sleep(Duration::from_millis(CONFIG.contracts.start_sleep_duration)).await;
 
         let contract_ships = self.get_contract_ships()?;
         let primary_ship = &contract_ships[0];

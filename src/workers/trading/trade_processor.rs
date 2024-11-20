@@ -6,10 +6,7 @@ use log::info;
 use crate::{
     ship,
     sql::{self, DatabaseConnector},
-    workers::{
-        trading::{routes_track_keeper::RoutesTrackKeeper, t_types::ConcreteTradeRoute},
-        types::ConductorContext,
-    },
+    workers::{trading::routes_track_keeper::RoutesTrackKeeper, types::ConductorContext},
 };
 
 #[derive(Debug, Clone)]
@@ -29,7 +26,7 @@ impl TradeProcessor {
     pub async fn process_trade_route(
         &self,
         ship: &mut ship::MyShip,
-        route: ConcreteTradeRoute,
+        route: sql::TradeRoute,
     ) -> anyhow::Result<()> {
         if self.running_routes.is_locked(&route.clone().into()) {
             return Err(anyhow::anyhow!("Route has been locked"));
@@ -54,7 +51,7 @@ impl TradeProcessor {
     pub async fn execute_trade(
         &self,
         ship: &mut ship::MyShip,
-        route: &ConcreteTradeRoute,
+        route: &sql::TradeRoute,
         route_id: i32,
     ) -> anyhow::Result<()> {
         self.execute_purchase(ship, &route, route_id).await?;
@@ -63,19 +60,23 @@ impl TradeProcessor {
         Ok(())
     }
 
-    async fn record_trade_start(
-        &self,
-        route: &ConcreteTradeRoute,
-    ) -> anyhow::Result<sql::TradeRoute> {
-        let sql_route: sql::TradeRoute = route.clone().into();
-        let id = sql::TradeRoute::insert_new(&self.context.database_pool, &sql_route).await?;
-        Ok(sql::TradeRoute { id, ..sql_route })
+    async fn record_trade_start(&self, route: &sql::TradeRoute) -> anyhow::Result<sql::TradeRoute> {
+        if route.id == 0 {
+            let id = sql::TradeRoute::insert_new(&self.context.database_pool, route).await?;
+            Ok(sql::TradeRoute {
+                id,
+                ..route.clone()
+            })
+        } else {
+            sql::TradeRoute::insert(&self.context.database_pool, route).await?;
+            Ok(route.clone())
+        }
     }
 
     async fn execute_purchase(
         &self,
         ship: &mut ship::MyShip,
-        route: &ConcreteTradeRoute,
+        route: &sql::TradeRoute,
         trade_id: i32,
     ) -> anyhow::Result<()> {
         if !ship.cargo.has(&route.symbol) {
@@ -87,7 +88,7 @@ impl TradeProcessor {
                 .clone();
 
             ship.nav_to(
-                &route.purchase_wp_symbol,
+                &route.purchase_waypoint,
                 true,
                 &waypoints,
                 &self.context.api,
@@ -101,7 +102,7 @@ impl TradeProcessor {
             ship.purchase_cargo(
                 &self.context.api,
                 route.symbol,
-                route.trip_units,
+                route.trade_volume,
                 &self.context.database_pool,
                 sql::TransactionReason::TradeRoute(trade_id),
             )
@@ -113,7 +114,7 @@ impl TradeProcessor {
     async fn execute_sale(
         &self,
         ship: &mut ship::MyShip,
-        route: &ConcreteTradeRoute,
+        route: &sql::TradeRoute,
         trade_id: i32,
     ) -> anyhow::Result<()> {
         let waypoints = self
@@ -124,7 +125,7 @@ impl TradeProcessor {
             .clone();
 
         ship.nav_to(
-            &route.sell_wp_symbol,
+            &route.sell_waypoint,
             true,
             &waypoints,
             &self.context.api,

@@ -42,6 +42,12 @@ impl TradingFleet {
     async fn run_trade_worker(&self) -> anyhow::Result<()> {
         info!("Starting trading workers");
 
+        if !CONFIG.trading.active {
+            info!("trading workers not active, exiting");
+
+            return Ok(());
+        }
+
         tokio::time::sleep(Duration::from_millis(CONFIG.trading.start_sleep_duration)).await;
 
         let ships = self.get_trading_ships();
@@ -77,15 +83,12 @@ impl TradingFleet {
     async fn run_trade_ship_worker(&self, ship_symbol: String) -> anyhow::Result<()> {
         let mut ship = self.context.my_ships.get_mut(&ship_symbol).unwrap();
 
-        if ship.cargo.units > 0 {
-            debug!("Starting cargo trade for {}", ship_symbol);
-            self.finish_cargo_trade(&mut ship).await?;
-        } else {
-            tokio::time::sleep(std::time::Duration::from_millis(
-                1000 + rand::random::<u64>() % 1000,
-            ))
-            .await;
-        }
+        debug!("Starting trade for {}", ship_symbol);
+        self.finish_trade_trade(&mut ship).await?;
+        tokio::time::sleep(std::time::Duration::from_millis(
+            1000 + rand::random::<u64>() % 1000,
+        ))
+        .await;
 
         for _ in 0..CONFIG.trading.trade_cycle {
             let route = self
@@ -93,14 +96,25 @@ impl TradingFleet {
                 .get_best_route(&ship, &self.running_routes)
                 .await?;
             self.trade_executor
-                .process_trade_route(&mut ship, route)
+                .process_trade_route(&mut ship, route.into())
                 .await?;
         }
 
         Ok(())
     }
 
-    async fn finish_cargo_trade(&self, ship: &mut ship::MyShip) -> anyhow::Result<()> {
+    async fn finish_trade_trade(&self, ship: &mut ship::MyShip) -> anyhow::Result<()> {
+        let unfinished_trades =
+            sql::TradeRoute::get_unfinished(&self.context.database_pool).await?;
+
+        for trade_route in unfinished_trades {
+            if (trade_route.ship_symbol == ship.symbol) && (trade_route.finished == false) {
+                self.trade_executor
+                    .process_trade_route(ship, trade_route)
+                    .await?;
+            }
+        }
+
         for (symbol, _) in ship.cargo.inventory.clone() {
             let trade_goods = sql::MarketTradeGood::get_last(&self.context.database_pool).await?;
             let mut routes = self
@@ -118,7 +132,7 @@ impl TradingFleet {
                     .calc_concrete_trade_route(ship, trade_route.clone());
                 if ship.cargo.has(&symbol) {
                     self.trade_executor
-                        .process_trade_route(ship, concrete)
+                        .process_trade_route(ship, concrete.into())
                         .await?;
                 }
             }

@@ -143,6 +143,20 @@ impl Default for TradeRoute {
     }
 }
 
+impl std::fmt::Display for TradeRoute {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{} {}: {} -> {} {}",
+            self.ship_symbol,
+            self.symbol,
+            self.purchase_waypoint,
+            self.sell_waypoint,
+            self.trade_volume * self.predicted_sell_price
+        )
+    }
+}
+
 pub trait DatabaseConnector<T> {
     /// Insert a new item into the database, or update it if it already exists.
     async fn insert(database_pool: &sqlx::PgPool, item: &T) -> sqlx::Result<()>;

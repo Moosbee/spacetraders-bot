@@ -3,7 +3,7 @@ use std::time::Duration;
 use log::info;
 use tokio::time::sleep;
 
-use crate::ship;
+use crate::{config::CONFIG, ship};
 
 pub struct ConstructionFleet {
     context: super::types::ConductorContext,
@@ -17,6 +17,18 @@ impl ConstructionFleet {
 
     async fn run_construction_worker(&self) -> anyhow::Result<()> {
         info!("Starting construction workers");
+
+        if !CONFIG.construction.active {
+            info!("construction workers not active, exiting");
+
+            return Ok(());
+        }
+
+        tokio::time::sleep(Duration::from_millis(
+            CONFIG.construction.start_sleep_duration,
+        ))
+        .await;
+
         sleep(Duration::from_secs(1)).await;
 
         let _ships = self.get_construction_ships();
