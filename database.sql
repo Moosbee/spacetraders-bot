@@ -292,6 +292,7 @@ CREATE TABLE
     purchase_waypoint character varying COLLATE pg_catalog."default" NOT NULL,
     sell_waypoint character varying COLLATE pg_catalog."default" NOT NULL,
     finished boolean NOT NULL DEFAULT false,
+    trade_volume integer NOT NULL DEFAULT 1,
     predicted_purchase_price integer NOT NULL,
     predicted_sell_price integer NOT NULL,
     created_at timestamp without time zone NOT NULL DEFAULT now (),
@@ -320,3 +321,40 @@ group by
   contract.id
 order by
   contract.deadline_to_accept DESC;
+
+SELECT
+  id,
+  symbol,
+  trade_route.ship_symbol,
+  purchase_waypoint,
+  sell_waypoint,
+  finished,
+  predicted_purchase_price,
+  predicted_sell_price,
+  created_at,
+  sum(market_transaction.total_price),
+  sum(
+    CASE
+      WHEN market_transaction.type = 'PURCHASE' THEN market_transaction.total_price
+      ELSE 0
+    END
+  ) as "expenses",
+  sum(
+    CASE
+      WHEN market_transaction.type = 'PURCHASE' THEN 0
+      ELSE market_transaction.total_price
+    END
+  ) as "income",
+  sum(
+    CASE
+      WHEN market_transaction.type = 'PURCHASE' THEN (market_transaction.total_price * -1)
+      ELSE market_transaction.total_price
+    END
+  ) as "profit"
+FROM
+  public.trade_route
+  join public.market_transaction ON market_transaction.trade_route = trade_route.id
+group by
+  id
+ORDER BY
+  id ASC;

@@ -4,10 +4,10 @@ use std::{
 };
 
 use log::{debug, info};
-use space_traders_client::models::{self, waypoint, Ship};
+use space_traders_client::models;
 
 use crate::{
-    ship::{self, nav_models::Cache, MyShip},
+    ship::{self, nav_models::Cache},
     sql::{self, DatabaseConnector},
     workers::{
         trading::t_types::ConcreteTradeRoute,
@@ -19,6 +19,7 @@ use super::{routes_track_keeper::RoutesTrackKeeper, t_types::PossibleTradeRoute}
 
 const FUEL_COST: i32 = 72;
 const PURCHASE_MULTIPLIER: f32 = 2.0;
+const TRADE_CYCLE: u32 = 10;
 
 const BLACKLIST: [models::TradeSymbol; 2] = [
     models::TradeSymbol::AdvancedCircuitry,
@@ -53,43 +54,6 @@ impl TradingFleet {
             .map(|(symbol, _)| symbol.clone())
             .collect::<Vec<_>>();
 
-        let trade_goods: Vec<sql::MarketTradeGood> =
-            sql::MarketTradeGood::get_last(&self.context.database_pool).await?;
-        let routes = TradingFleet::calc_possible_trade_routes(trade_goods)
-            .into_iter()
-            .filter(|route| !BLACKLIST.contains(&route.symbol))
-            .collect::<Vec<_>>();
-        // routes.sort();
-        // for route in routes {
-        //     info!("Route: {}", route);
-        // }
-
-        info!("Possible routes: {}", routes.len());
-
-        let mut concrete_routes: Vec<ConcreteTradeRoute> = routes
-            .iter()
-            // .filter(|route| route.profit > 0)
-            .flat_map(|route| {
-                ships
-                    .iter()
-                    .map(|ship| {
-                        let mut this_cache = self.cache.write().unwrap();
-                        let ship = self.context.my_ships.get(ship).unwrap();
-
-                        self.calc_concrete_trade_route(&*ship, route.clone(), &mut *this_cache)
-                    })
-                    .collect::<Vec<ConcreteTradeRoute>>()
-            })
-            .collect();
-
-        concrete_routes.sort_by(|a, b| a.partial_cmp(b).unwrap());
-
-        info!("Concrete routes: {}", concrete_routes.len());
-
-        for route in concrete_routes {
-            info!("Route: {}", route);
-        }
-
         let mut handles = Vec::new();
 
         for ship in ships {
@@ -100,8 +64,17 @@ impl TradingFleet {
 
         info!("Waiting for trading workers to finish");
 
+        let mut results = vec![];
+
         for handle in handles {
-            let _ = handle.await.unwrap().unwrap();
+            let res = handle.await.unwrap();
+            results.push(res);
+        }
+
+        for result in results {
+            if let Err(e) = result {
+                info!("Error: {}", e);
+            }
         }
 
         info!("Trading workers done");
@@ -118,10 +91,47 @@ impl TradingFleet {
             ))
             .await;
         } else {
+            debug!("Starting cargo trade for {}", ship_symbol);
             self.finish_cargo_trade(&mut ship).await?;
         }
 
+        for _ in 0..TRADE_CYCLE {
+            let route = self.get_new_best_route(&ship).await?;
+
+            self.process_trade_route(&mut ship, route).await?;
+        }
+
         Ok(())
+    }
+
+    async fn get_new_best_route(&self, ship: &ship::MyShip) -> anyhow::Result<ConcreteTradeRoute> {
+        debug!("Getting new best route");
+        let trade_goods: Vec<sql::MarketTradeGood> =
+            sql::MarketTradeGood::get_last(&self.context.database_pool).await?;
+        let routes = TradingFleet::calc_possible_trade_routes(trade_goods)
+            .into_iter()
+            .filter(|route| !BLACKLIST.contains(&route.symbol) && route.profit > 0)
+            .map(|route| {
+                self.calc_concrete_trade_route(ship, route, &mut self.cache.write().unwrap())
+            })
+            .filter(|route| route.profit > 0)
+            .collect::<Vec<_>>();
+
+        debug!("Routes: {}", routes.len());
+
+        let route = routes
+            .iter()
+            .filter(|route| {
+                let min_route = *route;
+                let min_route = min_route.clone().into();
+                !self.running_routes.is_locked(&min_route)
+            })
+            .max_by(|a, b| a.partial_cmp(b).unwrap())
+            .ok_or_else(|| anyhow::anyhow!("No routes found"))?;
+
+        debug!("Route: {}", route);
+
+        Ok(route.clone())
     }
 
     async fn finish_cargo_trade(&self, ship: &mut ship::MyShip) -> anyhow::Result<()> {
@@ -159,7 +169,7 @@ impl TradingFleet {
             .running_routes
             .is_locked(&concrete_route.clone().into())
         {
-            return Err(anyhow::anyhow!("Route is locked"));
+            return Err(anyhow::anyhow!("Route has been locked"));
         }
 
         self.running_routes.lock(&concrete_route.clone().into())?;
@@ -168,7 +178,9 @@ impl TradingFleet {
 
         let sql_route: sql::TradeRoute = concrete_route.clone().into();
 
-        let id = sql::TradeRoute::insert_id(&self.context.database_pool, &sql_route).await?;
+        let id = sql::TradeRoute::insert_new(&self.context.database_pool, &sql_route).await?;
+
+        let sql_route = sql::TradeRoute { id, ..sql_route };
 
         let waypoints = {
             self.context
@@ -222,6 +234,8 @@ impl TradingFleet {
             sql::TransactionReason::TradeRoute(id),
         )
         .await?;
+
+        info!("Completed route: {}", concrete_route);
 
         let fin_route = sql_route.complete();
 
@@ -288,7 +302,7 @@ impl TradingFleet {
         trade_route: PossibleTradeRoute,
         cache: &mut Cache,
     ) -> ConcreteTradeRoute {
-        info!("Calculating trade route: {}", trade_route);
+        debug!("Calculating trade route: {}", trade_route);
         let waypoints = &self
             .context
             .all_waypoints
@@ -364,3 +378,40 @@ impl Conductor for TradingFleet {
         "TradingFleet".to_string()
     }
 }
+
+// let trade_goods: Vec<sql::MarketTradeGood> =
+//     sql::MarketTradeGood::get_last(&self.context.database_pool).await?;
+// let routes = TradingFleet::calc_possible_trade_routes(trade_goods)
+//     .into_iter()
+//     .filter(|route| !BLACKLIST.contains(&route.symbol))
+//     .collect::<Vec<_>>();
+// // routes.sort();
+// // for route in routes {
+// //     info!("Route: {}", route);
+// // }
+
+// info!("Possible routes: {}", routes.len());
+
+// let mut concrete_routes: Vec<ConcreteTradeRoute> = routes
+//     .iter()
+//     // .filter(|route| route.profit > 0)
+//     .flat_map(|route| {
+//         ships
+//             .iter()
+//             .map(|ship| {
+//                 let mut this_cache = self.cache.write().unwrap();
+//                 let ship = self.context.my_ships.get(ship).unwrap();
+
+//                 self.calc_concrete_trade_route(&*ship, route.clone(), &mut *this_cache)
+//             })
+//             .collect::<Vec<ConcreteTradeRoute>>()
+//     })
+//     .collect();
+
+// concrete_routes.sort_by(|a, b| a.partial_cmp(b).unwrap());
+
+// info!("Concrete routes: {}", concrete_routes.len());
+
+// for route in concrete_routes {
+//     info!("Route: {}", route);
+// }

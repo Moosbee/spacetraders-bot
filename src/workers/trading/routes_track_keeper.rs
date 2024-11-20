@@ -13,13 +13,13 @@ impl RoutesTrackKeeper {
         let erg = self
             .routes
             .insert((route.symbol, route.purchase_wp_symbol.clone(), false));
-        if erg {
+        if !erg {
             return Err(anyhow::anyhow!("Route is locked"));
         }
         let erg = self
             .routes
             .insert((route.symbol, route.sell_wp_symbol.clone(), true));
-        if erg {
+        if !erg {
             return Err(anyhow::anyhow!("Route is locked"));
         }
         Ok(())

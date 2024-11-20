@@ -6,16 +6,18 @@ impl DatabaseConnector<TradeRoute> for TradeRoute {
     async fn insert(database_pool: &sqlx::PgPool, item: &TradeRoute) -> sqlx::Result<()> {
         sqlx::query!(
             r#"
-            insert into trade_route (symbol, ship_symbol, purchase_waypoint, sell_waypoint, finished, predicted_purchase_price, predicted_sell_price)
-            values ($1, $2, $3, $4, $5, $6, $7)
-            on conflict (symbol, ship_symbol, purchase_waypoint, sell_waypoint, predicted_purchase_price, predicted_sell_price) do update
+            insert into trade_route (id, symbol, ship_symbol, purchase_waypoint, sell_waypoint, finished, trade_volume, predicted_purchase_price, predicted_sell_price)
+            values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+            on conflict (id) do update
             set finished = EXCLUDED.finished
             "#,
+            item.id,
             item.symbol as models::TradeSymbol,
             item.ship_symbol,
             item.purchase_waypoint,
             item.sell_waypoint,
             item.finished,
+            item.trade_volume,
             item.predicted_purchase_price,
             item.predicted_sell_price
         ).execute(database_pool).await?;
@@ -29,13 +31,13 @@ impl DatabaseConnector<TradeRoute> for TradeRoute {
     ) -> sqlx::Result<()> {
         let (
             ((symbol_s, ship_symbol_s), (purchase_waypoint_s, sell_waypoint_s)),
-            ((finished_s, predicted_purchase_price_s), (predicted_sell_price_s, ())),
+            ((finished_and_trade_volume_s, predicted_purchase_price_s), (predicted_sell_price_s, id_s)),
         ): (
             (
                 (Vec<models::TradeSymbol>, Vec<String>),
                 (Vec<String>, Vec<String>),
             ),
-            ((Vec<bool>, Vec<i32>), (Vec<i32>, ())),
+            ((Vec<(bool, i32)>, Vec<i32>), (Vec<i32>, Vec<i32>)),
         ) = items
             .iter()
             .map(|t| {
@@ -45,48 +47,56 @@ impl DatabaseConnector<TradeRoute> for TradeRoute {
                         (t.purchase_waypoint.clone(), t.sell_waypoint.clone()),
                     ),
                     (
-                        (t.finished, t.predicted_purchase_price),
-                        (t.predicted_sell_price, ()),
+                        ((t.finished, t.trade_volume), t.predicted_purchase_price),
+                        (t.predicted_sell_price, t.id),
                     ),
                 )
             })
             .map(
                 |f: (
                     ((models::TradeSymbol, String), (String, String)),
-                    ((bool, i32), (i32, ())),
+                    (((bool, i32), i32), (i32, i32)),
                 )| f,
             )
             .unzip();
         // .map(|f| f)
 
+        let (finished_s, trade_volume_s): (Vec<bool>, Vec<i32>) = finished_and_trade_volume_s.into_iter().unzip();
+
         sqlx::query!(
             r#"
             insert into trade_route (
+              id,
               symbol,
               ship_symbol,
               purchase_waypoint,
               sell_waypoint,
               finished,
+              trade_volume,
               predicted_purchase_price,
               predicted_sell_price
             )
             SELECT * FROM UNNEST(
-              $1::trade_symbol[],
-              $2::character varying[],
+              $1::integer[],
+              $2::trade_symbol[],
               $3::character varying[],
               $4::character varying[],
-              $5::boolean[],
-              $6::integer[],
-              $7::integer[]
+              $5::character varying[],
+              $6::boolean[],
+              $7::integer[],
+              $8::integer[],
+              $9::integer[]
             )
-            on conflict (symbol, ship_symbol, purchase_waypoint, sell_waypoint, predicted_purchase_price, predicted_sell_price) do update
+            on conflict (id) do update
             set finished = EXCLUDED.finished
             "#,
+            &id_s,
             &symbol_s as &[models::TradeSymbol],
             &ship_symbol_s,
             &purchase_waypoint_s,
             &sell_waypoint_s,
             &finished_s,
+            &trade_volume_s,
             &predicted_purchase_price_s,
             &predicted_sell_price_s
         )
@@ -107,6 +117,7 @@ impl DatabaseConnector<TradeRoute> for TradeRoute {
                   purchase_waypoint,
                   sell_waypoint,
                   finished,
+                  trade_volume,
                   predicted_purchase_price,
                   predicted_sell_price,
                   created_at
@@ -119,15 +130,15 @@ impl DatabaseConnector<TradeRoute> for TradeRoute {
 }
 
 impl TradeRoute {
-    pub async fn insert_id(database_pool: &sqlx::PgPool, item: &TradeRoute) -> sqlx::Result<i32> {
+    pub async fn insert_new(database_pool: &sqlx::PgPool, item: &TradeRoute) -> sqlx::Result<i32> {
       struct Erg {
         id:i32
       }
               let erg= sqlx::query_as!(
             Erg,          
             r#"
-            insert into trade_route (symbol, ship_symbol, purchase_waypoint, sell_waypoint, finished, predicted_purchase_price, predicted_sell_price)
-            values ($1, $2, $3, $4, $5, $6, $7)
+            insert into trade_route (symbol, ship_symbol, purchase_waypoint, sell_waypoint, finished,trade_volume, predicted_purchase_price, predicted_sell_price)
+            values ($1, $2, $3, $4, $5, $6, $7, $8)
             RETURNING id
             "#,
             item.symbol as models::TradeSymbol,
@@ -135,6 +146,7 @@ impl TradeRoute {
             item.purchase_waypoint,
             item.sell_waypoint,
             item.finished,
+            item.trade_volume,
             item.predicted_purchase_price,
             item.predicted_sell_price
         ).fetch_all(database_pool).await?;

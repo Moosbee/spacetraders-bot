@@ -10,7 +10,7 @@ use crate::{
     IsMarketplace,
 };
 
-const MAX_SCRAPS: u32 = 1;
+const MAX_SCRAPS: u32 = 100;
 const SCRAP_INTERVAL: u64 = 10;
 
 pub struct MarketScraper {
@@ -175,7 +175,8 @@ pub async fn update_market(market: models::Market, database_pool: &sqlx::PgPool)
         .unwrap();
     }
 
-    let market_trades = [market
+    let market_trades = [
+        market
             .exchange
             .iter()
             .map(|e| sql::MarketTrade {
@@ -204,13 +205,13 @@ pub async fn update_market(market: models::Market, database_pool: &sqlx::PgPool)
                 r#type: models::market_trade_good::Type::Import,
                 ..Default::default()
             })
-            .collect::<Vec<_>>()]
+            .collect::<Vec<_>>(),
+    ]
     .iter()
-    .flatten().cloned()
+    .flatten()
+    .cloned()
     .collect();
     sql::MarketTrade::insert_bulk(database_pool, &market_trades)
         .await
         .unwrap();
-
-    
 }

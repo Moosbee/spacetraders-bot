@@ -109,6 +109,7 @@ impl From<ConcreteTradeRoute> for sql::TradeRoute {
             ship_symbol: value.ship_symbol.clone(),
             predicted_purchase_price: value.purchase_price,
             predicted_sell_price: value.sell_price,
+            trade_volume: value.trip_units,
             purchase_waypoint: value.purchase_wp_symbol.clone(),
             sell_waypoint: value.sell_wp_symbol.clone(),
             ..TradeRoute::default()
@@ -133,7 +134,7 @@ impl fmt::Display for ConcreteTradeRoute {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
-            "{} {}: {} -> {} {}",
+            "{} {}: {} -> {} {}/h",
             self.ship_symbol,
             self.symbol,
             self.purchase_wp_symbol,
