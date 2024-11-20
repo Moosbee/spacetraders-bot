@@ -2,6 +2,46 @@ use std::fmt;
 
 use crate::sql::{self, TradeRoute};
 
+pub mod constants {
+    use space_traders_client::models;
+
+    pub const FUEL_COST: i32 = 72;
+    pub const PURCHASE_MULTIPLIER: f32 = 2.0;
+    pub const TRADE_CYCLE: u32 = 1;
+
+    pub const BLACKLIST: [models::TradeSymbol; 2] = [
+        models::TradeSymbol::AdvancedCircuitry,
+        models::TradeSymbol::FabMats,
+    ];
+}
+
+#[derive(Debug, Clone)]
+pub struct TripStats {
+    pub trip_time: chrono::TimeDelta,
+    pub trip_fuel_cost: i32,
+    pub trip_fuel_units: i32,
+    pub trip_units: i32,
+    pub trip_total_cost: i32,
+    pub trip_total_profit: i32,
+    pub trips_per_hour: f32,
+    pub profit_per_hour: i32,
+}
+
+impl Default for TripStats {
+    fn default() -> Self {
+        Self {
+            trip_time: chrono::TimeDelta::zero(),
+            trip_fuel_cost: 0,
+            trip_fuel_units: 0,
+            trip_units: 0,
+            trip_total_cost: 0,
+            trip_total_profit: 0,
+            trips_per_hour: 0.0,
+            profit_per_hour: 0,
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MinTradeRoute {
     pub symbol: space_traders_client::models::TradeSymbol,
