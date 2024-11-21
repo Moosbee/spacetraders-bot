@@ -119,11 +119,36 @@ impl RouteCalculator {
             &mut self.cache.write().unwrap(),
         );
 
+        let route_to = ship.find_route_cached(
+            &waypoints,
+            ship.nav.waypoint_symbol.clone(),
+            trade_route.purchase_wp_symbol.clone(),
+            &ship::nav_models::NavMode::BurnAndCruiseAndDrift,
+            true,
+            &mut self.cache.write().unwrap(),
+        );
+
         let (_, _, total_fuel_cost, total_travel_time) =
             ship::stats::calc_route_stats(&waypoints, &route.unwrap(), ship.engine_speed);
 
-        let trip_stats =
-            self.calculate_trip_stats(ship, &trade_route, total_fuel_cost, total_travel_time);
+        let (_, _, total_fuel_cost_to, total_travel_time_to) =
+            ship::stats::calc_route_stats(&waypoints, &route_to.unwrap(), ship.engine_speed);
+
+        let trip_stats = self.calculate_reoccurring_trip_stats(
+            ship,
+            &trade_route,
+            total_fuel_cost,
+            total_travel_time,
+        );
+
+        let trip_stats = self.calculate_trip_stats(
+            ship,
+            &trade_route,
+            total_fuel_cost,
+            total_travel_time,
+            total_fuel_cost_to,
+            total_travel_time_to,
+        );
 
         ConcreteTradeRoute {
             symbol: trade_route.symbol,
@@ -148,7 +173,7 @@ impl RouteCalculator {
         }
     }
 
-    fn calculate_trip_stats(
+    fn calculate_reoccurring_trip_stats(
         &self,
         ship: &ship::MyShip,
         trade_route: &PossibleTradeRoute,
@@ -166,6 +191,44 @@ impl RouteCalculator {
         let trip_total_profit = trade_route.sell_price * trip_volume - trip_total_cost;
 
         let trip_per_hour = (total_travel_time.num_milliseconds() * 2) as f64
+            / (chrono::TimeDelta::hours(1).num_milliseconds()) as f64;
+
+        let profit_per_hour = trip_total_profit as f64 / trip_per_hour;
+
+        TripStats {
+            trip_time: total_travel_time * 2,
+            trip_fuel_cost,
+            trip_fuel_units: total_fuel_cost * 2,
+            trip_units: trip_volume,
+            trip_total_cost,
+            trip_total_profit,
+            trips_per_hour: trip_per_hour as f32,
+            profit_per_hour: profit_per_hour as i32,
+        }
+    }
+
+    fn calculate_trip_stats(
+        &self,
+        ship: &ship::MyShip,
+        trade_route: &PossibleTradeRoute,
+        total_fuel_cost: i32,
+        total_travel_time: chrono::TimeDelta,
+        total_fuel_cost_to: i32,
+        total_travel_time_to: chrono::TimeDelta,
+    ) -> TripStats {
+        let trip_fuel_cost =
+            (total_fuel_cost * total_fuel_cost_to) / 100 * CONFIG.trading.fuel_cost;
+
+        let trip_volume = ship
+            .cargo
+            .capacity
+            .min((trade_route.min_trade_volume as f32 * CONFIG.trading.purchase_multiplier) as i32);
+
+        let trip_total_cost = trade_route.purchase_price * trip_volume + trip_fuel_cost;
+        let trip_total_profit = trade_route.sell_price * trip_volume - trip_total_cost;
+
+        let trip_per_hour = (total_travel_time.num_milliseconds()
+            * total_travel_time_to.num_milliseconds()) as f64
             / (chrono::TimeDelta::hours(1).num_milliseconds()) as f64;
 
         let profit_per_hour = trip_total_profit as f64 / trip_per_hour;

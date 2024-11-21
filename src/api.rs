@@ -3,7 +3,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use governor::{Quota, RateLimiter};
-use log::{debug, info};
+use log::debug;
 use space_traders_client::apis::agents_api::{GetAgentError, GetAgentsError, GetMyAgentError};
 use space_traders_client::apis::configuration::Configuration;
 use space_traders_client::apis::contracts_api::{
@@ -210,7 +210,7 @@ impl Api {
             agents.extend(page.data);
             let total = page.meta.total;
 
-            info!(
+            debug!(
                 "limit: {}, page {} of {}, agents: {} of {}",
                 limit,
                 current_page,

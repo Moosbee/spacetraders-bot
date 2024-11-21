@@ -72,7 +72,6 @@ impl MarketScraper {
         let all_agents = agents.into_iter().map(sql::Agent::from).collect::<Vec<_>>();
 
         for agent in &all_agents {
-            info!("Agent: {}", agent.symbol);
             sql::Agent::insert(&self.context.database_pool, &agent).await?;
         }
 
