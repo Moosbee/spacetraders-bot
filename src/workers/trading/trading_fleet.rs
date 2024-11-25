@@ -4,6 +4,7 @@ use std::{
 };
 
 use log::{debug, info};
+use tokio_util::sync::CancellationToken;
 
 use crate::{
     config::CONFIG,
@@ -24,6 +25,7 @@ pub struct TradingFleet {
     route_calculator: RouteCalculator,
     trade_executor: TradeProcessor,
     running_routes: Arc<RoutesTrackKeeper>,
+    please_stop: CancellationToken,
 }
 
 impl TradingFleet {
@@ -36,7 +38,15 @@ impl TradingFleet {
             trade_executor: TradeProcessor::new(context.clone(), running_routes.clone()),
             context,
             running_routes,
+            please_stop: CancellationToken::new(),
         })
+    }
+
+    fn with_cancel(&self, _please_stop: CancellationToken) -> TradingFleet {
+        TradingFleet {
+            please_stop: _please_stop,
+            ..self.clone()
+        }
     }
 
     async fn run_trade_worker(&self) -> anyhow::Result<()> {
@@ -54,15 +64,16 @@ impl TradingFleet {
         let mut handles = Vec::new();
 
         for ship in ships {
-            let fleet = self.clone();
+            let child_stopper = self.please_stop.child_token();
+            let fleet = self.with_cancel(child_stopper.clone());
             let handle = tokio::spawn(async move { fleet.run_trade_ship_worker(ship).await });
-            handles.push(handle);
+            handles.push((handle, child_stopper));
         }
 
         info!("Waiting for trading workers to finish");
 
         for handle in handles {
-            if let Err(e) = handle.await.unwrap() {
+            if let Err(e) = handle.0.await.unwrap() {
                 info!("Error: {}", e);
             }
         }
@@ -91,6 +102,9 @@ impl TradingFleet {
         .await;
 
         for _ in 0..CONFIG.trading.trade_cycle {
+            if self.please_stop.is_cancelled() {
+                break;
+            }
             let route = self
                 .route_calculator
                 .get_best_route(&ship, &self.running_routes)
@@ -151,5 +165,9 @@ impl Conductor for TradingFleet {
 
     fn get_name(&self) -> String {
         "TradingFleet".to_string()
+    }
+
+    fn get_cancel_token(&self) -> CancellationToken {
+        self.please_stop.clone()
     }
 }

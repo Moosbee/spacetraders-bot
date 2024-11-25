@@ -2,6 +2,7 @@ use std::time::Duration;
 
 use log::info;
 use tokio::time::sleep;
+use tokio_util::sync::CancellationToken;
 
 use crate::{config::CONFIG, ship};
 
@@ -57,5 +58,9 @@ impl super::types::Conductor for ConstructionFleet {
 
     fn get_name(&self) -> String {
         "ConstructionFleet".to_string()
+    }
+
+    fn get_cancel_token(&self) -> CancellationToken {
+        CancellationToken::new()
     }
 }

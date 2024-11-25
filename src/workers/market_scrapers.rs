@@ -4,6 +4,7 @@ use anyhow::Ok;
 use log::{debug, info};
 use space_traders_client::models;
 use tokio::time::sleep;
+use tokio_util::sync::CancellationToken;
 
 use crate::{
     config::CONFIG,
@@ -11,18 +12,65 @@ use crate::{
     IsMarketplace,
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct MarketScraper {
     context: super::types::ConductorContext,
+    stopper: CancellationToken,
 }
 
 impl MarketScraper {
     #[allow(dead_code)]
     pub fn new_box(context: super::types::ConductorContext) -> Box<Self> {
-        Box::new(MarketScraper { context })
+        Box::new(MarketScraper {
+            context,
+            stopper: CancellationToken::new(),
+        })
     }
 
-    async fn run_market_scraper(&self) -> anyhow::Result<()> {
+    async fn run_scappers(&self) -> anyhow::Result<()> {
+        info!("Starting scrapping workers");
+
+        if !CONFIG.market.active && !CONFIG.market.agents {
+            info!("Market scrapping not active, exiting");
+
+            return Ok(());
+        }
+
+        tokio::time::sleep(Duration::from_millis(CONFIG.market.start_sleep_duration)).await;
+
+        let agent_token = self.stopper.child_token();
+
+        let agent_handle = if CONFIG.market.agents {
+            let mut my_agent = MarketScraper {
+                context: self.context.clone(),
+                stopper: agent_token,
+            };
+            tokio::spawn(async move { my_agent.run_agent_scraper().await })
+        } else {
+            tokio::spawn(async move { Ok(()) })
+        };
+
+        let market_token = self.stopper.child_token();
+
+        let market_handle = if CONFIG.market.active {
+            let mut my_market = MarketScraper {
+                context: self.context.clone(),
+                stopper: market_token,
+            };
+            tokio::spawn(async move { my_market.run_market_scraper().await })
+        } else {
+            tokio::spawn(async move { Ok(()) })
+        };
+
+        let agent_res = agent_handle.await?;
+        let market_res = market_handle.await?;
+
+        info!("Scrapping workers done ({:?}, {:?})", agent_res, market_res);
+
+        Ok(())
+    }
+
+    async fn run_market_scraper(&mut self) -> anyhow::Result<()> {
         info!("Starting market scrapping workers");
 
         if !CONFIG.market.active {
@@ -31,18 +79,17 @@ impl MarketScraper {
             return Ok(());
         }
 
-        tokio::time::sleep(Duration::from_millis(CONFIG.market.start_sleep_duration)).await;
-
-        let handle = if CONFIG.market.agents {
-            let my_agent = self.clone();
-            tokio::spawn(async move { my_agent.run_agent_scraper().await })
-        } else {
-            tokio::spawn(async move { Ok(()) })
-        };
-
         for i in 0..CONFIG.market.max_scraps {
             if i != 0 {
-                sleep(Duration::from_millis(CONFIG.market.scrap_interval)).await;
+                let erg = tokio::select! {
+                _ = self.stopper.cancelled() => {
+                  info!("Market scrapping cancelled");
+                  0},
+                _ =  sleep(Duration::from_millis(CONFIG.market.scrap_interval)) => {1},
+                };
+                if erg == 0 {
+                    break;
+                }
             }
 
             let markets = self.get_all_markets().await?;
@@ -51,18 +98,37 @@ impl MarketScraper {
             update_markets(markets, self.context.database_pool.clone()).await;
         }
 
-        handle.await??;
-
         info!("Market scrapping workers done");
 
         Ok(())
     }
 
-    pub async fn run_agent_scraper(&self) -> anyhow::Result<()> {
-        for _i in 0..CONFIG.market.max_agent_scraps {
-            self.update_all_agents().await?;
-            sleep(Duration::from_millis(CONFIG.market.agent_interval)).await;
+    pub async fn run_agent_scraper(&mut self) -> anyhow::Result<()> {
+        info!("Starting agent scrapping workers");
+
+        if !CONFIG.market.active {
+            info!("Agent scrapping not active, exiting");
+
+            return Ok(());
         }
+
+        for i in 0..CONFIG.market.max_agent_scraps {
+            if i != 0 {
+                let erg = tokio::select! {
+                _ = self.stopper.cancelled() => {
+                  info!("Agent scrapping cancelled");
+                  0},
+                _ =  sleep(Duration::from_millis(CONFIG.market.agent_interval)) => {1}
+                };
+                if erg == 0 {
+                    break;
+                }
+            }
+
+            self.update_all_agents().await?;
+        }
+
+        info!("Agent scrapping workers done");
 
         Ok(())
     }
@@ -112,11 +178,15 @@ impl super::types::Conductor for MarketScraper {
     fn run(
         &self,
     ) -> std::pin::Pin<Box<dyn std::future::Future<Output = anyhow::Result<()>> + Send + '_>> {
-        Box::pin(async move { self.run_market_scraper().await })
+        Box::pin(async move { self.run_scappers().await })
     }
 
     fn get_name(&self) -> String {
         "MarketScraper".to_string()
+    }
+
+    fn get_cancel_token(&self) -> CancellationToken {
+        self.stopper.clone()
     }
 }
 

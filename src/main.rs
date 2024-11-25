@@ -170,9 +170,9 @@ async fn main() -> anyhow::Result<()> {
     let conductors: Vec<Box<dyn Conductor>> = vec![
         workers::construction_fleet::ConstructionFleet::new_box(context.clone()),
         workers::contract_fleet::ContractFleet::new_box(context.clone()),
-        workers::market_scrapers::MarketScraper::new_box(context.clone()),
         workers::mining_fleet::MiningFleet::new_box(context.clone()),
         workers::trading::trading_fleet::TradingFleet::new_box(context.clone()),
+        workers::market_scrapers::MarketScraper::new_box(context.clone()),
     ];
 
     let conductor_join_handles = conductors
@@ -180,6 +180,7 @@ async fn main() -> anyhow::Result<()> {
         .map(|c| {
             (
                 c.get_name(),
+                c.get_cancel_token(),
                 tokio::task::spawn(async move { c.run().await }),
             )
         })
@@ -187,7 +188,10 @@ async fn main() -> anyhow::Result<()> {
 
     for handle in conductor_join_handles {
         let name = handle.0;
-        let erg = handle.1.await;
+        if name == "MarketScraper" {
+            handle.1.cancel();
+        }
+        let erg = handle.2.await;
         println!("{}: {:?}", name, erg);
         if let Err(errror) = erg {
             println!("{} error: {} {:?}", name, errror, errror);

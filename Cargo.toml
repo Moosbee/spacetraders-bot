@@ -22,3 +22,4 @@ sqlx = { version = "0.8", features = [ "runtime-tokio", "tls-native-tls", "postg
 priority-queue = "2.1.1"
 rand = "0.8.5"
 lazy_static = "1.5.0"
+tokio-util = "0.7.12"

@@ -8,6 +8,7 @@ use anyhow::{Context, Error, Result};
 use chrono::{DateTime, Utc};
 use log::{debug, info};
 use space_traders_client::models::{self, Contract, ContractDeliverGood, TradeSymbol, Waypoint};
+use tokio_util::sync::CancellationToken;
 
 use crate::{
     api::Api,
@@ -20,12 +21,16 @@ use crate::{
 
 pub struct ContractFleet {
     context: super::types::ConductorContext,
+    please_stop: CancellationToken,
 }
 
 impl ContractFleet {
     #[allow(dead_code)]
     pub fn new_box(context: super::types::ConductorContext) -> Box<Self> {
-        Box::new(ContractFleet { context })
+        Box::new(ContractFleet {
+            context,
+            please_stop: CancellationToken::new(),
+        })
     }
 
     async fn run_contract_workers(&self) -> Result<()> {
@@ -50,6 +55,9 @@ impl ContractFleet {
 
         // Process new contracts
         for _ in 0..CONFIG.contracts.max_contracts {
+            if self.please_stop.is_cancelled() {
+                break;
+            }
             info!("Negotiating new contract");
             let next_contract = self.negotiate_next_contract(&contract_ships).await?;
             self.process_contract(&next_contract, primary_ship).await?;
@@ -404,5 +412,9 @@ impl super::types::Conductor for ContractFleet {
 
     fn get_name(&self) -> String {
         "ContractFleet".to_string()
+    }
+
+    fn get_cancel_token(&self) -> CancellationToken {
+        self.please_stop.clone()
     }
 }

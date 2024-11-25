@@ -1782,6 +1782,7 @@ dependencies = [
  "space_traders_client",
  "sqlx",
  "tokio",
+ "tokio-util",
 ]
 
 [[package]]
