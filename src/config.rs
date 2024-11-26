@@ -1,3 +1,5 @@
+use std::net::SocketAddr;
+
 use lazy_static::lazy_static;
 use serde::Deserialize;
 use space_traders_client::models;
@@ -9,6 +11,7 @@ pub struct Config {
     pub trading: TradingFleet,
     pub construction: ConstructionFleet,
     pub mining: MiningFleet,
+    pub control_server: ControlServer,
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -48,6 +51,13 @@ pub struct ConstructionFleet {
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct MiningFleet {
+    pub start_sleep_duration: u64,
+    pub active: bool,
+}
+
+#[derive(Deserialize, Debug, Clone)]
+pub struct ControlServer {
+    pub socket_address: SocketAddr,
     pub start_sleep_duration: u64,
     pub active: bool,
 }

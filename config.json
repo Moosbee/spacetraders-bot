@@ -1,15 +1,15 @@
 {
   "contracts": {
     "start_sleep_duration": 0,
-    "max_contracts": 2,
+    "max_contracts": 1,
     "active": true
   },
   "market": {
     "start_sleep_duration": 1000,
     "max_scraps": 200,
     "scrap_interval": 100000,
-    "active": true,
-    "agents": true,
+    "active": false,
+    "agents": false,
     "agent_interval": 500000,
     "max_agent_scraps": 200
   },
@@ -22,14 +22,19 @@
       "ADVANCED_CIRCUITRY",
       "FAB_MATS"
     ],
-    "active": true
+    "active": false
   },
   "construction": {
     "start_sleep_duration": 0,
     "active": false
   },
   "mining": {
+    "start_sleep_duration": 1000000,
+    "active": true
+  },
+  "control_server": {
     "start_sleep_duration": 0,
-    "active": false
+    "socket_address": "127.0.0.1:8080",
+    "active": true
   }
 }

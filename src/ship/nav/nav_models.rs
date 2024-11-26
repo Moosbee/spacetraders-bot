@@ -3,17 +3,18 @@ use std::collections::HashMap;
 use chrono::{DateTime, Utc};
 use space_traders_client::models;
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, serde::Serialize, Clone)]
 pub struct NavigationState {
     pub flight_mode: models::ShipNavFlightMode,
     pub status: models::ShipNavStatus,
     pub system_symbol: String,
     pub waypoint_symbol: String,
     pub route: RouteState,
+    #[serde(skip)]
     pub cache: Cache,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, serde::Serialize, Clone)]
 pub struct RouteState {
     pub arrival: DateTime<Utc>,
     pub departure_time: DateTime<Utc>,

@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use space_traders_client::models::{self, ShipRole, TradeSymbol};
 
-#[derive(Debug, Clone, Copy, PartialEq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Default, serde::Serialize)]
 pub enum Role {
     Construction,
     Trader,
@@ -12,7 +12,7 @@ pub enum Role {
     Manuel,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, serde::Serialize, Clone)]
 pub struct MyShip {
     pub role: Role,
     pub registration_role: ShipRole,
@@ -27,14 +27,14 @@ pub struct MyShip {
     pub fuel: FuelState,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, serde::Serialize, Clone)]
 pub struct CargoState {
     pub capacity: i32,
     pub units: i32,
     pub inventory: Vec<(TradeSymbol, i32)>,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, serde::Serialize, Clone)]
 pub struct FuelState {
     pub capacity: i32,
     pub current: i32,

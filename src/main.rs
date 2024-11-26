@@ -7,6 +7,8 @@ mod workers;
 mod config;
 mod tests;
 
+mod control_api;
+
 use std::{collections::HashMap, env, sync::Arc};
 
 use config::CONFIG;
@@ -173,6 +175,7 @@ async fn main() -> anyhow::Result<()> {
         workers::mining_fleet::MiningFleet::new_box(context.clone()),
         workers::trading::trading_fleet::TradingFleet::new_box(context.clone()),
         workers::market_scrapers::MarketScraper::new_box(context.clone()),
+        control_api::server::ControlApiServer::new_box(context.clone()),
     ];
 
     let conductor_join_handles = conductors
@@ -188,7 +191,7 @@ async fn main() -> anyhow::Result<()> {
 
     for handle in conductor_join_handles {
         let name = handle.0;
-        if name == "MarketScraper" {
+        if name == "MarketScraper" || name == "ControlApiServer" {
             handle.1.cancel();
         }
         let erg = handle.2.await;
