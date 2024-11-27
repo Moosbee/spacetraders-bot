@@ -7,7 +7,7 @@ use tokio_util::sync::CancellationToken;
 pub struct ConductorContext {
     pub api: crate::api::Api,
     pub database_pool: sqlx::PgPool,
-    pub ship_roles: HashMap<String, crate::ship::models::Role>,
+    pub ship_roles: HashMap<String, crate::ship::Role>,
     pub my_ships: Arc<DashMap<String, crate::ship::MyShip>>,
     pub all_waypoints:
         Arc<DashMap<String, HashMap<String, space_traders_client::models::Waypoint>>>,

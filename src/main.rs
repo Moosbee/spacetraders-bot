@@ -95,39 +95,39 @@ async fn main() -> anyhow::Result<()> {
     .await
     .unwrap();
 
-    let ship_roles: std::collections::HashMap<String, ship::models::Role> = vec![
-        ("MOOSBEE-1".to_string(), ship::models::Role::Contract),
-        ("MOOSBEE-2".to_string(), ship::models::Role::Scraper),
-        ("MOOSBEE-3".to_string(), ship::models::Role::Trader),
-        ("MOOSBEE-4".to_string(), ship::models::Role::Trader),
-        ("MOOSBEE-5".to_string(), ship::models::Role::Trader),
-        ("MOOSBEE-6".to_string(), ship::models::Role::Trader),
-        ("MOOSBEE-7".to_string(), ship::models::Role::Trader),
-        ("MOOSBEE-8".to_string(), ship::models::Role::Trader),
-        ("MOOSBEE-9".to_string(), ship::models::Role::Scraper),
-        ("MOOSBEE-A".to_string(), ship::models::Role::Scraper),
-        ("MOOSBEE-B".to_string(), ship::models::Role::Scraper),
-        ("MOOSBEE-C".to_string(), ship::models::Role::Scraper),
-        ("MOOSBEE-D".to_string(), ship::models::Role::Scraper),
-        ("MOOSBEE-E".to_string(), ship::models::Role::Scraper),
-        ("MOOSBEE-F".to_string(), ship::models::Role::Scraper),
-        ("MOOSBEE-10".to_string(), ship::models::Role::Scraper),
-        ("MOOSBEE-11".to_string(), ship::models::Role::Scraper),
-        ("MOOSBEE-12".to_string(), ship::models::Role::Scraper),
-        ("MOOSBEE-13".to_string(), ship::models::Role::Scraper),
-        ("MOOSBEE-14".to_string(), ship::models::Role::Scraper),
-        ("MOOSBEE-15".to_string(), ship::models::Role::Scraper),
-        ("MOOSBEE-16".to_string(), ship::models::Role::Scraper),
-        ("MOOSBEE-17".to_string(), ship::models::Role::Scraper),
-        ("MOOSBEE-18".to_string(), ship::models::Role::Scraper),
-        ("MOOSBEE-19".to_string(), ship::models::Role::Scraper),
-        ("MOOSBEE-1A".to_string(), ship::models::Role::Scraper),
-        ("MOOSBEE-1B".to_string(), ship::models::Role::Scraper),
-        ("MOOSBEE-1C".to_string(), ship::models::Role::Scraper),
-        ("MOOSBEE-1D".to_string(), ship::models::Role::Scraper),
-        ("MOOSBEE-1E".to_string(), ship::models::Role::Scraper),
-        ("MOOSBEE-1F".to_string(), ship::models::Role::Scraper),
-        ("MOOSBEE-20".to_string(), ship::models::Role::Scraper),
+    let ship_roles: std::collections::HashMap<String, ship::Role> = vec![
+        ("MOOSBEE-1".to_string(), ship::Role::Contract),
+        ("MOOSBEE-2".to_string(), ship::Role::Scraper),
+        ("MOOSBEE-3".to_string(), ship::Role::Trader),
+        ("MOOSBEE-4".to_string(), ship::Role::Trader),
+        ("MOOSBEE-5".to_string(), ship::Role::Trader),
+        ("MOOSBEE-6".to_string(), ship::Role::Trader),
+        ("MOOSBEE-7".to_string(), ship::Role::Trader),
+        ("MOOSBEE-8".to_string(), ship::Role::Trader),
+        ("MOOSBEE-9".to_string(), ship::Role::Scraper),
+        ("MOOSBEE-A".to_string(), ship::Role::Scraper),
+        ("MOOSBEE-B".to_string(), ship::Role::Scraper),
+        ("MOOSBEE-C".to_string(), ship::Role::Scraper),
+        ("MOOSBEE-D".to_string(), ship::Role::Scraper),
+        ("MOOSBEE-E".to_string(), ship::Role::Scraper),
+        ("MOOSBEE-F".to_string(), ship::Role::Scraper),
+        ("MOOSBEE-10".to_string(), ship::Role::Scraper),
+        ("MOOSBEE-11".to_string(), ship::Role::Scraper),
+        ("MOOSBEE-12".to_string(), ship::Role::Scraper),
+        ("MOOSBEE-13".to_string(), ship::Role::Scraper),
+        ("MOOSBEE-14".to_string(), ship::Role::Scraper),
+        ("MOOSBEE-15".to_string(), ship::Role::Scraper),
+        ("MOOSBEE-16".to_string(), ship::Role::Scraper),
+        ("MOOSBEE-17".to_string(), ship::Role::Scraper),
+        ("MOOSBEE-18".to_string(), ship::Role::Scraper),
+        ("MOOSBEE-19".to_string(), ship::Role::Scraper),
+        ("MOOSBEE-1A".to_string(), ship::Role::Scraper),
+        ("MOOSBEE-1B".to_string(), ship::Role::Scraper),
+        ("MOOSBEE-1C".to_string(), ship::Role::Scraper),
+        ("MOOSBEE-1D".to_string(), ship::Role::Scraper),
+        ("MOOSBEE-1E".to_string(), ship::Role::Scraper),
+        ("MOOSBEE-1F".to_string(), ship::Role::Scraper),
+        ("MOOSBEE-20".to_string(), ship::Role::Scraper),
     ]
     .clone()
     .into_iter()
@@ -138,9 +138,7 @@ async fn main() -> anyhow::Result<()> {
             .iter()
             .map(|s| {
                 let mut shipi = ship::MyShip::from_ship(s.clone());
-                shipi.role = *ship_roles
-                    .get(&s.symbol)
-                    .unwrap_or(&ship::models::Role::Manuel);
+                shipi.role = *ship_roles.get(&s.symbol).unwrap_or(&ship::Role::Manuel);
 
                 (s.symbol.clone(), shipi)
             })

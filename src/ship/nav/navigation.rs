@@ -4,7 +4,7 @@ use log::debug;
 use space_traders_client::{apis, models};
 use std::collections::HashMap;
 
-use crate::{api, ship::models::MyShip, sql::TransactionReason};
+use crate::{api, ship::ship_models::MyShip, sql::TransactionReason};
 
 use super::nav_models::{NavigationState, RouteInstruction};
 

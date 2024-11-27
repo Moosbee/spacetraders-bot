@@ -39,7 +39,7 @@ impl MiningFleet {
         self.context
             .ship_roles
             .iter()
-            .filter(|(_, role)| **role == ship::models::Role::Mining)
+            .filter(|(_, role)| **role == ship::Role::Mining)
             .map(|(symbol, _)| symbol.clone())
             .collect()
     }

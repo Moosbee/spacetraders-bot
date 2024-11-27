@@ -134,21 +134,23 @@ impl RouteCalculator {
         let (_, _, total_fuel_cost_to, total_travel_time_to) =
             ship::stats::calc_route_stats(&waypoints, &route_to.unwrap(), ship.engine_speed);
 
-        let trip_stats = self.calculate_reoccurring_trip_stats(
-            ship,
-            &trade_route,
-            total_fuel_cost,
-            total_travel_time,
-        );
-
-        let trip_stats = self.calculate_trip_stats(
-            ship,
-            &trade_route,
-            total_fuel_cost,
-            total_travel_time,
-            total_fuel_cost_to,
-            total_travel_time_to,
-        );
+        let trip_stats = if true {
+            self.calculate_reoccurring_trip_stats(
+                ship,
+                &trade_route,
+                total_fuel_cost,
+                total_travel_time,
+            )
+        } else {
+            self.calculate_trip_stats(
+                ship,
+                &trade_route,
+                total_fuel_cost,
+                total_travel_time,
+                total_fuel_cost_to,
+                total_travel_time_to,
+            )
+        };
 
         ConcreteTradeRoute {
             symbol: trade_route.symbol,

@@ -221,7 +221,7 @@ impl ContractFleet {
             .context
             .ship_roles
             .iter()
-            .filter(|(_, role)| **role == ship::models::Role::Contract)
+            .filter(|(_, role)| **role == ship::Role::Contract)
             .map(|(symbol, _)| symbol.clone())
             .collect();
 

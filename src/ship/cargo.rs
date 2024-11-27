@@ -5,7 +5,7 @@ use crate::{
     sql::{self, DatabaseConnector},
 };
 
-use super::models::MyShip;
+use super::ship_models::MyShip;
 
 enum Mode {
     Sell,
@@ -198,7 +198,7 @@ impl MyShip {
     }
 }
 
-impl super::models::CargoState {
+impl super::ship_models::CargoState {
     pub fn get_amount(&self, symbol: &space_traders_client::models::TradeSymbol) -> i32 {
         self.inventory
             .iter()

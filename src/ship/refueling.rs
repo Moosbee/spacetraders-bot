@@ -6,8 +6,8 @@ use crate::{
 };
 
 use super::{
-    models::{FuelState, MyShip},
     nav::nav_models::RouteInstruction,
+    ship_models::{FuelState, MyShip},
 };
 
 #[derive(Debug)]
@@ -147,16 +147,15 @@ impl MyShip {
         // Restock fuel cargo if needed
         if requirements.restock_amount > 0 {
             debug!("Marketplace refueling to cargo");
-            self
-                .purchase_cargo(
-                    api,
-                    space_traders_client::models::TradeSymbol::Fuel,
-                    requirements.restock_amount,
-                    database_pool,
-                    reason,
-                )
-                .await
-                .unwrap();
+            self.purchase_cargo(
+                api,
+                space_traders_client::models::TradeSymbol::Fuel,
+                requirements.restock_amount,
+                database_pool,
+                reason,
+            )
+            .await
+            .unwrap();
         }
 
         // Update market data if requested

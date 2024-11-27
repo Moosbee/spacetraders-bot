@@ -86,7 +86,7 @@ impl TradingFleet {
         self.context
             .ship_roles
             .iter()
-            .filter(|(_, role)| **role == ship::models::Role::Trader)
+            .filter(|(_, role)| **role == ship::Role::Trader)
             .map(|(symbol, _)| symbol.clone())
             .collect()
     }

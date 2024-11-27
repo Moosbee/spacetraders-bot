@@ -43,7 +43,7 @@ impl ConstructionFleet {
         self.context
             .ship_roles
             .iter()
-            .filter(|(_, role)| **role == ship::models::Role::Construction)
+            .filter(|(_, role)| **role == ship::Role::Construction)
             .map(|(symbol, _)| symbol.clone())
             .collect()
     }

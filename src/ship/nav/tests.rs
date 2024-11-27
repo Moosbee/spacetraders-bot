@@ -5,7 +5,7 @@ mod tests {
     use space_traders_client::models;
 
     use crate::ship::{
-        models::MyShip,
+        ship_models::MyShip,
         nav::{
             nav_models::{NavMode, RouteConnection},
             stats::get_travel_stats,

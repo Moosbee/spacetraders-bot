@@ -1,8 +1,9 @@
 mod cargo;
 mod nav;
 mod refueling;
+mod ship_models;
 
-pub mod models;
-pub use models::MyShip;
 pub use nav::nav_models;
 pub use nav::stats;
+pub use ship_models::MyShip;
+pub use ship_models::Role;
