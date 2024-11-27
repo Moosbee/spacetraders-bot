@@ -25,3 +25,4 @@ lazy_static = "1.5.0"
 tokio-util = "0.7.12"
 warp = "0.3.7"
 futures = "0.3.31"
+tokio-stream = {version="0.1.16", features=["sync"]}

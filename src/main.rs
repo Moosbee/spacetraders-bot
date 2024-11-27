@@ -133,14 +133,17 @@ async fn main() -> anyhow::Result<()> {
     .into_iter()
     .collect();
 
+    let (ship_tx, ship_rx) = tokio::sync::mpsc::channel(100);
+
     let my_ships: Arc<dashmap::DashMap<String, ship::MyShip>> = Arc::new(
         ships
             .iter()
             .map(|s| {
-                let mut shipi = ship::MyShip::from_ship(s.clone());
-                shipi.role = *ship_roles.get(&s.symbol).unwrap_or(&ship::Role::Manuel);
+                let mut ship_i = ship::MyShip::from_ship(s.clone());
+                ship_i.role = *ship_roles.get(&s.symbol).unwrap_or(&ship::Role::Manuel);
+                ship_i.set_mpsc(ship_tx.clone());
 
-                (s.symbol.clone(), shipi)
+                (s.symbol.clone(), ship_i)
             })
             .collect(),
     );
@@ -167,20 +170,28 @@ async fn main() -> anyhow::Result<()> {
         ship_roles: ship_roles.clone(),
     };
 
-    let conductors: Vec<Box<dyn Conductor>> = vec![
+    let mut conductors: Vec<Box<dyn Conductor>> = vec![
         workers::construction_fleet::ConstructionFleet::new_box(context.clone()),
         workers::contract_fleet::ContractFleet::new_box(context.clone()),
         workers::mining_fleet::MiningFleet::new_box(context.clone()),
         workers::trading::trading_fleet::TradingFleet::new_box(context.clone()),
         workers::market_scrapers::MarketScraper::new_box(context.clone()),
-        control_api::server::ControlApiServer::new_box(context.clone()),
     ];
+    conductors.push(control_api::server::ControlApiServer::new_box(
+        context.clone(),
+        ship_rx,
+        conductors
+            .iter()
+            .map(|c| (c.get_name(), c.is_independent(), c.get_cancel_token()))
+            .collect(),
+    ));
 
     let conductor_join_handles = conductors
         .into_iter()
-        .map(|c| {
+        .map(|mut c| {
             (
                 c.get_name(),
+                c.is_independent(),
                 c.get_cancel_token(),
                 tokio::task::spawn(async move { c.run().await }),
             )
@@ -189,10 +200,10 @@ async fn main() -> anyhow::Result<()> {
 
     for handle in conductor_join_handles {
         let name = handle.0;
-        if name == "MarketScraper" || name == "ControlApiServer" {
-            handle.1.cancel();
+        if !handle.1 {
+            handle.2.cancel();
         }
-        let erg = handle.2.await;
+        let erg = handle.3.await;
         println!("{}: {:?}", name, erg);
         if let Err(errror) = erg {
             println!("{} error: {} {:?}", name, errror, errror);

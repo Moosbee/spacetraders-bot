@@ -15,7 +15,7 @@
     const text = document.querySelector("#text");
     const button = document.querySelector("button");
 
-    const websocket = new WebSocket("ws://127.0.0.1:8080/ws");
+    const websocket = new WebSocket("ws://127.0.0.1:8080/ws/ships");
 
     websocket.onopen = () => {
       console.log("connected");

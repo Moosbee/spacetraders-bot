@@ -12,7 +12,7 @@ pub enum Role {
     Manuel,
 }
 
-#[derive(Debug, Default, serde::Serialize, Clone)]
+#[derive(Debug, serde::Serialize)]
 pub struct MyShip {
     pub role: Role,
     pub registration_role: ShipRole,
@@ -25,6 +25,46 @@ pub struct MyShip {
     pub cargo: CargoState,
     // Fuel state
     pub fuel: FuelState,
+    // Mpsc
+    #[serde(skip)]
+    pub mpsc: Option<tokio::sync::mpsc::Sender<MyShip>>,
+}
+
+impl Default for MyShip {
+    fn default() -> Self {
+        let me = Self {
+            role: Default::default(),
+            registration_role: Default::default(),
+            symbol: Default::default(),
+            engine_speed: Default::default(),
+            cooldown_expiration: Default::default(),
+            nav: Default::default(),
+            cargo: Default::default(),
+            fuel: Default::default(),
+            mpsc: Default::default(),
+        };
+        me
+    }
+}
+
+impl Clone for MyShip {
+    fn clone_from(&mut self, source: &Self) {
+        *self = source.clone()
+    }
+
+    fn clone(&self) -> Self {
+        Self {
+            role: self.role.clone(),
+            registration_role: self.registration_role.clone(),
+            symbol: self.symbol.clone(),
+            engine_speed: self.engine_speed.clone(),
+            cooldown_expiration: self.cooldown_expiration.clone(),
+            nav: self.nav.clone(),
+            cargo: self.cargo.clone(),
+            fuel: self.fuel.clone(),
+            mpsc: None,
+        }
+    }
 }
 
 #[derive(Debug, Default, serde::Serialize, Clone)]
@@ -58,6 +98,16 @@ impl MyShip {
         self.nav.update(&ship.nav);
         self.cargo.update(&ship.cargo);
         self.fuel.update(&ship.fuel);
+    }
+
+    pub fn set_mpsc(&mut self, mpsc: tokio::sync::mpsc::Sender<MyShip>) {
+        self.mpsc = Some(mpsc);
+    }
+
+    pub async fn notify(&self) {
+        if let Some(ref mpsc) = self.mpsc {
+            mpsc.send(self.clone()).await.unwrap();
+        }
     }
 
     // pub fn is_on_cooldown(&self) -> bool {

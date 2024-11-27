@@ -115,6 +115,7 @@ impl MyShip {
 
         self.fuel.update(&nav_data.data.fuel);
         self.nav.update(&nav_data.data.nav);
+        self.notify().await;
 
         core::result::Result::Ok(nav_data)
     }
@@ -125,6 +126,8 @@ impl MyShip {
     ) -> Result<models::DockShip200Response, apis::Error<apis::fleet_api::DockShipError>> {
         let dock_data = api.dock_ship(&self.symbol).await?;
         self.nav.update(&dock_data.data.nav);
+        self.notify().await;
+
         core::result::Result::Ok(dock_data)
     }
 
@@ -135,6 +138,8 @@ impl MyShip {
     {
         let undock_data: models::OrbitShip200Response = api.orbit_ship(&self.symbol).await?;
         self.nav.update(&undock_data.data.nav);
+        self.notify().await;
+
         core::result::Result::Ok(undock_data)
     }
 
@@ -172,6 +177,8 @@ impl MyShip {
                 }),
             )
             .await?;
+        self.nav.update(&ship_patch_data.data);
+        self.notify().await;
         core::result::Result::Ok(ship_patch_data)
     }
 

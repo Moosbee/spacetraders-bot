@@ -88,6 +88,7 @@ impl MyShip {
                 )
                 .await?;
             self.fuel.update(&refuel_data.data.fuel);
+            self.notify().await;
 
             sql::Agent::insert(database_pool, &sql::Agent::from(*refuel_data.data.agent)).await?;
 
@@ -135,6 +136,7 @@ impl MyShip {
                 )
                 .await?;
             self.fuel.update(&refuel_data.data.fuel);
+            self.notify().await;
 
             sql::Agent::insert(database_pool, &sql::Agent::from(*refuel_data.data.agent)).await?;
 

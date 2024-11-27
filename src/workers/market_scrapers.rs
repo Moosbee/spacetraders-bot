@@ -176,7 +176,7 @@ impl MarketScraper {
 
 impl super::types::Conductor for MarketScraper {
     fn run(
-        &self,
+        &mut self,
     ) -> std::pin::Pin<Box<dyn std::future::Future<Output = anyhow::Result<()>> + Send + '_>> {
         Box::pin(async move { self.run_scappers().await })
     }
@@ -187,6 +187,9 @@ impl super::types::Conductor for MarketScraper {
 
     fn get_cancel_token(&self) -> CancellationToken {
         self.stopper.clone()
+    }
+    fn is_independent(&self) -> bool {
+        false
     }
 }
 

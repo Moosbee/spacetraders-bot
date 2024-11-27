@@ -125,6 +125,7 @@ impl ContractFleet {
             )
             .await?;
 
+            info!("Contract fulfilled: {}", contract.id);
             Ok(())
         } else {
             Err(Error::msg("Contract could not be fulfilled"))
@@ -405,7 +406,7 @@ impl ContractFleet {
 impl super::types::Conductor for ContractFleet {
     /// Main contract conductor that manages contract operations
     fn run(
-        &self,
+        &mut self,
     ) -> std::pin::Pin<Box<dyn std::future::Future<Output = anyhow::Result<()>> + Send + '_>> {
         Box::pin(async move { self.run_contract_workers().await })
     }

@@ -8,12 +8,16 @@ use crate::{config::CONFIG, ship};
 
 pub struct ConstructionFleet {
     context: super::types::ConductorContext,
+    cancellation_token: CancellationToken,
 }
 
 impl ConstructionFleet {
     #[allow(dead_code)]
     pub fn new_box(_context: super::types::ConductorContext) -> Box<Self> {
-        Box::new(ConstructionFleet { context: _context })
+        Box::new(ConstructionFleet {
+            context: _context,
+            cancellation_token: CancellationToken::new(),
+        })
     }
 
     async fn run_construction_worker(&self) -> anyhow::Result<()> {
@@ -51,7 +55,7 @@ impl ConstructionFleet {
 
 impl super::types::Conductor for ConstructionFleet {
     fn run(
-        &self,
+        &mut self,
     ) -> std::pin::Pin<Box<dyn std::future::Future<Output = anyhow::Result<()>> + Send + '_>> {
         Box::pin(async move { self.run_construction_worker().await })
     }
@@ -61,6 +65,6 @@ impl super::types::Conductor for ConstructionFleet {
     }
 
     fn get_cancel_token(&self) -> CancellationToken {
-        CancellationToken::new()
+        self.cancellation_token.clone()
     }
 }

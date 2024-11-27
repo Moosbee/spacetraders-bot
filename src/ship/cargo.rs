@@ -151,6 +151,7 @@ impl MyShip {
         };
 
         self.cargo.update(&trade_data.cargo);
+        self.notify().await;
 
         sql::Agent::insert(database_pool, &sql::Agent::from(*trade_data.agent)).await?;
 
@@ -180,6 +181,7 @@ impl MyShip {
             .await?;
 
         self.cargo.update(&delivery_result.data.cargo);
+        self.notify().await;
 
         Ok(delivery_result)
     }
