@@ -6,7 +6,7 @@ use std::collections::HashMap;
 
 use crate::{api, ship::ship_models::MyShip, sql::TransactionReason};
 
-use super::nav_models::{NavigationState, RouteInstruction};
+use super::nav_models::{AutopilotState, NavigationState, RouteInstruction};
 
 impl MyShip {
     pub async fn nav_to(
@@ -19,9 +19,23 @@ impl MyShip {
         reason: TransactionReason,
     ) -> Result<()> {
         let route = self.calculate_route(waypoints, waypoint)?;
-        let instructions = super::stats::generate_route_instructions(
-            super::stats::calc_route_stats(waypoints, &route, self.engine_speed).0,
-        );
+        let route_stats = super::stats::calc_route_stats(waypoints, &route, self.engine_speed);
+        let instructions: Vec<RouteInstruction> =
+            super::stats::generate_route_instructions(route_stats.0);
+
+        self.nav.auto_pilot = Some(AutopilotState {
+            departure_time: Utc::now(),
+            destination_symbol: waypoint.to_string(),
+            destination_system_symbol: waypoints.get(waypoint).unwrap().system_symbol.clone(),
+            distance: route_stats.1,
+            fuel_cost: route_stats.2,
+            origin_symbol: self.nav.waypoint_symbol.clone(),
+            origin_system_symbol: self.nav.system_symbol.clone(),
+            instructions: instructions.clone(),
+            travel_time: route_stats.3.num_seconds(),
+            arrival: Utc::now() + route_stats.3,
+        });
+        self.notify().await;
 
         for instruction in instructions {
             self.execute_navigation_step(
@@ -35,6 +49,9 @@ impl MyShip {
         }
 
         let _ = self.nav.wait_for_arrival().await;
+        self.nav.auto_pilot = None;
+        self.notify().await;
+
         Ok(())
     }
 

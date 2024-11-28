@@ -103,6 +103,7 @@ impl TradingFleet {
 
         for _ in 0..CONFIG.trading.trade_cycle {
             if self.please_stop.is_cancelled() {
+                info!("Trade cycle cancelled for {} ", ship_symbol);
                 break;
             }
             let route = self

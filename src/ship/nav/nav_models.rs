@@ -10,6 +10,7 @@ pub struct NavigationState {
     pub system_symbol: String,
     pub waypoint_symbol: String,
     pub route: RouteState,
+    pub auto_pilot: Option<AutopilotState>,
     #[serde(skip)]
     pub cache: Cache,
 }
@@ -41,7 +42,7 @@ pub(crate) struct Mode {
     pub mode: models::ShipNavFlightMode,
 }
 
-#[derive(Debug)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone)]
 pub struct RouteInstruction {
     pub start_symbol: String,
     pub end_symbol: String,
@@ -73,6 +74,20 @@ pub struct RouteConnection {
     pub distance: f64,
     pub cost: f64,
     pub re_cost: f64,
+}
+
+#[derive(Debug, Clone, Default, serde::Serialize)]
+pub struct AutopilotState {
+    pub arrival: DateTime<Utc>,
+    pub departure_time: DateTime<Utc>,
+    pub destination_symbol: String,
+    pub destination_system_symbol: String,
+    pub origin_symbol: String,
+    pub origin_system_symbol: String,
+    pub distance: f64,
+    pub fuel_cost: i32,
+    pub instructions: Vec<RouteInstruction>,
+    pub travel_time: i64,
 }
 
 #[derive(Debug, Default, Clone)]

@@ -1,28 +1,28 @@
 {
   "contracts": {
     "start_sleep_duration": 0,
-    "max_contracts": 1,
+    "max_contracts": 10,
     "active": true
   },
   "market": {
     "start_sleep_duration": 1000,
     "max_scraps": 200,
     "scrap_interval": 100000,
-    "active": false,
-    "agents": false,
+    "active": true,
+    "agents": true,
     "agent_interval": 500000,
     "max_agent_scraps": 200
   },
   "trading": {
-    "start_sleep_duration": 1000,
+    "start_sleep_duration": 500,
     "fuel_cost": 72,
     "purchase_multiplier": 2,
-    "trade_cycle": 2,
+    "trade_cycle": 10,
     "blacklist": [
       "ADVANCED_CIRCUITRY",
       "FAB_MATS"
     ],
-    "active": false
+    "active": true
   },
   "construction": {
     "start_sleep_duration": 0,
@@ -30,7 +30,7 @@
   },
   "mining": {
     "start_sleep_duration": 1000000,
-    "active": true
+    "active": false
   },
   "control_server": {
     "start_sleep_duration": 0,
