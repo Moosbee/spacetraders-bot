@@ -28,9 +28,12 @@ impl MiningFleet {
             return Ok(());
         }
 
-        tokio::time::sleep(Duration::from_millis(CONFIG.mining.start_sleep_duration)).await;
-
-        sleep(Duration::from_secs(1)).await;
+        tokio::select! {
+        _ = self.cancellation_token.cancelled() => {
+          info!("Agent scrapping cancelled");
+          0},
+        _ =  sleep(Duration::from_millis(CONFIG.mining.start_sleep_duration)) => {1}
+        };
 
         let _ships = self.get_mining_ships();
 

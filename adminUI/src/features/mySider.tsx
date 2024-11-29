@@ -6,8 +6,6 @@ import {
   FileTextOutlined,
   GlobalOutlined,
   HomeOutlined,
-  PlusOutlined,
-  QuestionCircleOutlined,
   RocketOutlined,
   TeamOutlined,
 } from "@ant-design/icons";
@@ -37,8 +35,8 @@ const items: MenuItem[] = [
         icon: <ContactsOutlined />,
       },
       {
-        label: <Link to="/fleet">Fleet</Link>,
-        key: "fleet",
+        label: <Link to="/ships">Ships</Link>,
+        key: "ships",
         icon: <RocketOutlined />,
       },
       {
@@ -94,21 +92,6 @@ const items: MenuItem[] = [
         icon: <GlobalOutlined />,
       },
     ],
-  },
-  {
-    label: <Link to="/help">Help</Link>,
-    key: "help",
-    icon: <QuestionCircleOutlined />,
-  },
-  {
-    label: <Link to="/newAgent">New Agent</Link>,
-    key: "newAgent",
-    icon: <PlusOutlined />,
-  },
-  {
-    label: <Link to="/cache">Cache Config</Link>,
-    key: "cache",
-    icon: <DeliveredProcedureOutlined />,
   },
 ];
 

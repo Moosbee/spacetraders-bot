@@ -4,6 +4,8 @@ import "./MyApp.css";
 import MyHeader from "./features/myHeader";
 import MySider from "./features/mySider";
 import ErrorPage from "./sites/ErrorPage";
+import Ships from "./sites/Ships";
+import WpMap from "./sites/WaypointMap";
 import Main from "./sites/main";
 import useMyStore from "./store";
 import MessageAntD from "./utils/message";
@@ -50,6 +52,11 @@ function MyApp() {
                       path="/"
                       element={<Main></Main>}
                       errorElement={<ErrorPage />}
+                    />
+                    <Route path="/ships" element={<Ships />} />
+                    <Route
+                      path="/system/map/:systemID"
+                      element={<WpMap></WpMap>}
                     />
                   </Routes>
                 </Content>

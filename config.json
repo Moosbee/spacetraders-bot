@@ -2,7 +2,7 @@
   "contracts": {
     "start_sleep_duration": 0,
     "max_contracts": 10,
-    "active": true
+    "active": false
   },
   "market": {
     "start_sleep_duration": 1000,
