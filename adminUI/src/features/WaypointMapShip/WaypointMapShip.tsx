@@ -1,13 +1,7 @@
-import type { Ship } from "../../spaceTraderAPI/api";
-
-import { useAppDispatch, useAppSelector } from "../../hooks";
-
 import { theme } from "antd";
 import { useEffect, useRef, useState } from "react";
-import {
-  selectSelectedShipSymbol,
-  setSelectedShipSymbol,
-} from "../../spaceTraderAPI/redux/mapSlice";
+import RustShip from "../../models/ship";
+import useMyStore from "../../store";
 import FaIcon from "../FontAwsome/FaIcon";
 import classes from "./WaypointMapShip.module.css";
 
@@ -16,14 +10,14 @@ function WaypointMapShip({
   xOne,
   yOne,
 }: {
-  ship: Ship;
+  ship: RustShip;
   xOne: number;
   yOne: number;
 }) {
   const [size, setSize] = useState(16);
   const textboxRef = useRef<HTMLDivElement>(null);
-  const dispatch = useAppDispatch();
-  const selectedship = useAppSelector(selectSelectedShipSymbol);
+  const selectedship = useMyStore((state) => state.selectedShipSymbol);
+  const setSelectedship = useMyStore((state) => state.setSelectedShipSymbol);
 
   useEffect(() => {
     if (!textboxRef.current) return;
@@ -65,14 +59,16 @@ function WaypointMapShip({
           "--ship-icon-color": color,
         } as React.CSSProperties
       }
-      className={`${classes.shipContainer} ${ship ? classes.ship : classes.star} ${selectedship === ship?.symbol && ship ? classes.active : ""}`}
+      className={`${classes.shipContainer} ${
+        ship ? classes.ship : classes.star
+      } ${selectedship === ship?.symbol && ship ? classes.active : ""}`}
       onClick={() => {
         if (ship) {
           if (selectedship === ship.symbol) {
-            dispatch(setSelectedShipSymbol(undefined));
+            setSelectedship(undefined);
             return;
           }
-          dispatch(setSelectedShipSymbol(ship.symbol));
+          setSelectedship(ship.symbol);
         }
       }}
       onDoubleClick={() => {

@@ -1,6 +1,5 @@
-import { useAppSelector } from "../../hooks";
-import type { ShipNavFlightMode } from "../../spaceTraderAPI/api";
-import { selectDarkMode } from "../../spaceTraderAPI/redux/configSlice";
+import { ShipNavFlightMode } from "../../models/api";
+import useMyStore from "../../store";
 import classes from "./WaypointMapRoute.module.css";
 
 function WaypointMapRoute({
@@ -17,7 +16,7 @@ function WaypointMapRoute({
   size: number;
   mode: ShipNavFlightMode;
 }) {
-  const theme = useAppSelector(selectDarkMode);
+  const theme = useMyStore((state) => state.darkMode);
 
   return (
     <line
@@ -30,8 +29,8 @@ function WaypointMapRoute({
                 ? "yellow"
                 : "#7D00FF"
               : mode === "DRIFT"
-                ? "red"
-                : "green",
+              ? "red"
+              : "green",
         } as React.CSSProperties
       }
       x1={line.x1}

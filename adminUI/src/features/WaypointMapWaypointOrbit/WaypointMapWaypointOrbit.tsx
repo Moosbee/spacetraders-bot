@@ -1,4 +1,3 @@
-import type {} from "../../spaceTraderAPI/api";
 import classes from "./WaypointMapWaypointOrbit.module.css";
 
 function WaypointMapWaypointOrbit({

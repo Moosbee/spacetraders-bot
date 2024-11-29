@@ -130,14 +130,16 @@ impl ControlApiServer {
 
         warp::path("waypoints").map(move || {
             debug!("Getting waypoints");
-            let waypoints: Vec<
+            let waypoints: std::collections::HashMap<
+                String,
                 std::collections::HashMap<String, space_traders_client::models::Waypoint>,
             > = {
                 context
                     .all_waypoints
                     .iter()
                     .map(|w| w.clone())
-                    .collect::<Vec<_>>()
+                    .map(|f| (f.values().next().unwrap().system_symbol.clone(), f))
+                    .collect()
             };
 
             debug!("Got {} waypoints", waypoints.len());

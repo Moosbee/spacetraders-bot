@@ -1,7 +1,7 @@
 import { shared } from "use-broadcast-ts";
 import { create } from "zustand";
 import { devtools, persist } from "zustand/middleware";
-import { Agent } from "./models/api";
+import { Agent, Waypoint } from "./models/api";
 import RustShip from "./models/ship";
 // import type {} from '@redux-devtools/extension' // required for devtools typing
 
@@ -10,11 +10,12 @@ type State = {
   ships: Record<string, RustShip>;
   sliderCollapsed: boolean;
   myAgent: Agent;
-  selectSelectedShipSymbol: string | undefined;
-  selectSelectedWaypointSymbol:
+  selectedShipSymbol: string | undefined;
+  selectedWaypointSymbol:
     | { systemSymbol: string; waypointSymbol: string }
     | undefined;
-  selectSelectedSystemSymbol: string | undefined;
+  selectedSystemSymbol: string | undefined;
+  waypoints: Record<string, Record<string, Waypoint>>;
 };
 
 type Actions = {
@@ -22,6 +23,16 @@ type Actions = {
   setShips: (ships: Record<string, RustShip>) => void;
   setShip: (ship: RustShip) => void;
   setSliderCollapsed: (collapsed: boolean) => void;
+  setSelectedShipSymbol: (symbol: string | undefined) => void;
+  setSelectedWaypointSymbol: (
+    waypoint:
+      | {
+          systemSymbol: string;
+          waypointSymbol: string;
+        }
+      | undefined
+  ) => void;
+  setSelectedSystemSymbol: (systemSymbol: string | undefined) => void;
 };
 
 export type RootState = State & Actions;
@@ -37,9 +48,10 @@ const initialState: State = {
     startingFaction: "",
     symbol: "",
   },
-  selectSelectedShipSymbol: "",
-  selectSelectedWaypointSymbol: { systemSymbol: "", waypointSymbol: "" },
-  selectSelectedSystemSymbol: "",
+  selectedShipSymbol: "",
+  selectedWaypointSymbol: { systemSymbol: "", waypointSymbol: "" },
+  selectedSystemSymbol: "",
+  waypoints: {},
 };
 
 const useMyStore = create<RootState>()(
@@ -52,6 +64,13 @@ const useMyStore = create<RootState>()(
         setShip: (ship) =>
           set((state) => ({ ships: { ...state.ships, [ship.symbol]: ship } })),
         setSliderCollapsed: (collapsed) => set({ sliderCollapsed: collapsed }),
+        setSelectedShipSymbol: (symbol) => set({ selectedShipSymbol: symbol }),
+        setSelectedWaypointSymbol: (waypoint) =>
+          set({
+            selectedWaypointSymbol: waypoint,
+          }),
+        setSelectedSystemSymbol: (systemSymbol) =>
+          set({ selectedSystemSymbol: systemSymbol }),
       })),
       {
         name: "root-channel",
@@ -64,3 +83,5 @@ const useMyStore = create<RootState>()(
 );
 
 export default useMyStore;
+
+export const backendUrl = "127.0.0.1:8080";

@@ -1,34 +1,9 @@
 import { theme } from "antd";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useAppSelector } from "../../hooks";
-import type {
-  Ship,
-  ShipNavFlightMode,
-  System,
-  Waypoint,
-} from "../../spaceTraderAPI/api";
-import { selectShip, selectShips } from "../../spaceTraderAPI/redux/fleetSlice";
-import {
-  selectMarketItems,
-  selectMarketItemTypes,
-  selectOnlyInterestingMarket,
-  selectRoute,
-  selectSearchAutoComplete,
-  selectSearchTraits,
-  selectSearchType,
-  selectSelectedShipSymbol,
-  selectSelectedWaypointSymbol,
-  selectShipTypes,
-} from "../../spaceTraderAPI/redux/mapSlice";
-import { selectSystemMarkets } from "../../spaceTraderAPI/redux/marketSlice";
-import { selectSystem } from "../../spaceTraderAPI/redux/systemSlice";
-import type { WaypointState } from "../../spaceTraderAPI/redux/waypointSlice";
-import { selectSystemWaypoints } from "../../spaceTraderAPI/redux/waypointSlice";
-import type { navModes } from "../../utils/tavelUtils";
-import { wpDijkstra, wpShortestPath } from "../../utils/tavelUtils";
+import { ShipNavFlightMode, System, Waypoint } from "../../models/api";
+import RustShip from "../../models/ship";
+import useMyStore from "../../store";
 import { cyrb53, scaleNum, seedShuffle } from "../../utils/utils";
-import { filterWps } from "../filterCard/FilterCard";
-import WaypointMapRoute from "../WaypointMapRoute/WaypointMapRoute";
 import WaypointMapShip from "../WaypointMapShip/WaypointMapShip";
 import WaypointMapShipOrbit from "../WaypointMapShipOrbit/WaypointMapShipOrbit";
 import WaypointMapWaypoint from "../WaypointMapWaypoint/WaypointMapWaypoint";
@@ -47,7 +22,7 @@ const baseDirections = [
 ];
 
 interface ShipMapPoint {
-  ship: Ship;
+  ship: RustShip;
   xOne: number;
   yOne: number;
   posOrbitCenter?: { x: number; y: number };
@@ -61,38 +36,27 @@ interface ShipMapPoint {
 }
 
 interface WaypointMapPoint {
-  waypoint: WaypointState & { filter: boolean };
+  waypoint: Waypoint;
   xOne: number;
   yOne: number;
   xOneOrbitCenter: number;
   yOneOrbitCenter: number;
 }
 
-interface RouteMapPoint {
-  x1: number;
-  y1: number;
-  x2: number;
-  y2: number;
-  distance: number;
-  wpSymbol: string;
-  destination: string;
-  mode: ShipNavFlightMode;
-}
+// interface RouteMapPoint {
+//   x1: number;
+//   y1: number;
+//   x2: number;
+//   y2: number;
+//   distance: number;
+//   wpSymbol: string;
+//   destination: string;
+//   mode: ShipNavFlightMode;
+// }
 
 function WaypointMap({ systemID }: { systemID: string }) {
-  const system = useAppSelector((state) => selectSystem(state, systemID));
-  const ships = useAppSelector(selectShips);
-  const unfilteredWaypoints = useAppSelector((state) =>
-    selectSystemWaypoints(state, systemID),
-  );
-
-  const unfilteredMarkets = useAppSelector((state) =>
-    selectSystemMarkets(state, systemID),
-  );
-
-  const selectedWaypoint = useAppSelector(selectSelectedWaypointSymbol);
-  const selectedShip = useAppSelector(selectSelectedShipSymbol);
-  const ship = useAppSelector((state) => selectShip(state, selectedShip));
+  const waypoints = useMyStore((state) => state.waypoints[systemID]);
+  const ships = useMyStore((state) => state.ships);
 
   const [shipsMp, setShipsMp] = useState<ShipMapPoint[]>([]);
   const [size, setSize] = useState(16);
@@ -104,77 +68,18 @@ function WaypointMap({ systemID }: { systemID: string }) {
   } = theme.useToken();
 
   const directions = useMemo(() => {
-    if (!system) return [];
     return seedShuffle(baseDirections, cyrb53(systemID, 8888));
-  }, [system, systemID]);
-
-  const searchType = useAppSelector(selectSearchType);
-  const searchTraits = useAppSelector(selectSearchTraits);
-  const searchAutoComplete = useAppSelector(selectSearchAutoComplete);
-  const marketItems = useAppSelector(selectMarketItems);
-  const marketItemTypes = useAppSelector(selectMarketItemTypes);
-  const shipTypes = useAppSelector(selectShipTypes);
-  const onlyInterestingMarket = useAppSelector(selectOnlyInterestingMarket);
+  }, [systemID]);
 
   const waypointsMp = useMemo(
     () =>
       calculateWaypointMapPoints(
-        filterWps(
-          marketItemTypes,
-          marketItems,
-          searchAutoComplete,
-          searchTraits,
-          searchType,
-          unfilteredWaypoints,
-          unfilteredMarkets,
-          shipTypes,
-          onlyInterestingMarket,
-        ),
-        system,
-        directions,
+        Object.values(waypoints),
+        undefined,
+        directions
       ),
-    [
-      marketItemTypes,
-      marketItems,
-      searchAutoComplete,
-      searchTraits,
-      searchType,
-      unfilteredWaypoints,
-      unfilteredMarkets,
-      shipTypes,
-      onlyInterestingMarket,
-      system,
-      directions,
-    ],
+    [directions, waypoints]
   );
-
-  const route = useAppSelector(selectRoute);
-
-  const routesMp = useMemo(() => {
-    if (route.show === "fullDijkstra")
-      return calculateAllRouteMapPoints(
-        waypointsMp,
-        selectedWaypoint,
-        ship,
-        route.travelMode,
-      );
-    if (route.show === "routeDijkstra") {
-      if (
-        !ship?.nav.waypointSymbol ||
-        !selectedWaypoint?.waypointSymbol ||
-        !ship
-      )
-        return [];
-      return calculateRouteMapPoints(
-        waypointsMp,
-        ship.nav.waypointSymbol,
-        selectedWaypoint.waypointSymbol,
-        ship,
-        route.travelMode,
-      );
-    }
-    return [];
-  }, [route.show, route.travelMode, waypointsMp, selectedWaypoint, ship]);
 
   useEffect(() => {
     const intervalId = setInterval(() => {
@@ -208,22 +113,20 @@ function WaypointMap({ systemID }: { systemID: string }) {
       >
         {renderWaypointOrbits(waypointsMp, size)}
         {renderShipOrbits(shipsMp, size)}
-        {renderRoutes(routesMp, size)}
       </svg>
       <div className={classes.waypointMapIn}>
-        {renderWaypoints(waypointsMp, system)}
+        {renderWaypoints(waypointsMp, undefined)}
         {renderShips(shipsMp)}
-        <WaypointMapWaypoint system={system!} xOne={50} yOne={50} />
+        {/* <WaypointMapWaypoint system={system!} xOne={50} yOne={50} /> */}
       </div>
     </>
   );
 }
 
 function calculateWaypointMapPoints(
-  waypointsArr: (WaypointState & { filter: boolean })[],
-
+  waypointsArr: Waypoint[],
   system: System | undefined,
-  directions: typeof baseDirections,
+  directions: typeof baseDirections
 ): WaypointMapPoint[] {
   if (!system) return [];
   const [wpMinX, wpMinY, wpMaxX, wpMaxY] =
@@ -232,30 +135,26 @@ function calculateWaypointMapPoints(
     wpMinX,
     wpMinY,
     wpMaxX,
-    wpMaxY,
+    wpMaxY
   );
 
   let orbitals = 0;
 
   return waypointsArr
-    .sort((a, b) => a.waypoint.symbol.localeCompare(b.waypoint.symbol))
+    .sort((a, b) => a.symbol.localeCompare(b.symbol))
     .map((w) => {
-      let [xOne, yOne] = calculateInitialCoordinates(
-        w.waypoint,
-        wbCalcX,
-        wbCalcY,
-      );
+      let [xOne, yOne] = calculateInitialCoordinates(w, wbCalcX, wbCalcY);
       let [xOneOrbitCenter, yOneOrbitCenter] = [50, 50];
 
-      if (w.waypoint.orbits) {
+      if (w.orbits) {
         [xOne, yOne, xOneOrbitCenter, yOneOrbitCenter] =
           calculateOrbitalCoordinates(
-            w.waypoint,
+            w,
             wbCalcX,
             wbCalcY,
             directions[orbitals % 8],
             xOne,
-            yOne,
+            yOne
           );
         orbitals++;
       }
@@ -265,18 +164,18 @@ function calculateWaypointMapPoints(
 }
 
 function createShipMapPoints(
-  ships: Ship[],
+  ships: Record<string, RustShip>,
   systemID: string,
   waypointsMp: WaypointMapPoint[],
-  directions: typeof baseDirections,
+  directions: typeof baseDirections
 ): ShipMapPoint[] {
   let orbitals = 0;
 
-  return ships
-    .filter((s) => s.nav.systemSymbol === systemID)
+  return Object.values(ships)
+    .filter((s) => s.nav.system_symbol === systemID)
     .map((s) => {
       const navState = s.nav.status;
-      const navWaypoint = s.nav.waypointSymbol;
+      const navWaypoint = s.nav.waypoint_symbol;
       orbitals++;
 
       switch (navState) {
@@ -285,14 +184,14 @@ function createShipMapPoints(
             s,
             waypointsMp,
             navWaypoint,
-            directions[orbitals % 8],
+            directions[orbitals % 8]
           );
         case "IN_ORBIT":
           return createOrbitingShipPoint(
             s,
             waypointsMp,
             navWaypoint,
-            directions[orbitals % 7],
+            directions[orbitals % 7]
           );
         case "IN_TRANSIT":
           return createTransitingShipPoint(s, waypointsMp);
@@ -303,115 +202,10 @@ function createShipMapPoints(
     .filter((s): s is ShipMapPoint => !!s);
 }
 
-function calculateAllRouteMapPoints(
-  waypointsMp: WaypointMapPoint[],
-  selectedWaypoint:
-    | {
-        systemSymbol: string;
-        waypointSymbol: string;
-      }
-    | undefined,
-  ship: Ship | undefined,
-  flightMode: navModes,
-): RouteMapPoint[] {
-  if (!waypointsMp || waypointsMp.length === 0 || !selectedWaypoint) return [];
-
-  const connections = wpDijkstra(
-    selectedWaypoint.waypointSymbol,
-    waypointsMp.map((wp) => wp.waypoint.waypoint),
-    {
-      flightMode,
-      maxFuelInCargo: 0,
-      maxFuel: ship
-        ? ship.fuel.capacity === 0
-          ? Infinity
-          : ship.fuel.capacity
-        : 300,
-      startFuel: ship ? ship.fuel.current : 300,
-    },
-  );
-
-  return connections
-    .map((c) => {
-      const wpStart = waypointsMp.find(
-        (w) => w.waypoint.waypoint.symbol === c.origin,
-      );
-      const wpEnd = waypointsMp.find(
-        (w) => w.waypoint.waypoint.symbol === c.destination,
-      );
-      if (!wpStart || !wpEnd) return undefined;
-      return {
-        x1: wpStart.xOne,
-        y1: wpStart.yOne,
-        x2: wpEnd.xOne,
-        y2: wpEnd.yOne,
-        distance: c.distance,
-        wpSymbol: c.origin,
-        destination: c.destination,
-        mode: c.flightMode,
-      };
-    })
-    .filter((c): c is RouteMapPoint => !!c);
-}
-
-function calculateRouteMapPoints(
-  // waypointsMp: Record<string, WaypointState>,
-  waypointsMp: WaypointMapPoint[],
-  start: string,
-  end: string,
-  ship: Ship | undefined,
-  flightMode: navModes,
-): RouteMapPoint[] {
-  if (!waypointsMp) return [];
-
-  let wps = waypointsMp
-    .map((wp) => wp.waypoint)
-    .reduce(
-      (a, b) => {
-        return {
-          ...a,
-          [b.waypoint.symbol]: b,
-        };
-      },
-      {} as Record<string, WaypointState>,
-    );
-
-  const connections = wpShortestPath(
-    start,
-    end,
-    wps,
-    flightMode,
-    ship,
-    ship ? ship.fuel.current : 300,
-  );
-
-  return connections
-    .map((c) => {
-      const wpStart = waypointsMp.find(
-        (w) => w.waypoint.waypoint.symbol === c.origin,
-      );
-      const wpEnd = waypointsMp.find(
-        (w) => w.waypoint.waypoint.symbol === c.destination,
-      );
-      if (!wpStart || !wpEnd) return undefined;
-      return {
-        x1: wpStart.xOne,
-        y1: wpStart.yOne,
-        x2: wpEnd.xOne,
-        y2: wpEnd.yOne,
-        distance: c.distance,
-        wpSymbol: c.origin,
-        destination: c.destination,
-        mode: c.flightMode,
-      };
-    })
-    .filter((c): c is RouteMapPoint => !!c);
-}
-
 function renderWaypointOrbits(waypointsMp: WaypointMapPoint[], size: number) {
   return waypointsMp.map((w) => (
     <WaypointMapWaypointOrbit
-      key={w.waypoint.waypoint.symbol + "wayOrbit"}
+      key={w.waypoint.symbol + "wayOrbit"}
       xOnePos={w.xOne}
       yOnePos={w.yOne}
       xOneOrbitCenter={w.xOneOrbitCenter}
@@ -437,32 +231,32 @@ function renderShipOrbits(shipsMp: ShipMapPoint[], size: number) {
   ));
 }
 
-function renderRoutes(routesMp: RouteMapPoint[], size: number) {
-  return routesMp.map((r) => (
-    <WaypointMapRoute
-      size={size + 5 * r.distance}
-      key={r.wpSymbol + r.destination + "route" + r.mode}
-      line={{
-        x1: r.x1,
-        y1: r.y1,
-        x2: r.x2,
-        y2: r.y2,
-      }}
-      mode={r.mode}
-    />
-  ));
-}
+// function renderRoutes(routesMp: RouteMapPoint[], size: number) {
+//   return routesMp.map((r) => (
+//     <WaypointMapRoute
+//       size={size + 5 * r.distance}
+//       key={r.wpSymbol + r.destination + "route" + r.mode}
+//       line={{
+//         x1: r.x1,
+//         y1: r.y1,
+//         x2: r.x2,
+//         y2: r.y2,
+//       }}
+//       mode={r.mode}
+//     />
+//   ));
+// }
 
 function renderWaypoints(
   waypointsMp: WaypointMapPoint[],
-  system: System | undefined,
+  system: System | undefined
 ) {
   return waypointsMp.map((w) => (
     <>
-      {w.waypoint.filter && (
+      {w.waypoint && (
         <WaypointMapWaypoint
-          key={w.waypoint.waypoint.symbol + "way"}
-          waypoint={w.waypoint.waypoint}
+          key={w.waypoint.symbol + "way"}
+          waypoint={w.waypoint}
           system={system!}
           xOne={w.xOne}
           yOne={w.yOne}
@@ -485,16 +279,16 @@ function renderShips(shipsMp: ShipMapPoint[]) {
 
 // Helper functions (calculateWaypointBoundaries, calculateWaypointBoundaryCalcs, calculateInitialCoordinates, calculateOrbitalCoordinates, createDockedShipPoint, createOrbitingShipPoint, createTransitingShipPoint) would be implemented here.
 
-function calculateWaypointBoundaries(waypointsArr: WaypointState[]) {
+function calculateWaypointBoundaries(waypointsArr: Waypoint[]) {
   let wpMinX = Infinity;
   let wpMinY = Infinity;
   let wpMaxX = -Infinity;
   let wpMaxY = -Infinity;
   waypointsArr.forEach((w) => {
-    wpMinX = Math.min(wpMinX, w.waypoint.x);
-    wpMinY = Math.min(wpMinY, w.waypoint.y);
-    wpMaxX = Math.max(wpMaxX, w.waypoint.x);
-    wpMaxY = Math.max(wpMaxY, w.waypoint.y);
+    wpMinX = Math.min(wpMinX, w.x);
+    wpMinY = Math.min(wpMinY, w.y);
+    wpMaxX = Math.max(wpMaxX, w.x);
+    wpMaxY = Math.max(wpMaxY, w.y);
   });
   return [wpMinX, wpMinY, wpMaxX, wpMaxY];
 }
@@ -503,13 +297,13 @@ function calculateWaypointBoundaryCalcs(
   wpMinX: number,
   wpMinY: number,
   wpMaxX: number,
-  wpMaxY: number,
+  wpMaxY: number
 ) {
   const wbCalcX = Math.ceil(
-    Math.max(Math.abs(wpMaxX), Math.abs(wpMinX)) * 1.05,
+    Math.max(Math.abs(wpMaxX), Math.abs(wpMinX)) * 1.05
   );
   const wbCalcY = Math.ceil(
-    Math.max(Math.abs(wpMaxY), Math.abs(wpMinY)) * 1.05,
+    Math.max(Math.abs(wpMaxY), Math.abs(wpMinY)) * 1.05
   );
   return [wbCalcX, wbCalcY];
 }
@@ -517,10 +311,10 @@ function calculateWaypointBoundaryCalcs(
 function calculateInitialCoordinates(
   waypoint: Waypoint,
   wbCalcX: number,
-  wbCalcY: number,
+  wbCalcY: number
 ) {
-  let xOne = scaleNum(waypoint.x, -wbCalcX, wbCalcX, 0, 100);
-  let yOne = scaleNum(waypoint.y, -wbCalcY, wbCalcY, 0, 100);
+  const xOne = scaleNum(waypoint.x, -wbCalcX, wbCalcX, 0, 100);
+  const yOne = scaleNum(waypoint.y, -wbCalcY, wbCalcY, 0, 100);
   return [xOne, yOne];
 }
 
@@ -530,7 +324,7 @@ function calculateOrbitalCoordinates(
   wbCalcY: number,
   direction: (typeof baseDirections)[number],
   xOne: number,
-  yOne: number,
+  yOne: number
 ) {
   const xOneOrbitCenter = xOne;
   const yOneOrbitCenter = yOne;
@@ -547,14 +341,12 @@ function calculateOrbitalCoordinates(
 }
 
 function createDockedShipPoint(
-  ship: Ship,
+  ship: RustShip,
   waypointsMp: WaypointMapPoint[],
   navWaypoint: string,
-  direction: (typeof baseDirections)[number],
+  direction: (typeof baseDirections)[number]
 ): ShipMapPoint | undefined {
-  const wp = waypointsMp.find(
-    (w) => w.waypoint.waypoint.symbol === navWaypoint,
-  );
+  const wp = waypointsMp.find((w) => w.waypoint.symbol === navWaypoint);
   if (!wp) return undefined;
   const { wayX, wayY } = direction;
 
@@ -572,14 +364,12 @@ function createDockedShipPoint(
 }
 
 function createOrbitingShipPoint(
-  ship: Ship,
+  ship: RustShip,
   waypointsMp: WaypointMapPoint[],
   navWaypoint: string,
-  direction: (typeof baseDirections)[number],
+  direction: (typeof baseDirections)[number]
 ): ShipMapPoint | undefined {
-  const wp = waypointsMp.find(
-    (w) => w.waypoint.waypoint.symbol === navWaypoint,
-  );
+  const wp = waypointsMp.find((w) => w.waypoint.symbol === navWaypoint);
   if (!wp) return undefined;
   const { wayX, wayY } = direction;
 
@@ -595,24 +385,24 @@ function createOrbitingShipPoint(
 }
 
 function createTransitingShipPoint(
-  ship: Ship,
-  waypointsMp: WaypointMapPoint[],
+  ship: RustShip,
+  waypointsMp: WaypointMapPoint[]
 ): ShipMapPoint | undefined {
   const wpStart = waypointsMp.find(
-    (w) => w.waypoint.waypoint.symbol === ship.nav.route.origin.symbol,
+    (w) => w.waypoint.symbol === ship.nav.route.origin_symbol
   );
   const wpEnd = waypointsMp.find(
-    (w) => w.waypoint.waypoint.symbol === ship.nav.route.destination.symbol,
+    (w) => w.waypoint.symbol === ship.nav.route.destination_symbol
   );
 
   if (!wpStart || !wpEnd) return undefined;
 
   const totalTime =
     new Date(ship.nav.route.arrival).getTime() -
-    new Date(ship.nav.route.departureTime).getTime();
+    new Date(ship.nav.route.departure_time).getTime();
 
   const elapsedTime =
-    new Date().getTime() - new Date(ship.nav.route.departureTime).getTime();
+    new Date().getTime() - new Date(ship.nav.route.departure_time).getTime();
 
   const travelPercent = Math.min(1.1, (elapsedTime / totalTime) * 1);
 
@@ -626,7 +416,7 @@ function createTransitingShipPoint(
       x2: wpEnd.xOne,
       y2: wpEnd.yOne,
     },
-    mode: ship.nav.flightMode,
+    mode: ship.nav.flight_mode,
   };
 }
 export default WaypointMap;

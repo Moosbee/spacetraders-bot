@@ -1,18 +1,12 @@
 import { useEffect, useRef, useState, type ReactElement } from "react";
-import { useAppDispatch, useAppSelector } from "../../hooks";
-import type {
+import {
   System,
   SystemType,
   SystemWaypoint,
   Waypoint,
   WaypointType,
-} from "../../spaceTraderAPI/api";
-import {
-  selectSelectedSystemSymbol,
-  selectSelectedWaypointSymbol,
-  setSelectedSystemSymbol,
-  setSelectedWaypointSymbol,
-} from "../../spaceTraderAPI/redux/mapSlice";
+} from "../../models/api";
+import useMyStore from "../../store";
 import FaIcon from "../FontAwsome/FaIcon";
 import NounIcon from "../FontAwsome/NounIcon";
 import classes from "./WaypointMapWaypoint.module.css";
@@ -137,9 +131,16 @@ function WaypointMapWaypoint({
 }) {
   const [size, setSize] = useState(16);
   const textboxRef = useRef<HTMLDivElement>(null);
-  const dispatch = useAppDispatch();
-  const selectedWaypoint = useAppSelector(selectSelectedWaypointSymbol);
-  const selectedSystem = useAppSelector(selectSelectedSystemSymbol);
+  const selectedWaypoint = useMyStore((state) => state.selectedWaypointSymbol);
+  const selectedSystem = useMyStore((state) => state.selectedSystemSymbol);
+
+  const setSelectedWaypointSymbol = useMyStore(
+    (state) => state.setSelectedWaypointSymbol
+  );
+
+  const setSelectedSystemSymbol = useMyStore(
+    (state) => state.setSelectedSystemSymbol
+  );
 
   function outputsize() {
     if (!textboxRef.current) return;
@@ -174,38 +175,43 @@ function WaypointMapWaypoint({
           "--waypoint-icon-color": color,
         } as React.CSSProperties
       }
-      className={`${classes.waypointContainer} ${waypoint ? classes.waypoint : classes.star} ${selectedWaypoint?.waypointSymbol === waypoint?.symbol && waypoint ? classes.active : ""}`}
+      className={`${classes.waypointContainer} ${
+        waypoint ? classes.waypoint : classes.star
+      } ${
+        selectedWaypoint?.waypointSymbol === waypoint?.symbol && waypoint
+          ? classes.active
+          : ""
+      }`}
       onClick={() => {
         if (waypoint) {
           if (selectedWaypoint?.waypointSymbol === waypoint.symbol) {
-            dispatch(setSelectedWaypointSymbol(undefined));
+            setSelectedWaypointSymbol(undefined);
             return;
           }
-          dispatch(
-            setSelectedWaypointSymbol({
-              waypointSymbol: waypoint.symbol,
-              systemSymbol: system.symbol,
-            }),
-          );
+
+          setSelectedWaypointSymbol({
+            waypointSymbol: waypoint.symbol,
+            systemSymbol: system.symbol,
+          });
         } else {
           if (selectedSystem === system.symbol) {
-            dispatch(setSelectedSystemSymbol(undefined));
+            setSelectedSystemSymbol(undefined);
             return;
           }
-          dispatch(setSelectedSystemSymbol(system.symbol));
+          setSelectedSystemSymbol(system.symbol);
         }
       }}
       onDoubleClick={() => {
         if (waypoint) {
           window.open(
             `/system/${system.symbol}/${waypoint.symbol}`,
-            "_blank",
+            "_blank"
             // "popup:true",
           );
         } else {
           window.open(
             `/system/${system.symbol}`,
-            "_blank",
+            "_blank"
             //  "popup:true"
           );
         }

@@ -10,11 +10,9 @@ function MyHeader({ Header }: { Header: typeof AntHeaderHeader }) {
 
   const setDarkMode = useMyStore((state) => state.setDarkMode);
 
-  const shipSymbol = useMyStore((state) => state.selectSelectedShipSymbol);
-  const waypointSymbol = useMyStore(
-    (state) => state.selectSelectedWaypointSymbol
-  );
-  const systemSymbol = useMyStore((state) => state.selectSelectedSystemSymbol);
+  const shipSymbol = useMyStore((state) => state.selectedShipSymbol);
+  const waypointSymbol = useMyStore((state) => state.selectedWaypointSymbol);
+  const systemSymbol = useMyStore((state) => state.selectedSystemSymbol);
 
   const {
     token: { colorBgContainer, colorTextDescription },

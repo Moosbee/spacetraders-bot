@@ -1,6 +1,6 @@
 import { App, ConfigProvider, Layout, theme } from "antd";
 import { Route, Routes } from "react-router-dom";
-import "./App.css";
+import "./MyApp.css";
 import MyHeader from "./features/myHeader";
 import MySider from "./features/mySider";
 import ErrorPage from "./sites/ErrorPage";
