@@ -2,6 +2,7 @@ import { Button, Space, Switch, Table, TableProps } from "antd";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import PageTitle from "../features/PageTitle";
+import Timer from "../features/Timer/Timer";
 import { ShipNavFlightMode, ShipNavStatus, ShipRole } from "../models/api";
 import RustShip, { SystemShipRole } from "../models/ship";
 import useMyStore, { backendUrl } from "../store";
@@ -86,11 +87,12 @@ function Ships() {
       render: (value: ShipNavStatus, record) => (
         <span>
           {value}
+          <br />
           {value === "IN_TRANSIT" && (
             <span>
               {record.nav.route.origin_symbol} -{">"}{" "}
-              {record.nav.route.destination_symbol} (
-              {new Date(record.nav.route.arrival).toLocaleString()})
+              {record.nav.route.destination_symbol}
+              (<Timer time={record.nav.route.arrival} />)
             </span>
           )}
         </span>
@@ -110,9 +112,9 @@ function Ships() {
         <>
           {record.nav.auto_pilot && (
             <span>
-              {record.nav.auto_pilot?.origin_symbol} -{">"}{" "}
-              {record.nav.auto_pilot?.destination_symbol} (
-              {new Date(record.nav.auto_pilot?.arrival).toLocaleString()})
+              {record.nav.auto_pilot.origin_symbol} -{">"}{" "}
+              {record.nav.auto_pilot.destination_symbol} (
+              <Timer time={record.nav.auto_pilot.arrival} />)
             </span>
           )}
         </>
@@ -176,7 +178,11 @@ function Ships() {
         />
         Show Cooldown
       </Space>
-      <Table dataSource={Object.values(ships)} columns={columns} />
+      <Table
+        dataSource={Object.values(ships)}
+        columns={columns}
+        rowKey={"symbol"}
+      />
     </div>
   );
 }

@@ -75,6 +75,13 @@ impl TradingFleet {
         for handle in handles {
             if let Err(e) = handle.0.await.unwrap() {
                 info!("Error: {}", e);
+                println!(
+                    "Trade Error: {} {:?} {:?} {:?}",
+                    e,
+                    e.backtrace(),
+                    e.source(),
+                    e.root_cause()
+                );
             }
         }
 

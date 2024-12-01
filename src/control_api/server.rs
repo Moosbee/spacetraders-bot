@@ -91,6 +91,7 @@ impl ControlApiServer {
             .and(warp::any().map(move || ship_broadcast_rx.clone()))
             .map(|ws: warp::ws::Ws, ship_broadcast_rx: MyReceiver| {
                 ws.on_upgrade(|websocket| {
+                    info!("New websocket connection");
                     let (tx, _rx) = websocket.split();
                     let ship_stream = BroadcastStream::new(ship_broadcast_rx.0);
 

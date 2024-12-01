@@ -89,7 +89,10 @@ fn calculate_fuel_and_multiplier(
 }
 
 fn calculate_travel_time(distance: f64, multiplier: i32, engine_speed: i32) -> f64 {
-    15.0 + (distance * (multiplier as f64)) / engine_speed as f64
+    let result = ((1.0_f64.max(distance).round()) * ((multiplier as f64) / (engine_speed as f64)))
+        .round()
+        + 15.0;
+    result
 }
 
 pub fn generate_route_instructions(route: Vec<ConnectionDetails>) -> Vec<RouteInstruction> {

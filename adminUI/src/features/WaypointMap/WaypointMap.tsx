@@ -4,6 +4,7 @@ import { ShipNavFlightMode, System, Waypoint } from "../../models/api";
 import RustShip from "../../models/ship";
 import useMyStore from "../../store";
 import { cyrb53, scaleNum, seedShuffle } from "../../utils/utils";
+import WaypointMapRoute from "../WaypointMapRoute/WaypointMapRoute";
 import WaypointMapShip from "../WaypointMapShip/WaypointMapShip";
 import WaypointMapShipOrbit from "../WaypointMapShipOrbit/WaypointMapShipOrbit";
 import WaypointMapWaypoint from "../WaypointMapWaypoint/WaypointMapWaypoint";
@@ -43,16 +44,16 @@ interface WaypointMapPoint {
   yOneOrbitCenter: number;
 }
 
-// interface RouteMapPoint {
-//   x1: number;
-//   y1: number;
-//   x2: number;
-//   y2: number;
-//   distance: number;
-//   wpSymbol: string;
-//   destination: string;
-//   mode: ShipNavFlightMode;
-// }
+interface RouteMapPoint {
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+  distance: number;
+  wpSymbol: string;
+  destination: string;
+  mode: ShipNavFlightMode;
+}
 
 function WaypointMap({ systemID }: { systemID: string }) {
   const waypoints = useMyStore((state) => state.waypoints[systemID]);
@@ -80,6 +81,10 @@ function WaypointMap({ systemID }: { systemID: string }) {
       ),
     [directions, waypoints]
   );
+
+  const routesMp = useMemo(() => {
+    return calculateRouteMapPoints(waypointsMp, shipsMp);
+  }, [shipsMp, waypointsMp]);
 
   useEffect(() => {
     const intervalId = setInterval(() => {
@@ -113,6 +118,7 @@ function WaypointMap({ systemID }: { systemID: string }) {
       >
         {renderWaypointOrbits(waypointsMp, size)}
         {renderShipOrbits(shipsMp, size)}
+        {renderRoutes(routesMp, size)}
       </svg>
       <div className={classes.waypointMapIn}>
         {renderWaypoints(waypointsMp, systemID)}
@@ -231,21 +237,21 @@ function renderShipOrbits(shipsMp: ShipMapPoint[], size: number) {
   ));
 }
 
-// function renderRoutes(routesMp: RouteMapPoint[], size: number) {
-//   return routesMp.map((r) => (
-//     <WaypointMapRoute
-//       size={size + 5 * r.distance}
-//       key={r.wpSymbol + r.destination + "route" + r.mode}
-//       line={{
-//         x1: r.x1,
-//         y1: r.y1,
-//         x2: r.x2,
-//         y2: r.y2,
-//       }}
-//       mode={r.mode}
-//     />
-//   ));
-// }
+function renderRoutes(routesMp: RouteMapPoint[], size: number) {
+  return routesMp.map((r) => (
+    <WaypointMapRoute
+      size={size + 5 * r.distance}
+      key={r.wpSymbol + r.destination + "route" + r.mode}
+      line={{
+        x1: r.x1,
+        y1: r.y1,
+        x2: r.x2,
+        y2: r.y2,
+      }}
+      mode={r.mode}
+    />
+  ));
+}
 
 function renderWaypoints(
   waypointsMp: WaypointMapPoint[],
@@ -414,5 +420,12 @@ function createTransitingShipPoint(
     },
     mode: ship.nav.flight_mode,
   };
+}
+
+function calculateRouteMapPoints(
+  waypointsMp: WaypointMapPoint[],
+  shipsMp: ShipMapPoint[]
+) {
+  return [];
 }
 export default WaypointMap;
