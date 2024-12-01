@@ -8,8 +8,8 @@
     "start_sleep_duration": 1000,
     "max_scraps": 200,
     "scrap_interval": 100000,
-    "active": true,
-    "agents": true,
+    "active": false,
+    "agents": false,
     "agent_interval": 500000,
     "max_agent_scraps": 200
   },
@@ -22,7 +22,7 @@
       "ADVANCED_CIRCUITRY",
       "FAB_MATS"
     ],
-    "active": true
+    "active": false
   },
   "construction": {
     "start_sleep_duration": 0,
@@ -30,7 +30,7 @@
   },
   "mining": {
     "start_sleep_duration": 1000000,
-    "active": false
+    "active": true
   },
   "control_server": {
     "start_sleep_duration": 0,

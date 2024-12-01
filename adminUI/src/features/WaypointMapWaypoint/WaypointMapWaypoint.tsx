@@ -1,11 +1,5 @@
 import { useEffect, useRef, useState, type ReactElement } from "react";
-import {
-  System,
-  SystemType,
-  SystemWaypoint,
-  Waypoint,
-  WaypointType,
-} from "../../models/api";
+import { SystemWaypoint, Waypoint, WaypointType } from "../../models/api";
 import useMyStore from "../../store";
 import FaIcon from "../FontAwsome/FaIcon";
 import NounIcon from "../FontAwsome/NounIcon";
@@ -75,71 +69,23 @@ const waypointIcons: Record<
   },
 };
 
-const systemIcons: Record<SystemType, { icon: ReactElement; color: string }> = {
-  NEUTRON_STAR: {
-    icon: <FaIcon type="solid" icon="fa-star-christmas" />,
-    color: "currentColor",
-  },
-  RED_STAR: {
-    icon: <FaIcon type="solid" icon="fa-sparkle" />,
-    color: "red",
-  },
-  ORANGE_STAR: {
-    icon: <FaIcon type="solid" icon="fa-star" />,
-    color: "orange",
-  },
-  BLUE_STAR: {
-    icon: <FaIcon type="solid" icon="fa-star-christmas" />,
-    color: "blue",
-  },
-  YOUNG_STAR: {
-    icon: <FaIcon type="solid" icon="fa-star-of-life" />,
-    color: "lightgreen",
-  },
-  WHITE_DWARF: {
-    icon: <FaIcon type="solid" icon="fa-period" />,
-    color: "currentColor",
-  },
-  BLACK_HOLE: {
-    icon: <FaIcon type="solid" icon="fa-atom" />,
-    color: "currentColor",
-  },
-  HYPERGIANT: {
-    icon: <FaIcon type="solid" icon="fa-certificate" />,
-    color: "lightblue",
-  },
-  NEBULA: {
-    icon: <NounIcon name="nebula" />,
-    color: "currentColor",
-  },
-  UNSTABLE: {
-    icon: <FaIcon type="solid" icon="fa-star-exclamation" />,
-    color: "darkred",
-  },
-};
-
 function WaypointMapWaypoint({
+  systemSymbol,
   waypoint,
-  system,
   xOne,
   yOne,
 }: {
-  waypoint?: Waypoint | SystemWaypoint;
-  system: System;
+  systemSymbol: string;
+  waypoint: Waypoint | SystemWaypoint;
   xOne: number;
   yOne: number;
 }) {
   const [size, setSize] = useState(16);
   const textboxRef = useRef<HTMLDivElement>(null);
   const selectedWaypoint = useMyStore((state) => state.selectedWaypointSymbol);
-  const selectedSystem = useMyStore((state) => state.selectedSystemSymbol);
 
   const setSelectedWaypointSymbol = useMyStore(
     (state) => state.setSelectedWaypointSymbol
-  );
-
-  const setSelectedSystemSymbol = useMyStore(
-    (state) => state.setSelectedSystemSymbol
   );
 
   function outputsize() {
@@ -158,12 +104,8 @@ function WaypointMapWaypoint({
     };
   }, []);
 
-  const color = waypoint
-    ? waypointIcons[waypoint.type].color
-    : systemIcons[system.type].color;
-  const waypointIcon = waypoint
-    ? waypointIcons[waypoint.type].icon
-    : systemIcons[system.type].icon;
+  const color = waypointIcons[waypoint.type].color;
+  const waypointIcon = waypointIcons[waypoint.type].icon;
 
   return (
     <div
@@ -183,38 +125,22 @@ function WaypointMapWaypoint({
           : ""
       }`}
       onClick={() => {
-        if (waypoint) {
-          if (selectedWaypoint?.waypointSymbol === waypoint.symbol) {
-            setSelectedWaypointSymbol(undefined);
-            return;
-          }
-
-          setSelectedWaypointSymbol({
-            waypointSymbol: waypoint.symbol,
-            systemSymbol: system.symbol,
-          });
-        } else {
-          if (selectedSystem === system.symbol) {
-            setSelectedSystemSymbol(undefined);
-            return;
-          }
-          setSelectedSystemSymbol(system.symbol);
+        if (selectedWaypoint?.waypointSymbol === waypoint.symbol) {
+          setSelectedWaypointSymbol(undefined);
+          return;
         }
+
+        setSelectedWaypointSymbol({
+          waypointSymbol: waypoint.symbol,
+          systemSymbol: waypoint.symbol,
+        });
       }}
       onDoubleClick={() => {
-        if (waypoint) {
-          window.open(
-            `/system/${system.symbol}/${waypoint.symbol}`,
-            "_blank"
-            // "popup:true",
-          );
-        } else {
-          window.open(
-            `/system/${system.symbol}`,
-            "_blank"
-            //  "popup:true"
-          );
-        }
+        window.open(
+          `/system/${systemSymbol}/${waypoint.symbol}`,
+          "_blank"
+          // "popup:true",
+        );
       }}
     >
       <div className={classes.waypointIcon} ref={textboxRef}>
@@ -222,7 +148,7 @@ function WaypointMapWaypoint({
       </div>
       <div className={classes.waypointInfo}>
         {/* {waypoint.x}, {waypoint.y} */}
-        {waypoint?.symbol.replace(system.symbol + "-", "")}
+        {waypoint?.symbol.replace(systemSymbol + "-", "")}
         {/* <br />
         <div
           className={classes.waypointInfoMore}

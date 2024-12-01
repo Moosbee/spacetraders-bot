@@ -4,7 +4,10 @@ import "./MyApp.css";
 import MyHeader from "./features/myHeader";
 import MySider from "./features/mySider";
 import ErrorPage from "./sites/ErrorPage";
+import Ship from "./sites/Ship";
 import Ships from "./sites/Ships";
+import System from "./sites/System";
+import Waypoint from "./sites/Waypoint";
 import WpMap from "./sites/WaypointMap";
 import Main from "./sites/main";
 import useMyStore from "./store";
@@ -48,16 +51,20 @@ function MyApp() {
                   }}
                 >
                   <Routes>
-                    <Route
-                      path="/"
-                      element={<Main></Main>}
-                      errorElement={<ErrorPage />}
-                    />
+                    <Route path="/" element={<Main></Main>} />
                     <Route path="/ships" element={<Ships />} />
+                    <Route path="/system/:systemID" element={<System />} />
                     <Route
-                      path="/system/map/:systemID"
+                      path="/system/:systemID/:waypointID"
+                      element={<Waypoint />}
+                    />
+                    <Route
+                      path="/map/system/:systemID"
                       element={<WpMap></WpMap>}
                     />
+                    <Route path="/ships/:shipID" element={<Ship />} />
+
+                    <Route path="*" element={<ErrorPage />} />
                   </Routes>
                 </Content>
               </Layout>

@@ -1,91 +1,182 @@
-import { Table } from "antd";
-import { useEffect } from "react";
+import { Button, Space, Switch, Table, TableProps } from "antd";
+import { useState } from "react";
+import { Link } from "react-router-dom";
 import PageTitle from "../features/PageTitle";
+import { ShipNavFlightMode, ShipNavStatus, ShipRole } from "../models/api";
+import RustShip, { SystemShipRole } from "../models/ship";
 import useMyStore, { backendUrl } from "../store";
 
 function Ships() {
   const ships = useMyStore((state) => state.ships);
   const setShips = useMyStore((state) => state.setShips);
 
-  useEffect(() => {
-    fetch(`http://${backendUrl}/ships`)
-      .then((response) => response.json())
-      .then(setShips);
-  }, [setShips]);
+  const [showCooldown, setShowCooldown] = useState(false);
 
-  const columns = [
+  // useEffect(() => {
+  //   fetch(`http://${backendUrl}/ships`)
+  //     .then((response) => response.json())
+  //     .then(setShips);
+  // }, [setShips]);
+
+  const columns: TableProps<RustShip>["columns"] = [
     {
       title: "Symbol",
       dataIndex: "symbol",
       key: "symbol",
+      render: (symbol) => <Link to={`/ships/${symbol}`}>{symbol}</Link>,
+      sorter: (a, b) =>
+        Number.parseInt(a.symbol.split("-")[1], 16) -
+        Number.parseInt(b.symbol.split("-")[1], 16),
     },
     {
       title: "Role",
       dataIndex: "role",
       key: "role",
+      filters: Object.values(SystemShipRole).map((role) => ({
+        text: role,
+        value: role,
+      })),
+      onFilter: (value, record) => record.role === value,
+      sorter: (a, b) => a.role.localeCompare(b.role),
     },
     {
       title: "Registration Role",
       dataIndex: "registration_role",
       key: "registration_role",
+      filters: Object.values(ShipRole).map((role) => ({
+        text: role,
+        value: role,
+      })),
+      onFilter: (value, record) => record.registration_role === value,
+      sorter: (a, b) => a.registration_role.localeCompare(b.registration_role),
     },
-    {
-      title: "Engine Speed",
-      dataIndex: "engine_speed",
-      key: "engine_speed",
-    },
-    {
-      title: "Current System",
-      dataIndex: ["nav", "system_symbol"],
-      key: "current_system",
-    },
+
     {
       title: "Current Waypoint",
       dataIndex: ["nav", "waypoint_symbol"],
       key: "current_waypoint",
+      sorter: (a, b) =>
+        a.nav.waypoint_symbol.localeCompare(b.nav.waypoint_symbol),
+      render: (value: string, record) => (
+        <span>
+          <Link to={`/system/${record.nav.system_symbol}`}>
+            {record.nav.system_symbol}
+          </Link>
+          <Link to={`/system/${record.nav.system_symbol}/${value}`}>
+            {record.nav.waypoint_symbol.replace(record.nav.system_symbol, "")}
+          </Link>
+        </span>
+      ),
     },
     {
       title: "Flight Mode",
       dataIndex: ["nav", "flight_mode"],
       key: "flight_mode",
+      filters: Object.values(ShipNavFlightMode).map((role) => ({
+        text: role,
+        value: role,
+      })),
+      onFilter: (value, record) => record.nav.flight_mode === value,
+      sorter: (a, b) => a.nav.flight_mode.localeCompare(b.nav.flight_mode),
     },
     {
       title: "Navigation Status",
       dataIndex: ["nav", "status"],
       key: "nav_status",
+      render: (value: ShipNavStatus, record) => (
+        <span>
+          {value}
+          {value === "IN_TRANSIT" && (
+            <span>
+              {record.nav.route.origin_symbol} -{">"}{" "}
+              {record.nav.route.destination_symbol} (
+              {new Date(record.nav.route.arrival).toLocaleString()})
+            </span>
+          )}
+        </span>
+      ),
+      filters: Object.values(ShipNavStatus).map((status) => ({
+        text: status,
+        value: status,
+      })),
+      onFilter: (value, record) => record.nav.status === value,
+      sorter: (a, b) => a.nav.status.localeCompare(b.nav.status),
+    },
+
+    {
+      title: "Autopilot",
+      key: "autopilot",
+      render: (_value, record) => (
+        <>
+          {record.nav.auto_pilot && (
+            <span>
+              {record.nav.auto_pilot?.origin_symbol} -{">"}{" "}
+              {record.nav.auto_pilot?.destination_symbol} (
+              {new Date(record.nav.auto_pilot?.arrival).toLocaleString()})
+            </span>
+          )}
+        </>
+      ),
     },
     {
-      title: "Cargo Capacity",
-      dataIndex: ["cargo", "capacity"],
-      key: "cargo_capacity",
+      title: "Engine Speed",
+      dataIndex: "engine_speed",
+      key: "engine_speed",
+      sorter: (a, b) => a.engine_speed - b.engine_speed,
+      align: "right",
     },
     {
-      title: "Cargo Units",
+      title: "Cargo",
       dataIndex: ["cargo", "units"],
       key: "cargo_units",
+      render: (value: number, record) => `${value} / ${record.cargo.capacity}`,
+      align: "right",
+      sorter: (a, b) => a.cargo.capacity - b.cargo.capacity,
     },
     {
-      title: "Fuel Current",
+      title: "Fuel",
       dataIndex: ["fuel", "current"],
       key: "fuel_current",
+      render: (value: number, record) => `${value} / ${record.fuel.capacity}`,
+      align: "right",
+      sorter: (a, b) => a.fuel.capacity - b.fuel.capacity,
     },
-    {
-      title: "Fuel Capacity",
-      dataIndex: ["fuel", "capacity"],
-      key: "fuel_capacity",
-    },
-    {
-      title: "Cooldown Expiration",
-      dataIndex: "cooldown_expiration",
-      key: "cooldown_expiration",
-    },
+
+    ...(showCooldown
+      ? [
+          {
+            title: "Cooldown",
+            dataIndex: "cooldown_expiration",
+            key: "cooldown_expiration",
+            render: (value: string | null) =>
+              value && new Date(value).toLocaleString(),
+          },
+        ]
+      : []),
   ];
 
   return (
     <div style={{ padding: "24px 24px" }}>
       <PageTitle title="All Ships" />
-      <h2>All Ships</h2>
-      <Table dataSource={Object.values(ships)} columns={columns} />;
+      <Space>
+        <h2>All Ships</h2>
+        <Button onClick={() => setShips({})}>Reset</Button>
+        <Button
+          onClick={() => {
+            fetch(`http://${backendUrl}/ships`)
+              .then((response) => response.json())
+              .then(setShips);
+          }}
+        >
+          Refresh
+        </Button>
+        <Switch
+          checked={showCooldown}
+          onChange={(checked) => setShowCooldown(checked)}
+        />
+        Show Cooldown
+      </Space>
+      <Table dataSource={Object.values(ships)} columns={columns} />
     </div>
   );
 }

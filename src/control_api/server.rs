@@ -63,7 +63,7 @@ impl ControlApiServer {
         &self,
         ship_broadcast_rx: MyReceiver,
     ) -> impl warp::Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
-        let readme = warp::get()
+        let main = warp::get()
             .and(warp::path::end())
             .and(warp::fs::file("./index.html"));
 
@@ -72,11 +72,13 @@ impl ControlApiServer {
         let shutdown_route = self.build_shutdown_route();
         let waypoints_route = self.build_waypoints_route();
 
-        readme
-            .or(ws_routes)
+        let cors = warp::cors().allow_any_origin();
+
+        main.or(ws_routes)
             .or(ship_route)
             .or(shutdown_route)
             .or(waypoints_route)
+            .with(cors)
     }
 
     fn build_websocket_routes(

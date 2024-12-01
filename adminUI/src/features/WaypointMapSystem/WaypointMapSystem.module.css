@@ -1,0 +1,82 @@
+.waypointContainer {
+  position: absolute;
+  translate: -50% -50%;
+  min-width: 1rem;
+  min-height: 1rem;
+  width: calc(2% / 6);
+  height: calc(2% / 6);
+  max-width: 3.5rem;
+  max-height: 3.5rem;
+  cursor: pointer;
+  z-index: 0;
+}
+/* 
+.waypoint {
+} */
+
+.waypointContainer::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: -1;
+}
+
+.waypointContainer:hover {
+  /* background-color: color-mix(in srgb, currentColor 80%, #f0f0f0 100%); */
+  z-index: 1;
+}
+.waypointContainer:hover::before {
+  box-shadow: 0px 0px calc(0.8 * var(--waypoint-icon-size))
+    calc(0.6 * var(--waypoint-icon-size)) #fff;
+}
+
+.waypointContainer.active::before {
+  box-shadow: 0px 0px calc(0.8 * var(--waypoint-icon-size))
+    calc(0.6 * var(--waypoint-icon-size))
+    color-mix(in srgb, var(--waypoint-icon-color) 80%, #fff 20%);
+}
+
+.waypointIcon {
+  position: absolute;
+  font-size: var(--waypoint-icon-size);
+  /* width: 2rem; */
+  /* height: 1.5rem; */
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+  color: var(--waypoint-icon-color);
+  user-select: none;
+}
+
+.star {
+  min-width: 1.5rem;
+  min-height: 1.5rem;
+  width: calc(2% / 4);
+  height: calc(2% / 4);
+  max-width: 4.5rem;
+  max-height: 4.5rem;
+}
+
+.waypointInfo {
+  position: relative;
+  left: 100%;
+  width: max-content;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  font-size: clamp(0.6rem, calc(0.5 * var(--waypoint-icon-size)), 1.5rem);
+}
+
+.waypointInfoMore {
+  width: calc(var(--zoom) / 20 - 50%);
+  /* overflow: hidden; */
+}
+
+.active {
+  z-index: 1;
+}

@@ -115,7 +115,7 @@ function WaypointMap({ systemID }: { systemID: string }) {
         {renderShipOrbits(shipsMp, size)}
       </svg>
       <div className={classes.waypointMapIn}>
-        {renderWaypoints(waypointsMp, undefined)}
+        {renderWaypoints(waypointsMp, systemID)}
         {renderShips(shipsMp)}
         {/* <WaypointMapWaypoint system={system!} xOne={50} yOne={50} /> */}
       </div>
@@ -128,7 +128,7 @@ function calculateWaypointMapPoints(
   system: System | undefined,
   directions: typeof baseDirections
 ): WaypointMapPoint[] {
-  if (!system) return [];
+  // if (!system) return [];
   const [wpMinX, wpMinY, wpMaxX, wpMaxY] =
     calculateWaypointBoundaries(waypointsArr);
   const [wbCalcX, wbCalcY] = calculateWaypointBoundaryCalcs(
@@ -249,20 +249,16 @@ function renderShipOrbits(shipsMp: ShipMapPoint[], size: number) {
 
 function renderWaypoints(
   waypointsMp: WaypointMapPoint[],
-  system: System | undefined
+  systemSymbol: string
 ) {
   return waypointsMp.map((w) => (
-    <>
-      {w.waypoint && (
-        <WaypointMapWaypoint
-          key={w.waypoint.symbol + "way"}
-          waypoint={w.waypoint}
-          system={system!}
-          xOne={w.xOne}
-          yOne={w.yOne}
-        />
-      )}
-    </>
+    <WaypointMapWaypoint
+      systemSymbol={systemSymbol}
+      key={w.waypoint.symbol + "way"}
+      waypoint={w.waypoint}
+      xOne={w.xOne}
+      yOne={w.yOne}
+    />
   ));
 }
 

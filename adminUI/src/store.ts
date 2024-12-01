@@ -33,6 +33,11 @@ type Actions = {
       | undefined
   ) => void;
   setSelectedSystemSymbol: (systemSymbol: string | undefined) => void;
+  setWaypoints: (waypoints: Record<string, Record<string, Waypoint>>) => void;
+  setSystemWaypoints: (
+    systemSymbol: string,
+    waypoints: Record<string, Waypoint>
+  ) => void;
 };
 
 export type RootState = State & Actions;
@@ -71,6 +76,14 @@ const useMyStore = create<RootState>()(
           }),
         setSelectedSystemSymbol: (systemSymbol) =>
           set({ selectedSystemSymbol: systemSymbol }),
+        setWaypoints: (waypoints) => set({ waypoints: waypoints }),
+        setSystemWaypoints: (systemSymbol, waypoints) =>
+          set((state) => ({
+            waypoints: {
+              ...state.waypoints,
+              [systemSymbol]: waypoints,
+            },
+          })),
       })),
       {
         name: "root-channel",
