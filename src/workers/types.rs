@@ -3,12 +3,14 @@ use std::{collections::HashMap, fmt::Debug, sync::Arc};
 use dashmap::DashMap;
 use tokio_util::sync::CancellationToken;
 
+use crate::ship::ShipManager;
+
 #[derive(Debug, Clone)]
 pub struct ConductorContext {
     pub api: crate::api::Api,
     pub database_pool: sqlx::PgPool,
     pub ship_roles: HashMap<String, crate::ship::Role>,
-    pub my_ships: Arc<DashMap<String, crate::ship::MyShip>>,
+    pub ship_manager: Arc<ShipManager>,
     pub all_waypoints:
         Arc<DashMap<String, HashMap<String, space_traders_client::models::Waypoint>>>,
 }
