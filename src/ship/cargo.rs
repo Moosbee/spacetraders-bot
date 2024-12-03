@@ -18,7 +18,7 @@ impl MyShip {
         api: &api::Api,
         symbol: space_traders_client::models::TradeSymbol,
         units: i32,
-        database_pool: &sqlx::PgPool,
+        database_pool: &sql::DbPool,
         reason: sql::TransactionReason,
     ) -> anyhow::Result<()> {
         let market_info = self.get_market_info(api, database_pool).await?;
@@ -44,7 +44,7 @@ impl MyShip {
         api: &api::Api,
         symbol: space_traders_client::models::TradeSymbol,
         units: i32,
-        database_pool: &sqlx::PgPool,
+        database_pool: &sql::DbPool,
         reason: sql::TransactionReason,
     ) -> anyhow::Result<()> {
         let market_info = self.get_market_info(api, database_pool).await?;
@@ -68,7 +68,7 @@ impl MyShip {
     async fn get_market_info(
         &self,
         api: &api::Api,
-        database_pool: &sqlx::PgPool,
+        database_pool: &sql::DbPool,
     ) -> anyhow::Result<Vec<sql::MarketTradeGood>> {
         let market_info =
             sql::MarketTradeGood::get_last_by_waypoint(database_pool, &self.nav.waypoint_symbol)
@@ -116,7 +116,7 @@ impl MyShip {
         good: space_traders_client::models::TradeSymbol,
         volume: i32,
         r_type: Mode,
-        database_pool: &sqlx::PgPool,
+        database_pool: &sql::DbPool,
         reason: sql::TransactionReason,
     ) -> anyhow::Result<()> {
         let trade_data = match r_type {
@@ -189,7 +189,7 @@ impl MyShip {
     pub async fn update_market(
         &self,
         api: &api::Api,
-        database_pool: &sqlx::PgPool,
+        database_pool: &sql::DbPool,
     ) -> anyhow::Result<()> {
         let market_data = api
             .get_market(&self.nav.system_symbol, &self.nav.waypoint_symbol)

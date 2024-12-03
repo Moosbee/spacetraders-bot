@@ -211,7 +211,9 @@ async fn main() -> anyhow::Result<()> {
 
     let context = workers::types::ConductorContext {
         api: api.clone(),
-        database_pool: database_pool.clone(),
+        database_pool: sql::DbPool {
+            database_pool: database_pool,
+        },
         ship_manager,
         all_waypoints: all_waypoints.clone(),
         ship_roles: ship_roles.clone(),

@@ -1,59 +1,80 @@
-use std::{fmt::Debug, sync::Weak};
+use std::fmt::Debug;
+use std::sync::Weak;
 
-pub trait IObserver<K> {
+/// Trait representing an observer that can be updated
+pub trait Observer<K> {
+    /// Asynchronous method to update the observer with new data
     async fn update(&self, data: K);
 }
 
-#[allow(dead_code)]
-pub trait ISubject<T: IObserver<K>, K> {
+/// Trait representing a subject that can manage and notify observers
+pub trait Subject<T: Observer<K>, K> {
+    /// Register a new observer
     fn register_observer(&mut self, observer: Weak<T>);
+
+    /// Remove a specific observer
     fn remove_observer(&mut self, observer: &T);
+
+    /// Notify all registered observers with new data
     async fn notify_observers(&self, data: K);
 }
-pub struct Publisher<T: IObserver<K>, K> {
+
+/// Generic publisher implementing the Subject trait
+pub struct Publisher<T: Observer<K>, K> {
+    /// Weak references to observers to prevent strong reference cycles
     observers: Vec<Weak<T>>,
-    _phantom: std::marker::PhantomData<K>,
+
+    /// Phantom data to handle the generic type K
+    _marker: std::marker::PhantomData<K>,
 }
 
-impl<T: IObserver<K>, K: Clone> Publisher<T, K> {
-    pub fn new() -> Publisher<T, K> {
-        Publisher {
+impl<T: Observer<K>, K> Publisher<T, K> {
+    /// Create a new Publisher instance
+    pub fn new() -> Self {
+        Self {
             observers: Vec::new(),
-            _phantom: std::marker::PhantomData,
+            _marker: std::marker::PhantomData,
         }
     }
 }
 
-impl<T: IObserver<K> + Debug, K: Clone + Debug> Debug for Publisher<T, K> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Publisher")
-            .field("observers", &self.observers)
-            .finish()
-    }
-}
-
-impl<T: IObserver<K> + PartialEq, K: Clone> ISubject<T, K> for Publisher<T, K> {
+impl<T: Observer<K>, K: Clone> Subject<T, K> for Publisher<T, K> {
     fn register_observer(&mut self, observer: Weak<T>) {
         self.observers.push(observer);
     }
 
     fn remove_observer(&mut self, observer: &T) {
-        // Find the index of the observer in the vector and remove it
-        let index = self
-            .observers
-            .iter()
-            .position(|x| x.upgrade().as_ref().map_or(false, |arc| **arc == *observer))
-            .unwrap();
-        self.observers.remove(index);
-        self.observers.retain(|x| x.upgrade().is_some());
+        // Remove the specific observer and clean up any expired weak references
+        self.observers.retain(|weak_ref| {
+            // Keep references that are either the target observer or still valid
+            weak_ref.upgrade().map_or(false, |strong_ref| {
+                !std::ptr::eq(strong_ref.as_ref(), observer)
+            })
+        });
     }
 
     async fn notify_observers(&self, data: K) {
-        // Call the update method on each observer in the vector
-        for observer in self.observers.iter() {
-            if let Some(observer) = observer.upgrade() {
+        // Notify all valid observers
+        for weak_observer in &self.observers {
+            if let Some(observer) = weak_observer.upgrade() {
                 observer.update(data.clone()).await;
             }
         }
+    }
+}
+
+// Optional: Implement Debug for Publisher if needed
+impl<T: Observer<K> + Debug, K: Clone + Debug> Debug for Publisher<T, K> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Publisher")
+            .field("observers_count", &self.observers.len())
+            .finish()
+    }
+}
+
+// Convenience method to create a new Publisher
+impl<T: Observer<K>, K> Default for Publisher<T, K> {
+    fn default() -> Self {
+        Self::new()
     }
 }

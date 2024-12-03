@@ -3,7 +3,7 @@ use std::{collections::HashMap, sync::Arc};
 use dashmap::DashMap;
 use tokio::sync::RwLock;
 
-use crate::types::{IObserver, ISubject};
+use crate::types::{Observer, Subject};
 
 use super::MyShip;
 
@@ -22,7 +22,7 @@ impl PartialEq for ShipManager {
     }
 }
 
-impl IObserver<MyShip> for ShipManager {
+impl Observer<MyShip> for ShipManager {
     async fn update(&self, data: MyShip) {
         let clone = data.clone();
         let symbol = clone.symbol.clone();

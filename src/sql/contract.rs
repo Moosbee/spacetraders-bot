@@ -1,6 +1,9 @@
 use space_traders_client::models;
 
-use super::sql_models::{Contract, ContractDelivery, DatabaseConnector};
+use super::{
+    sql_models::{Contract, ContractDelivery, DatabaseConnector},
+    DbPool,
+};
 
 impl From<models::Contract> for Contract {
     fn from(value: models::Contract) -> Self {
@@ -19,7 +22,7 @@ impl From<models::Contract> for Contract {
 }
 
 impl DatabaseConnector<Contract> for Contract {
-    async fn insert(database_pool: &sqlx::PgPool, item: &Contract) -> sqlx::Result<()> {
+    async fn insert(database_pool: &DbPool, item: &Contract) -> sqlx::Result<()> {
         sqlx::query!(
             r#"
             INSERT INTO contract (
@@ -54,13 +57,13 @@ impl DatabaseConnector<Contract> for Contract {
             item.on_fulfilled,
             item.deadline
         )
-        .execute(database_pool)
+        .execute(&database_pool.database_pool)
         .await?;
 
         Ok(())
     }
 
-    async fn insert_bulk(database_pool: &sqlx::PgPool, items: &Vec<Contract>) -> sqlx::Result<()> {
+    async fn insert_bulk(database_pool: &DbPool, items: &Vec<Contract>) -> sqlx::Result<()> {
         let (
             ((id_and_contract_type, faction_symbol), (accepted, fulfilled)),
             ((deadline_to_accept, deadline), (on_accepted, on_fulfilled)),
@@ -72,10 +75,7 @@ impl DatabaseConnector<Contract> for Contract {
             .map(|c| {
                 (
                     (
-                        (
-                            (c.id.clone(), c.contract_type),
-                            c.faction_symbol.clone(),
-                        ),
+                        ((c.id.clone(), c.contract_type), c.faction_symbol.clone()),
                         (c.accepted, c.fulfilled),
                     ),
                     (
@@ -133,12 +133,12 @@ impl DatabaseConnector<Contract> for Contract {
             &on_fulfilled as &[i32],
             &deadline as &[String]
         )
-        .execute(database_pool)
+        .execute(&database_pool.database_pool)
         .await;
 
         Ok(())
     }
-    async fn get_all(database_pool: &sqlx::PgPool) -> sqlx::Result<Vec<Contract>> {
+    async fn get_all(database_pool: &DbPool) -> sqlx::Result<Vec<Contract>> {
         sqlx::query_as!(
             Contract,
             r#"
@@ -155,14 +155,14 @@ impl DatabaseConnector<Contract> for Contract {
                 FROM contract
             "#
         )
-        .fetch_all(database_pool)
+        .fetch_all(&database_pool.database_pool)
         .await
     }
 }
 
 impl Contract {
     pub async fn insert_contract(
-        database_pool: &sqlx::PgPool,
+        database_pool: &DbPool,
         contract: models::Contract,
     ) -> sqlx::Result<()> {
         let contract_old = Contract::from(contract.clone());

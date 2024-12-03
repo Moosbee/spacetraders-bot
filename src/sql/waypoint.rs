@@ -1,4 +1,7 @@
-use super::sql_models::{DatabaseConnector, Waypoint};
+use super::{
+    sql_models::{DatabaseConnector, Waypoint},
+    DbPool,
+};
 
 impl From<&space_traders_client::models::Waypoint> for super::sql_models::Waypoint {
     fn from(value: &space_traders_client::models::Waypoint) -> Self {
@@ -21,7 +24,7 @@ impl Default for Waypoint {
 }
 
 impl DatabaseConnector<Waypoint> for Waypoint {
-    async fn insert(database_pool: &sqlx::PgPool, item: &Waypoint) -> sqlx::Result<()> {
+    async fn insert(database_pool: &DbPool, item: &Waypoint) -> sqlx::Result<()> {
         sqlx::query!(
             r#"
                 INSERT INTO waypoint (symbol, system_symbol)
@@ -31,13 +34,13 @@ impl DatabaseConnector<Waypoint> for Waypoint {
             item.symbol,
             item.system_symbol
         )
-        .execute(database_pool)
+        .execute(&database_pool.database_pool)
         .await?;
 
         Ok(())
     }
 
-    async fn insert_bulk(database_pool: &sqlx::PgPool, items: &Vec<Waypoint>) -> sqlx::Result<()> {
+    async fn insert_bulk(database_pool: &DbPool, items: &Vec<Waypoint>) -> sqlx::Result<()> {
         let (m_symbols, f_symbols): (Vec<String>, Vec<String>) = items
             .iter()
             .map(|w| (w.symbol.clone(), w.system_symbol.clone()))
@@ -52,13 +55,13 @@ impl DatabaseConnector<Waypoint> for Waypoint {
             &m_symbols,
             &f_symbols
         )
-        .execute(database_pool)
+        .execute(&database_pool.database_pool)
         .await?;
 
         Ok(())
     }
 
-    async fn get_all(database_pool: &sqlx::PgPool) -> sqlx::Result<Vec<Waypoint>> {
+    async fn get_all(database_pool: &DbPool) -> sqlx::Result<Vec<Waypoint>> {
         sqlx::query_as!(
             Waypoint,
             r#"
@@ -66,7 +69,7 @@ impl DatabaseConnector<Waypoint> for Waypoint {
                 FROM waypoint
             "#
         )
-        .fetch_all(database_pool)
+        .fetch_all(&database_pool.database_pool)
         .await
     }
 }

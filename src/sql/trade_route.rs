@@ -1,9 +1,9 @@
 use space_traders_client::models;
 
-use super::{sql_models::TradeRoute, DatabaseConnector};
+use super::{sql_models::TradeRoute, DatabaseConnector, DbPool};
 
 impl DatabaseConnector<TradeRoute> for TradeRoute {
-    async fn insert(database_pool: &sqlx::PgPool, item: &TradeRoute) -> sqlx::Result<()> {
+    async fn insert(database_pool: &DbPool, item: &TradeRoute) -> sqlx::Result<()> {
         sqlx::query!(
             r#"
             insert into trade_route (id, symbol, ship_symbol, purchase_waypoint, sell_waypoint, finished, trade_volume, predicted_purchase_price, predicted_sell_price)
@@ -20,13 +20,13 @@ impl DatabaseConnector<TradeRoute> for TradeRoute {
             item.trade_volume,
             item.predicted_purchase_price,
             item.predicted_sell_price
-        ).execute(database_pool).await?;
+        ).execute(&database_pool.database_pool).await?;
 
         Ok(())
     }
 
     async fn insert_bulk(
-        database_pool: &sqlx::PgPool,
+        database_pool: &DbPool,
         items: &Vec<TradeRoute>,
     ) -> sqlx::Result<()> {
         let (
@@ -100,13 +100,13 @@ impl DatabaseConnector<TradeRoute> for TradeRoute {
             &predicted_purchase_price_s,
             &predicted_sell_price_s
         )
-        .execute(database_pool)
+        .execute(&database_pool.database_pool)
         .await?;
 
         Ok(())
     }
 
-    async fn get_all(database_pool: &sqlx::PgPool) -> sqlx::Result<Vec<TradeRoute>> {
+    async fn get_all(database_pool: &DbPool) -> sqlx::Result<Vec<TradeRoute>> {
         sqlx::query_as!(
             TradeRoute,
             r#"
@@ -124,13 +124,13 @@ impl DatabaseConnector<TradeRoute> for TradeRoute {
                 FROM trade_route
             "#
         )
-        .fetch_all(database_pool)
+        .fetch_all(&database_pool.database_pool)
         .await
     }
 }
 
 impl TradeRoute {
-    pub async fn insert_new(database_pool: &sqlx::PgPool, item: &TradeRoute) -> sqlx::Result<i32> {
+    pub async fn insert_new(database_pool: &DbPool, item: &TradeRoute) -> sqlx::Result<i32> {
       struct Erg {
         id:i32
       }
@@ -149,14 +149,14 @@ impl TradeRoute {
             item.trade_volume,
             item.predicted_purchase_price,
             item.predicted_sell_price
-        ).fetch_all(database_pool).await?;
+        ).fetch_all(&database_pool.database_pool).await?;
 
        let erg= erg.first().ok_or_else(||sqlx::Error::RowNotFound)?;
 
         Ok(erg.id)
     }
 
-    pub async fn get_unfinished(database_pool: &sqlx::PgPool) -> sqlx::Result<Vec<TradeRoute>> {
+    pub async fn get_unfinished(database_pool: &DbPool) -> sqlx::Result<Vec<TradeRoute>> {
         sqlx::query_as!(
             TradeRoute,
             r#"
@@ -174,7 +174,7 @@ impl TradeRoute {
                  FROM trade_route WHERE finished=false
             "#
         )
-        .fetch_all(database_pool)
+        .fetch_all(&database_pool.database_pool)
         .await
     }
 }

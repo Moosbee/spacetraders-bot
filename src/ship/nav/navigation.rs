@@ -15,7 +15,7 @@ impl MyShip {
         update_market: bool,
         waypoints: &HashMap<String, models::Waypoint>,
         api: &api::Api,
-        database_pool: sqlx::PgPool,
+        database_pool: crate::sql::DbPool,
         reason: TransactionReason,
     ) -> Result<()> {
         let route = self.calculate_route(waypoints, waypoint)?;
@@ -87,7 +87,7 @@ impl MyShip {
         &mut self,
         instruction: RouteInstruction,
         api: &api::Api,
-        database_pool: &sqlx::PgPool,
+        database_pool: &crate::sql::DbPool,
         update_market: bool,
         reason: TransactionReason,
     ) -> Result<()> {

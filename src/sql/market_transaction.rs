@@ -2,7 +2,7 @@ use std::str::FromStr;
 
 use space_traders_client::models;
 
-use super::sql_models::{DatabaseConnector, MarketTransaction, TransactionReason};
+use super::{sql_models::{DatabaseConnector, MarketTransaction, TransactionReason}, DbPool};
 
 impl MarketTransaction {
     pub fn with(self, reason: TransactionReason) -> Self {
@@ -63,7 +63,7 @@ impl TryFrom<models::MarketTransaction> for MarketTransaction {
 }
 
 impl DatabaseConnector<MarketTransaction> for MarketTransaction {
-    async fn insert(database_pool: &sqlx::PgPool, item: &MarketTransaction) -> sqlx::Result<()> {
+    async fn insert(database_pool: &DbPool, item: &MarketTransaction) -> sqlx::Result<()> {
         sqlx::query!(
         r#"
             INSERT INTO market_transaction (waypoint_symbol, ship_symbol, trade_symbol, "type", units, price_per_unit, total_price, "timestamp", contract, trade_route)
@@ -84,14 +84,14 @@ impl DatabaseConnector<MarketTransaction> for MarketTransaction {
         item.contract,
         item.trade_route
     )
-    .execute(database_pool)
+    .execute(&database_pool.database_pool)
     .await?;
 
         Ok(())
     }
 
     async fn insert_bulk(
-        database_pool: &sqlx::PgPool,
+        database_pool: &DbPool,
         items: &Vec<MarketTransaction>,
     ) -> sqlx::Result<()> {
         let (
@@ -177,13 +177,13 @@ impl DatabaseConnector<MarketTransaction> for MarketTransaction {
         &t_contract as &[Option<String>],
         &t_trade_route as &[Option<i32>]
     )
-    .execute(database_pool)
+    .execute(&database_pool.database_pool)
     .await?;
 
         Ok(())
     }
 
-    async fn get_all(database_pool: &sqlx::PgPool) -> sqlx::Result<Vec<MarketTransaction>> {
+    async fn get_all(database_pool: &DbPool) -> sqlx::Result<Vec<MarketTransaction>> {
         sqlx::query_as!(
             MarketTransaction,
             r#"
@@ -200,7 +200,7 @@ impl DatabaseConnector<MarketTransaction> for MarketTransaction {
       from market_transaction
     "#,
         )
-        .fetch_all(database_pool)
+        .fetch_all(&database_pool.database_pool)
         .await
     }
 }

@@ -1,9 +1,12 @@
 use space_traders_client::models;
 
-use super::sql_models::{DatabaseConnector, MarketTrade};
+use super::{
+    sql_models::{DatabaseConnector, MarketTrade},
+    DbPool,
+};
 
 impl DatabaseConnector<MarketTrade> for MarketTrade {
-    async fn insert(database_pool: &sqlx::PgPool, item: &MarketTrade) -> sqlx::Result<()> {
+    async fn insert(database_pool: &DbPool, item: &MarketTrade) -> sqlx::Result<()> {
         sqlx::query!(
             r#"
                 INSERT INTO market_trade (waypoint_symbol, symbol, type)
@@ -13,16 +16,13 @@ impl DatabaseConnector<MarketTrade> for MarketTrade {
             item.symbol as models::TradeSymbol,
             item.r#type as models::market_trade_good::Type
         )
-        .execute(database_pool)
+        .execute(&database_pool.database_pool)
         .await?;
 
         Ok(())
     }
 
-    async fn insert_bulk(
-        database_pool: &sqlx::PgPool,
-        items: &Vec<MarketTrade>,
-    ) -> sqlx::Result<()> {
+    async fn insert_bulk(database_pool: &DbPool, items: &Vec<MarketTrade>) -> sqlx::Result<()> {
         let waypoint_symbols = items
             .iter()
             .map(|m| m.waypoint_symbol.clone())
@@ -54,12 +54,12 @@ impl DatabaseConnector<MarketTrade> for MarketTrade {
             &types as &[models::market_trade_good::Type]
         );
 
-        let _insert = insert.execute(database_pool).await?;
+        let _insert = insert.execute(&database_pool.database_pool).await?;
 
         Ok(())
     }
 
-    async fn get_all(database_pool: &sqlx::PgPool) -> sqlx::Result<Vec<MarketTrade>> {
+    async fn get_all(database_pool: &DbPool) -> sqlx::Result<Vec<MarketTrade>> {
         sqlx::query_as!(
             MarketTrade,
             r#"
@@ -71,14 +71,14 @@ impl DatabaseConnector<MarketTrade> for MarketTrade {
                 FROM market_trade
             "#
         )
-        .fetch_all(database_pool)
+        .fetch_all(&database_pool.database_pool)
         .await
     }
 }
 
 impl MarketTrade {
     pub async fn get_last_by_symbol(
-        database_pool: &sqlx::PgPool,
+        database_pool: &DbPool,
         trade_symbol: &models::TradeSymbol,
     ) -> sqlx::Result<Vec<MarketTrade>> {
         let row: Vec<MarketTrade> = sqlx::query_as!(
@@ -94,12 +94,12 @@ impl MarketTrade {
     "#,
             *trade_symbol as models::TradeSymbol
         )
-        .fetch_all(database_pool)
+        .fetch_all(&database_pool.database_pool)
         .await?;
         Ok(row)
     }
 
-    pub async fn get_last(database_pool: &sqlx::PgPool) -> sqlx::Result<Vec<MarketTrade>> {
+    pub async fn get_last(database_pool: &DbPool) -> sqlx::Result<Vec<MarketTrade>> {
         let row: Vec<MarketTrade> = sqlx::query_as!(
             MarketTrade,
             r#"
@@ -112,7 +112,7 @@ impl MarketTrade {
             ORDER BY waypoint_symbol, symbol, created_at DESC
     "#,
         )
-        .fetch_all(database_pool)
+        .fetch_all(&database_pool.database_pool)
         .await?;
         Ok(row)
     }

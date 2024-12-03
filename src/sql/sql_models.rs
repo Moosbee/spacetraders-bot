@@ -1,5 +1,10 @@
 use space_traders_client::models;
 
+#[derive(Debug, Clone)]
+pub struct DbPool {
+    pub database_pool: sqlx::PgPool,
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct Waypoint {
     pub symbol: String,
@@ -159,10 +164,10 @@ impl std::fmt::Display for TradeRoute {
 
 pub trait DatabaseConnector<T> {
     /// Insert a new item into the database, or update it if it already exists.
-    async fn insert(database_pool: &sqlx::PgPool, item: &T) -> sqlx::Result<()>;
+    async fn insert(database_pool: &DbPool, item: &T) -> sqlx::Result<()>;
     /// Insert multiple items into the database, or update them if they already exist.
-    async fn insert_bulk(database_pool: &sqlx::PgPool, items: &Vec<T>) -> sqlx::Result<()>;
+    async fn insert_bulk(database_pool: &DbPool, items: &Vec<T>) -> sqlx::Result<()>;
     #[allow(dead_code)]
     /// Get all items from the database.
-    async fn get_all(database_pool: &sqlx::PgPool) -> sqlx::Result<Vec<T>>;
+    async fn get_all(database_pool: &DbPool) -> sqlx::Result<Vec<T>>;
 }

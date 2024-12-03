@@ -193,7 +193,7 @@ impl super::types::Conductor for MarketScraper {
     }
 }
 
-pub async fn update_markets(markets: Vec<models::Market>, database_pool: sqlx::PgPool) {
+pub async fn update_markets(markets: Vec<models::Market>, database_pool: sql::DbPool) {
     let market_goods = markets
         .iter()
         .filter(|m| m.trade_goods.is_some())
@@ -260,7 +260,7 @@ pub async fn update_markets(markets: Vec<models::Market>, database_pool: sqlx::P
         .unwrap();
 }
 
-pub async fn update_market(market: models::Market, database_pool: &sqlx::PgPool) {
+pub async fn update_market(market: models::Market, database_pool: &sql::DbPool) {
     if let Some(trade_goods) = market.trade_goods {
         sql::MarketTradeGood::insert_bulk(
             database_pool,

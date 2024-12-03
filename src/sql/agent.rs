@@ -1,6 +1,6 @@
 use super::{
     sql_models::{self, Agent},
-    DatabaseConnector,
+    DatabaseConnector, DbPool,
 };
 
 impl From<space_traders_client::models::Agent> for Agent {
@@ -18,19 +18,19 @@ impl From<space_traders_client::models::Agent> for Agent {
 }
 
 impl DatabaseConnector<Agent> for sql_models::Agent {
-    async fn insert(database_pool: &sqlx::PgPool, item: &Agent) -> sqlx::Result<()> {
+    async fn insert(database_pool: &DbPool, item: &Agent) -> sqlx::Result<()> {
         sqlx::query!(
             r#"
                 INSERT INTO agent (symbol, account_id, headquarters, credits, starting_faction, ship_count)
                 VALUES ($1, $2, $3, $4, $5, $6)
             "#,
             item.symbol, item.account_id, item.headquarters, item.credits, item.starting_faction, item.ship_count
-        ).execute(database_pool).await?;
+        ).execute(&database_pool.database_pool).await?;
 
         Ok(())
     }
 
-    async fn insert_bulk(database_pool: &sqlx::PgPool, items: &Vec<Agent>) -> sqlx::Result<()> {
+    async fn insert_bulk(database_pool: &DbPool, items: &Vec<Agent>) -> sqlx::Result<()> {
         let (
             (
               (account_ids,symbols),
@@ -64,21 +64,21 @@ impl DatabaseConnector<Agent> for sql_models::Agent {
         &creditss,
         &starting_factions,  
         &ship_counts
-    ).execute(database_pool).await?;
+    ).execute(&database_pool.database_pool).await?;
     
 // let mm:(Vec<_>,Vec<_>)=ag.iter().unzip();
 
         Ok(())
     }
 
-    async fn get_all(database_pool: &sqlx::PgPool) -> sqlx::Result<Vec<Agent>> {
+    async fn get_all(database_pool: &DbPool) -> sqlx::Result<Vec<Agent>> {
         sqlx::query_as!(
             Agent,
             r#"
                 SELECT symbol, account_id, headquarters, credits, starting_faction, ship_count, created_at FROM agent
             "#
         ) 
-        .fetch_all(database_pool)
+        .fetch_all(&database_pool.database_pool)
         .await
     }
 }

@@ -1,6 +1,6 @@
 use space_traders_client::models;
 
-use super::sql_models::{DatabaseConnector, MarketTradeGood};
+use super::{sql_models::{DatabaseConnector, MarketTradeGood}, DbPool};
 
 impl From<MarketTradeGood> for models::MarketTradeGood {
     fn from(val: MarketTradeGood) -> Self {
@@ -34,7 +34,7 @@ impl MarketTradeGood {
 }
 
 impl DatabaseConnector<MarketTradeGood> for MarketTradeGood {
-    async fn insert(database_pool: &sqlx::PgPool, item: &MarketTradeGood) -> sqlx::Result<()> {
+    async fn insert(database_pool: &DbPool, item: &MarketTradeGood) -> sqlx::Result<()> {
         sqlx::query!(
             r#"
                 INSERT INTO market_trade_good (
@@ -58,15 +58,12 @@ impl DatabaseConnector<MarketTradeGood> for MarketTradeGood {
             item.purchase_price,
             item.sell_price
         )
-        .execute(database_pool)
+        .execute(&database_pool.database_pool)
         .await?;
         Ok(())
     }
 
-    async fn insert_bulk(
-        database_pool: &sqlx::PgPool,
-        items: &Vec<MarketTradeGood>,
-    ) -> sqlx::Result<()> {
+    async fn insert_bulk(database_pool: &DbPool, items: &Vec<MarketTradeGood>) -> sqlx::Result<()> {
         let (
             ((m_symbol, f_symbol), (f_type, f_trade_volume)),
             ((f_supply, f_activity), (f_purchase_price, f_sell_price)),
@@ -82,10 +79,7 @@ impl DatabaseConnector<MarketTradeGood> for MarketTradeGood {
                             (m.waypoint_symbol.clone(), m.symbol),
                             (m.r#type, m.trade_volume),
                         ),
-                        (
-                            (m.supply, m.activity),
-                            (m.purchase_price, m.sell_price),
-                        ),
+                        ((m.supply, m.activity), (m.purchase_price, m.sell_price)),
                     )
                 }
             })
@@ -124,14 +118,12 @@ impl DatabaseConnector<MarketTradeGood> for MarketTradeGood {
             &f_sell_price,
         );
 
-        let _insert = insert.execute(database_pool).await.unwrap();
+        let _insert = insert.execute(&database_pool.database_pool).await.unwrap();
 
         Ok(())
     }
 
-    async fn get_all(database_pool: &sqlx::PgPool) -> sqlx::Result<Vec<MarketTradeGood>> {
-        
-
+    async fn get_all(database_pool: &DbPool) -> sqlx::Result<Vec<MarketTradeGood>> {
         sqlx::query_as!(
             MarketTradeGood,
             r#"
@@ -150,18 +142,16 @@ impl DatabaseConnector<MarketTradeGood> for MarketTradeGood {
             ORDER BY symbol, created DESC
         "#,
         )
-        .fetch_all(database_pool)
+        .fetch_all(&database_pool.database_pool)
         .await
     }
 }
 
 impl MarketTradeGood {
     pub async fn get_last_by_waypoint(
-        database_pool: &sqlx::PgPool,
+        database_pool: &DbPool,
         waypoint_symbol: &str,
     ) -> sqlx::Result<Vec<MarketTradeGood>> {
-        
-
         sqlx::query_as!(
             MarketTradeGood,
             r#"
@@ -182,12 +172,12 @@ impl MarketTradeGood {
         "#,
             waypoint_symbol,
         )
-        .fetch_all(database_pool)
+        .fetch_all(&database_pool.database_pool)
         .await
     }
 
     pub async fn get_last_by_symbol(
-        database_pool: &sqlx::PgPool,
+        database_pool: &DbPool,
         trade_symbol: &models::TradeSymbol,
     ) -> sqlx::Result<Vec<MarketTradeGood>> {
         let row = sqlx::query_as!(
@@ -210,15 +200,13 @@ impl MarketTradeGood {
         "#,
             *trade_symbol as models::TradeSymbol
         )
-        .fetch_all(database_pool)
+        .fetch_all(&database_pool.database_pool)
         .await?;
 
         Ok(row)
     }
 
-    pub async fn get_last(database_pool: &sqlx::PgPool) -> sqlx::Result<Vec<MarketTradeGood>> {
-        
-
+    pub async fn get_last(database_pool: &DbPool) -> sqlx::Result<Vec<MarketTradeGood>> {
         sqlx::query_as!(
             MarketTradeGood,
             r#"
@@ -237,7 +225,7 @@ impl MarketTradeGood {
             ORDER BY symbol, waypoint_symbol, created DESC
         "#,
         )
-        .fetch_all(database_pool)
+        .fetch_all(&database_pool.database_pool)
         .await
     }
 }

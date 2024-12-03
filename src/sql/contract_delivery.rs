@@ -1,14 +1,13 @@
 use space_traders_client::models;
 
-use super::sql_models::DatabaseConnector;
+use super::{sql_models::DatabaseConnector, DbPool};
 
 impl super::sql_models::ContractDelivery {
     pub fn from_contract_deliver_good(
         contract_delivery: models::contract_deliver_good::ContractDeliverGood,
         contract_id: &str,
     ) -> Result<Self, anyhow::Error> {
-        let trade_symbol =
-            models::TradeSymbol::try_from(contract_delivery.trade_symbol.as_str())?;
+        let trade_symbol = models::TradeSymbol::try_from(contract_delivery.trade_symbol.as_str())?;
 
         Ok(super::sql_models::ContractDelivery {
             contract_id: contract_id.to_string(),
@@ -24,7 +23,7 @@ impl DatabaseConnector<super::sql_models::ContractDelivery>
     for super::sql_models::ContractDelivery
 {
     async fn insert(
-        database_pool: &sqlx::PgPool,
+        database_pool: &DbPool,
         item: &super::sql_models::ContractDelivery,
     ) -> sqlx::Result<()> {
         sqlx::query!(
@@ -40,13 +39,13 @@ impl DatabaseConnector<super::sql_models::ContractDelivery>
             item.destination_symbol,
             item.units_required,
             item.units_fulfilled
-        ).execute(database_pool).await?;
+        ).execute(&database_pool.database_pool).await?;
 
         Ok(())
     }
 
     async fn insert_bulk(
-        database_pool: &sqlx::PgPool,
+        database_pool: &DbPool,
         items: &Vec<super::sql_models::ContractDelivery>,
     ) -> sqlx::Result<()> {
         let (
@@ -96,14 +95,14 @@ impl DatabaseConnector<super::sql_models::ContractDelivery>
             &units_required,
             &units_fulfilled
         )
-        .execute(database_pool)
+        .execute(&database_pool.database_pool)
         .await?;
 
         Ok(())
     }
 
     async fn get_all(
-        database_pool: &sqlx::PgPool,
+        database_pool: &DbPool,
     ) -> sqlx::Result<Vec<super::sql_models::ContractDelivery>> {
         sqlx::query_as!(
             super::sql_models::ContractDelivery,
@@ -117,7 +116,7 @@ impl DatabaseConnector<super::sql_models::ContractDelivery>
             FROM contract_delivery
         "#
         )
-        .fetch_all(database_pool)
+        .fetch_all(&database_pool.database_pool)
         .await
     }
 }

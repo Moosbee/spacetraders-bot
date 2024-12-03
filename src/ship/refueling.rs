@@ -31,7 +31,7 @@ impl MyShip {
         &mut self,
         instruction: &RouteInstruction,
         api: &api::Api,
-        database_pool: &sqlx::PgPool,
+        database_pool: &sql::DbPool,
         update_market: bool,
         reason: sql::TransactionReason,
     ) -> anyhow::Result<()> {
@@ -72,7 +72,7 @@ impl MyShip {
     async fn handle_space_refuel(
         &mut self,
         api: &api::Api,
-        database_pool: &sqlx::PgPool,
+        database_pool: &sql::DbPool,
         requirements: RefuelRequirements,
         reason: sql::TransactionReason,
     ) -> anyhow::Result<()> {
@@ -110,7 +110,7 @@ impl MyShip {
     async fn handle_marketplace_refuel(
         &mut self,
         api: &api::Api,
-        database_pool: &sqlx::PgPool,
+        database_pool: &sql::DbPool,
         requirements: RefuelRequirements,
         update_market: bool,
         reason: sql::TransactionReason,

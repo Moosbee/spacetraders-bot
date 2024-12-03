@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use space_traders_client::models::{self, ShipRole, TradeSymbol};
 
-use crate::types::ISubject;
+use crate::types::Subject;
 
 use super::ShipManager;
 
@@ -105,10 +105,6 @@ impl MyShip {
         self.cargo.update(&ship.cargo);
         self.fuel.update(&ship.fuel);
     }
-
-    // pub fn set_mpsc(&mut self, mpsc: tokio::sync::mpsc::Sender<MyShip>) {
-    //     self.mpsc = Some(mpsc);
-    // }
 
     pub async fn notify(&self) {
         self.pubsub.notify_observers(self.clone()).await;
