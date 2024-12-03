@@ -1,6 +1,6 @@
 use anyhow::Result;
-use chrono::{DateTime, Utc};
-use log::debug;
+use chrono::{DateTime, TimeDelta, Utc};
+use log::{debug, info};
 use space_traders_client::{apis, models};
 use std::collections::HashMap;
 
@@ -19,12 +19,16 @@ impl MyShip {
         reason: TransactionReason,
     ) -> Result<()> {
         let route = self.calculate_route(waypoints, waypoint)?;
-        let route_stats = super::stats::calc_route_stats(waypoints, &route, self.engine_speed);
+        let route_stats: (Vec<super::nav_models::ConnectionDetails>, f64, i32, f64) =
+            super::stats::calc_route_stats(waypoints, &route, self.engine_speed);
         let instructions: Vec<RouteInstruction> =
-            super::stats::generate_route_instructions(route_stats.0);
+            super::stats::generate_route_instructions(route_stats.0.clone());
+
+        let current = Utc::now();
+        let arrival = current + TimeDelta::seconds(route_stats.3.round() as i64);
 
         self.nav.auto_pilot = Some(AutopilotState {
-            departure_time: Utc::now(),
+            departure_time: current,
             destination_symbol: waypoint.to_string(),
             destination_system_symbol: waypoints.get(waypoint).unwrap().system_symbol.clone(),
             distance: route_stats.1,
@@ -32,20 +36,29 @@ impl MyShip {
             origin_symbol: self.nav.waypoint_symbol.clone(),
             origin_system_symbol: self.nav.system_symbol.clone(),
             instructions: instructions.clone(),
-            travel_time: route_stats.3.num_seconds(),
-            arrival: Utc::now() + route_stats.3,
+            travel_time: route_stats.3,
+            arrival,
+            connections: route_stats.0.clone(),
         });
         self.notify().await;
 
-        for instruction in instructions {
+        for instruction in instructions.iter().zip(route_stats.0.iter()) {
             self.execute_navigation_step(
-                instruction,
+                instruction.0.clone(),
                 api,
                 &database_pool,
                 update_market,
                 reason.clone(),
             )
             .await?;
+
+            info!(
+                "Time {} {} {:?} {:?}",
+                self.nav.route.departure_time,
+                self.nav.route.arrival,
+                self.nav.route.arrival - self.nav.route.departure_time,
+                instruction.1.travel_time
+            );
         }
 
         let _ = self.nav.wait_for_arrival().await;
@@ -99,6 +112,7 @@ impl MyShip {
         );
 
         self.navigate(api, &instruction.end_symbol).await?;
+
         Ok(())
     }
 

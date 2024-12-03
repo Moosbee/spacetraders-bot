@@ -93,7 +93,13 @@ impl TradingFleet {
         self.context
             .ship_roles
             .iter()
-            .filter(|(_, role)| **role == ship::Role::Trader)
+            .filter(|(_, role)| {
+                if let ship::Role::Trader(_) = role {
+                    true
+                } else {
+                    false
+                }
+            })
             .map(|(symbol, _)| symbol.clone())
             .collect()
     }
@@ -108,7 +114,7 @@ impl TradingFleet {
         ))
         .await;
 
-        for _ in 0..CONFIG.trading.trade_cycle {
+        for i in 0..CONFIG.trading.trade_cycle {
             if self.please_stop.is_cancelled() {
                 info!("Trade cycle cancelled for {} ", ship_symbol);
                 break;
@@ -118,7 +124,7 @@ impl TradingFleet {
                 .get_best_route(&ship, &self.running_routes)
                 .await?;
             self.trade_executor
-                .process_trade_route(&mut ship, route.into())
+                .process_trade_route(&mut ship, route.into(), i)
                 .await?;
         }
 
@@ -132,7 +138,7 @@ impl TradingFleet {
         for trade_route in unfinished_trades {
             if (trade_route.ship_symbol == ship.symbol) && (trade_route.finished == false) {
                 self.trade_executor
-                    .process_trade_route(ship, trade_route)
+                    .process_trade_route(ship, trade_route, 0)
                     .await?;
             }
         }
@@ -154,7 +160,7 @@ impl TradingFleet {
                     .calc_concrete_trade_route(ship, trade_route.clone());
                 if ship.cargo.has(&symbol) {
                     self.trade_executor
-                        .process_trade_route(ship, concrete.into())
+                        .process_trade_route(ship, concrete.into(), 0)
                         .await?;
                 }
             }

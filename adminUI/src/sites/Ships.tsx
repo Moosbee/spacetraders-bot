@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import PageTitle from "../features/PageTitle";
 import Timer from "../features/Timer/Timer";
 import { ShipNavFlightMode, ShipNavStatus, ShipRole } from "../models/api";
-import RustShip, { SystemShipRole } from "../models/ship";
+import RustShip, { SystemShipRole, SystemShipRoles } from "../models/ship";
 import useMyStore, { backendUrl } from "../store";
 
 function Ships() {
@@ -33,12 +33,26 @@ function Ships() {
       title: "Role",
       dataIndex: "role",
       key: "role",
-      filters: Object.values(SystemShipRole).map((role) => ({
+      filters: Object.values(SystemShipRoles).map((role) => ({
         text: role,
         value: role,
       })),
-      onFilter: (value, record) => record.role === value,
-      sorter: (a, b) => a.role.localeCompare(b.role),
+      render: (role: SystemShipRole) =>
+        `${role.type} ${
+          role.type === "Contract"
+            ? role.data === null
+              ? ""
+              : role.data[0] + " (" + role.data[1] + ")"
+            : ""
+        }${
+          role.type === "Trader"
+            ? role.data === null
+              ? ""
+              : role.data[0] + " (" + role.data[1] + ")"
+            : ""
+        }`,
+      onFilter: (value, record) => record.role.type === value,
+      sorter: (a, b) => a.role.type.localeCompare(b.role.type),
     },
     {
       title: "Registration Role",

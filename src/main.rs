@@ -96,14 +96,14 @@ async fn main() -> anyhow::Result<()> {
     .unwrap();
 
     let ship_roles: std::collections::HashMap<String, ship::Role> = vec![
-        ("MOOSBEE-1".to_string(), ship::Role::Contract),
+        ("MOOSBEE-1".to_string(), ship::Role::Contract(None)),
         ("MOOSBEE-2".to_string(), ship::Role::Scraper),
-        ("MOOSBEE-3".to_string(), ship::Role::Trader),
-        ("MOOSBEE-4".to_string(), ship::Role::Trader),
-        ("MOOSBEE-5".to_string(), ship::Role::Trader),
-        ("MOOSBEE-6".to_string(), ship::Role::Trader),
-        ("MOOSBEE-7".to_string(), ship::Role::Trader),
-        ("MOOSBEE-8".to_string(), ship::Role::Trader),
+        ("MOOSBEE-3".to_string(), ship::Role::Trader(None)),
+        ("MOOSBEE-4".to_string(), ship::Role::Trader(None)),
+        ("MOOSBEE-5".to_string(), ship::Role::Trader(None)),
+        ("MOOSBEE-6".to_string(), ship::Role::Trader(None)),
+        ("MOOSBEE-7".to_string(), ship::Role::Trader(None)),
+        ("MOOSBEE-8".to_string(), ship::Role::Trader(None)),
         ("MOOSBEE-9".to_string(), ship::Role::Scraper),
         ("MOOSBEE-A".to_string(), ship::Role::Scraper),
         ("MOOSBEE-B".to_string(), ship::Role::Scraper),
@@ -169,7 +169,10 @@ async fn main() -> anyhow::Result<()> {
             .iter()
             .map(|s| {
                 let mut ship_i = ship::MyShip::from_ship(s.clone());
-                ship_i.role = *ship_roles.get(&s.symbol).unwrap_or(&ship::Role::Manuel);
+                ship_i.role = ship_roles
+                    .get(&s.symbol)
+                    .unwrap_or(&ship::Role::Manuel)
+                    .clone();
                 ship_i.set_mpsc(ship_tx.clone());
 
                 (s.symbol.clone(), ship_i)

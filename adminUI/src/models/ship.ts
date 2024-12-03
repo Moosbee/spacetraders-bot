@@ -58,9 +58,9 @@ interface RustShip {
   fuel: Fuel;
 }
 
-export type SystemShipRole =
-  (typeof SystemShipRole)[keyof typeof SystemShipRole];
-export const SystemShipRole = {
+export type SystemShipRoles =
+  (typeof SystemShipRoles)[keyof typeof SystemShipRoles];
+export const SystemShipRoles = {
   Construction: "Construction",
   Trader: "Trader",
   Contract: "Contract",
@@ -68,5 +68,13 @@ export const SystemShipRole = {
   Mining: "Mining",
   Manuel: "Manuel",
 } as const;
+
+export type SystemShipRole =
+  | { type: "Construction" }
+  | { type: "Trader"; data: [number, number] | null }
+  | { type: "Contract"; data: [string, number] | null }
+  | { type: "Scraper" }
+  | { type: "Mining" }
+  | { type: "Manuel" }; // Default role
 
 export default RustShip;

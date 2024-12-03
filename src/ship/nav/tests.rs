@@ -5,12 +5,12 @@ mod tests {
     use space_traders_client::models;
 
     use crate::ship::{
-        ship_models::MyShip,
         nav::{
             nav_models::{NavMode, RouteConnection},
             stats::get_travel_stats,
             utils::get_route,
         },
+        ship_models::MyShip,
     };
 
     #[test]
@@ -18,9 +18,7 @@ mod tests {
         let erg = get_travel_stats(10, models::ShipNavFlightMode::Cruise, (0, 0), (3, 4));
 
         assert!(
-            erg.distance == 5.0
-                && erg.fuel_cost == 5
-                && erg.travel_time == chrono::Duration::milliseconds((27.5 * 1000.0) as i64),
+            erg.distance == 5.0 && erg.fuel_cost == 5 && erg.travel_time == 27_500.0,
             "erg != 5.0, 5, 27.5 was {:?}",
             erg
         );

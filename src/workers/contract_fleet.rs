@@ -50,24 +50,30 @@ impl ContractFleet {
         // Process existing contracts
         let mut contract_queue = self.get_unfulfilled_contracts().await?;
         while let Some(contract) = contract_queue.pop_front() {
-            self.process_contract(&contract, primary_ship).await?;
+            self.process_contract(&contract, primary_ship, -1).await?;
         }
 
         // Process new contracts
-        for _ in 0..CONFIG.contracts.max_contracts {
+        for i in 0..CONFIG.contracts.max_contracts {
             if self.please_stop.is_cancelled() {
                 break;
             }
             info!("Negotiating new contract");
             let next_contract = self.negotiate_next_contract(&contract_ships).await?;
-            self.process_contract(&next_contract, primary_ship).await?;
+            self.process_contract(&next_contract, primary_ship, i)
+                .await?;
         }
 
         info!("Contract workers done");
         Ok(())
     }
 
-    async fn process_contract(&self, contract: &Contract, ship_symbol: &str) -> Result<()> {
+    async fn process_contract(
+        &self,
+        contract: &Contract,
+        ship_symbol: &str,
+        num: i32,
+    ) -> Result<()> {
         info!("Processing contract: {:?}", contract);
 
         if !self.is_contract_viable(contract).await? {
@@ -102,6 +108,7 @@ impl ContractFleet {
                 contract.clone(),
                 ship_symbol.to_string(),
                 waypoints.values().cloned().collect(),
+                num,
             )
             .await
             .unwrap();
@@ -137,6 +144,7 @@ impl ContractFleet {
         contract: Contract,
         ship_symbol: String,
         waypoints: Vec<Waypoint>,
+        num: i32,
     ) -> Result<Contract> {
         let procurements = contract
             .terms
@@ -154,6 +162,9 @@ impl ContractFleet {
             .my_ships
             .get_mut(&ship_symbol)
             .context("Ship not found")?;
+
+        ship.role = ship::Role::Contract(Some((current_contract.id.clone(), num)));
+        ship.notify().await;
 
         for mut procurement in procurements {
             let trade_symbol = TradeSymbol::from_str(&procurement.trade_symbol)?;
@@ -183,6 +194,9 @@ impl ContractFleet {
                 procurement = self.get_updated_procurement(&current_contract, &procurement)?;
             }
         }
+
+        ship.role = ship::Role::Contract(None);
+        ship.notify().await;
 
         Ok(current_contract)
     }
@@ -222,7 +236,15 @@ impl ContractFleet {
             .context
             .ship_roles
             .iter()
-            .filter(|(_, role)| **role == ship::Role::Contract)
+            .filter(|(_, role)| {
+                let role = if let ship::Role::Contract(_) = role {
+                    true
+                } else {
+                    false
+                };
+
+                role
+            })
             .map(|(symbol, _)| symbol.clone())
             .collect();
 

@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use chrono::{DateTime, Utc};
+use serde_with::serde_as;
 use space_traders_client::models;
 
 #[derive(Debug, Default, serde::Serialize, Clone)]
@@ -56,14 +57,15 @@ pub struct RouteInstruction {
     pub fuel_in_cargo: i32,
 }
 
-#[derive(Debug, Clone)]
+#[serde_as]
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct ConnectionDetails {
     pub start: models::Waypoint,
     pub end: models::Waypoint,
     pub flight_mode: models::ShipNavFlightMode,
     pub distance: f64,
     pub fuel_cost: i32,
-    pub travel_time: chrono::Duration,
+    pub travel_time: f64,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -87,7 +89,8 @@ pub struct AutopilotState {
     pub distance: f64,
     pub fuel_cost: i32,
     pub instructions: Vec<RouteInstruction>,
-    pub travel_time: i64,
+    pub connections: Vec<super::nav_models::ConnectionDetails>,
+    pub travel_time: f64,
 }
 
 #[derive(Debug, Default, Clone)]

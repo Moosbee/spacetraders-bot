@@ -425,7 +425,44 @@ function createTransitingShipPoint(
 function calculateRouteMapPoints(
   waypointsMp: WaypointMapPoint[],
   shipsMp: ShipMapPoint[]
-) {
-  return [];
+): RouteMapPoint[] {
+  const routesMp: RouteMapPoint[][] = shipsMp.map((s) => {
+    if (s.ship.nav.auto_pilot === null) return [];
+    return s.ship.nav.auto_pilot.instructions.map((i) => {
+      const startWaypoint = waypointsMp.find(
+        (w) => w.waypoint.symbol === i.start_symbol
+      );
+      const endWaypoint = waypointsMp.find(
+        (w) => w.waypoint.symbol === i.end_symbol
+      );
+      // const distance = Math.sqrt(
+      //   Math.pow(startWaypoint?.xOne ?? 0 - (endWaypoint?.xOne ?? 0), 2) +
+      //     Math.pow(startWaypoint?.yOne ?? 0 - (endWaypoint?.yOne ?? 0), 2)
+      // );
+      const route: RouteMapPoint = {
+        destination: i.end_symbol,
+        wpSymbol: i.start_symbol,
+        mode: i.flight_mode,
+        x1: startWaypoint?.xOne ?? 0,
+        y1: startWaypoint?.yOne ?? 0,
+        x2: endWaypoint?.xOne ?? 0,
+        y2: endWaypoint?.yOne ?? 0,
+        distance: 1,
+      };
+      return route;
+    });
+  });
+
+  return routesMp
+    .flat()
+    .filter(
+      (r, i, a) =>
+        a.findIndex(
+          (r2) =>
+            r2.destination === r.destination &&
+            r2.wpSymbol === r.wpSymbol &&
+            r2.mode === r.mode
+        ) === i
+    );
 }
 export default WaypointMap;

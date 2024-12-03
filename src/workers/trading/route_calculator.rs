@@ -180,7 +180,7 @@ impl RouteCalculator {
         ship: &ship::MyShip,
         trade_route: &PossibleTradeRoute,
         total_fuel_cost: i32,
-        total_travel_time: chrono::TimeDelta,
+        total_travel_time: f64,
     ) -> TripStats {
         let trip_fuel_cost = (total_fuel_cost * 2) / 100 * CONFIG.trading.fuel_cost;
 
@@ -192,13 +192,13 @@ impl RouteCalculator {
         let trip_total_cost = trade_route.purchase_price * trip_volume + trip_fuel_cost;
         let trip_total_profit = trade_route.sell_price * trip_volume - trip_total_cost;
 
-        let trip_per_hour = (total_travel_time.num_milliseconds() * 2) as f64
+        let trip_per_hour = (total_travel_time * 1000.0 * 2.0)
             / (chrono::TimeDelta::hours(1).num_milliseconds()) as f64;
 
         let profit_per_hour = trip_total_profit as f64 / trip_per_hour;
 
         TripStats {
-            trip_time: total_travel_time * 2,
+            trip_time: total_travel_time * 2.0,
             trip_fuel_cost,
             trip_fuel_units: total_fuel_cost * 2,
             trip_units: trip_volume,
@@ -214,9 +214,9 @@ impl RouteCalculator {
         ship: &ship::MyShip,
         trade_route: &PossibleTradeRoute,
         total_fuel_cost: i32,
-        total_travel_time: chrono::TimeDelta,
+        total_travel_time: f64,
         total_fuel_cost_to: i32,
-        total_travel_time_to: chrono::TimeDelta,
+        total_travel_time_to: f64,
     ) -> TripStats {
         let trip_fuel_cost =
             (total_fuel_cost * total_fuel_cost_to) / 100 * CONFIG.trading.fuel_cost;
@@ -229,8 +229,7 @@ impl RouteCalculator {
         let trip_total_cost = trade_route.purchase_price * trip_volume + trip_fuel_cost;
         let trip_total_profit = trade_route.sell_price * trip_volume - trip_total_cost;
 
-        let trip_per_hour = (total_travel_time.num_milliseconds()
-            + total_travel_time_to.num_milliseconds()) as f64
+        let trip_per_hour = (total_travel_time * 1000.0 + total_travel_time_to * 1000.0)
             / (chrono::TimeDelta::hours(1).num_milliseconds()) as f64;
 
         let profit_per_hour = trip_total_profit as f64 / trip_per_hour;

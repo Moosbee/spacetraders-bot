@@ -1,11 +1,12 @@
 use chrono::{DateTime, Utc};
 use space_traders_client::models::{self, ShipRole, TradeSymbol};
 
-#[derive(Debug, Clone, Copy, PartialEq, Default, serde::Serialize)]
+#[derive(Debug, Clone, PartialEq, Default, serde::Serialize)]
+#[serde(tag = "type", content = "data")]
 pub enum Role {
     Construction,
-    Trader,
-    Contract,
+    Trader(Option<(i32, u32)>),
+    Contract(Option<(String, i32)>),
     Scraper,
     Mining,
     #[default]

@@ -27,6 +27,7 @@ impl TradeProcessor {
         &self,
         ship: &mut ship::MyShip,
         route: sql::TradeRoute,
+        num: u32,
     ) -> anyhow::Result<()> {
         if self.running_routes.is_locked(&route.clone().into()) {
             return Err(anyhow::anyhow!("Route has been locked"));
@@ -38,9 +39,15 @@ impl TradeProcessor {
 
         let trade_record = self.record_trade_start(&route).await?;
 
+        ship.role = ship::Role::Trader(Some((trade_record.id, num)));
+        ship.notify().await;
+
         self.execute_trade(ship, &route, trade_record.id).await?;
 
         self.complete_trade_record(trade_record).await?;
+
+        ship.role = ship::Role::Trader(None);
+        ship.notify().await;
 
         info!("Completed route: {}", route);
 
