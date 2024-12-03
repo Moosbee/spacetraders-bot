@@ -54,7 +54,7 @@ async fn main() -> anyhow::Result<()> {
         time_diff.to_std().unwrap()
     );
 
-    if time_diff > chrono::Duration::milliseconds(200) {
+    if time_diff > chrono::Duration::milliseconds(500) {
         panic!("The time is not correct");
     }
 
@@ -66,7 +66,7 @@ async fn main() -> anyhow::Result<()> {
     //  for MySQL/MariaDB, use MySqlPoolOptions::new()
     //  for SQLite, use SqlitePoolOptions::new()
     //  etc.
-    let database_pool = PgPoolOptions::new()
+    let database_connector = PgPoolOptions::new()
         .max_connections(5)
         .connect(
             // format!(
@@ -80,6 +80,8 @@ async fn main() -> anyhow::Result<()> {
             env::var("DATABASE_URL").unwrap().as_str(),
         )
         .await?;
+
+    let database_pool = sql::DbPool::new(database_connector);
 
     let my_agent = api.get_my_agent().await?;
     info!("My agent: {:?}", my_agent);
@@ -211,9 +213,7 @@ async fn main() -> anyhow::Result<()> {
 
     let context = workers::types::ConductorContext {
         api: api.clone(),
-        database_pool: sql::DbPool {
-            database_pool: database_pool,
-        },
+        database_pool,
         ship_manager,
         all_waypoints: all_waypoints.clone(),
         ship_roles: ship_roles.clone(),

@@ -7,7 +7,13 @@ use tokio_stream::wrappers::BroadcastStream;
 use tokio_util::sync::CancellationToken;
 use warp::Filter;
 
-use crate::{config::CONFIG, ship};
+use crate::{
+    config::CONFIG,
+    control_api::types::{WsData, WsObject},
+    ship, sql,
+};
+
+use super::types::MyReceiver;
 
 pub struct ControlApiServer {
     context: crate::workers::types::ConductorContext,
@@ -38,9 +44,13 @@ impl ControlApiServer {
         Box::new(Self::new(context, ship_rx, cancellation_tokens))
     }
 
-    fn create_ship_broadcast_channel(
+    fn create_broadcast_channels(
         &mut self,
-    ) -> (tokio::sync::broadcast::Sender<ship::MyShip>, MyReceiver) {
+    ) -> (
+        tokio::sync::broadcast::Sender<ship::MyShip>,
+        MyReceiver<ship::MyShip>,
+        MyReceiver<sql::Agent>,
+    ) {
         let (ship_broadcast_tx, ship_broadcast_rx) =
             tokio::sync::broadcast::channel::<ship::MyShip>(16);
 
@@ -55,19 +65,28 @@ impl ControlApiServer {
             });
         }
 
+        let agent_rx: MyReceiver<sql::Agent> = MyReceiver(
+            self.context
+                .database_pool
+                .agent_broadcast_channel
+                .1
+                .resubscribe(),
+        );
+
         let ship_broadcast_rx = MyReceiver(ship_broadcast_rx);
-        (ship_broadcast_tx, ship_broadcast_rx)
+        (ship_broadcast_tx, ship_broadcast_rx, agent_rx)
     }
 
     fn build_routes(
         &self,
-        ship_broadcast_rx: MyReceiver,
+        ship_broadcast_rx: MyReceiver<ship::MyShip>,
+        agent_rx: MyReceiver<sql::Agent>,
     ) -> impl warp::Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
         let main = warp::get()
             .and(warp::path::end())
             .and(warp::fs::file("./index.html"));
 
-        let ws_routes = self.build_websocket_routes(ship_broadcast_rx.clone());
+        let ws_routes = self.build_websocket_routes(ship_broadcast_rx, agent_rx);
         let ship_route = self.build_ships_route();
         let shutdown_route = self.build_shutdown_route();
         let waypoints_route = self.build_waypoints_route();
@@ -83,35 +102,58 @@ impl ControlApiServer {
 
     fn build_websocket_routes(
         &self,
-        ship_broadcast_rx: MyReceiver,
+        ship_broadcast_rx: MyReceiver<ship::MyShip>,
+        agent_rx: MyReceiver<sql::Agent>,
     ) -> impl warp::Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
         warp::path("ws")
-            .and(warp::path("ships"))
+            .and(warp::path("all"))
             .and(warp::ws())
             .and(warp::any().map(move || ship_broadcast_rx.clone()))
-            .map(|ws: warp::ws::Ws, ship_broadcast_rx: MyReceiver| {
-                ws.on_upgrade(|websocket| {
-                    info!("New websocket connection");
-                    let (tx, _rx) = websocket.split();
-                    let ship_stream = BroadcastStream::new(ship_broadcast_rx.0);
+            .and(warp::any().map(move || agent_rx.clone()))
+            .map(
+                |ws: warp::ws::Ws,
+                 ship_broadcast_rx: MyReceiver<ship::MyShip>,
+                 agent_rx: MyReceiver<sql::Agent>| {
+                    ws.on_upgrade(|websocket| {
+                        info!("New websocket connection");
+                        let (tx, _rx) = websocket.split();
+                        let ship_stream = BroadcastStream::new(ship_broadcast_rx.0);
+                        let agent_stream = BroadcastStream::new(agent_rx.0);
 
-                    let forwarded_stream = ship_stream
-                        .filter_map(|ship_result| async {
-                            ship_result
-                                .ok()
-                                .and_then(|ship| serde_json::to_string(&ship).ok())
-                        })
-                        .map(|text| Ok(warp::ws::Message::text(text)))
-                        .forward(tx)
-                        .map(|result| {
+                        let ship_stream = ship_stream
+                            .filter_map(|ship_result| async {
+                                ship_result.ok().and_then(|ship| {
+                                    serde_json::to_string(&WsObject {
+                                        data: WsData::RustShip(ship),
+                                    })
+                                    .ok()
+                                })
+                            })
+                            .map(|text| Ok(warp::ws::Message::text(text)));
+
+                        let agent_stream = agent_stream
+                            .filter_map(|agent_result| async {
+                                agent_result.ok().and_then(|agent| {
+                                    serde_json::to_string(&WsObject {
+                                        data: WsData::MyAgent(agent),
+                                    })
+                                    .ok()
+                                })
+                            })
+                            .map(|text| Ok(warp::ws::Message::text(text)));
+
+                        let s = futures::stream::select(ship_stream, agent_stream);
+
+                        let forwarded_stream = s.forward(tx).map(|result| {
                             if let Err(e) = result {
                                 log::error!("websocket error: {:?}", e);
                             }
                         });
 
-                    forwarded_stream
-                })
-            })
+                        forwarded_stream
+                    })
+                },
+            )
     }
 
     fn build_ships_route(
@@ -179,8 +221,8 @@ impl ControlApiServer {
         ))
         .await;
 
-        let (_, ship_broadcast_rx) = self.create_ship_broadcast_channel();
-        let routes = self.build_routes(ship_broadcast_rx);
+        let (_, ship_broadcast_rx, agent_rx) = self.create_broadcast_channels();
+        let routes = self.build_routes(ship_broadcast_rx, agent_rx);
 
         select! {
             _ = self.cancellation_token.cancelled() => {
@@ -213,17 +255,5 @@ impl crate::workers::types::Conductor for ControlApiServer {
 
     fn is_independent(&self) -> bool {
         false
-    }
-}
-
-struct MyReceiver(tokio::sync::broadcast::Receiver<ship::MyShip>);
-
-impl Clone for MyReceiver {
-    fn clone_from(&mut self, source: &Self) {
-        *self = source.clone()
-    }
-
-    fn clone(&self) -> Self {
-        MyReceiver(self.0.resubscribe())
     }
 }

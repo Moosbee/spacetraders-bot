@@ -40,6 +40,7 @@ type Actions = {
     waypoints: Record<string, Waypoint>
   ) => void;
   setWebsocketConnected: (websocketConnected: boolean) => void;
+  setAgent: (agent: Agent) => void;
   reset: () => void;
 };
 
@@ -91,6 +92,7 @@ const useMyStore = create<RootState>()(
           })),
         setWebsocketConnected: (websocketConnected) =>
           set({ websocketConnected }),
+        setAgent: (agent) => set({ myAgent: agent }),
       })),
       {
         name: "root-channel",

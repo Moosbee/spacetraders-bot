@@ -1,12 +1,21 @@
-use space_traders_client::models::Agent;
+use crate::{ship::MyShip, sql::Agent};
 
-use crate::ship::MyShip;
-
-struct WsObject {
-    data: WsData,
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct WsObject {
+    pub data: WsData,
 }
 
-enum WsData {
+#[derive(Debug, Clone, serde::Serialize)]
+#[serde(tag = "type", content = "data")]
+pub enum WsData {
     RustShip(MyShip),
     MyAgent(Agent),
+}
+
+pub struct MyReceiver<T: Clone>(pub tokio::sync::broadcast::Receiver<T>);
+
+impl<T: Clone> Clone for MyReceiver<T> {
+    fn clone(&self) -> Self {
+        MyReceiver(self.0.resubscribe())
+    }
 }

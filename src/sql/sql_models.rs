@@ -1,8 +1,34 @@
 use space_traders_client::models;
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct DbPool {
     pub database_pool: sqlx::PgPool,
+    pub agent_broadcast_channel: (
+        tokio::sync::broadcast::Sender<Agent>,
+        tokio::sync::broadcast::Receiver<Agent>,
+    ),
+}
+
+impl DbPool {
+    pub fn new(database_pool: sqlx::PgPool) -> DbPool {
+        let agent_broadcast_channel = tokio::sync::broadcast::channel(10);
+        DbPool {
+            database_pool,
+            agent_broadcast_channel,
+        }
+    }
+}
+
+impl Clone for DbPool {
+    fn clone(&self) -> Self {
+        Self {
+            database_pool: self.database_pool.clone(),
+            agent_broadcast_channel: (
+                self.agent_broadcast_channel.0.clone(),
+                self.agent_broadcast_channel.0.subscribe(),
+            ),
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -97,6 +123,7 @@ pub struct ContractDelivery {
     pub units_fulfilled: i32,
 }
 
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct Agent {
     pub symbol: String,
     pub account_id: Option<String>,
@@ -105,6 +132,7 @@ pub struct Agent {
     pub starting_faction: String,
     pub ship_count: i32,
     #[allow(dead_code)]
+    #[serde(skip)]
     pub created_at: sqlx::types::time::PrimitiveDateTime,
 }
 

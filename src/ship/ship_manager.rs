@@ -48,8 +48,8 @@ impl ShipManager {
     pub fn new() -> Self {
         let (mpsc_tx, mpsc_rx) = tokio::sync::broadcast::channel(100);
         Self {
-            locked_ships: DashMap::new(),
-            copy: RwLock::new(HashMap::new()),
+            locked_ships: DashMap::with_capacity(100),
+            copy: RwLock::new(HashMap::with_capacity(100)),
             mpsc_tx,
             mpsc_rx,
             id: rand::random::<u32>(),
@@ -93,6 +93,13 @@ impl ShipManager {
         &self,
         symbol: &str,
     ) -> Option<dashmap::mapref::one::RefMut<'_, std::string::String, MyShip>> {
-        self.locked_ships.get_mut(symbol)
+        let erg = self.locked_ships.try_get_mut(symbol);
+
+        if erg.is_locked() {
+            log::error!("Failed to get ship: {} waiting", symbol);
+            self.locked_ships.get_mut(symbol)
+        } else {
+            erg.try_unwrap()
+        }
     }
 }

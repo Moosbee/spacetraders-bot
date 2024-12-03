@@ -27,6 +27,12 @@ impl DatabaseConnector<Agent> for sql_models::Agent {
             item.symbol, item.account_id, item.headquarters, item.credits, item.starting_faction, item.ship_count
         ).execute(&database_pool.database_pool).await?;
 
+        database_pool
+            .agent_broadcast_channel
+            .0
+            .send(item.clone())
+            .unwrap();
+
         Ok(())
     }
 
@@ -65,6 +71,14 @@ impl DatabaseConnector<Agent> for sql_models::Agent {
         &starting_factions,  
         &ship_counts
     ).execute(&database_pool.database_pool).await?;
+
+    for item in items {
+                database_pool
+            .agent_broadcast_channel
+            .0
+            .send(item.clone())
+            .unwrap();
+    }
     
 // let mm:(Vec<_>,Vec<_>)=ag.iter().unzip();
 

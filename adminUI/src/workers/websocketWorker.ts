@@ -1,4 +1,4 @@
-import RustShip from "../models/ship";
+import WsObject from "../models/WsObject";
 import useMyStore, { backendUrl } from "../store";
 
 const work = () => {
@@ -8,10 +8,11 @@ const work = () => {
   let reconnectTimeoutId: number | undefined;
 
   const setShip = useMyStore.getState().setShip;
+  const setAgent = useMyStore.getState().setAgent;
   const setWebsocketConnected = useMyStore.getState().setWebsocketConnected;
 
   const connect = () => {
-    websocket = new WebSocket(`ws://${backendUrl}/ws/ships`);
+    websocket = new WebSocket(`ws://${backendUrl}/ws/all`);
 
     websocket.onclose = () => {
       console.log("Disconnected from backend");
@@ -30,9 +31,19 @@ const work = () => {
 
     websocket.onmessage = (event) => {
       console.log(event.data);
-      const rsShip: RustShip = JSON.parse(event.data);
-      console.log(rsShip);
-      setShip(rsShip);
+      const wsObject: WsObject = JSON.parse(event.data);
+      console.log(wsObject);
+      switch (wsObject.data.type) {
+        case "RustShip":
+          setShip(wsObject.data.data);
+          break;
+        case "MyAgent":
+          setAgent(wsObject.data.data);
+          break;
+        default:
+          console.log(wsObject.data);
+          break;
+      }
     };
   };
 

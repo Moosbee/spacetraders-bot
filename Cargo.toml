@@ -18,7 +18,7 @@ async-recursion = "1.1.1"
 governor = "0.7"
 dashmap = {version="6.1",features=["raw-api"]}
 # tokio + native-tls
-sqlx = { version = "0.8", features = [ "runtime-tokio", "tls-native-tls", "postgres", "time" ] }
+sqlx = { version = "0.8", features = [ "runtime-tokio", "tls-native-tls", "postgres", "chrono", "time" ] }
 priority-queue = "2.1.1"
 rand = "0.8.5"
 lazy_static = "1.5.0"

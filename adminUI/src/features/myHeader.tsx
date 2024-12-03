@@ -58,13 +58,8 @@ function MyHeader({ Header }: { Header: typeof AntHeaderHeader }) {
         <Space>
           <Avatar>{myAgent.symbol.slice(0, 1)}</Avatar>
           {myAgent.symbol}
+          <Badge status={websocketConnected ? "success" : "error"} />
           <span>{myAgent.credits.toLocaleString()}$</span>
-          <Badge
-            status={websocketConnected ? "success" : "error"}
-            text={`Websocket ${
-              websocketConnected ? "connected" : "not connected"
-            }`}
-          />
         </Space>
         <div>
           {systemSymbol && (
