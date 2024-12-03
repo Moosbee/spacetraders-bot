@@ -1,6 +1,10 @@
 use chrono::{DateTime, Utc};
 use space_traders_client::models::{self, ShipRole, TradeSymbol};
 
+use crate::types::ISubject;
+
+use super::ShipManager;
+
 #[derive(Debug, Clone, PartialEq, Default, serde::Serialize)]
 #[serde(tag = "type", content = "data")]
 pub enum Role {
@@ -26,9 +30,8 @@ pub struct MyShip {
     pub cargo: CargoState,
     // Fuel state
     pub fuel: FuelState,
-    // Mpsc
     #[serde(skip)]
-    pub mpsc: Option<tokio::sync::mpsc::Sender<MyShip>>,
+    pub pubsub: crate::types::Publisher<ShipManager, MyShip>,
 }
 
 impl Default for MyShip {
@@ -42,7 +45,8 @@ impl Default for MyShip {
             nav: Default::default(),
             cargo: Default::default(),
             fuel: Default::default(),
-            mpsc: Default::default(),
+            // mpsc: Default::default(),
+            pubsub: crate::types::Publisher::new(),
         };
         me
     }
@@ -63,7 +67,8 @@ impl Clone for MyShip {
             nav: self.nav.clone(),
             cargo: self.cargo.clone(),
             fuel: self.fuel.clone(),
-            mpsc: None,
+            // mpsc: None,
+            pubsub: crate::types::Publisher::new(),
         }
     }
 }
@@ -101,14 +106,12 @@ impl MyShip {
         self.fuel.update(&ship.fuel);
     }
 
-    pub fn set_mpsc(&mut self, mpsc: tokio::sync::mpsc::Sender<MyShip>) {
-        self.mpsc = Some(mpsc);
-    }
+    // pub fn set_mpsc(&mut self, mpsc: tokio::sync::mpsc::Sender<MyShip>) {
+    //     self.mpsc = Some(mpsc);
+    // }
 
     pub async fn notify(&self) {
-        if let Some(ref mpsc) = self.mpsc {
-            mpsc.send(self.clone()).await.unwrap();
-        }
+        self.pubsub.notify_observers(self.clone()).await;
     }
 
     // pub fn is_on_cooldown(&self) -> bool {

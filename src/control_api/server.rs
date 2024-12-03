@@ -12,14 +12,14 @@ use crate::{config::CONFIG, ship};
 pub struct ControlApiServer {
     context: crate::workers::types::ConductorContext,
     cancellation_token: CancellationToken,
-    ship_rx: Option<tokio::sync::mpsc::Receiver<ship::MyShip>>,
+    ship_rx: Option<tokio::sync::broadcast::Receiver<ship::MyShip>>,
     cancellation_tokens: Vec<(String, bool, CancellationToken)>,
 }
 
 impl ControlApiServer {
     pub fn new(
         context: crate::workers::types::ConductorContext,
-        ship_rx: tokio::sync::mpsc::Receiver<ship::MyShip>,
+        ship_rx: tokio::sync::broadcast::Receiver<ship::MyShip>,
         cancellation_tokens: Vec<(String, bool, CancellationToken)>,
     ) -> Self {
         Self {
@@ -32,7 +32,7 @@ impl ControlApiServer {
 
     pub fn new_box(
         context: crate::workers::types::ConductorContext,
-        ship_rx: tokio::sync::mpsc::Receiver<ship::MyShip>,
+        ship_rx: tokio::sync::broadcast::Receiver<ship::MyShip>,
         cancellation_tokens: Vec<(String, bool, CancellationToken)>,
     ) -> Box<Self> {
         Box::new(Self::new(context, ship_rx, cancellation_tokens))
@@ -47,7 +47,7 @@ impl ControlApiServer {
         if let Some(mut ship_rx) = self.ship_rx.take() {
             let ship_broadcast_tx = ship_broadcast_tx.clone();
             tokio::spawn(async move {
-                while let Some(ship) = ship_rx.recv().await {
+                while let Ok(ship) = ship_rx.recv().await {
                     if let Err(e) = ship_broadcast_tx.send(ship.clone()) {
                         log::error!("Failed to broadcast ship update: {}", e);
                     }
@@ -120,7 +120,7 @@ impl ControlApiServer {
         let context = self.context.clone();
         warp::path("ships").map(move || {
             debug!("Getting ships");
-            let ships = crate::control_api::unsafe_clone(&context.my_ships);
+            let ships = context.ship_manager.get_ships_clone();
             debug!("Got {} ships", ships.len());
             warp::reply::json(&ships)
         })

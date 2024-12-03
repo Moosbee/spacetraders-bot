@@ -1,6 +1,6 @@
 use anyhow::Result;
 use chrono::{DateTime, TimeDelta, Utc};
-use log::{debug, info};
+use log::debug;
 use space_traders_client::{apis, models};
 use std::collections::HashMap;
 
@@ -52,7 +52,7 @@ impl MyShip {
             )
             .await?;
 
-            info!(
+            debug!(
                 "Time {} {} {:?} {:?}",
                 self.nav.route.departure_time,
                 self.nav.route.arrival,

@@ -16,6 +16,7 @@ type State = {
     | undefined;
   selectedSystemSymbol: string | undefined;
   waypoints: Record<string, Record<string, Waypoint>>;
+  websocketConnected: boolean;
 };
 
 type Actions = {
@@ -38,6 +39,8 @@ type Actions = {
     systemSymbol: string,
     waypoints: Record<string, Waypoint>
   ) => void;
+  setWebsocketConnected: (websocketConnected: boolean) => void;
+  reset: () => void;
 };
 
 export type RootState = State & Actions;
@@ -53,10 +56,11 @@ const initialState: State = {
     startingFaction: "",
     symbol: "",
   },
-  selectedShipSymbol: "",
-  selectedWaypointSymbol: { systemSymbol: "", waypointSymbol: "" },
-  selectedSystemSymbol: "",
+  selectedShipSymbol: undefined,
+  selectedWaypointSymbol: undefined,
+  selectedSystemSymbol: undefined,
   waypoints: {},
+  websocketConnected: false,
 };
 
 const useMyStore = create<RootState>()(
@@ -64,6 +68,7 @@ const useMyStore = create<RootState>()(
     persist(
       shared((set) => ({
         ...initialState,
+        reset: () => set(initialState),
         setDarkMode: (darkMode) => set({ darkMode }),
         setShips: (ships) => set({ ships: ships }),
         setShip: (ship) =>
@@ -84,6 +89,8 @@ const useMyStore = create<RootState>()(
               [systemSymbol]: waypoints,
             },
           })),
+        setWebsocketConnected: (websocketConnected) =>
+          set({ websocketConnected }),
       })),
       {
         name: "root-channel",

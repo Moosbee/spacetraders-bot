@@ -8,17 +8,20 @@ const work = () => {
   let reconnectTimeoutId: number | undefined;
 
   const setShip = useMyStore.getState().setShip;
+  const setWebsocketConnected = useMyStore.getState().setWebsocketConnected;
 
   const connect = () => {
     websocket = new WebSocket(`ws://${backendUrl}/ws/ships`);
 
     websocket.onclose = () => {
       console.log("Disconnected from backend");
-      reconnectTimeoutId = setTimeout(connect, 2000);
+      setWebsocketConnected(false);
+      reconnectTimeoutId = setTimeout(connect, 1000);
     };
 
     websocket.onopen = () => {
       console.log("Connected to backend");
+      setWebsocketConnected(true);
       if (reconnectTimeoutId !== undefined) {
         clearTimeout(reconnectTimeoutId);
         reconnectTimeoutId = undefined;

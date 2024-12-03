@@ -25,6 +25,11 @@ const items: MenuItem[] = [
     icon: <HomeOutlined />,
   },
   {
+    label: <Link to="/ships">Ships</Link>,
+    key: "ships",
+    icon: <RocketOutlined />,
+  },
+  {
     label: "Overview",
     key: "Overview",
     icon: <AppstoreOutlined />,
@@ -33,11 +38,6 @@ const items: MenuItem[] = [
         label: <Link to="/agents">Agents</Link>,
         key: "agents",
         icon: <ContactsOutlined />,
-      },
-      {
-        label: <Link to="/ships">Ships</Link>,
-        key: "ships",
-        icon: <RocketOutlined />,
       },
       {
         label: <Link to="/systems">Systems</Link>,

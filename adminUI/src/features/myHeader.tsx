@@ -1,5 +1,5 @@
 import type { MenuProps } from "antd";
-import { Avatar, Button, Dropdown, Flex, Space, theme } from "antd";
+import { Avatar, Badge, Button, Dropdown, Flex, Space, theme } from "antd";
 import type { AntHeaderHeader } from "../MyApp";
 import useMyStore from "../store";
 import FaIcon from "./FontAwsome/FaIcon";
@@ -13,6 +13,8 @@ function MyHeader({ Header }: { Header: typeof AntHeaderHeader }) {
   const shipSymbol = useMyStore((state) => state.selectedShipSymbol);
   const waypointSymbol = useMyStore((state) => state.selectedWaypointSymbol);
   const systemSymbol = useMyStore((state) => state.selectedSystemSymbol);
+
+  const websocketConnected = useMyStore((state) => state.websocketConnected);
 
   const {
     token: { colorBgContainer, colorTextDescription },
@@ -57,6 +59,12 @@ function MyHeader({ Header }: { Header: typeof AntHeaderHeader }) {
           <Avatar>{myAgent.symbol.slice(0, 1)}</Avatar>
           {myAgent.symbol}
           <span>{myAgent.credits.toLocaleString()}$</span>
+          <Badge
+            status={websocketConnected ? "success" : "error"}
+            text={`Websocket ${
+              websocketConnected ? "connected" : "not connected"
+            }`}
+          />
         </Space>
         <div>
           {systemSymbol && (

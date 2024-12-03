@@ -8,12 +8,16 @@ mod config;
 mod tests;
 
 mod control_api;
+mod types;
 
 use std::{collections::HashMap, env, sync::Arc};
 
+use chrono::{DateTime, Utc};
 use config::CONFIG;
 use dashmap::DashMap;
 use env_logger::{Env, Target};
+use rsntp::AsyncSntpClient;
+use ship::ShipManager;
 use space_traders_client::models::waypoint;
 use sql::DatabaseConnector;
 use workers::types::Conductor;
@@ -36,6 +40,23 @@ async fn main() -> anyhow::Result<()> {
     env_logger::Builder::from_env(env)
         .target(Target::Stdout)
         .init();
+
+    let client = AsyncSntpClient::new();
+    let result = client.synchronize("pool.ntp.org").await.unwrap();
+    let local_time: DateTime<Utc> =
+        DateTime::from(result.datetime().into_chrono_datetime().unwrap());
+    let time_diff = (local_time - Utc::now()).abs();
+
+    info!(
+        "The local time is: {} and it should be: {} and the time diff is: {:?}",
+        Utc::now(),
+        local_time,
+        time_diff.to_std().unwrap()
+    );
+
+    if time_diff > chrono::Duration::milliseconds(200) {
+        panic!("The time is not correct");
+    }
 
     let access_token = env::var("ACCESS_TOKEN").ok();
 
@@ -162,23 +183,17 @@ async fn main() -> anyhow::Result<()> {
     .into_iter()
     .collect();
 
-    let (ship_tx, ship_rx) = tokio::sync::mpsc::channel(100);
+    let ship_manager = Arc::new(ship::ShipManager::new()); // ship::ShipManager::new();
 
-    let my_ships: Arc<dashmap::DashMap<String, ship::MyShip>> = Arc::new(
-        ships
-            .iter()
-            .map(|s| {
-                let mut ship_i = ship::MyShip::from_ship(s.clone());
-                ship_i.role = ship_roles
-                    .get(&s.symbol)
-                    .unwrap_or(&ship::Role::Manuel)
-                    .clone();
-                ship_i.set_mpsc(ship_tx.clone());
+    for ship in ships {
+        let mut ship_i = ship::MyShip::from_ship(ship.clone());
+        ship_i.role = ship_roles
+            .get(&ship.symbol)
+            .unwrap_or(&ship::Role::Manuel)
+            .clone();
 
-                (s.symbol.clone(), ship_i)
-            })
-            .collect(),
-    );
+        ShipManager::add_ship(&ship_manager, ship_i).await;
+    }
 
     let all_waypoints: Arc<dashmap::DashMap<String, HashMap<String, waypoint::Waypoint>>> =
         Arc::new(DashMap::new());
@@ -197,7 +212,7 @@ async fn main() -> anyhow::Result<()> {
     let context = workers::types::ConductorContext {
         api: api.clone(),
         database_pool: database_pool.clone(),
-        my_ships: my_ships.clone(),
+        ship_manager,
         all_waypoints: all_waypoints.clone(),
         ship_roles: ship_roles.clone(),
     };
@@ -211,7 +226,7 @@ async fn main() -> anyhow::Result<()> {
     ];
     conductors.push(control_api::server::ControlApiServer::new_box(
         context.clone(),
-        ship_rx,
+        context.ship_manager.get_rx(),
         conductors
             .iter()
             .map(|c| (c.get_name(), c.is_independent(), c.get_cancel_token()))

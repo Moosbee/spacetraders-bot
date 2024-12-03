@@ -3,7 +3,8 @@ use std::{
     time::Duration,
 };
 
-use log::{debug, info};
+use futures::FutureExt;
+use log::{debug, error, info};
 use tokio_util::sync::CancellationToken;
 
 use crate::{
@@ -66,7 +67,25 @@ impl TradingFleet {
         for ship in ships {
             let child_stopper = self.please_stop.child_token();
             let fleet = self.with_cancel(child_stopper.clone());
-            let handle = tokio::spawn(async move { fleet.run_trade_ship_worker(ship).await });
+            let handle = tokio::spawn(async move { fleet.run_trade_ship_worker(ship).await }).then(
+                |result| async move {
+                    if let Err(e) = &result {
+                        error!("Lel Error: {}", e);
+                    }
+                    if let Ok(result) = &result {
+                        if let Err(e) = result {
+                            error!(
+                                "We got Error: {} {:?} {:?} {:?}",
+                                e,
+                                e.backtrace(),
+                                e.source(),
+                                e.root_cause()
+                            );
+                        }
+                    }
+                    result
+                },
+            );
             handles.push((handle, child_stopper));
         }
 
@@ -105,7 +124,11 @@ impl TradingFleet {
     }
 
     async fn run_trade_ship_worker(&self, ship_symbol: String) -> anyhow::Result<()> {
-        let mut ship = self.context.my_ships.get_mut(&ship_symbol).unwrap();
+        let mut ship = self
+            .context
+            .ship_manager
+            .get_ship_mut(&ship_symbol)
+            .unwrap();
 
         debug!("Starting trade for {}", ship_symbol);
         self.finish_trade_trade(&mut ship).await?;
