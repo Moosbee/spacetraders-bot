@@ -1,4 +1,4 @@
-import { Agent } from "./api";
+import { DbAgent } from "./Agent";
 import RustShip from "./ship";
 
 interface WsObject {
@@ -8,7 +8,7 @@ interface WsObject {
         type: "RustShip";
       }
     | {
-        data: Agent;
+        data: DbAgent;
         type: "MyAgent";
       };
 }

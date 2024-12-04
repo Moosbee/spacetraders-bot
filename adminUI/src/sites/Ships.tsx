@@ -1,4 +1,4 @@
-import { Button, Space, Switch, Table, TableProps } from "antd";
+import { Button, Flex, Popover, Space, Switch, Table, TableProps } from "antd";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import PageTitle from "../features/PageTitle";
@@ -24,6 +24,7 @@ function Ships() {
       title: "Symbol",
       dataIndex: "symbol",
       key: "symbol",
+      defaultSortOrder: "ascend",
       render: (symbol) => <Link to={`/ships/${symbol}`}>{symbol}</Link>,
       sorter: (a, b) =>
         Number.parseInt(a.symbol.split("-")[1], 16) -
@@ -42,7 +43,15 @@ function Ships() {
           role.type === "Contract"
             ? role.data === null
               ? ""
-              : role.data[0] + " (" + role.data[1] + ")"
+              : role.data[0].slice(0, 3) +
+                "..." +
+                role.data[0].slice(
+                  role.data[0].length - 3,
+                  role.data[0].length
+                ) +
+                " (" +
+                role.data[1] +
+                ")"
             : ""
         }${
           role.type === "Trader"
@@ -145,7 +154,22 @@ function Ships() {
       title: "Cargo",
       dataIndex: ["cargo", "units"],
       key: "cargo_units",
-      render: (value: number, record) => `${value} / ${record.cargo.capacity}`,
+      render: (value: number, record) => (
+        <Popover
+          content={
+            <Flex>
+              {record.cargo.inventory.map((item) => (
+                <Space>
+                  {item[0]}
+                  {item[1]}
+                </Space>
+              ))}
+            </Flex>
+          }
+        >
+          {`${value} / ${record.cargo.capacity}`}
+        </Popover>
+      ),
       align: "right",
       sorter: (a, b) => a.cargo.capacity - b.cargo.capacity,
     },

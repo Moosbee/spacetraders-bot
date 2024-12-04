@@ -1,7 +1,7 @@
 // Trade execution
 use std::sync::Arc;
 
-use log::info;
+use log::{info, warn};
 
 use crate::{
     ship,
@@ -33,7 +33,12 @@ impl TradeProcessor {
             return Err(anyhow::anyhow!("Route has been locked"));
         }
 
-        self.running_routes.lock(&route.clone().into())?;
+        let locked = self.running_routes.lock(&route.clone().into());
+
+        if let Err(e) = locked {
+            warn!("Failed to lock route: {} {}", e, route);
+            return Err(e);
+        }
 
         info!("Processing route: {}", route);
 

@@ -54,7 +54,7 @@ async fn main() -> anyhow::Result<()> {
         time_diff.to_std().unwrap()
     );
 
-    if time_diff > chrono::Duration::milliseconds(500) {
+    if time_diff > chrono::Duration::milliseconds(1000) {
         panic!("The time is not correct");
     }
 

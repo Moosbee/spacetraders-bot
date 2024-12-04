@@ -38,7 +38,15 @@ const work = () => {
           setShip(wsObject.data.data);
           break;
         case "MyAgent":
-          setAgent(wsObject.data.data);
+          if (wsObject.data.data.account_id)
+            setAgent({
+              accountId: wsObject.data.data.account_id,
+              symbol: wsObject.data.data.symbol,
+              headquarters: wsObject.data.data.headquarters,
+              credits: wsObject.data.data.credits,
+              startingFaction: wsObject.data.data.starting_faction,
+              shipCount: wsObject.data.data.ship_count,
+            });
           break;
         default:
           console.log(wsObject.data);

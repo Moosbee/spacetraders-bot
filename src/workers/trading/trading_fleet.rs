@@ -131,11 +131,15 @@ impl TradingFleet {
             .unwrap();
 
         debug!("Starting trade for {}", ship_symbol);
-        self.finish_trade_trade(&mut ship).await?;
         tokio::time::sleep(std::time::Duration::from_millis(
             1000 + rand::random::<u64>() % 1000,
         ))
         .await;
+        self.finish_trade_trade(&mut ship).await?;
+        let delay = 1000 + rand::random::<u64>() % 1000;
+        debug!("Waiting for trade cycle for {} {}", ship_symbol, delay);
+
+        tokio::time::sleep(std::time::Duration::from_millis(delay)).await;
 
         for i in 0..CONFIG.trading.trade_cycle {
             if self.please_stop.is_cancelled() {

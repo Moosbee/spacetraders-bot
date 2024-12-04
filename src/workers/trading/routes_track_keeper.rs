@@ -1,44 +1,61 @@
-use dashmap::DashMap;
-use log::warn;
+use lockable::{LockableHashMap, SyncLimit};
+use log::{debug, warn};
 use space_traders_client::models::TradeSymbol;
 
 use super::t_types::MinTradeRoute;
 
-#[derive(Debug, Clone, Default)]
+type RouteLock = (TradeSymbol, String, bool);
+
+#[derive(Debug, Default)]
 pub struct RoutesTrackKeeper {
-    routes: DashMap<(TradeSymbol, String, bool), ()>,
+    routes: LockableHashMap<RouteLock, bool>,
 }
 
 impl RoutesTrackKeeper {
     pub fn lock(&self, route: &MinTradeRoute) -> anyhow::Result<()> {
-        let erg = self.is_real_locked(route);
-        if erg {
-            return Err(anyhow::anyhow!("Route is locked"));
-        }
-        if !erg {
-            let erg = self
-                .routes
-                .insert((route.symbol, route.sell_wp_symbol.clone(), true), ());
+        let start: RouteLock = (route.symbol, route.purchase_wp_symbol.clone(), false);
+        let end: RouteLock = (route.symbol, route.purchase_wp_symbol.clone(), true);
 
-            if erg.is_some() {
-                return Err(anyhow::anyhow!("Route is locked"));
-            }
+        let start_lock = self.routes.try_lock(start, SyncLimit::no_limit()).unwrap();
+        let end_lock = self.routes.try_lock(end, SyncLimit::no_limit()).unwrap();
 
-            let erg = self
-                .routes
-                .insert((route.symbol, route.sell_wp_symbol.clone(), false), ());
-            if erg.is_some() {
-                return Err(anyhow::anyhow!("Route is locked"));
-            }
+        if start_lock.is_none() || end_lock.is_none() {
+            warn!("Failed to lock route: {:?}", route);
+            return Err(anyhow::anyhow!("Failed to lock route: {:?}", route));
         }
+
+        let mut start_lock = start_lock.unwrap();
+        start_lock.insert(true);
+        let mut end_lock = end_lock.unwrap();
+        end_lock.insert(true);
+
+        drop(start_lock);
+        drop(end_lock);
+
+        debug!("Locked route: {:?}", route);
         Ok(())
     }
 
     pub fn unlock(&self, route: &MinTradeRoute) {
-        self.routes
-            .remove(&(route.symbol, route.purchase_wp_symbol.clone(), false));
-        self.routes
-            .remove(&(route.symbol, route.sell_wp_symbol.clone(), true));
+        let start: RouteLock = (route.symbol, route.purchase_wp_symbol.clone(), false);
+        let end: RouteLock = (route.symbol, route.purchase_wp_symbol.clone(), true);
+
+        let start_lock = self.routes.try_lock(start, SyncLimit::no_limit()).unwrap();
+        let end_lock = self.routes.try_lock(end, SyncLimit::no_limit()).unwrap();
+
+        if start_lock.is_none() || end_lock.is_none() {
+            warn!("Failed to unlock route: {:?}", route);
+            return;
+        }
+
+        let mut start_lock = start_lock.unwrap();
+        start_lock.remove();
+        let mut end_lock = end_lock.unwrap();
+        end_lock.remove();
+
+        drop(start_lock);
+        drop(end_lock);
+        debug!("Unlocked route: {:?}", route);
     }
 
     pub fn is_locked(&self, route: &MinTradeRoute) -> bool {
@@ -50,43 +67,36 @@ impl RoutesTrackKeeper {
     }
 
     fn is_start_locked(&self, route: &MinTradeRoute) -> bool {
-        let erg = {
-            let erg = self
-                .routes
-                .try_get(&(route.symbol, route.purchase_wp_symbol.clone(), false));
-            let erg = if erg.is_locked() {
-                warn!(
-                    "Route {:?} was locked waiting",
-                    (route.symbol, route.purchase_wp_symbol.clone(), false)
-                );
-                self.routes
-                    .get(&(route.symbol, route.purchase_wp_symbol.clone(), false))
-            } else {
-                erg.try_unwrap()
-            };
-            erg.is_some()
-        };
-        erg
+        let start: RouteLock = (route.symbol, route.purchase_wp_symbol.clone(), false);
+
+        let lock = self.routes.try_lock(start, SyncLimit::no_limit()).unwrap();
+
+        // if we couldn't get it it's locked
+        let locked = lock.is_none();
+        if locked {
+            return true;
+        }
+        let val = lock.as_ref().unwrap().value();
+        // if val is empty it's free or when the value is false then it's also free
+        let locked = val.is_some() && *val.unwrap();
+        drop(lock);
+        locked
     }
 
     fn is_end_locked(&self, route: &MinTradeRoute) -> bool {
-        let erg = {
-            let erg = self
-                .routes
-                .try_get(&(route.symbol, route.purchase_wp_symbol.clone(), true));
-            let erg = if erg.is_locked() {
-                warn!(
-                    "Route {:?} was locked waiting",
-                    (route.symbol, route.purchase_wp_symbol.clone(), true)
-                );
-                self.routes
-                    .get(&(route.symbol, route.purchase_wp_symbol.clone(), true))
-                    .is_some()
-            } else {
-                erg.try_unwrap().is_some()
-            };
-            erg
-        };
-        erg
+        let end: RouteLock = (route.symbol, route.purchase_wp_symbol.clone(), true);
+
+        let lock = self.routes.try_lock(end, SyncLimit::no_limit()).unwrap();
+
+        // if we couldn't get it it's locked
+        let locked = lock.is_none();
+        if locked {
+            return true;
+        }
+        let val = lock.as_ref().unwrap().value();
+        // if val is empty it's free or when the value is false then it's also free
+        let locked = val.is_some() && *val.unwrap();
+        drop(lock);
+        locked
     }
 }

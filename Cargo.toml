@@ -28,3 +28,4 @@ futures = "0.3.31"
 tokio-stream = {version="0.1.16", features=["sync"]}
 serde_with = {version="3.11.0",features=["chrono_0_4"]}
 rsntp = {version="4.0.0",features=["tokio"]}
+lockable = "0.1.1"
