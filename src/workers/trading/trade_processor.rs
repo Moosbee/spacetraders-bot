@@ -29,14 +29,10 @@ impl TradeProcessor {
         route: sql::TradeRoute,
         num: u32,
     ) -> anyhow::Result<()> {
-        if self.running_routes.is_locked(&route.clone().into()) {
-            return Err(anyhow::anyhow!("Route has been locked"));
-        }
-
         let locked = self.running_routes.lock(&route.clone().into());
 
         if let Err(e) = locked {
-            warn!("Failed to lock route: {} {}", e, route);
+            warn!("Failed to lock route: {} {} {}", e, route, ship.symbol);
             return Err(e);
         }
 

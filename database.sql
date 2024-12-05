@@ -251,7 +251,8 @@ CREATE TABLE
     symbol trade_symbol NOT NULL,
     type market_trade_good_type NOT NULL,
     created_at timestamp without time zone NOT NULL DEFAULT now (),
-    PRIMARY KEY (created_at, symbol, waypoint_symbol)
+    PRIMARY KEY (created_at, symbol, waypoint_symbol),
+    CONSTRAINT market_trade_relation_1 FOREIGN KEY (waypoint_symbol) REFERENCES public.waypoint (symbol) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION
   );
 
 -- Table for the main contract details
@@ -297,6 +298,22 @@ CREATE TABLE
     predicted_sell_price integer NOT NULL,
     created_at timestamp without time zone NOT NULL DEFAULT now (),
     CONSTRAINT trade_route_pkey PRIMARY KEY (id)
+  ) TABLESPACE pg_default;
+
+-- Table: public.route
+-- DROP TABLE IF EXISTS public.route;
+CREATE TABLE
+  IF NOT EXISTS public.route (
+    id integer NOT NULL AUTO_INCREMENT,
+    "from" character varying COLLATE pg_catalog."default" NOT NULL,
+    "to" character varying COLLATE pg_catalog."default" NOT NULL,
+    nav_mode character varying COLLATE pg_catalog."default" NOT NULL,
+    speed integer NOT NULL,
+    fuel_cost integer NOT NULL,
+    travel_time double precision NOT NULL,
+    CONSTRAINT route_pkey PRIMARY KEY (id),
+    CONSTRAINT route_relation_1 FOREIGN KEY ("from") REFERENCES public.waypoint (symbol) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
+    CONSTRAINT route_relation_2 FOREIGN KEY ("to") REFERENCES public.waypoint (symbol) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION
   ) TABLESPACE pg_default;
 
 -- Select statements

@@ -25,6 +25,49 @@ mod tests {
     }
 
     #[test]
+    fn test_travel_stats() {
+        let flight_modes = [
+            models::ShipNavFlightMode::Burn,
+            models::ShipNavFlightMode::Cruise,
+            models::ShipNavFlightMode::Drift,
+        ];
+
+        let flight_speeds = [3, 10, 30];
+
+        let waypoints = crate::tests::tests::get_waypoints();
+
+        let mut connections = vec![];
+        for i in 0..waypoints.len() {
+            for j in 0..waypoints.len() {
+                for flight_mode in flight_modes {
+                    for flight_speed in flight_speeds {
+                        let stat = get_travel_stats(
+                            flight_speed,
+                            flight_mode,
+                            (waypoints[i].x, waypoints[i].y),
+                            (waypoints[j].x, waypoints[j].y),
+                        );
+                        connections.push((
+                            waypoints[i].symbol.clone(),
+                            waypoints[j].symbol.clone(),
+                            flight_mode,
+                            flight_speed,
+                            stat.distance,
+                            stat.fuel_cost,
+                            stat.travel_time,
+                        ));
+                    }
+                }
+            }
+        }
+        println!(
+            "Connections: {}",
+            serde_json::to_string(&connections).unwrap()
+        );
+        assert!(false)
+    }
+
+    #[test]
     fn dijkstra_test() {
         let waypoints = crate::tests::tests::get_waypoints();
 
@@ -251,6 +294,7 @@ mod tests {
 mod path_finding_tests {
     use std::{cmp::Reverse, collections::HashMap};
 
+    use anyhow::Ok;
     use priority_queue::PriorityQueue;
     use space_traders_client::models;
 

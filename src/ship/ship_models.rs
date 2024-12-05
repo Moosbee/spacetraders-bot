@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use space_traders_client::models::{self, ShipRole, TradeSymbol};
 
-use crate::types::Subject;
+use crate::{types::Subject, workers::mining::m_types::MiningShipAssignment};
 
 use super::ShipManager;
 
@@ -12,7 +12,7 @@ pub enum Role {
     Trader(Option<(i32, u32)>),
     Contract(Option<(String, i32)>),
     Scraper,
-    Mining,
+    Mining(MiningShipAssignment),
     #[default]
     Manuel,
 }
@@ -30,6 +30,10 @@ pub struct MyShip {
     pub cargo: CargoState,
     // Fuel state
     pub fuel: FuelState,
+    // Mining state
+    pub mounts: MountState,
+    // Conditions
+    pub conditions: ConditionState,
     #[serde(skip)]
     pub pubsub: crate::types::Publisher<ShipManager, MyShip>,
 }
@@ -45,7 +49,8 @@ impl Default for MyShip {
             nav: Default::default(),
             cargo: Default::default(),
             fuel: Default::default(),
-            // mpsc: Default::default(),
+            mounts: Default::default(),
+            conditions: Default::default(),
             pubsub: crate::types::Publisher::new(),
         };
         me
@@ -67,10 +72,17 @@ impl Clone for MyShip {
             nav: self.nav.clone(),
             cargo: self.cargo.clone(),
             fuel: self.fuel.clone(),
+            mounts: self.mounts.clone(),
+            conditions: self.conditions.clone(),
             // mpsc: None,
             pubsub: crate::types::Publisher::new(),
         }
     }
+}
+
+#[derive(Debug, Default, serde::Serialize, Clone)]
+pub struct MountState {
+    pub mounts: Vec<models::ship_mount::Symbol>,
 }
 
 #[derive(Debug, Default, serde::Serialize, Clone)]
@@ -84,6 +96,19 @@ pub struct CargoState {
 pub struct FuelState {
     pub capacity: i32,
     pub current: i32,
+}
+
+#[derive(Debug, Default, serde::Serialize, Clone)]
+pub struct Condition {
+    pub condition: f64,
+    pub integrity: f64,
+}
+
+#[derive(Debug, Default, serde::Serialize, Clone)]
+pub struct ConditionState {
+    pub engine: Condition,
+    pub frame: Condition,
+    pub reactor: Condition,
 }
 
 impl MyShip {
@@ -104,6 +129,14 @@ impl MyShip {
         self.nav.update(&ship.nav);
         self.cargo.update(&ship.cargo);
         self.fuel.update(&ship.fuel);
+        self.mounts.update(&ship.mounts);
+
+        self.conditions.engine.condition = ship.engine.condition;
+        self.conditions.engine.integrity = ship.engine.integrity;
+        self.conditions.frame.condition = ship.frame.condition;
+        self.conditions.frame.integrity = ship.frame.integrity;
+        self.conditions.reactor.condition = ship.reactor.condition;
+        self.conditions.reactor.integrity = ship.reactor.integrity;
     }
 
     pub async fn notify(&self) {

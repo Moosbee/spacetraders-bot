@@ -157,12 +157,12 @@ function Ships() {
       render: (value: number, record) => (
         <Popover
           content={
-            <Flex>
+            <Flex vertical>
               {record.cargo.inventory.map((item) => (
-                <Space>
-                  {item[0]}
-                  {item[1]}
-                </Space>
+                <Flex gap={6} justify="space-between">
+                  <span>{item[0]}</span>
+                  <span>{item[1]}</span>
+                </Flex>
               ))}
             </Flex>
           }

@@ -1,6 +1,6 @@
 import { shared } from "use-broadcast-ts";
 import { create } from "zustand";
-import { devtools, persist } from "zustand/middleware";
+import { createJSONStorage, devtools, persist } from "zustand/middleware";
 import { Agent, Waypoint } from "./models/api";
 import RustShip from "./models/ship";
 // import type {} from '@redux-devtools/extension' // required for devtools typing
@@ -96,6 +96,7 @@ const useMyStore = create<RootState>()(
       })),
       {
         name: "root-channel",
+        storage: createJSONStorage(() => localStorage),
       }
     ),
     {

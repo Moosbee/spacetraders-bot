@@ -190,6 +190,17 @@ impl std::fmt::Display for TradeRoute {
     }
 }
 
+#[derive(Debug, Clone, PartialEq)]
+pub struct Route {
+    pub id: i32,
+    pub from: String,
+    pub to: String,
+    pub nav_mode: String,
+    pub speed: i32,
+    pub fuel_cost: i32,
+    pub travel_time: f64,
+}
+
 pub trait DatabaseConnector<T> {
     /// Insert a new item into the database, or update it if it already exists.
     async fn insert(database_pool: &DbPool, item: &T) -> sqlx::Result<()>;

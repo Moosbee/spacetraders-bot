@@ -4,7 +4,11 @@ use log::debug;
 use space_traders_client::{apis, models};
 use std::collections::HashMap;
 
-use crate::{api, ship::ship_models::MyShip, sql::TransactionReason};
+use crate::{
+    api,
+    ship::ship_models::MyShip,
+    sql::{DatabaseConnector, TransactionReason},
+};
 
 use super::nav_models::{AutopilotState, NavigationState, RouteInstruction};
 
@@ -111,7 +115,21 @@ impl MyShip {
             self.nav.waypoint_symbol, instruction.end_symbol
         );
 
-        self.navigate(api, &instruction.end_symbol).await?;
+        let nav_data = self.navigate(api, &instruction.end_symbol).await?;
+
+        let rote = crate::sql::Route {
+            id: 0,
+            from: self.nav.waypoint_symbol.clone(),
+            to: instruction.end_symbol.clone(),
+            nav_mode: self.nav.flight_mode.to_string(),
+            speed: self.engine_speed,
+            fuel_cost: nav_data.data.fuel.consumed.map(|f| f.amount).unwrap_or(0),
+            travel_time: (self.nav.route.arrival - self.nav.route.departure_time).num_milliseconds()
+                as f64
+                / 1000.0,
+        };
+
+        crate::sql::Route::insert(database_pool, &rote).await?;
 
         Ok(())
     }

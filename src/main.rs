@@ -151,35 +151,122 @@ async fn main() -> anyhow::Result<()> {
         ("MOOSBEE-1E".to_string(), ship::Role::Scraper),
         ("MOOSBEE-1F".to_string(), ship::Role::Scraper),
         ("MOOSBEE-20".to_string(), ship::Role::Scraper),
-        ("MOOSBEE-21".to_string(), ship::Role::Mining),
-        ("MOOSBEE-22".to_string(), ship::Role::Mining),
-        ("MOOSBEE-23".to_string(), ship::Role::Mining),
-        ("MOOSBEE-24".to_string(), ship::Role::Mining),
-        ("MOOSBEE-25".to_string(), ship::Role::Mining),
-        ("MOOSBEE-26".to_string(), ship::Role::Mining),
-        ("MOOSBEE-27".to_string(), ship::Role::Mining),
-        ("MOOSBEE-28".to_string(), ship::Role::Mining),
-        ("MOOSBEE-29".to_string(), ship::Role::Mining),
-        ("MOOSBEE-2A".to_string(), ship::Role::Mining),
-        ("MOOSBEE-2B".to_string(), ship::Role::Mining),
-        ("MOOSBEE-2C".to_string(), ship::Role::Mining),
-        ("MOOSBEE-2D".to_string(), ship::Role::Mining),
-        ("MOOSBEE-2E".to_string(), ship::Role::Mining),
-        ("MOOSBEE-2F".to_string(), ship::Role::Mining),
-        ("MOOSBEE-30".to_string(), ship::Role::Mining),
-        ("MOOSBEE-31".to_string(), ship::Role::Mining),
-        ("MOOSBEE-32".to_string(), ship::Role::Mining),
-        ("MOOSBEE-33".to_string(), ship::Role::Mining),
-        ("MOOSBEE-34".to_string(), ship::Role::Mining),
-        ("MOOSBEE-35".to_string(), ship::Role::Mining),
-        ("MOOSBEE-36".to_string(), ship::Role::Mining),
-        ("MOOSBEE-37".to_string(), ship::Role::Mining),
-        ("MOOSBEE-38".to_string(), ship::Role::Mining),
-        ("MOOSBEE-39".to_string(), ship::Role::Mining),
-        ("MOOSBEE-3A".to_string(), ship::Role::Mining),
-        ("MOOSBEE-3B".to_string(), ship::Role::Mining),
-        ("MOOSBEE-3C".to_string(), ship::Role::Mining),
-        ("MOOSBEE-3D".to_string(), ship::Role::Mining),
+        (
+            "MOOSBEE-21".to_string(),
+            ship::Role::Mining(workers::mining::m_types::MiningShipAssignment::Idle),
+        ),
+        (
+            "MOOSBEE-22".to_string(),
+            ship::Role::Mining(workers::mining::m_types::MiningShipAssignment::Idle),
+        ),
+        (
+            "MOOSBEE-23".to_string(),
+            ship::Role::Mining(workers::mining::m_types::MiningShipAssignment::Idle),
+        ),
+        (
+            "MOOSBEE-24".to_string(),
+            ship::Role::Mining(workers::mining::m_types::MiningShipAssignment::Idle),
+        ),
+        (
+            "MOOSBEE-25".to_string(),
+            ship::Role::Mining(workers::mining::m_types::MiningShipAssignment::Idle),
+        ),
+        (
+            "MOOSBEE-26".to_string(),
+            ship::Role::Mining(workers::mining::m_types::MiningShipAssignment::Idle),
+        ),
+        (
+            "MOOSBEE-27".to_string(),
+            ship::Role::Mining(workers::mining::m_types::MiningShipAssignment::Idle),
+        ),
+        (
+            "MOOSBEE-28".to_string(),
+            ship::Role::Mining(workers::mining::m_types::MiningShipAssignment::Idle),
+        ),
+        (
+            "MOOSBEE-29".to_string(),
+            ship::Role::Mining(workers::mining::m_types::MiningShipAssignment::Idle),
+        ),
+        (
+            "MOOSBEE-2A".to_string(),
+            ship::Role::Mining(workers::mining::m_types::MiningShipAssignment::Idle),
+        ),
+        (
+            "MOOSBEE-2B".to_string(),
+            ship::Role::Mining(workers::mining::m_types::MiningShipAssignment::Idle),
+        ),
+        (
+            "MOOSBEE-2C".to_string(),
+            ship::Role::Mining(workers::mining::m_types::MiningShipAssignment::Idle),
+        ),
+        (
+            "MOOSBEE-2D".to_string(),
+            ship::Role::Mining(workers::mining::m_types::MiningShipAssignment::Idle),
+        ),
+        (
+            "MOOSBEE-2E".to_string(),
+            ship::Role::Mining(workers::mining::m_types::MiningShipAssignment::Idle),
+        ),
+        (
+            "MOOSBEE-2F".to_string(),
+            ship::Role::Mining(workers::mining::m_types::MiningShipAssignment::Idle),
+        ),
+        (
+            "MOOSBEE-30".to_string(),
+            ship::Role::Mining(workers::mining::m_types::MiningShipAssignment::Idle),
+        ),
+        (
+            "MOOSBEE-31".to_string(),
+            ship::Role::Mining(workers::mining::m_types::MiningShipAssignment::Idle),
+        ),
+        (
+            "MOOSBEE-32".to_string(),
+            ship::Role::Mining(workers::mining::m_types::MiningShipAssignment::Idle),
+        ),
+        (
+            "MOOSBEE-33".to_string(),
+            ship::Role::Mining(workers::mining::m_types::MiningShipAssignment::Idle),
+        ),
+        (
+            "MOOSBEE-34".to_string(),
+            ship::Role::Mining(workers::mining::m_types::MiningShipAssignment::Idle),
+        ),
+        (
+            "MOOSBEE-35".to_string(),
+            ship::Role::Mining(workers::mining::m_types::MiningShipAssignment::Idle),
+        ),
+        (
+            "MOOSBEE-36".to_string(),
+            ship::Role::Mining(workers::mining::m_types::MiningShipAssignment::Idle),
+        ),
+        (
+            "MOOSBEE-37".to_string(),
+            ship::Role::Mining(workers::mining::m_types::MiningShipAssignment::Idle),
+        ),
+        (
+            "MOOSBEE-38".to_string(),
+            ship::Role::Mining(workers::mining::m_types::MiningShipAssignment::Idle),
+        ),
+        (
+            "MOOSBEE-39".to_string(),
+            ship::Role::Mining(workers::mining::m_types::MiningShipAssignment::Idle),
+        ),
+        (
+            "MOOSBEE-3A".to_string(),
+            ship::Role::Mining(workers::mining::m_types::MiningShipAssignment::Idle),
+        ),
+        (
+            "MOOSBEE-3B".to_string(),
+            ship::Role::Mining(workers::mining::m_types::MiningShipAssignment::Idle),
+        ),
+        (
+            "MOOSBEE-3C".to_string(),
+            ship::Role::Mining(workers::mining::m_types::MiningShipAssignment::Idle),
+        ),
+        (
+            "MOOSBEE-3D".to_string(),
+            ship::Role::Mining(workers::mining::m_types::MiningShipAssignment::Idle),
+        ),
     ]
     .clone()
     .into_iter()
@@ -222,7 +309,7 @@ async fn main() -> anyhow::Result<()> {
     let mut conductors: Vec<Box<dyn Conductor>> = vec![
         workers::construction_fleet::ConstructionFleet::new_box(context.clone()),
         workers::contract_fleet::ContractFleet::new_box(context.clone()),
-        workers::mining_fleet::MiningFleet::new_box(context.clone()),
+        workers::mining::mining_fleet::MiningFleet::new_box(context.clone()),
         workers::trading::trading_fleet::TradingFleet::new_box(context.clone()),
         workers::market_scrapers::MarketScraper::new_box(context.clone()),
     ];

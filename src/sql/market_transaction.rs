@@ -2,7 +2,10 @@ use std::str::FromStr;
 
 use space_traders_client::models;
 
-use super::{sql_models::{DatabaseConnector, MarketTransaction, TransactionReason}, DbPool};
+use super::{
+    sql_models::{DatabaseConnector, MarketTransaction, TransactionReason},
+    DbPool,
+};
 
 impl MarketTransaction {
     pub fn with(self, reason: TransactionReason) -> Self {
