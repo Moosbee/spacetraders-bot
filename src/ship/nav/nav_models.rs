@@ -50,6 +50,8 @@ pub struct RouteInstruction {
     pub flight_mode: models::ShipNavFlightMode,
     pub start_is_marketplace: bool,
 
+    pub distance: f64,
+
     /// The amount of fuel that needs to be in the Tanks to do the Current jump
     pub refuel_to: i32,
 

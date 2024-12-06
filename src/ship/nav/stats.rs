@@ -12,10 +12,22 @@ pub fn calc_route_stats(
     waypoints: &HashMap<String, models::Waypoint>,
     route: &[RouteConnection],
     engine_speed: i32,
+    engine_condition: f64,
+    frame_condition: f64,
+    reactor_condition: f64,
 ) -> (Vec<ConnectionDetails>, f64, i32, f64) {
     let stats: Vec<_> = route
         .iter()
-        .map(|conn| calculate_connection_details(waypoints, conn, engine_speed))
+        .map(|conn| {
+            calculate_connection_details(
+                waypoints,
+                conn,
+                engine_speed,
+                engine_condition,
+                frame_condition,
+                reactor_condition,
+            )
+        })
         .collect();
 
     let total_distance = stats.iter().map(|s| s.distance).sum();
@@ -38,12 +50,18 @@ fn calculate_connection_details(
     waypoints: &HashMap<String, models::Waypoint>,
     conn: &RouteConnection,
     engine_speed: i32,
+    engine_condition: f64,
+    frame_condition: f64,
+    reactor_condition: f64,
 ) -> ConnectionDetails {
     let start = waypoints.get(&conn.start_symbol).unwrap();
     let end = waypoints.get(&conn.end_symbol).unwrap();
     let stat = get_travel_stats(
         engine_speed,
         conn.flight_mode,
+        engine_condition,
+        frame_condition,
+        reactor_condition,
         (start.x, start.y),
         (end.x, end.y),
     );
@@ -68,12 +86,22 @@ pub struct TravelStats {
 pub fn get_travel_stats(
     engine_speed: i32,
     flight_mode: models::ShipNavFlightMode,
+    engine_condition: f64,
+    frame_condition: f64,
+    reactor_condition: f64,
     start: (i32, i32),
     end: (i32, i32),
 ) -> TravelStats {
     let distance = distance_between_waypoints(start, end);
     let (fuel_cost, multiplier) = calculate_fuel_and_multiplier(flight_mode, distance);
-    let travel_time = calculate_travel_time(distance, multiplier, engine_speed);
+    let travel_time = calculate_travel_time(
+        distance,
+        multiplier,
+        engine_speed,
+        engine_condition,
+        frame_condition,
+        reactor_condition,
+    );
 
     TravelStats {
         distance,
@@ -94,8 +122,15 @@ fn calculate_fuel_and_multiplier(
     }
 }
 
-fn calculate_travel_time(distance: f64, multiplier: f64, engine_speed: i32) -> f64 {
-    let result =
+fn calculate_travel_time(
+    distance: f64,
+    multiplier: f64,
+    engine_speed: i32,
+    engine_condition: f64,
+    frame_condition: f64,
+    reactor_condition: f64,
+) -> f64 {
+    let result = // TODO! Tis does not take conditions into the calculation, please check
         ((distance.max(1.0).round()) * (multiplier / (engine_speed as f64)) + 15.0).round();
     result
 }
@@ -115,6 +150,7 @@ pub fn generate_route_instructions(route: Vec<ConnectionDetails>) -> Vec<RouteIn
             start_symbol: conn.start.symbol.clone(),
             end_symbol: conn.end.symbol.clone(),
             start_is_marketplace,
+            distance: conn.distance,
             flight_mode: conn.flight_mode,
             refuel_to: conn.fuel_cost,
             fuel_in_cargo: last_fuel_cap,

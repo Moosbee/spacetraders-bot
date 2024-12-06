@@ -1,6 +1,6 @@
 use anyhow::Result;
 use chrono::{DateTime, TimeDelta, Utc};
-use log::debug;
+use log::{debug, info};
 use space_traders_client::{apis, models};
 use std::collections::HashMap;
 
@@ -24,7 +24,14 @@ impl MyShip {
     ) -> Result<()> {
         let route = self.calculate_route(waypoints, waypoint)?;
         let route_stats: (Vec<super::nav_models::ConnectionDetails>, f64, i32, f64) =
-            super::stats::calc_route_stats(waypoints, &route, self.engine_speed);
+            super::stats::calc_route_stats(
+                waypoints,
+                &route,
+                self.engine_speed,
+                self.conditions.engine.condition,
+                self.conditions.frame.condition,
+                self.conditions.reactor.condition,
+            );
         let instructions: Vec<RouteInstruction> =
             super::stats::generate_route_instructions(route_stats.0.clone());
 
@@ -56,12 +63,17 @@ impl MyShip {
             )
             .await?;
 
-            debug!(
-                "Time {} {} {:?} {:?}",
+            info!(
+                "Travel Time {} {} {} {:?} {} {:?} {}",
+                self.symbol,
                 self.nav.route.departure_time,
                 self.nav.route.arrival,
-                self.nav.route.arrival - self.nav.route.departure_time,
-                instruction.1.travel_time
+                (self.nav.route.arrival - self.nav.route.departure_time)
+                    .abs()
+                    .to_std(),
+                instruction.1.travel_time,
+                self.conditions,
+                self.cargo.units
             );
         }
 
@@ -122,11 +134,17 @@ impl MyShip {
             from: self.nav.waypoint_symbol.clone(),
             to: instruction.end_symbol.clone(),
             nav_mode: self.nav.flight_mode.to_string(),
+            distance: instruction.distance,
             speed: self.engine_speed,
             fuel_cost: nav_data.data.fuel.consumed.map(|f| f.amount).unwrap_or(0),
             travel_time: (self.nav.route.arrival - self.nav.route.departure_time).num_milliseconds()
                 as f64
                 / 1000.0,
+            engine_condition: self.conditions.engine.condition,
+            frame_condition: self.conditions.frame.condition,
+            reactor_condition: self.conditions.reactor.condition,
+            current_cargo: self.cargo.units,
+            total_cargohold: self.cargo.capacity,
         };
 
         crate::sql::Route::insert(database_pool, &rote).await?;
@@ -164,6 +182,7 @@ impl MyShip {
 
         self.fuel.update(&nav_data.data.fuel);
         self.nav.update(&nav_data.data.nav);
+
         self.notify().await;
 
         core::result::Result::Ok(nav_data)

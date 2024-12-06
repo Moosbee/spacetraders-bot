@@ -30,8 +30,10 @@ impl Observer<MyShip> for ShipManager {
             let map = self.copy.try_write();
 
             let mut map = if map.is_err() {
-                log::warn!("Failed to get ship: {} waiting", symbol);
-                self.copy.write().await
+                log::warn!("Failed to update get ship: {} waiting", symbol);
+                let map = self.copy.write().await;
+                log::warn!("Got update ship: {} waiting", symbol);
+                map
             } else {
                 map.unwrap()
             };
@@ -97,7 +99,9 @@ impl ShipManager {
 
         if erg.is_locked() {
             log::warn!("Failed to get ship: {} waiting", symbol);
-            self.locked_ships.get_mut(symbol)
+            let erg = self.locked_ships.get_mut(symbol);
+            log::warn!("Got ship: {} waiting", symbol);
+            erg
         } else {
             erg.try_unwrap()
         }

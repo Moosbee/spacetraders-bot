@@ -128,11 +128,23 @@ impl RouteCalculator {
             &mut self.cache.write().unwrap(),
         );
 
-        let (_, _, total_fuel_cost, total_travel_time) =
-            ship::stats::calc_route_stats(&waypoints, &route.unwrap(), ship.engine_speed);
+        let (_, _, total_fuel_cost, total_travel_time) = ship::stats::calc_route_stats(
+            &waypoints,
+            &route.unwrap(),
+            ship.engine_speed,
+            ship.conditions.engine.condition,
+            ship.conditions.frame.condition,
+            ship.conditions.reactor.condition,
+        );
 
-        let (_, _, total_fuel_cost_to, total_travel_time_to) =
-            ship::stats::calc_route_stats(&waypoints, &route_to.unwrap(), ship.engine_speed);
+        let (_, _, total_fuel_cost_to, total_travel_time_to) = ship::stats::calc_route_stats(
+            &waypoints,
+            &route_to.unwrap(),
+            ship.engine_speed,
+            ship.conditions.engine.condition,
+            ship.conditions.frame.condition,
+            ship.conditions.reactor.condition,
+        );
 
         let trip_stats = if true {
             self.calculate_reoccurring_trip_stats(
