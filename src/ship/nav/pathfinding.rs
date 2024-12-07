@@ -1,4 +1,4 @@
-use crate::{ship::ship_models::MyShip, IsMarketplace};
+use crate::{ship::ship_models::MyShip, types::WaypointCan};
 
 use super::{
     nav_models::{NavMode, RouteConnection},

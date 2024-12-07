@@ -30,7 +30,9 @@
   },
   "mining": {
     "start_sleep_duration": 1000000,
-    "active": false
+    "active": false,
+    "max_miners_per_waypoint": 100,
+    "max_extractions_per_miner": 100
   },
   "control_server": {
     "start_sleep_duration": 0,

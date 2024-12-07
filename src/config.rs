@@ -53,6 +53,8 @@ pub struct ConstructionFleet {
 pub struct MiningFleet {
     pub start_sleep_duration: u64,
     pub active: bool,
+    pub max_miners_per_waypoint: u32,
+    pub max_extractions_per_miner: u32,
 }
 
 #[derive(Deserialize, Debug, Clone)]

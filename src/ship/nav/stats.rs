@@ -1,4 +1,4 @@
-use crate::IsMarketplace;
+use crate::types::WaypointCan;
 
 use super::{
     nav_models::{ConnectionDetails, RouteConnection, RouteInstruction},

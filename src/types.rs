@@ -1,6 +1,8 @@
 use std::fmt::Debug;
 use std::sync::Weak;
 
+use dashmap::DashMap;
+
 /// Trait representing an observer that can be updated
 pub trait Observer<K> {
     /// Asynchronous method to update the observer with new data
@@ -76,5 +78,65 @@ impl<T: Observer<K> + Debug, K: Clone + Debug> Debug for Publisher<T, K> {
 impl<T: Observer<K>, K> Default for Publisher<T, K> {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+// Helper method to safely access DashMap
+pub fn safely_get_map<'a, K, V>(
+    map: &'a DashMap<K, V>,
+    key: &K,
+) -> Option<dashmap::mapref::one::Ref<'a, K, V>>
+where
+    K: std::hash::Hash + Eq + Clone,
+    V: Clone,
+{
+    let result = map.try_get(key);
+    if result.is_locked() {
+        log::warn!("Map access locked, retrying");
+        map.get(key)
+    } else {
+        result.try_unwrap()
+    }
+}
+
+// Helper method to safely access DashMap
+pub fn safely_get_mut_map<'a, K, V>(
+    map: &'a DashMap<K, V>,
+    key: &K,
+) -> Option<dashmap::mapref::one::RefMut<'a, K, V>>
+where
+    K: std::hash::Hash + Eq + Clone,
+    V: Clone,
+{
+    let result = map.try_get_mut(key);
+    if result.is_locked() {
+        log::warn!("Map access locked, retrying");
+        map.get_mut(key)
+    } else {
+        result.try_unwrap()
+    }
+}
+
+pub trait WaypointCan {
+    fn is_marketplace(&self) -> bool;
+    fn is_minable(&self) -> bool;
+    fn is_sipherable(&self) -> bool;
+}
+
+impl WaypointCan for space_traders_client::models::Waypoint {
+    fn is_marketplace(&self) -> bool {
+        self.traits
+            .iter()
+            .any(|t| t.symbol == space_traders_client::models::WaypointTraitSymbol::Marketplace)
+    }
+
+    fn is_minable(&self) -> bool {
+        self.r#type == space_traders_client::models::WaypointType::Asteroid
+            || self.r#type == space_traders_client::models::WaypointType::AsteroidField
+            || self.r#type == space_traders_client::models::WaypointType::EngineeredAsteroid
+    }
+
+    fn is_sipherable(&self) -> bool {
+        self.r#type == space_traders_client::models::WaypointType::GasGiant
     }
 }

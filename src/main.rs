@@ -360,15 +360,3 @@ async fn main() -> anyhow::Result<()> {
 
     Ok(())
 }
-
-pub trait IsMarketplace {
-    fn is_marketplace(&self) -> bool;
-}
-
-impl IsMarketplace for space_traders_client::models::Waypoint {
-    fn is_marketplace(&self) -> bool {
-        self.traits
-            .iter()
-            .any(|t| t.symbol == space_traders_client::models::WaypointTraitSymbol::Marketplace)
-    }
-}

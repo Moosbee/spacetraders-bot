@@ -315,7 +315,7 @@ mod path_finding_tests {
             nav_models::{NavMode, RouteConnection},
             utils::{distance_between_waypoints, get_nearby_waypoints, get_route},
         },
-        IsMarketplace,
+        types::WaypointCan,
     };
 
     pub fn get_route_a_star(

@@ -9,7 +9,7 @@ use tokio_util::sync::CancellationToken;
 use crate::{
     config::CONFIG,
     sql::{self, DatabaseConnector},
-    IsMarketplace,
+    types::WaypointCan,
 };
 
 #[derive(Debug)]
