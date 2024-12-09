@@ -162,7 +162,7 @@ impl ControlApiServer {
         let context = self.context.clone();
         warp::path("ships").map(move || {
             debug!("Getting ships");
-            let ships = context.ship_manager.get_ships_clone();
+            let ships = context.ship_manager.get_all_clone();
             debug!("Got {} ships", ships.len());
             warp::reply::json(&ships)
         })

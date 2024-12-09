@@ -1,14 +1,9 @@
-use std::{
-    collections::{HashMap, HashSet},
-    string,
-    sync::Arc,
-    time::Duration,
-};
+use std::{sync::Arc, time::Duration};
 
 use anyhow::Ok;
-use dashmap::DashMap;
-use futures::FutureExt;
-use log::{debug, error, info};
+use chrono::Utc;
+use futures::{FutureExt, StreamExt};
+use log::{error, info};
 use space_traders_client::models::{self, waypoint};
 use tokio::time::sleep;
 use tokio_util::sync::CancellationToken;
@@ -17,15 +12,17 @@ use crate::{
     config::CONFIG,
     ship::{self, Role},
     sql::TransactionReason,
-    types::{safely_get_map, safely_get_mut_map, WaypointCan},
+    types::{safely_get_map, WaypointCan},
     workers::mining::m_types::MiningShipAssignment,
 };
+
+use super::mining_manager::{MiningManager, WaypointInfo};
 
 #[derive(Debug, Clone)]
 pub struct MiningFleet {
     context: crate::workers::types::ConductorContext,
     cancellation_token: CancellationToken,
-    mining_places: Arc<DashMap<String, HashSet<String>>>,
+    mining_places: Arc<MiningManager>,
 }
 
 impl MiningFleet {
@@ -34,58 +31,8 @@ impl MiningFleet {
         Box::new(MiningFleet {
             context: _context,
             cancellation_token: CancellationToken::new(),
-            mining_places: Arc::new(DashMap::new()),
+            mining_places: Arc::new(MiningManager::new()),
         })
-    }
-
-    fn assign_to(&self, ship_symbol: &String, waypoint: &waypoint::Waypoint) -> bool {
-        let symbol = waypoint.symbol.clone();
-
-        let system: Option<dashmap::mapref::one::RefMut<'_, String, HashSet<String>>> =
-            safely_get_mut_map(&self.mining_places, &symbol);
-
-        if system.is_none() {
-            debug!("No mining place for {}", symbol);
-            let had = self.mining_places.insert(symbol.clone(), HashSet::new());
-            if had.is_some() {
-                log::warn!("Dafug Dashmap race {}", symbol); // This should not happen
-                for ship_i in had.unwrap().iter() {
-                    self.assign_to(ship_i, &waypoint);
-                }
-            }
-            return self.assign_to(ship_symbol, waypoint);
-        }
-
-        let mut system = system.unwrap();
-
-        if system.contains(ship_symbol) {
-            return true;
-        }
-
-        if system.len() >= CONFIG.mining.max_miners_per_waypoint.try_into().unwrap() {
-            return false;
-        }
-
-        system.insert(ship_symbol.clone());
-
-        true
-    }
-
-    fn get_count(&self, waypoint: &waypoint::Waypoint) -> usize {
-        let system = self.mining_places.try_get(&waypoint.system_symbol);
-
-        let erg = if system.is_locked() {
-            log::warn!(
-                "Failed to get mining place: {} waiting",
-                waypoint.system_symbol
-            );
-            let system = self.mining_places.get(&waypoint.system_symbol);
-            log::warn!("Got mining place: {} waiting", waypoint.system_symbol);
-            system
-        } else {
-            system.try_unwrap()
-        };
-        erg.map(|s| s.len()).unwrap_or(0)
     }
 
     async fn run_mining_worker(&self) -> anyhow::Result<()> {
@@ -152,11 +99,7 @@ impl MiningFleet {
     }
 
     async fn run_mining_ship_worker(&self, ship_symbol: String) -> anyhow::Result<()> {
-        let mut ship = self
-            .context
-            .ship_manager
-            .get_ship_mut(&ship_symbol)
-            .unwrap();
+        let mut ship = self.context.ship_manager.get_mut(&ship_symbol).unwrap();
 
         if let Role::Mining(assignment) = ship.role {
             match assignment {
@@ -177,11 +120,57 @@ impl MiningFleet {
     }
 
     async fn run_transporter_ship_worker(&self, ship: &mut ship::MyShip) -> anyhow::Result<()> {
+        tokio::time::sleep(std::time::Duration::from_millis(
+            500 + rand::random::<u64>() % 500,
+        ))
+        .await;
+
         Ok(())
     }
+
+    async fn calculate_waypoint_urgencys(&self) -> Vec<(String, u32)> {
+        let waypoints = self.mining_places.get_all().await;
+        let the_ships: std::collections::HashMap<String, ship::MyShip> =
+            self.context.ship_manager.get_all_clone();
+
+        let erg = waypoints
+            .iter()
+            .map(|wp| Self::calculate_waypoint_urgency(wp.1, the_ships.clone()))
+            .collect::<Vec<_>>();
+
+        vec![]
+    }
+
+    fn calculate_waypoint_urgency(
+        wp: &WaypointInfo,
+        ships: std::collections::HashMap<String, ship::MyShip>,
+    ) -> (String, u32) {
+        let (units_sum, capacity_sum) =
+            wp.1.iter()
+                .map(|s| ships.get(s).unwrap())
+                .filter(|sh| sh.nav.waypoint_symbol == wp.0 && !sh.nav.is_in_transit())
+                .map(|sh| (sh.cargo.units, sh.cargo.capacity))
+                .fold((0, 0), |(units_sum, capacity_sum), (units, capacity)| {
+                    (units_sum + units, capacity_sum + capacity)
+                });
+
+        let cargo_ratio = (units_sum as f32 / capacity_sum as f32) * 100.0;
+        let cargo_ratio = if cargo_ratio.is_nan() {
+            0.0
+        } else {
+            cargo_ratio
+        };
+
+        let since_last = wp.2 - Utc::now();
+
+        let urgency = since_last.num_seconds() * cargo_ratio as i64;
+
+        (wp.0.clone(), urgency as u32)
+    }
+
     async fn run_extractor_ship_worker(&self, ship: &mut ship::MyShip) -> anyhow::Result<()> {
         tokio::time::sleep(std::time::Duration::from_millis(
-            1000 + rand::random::<u64>() % 1000,
+            100 + rand::random::<u64>() % 100,
         ))
         .await;
 
@@ -198,7 +187,9 @@ impl MiningFleet {
         let mut wp = None;
 
         let mut worked = if current_waypoint.is_minable() {
-            self.assign_to(&ship.symbol, &current_waypoint)
+            self.mining_places
+                .assign_to(&ship.symbol, &current_waypoint)
+                .await
         } else {
             false
         };
@@ -209,21 +200,27 @@ impl MiningFleet {
 
         while !worked {
             tokio::time::sleep(std::time::Duration::from_millis(
-                1000 + rand::random::<u64>() % 1000,
+                100 + rand::random::<u64>() % 100,
             ))
             .await;
-            let waypoints = self
-                .get_best_waypoints(ship.nav.system_symbol.clone(), |w| w.is_minable())
-                .into_iter()
-                .filter(|wp| {
-                    self.get_count(&wp.0)
+
+            let waypoints = futures::stream::iter(
+                self.get_best_waypoints(ship.nav.system_symbol.clone(), |w| w.is_minable()),
+            )
+            .filter(|wp| {
+                let places = self.mining_places.clone();
+                let wp = wp.clone();
+                async move {
+                    places.get_count(&wp.0).await
                         < CONFIG.mining.max_miners_per_waypoint.try_into().unwrap()
-                })
-                .collect::<Vec<_>>();
+                }
+            })
+            .collect::<Vec<_>>()
+            .await;
 
             let waypoint = waypoints.first().unwrap().0.clone();
 
-            worked = self.assign_to(&ship.symbol, &waypoint);
+            worked = self.mining_places.assign_to(&ship.symbol, &waypoint).await;
             if worked {
                 wp = Some(waypoint);
             }
@@ -292,7 +289,9 @@ impl MiningFleet {
         let mut wp = None;
 
         let mut worked = if current_waypoint.is_minable() {
-            self.assign_to(&ship.symbol, &current_waypoint)
+            self.mining_places
+                .assign_to(&ship.symbol, &current_waypoint)
+                .await
         } else {
             false
         };
@@ -306,18 +305,24 @@ impl MiningFleet {
                 1000 + rand::random::<u64>() % 1000,
             ))
             .await;
-            let waypoints = self
-                .get_best_waypoints(ship.nav.system_symbol.clone(), |w| w.is_sipherable())
-                .into_iter()
-                .filter(|wp| {
-                    self.get_count(&wp.0)
+
+            let waypoints = futures::stream::iter(
+                self.get_best_waypoints(ship.nav.system_symbol.clone(), |w| w.is_sipherable()),
+            )
+            .filter(|wp| {
+                let places = self.mining_places.clone();
+                let wp = wp.clone();
+                async move {
+                    places.get_count(&wp.0).await
                         < CONFIG.mining.max_miners_per_waypoint.try_into().unwrap()
-                })
-                .collect::<Vec<_>>();
+                }
+            })
+            .collect::<Vec<_>>()
+            .await;
 
             let waypoint = waypoints.first().unwrap().0.clone();
 
-            worked = self.assign_to(&ship.symbol, &waypoint);
+            worked = self.mining_places.assign_to(&ship.symbol, &waypoint).await;
             if worked {
                 wp = Some(waypoint);
             }
@@ -441,7 +446,7 @@ impl MiningFleet {
 
     async fn assign_ships(&self, ships: &Vec<String>) {
         for ship_name in ships {
-            let mut ship = self.context.ship_manager.get_ship_mut(ship_name).unwrap();
+            let mut ship = self.context.ship_manager.get_mut(ship_name).unwrap();
             let ship_capabilities = self.analyze_ship_capabilities(&mut ship);
 
             ship.role = match ship_capabilities {

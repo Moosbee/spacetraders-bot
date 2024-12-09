@@ -71,12 +71,12 @@ impl ShipManager {
         me.locked_ships.insert(ship.symbol.clone(), ship);
     }
 
-    pub fn get_ship_clone(&self, symbol: &str) -> Option<MyShip> {
+    pub fn get_clone(&self, symbol: &str) -> Option<MyShip> {
         let map = self.copy.try_read().unwrap();
         map.get(symbol).map(|s| s.clone())
     }
 
-    pub fn get_ships_clone(&self) -> HashMap<String, MyShip> {
+    pub fn get_all_clone(&self) -> HashMap<String, MyShip> {
         let erg = {
             let map = self.copy.try_read().unwrap();
             map.iter().map(|f| f.1.clone()).collect::<Vec<_>>()
@@ -84,14 +84,14 @@ impl ShipManager {
         erg.into_iter().map(|f| (f.symbol.clone(), f)).collect()
     }
 
-    pub fn get_ship(
+    pub fn get(
         &self,
         symbol: &str,
     ) -> Option<dashmap::mapref::one::Ref<'_, std::string::String, MyShip>> {
         self.locked_ships.get(symbol)
     }
 
-    pub fn get_ship_mut(
+    pub fn get_mut(
         &self,
         symbol: &str,
     ) -> Option<dashmap::mapref::one::RefMut<'_, std::string::String, MyShip>> {

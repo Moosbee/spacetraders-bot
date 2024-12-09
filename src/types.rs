@@ -2,6 +2,7 @@ use std::fmt::Debug;
 use std::sync::Weak;
 
 use dashmap::DashMap;
+use lockable::{AsyncLimit, Lockable, LockableHashMap, SyncLimit};
 
 /// Trait representing an observer that can be updated
 pub trait Observer<K> {
@@ -115,6 +116,27 @@ where
     } else {
         result.try_unwrap()
     }
+}
+
+pub async fn safely_get_lock_mut_map<'a, K, V>(
+    map: &'a LockableHashMap<K, V>,
+    key: K,
+) -> <LockableHashMap<K, V> as Lockable<K, V>>::Guard<'a>
+where
+    K: std::hash::Hash + Eq + Clone,
+    V: Clone,
+{
+    let result = map.try_lock(key.clone(), SyncLimit::no_limit()).unwrap();
+
+    let erg = if result.is_none() {
+        log::warn!("Map access locked, retrying");
+        let result = map.async_lock(key, AsyncLimit::no_limit()).await;
+        result.unwrap()
+    } else {
+        result.unwrap()
+    };
+
+    erg
 }
 
 pub trait WaypointCan {

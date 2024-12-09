@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use space_traders_client::{
-    apis::fleet_api::{ExtractResourcesError, SiphonResourcesError},
-    models,
+    apis::fleet_api::{CreateSurveyError, ExtractResourcesError, SiphonResourcesError},
+    models::{self, survey},
 };
 
 use crate::api;
@@ -48,6 +48,26 @@ impl MyShip {
         Ok(extraction)
     }
 
+    pub async fn extract_with_survey(
+        &mut self,
+        api: &api::Api,
+        survey: &models::Survey,
+    ) -> Result<
+        models::ExtractResources201Response,
+        space_traders_client::apis::Error<
+            space_traders_client::apis::fleet_api::ExtractResourcesWithSurveyError,
+        >,
+    > {
+        let extraction = api
+            .extract_resources_with_survey(&self.symbol, Some(survey.clone()))
+            .await?;
+
+        self.update_cooldown(&extraction.data.cooldown);
+        self.cargo.update(&extraction.data.cargo);
+
+        Ok(extraction)
+    }
+
     pub async fn siphon(
         &mut self,
         api: &api::Api,
@@ -61,6 +81,18 @@ impl MyShip {
         self.cargo.update(&extraction.data.cargo);
 
         Ok(extraction)
+    }
+
+    pub async fn survey(
+        &mut self,
+        api: &api::Api,
+    ) -> Result<models::CreateSurvey201Response, space_traders_client::apis::Error<CreateSurveyError>>
+    {
+        let survey = api.create_survey(&self.symbol).await?;
+
+        self.update_cooldown(&survey.data.cooldown);
+
+        Ok(survey)
     }
 
     pub fn update_cooldown(&mut self, cooldown: &models::Cooldown) {

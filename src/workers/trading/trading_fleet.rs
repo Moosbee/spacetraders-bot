@@ -124,11 +124,7 @@ impl TradingFleet {
     }
 
     async fn run_trade_ship_worker(&self, ship_symbol: String) -> anyhow::Result<()> {
-        let mut ship = self
-            .context
-            .ship_manager
-            .get_ship_mut(&ship_symbol)
-            .unwrap();
+        let mut ship = self.context.ship_manager.get_mut(&ship_symbol).unwrap();
 
         debug!("Starting trade for {}", ship_symbol);
         tokio::time::sleep(std::time::Duration::from_millis(
