@@ -28,11 +28,15 @@ pub fn get_route(
     end_symbol: String,
 ) -> Result<Vec<RouteConnection>, Error> {
     let mut route = Vec::new();
-    let mut current = end_symbol;
+    let mut current = end_symbol.clone();
     while current != start_symbol {
-        let connection = visited
-            .get(&current)
-            .ok_or_else(|| anyhow::anyhow!("Could not find connection"))?;
+        let connection = visited.get(&current).ok_or_else(|| {
+            anyhow::anyhow!(
+                "Could not find connection between waypoints {} {}",
+                start_symbol,
+                end_symbol
+            )
+        })?;
         route.push(connection.clone());
         current = connection.start_symbol.clone();
     }

@@ -124,14 +124,15 @@ impl TradingFleet {
     }
 
     async fn run_trade_ship_worker(&self, ship_symbol: String) -> anyhow::Result<()> {
-        let mut ship = self.context.ship_manager.get_mut(&ship_symbol).unwrap();
+        let mut guard = self.context.ship_manager.get_mut(&ship_symbol).await;
+        let ship = guard.value_mut().unwrap();
 
         debug!("Starting trade for {}", ship_symbol);
         tokio::time::sleep(std::time::Duration::from_millis(
             1000 + rand::random::<u64>() % 1000,
         ))
         .await;
-        self.finish_trade_trade(&mut ship).await?;
+        self.finish_trade_trade(ship).await?;
         let delay = 1000 + rand::random::<u64>() % 1000;
         debug!("Waiting for trade cycle for {} {}", ship_symbol, delay);
 
@@ -147,7 +148,7 @@ impl TradingFleet {
                 .get_best_route(&ship, &self.running_routes)
                 .await?;
             self.trade_executor
-                .process_trade_route(&mut ship, route.into(), i)
+                .process_trade_route(ship, route.into(), i)
                 .await?;
         }
 

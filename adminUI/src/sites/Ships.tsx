@@ -59,6 +59,8 @@ function Ships() {
               ? ""
               : role.data[0] + " (" + role.data[1] + ")"
             : ""
+        }${
+          role.type === "Mining" ? (role.data === null ? "" : role.data) : ""
         }`,
       onFilter: (value, record) => record.role.type === value,
       sorter: (a, b) => a.role.type.localeCompare(b.role.type),

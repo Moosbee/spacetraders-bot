@@ -93,7 +93,7 @@ where
 {
     let result = map.try_get(key);
     if result.is_locked() {
-        log::warn!("Map access locked, retrying");
+        log::warn!("safely_get_map access locked, retrying");
         map.get(key)
     } else {
         result.try_unwrap()
@@ -111,26 +111,31 @@ where
 {
     let result = map.try_get_mut(key);
     if result.is_locked() {
-        log::warn!("Map access locked, retrying");
+        log::warn!("safely_get_mut_map access locked, retrying");
         map.get_mut(key)
     } else {
         result.try_unwrap()
     }
 }
 
-pub async fn safely_get_lock_mut_map<'a, K, V>(
-    map: &'a LockableHashMap<K, V>,
+pub async fn safely_get_lock_mut_map<K, V>(
+    map: &LockableHashMap<K, V>,
     key: K,
-) -> <LockableHashMap<K, V> as Lockable<K, V>>::Guard<'a>
+) -> <LockableHashMap<K, V> as Lockable<K, V>>::Guard<'_>
 where
-    K: std::hash::Hash + Eq + Clone,
+    K: std::hash::Hash + Eq + Clone + Debug,
     V: Clone,
 {
     let result = map.try_lock(key.clone(), SyncLimit::no_limit()).unwrap();
 
     let erg = if result.is_none() {
-        log::warn!("Map access locked, retrying");
-        let result = map.async_lock(key, AsyncLimit::no_limit()).await;
+        log::warn!(
+            "safely_get_lock_mut_map access locked key: {:?}, retrying line: {}",
+            key,
+            line!()
+        );
+        let result = map.async_lock(key.clone(), AsyncLimit::no_limit()).await;
+        log::warn!("safely_get_lock_mut_map access {:?} unlocked", key);
         result.unwrap()
     } else {
         result.unwrap()

@@ -157,11 +157,8 @@ impl ContractFleet {
             .map(|w| (w.symbol.clone(), w.clone()))
             .collect();
 
-        let mut ship = self
-            .context
-            .ship_manager
-            .get_mut(&ship_symbol)
-            .context("Ship not found")?;
+        let mut guard = self.context.ship_manager.get_mut(&ship_symbol).await;
+        let ship = guard.value_mut().context("Ship not found")?;
 
         ship.role = ship::Role::Contract(Some((current_contract.id.clone(), num)));
         ship.notify().await;
@@ -174,7 +171,7 @@ impl ContractFleet {
             while procurement.units_fulfilled < procurement.units_required {
                 current_contract = self
                     .handle_procurement_cycle(
-                        &mut ship,
+                        ship,
                         &current_contract,
                         &procurement,
                         trade_symbol,
@@ -206,7 +203,8 @@ impl ContractFleet {
         contract_ships: &Vec<String>,
     ) -> Result<Contract, Error> {
         for ship in contract_ships.iter() {
-            let mut current_ship = self.context.ship_manager.get_mut(ship).unwrap();
+            let mut guard = self.context.ship_manager.get_mut(ship).await;
+            let current_ship = guard.value_mut().unwrap();
             let current_nav = current_ship.nav.get_status();
             if current_nav != models::ShipNavStatus::InTransit {
                 current_ship.ensure_docked(&self.context.api).await?;

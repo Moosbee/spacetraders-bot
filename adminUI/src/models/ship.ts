@@ -1,4 +1,10 @@
-import { ShipNavFlightMode, ShipNavStatus, ShipRole, TradeSymbol } from "./api";
+import {
+  ShipMountSymbolEnum,
+  ShipNavFlightMode,
+  ShipNavStatus,
+  ShipRole,
+  TradeSymbol,
+} from "./api";
 
 interface Navigation {
   flight_mode: ShipNavFlightMode;
@@ -47,6 +53,15 @@ interface Fuel {
   current: number;
 }
 
+interface Mounts {
+  mounts: ShipMountSymbolEnum[];
+}
+
+interface Condition {
+  integrity: number;
+  condition: number;
+}
+
 interface RustShip {
   role: SystemShipRole;
   registration_role: ShipRole;
@@ -56,6 +71,12 @@ interface RustShip {
   nav: Navigation;
   cargo: Cargo;
   fuel: Fuel;
+  mounts: Mounts;
+  conditions: {
+    engine: Condition;
+    frame: Condition;
+    reactor: Condition;
+  };
 }
 
 export type SystemShipRoles =
@@ -74,7 +95,7 @@ export type SystemShipRole =
   | { type: "Trader"; data: [number, number] | null }
   | { type: "Contract"; data: [string, number] | null }
   | { type: "Scraper" }
-  | { type: "Mining" }
+  | { type: "Mining"; data: string | null }
   | { type: "Manuel" }; // Default role
 
 export default RustShip;

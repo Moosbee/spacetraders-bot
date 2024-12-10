@@ -3,7 +3,7 @@ use std::{sync::Arc, time::Duration};
 use anyhow::Ok;
 use chrono::Utc;
 use futures::{FutureExt, StreamExt};
-use log::{error, info};
+use log::{debug, error, info};
 use space_traders_client::models::{self, waypoint};
 use tokio::time::sleep;
 use tokio_util::sync::CancellationToken;
@@ -58,6 +58,7 @@ impl MiningFleet {
 
         for ship in ships {
             let child_stopper = self.cancellation_token.child_token();
+
             let fleet = self.with_cancel(child_stopper.clone());
             let handle = tokio::spawn(async move { fleet.run_mining_ship_worker(ship).await })
                 .then(|result| async move {
@@ -68,7 +69,7 @@ impl MiningFleet {
                         Result::Ok(result) => {
                             if let Err(e) = result {
                                 error!(
-                                    "We got Error: {} {:?} {:?} {:?}",
+                                    "We got Mining Error: {} {:?} {:?} {:?}",
                                     e,
                                     e.backtrace(),
                                     e.source(),
@@ -82,6 +83,11 @@ impl MiningFleet {
                 });
             handles.push((handle, child_stopper));
         }
+
+        for (handle, _child_stopper) in handles {
+            let _ = handle.await;
+        }
+
         info!("mining workers done");
 
         Ok(())
@@ -99,18 +105,15 @@ impl MiningFleet {
     }
 
     async fn run_mining_ship_worker(&self, ship_symbol: String) -> anyhow::Result<()> {
-        let mut ship = self.context.ship_manager.get_mut(&ship_symbol).unwrap();
+        let mut guard = self.context.ship_manager.get_mut(&ship_symbol).await;
+        let ship = guard.value_mut().unwrap();
 
         if let Role::Mining(assignment) = ship.role {
             match assignment {
-                MiningShipAssignment::Extractor => {
-                    self.run_extractor_ship_worker(&mut ship).await?
-                }
-                MiningShipAssignment::Transporter => {
-                    self.run_transporter_ship_worker(&mut ship).await?
-                }
-                MiningShipAssignment::Siphoner => self.run_siphoned_ship_worker(&mut ship).await?,
-                MiningShipAssignment::Surveyor => self.run_surveyor_ship_worker(&mut ship).await?,
+                MiningShipAssignment::Extractor => self.run_extractor_ship_worker(ship).await?,
+                MiningShipAssignment::Transporter => self.run_transporter_ship_worker(ship).await?,
+                MiningShipAssignment::Siphoner => self.run_siphoned_ship_worker(ship).await?,
+                MiningShipAssignment::Surveyor => self.run_surveyor_ship_worker(ship).await?,
                 MiningShipAssignment::Idle => {}
                 MiningShipAssignment::Useless => {}
             }
@@ -125,6 +128,44 @@ impl MiningFleet {
         ))
         .await;
 
+        let waypoints = self
+            .context
+            .all_waypoints
+            .get(&ship.nav.system_symbol)
+            .unwrap()
+            .clone();
+
+        for _i in 0..CONFIG.mining.max_extractions_per_miner {
+            if self.cancellation_token.is_cancelled() {
+                info!("Transport cycle cancelled for {} ", ship.symbol);
+                break;
+            }
+            let route = self.calculate_waypoint_urgencys().await;
+            debug!("Routes: {:?}", route);
+            let routes = route.iter().filter(|r| r.1 > 0).collect::<Vec<_>>();
+
+            if routes.is_empty() {
+                info!("No routes found for {}", ship.symbol);
+                tokio::time::sleep(std::time::Duration::from_millis(
+                    5000 + rand::random::<u64>() % 5000,
+                ))
+                .await;
+                continue;
+            }
+
+            let route = routes.last().unwrap();
+            debug!("Route: {:?}", route);
+
+            ship.nav_to(
+                &route.0,
+                true,
+                &waypoints,
+                &self.context.api,
+                self.context.database_pool.clone(),
+                TransactionReason::None,
+            )
+            .await?;
+        }
         Ok(())
     }
 
@@ -133,12 +174,14 @@ impl MiningFleet {
         let the_ships: std::collections::HashMap<String, ship::MyShip> =
             self.context.ship_manager.get_all_clone();
 
-        let erg = waypoints
+        let mut erg = waypoints
             .iter()
             .map(|wp| Self::calculate_waypoint_urgency(wp.1, the_ships.clone()))
             .collect::<Vec<_>>();
 
-        vec![]
+        erg.sort_by(|a, b| b.1.cmp(&a.1));
+
+        erg
     }
 
     fn calculate_waypoint_urgency(
@@ -253,7 +296,7 @@ impl MiningFleet {
     async fn run_extraction_cycle(
         &self,
         ship: &mut ship::MyShip,
-        waypoint: &waypoint::Waypoint,
+        _waypoint: &waypoint::Waypoint,
     ) -> anyhow::Result<()> {
         for _ in 0..CONFIG.mining.max_extractions_per_miner {
             let i = tokio::select! {
@@ -263,6 +306,14 @@ impl MiningFleet {
 
             if i == 0 {
                 break;
+            }
+
+            if ship.cargo.units >= ship.cargo.capacity {
+                tokio::time::sleep(std::time::Duration::from_millis(
+                    1000 + rand::random::<u64>() % 1000,
+                ))
+                .await;
+                continue;
             }
 
             ship.extract(&self.context.api).await?;
@@ -355,7 +406,7 @@ impl MiningFleet {
     async fn run_siphoning_cycle(
         &self,
         ship: &mut ship::MyShip,
-        waypoint: &waypoint::Waypoint,
+        _waypoint: &waypoint::Waypoint,
     ) -> anyhow::Result<()> {
         for _ in 0..CONFIG.mining.max_extractions_per_miner {
             let i = tokio::select! {
@@ -373,13 +424,14 @@ impl MiningFleet {
         Ok(())
     }
 
-    async fn run_surveyor_ship_worker(&self, ship: &mut ship::MyShip) -> anyhow::Result<()> {
+    async fn run_surveyor_ship_worker(&self, _ship: &mut ship::MyShip) -> anyhow::Result<()> {
         Ok(())
     }
 
     fn with_cancel(&self, cancellation_token: CancellationToken) -> MiningFleet {
         MiningFleet {
             cancellation_token: cancellation_token,
+            mining_places: Arc::clone(&self.mining_places),
             ..self.clone()
         }
     }
@@ -446,8 +498,9 @@ impl MiningFleet {
 
     async fn assign_ships(&self, ships: &Vec<String>) {
         for ship_name in ships {
-            let mut ship = self.context.ship_manager.get_mut(ship_name).unwrap();
-            let ship_capabilities = self.analyze_ship_capabilities(&mut ship);
+            let mut guard = self.context.ship_manager.get_mut(ship_name).await;
+            let ship = guard.value_mut().unwrap();
+            let ship_capabilities = self.analyze_ship_capabilities(ship);
 
             ship.role = match ship_capabilities {
                 ShipCapabilities {
@@ -477,7 +530,7 @@ impl MiningFleet {
             ship.notify().await;
         }
     }
-    fn analyze_ship_capabilities(&self, ship: &mut ship::MyShip) -> ShipCapabilities {
+    fn analyze_ship_capabilities(&self, ship: &ship::MyShip) -> ShipCapabilities {
         ShipCapabilities {
             can_extract: ship.mounts.can_extract(),
             can_siphon: ship.mounts.can_siphon(),

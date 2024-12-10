@@ -1,15 +1,15 @@
 use std::{collections::HashMap, sync::Arc};
 
-use dashmap::DashMap;
+use lockable::{AsyncLimit, Lockable, LockableHashMap};
 use tokio::sync::RwLock;
 
-use crate::types::{Observer, Subject};
+use crate::types::{safely_get_lock_mut_map, Observer, Subject};
 
 use super::MyShip;
 
 #[derive(Debug)]
 pub struct ShipManager {
-    locked_ships: DashMap<String, MyShip>,
+    locked_ships: LockableHashMap<String, MyShip>,
     copy: RwLock<HashMap<String, MyShip>>,
     mpsc_tx: tokio::sync::broadcast::Sender<MyShip>,
     mpsc_rx: tokio::sync::broadcast::Receiver<MyShip>,
@@ -50,8 +50,8 @@ impl ShipManager {
     pub fn new() -> Self {
         let (mpsc_tx, mpsc_rx) = tokio::sync::broadcast::channel(100);
         Self {
-            locked_ships: DashMap::with_capacity(100),
-            copy: RwLock::new(HashMap::with_capacity(100)),
+            locked_ships: LockableHashMap::new(),
+            copy: RwLock::new(HashMap::new()),
             mpsc_tx,
             mpsc_rx,
             id: rand::random::<u32>(),
@@ -68,7 +68,13 @@ impl ShipManager {
             .write()
             .await
             .insert(ship.symbol.clone(), ship.clone());
-        me.locked_ships.insert(ship.symbol.clone(), ship);
+        let mut guard = me
+            .locked_ships
+            .async_lock(ship.symbol.clone(), AsyncLimit::no_limit())
+            .await
+            .unwrap();
+
+        guard.insert(ship);
     }
 
     pub fn get_clone(&self, symbol: &str) -> Option<MyShip> {
@@ -78,32 +84,24 @@ impl ShipManager {
 
     pub fn get_all_clone(&self) -> HashMap<String, MyShip> {
         let erg = {
-            let map = self.copy.try_read().unwrap();
+            let map = self.copy.try_read();
+            let map = if map.is_err() {
+                log::warn!("Failed to get all ships waiting");
+                self.copy.blocking_read()
+            } else {
+                map.unwrap()
+            };
             map.iter().map(|f| f.1.clone()).collect::<Vec<_>>()
         };
         erg.into_iter().map(|f| (f.symbol.clone(), f)).collect()
     }
 
-    pub fn get(
+    pub async fn get_mut(
         &self,
         symbol: &str,
-    ) -> Option<dashmap::mapref::one::Ref<'_, std::string::String, MyShip>> {
-        self.locked_ships.get(symbol)
-    }
-
-    pub fn get_mut(
-        &self,
-        symbol: &str,
-    ) -> Option<dashmap::mapref::one::RefMut<'_, std::string::String, MyShip>> {
-        let erg = self.locked_ships.try_get_mut(symbol);
-
-        if erg.is_locked() {
-            log::warn!("Failed to get ship: {} waiting", symbol);
-            let erg = self.locked_ships.get_mut(symbol);
-            log::warn!("Got ship: {} waiting", symbol);
-            erg
-        } else {
-            erg.try_unwrap()
-        }
+    ) -> <LockableHashMap<String, MyShip> as Lockable<String, MyShip>>::Guard<'_> {
+        let erg = safely_get_lock_mut_map(&self.locked_ships, symbol.to_owned()).await;
+        // self.locked_ships.get(symbol)
+        erg
     }
 }

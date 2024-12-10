@@ -9,6 +9,8 @@ use space_traders_client::models::waypoint;
 
 use crate::{config::CONFIG, types::safely_get_lock_mut_map};
 
+use super::m_types::SendFuture;
+
 pub type WaypointInfo = (String, HashSet<String>, chrono::DateTime<chrono::Utc>);
 
 #[derive(Debug)]
@@ -58,6 +60,8 @@ impl MiningManager {
         let waypoint = safely_get_lock_mut_map(&self.mining_places, waypoint.symbol.clone()).await;
 
         waypoint.value().map(|s| s.clone()).unwrap()
+
+        // (String::new(), HashSet::new(), chrono::Utc::now())
     }
 
     pub async fn get_all(&self) -> HashMap<String, WaypointInfo> {
@@ -75,6 +79,7 @@ impl MiningManager {
             .filter(|f| future::ready(f.1.is_some()))
             .map(|f| (f.0, f.1.unwrap()))
             .collect::<HashMap<_, _>>()
+            .send() // https://github.com/rust-lang/rust/issues/96865
             .await;
 
         erg
