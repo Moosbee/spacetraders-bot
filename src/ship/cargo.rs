@@ -1,5 +1,7 @@
 use std::{i32, ops::SubAssign};
 
+use space_traders_client::models::JettisonRequest;
+
 use crate::{
     api,
     sql::{self, DatabaseConnector},
@@ -65,7 +67,7 @@ impl MyShip {
         Ok(())
     }
 
-    async fn get_market_info(
+    pub async fn get_market_info(
         &self,
         api: &api::Api,
         database_pool: &sql::DbPool,
@@ -185,6 +187,61 @@ impl MyShip {
 
         Ok(delivery_result)
     }
+    pub async fn transfer_cargo(
+        &mut self,
+        trade_symbol: space_traders_client::models::TradeSymbol,
+        units: i32,
+        api: &api::Api,
+        target_ship: &str,
+    ) -> anyhow::Result<space_traders_client::models::TransferCargo200Response> {
+        let transfer_result: space_traders_client::models::TransferCargo200Response = api
+            .transfer_cargo(
+                &self.symbol,
+                Some(space_traders_client::models::TransferCargoRequest {
+                    units,
+                    ship_symbol: target_ship.to_string(),
+                    trade_symbol,
+                }),
+            )
+            .await?;
+
+        self.cargo.update(&transfer_result.data.cargo);
+        self.notify().await;
+        self.broadcaster
+            .sender
+            .send(super::ship_models::my_ship_update::MyShipUpdate {
+                symbol: target_ship.to_string(),
+                update: super::ship_models::my_ship_update::ShipUpdate::CargoChange(
+                    super::ship_models::my_ship_update::CargoChange {
+                        trade_symbol,
+                        units,
+                    },
+                ),
+            })?;
+
+        Ok(transfer_result)
+    }
+
+    pub async fn jettison(
+        &mut self,
+        api: &api::Api,
+        trade_symbol: space_traders_client::models::TradeSymbol,
+        units: i32,
+    ) -> anyhow::Result<()> {
+        let jettison_data: space_traders_client::models::Jettison200Response = api
+            .jettison(
+                &self.symbol,
+                Some(JettisonRequest {
+                    units,
+                    symbol: trade_symbol,
+                }),
+            )
+            .await?;
+        self.cargo.update(&jettison_data.data.cargo);
+        self.notify().await;
+
+        Ok(())
+    }
 
     pub async fn update_market(
         &self,
@@ -206,6 +263,13 @@ impl super::ship_models::CargoState {
             .iter()
             .find_map(|(k, v)| if k == symbol { Some(*v) } else { None })
             .unwrap_or(0)
+    }
+
+    pub fn get_units_no_fuel(&self) -> i32 {
+        self.inventory
+            .iter()
+            .filter(|(k, _)| k != &space_traders_client::models::TradeSymbol::Fuel)
+            .fold(0, |acc, (_, v)| acc + v)
     }
 
     pub fn has(&self, symbol: &space_traders_client::models::TradeSymbol) -> bool {
@@ -238,5 +302,27 @@ impl super::ship_models::CargoState {
         } else {
             Err(anyhow::anyhow!("Not enough cargo"))
         }
+    }
+
+    pub fn handle_cago_update(
+        &mut self,
+        cargo_change: super::ship_models::my_ship_update::CargoChange,
+    ) -> Result<(), anyhow::Error> {
+        let current_count = self.inventory.iter().map(|f| f.1).sum::<i32>();
+        if !(current_count == self.units) {
+            return Err(anyhow::anyhow!("Not enough cargo"));
+        };
+
+        for item in self.inventory.iter_mut() {
+            if item.0 == cargo_change.trade_symbol {
+                let new_state = item.1 - cargo_change.units;
+                if new_state < 0 {
+                    return Err(anyhow::anyhow!("Not enough cargo"));
+                }
+                item.1 = new_state;
+            }
+        }
+
+        Ok(())
     }
 }

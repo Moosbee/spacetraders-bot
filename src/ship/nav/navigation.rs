@@ -8,6 +8,7 @@ use crate::{
     api,
     ship::ship_models::MyShip,
     sql::{DatabaseConnector, TransactionReason},
+    types::SendFuture,
 };
 
 use super::nav_models::{AutopilotState, NavigationState, RouteInstruction};
@@ -77,7 +78,7 @@ impl MyShip {
             );
         }
 
-        let _ = self.nav.wait_for_arrival().await;
+        let _ = self.wait_for_arrival(api).await;
         self.nav.auto_pilot = None;
         self.notify().await;
 
@@ -108,7 +109,7 @@ impl MyShip {
         reason: TransactionReason,
     ) -> Result<()> {
         self.validate_current_waypoint(&instruction)?;
-        let _ = self.nav.wait_for_arrival().await;
+        let _ = self.wait_for_arrival(api).await;
 
         self.handle_refueling(
             &instruction,
@@ -262,6 +263,13 @@ impl MyShip {
         }
         core::result::Result::Ok(())
     }
+
+    pub async fn wait_for_arrival(&mut self, api: &api::Api) -> anyhow::Result<()> {
+        let t = self.nav.route.arrival - Utc::now();
+        let t = t.num_seconds().try_into()?;
+        self.sleep(std::time::Duration::from_secs(t), api).await;
+        Ok(())
+    }
 }
 
 impl NavigationState {
@@ -304,12 +312,5 @@ impl NavigationState {
                 }
             }
         }
-    }
-
-    pub async fn wait_for_arrival(&self) -> anyhow::Result<()> {
-        let t = self.route.arrival - Utc::now();
-        let t = t.num_seconds().try_into()?;
-        tokio::time::sleep(std::time::Duration::from_secs(t)).await;
-        Ok(())
     }
 }

@@ -7,9 +7,10 @@ use futures::StreamExt;
 use lockable::LockableHashMap;
 use space_traders_client::models::waypoint;
 
-use crate::{config::CONFIG, types::safely_get_lock_mut_map};
-
-use super::m_types::SendFuture;
+use crate::{
+    config::CONFIG,
+    types::{safely_get_lock_mut_map, SendFuture},
+};
 
 pub type WaypointInfo = (String, HashSet<String>, chrono::DateTime<chrono::Utc>);
 

@@ -20,6 +20,7 @@ use rsntp::AsyncSntpClient;
 use ship::ShipManager;
 use space_traders_client::models::waypoint;
 use sql::DatabaseConnector;
+use tokio::sync::broadcast;
 use workers::types::Conductor;
 
 use crate::api::Api;
@@ -274,8 +275,12 @@ async fn main() -> anyhow::Result<()> {
 
     let ship_manager = Arc::new(ship::ShipManager::new()); // ship::ShipManager::new();
 
+    let (sender, receiver) = broadcast::channel(1024);
+
+    let broadcaster = ship::my_ship_update::InterShipBroadcaster { sender, receiver };
+
     for ship in ships {
-        let mut ship_i = ship::MyShip::from_ship(ship.clone());
+        let mut ship_i = ship::MyShip::from_ship(ship.clone(), broadcaster.clone());
         ship_i.role = ship_roles
             .get(&ship.symbol)
             .unwrap_or(&ship::Role::Manuel)

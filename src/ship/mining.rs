@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use space_traders_client::{
     apis::fleet_api::{CreateSurveyError, ExtractResourcesError, SiphonResourcesError},
-    models::{self, survey},
+    models::{self},
 };
 
 use crate::api;
@@ -20,14 +20,14 @@ impl MyShip {
         }
     }
 
-    pub async fn wait_for_cooldown(&self) -> anyhow::Result<()> {
+    pub async fn wait_for_cooldown(&mut self, api: &api::Api) -> anyhow::Result<()> {
         if self.cooldown_expiration.is_none() {
             return Err(anyhow::anyhow!("Is not on cooldown"));
         }
         let t = self.cooldown_expiration.unwrap();
         let t = t - Utc::now();
         let t = t.num_seconds().try_into()?;
-        tokio::time::sleep(std::time::Duration::from_secs(t)).await;
+        self.sleep(std::time::Duration::from_secs(t), api).await;
         Ok(())
     }
 
