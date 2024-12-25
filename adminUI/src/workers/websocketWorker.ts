@@ -11,17 +11,27 @@ const work = () => {
   const setAgent = useMyStore.getState().setAgent;
   const setWebsocketConnected = useMyStore.getState().setWebsocketConnected;
 
+  let wasConnected = false;
+
   const connect = () => {
     websocket = new WebSocket(`ws://${backendUrl}/ws/all`);
 
     websocket.onclose = () => {
       console.log("Disconnected from backend");
+
+      if (wasConnected) {
+        const title = `Disconnected from backend`;
+        const notifaication = new Notification(title);
+      }
+
+      wasConnected = false;
       setWebsocketConnected(false);
       reconnectTimeoutId = setTimeout(connect, 1000);
     };
 
     websocket.onopen = () => {
       console.log("Connected to backend");
+      wasConnected = true;
       setWebsocketConnected(true);
       if (reconnectTimeoutId !== undefined) {
         clearTimeout(reconnectTimeoutId);

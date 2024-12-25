@@ -8,6 +8,7 @@ impl Cache {
         nav_mode: &NavMode,
         only_markets: bool,
         range: i32,
+        start_range: i32,
     ) -> Option<Vec<RouteConnection>> {
         self.routes
             .get(&(
@@ -16,6 +17,7 @@ impl Cache {
                 nav_mode.clone(),
                 only_markets,
                 range,
+                start_range,
             ))
             .cloned()
         // None
@@ -28,13 +30,15 @@ impl Cache {
         nav_mode: &NavMode,
         only_markets: bool,
         range: i32,
+        start_range: i32,
         value: Vec<RouteConnection>,
     ) {
-        let key: (String, String, NavMode, bool, i32) = (
+        let key: (String, String, NavMode, bool, i32, i32) = (
             start_symbol.clone(),
             end_symbol.clone(),
             nav_mode.clone(),
             only_markets,
+            start_range,
             range,
         );
         self.routes.insert(key, value);

@@ -380,6 +380,25 @@ impl ContractFleet {
 
             ship.ensure_docked(&self.context.api).await.unwrap();
 
+            let market_info = ship
+                .get_market_info(&self.context.api, &self.context.database_pool)
+                .await?;
+            let market_trade = market_info
+                .iter()
+                .find(|t| t.symbol == trade_symbol)
+                .unwrap();
+            let current_price = market_trade.purchase_price;
+
+            let total_cost = procurement.units_required * current_price;
+
+            let agent =
+                sql::Agent::get_last_by_symbol(&self.context.database_pool, &CONFIG.symbol).await?;
+
+            if agent.credits - 10_000 < total_cost as i64 {
+                log::error!("Agent balance too low to purchase {}", trade_symbol);
+                return Err(Error::msg("Agent balance too low to purchase"));
+            }
+
             let purchase_volume = self.calculate_purchase_volume(ship, procurement);
             ship.purchase_cargo(
                 &self.context.api,

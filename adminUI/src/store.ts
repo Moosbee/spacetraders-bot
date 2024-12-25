@@ -5,6 +5,40 @@ import { Agent, Waypoint } from "./models/api";
 import RustShip from "./models/ship";
 // import type {} from '@redux-devtools/extension' // required for devtools typing
 
+const storage = createJSONStorage(() => localStorage);
+
+// // Custom storage object
+// const storage: StateStorage = {
+//   getItem: async (key: string) => {
+//     const db = await indexedDB.open("myDB", 1);
+//     const tx = db.transaction("myStore", "readonly");
+//     const store = tx.objectStore("myStore");
+//     const request = store.get(key);
+//     const result = await new Promise((resolve) => {
+//       request.onsuccess = () => resolve(request.result);
+//     });
+//     return result;
+//   },
+//   setItem: async (key: string, value: any) => {
+//     const db = await indexedDB.open("myDB", 1);
+//     const tx = db.transaction("myStore", "readwrite");
+//     const store = tx.objectStore("myStore");
+//     store.put(value, key);
+//     await new Promise((resolve) => {
+//       tx.oncomplete = resolve;
+//     });
+//   },
+//   removeItem: async (key: string) => {
+//     const db = await indexedDB.open("myDB", 1);
+//     const tx = db.transaction("myStore", "readwrite");
+//     const store = tx.objectStore("myStore");
+//     store.delete(key);
+//     await new Promise((resolve) => {
+//       tx.oncomplete = resolve;
+//     });
+//   },
+// };
+
 type State = {
   darkMode: boolean;
   ships: Record<string, RustShip>;
@@ -96,7 +130,7 @@ const useMyStore = create<RootState>()(
       })),
       {
         name: "root-channel",
-        storage: createJSONStorage(() => localStorage),
+        storage: storage,
       }
     ),
     {

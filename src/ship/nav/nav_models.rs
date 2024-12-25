@@ -97,5 +97,5 @@ pub struct AutopilotState {
 
 #[derive(Debug, Default, Clone)]
 pub struct Cache {
-    pub routes: HashMap<(String, String, NavMode, bool, i32), Vec<RouteConnection>>,
+    pub routes: HashMap<(String, String, NavMode, bool, i32, i32), Vec<RouteConnection>>,
 }

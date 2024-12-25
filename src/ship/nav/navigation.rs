@@ -8,7 +8,6 @@ use crate::{
     api,
     ship::ship_models::MyShip,
     sql::{DatabaseConnector, TransactionReason},
-    types::SendFuture,
 };
 
 use super::nav_models::{AutopilotState, NavigationState, RouteInstruction};
@@ -90,12 +89,20 @@ impl MyShip {
         waypoints: &HashMap<String, models::Waypoint>,
         waypoint: &str,
     ) -> Result<Vec<super::nav_models::RouteConnection>> {
+        let start_range: i32 = self.fuel.capacity.min(
+            self.fuel.current
+                + (self
+                    .cargo
+                    .get_amount(&space_traders_client::models::TradeSymbol::Fuel)
+                    * 100),
+        );
         let route = self.find_route(
             waypoints,
             self.nav.waypoint_symbol.clone(),
             waypoint.to_string(),
             &super::nav_models::NavMode::BurnAndCruiseAndDrift,
             true,
+            start_range,
         )?;
         Ok(route)
     }

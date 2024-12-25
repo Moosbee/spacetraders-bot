@@ -51,17 +51,40 @@ impl MiningManager {
         true
     }
 
+    #[allow(dead_code)]
+    pub async fn unassign_from(&self, ship_symbol: &String, waypoint: &waypoint::Waypoint) -> bool {
+        let waypoint_symbol = waypoint.symbol.clone();
+
+        let mut waypoint =
+            safely_get_lock_mut_map(&self.mining_places, waypoint_symbol.clone()).await;
+
+        let waypoint = waypoint.value_mut().unwrap();
+
+        waypoint.1.remove(ship_symbol);
+
+        true
+    }
+
+    pub async fn up_date(&self, waypoint: &str) {
+        let mut waypoint = safely_get_lock_mut_map(&self.mining_places, waypoint.to_string()).await;
+
+        let waypoint = waypoint.value_mut().unwrap();
+
+        waypoint.2 = chrono::Utc::now();
+    }
+
     pub async fn get_count(&self, waypoint: &waypoint::Waypoint) -> usize {
         let waypoint = safely_get_lock_mut_map(&self.mining_places, waypoint.symbol.clone()).await;
 
         waypoint.value().map(|s| s.1.len()).unwrap_or(0)
     }
 
-    pub async fn get_info(&self, waypoint: &waypoint::Waypoint) -> WaypointInfo {
-        let waypoint = safely_get_lock_mut_map(&self.mining_places, waypoint.symbol.clone()).await;
+    pub async fn get_info(&self, waypoint: &str) -> Option<WaypointInfo> {
+        let waypoint = safely_get_lock_mut_map(&self.mining_places, waypoint.to_string()).await;
 
-        waypoint.value().map(|s| s.clone()).unwrap()
+        let erg = waypoint.value().map(|s| s.clone());
 
+        erg
         // (String::new(), HashSet::new(), chrono::Utc::now())
     }
 

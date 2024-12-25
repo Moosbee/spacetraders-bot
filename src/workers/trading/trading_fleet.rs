@@ -109,9 +109,18 @@ impl TradingFleet {
     }
 
     fn get_trading_ships(&self) -> Vec<String> {
+        let all = self
+            .context
+            .ship_manager
+            .get_all_clone()
+            .keys()
+            .cloned()
+            .collect::<Vec<_>>();
+
         self.context
             .ship_roles
             .iter()
+            .filter(|(symbol, _)| all.contains(symbol))
             .filter(|(_, role)| {
                 if let ship::Role::Trader(_) = role {
                     true

@@ -22,12 +22,16 @@ impl MyShip {
 
     pub async fn wait_for_cooldown(&mut self, api: &api::Api) -> anyhow::Result<()> {
         if self.cooldown_expiration.is_none() {
-            return Err(anyhow::anyhow!("Is not on cooldown"));
+            return Ok(());
         }
         let t = self.cooldown_expiration.unwrap();
         let t = t - Utc::now();
-        let t = t.num_seconds().try_into()?;
-        self.sleep(std::time::Duration::from_secs(t), api).await;
+        let t = t.num_seconds().try_into();
+        if let Ok(t) = t {
+            self.sleep(std::time::Duration::from_secs(t), api).await;
+        } else {
+            self.try_recive_update(api).await;
+        }
         Ok(())
     }
 

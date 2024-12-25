@@ -1,8 +1,9 @@
 use chrono::{DateTime, Utc};
 use futures::FutureExt;
+use log::debug;
 use my_ship_update::{InterShipBroadcaster, MyShipUpdate, ShipUpdate};
 use space_traders_client::models::{self, ShipRole, TradeSymbol};
-use tokio::{select, sync::broadcast};
+use tokio::select;
 
 use crate::{
     api,
@@ -223,6 +224,9 @@ impl MyShip {
             if let Ok(data) = data {
                 self.handle_update(data, api).await;
             }
+            if cancel.is_cancelled() {
+                break;
+            }
         }
         ()
     }
@@ -231,6 +235,10 @@ impl MyShip {
         if data.symbol != self.symbol {
             return;
         }
+        debug!(
+            "Handling update: {:?} for ship: {}",
+            data.update, self.symbol
+        );
         let erg = match data.update {
             ShipUpdate::CargoChange(cargo_change) => self.cargo.handle_cago_update(cargo_change),
             ShipUpdate::TransferRequest(transfer_request) => {
@@ -242,13 +250,20 @@ impl MyShip {
                         &transfer_request.target,
                     )
                     .await;
-                let _ = transfer_request.callback.send(());
+                debug!("Transfer cargo: {:?} {}", erg, self.symbol);
+                let _reg = transfer_request.callback.send(()).await;
                 erg.map(|_| ())
             }
             ShipUpdate::None => Ok(()),
         };
         if let Err(e) = erg {
-            log::error!("Failed to handle update: {}", e);
+            log::error!(
+                "Failed to handle update: {} {:?} {:?} {:?}",
+                e,
+                e.root_cause(),
+                e.source(),
+                e.backtrace()
+            );
         }
         self.notify().await;
     }
@@ -257,8 +272,12 @@ impl MyShip {
         let cancel = tokio_util::sync::CancellationToken::new();
 
         let update_future = self.receive_update_loop(&cancel, api);
-        let sleep_future = tokio::time::sleep(duration).then(|_| cancel.cancelled());
-        let erg = futures::future::join(update_future, sleep_future)
+        let sleep_future = tokio::time::sleep(duration).then(|_| {
+            cancel.cancel();
+
+            async move { () }
+        });
+        let _erg = futures::future::join(update_future, sleep_future)
             .send() // https://github.com/rust-lang/rust/issues/96865
             .await;
     }

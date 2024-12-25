@@ -17,6 +17,40 @@ impl From<space_traders_client::models::Agent> for Agent {
     }
 }
 
+impl sql_models::Agent {
+  async fn get_last(database_pool: &DbPool) -> sqlx::Result<Vec<Agent>> {
+    let result = sqlx::query_as! {
+        Agent,
+        r#"
+        SELECT DISTINCT ON (symbol) symbol, account_id, headquarters, credits, starting_faction, ship_count, created_at
+        FROM agent
+        ORDER BY  symbol ASC, created_at DESC
+        "#
+    }
+    .fetch_all(&database_pool.database_pool)
+    .await;
+
+    result
+  }
+
+   pub async fn get_last_by_symbol(database_pool: &DbPool, symbol: &str) -> sqlx::Result<Agent> {
+    let result = sqlx::query_as! {
+        Agent,
+        r#"
+        SELECT DISTINCT ON (symbol) symbol, account_id, headquarters, credits, starting_faction, ship_count, created_at
+        FROM agent WHERE symbol = $1
+        ORDER BY  symbol ASC, created_at DESC
+        LIMIT 1
+        "#,
+        symbol
+    }
+    .fetch_one(&database_pool.database_pool)
+    .await;
+
+    result
+  }
+}
+
 impl DatabaseConnector<Agent> for sql_models::Agent {
     async fn insert(database_pool: &DbPool, item: &Agent) -> sqlx::Result<()> {
         sqlx::query!(

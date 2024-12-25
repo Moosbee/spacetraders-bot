@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use anyhow::Ok;
 use futures::StreamExt;
+use log::{debug, info};
 use space_traders_client::models;
 use tokio_util::sync::CancellationToken;
 
@@ -95,12 +96,12 @@ impl ExtractionProcessor {
                 .clone();
 
             ship.nav_to(
-                waypoint.symbol.as_str(),
+                &waypoint.symbol,
                 true,
                 &waypoints,
                 &self.context.api,
                 self.context.database_pool.clone(),
-                TransactionReason::None,
+                TransactionReason::MiningWaypoint(waypoint.symbol.clone()),
             )
             .await?;
 
@@ -124,25 +125,30 @@ impl ExtractionProcessor {
             };
 
             if i == 0 {
+                info!(" for {}", ship.symbol);
                 break;
             } else if i == 2 {
                 self.load_transporter(ship).await?;
                 continue;
             }
 
+            // debug!("Extraction cycle");
+
             if ship.cargo.units >= ship.cargo.capacity {
                 ship.sleep(
-                    std::time::Duration::from_millis(1000 + rand::random::<u64>() % 1000),
+                    std::time::Duration::from_millis(2000 + rand::random::<u64>() % 5000),
                     &self.context.api,
                 )
                 .await;
                 continue;
             }
 
+            debug!("Extraction cycle {}", ship.symbol);
+
             if is_siphon {
-                ship.extract(&self.context.api).await?;
-            } else {
                 ship.siphon(&self.context.api).await?;
+            } else {
+                ship.extract(&self.context.api).await?;
             }
         }
 

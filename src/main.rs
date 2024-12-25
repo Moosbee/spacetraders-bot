@@ -121,6 +121,7 @@ async fn main() -> anyhow::Result<()> {
 
     let ship_roles: std::collections::HashMap<String, ship::Role> = vec![
         ("MOOSBEE-1".to_string(), ship::Role::Contract(None)),
+        // ("MOOSBEE-1".to_string(), ship::Role::Trader(None)),
         ("MOOSBEE-2".to_string(), ship::Role::Scraper),
         ("MOOSBEE-3".to_string(), ship::Role::Trader(None)),
         ("MOOSBEE-4".to_string(), ship::Role::Trader(None)),
@@ -171,6 +172,7 @@ async fn main() -> anyhow::Result<()> {
         (
             "MOOSBEE-25".to_string(),
             ship::Role::Mining(workers::mining::m_types::MiningShipAssignment::Idle),
+            // ship::Role::Manuel,
         ),
         (
             "MOOSBEE-26".to_string(),

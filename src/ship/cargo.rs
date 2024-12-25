@@ -1,5 +1,6 @@
 use std::{i32, ops::SubAssign};
 
+use log::debug;
 use space_traders_client::models::JettisonRequest;
 
 use crate::{
@@ -207,17 +208,17 @@ impl MyShip {
 
         self.cargo.update(&transfer_result.data.cargo);
         self.notify().await;
-        self.broadcaster
-            .sender
-            .send(super::ship_models::my_ship_update::MyShipUpdate {
-                symbol: target_ship.to_string(),
-                update: super::ship_models::my_ship_update::ShipUpdate::CargoChange(
-                    super::ship_models::my_ship_update::CargoChange {
-                        trade_symbol,
-                        units,
-                    },
-                ),
-            })?;
+        let update_event = super::ship_models::my_ship_update::MyShipUpdate {
+            symbol: target_ship.to_string(),
+            update: super::ship_models::my_ship_update::ShipUpdate::CargoChange(
+                super::ship_models::my_ship_update::CargoChange {
+                    trade_symbol,
+                    units,
+                },
+            ),
+        };
+        debug!("Sending update event: {:#?}", update_event);
+        self.broadcaster.sender.send(update_event)?;
 
         Ok(transfer_result)
     }
@@ -308,6 +309,7 @@ impl super::ship_models::CargoState {
         &mut self,
         cargo_change: super::ship_models::my_ship_update::CargoChange,
     ) -> Result<(), anyhow::Error> {
+        debug!("Handling cargo update: {:?}", cargo_change);
         let current_count = self.inventory.iter().map(|f| f.1).sum::<i32>();
         if !(current_count == self.units) {
             return Err(anyhow::anyhow!("Not enough cargo"));
@@ -315,13 +317,14 @@ impl super::ship_models::CargoState {
 
         for item in self.inventory.iter_mut() {
             if item.0 == cargo_change.trade_symbol {
-                let new_state = item.1 - cargo_change.units;
-                if new_state < 0 {
-                    return Err(anyhow::anyhow!("Not enough cargo"));
-                }
+                let new_state = item.1 + cargo_change.units;
                 item.1 = new_state;
             }
         }
+
+        let new_count = self.inventory.iter().map(|f| f.1).sum::<i32>();
+
+        self.units = new_count;
 
         Ok(())
     }

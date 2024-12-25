@@ -1,11 +1,12 @@
 {
+  "symbol": "MOOSBEE",
   "contracts": {
     "start_sleep_duration": 0,
     "max_contracts": 100,
-    "active": false
+    "active": true
   },
   "market": {
-    "start_sleep_duration": 1000,
+    "start_sleep_duration": 100,
     "max_scraps": 200,
     "scrap_interval": 100000,
     "active": true,
@@ -14,15 +15,15 @@
     "max_agent_scraps": 200
   },
   "trading": {
-    "start_sleep_duration": 1500,
+    "start_sleep_duration": 5000,
     "fuel_cost": 72,
     "purchase_multiplier": 2,
-    "trade_cycle": 1,
+    "trade_cycle": 10,
     "blacklist": [
       "ADVANCED_CIRCUITRY",
       "FAB_MATS"
     ],
-    "active": false
+    "active": true
   },
   "construction": {
     "start_sleep_duration": 0,
@@ -30,7 +31,7 @@
   },
   "mining": {
     "start_sleep_duration": 2000,
-    "active": true,
+    "active": false,
     "max_miners_per_waypoint": 100,
     "max_extractions_per_miner": 100
   },

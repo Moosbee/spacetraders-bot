@@ -174,7 +174,7 @@ CREATE TYPE contract_type AS ENUM ('PROCUREMENT', 'TRANSPORT', 'SHUTTLE');
 -- DROP TABLE IF EXISTS public.agent;
 CREATE TABLE
   IF NOT EXISTS public.agent (
-    id integer NOT NULL DEFAULT AUTO_INCREMENT,
+    id SERIAL PRIMARY KEY,
     symbol character varying COLLATE pg_catalog."default" NOT NULL,
     account_id character varying COLLATE pg_catalog."default",
     headquarters character varying COLLATE pg_catalog."default" NOT NULL,
@@ -211,39 +211,6 @@ CREATE TABLE
     CONSTRAINT market_trade_good_pkey PRIMARY KEY (created, symbol, waypoint_symbol),
     CONSTRAINT market_trade_good_relation_1 FOREIGN KEY (waypoint_symbol) REFERENCES public.waypoint (symbol) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION
   );
-
--- Table: public.market_transaction
--- DROP TABLE IF EXISTS public.market_transaction;
-CREATE TABLE
-  IF NOT EXISTS public.market_transaction (
-    waypoint_symbol character varying(255) COLLATE pg_catalog."default" NOT NULL,
-    ship_symbol character varying(255) COLLATE pg_catalog."default" NOT NULL,
-    type market_transaction_type NOT NULL,
-    units integer NOT NULL,
-    price_per_unit integer NOT NULL,
-    total_price integer NOT NULL,
-    "timestamp" character varying(255) COLLATE pg_catalog."default" NOT NULL,
-    trade_symbol trade_symbol NOT NULL,
-    contract character varying(255) COLLATE pg_catalog."default",
-    trade_route integer,
-    CONSTRAINT market_transaction_pkey PRIMARY KEY (
-      waypoint_symbol,
-      ship_symbol,
-      trade_symbol,
-      "timestamp"
-    ),
-    CONSTRAINT market_transaction_relation_1 FOREIGN KEY (waypoint_symbol) REFERENCES public.waypoint (symbol) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
-    CONSTRAINT market_transaction_relation_2 FOREIGN KEY (contract) REFERENCES public.contract (id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
-    CONSTRAINT market_transaction_relation_3 FOREIGN KEY (trade_route) REFERENCES public.trade_route (id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
-    CONSTRAINT market_transaction_check CHECK (
-      contract IS NOT NULL
-      AND trade_route IS NULL
-      OR contract IS NULL
-      AND trade_route IS NOT NULL
-      OR contract IS NULL
-      AND trade_route IS NULL
-    ) NOT VALID
-  ) TABLESPACE pg_default;
 
 CREATE TABLE
   public.market_trade (
@@ -287,7 +254,7 @@ CREATE TABLE
 -- DROP TABLE IF EXISTS public.trade_route;
 CREATE TABLE
   IF NOT EXISTS public.trade_route (
-    id integer NOT NULL AUTO_INCREMENT,
+    id SERIAL PRIMARY KEY,
     symbol trade_symbol NOT NULL,
     ship_symbol character varying COLLATE pg_catalog."default" NOT NULL,
     purchase_waypoint character varying COLLATE pg_catalog."default" NOT NULL,
@@ -296,15 +263,14 @@ CREATE TABLE
     trade_volume integer NOT NULL DEFAULT 1,
     predicted_purchase_price integer NOT NULL,
     predicted_sell_price integer NOT NULL,
-    created_at timestamp without time zone NOT NULL DEFAULT now (),
-    CONSTRAINT trade_route_pkey PRIMARY KEY (id)
+    created_at timestamp without time zone NOT NULL DEFAULT now ()
   ) TABLESPACE pg_default;
 
 -- Table: public.route
 -- DROP TABLE IF EXISTS public.route;
 CREATE TABLE
   IF NOT EXISTS public.route (
-    id integer NOT NULL AUTO_INCREMENT,
+    id SERIAL PRIMARY KEY,
     "from" character varying COLLATE pg_catalog."default" NOT NULL,
     "to" character varying COLLATE pg_catalog."default" NOT NULL,
     distance double precision NOT NULL,
@@ -317,9 +283,42 @@ CREATE TABLE
     reactor_condition double precision NOT NULL,
     current_cargo integer NOT NULL,
     total_cargohold integer NOT NULL,
-    CONSTRAINT route_pkey PRIMARY KEY (id),
     CONSTRAINT route_relation_1 FOREIGN KEY ("from") REFERENCES public.waypoint (symbol) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
     CONSTRAINT route_relation_2 FOREIGN KEY ("to") REFERENCES public.waypoint (symbol) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION
+  ) TABLESPACE pg_default;
+
+-- Table: public.market_transaction
+-- DROP TABLE IF EXISTS public.market_transaction;
+CREATE TABLE
+  IF NOT EXISTS public.market_transaction (
+    waypoint_symbol character varying(255) COLLATE pg_catalog."default" NOT NULL,
+    ship_symbol character varying(255) COLLATE pg_catalog."default" NOT NULL,
+    type market_transaction_type NOT NULL,
+    units integer NOT NULL,
+    price_per_unit integer NOT NULL,
+    total_price integer NOT NULL,
+    "timestamp" character varying(255) COLLATE pg_catalog."default" NOT NULL,
+    trade_symbol trade_symbol NOT NULL,
+    contract character varying(255) COLLATE pg_catalog."default",
+    trade_route integer,
+    mining character varying(255) COLLATE pg_catalog."default",
+    CONSTRAINT market_transaction_pkey PRIMARY KEY (
+      waypoint_symbol,
+      ship_symbol,
+      trade_symbol,
+      "timestamp"
+    ),
+    CONSTRAINT market_transaction_relation_1 FOREIGN KEY (waypoint_symbol) REFERENCES public.waypoint (symbol) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
+    CONSTRAINT market_transaction_relation_2 FOREIGN KEY (contract) REFERENCES public.contract (id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
+    CONSTRAINT market_transaction_relation_3 FOREIGN KEY (trade_route) REFERENCES public.trade_route (id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
+    CONSTRAINT market_transaction_check CHECK (
+      contract IS NOT NULL
+      AND trade_route IS NULL
+      OR contract IS NULL
+      AND trade_route IS NOT NULL
+      OR contract IS NULL
+      AND trade_route IS NULL
+    ) NOT VALID
   ) TABLESPACE pg_default;
 
 -- Select statements

@@ -17,6 +17,7 @@ impl MyShip {
         end_symbol: String,
         nav_mode: &NavMode,
         only_markets: bool,
+        start_range: i32,
     ) -> Result<Vec<RouteConnection>, Error> {
         let mut cache = self.nav.cache.clone();
         let erg = self.find_route_cached(
@@ -25,6 +26,7 @@ impl MyShip {
             end_symbol,
             nav_mode,
             only_markets,
+            start_range,
             &mut cache,
         );
 
@@ -40,6 +42,7 @@ impl MyShip {
         end_symbol: String,
         nav_mode: &NavMode,
         only_markets: bool,
+        start_range: i32,
         cache: &mut super::nav_models::Cache,
     ) -> Result<Vec<RouteConnection>, Error> {
         if let Some(route) = cache.get(
@@ -48,6 +51,7 @@ impl MyShip {
             nav_mode,
             only_markets,
             self.fuel.capacity,
+            start_range,
         ) {
             return Ok(route);
         }
@@ -72,6 +76,9 @@ impl MyShip {
         );
 
         let nav_modes = nav_mode.get_flight_modes(self.fuel.capacity);
+        let start_range_mode = nav_mode.get_flight_modes(start_range);
+
+        let mut first = true;
 
         while let Some((current_route, _)) = to_visit.pop() {
             if self.process_current_node(
@@ -83,9 +90,12 @@ impl MyShip {
                 &end_symbol,
                 only_markets,
                 &nav_modes,
+                first,
+                &start_range_mode,
             )? {
                 break;
             }
+            first = false;
         }
 
         let route = super::utils::get_route(visited, start_symbol.clone(), end_symbol.clone());
@@ -97,6 +107,7 @@ impl MyShip {
                 nav_mode,
                 only_markets,
                 self.fuel.capacity,
+                start_range,
                 route.clone(),
             );
         }
@@ -124,6 +135,8 @@ impl MyShip {
         end_symbol: &str,
         only_markets: bool,
         nav_modes: &Vec<super::nav_models::Mode>,
+        first: bool,
+        start_range: &Vec<super::nav_models::Mode>,
     ) -> Result<bool, Error> {
         *to_visit = to_visit
             .clone()
@@ -141,14 +154,19 @@ impl MyShip {
             return Ok(true);
         }
 
-        if !only_markets || current.is_marketplace() {
+        if !only_markets || current.is_marketplace() || first {
+            let modes = if first && !current.is_marketplace() {
+                start_range
+            } else {
+                nav_modes
+            };
             self.explore_neighbors(
                 &current,
                 current_route,
                 unvisited,
                 to_visit,
                 end_waypoint,
-                nav_modes,
+                modes,
             );
         }
 

@@ -4,6 +4,7 @@ use std::sync::Arc;
 use log::{info, warn};
 
 use crate::{
+    config::CONFIG,
     ship,
     sql::{self, DatabaseConnector},
     workers::{trading::routes_track_keeper::RoutesTrackKeeper, types::ConductorContext},
@@ -107,10 +108,33 @@ impl TradeProcessor {
 
             ship.ensure_docked(&self.context.api).await?;
 
+            let market_info = ship
+                .get_market_info(&self.context.api, &self.context.database_pool)
+                .await?;
+
+            let purchase_price = market_info
+                .iter()
+                .find(|m| m.symbol == route.symbol)
+                .ok_or(anyhow::anyhow!("No market info for {}", route.symbol))?
+                .purchase_price;
+
+            let agent = sql::Agent::get_last_by_symbol(&self.context.database_pool, &CONFIG.symbol)
+                .await
+                .unwrap();
+            let trade_volume = if (agent.credits - 20_000)
+                < (purchase_price * route.trade_volume).into()
+            {
+                let mony_to_spend = agent.credits - 30_000;
+                let trade_volume = (mony_to_spend as f64 / purchase_price as f64).floor() as i32;
+                trade_volume
+            } else {
+                route.trade_volume
+            };
+
             ship.purchase_cargo(
                 &self.context.api,
                 route.symbol,
-                route.trade_volume,
+                trade_volume,
                 &self.context.database_pool,
                 sql::TransactionReason::TradeRoute(trade_id),
             )

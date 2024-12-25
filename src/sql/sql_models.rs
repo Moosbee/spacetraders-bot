@@ -74,12 +74,14 @@ pub struct MarketTransaction {
     /// pub reason: TransactionReason,
     pub contract: Option<String>,
     pub trade_route: Option<i32>,
+    pub mining: Option<String>,
 }
 
 #[derive(Clone, Debug, PartialEq, Default)]
 pub enum TransactionReason {
     Contract(String),
     TradeRoute(i32),
+    MiningWaypoint(String),
     #[default]
     None,
 }

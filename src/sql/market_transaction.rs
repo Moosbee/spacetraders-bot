@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use space_traders_client::models;
+use space_traders_client::models::{self};
 
 use super::{
     sql_models::{DatabaseConnector, MarketTransaction, TransactionReason},
@@ -13,16 +13,25 @@ impl MarketTransaction {
             TransactionReason::Contract(contract) => MarketTransaction {
                 contract: Some(contract),
                 trade_route: None,
+                mining: None,
                 ..self
             },
             TransactionReason::None => MarketTransaction {
                 contract: None,
                 trade_route: None,
+                mining: None,
                 ..self
             },
             TransactionReason::TradeRoute(route) => MarketTransaction {
                 contract: None,
                 trade_route: Some(route),
+                mining: None,
+                ..self
+            },
+            TransactionReason::MiningWaypoint(waypoint) => MarketTransaction {
+                contract: None,
+                trade_route: None,
+                mining: Some(waypoint),
                 ..self
             },
         }
@@ -61,6 +70,7 @@ impl TryFrom<models::MarketTransaction> for MarketTransaction {
             // reason: TransactionReason::None,
             contract: None,
             trade_route: None,
+            mining: None,
         })
     }
 }
@@ -69,8 +79,8 @@ impl DatabaseConnector<MarketTransaction> for MarketTransaction {
     async fn insert(database_pool: &DbPool, item: &MarketTransaction) -> sqlx::Result<()> {
         sqlx::query!(
         r#"
-            INSERT INTO market_transaction (waypoint_symbol, ship_symbol, trade_symbol, "type", units, price_per_unit, total_price, "timestamp", contract, trade_route)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+            INSERT INTO market_transaction (waypoint_symbol, ship_symbol, trade_symbol, "type", units, price_per_unit, total_price, "timestamp", contract, trade_route, mining)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
             ON CONFLICT (waypoint_symbol, ship_symbol, trade_symbol, "timestamp") DO UPDATE
             SET units = EXCLUDED.units,
             price_per_unit = EXCLUDED.price_per_unit,
@@ -85,7 +95,8 @@ impl DatabaseConnector<MarketTransaction> for MarketTransaction {
         item.total_price,
         item.timestamp,
         item.contract,
-        item.trade_route
+        item.trade_route,
+        item.mining
     )
     .execute(&database_pool.database_pool)
     .await?;
@@ -101,7 +112,7 @@ impl DatabaseConnector<MarketTransaction> for MarketTransaction {
             ((t_waypoint_symbol, t_ship_symbol), (t_trade_symbol, t_type)),
             (
                 (t_units_and_trade_route, t_timestamp_and_contract),
-                (t_price_per_unit, t_total_price),
+                (t_price_per_unit_and_total_price, t_mining_and_klamm),
             ),
         ): (
             (
@@ -113,7 +124,7 @@ impl DatabaseConnector<MarketTransaction> for MarketTransaction {
             ),
             (
                 (Vec<(i32, Option<i32>)>, Vec<(String, Option<String>)>),
-                (Vec<i32>, Vec<i32>),
+                (Vec<(i32, i32)>, Vec<(Option<String>, ())>),
             ),
         ) = items
             .iter()
@@ -128,7 +139,7 @@ impl DatabaseConnector<MarketTransaction> for MarketTransaction {
                             (t.units, t.trade_route),
                             (t.timestamp.clone(), t.contract.clone()),
                         ),
-                        (t.price_per_unit, t.total_price),
+                        ((t.price_per_unit, t.total_price), (t.mining.clone(), ())),
                     ),
                 )
             })
@@ -138,7 +149,10 @@ impl DatabaseConnector<MarketTransaction> for MarketTransaction {
                         (String, String),
                         (models::TradeSymbol, models::market_transaction::Type),
                     ),
-                    (((i32, Option<i32>), (String, Option<String>)), (i32, i32)),
+                    (
+                        ((i32, Option<i32>), (String, Option<String>)),
+                        ((i32, i32), (Option<String>, ())),
+                    ),
                 )| f,
             )
             .unzip();
@@ -149,9 +163,13 @@ impl DatabaseConnector<MarketTransaction> for MarketTransaction {
         let (t_units, t_trade_route): (Vec<i32>, Vec<Option<i32>>) =
             t_units_and_trade_route.into_iter().unzip();
 
+        let (t_price_per_unit, t_total_price): (Vec<i32>, Vec<i32>) =
+            t_price_per_unit_and_total_price.into_iter().unzip();
+        let (t_mining, _): (Vec<Option<String>>, Vec<()>) = t_mining_and_klamm.into_iter().unzip();
+
         sqlx::query!(
         r#"
-            INSERT INTO market_transaction (waypoint_symbol, ship_symbol,trade_symbol, "type", units, price_per_unit, total_price, "timestamp", contract, trade_route)
+            INSERT INTO market_transaction (waypoint_symbol, ship_symbol,trade_symbol, "type", units, price_per_unit, total_price, "timestamp", contract, trade_route, mining)
               SELECT * FROM UNNEST(
                 $1::character varying[],
                 $2::character varying[],
@@ -162,7 +180,8 @@ impl DatabaseConnector<MarketTransaction> for MarketTransaction {
                 $7::integer[],
                 $8::character varying[],
                 $9::character varying[],
-                $10::integer[]
+                $10::integer[],
+                $11::character varying[]
             )
             ON CONFLICT (waypoint_symbol, ship_symbol, trade_symbol, "timestamp") DO UPDATE
             SET units = EXCLUDED.units,
@@ -178,7 +197,8 @@ impl DatabaseConnector<MarketTransaction> for MarketTransaction {
         &t_total_price,
         &t_timestamp,
         &t_contract as &[Option<String>],
-        &t_trade_route as &[Option<i32>]
+        &t_trade_route as &[Option<i32>],
+        &t_mining as &[Option<String>]
     )
     .execute(&database_pool.database_pool)
     .await?;
@@ -199,7 +219,8 @@ impl DatabaseConnector<MarketTransaction> for MarketTransaction {
         total_price,
         "timestamp",
         contract,
-        trade_route
+        trade_route,
+        mining
       from market_transaction
     "#,
         )

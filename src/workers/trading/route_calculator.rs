@@ -1,6 +1,6 @@
 // Route calculation and validation
 use std::{
-    collections::HashMap,
+    collections::{HashMap, HashSet},
     sync::{Arc, RwLock},
 };
 
@@ -35,9 +35,37 @@ impl RouteCalculator {
         &self,
         ship: &ship::MyShip,
         running_routes: &Arc<RoutesTrackKeeper>,
-    ) -> anyhow::Result<ConcreteTradeRoute> {
+    ) -> anyhow::Result<sql::TradeRoute> {
         debug!("Getting new best route");
         let trade_goods = sql::MarketTradeGood::get_last(&self.context.database_pool).await?;
+        let market_trade = sql::MarketTrade::get_last(&self.context.database_pool).await?;
+
+        let waypoints_g = trade_goods
+            .iter()
+            .map(|t| t.waypoint_symbol.clone())
+            .collect::<HashSet<String>>();
+        let waypoints_m = market_trade
+            .iter()
+            .map(|t| t.waypoint_symbol.clone())
+            .collect::<HashSet<String>>();
+
+        let cache_ratio = waypoints_g.len() as f64 / waypoints_m.len() as f64;
+
+        debug!(
+            "Cache ratio: {} Trade: {} Market: {}",
+            cache_ratio,
+            waypoints_g.len(),
+            waypoints_m.len()
+        );
+
+        let ratio: f64 = rand::random::<f64>();
+        if ratio < cache_ratio {
+            return self
+                .get_routes_simple(market_trade, trade_goods, ship)
+                .first()
+                .cloned()
+                .ok_or_else(|| anyhow::anyhow!("No routes simple found"));
+        }
 
         let routes = self
             .calc_possible_trade_routes(trade_goods)
@@ -54,7 +82,8 @@ impl RouteCalculator {
             .filter(|route| !running_routes.is_locked(&(*route).clone().into()))
             .max_by(|a, b| a.partial_cmp(b).unwrap())
             .cloned()
-            .ok_or_else(|| anyhow::anyhow!("No routes found"))
+            .map(|route| route.into())
+            .ok_or_else(|| anyhow::anyhow!("No routes main found"))
     }
 
     pub fn calc_possible_trade_routes(
@@ -116,6 +145,7 @@ impl RouteCalculator {
             trade_route.purchase_wp_symbol.clone(),
             &ship::nav_models::NavMode::BurnAndCruiseAndDrift,
             true,
+            ship.fuel.capacity,
             &mut self.cache.write().unwrap(),
         );
 
@@ -125,6 +155,7 @@ impl RouteCalculator {
             trade_route.purchase_wp_symbol.clone(),
             &ship::nav_models::NavMode::BurnAndCruiseAndDrift,
             true,
+            ship.fuel.capacity,
             &mut self.cache.write().unwrap(),
         );
 
@@ -256,5 +287,56 @@ impl RouteCalculator {
             trips_per_hour: trip_per_hour as f32,
             profit_per_hour: profit_per_hour as i32,
         }
+    }
+
+    fn get_routes_simple(
+        &self,
+        trade_goods: Vec<sql::MarketTrade>,
+        detailed_trade_goods: Vec<sql::MarketTradeGood>,
+        ship: &ship::MyShip,
+    ) -> Vec<sql::TradeRoute> {
+        let mut all_trades = trade_goods
+            .iter()
+            .map(|trade| {
+                trade_goods
+                    .iter()
+                    .filter(|t| t.symbol == trade.symbol)
+                    .map(|t| (trade.clone(), t.clone()))
+                    .collect::<Vec<_>>()
+            })
+            .flatten()
+            .filter(|t| t.0.waypoint_symbol != t.1.waypoint_symbol)
+            .filter(|t| {
+                t.0.r#type == models::market_trade_good::Type::Export
+                    && t.1.r#type == models::market_trade_good::Type::Import
+            })
+            .collect::<Vec<_>>();
+
+        all_trades.sort_by(|a, b| {
+            if detailed_trade_goods
+                .iter()
+                .any(|d| d.waypoint_symbol == a.0.waypoint_symbol)
+            {
+                return std::cmp::Ordering::Greater;
+            } else if detailed_trade_goods
+                .iter()
+                .any(|d| d.waypoint_symbol == b.0.waypoint_symbol)
+            {
+                return std::cmp::Ordering::Greater;
+            }
+            return std::cmp::Ordering::Less;
+        });
+        all_trades
+            .iter()
+            .map(|t| sql::TradeRoute {
+                symbol: t.0.symbol.clone(),
+                ship_symbol: ship.symbol.clone(),
+                purchase_waypoint: t.0.waypoint_symbol.clone(),
+                sell_waypoint: t.1.waypoint_symbol.clone(),
+                finished: false,
+                trade_volume: 20,
+                ..Default::default()
+            })
+            .collect()
     }
 }

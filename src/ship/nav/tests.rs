@@ -217,6 +217,7 @@ mod tests {
                     end.clone(),
                     &NavMode::BurnAndCruiseAndDrift,
                     false,
+                    400,
                 )
                 .unwrap();
 

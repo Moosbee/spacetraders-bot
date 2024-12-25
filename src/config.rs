@@ -6,6 +6,7 @@ use space_traders_client::models;
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct Config {
+    pub symbol: String,
     pub contracts: ContractFleet,
     pub market: MarketScrapers,
     pub trading: TradingFleet,
