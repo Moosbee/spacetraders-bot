@@ -48,6 +48,7 @@ impl MyShip {
 
         self.update_cooldown(&extraction.data.cooldown);
         self.cargo.update(&extraction.data.cargo);
+        self.notify().await;
 
         Ok(extraction)
     }
@@ -68,6 +69,7 @@ impl MyShip {
 
         self.update_cooldown(&extraction.data.cooldown);
         self.cargo.update(&extraction.data.cargo);
+        self.notify().await;
 
         Ok(extraction)
     }
@@ -83,6 +85,7 @@ impl MyShip {
 
         self.update_cooldown(&extraction.data.cooldown);
         self.cargo.update(&extraction.data.cargo);
+        self.notify().await;
 
         Ok(extraction)
     }
@@ -95,6 +98,7 @@ impl MyShip {
         let survey = api.create_survey(&self.symbol).await?;
 
         self.update_cooldown(&survey.data.cooldown);
+        self.notify().await;
 
         Ok(survey)
     }

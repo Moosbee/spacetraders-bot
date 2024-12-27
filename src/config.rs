@@ -56,6 +56,7 @@ pub struct MiningFleet {
     pub active: bool,
     pub max_miners_per_waypoint: u32,
     pub max_extractions_per_miner: u32,
+    pub blacklist: Vec<models::TradeSymbol>,
 }
 
 #[derive(Deserialize, Debug, Clone)]

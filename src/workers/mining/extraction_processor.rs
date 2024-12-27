@@ -82,6 +82,8 @@ impl ExtractionProcessor {
                     .mining_places
                     .assign_to(&ship.symbol, &waypoint.0)
                     .await;
+                let ship_resp = self.context.api.get_my_ship(&ship.symbol).await?;
+                ship.update(*ship_resp.data);
                 if worked {
                     wp = Some(waypoint.0.clone());
                 }
@@ -127,9 +129,6 @@ impl ExtractionProcessor {
             if i == 0 {
                 info!(" for {}", ship.symbol);
                 break;
-            } else if i == 2 {
-                self.load_transporter(ship).await?;
-                continue;
             }
 
             // debug!("Extraction cycle");
@@ -150,15 +149,10 @@ impl ExtractionProcessor {
             } else {
                 ship.extract(&self.context.api).await?;
             }
+            ship.notify().await;
+            self.eject_blacklist(ship).await?;
         }
 
-        Ok(())
-    }
-
-    async fn load_transporter(&self, ship: &mut ship::MyShip) -> anyhow::Result<()> {
-        if ship.cargo.units == 0 {
-            return Ok(());
-        }
         Ok(())
     }
 
@@ -196,6 +190,16 @@ impl ExtractionProcessor {
             })
             .collect::<Vec<_>>()
             .await
+    }
+
+    async fn eject_blacklist(&self, ship: &mut ship::MyShip) -> Result<(), anyhow::Error> {
+        let cargo = ship.cargo.inventory.clone();
+        for item in cargo.iter() {
+            if CONFIG.mining.blacklist.contains(&item.0) {
+                ship.jettison(&self.context.api, *item.0, *item.1).await?;
+            }
+        }
+        Ok(())
     }
 
     fn get_best_waypoints(

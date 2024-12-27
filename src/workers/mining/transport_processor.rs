@@ -75,7 +75,14 @@ impl TransportProcessor {
 
             let mut mining_waypoints: String = "Start".to_string();
 
-            if !(ship.cargo.get_units_no_fuel() as f32 / ship.cargo.capacity as f32 > 0.5) {
+            if !(ship.cargo.get_units_no_fuel() as f32
+                / (ship.cargo.capacity
+                    - ship
+                        .cargo
+                        .get_amount(&space_traders_client::models::TradeSymbol::Fuel))
+                    as f32
+                > 0.9)
+            {
                 let route = self.calculate_waypoint_urgencys().await;
                 debug!("Routes: {:?}", route);
                 let routes = route.iter().filter(|r| r.1 > 0).collect::<Vec<_>>();
@@ -104,36 +111,48 @@ impl TransportProcessor {
                 )
                 .await?;
 
-                self.handle_cargo_loading(&mut ship.clone()).await?;
+                self.handle_cargo_loading(ship).await?;
             }
 
-            while ship.cargo.get_units_no_fuel() > 0 {
-                if self.cancellation_token.is_cancelled() {
-                    info!("Transport cycle cancelled for {} ", ship.symbol);
-                    break;
-                }
-                let (next_waypoint, trade_symbols) =
-                    self.get_next_best_sell_waypoint(&ship).await.unwrap();
-                ship.nav_to(
-                    &next_waypoint,
-                    true,
-                    &waypoints,
-                    &self.context.api,
-                    self.context.database_pool.clone(),
-                    TransactionReason::MiningWaypoint(mining_waypoints.clone()),
-                )
+            self.sell_all_cargo(ship, &waypoints, mining_waypoints)
                 .await?;
-
-                self.handle_cargo_selling(
-                    ship,
-                    &self.context.api,
-                    &self.context.database_pool,
-                    TransactionReason::MiningWaypoint(mining_waypoints.clone()),
-                    trade_symbols,
-                )
-                .await?;
-            }
         }
+        Ok(())
+    }
+
+    async fn sell_all_cargo(
+        &self,
+        ship: &mut ship::MyShip,
+        waypoints: &HashMap<std::string::String, space_traders_client::models::Waypoint>,
+        mining_waypoints: String,
+    ) -> anyhow::Result<()> {
+        while ship.cargo.get_units_no_fuel() > 0 {
+            if self.cancellation_token.is_cancelled() {
+                info!("Transport cycle cancelled for {} ", ship.symbol);
+                break;
+            }
+            let (next_waypoint, trade_symbols) =
+                self.get_next_best_sell_waypoint(&ship).await.unwrap();
+            ship.nav_to(
+                &next_waypoint,
+                true,
+                &waypoints,
+                &self.context.api,
+                self.context.database_pool.clone(),
+                TransactionReason::MiningWaypoint(mining_waypoints.clone()),
+            )
+            .await?;
+
+            self.handle_cargo_selling(
+                ship,
+                &self.context.api,
+                &self.context.database_pool,
+                TransactionReason::MiningWaypoint(mining_waypoints.clone()),
+                trade_symbols,
+            )
+            .await?;
+        }
+
         Ok(())
     }
 
@@ -153,10 +172,12 @@ impl TransportProcessor {
             if self.cancellation_token.is_cancelled() {
                 break;
             }
+            self.mining_places.up_date(&ship.nav.waypoint_symbol).await;
             ship.try_recive_update(&self.context.api).await;
             let unload = self
                 .get_next_ship_to_unload(&ship.nav.waypoint_symbol, previous_trade_symbol)
                 .await;
+
             debug!("Unload: {:?} {}", unload, ship.symbol);
             if let Ok((ship_to_unload, trade_symbol, units)) = unload {
                 previous_trade_symbol = Some(trade_symbol.clone());
@@ -165,6 +186,14 @@ impl TransportProcessor {
                 if units == 0 {
                     continue;
                 }
+
+                let duration = 2000 + (free_space * 50);
+
+                ship.sleep(
+                    std::time::Duration::from_millis(duration as u64),
+                    &self.context.api,
+                )
+                .await;
 
                 let (callback_sender, mut callback) = tokio::sync::mpsc::channel(5);
 
@@ -196,6 +225,7 @@ impl TransportProcessor {
                 debug!("jniodoinenioeinoeaion {}", ship.broadcaster.receiver.len());
                 ship.try_recive_update(&self.context.api).await;
                 debug!("mdemdemdeeee {}", ship.broadcaster.receiver.len());
+                ship.notify().await;
 
                 debug!(
                     "Loaded cargos for ship erl: {} {} {} {}",

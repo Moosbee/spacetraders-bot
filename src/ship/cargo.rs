@@ -1,4 +1,7 @@
-use std::{i32, ops::SubAssign};
+use std::{
+    i32,
+    ops::{AddAssign, SubAssign},
+};
 
 use log::debug;
 use space_traders_client::models::JettisonRequest;
@@ -195,6 +198,10 @@ impl MyShip {
         api: &api::Api,
         target_ship: &str,
     ) -> anyhow::Result<space_traders_client::models::TransferCargo200Response> {
+        let old_units = self.cargo.get_amount(&trade_symbol);
+        if old_units < units {
+            return Err(anyhow::anyhow!("Not enough cargo"));
+        }
         let transfer_result: space_traders_client::models::TransferCargo200Response = api
             .transfer_cargo(
                 &self.symbol,
@@ -269,7 +276,7 @@ impl super::ship_models::CargoState {
     pub fn get_units_no_fuel(&self) -> i32 {
         self.inventory
             .iter()
-            .filter(|(k, _)| k != &space_traders_client::models::TradeSymbol::Fuel)
+            .filter(|(k, _)| **k != space_traders_client::models::TradeSymbol::Fuel)
             .fold(0, |acc, (_, v)| acc + v)
     }
 
@@ -315,12 +322,11 @@ impl super::ship_models::CargoState {
             return Err(anyhow::anyhow!("Not enough cargo"));
         };
 
-        for item in self.inventory.iter_mut() {
-            if item.0 == cargo_change.trade_symbol {
-                let new_state = item.1 + cargo_change.units;
-                item.1 = new_state;
-            }
-        }
+        let entry = self.inventory.entry(cargo_change.trade_symbol);
+
+        let count = entry.or_insert(0);
+
+        count.add_assign(cargo_change.units);
 
         let new_count = self.inventory.iter().map(|f| f.1).sum::<i32>();
 

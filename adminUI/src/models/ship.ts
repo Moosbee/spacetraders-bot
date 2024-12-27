@@ -45,7 +45,7 @@ interface Navigation {
 interface Cargo {
   capacity: number;
   units: number;
-  inventory: [TradeSymbol, number][];
+  inventory: Record<TradeSymbol, number>;
 }
 
 interface Fuel {

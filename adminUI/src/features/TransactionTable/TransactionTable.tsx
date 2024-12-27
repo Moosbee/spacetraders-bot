@@ -20,6 +20,14 @@ function TransactionTable({
         <WaypointLink waypoint={symbol}>{symbol}</WaypointLink>
       ),
       sorter: (a, b) => a.waypoint_symbol.localeCompare(b.waypoint_symbol),
+
+      filters: [...new Set(transactions.map((t) => t.waypoint_symbol))].map(
+        (t) => ({
+          text: t,
+          value: t,
+        })
+      ),
+      onFilter: (value, record) => record.waypoint_symbol === value,
     },
     {
       title: "Ship",
@@ -151,7 +159,17 @@ function TransactionTable({
         ]
       : []),
   ];
-  return <Table dataSource={transactions} columns={columns} />;
+  return (
+    <Table
+      dataSource={transactions}
+      columns={columns}
+      pagination={{
+        showSizeChanger: true,
+        pageSizeOptions: ["10", "20", "50", "100", "200", "500", "1000"],
+        defaultPageSize: 100,
+      }}
+    />
+  );
 }
 
 export default TransactionTable;

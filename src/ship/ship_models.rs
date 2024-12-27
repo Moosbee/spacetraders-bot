@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use chrono::{DateTime, Utc};
 use futures::FutureExt;
 use log::debug;
@@ -154,7 +156,7 @@ pub struct MountState {
 pub struct CargoState {
     pub capacity: i32,
     pub units: i32,
-    pub inventory: Vec<(TradeSymbol, i32)>,
+    pub inventory: HashMap<TradeSymbol, i32>,
 }
 
 #[derive(Debug, Default, serde::Serialize, Clone)]

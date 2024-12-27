@@ -15,10 +15,15 @@ function useCountdown(time: Date) {
   }, [rerender]); // The empty dependency array ensures the effect runs only once on mount
 
   // Convert seconds to hours, minutes, and seconds
-  const hours = Math.floor(timeRemaining / (1000 * 60 * 60));
-  const minutes = Math.floor((timeRemaining % (1000 * 60 * 60)) / (1000 * 60));
-  const seconds = Math.floor((timeRemaining % (1000 * 60)) / 1000);
-  const milliseconds = Math.floor(timeRemaining % 1000);
+  let hours = Math.floor(timeRemaining / (1000 * 60 * 60));
+  let minutes = Math.floor((timeRemaining % (1000 * 60 * 60)) / (1000 * 60));
+  let seconds = Math.floor((timeRemaining % (1000 * 60)) / 1000);
+  let milliseconds = Math.floor(timeRemaining % 1000);
+
+  if (hours < 0) hours = hours + 1;
+  if (minutes < 0) minutes = minutes + 1;
+  if (seconds < 0) seconds = seconds + 1;
+  if (milliseconds < 0) milliseconds = milliseconds + 1;
 
   return { hours, minutes, seconds, milliseconds };
 }

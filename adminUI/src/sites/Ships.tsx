@@ -40,8 +40,25 @@ function Ships() {
         value: role,
       })),
       render: (role: SystemShipRole) => <RoleRenderer role={role} />,
+      defaultFilteredValue: [
+        "Construction",
+        "Trader",
+        "Contract",
+        "Mining",
+        "Manuel",
+      ],
       onFilter: (value, record) => record.role.type === value,
-      sorter: (a, b) => a.role.type.localeCompare(b.role.type),
+      sorter: (a, b) => {
+        const num = a.role.type.localeCompare(b.role.type);
+        if (num === 0) {
+          if (a.role.type === "Mining" && b.role.type === "Mining") {
+            const data_a = a.role.data ?? "";
+            const data_b = b.role.data ?? "";
+            return data_a.localeCompare(data_b);
+          }
+        }
+        return num;
+      },
     },
     {
       title: "Registration Role",
@@ -90,13 +107,16 @@ function Ships() {
       render: (value: ShipNavStatus, record) => (
         <span>
           {value}
-          <br />
           {value === "IN_TRANSIT" && (
-            <span>
-              {record.nav.route.origin_symbol} -{">"}{" "}
-              {record.nav.route.destination_symbol}
+            <>
+              {" "}
               (<Timer time={record.nav.route.arrival} />)
-            </span>
+              <br />
+              <span>
+                {record.nav.route.origin_symbol} -{">"}{" "}
+                {record.nav.route.destination_symbol}
+              </span>
+            </>
           )}
         </span>
       ),
@@ -111,12 +131,14 @@ function Ships() {
     {
       title: "Autopilot",
       key: "autopilot",
+      align: "center",
       render: (_value, record) => (
         <>
           {record.nav.auto_pilot && (
             <span>
               {record.nav.auto_pilot.origin_symbol} -{">"}{" "}
-              {record.nav.auto_pilot.destination_symbol} (
+              {record.nav.auto_pilot.destination_symbol}
+              <br />(
               <Timer time={record.nav.auto_pilot.arrival} />)
             </span>
           )}
@@ -138,7 +160,7 @@ function Ships() {
         <Popover
           content={
             <Flex vertical>
-              {record.cargo.inventory.map((item) => (
+              {Object.entries(record.cargo.inventory).map((item) => (
                 <Flex gap={6} justify="space-between">
                   <span>{item[0]}</span>
                   <span>{item[1]}</span>
@@ -201,6 +223,8 @@ function Ships() {
         rowKey={"symbol"}
         pagination={{
           showSizeChanger: true,
+          pageSizeOptions: ["10", "20", "50", "100", "200", "500", "1000"],
+          defaultPageSize: 100,
         }}
       />
     </div>
