@@ -1,5 +1,7 @@
 use space_traders_client::models;
 
+use crate::sql::sql_models::ContractSummary;
+
 use super::{
     sql_models::{Contract, ContractDelivery, DatabaseConnector},
     DbPool,
@@ -179,5 +181,56 @@ impl Contract {
         }
 
         Ok(())
+    }
+
+    pub async fn get_by_id(database_pool: &DbPool, id: &String) -> sqlx::Result<Contract> {
+        sqlx::query_as!(
+            Contract,
+            r#"SELECT
+          id,
+          faction_symbol,
+          contract_type as "contract_type: models::contract::Type",
+          accepted,
+          fulfilled,
+          deadline_to_accept,
+          on_accepted,
+          on_fulfilled,
+          deadline
+        FROM public.contract WHERE id = $1"#,
+            &id
+        )
+        .fetch_one(&database_pool.database_pool)
+        .await
+    }
+
+    pub async fn get_all_sm(database_pool: &DbPool) -> sqlx::Result<Vec<ContractSummary>> {
+        let erg = sqlx::query_as!(
+    ContractSummary,
+    r#"
+SELECT
+  contract.id,
+  contract.faction_symbol,
+  contract.contract_type as "contract_type: models::contract::Type",
+  contract.accepted,
+  contract.fulfilled,
+  contract.deadline_to_accept,
+  contract.on_accepted,
+  contract.on_fulfilled,
+  contract.deadline,
+  contract.on_accepted + contract.on_fulfilled as "totalprofit: i32",
+  COALESCE(sum(market_transaction.total_price), 0) as "total_expenses: i32",
+  contract.on_accepted + contract.on_fulfilled - COALESCE(sum(market_transaction.total_price), 0) as "net_profit: i32"
+FROM
+  public.contract
+  join public.market_transaction ON market_transaction.contract = contract.id
+group by
+  contract.id
+order by
+  contract.deadline_to_accept ASC;
+    "#,
+)
+        .fetch_all(&database_pool.database_pool)
+        .await?;
+        Ok(erg)
     }
 }

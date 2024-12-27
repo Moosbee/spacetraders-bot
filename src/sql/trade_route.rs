@@ -1,6 +1,6 @@
 use space_traders_client::models;
 
-use super::{sql_models::TradeRoute, DatabaseConnector, DbPool};
+use super::{sql_models::{TradeRoute, TradeRouteSummary}, DatabaseConnector, DbPool};
 
 impl DatabaseConnector<TradeRoute> for TradeRoute {
     async fn insert(database_pool: &DbPool, item: &TradeRoute) -> sqlx::Result<()> {
@@ -172,6 +172,52 @@ impl TradeRoute {
                   predicted_sell_price,
                   created_at
                  FROM trade_route WHERE finished=false
+            "#
+        )
+        .fetch_all(&database_pool.database_pool)
+        .await
+    }
+
+    pub async fn get_summarys(database_pool: &DbPool) -> sqlx::Result<Vec<TradeRouteSummary>> {
+        sqlx::query_as!(
+            TradeRouteSummary,
+            r#"
+                SELECT
+  id,
+  symbol as "symbol: models::TradeSymbol",
+  trade_route.ship_symbol,
+  purchase_waypoint,
+  sell_waypoint,
+  finished,
+  trade_volume,
+  predicted_purchase_price,
+  predicted_sell_price,
+  sum(market_transaction.total_price) as "sum: i32",
+  sum(
+    CASE
+      WHEN market_transaction.type = 'PURCHASE' THEN market_transaction.total_price
+      ELSE 0
+    END
+  ) as "expenses: i32",
+  sum(
+    CASE
+      WHEN market_transaction.type = 'PURCHASE' THEN 0
+      ELSE market_transaction.total_price
+    END
+  ) as "income: i32",
+  sum(
+    CASE
+      WHEN market_transaction.type = 'PURCHASE' THEN (market_transaction.total_price * -1)
+      ELSE market_transaction.total_price
+    END
+  ) as "profit: i32"
+FROM
+  public.trade_route
+  join public.market_transaction ON market_transaction.trade_route = trade_route.id
+group by
+  id
+ORDER BY
+  id ASC;
             "#
         )
         .fetch_all(&database_pool.database_pool)

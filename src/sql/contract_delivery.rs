@@ -17,6 +17,28 @@ impl super::sql_models::ContractDelivery {
             units_fulfilled: contract_delivery.units_fulfilled,
         })
     }
+
+    pub async fn get_by_contract_id(
+        database_pool: &DbPool,
+        contract_id: &str,
+    ) -> sqlx::Result<Vec<super::sql_models::ContractDelivery>> {
+        sqlx::query_as!(
+            super::sql_models::ContractDelivery,
+            r#"
+            SELECT 
+              contract_id,
+              trade_symbol as "trade_symbol: models::TradeSymbol",
+              destination_symbol,
+              units_required,
+              units_fulfilled
+            FROM contract_delivery
+            WHERE contract_id = $1
+        "#,
+            contract_id
+        )
+        .fetch_all(&database_pool.database_pool)
+        .await
+    }
 }
 
 impl DatabaseConnector<super::sql_models::ContractDelivery>

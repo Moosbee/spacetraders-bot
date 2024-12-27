@@ -6,8 +6,10 @@ import {
   FileTextOutlined,
   GlobalOutlined,
   HomeOutlined,
+  ReconciliationOutlined,
   RocketOutlined,
   TeamOutlined,
+  TruckOutlined,
 } from "@ant-design/icons";
 import type { MenuProps } from "antd";
 import { Menu } from "antd";
@@ -30,6 +32,26 @@ const items: MenuItem[] = [
     icon: <RocketOutlined />,
   },
   {
+    label: <Link to="/bulk">Bulk Actions</Link>,
+    key: "bulk",
+    icon: <ReconciliationOutlined />,
+  },
+  {
+    label: <Link to="/contracts">Contracts</Link>,
+    key: "contracts",
+    icon: <FileTextOutlined />,
+  },
+  {
+    label: <Link to="/tradeRoutes">Trade Routes</Link>,
+    key: "tradeRoutes",
+    icon: <TruckOutlined />,
+  },
+  {
+    label: <Link to="/transactions/market">Market Transactions</Link>,
+    key: "transactions/market",
+    icon: <DeliveredProcedureOutlined />,
+  },
+  {
     label: "Overview",
     key: "Overview",
     icon: <AppstoreOutlined />,
@@ -49,20 +71,11 @@ const items: MenuItem[] = [
         key: "factions",
         icon: <TeamOutlined />,
       },
-      {
-        label: <Link to="/contracts">Contracts</Link>,
-        key: "contracts",
-        icon: <FileTextOutlined />,
-      },
+
       {
         label: <Link to="/surveys">Surveys</Link>,
         key: "surveys",
         icon: <AuditOutlined />,
-      },
-      {
-        label: <Link to="/transactions/market">Market Transactions</Link>,
-        key: "transactions/market",
-        icon: <DeliveredProcedureOutlined />,
       },
     ],
   },

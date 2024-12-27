@@ -96,6 +96,13 @@ impl MyShip {
                     .get_amount(&space_traders_client::models::TradeSymbol::Fuel)
                     * 100),
         );
+
+        let start_range = if self.fuel.capacity == 0 {
+            i32::MAX
+        } else {
+            start_range
+        };
+
         let route = self.find_route(
             waypoints,
             self.nav.waypoint_symbol.clone(),

@@ -1,16 +1,17 @@
-use std::time::Duration;
+use std::{collections::HashMap, time::Duration};
 
 use futures::{FutureExt, StreamExt};
 use log::{debug, info};
 use tokio::select;
 use tokio_stream::wrappers::BroadcastStream;
 use tokio_util::sync::CancellationToken;
-use warp::Filter;
+use warp::{reply::Reply, Filter};
 
 use crate::{
     config::CONFIG,
     control_api::types::{WsData, WsObject},
-    ship, sql,
+    ship,
+    sql::{self, DatabaseConnector},
 };
 
 use super::types::MyReceiver;
@@ -88,15 +89,34 @@ impl ControlApiServer {
 
         let ws_routes = self.build_websocket_routes(ship_broadcast_rx, agent_rx);
         let ship_route = self.build_ships_route();
+        let ship_actions_route = self.build_ship_actions_route();
         let shutdown_route = self.build_shutdown_route();
         let waypoints_route = self.build_waypoints_route();
+        let contract_route = self.build_contract_route();
+        let contracts_route = self.build_contracts_route();
+        let transactions_route = self.build_transactions_route();
+        let trade_route_route = self.build_trade_route_route();
 
-        let cors = warp::cors().allow_any_origin();
+        let cors = warp::cors()
+            .allow_any_origin()
+            .allow_headers(vec![
+                "Access-Control-Allow-Origin",
+                "Origin",
+                "Accept",
+                "X-Requested-With",
+                "Content-Type",
+            ])
+            .allow_methods(&[warp::http::Method::GET, warp::http::Method::POST]);
 
         main.or(ws_routes)
+            .or(ship_actions_route)
             .or(ship_route)
             .or(shutdown_route)
             .or(waypoints_route)
+            .or(contract_route)
+            .or(contracts_route)
+            .or(transactions_route)
+            .or(trade_route_route)
             .with(cors)
     }
 
@@ -166,6 +186,162 @@ impl ControlApiServer {
             debug!("Got {} ships", ships.len());
             warp::reply::json(&ships)
         })
+    }
+
+    fn build_ship_actions_route(
+        &self,
+    ) -> impl warp::Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+        let context = self.context.clone();
+        warp::path!("ship" / String / "navigate")
+            .and(warp::post())
+            .and(warp::body::json())
+            .map(move |symbol: String, body: serde_json::Value| {
+                debug!("Navigating to waypoint for ship {}", symbol);
+                let ship_clone = context.ship_manager.get_clone(&symbol);
+                let waypoint_id = body["waypointSymbol"].as_str();
+
+                if waypoint_id.is_none() {
+                    return warp::reply::with_status(
+                        warp::reply::json(&"Waypoint not found"),
+                        warp::http::StatusCode::BAD_REQUEST,
+                    );
+                }
+
+                if let Some(ship) = ship_clone {
+                    if ship.role != ship::Role::Manuel {
+                        return warp::reply::with_status(
+                            warp::reply::json(&"Ship not in Manuel mode"),
+                            warp::http::StatusCode::BAD_REQUEST,
+                        );
+                    }
+                } else {
+                    return warp::reply::with_status(
+                        warp::reply::json(&"Ship not found"),
+                        warp::http::StatusCode::NOT_FOUND,
+                    );
+                }
+
+                let mut resp = HashMap::new();
+                resp.insert(
+                    "waypointSymbol".to_string(),
+                    waypoint_id.unwrap().to_string(),
+                );
+                resp.insert("shipSymbol".to_string(), symbol.to_string());
+
+                let context = context.clone();
+                let waypoint_id = waypoint_id.unwrap().to_string();
+
+                tokio::spawn(async move {
+                    let mut ship_guard = context.ship_manager.get_mut(&symbol).await;
+                    let ship = ship_guard.value_mut().unwrap();
+                    let waypoints = {
+                        context
+                            .all_waypoints
+                            .get(&ship.nav.system_symbol)
+                            .unwrap()
+                            .clone()
+                    };
+                    ship.nav_to(
+                        &waypoint_id,
+                        true,
+                        &waypoints,
+                        &context.api,
+                        context.database_pool.clone(),
+                        sql::TransactionReason::None,
+                    )
+                    .await
+                    .unwrap();
+                });
+
+                resp.insert("success".to_string(), "true".to_string());
+
+                warp::reply::with_status(warp::reply::json(&resp), warp::http::StatusCode::OK)
+            })
+    }
+
+    fn build_trade_route_route(
+        &self,
+    ) -> impl warp::Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+        let context = self.context.clone();
+        warp::path("tradeRoutes")
+            .and_then(move || Self::trade_routes_route_handler(context.clone()))
+    }
+
+    async fn trade_routes_route_handler(
+        context: crate::workers::types::ConductorContext,
+    ) -> Result<impl Reply, warp::Rejection> {
+        let trade_routes = sql::TradeRoute::get_summarys(&context.database_pool)
+            .await
+            .unwrap();
+        Ok(warp::reply::json(&trade_routes))
+    }
+
+    fn build_contract_route(
+        &self,
+    ) -> impl warp::Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+        let context = self.context.clone();
+        warp::path!("contracts" / String)
+            .and_then(move |id: String| Self::contract_route_handler(context.clone(), id))
+    }
+
+    async fn contract_route_handler(
+        context: crate::workers::types::ConductorContext,
+        id: String,
+    ) -> Result<impl Reply, warp::Rejection> {
+        let contract: sql::Contract = sql::Contract::get_by_id(&context.database_pool, &id)
+            .await
+            .unwrap();
+
+        let deliveries: Vec<sql::ContractDelivery> =
+            sql::ContractDelivery::get_by_contract_id(&context.database_pool, &id)
+                .await
+                .unwrap();
+
+        let transactions: Vec<sql::MarketTransaction> = sql::MarketTransaction::get_by_reason(
+            &context.database_pool,
+            sql::TransactionReason::Contract(id.clone()),
+        )
+        .await
+        .unwrap();
+
+        Ok(warp::reply::json(&(id, contract, deliveries, transactions)))
+    }
+
+    fn build_contracts_route(
+        &self,
+    ) -> impl warp::Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+        let context = self.context.clone();
+        warp::path("contracts").and_then(move || Self::contracts_route_handler(context.clone()))
+    }
+
+    async fn contracts_route_handler(
+        context: crate::workers::types::ConductorContext,
+    ) -> Result<impl Reply, warp::Rejection> {
+        debug!("Getting contracts");
+        let contracts = sql::Contract::get_all_sm(&context.database_pool)
+            .await
+            .unwrap();
+        debug!("Got {} contracts", contracts.len());
+        Ok(warp::reply::json(&contracts))
+    }
+
+    fn build_transactions_route(
+        &self,
+    ) -> impl warp::Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+        let context = self.context.clone();
+        warp::path("transactions")
+            .and_then(move || Self::transactions_route_handler(context.clone()))
+    }
+
+    async fn transactions_route_handler(
+        context: crate::workers::types::ConductorContext,
+    ) -> Result<impl Reply, warp::Rejection> {
+        debug!("Getting transactions");
+        let transactions = sql::MarketTransaction::get_all(&context.database_pool)
+            .await
+            .unwrap();
+        debug!("Got {} transactions", transactions.len());
+        Ok(warp::reply::json(&transactions))
     }
 
     fn build_waypoints_route(

@@ -11,6 +11,7 @@ mod waypoint;
 
 pub use sql_models::Agent;
 pub use sql_models::Contract;
+pub use sql_models::ContractDelivery;
 pub use sql_models::DatabaseConnector;
 pub use sql_models::DbPool;
 pub use sql_models::MarketTrade;

@@ -3,10 +3,15 @@ import { Route, Routes } from "react-router-dom";
 import "./MyApp.css";
 import MyHeader from "./features/myHeader";
 import MySider from "./features/mySider";
+import BulkActions from "./sites/BulkActions";
+import Contract from "./sites/Contract";
+import Contracts from "./sites/Contracts";
 import ErrorPage from "./sites/ErrorPage";
+import MarketTransactions from "./sites/MarketTransactions";
 import Ship from "./sites/Ship";
 import Ships from "./sites/Ships";
 import System from "./sites/System";
+import TradeRoutes from "./sites/TradeRoutes";
 import Waypoint from "./sites/Waypoint";
 import WpMap from "./sites/WaypointMap";
 import Main from "./sites/main";
@@ -63,6 +68,17 @@ function MyApp() {
                       element={<WpMap></WpMap>}
                     />
                     <Route path="/ships/:shipID" element={<Ship />} />
+                    <Route path="/bulk" element={<BulkActions />} />
+                    <Route path="/contracts" element={<Contracts />} />
+                    <Route
+                      path="/contracts/:contractID"
+                      element={<Contract />}
+                    />
+                    <Route path="/tradeRoutes" element={<TradeRoutes />} />
+                    <Route
+                      path="/transactions/market"
+                      element={<MarketTransactions />}
+                    />
 
                     <Route path="*" element={<ErrorPage />} />
                   </Routes>

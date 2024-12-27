@@ -2,6 +2,7 @@ import { Button, Flex, Popover, Space, Switch, Table, TableProps } from "antd";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import PageTitle from "../features/PageTitle";
+import RoleRenderer from "../features/RoleRenderer/RoleRenderer";
 import Timer from "../features/Timer/Timer";
 import { ShipNavFlightMode, ShipNavStatus, ShipRole } from "../models/api";
 import RustShip, { SystemShipRole, SystemShipRoles } from "../models/ship";
@@ -38,30 +39,7 @@ function Ships() {
         text: role,
         value: role,
       })),
-      render: (role: SystemShipRole) =>
-        `${role.type} ${
-          role.type === "Contract"
-            ? role.data === null
-              ? ""
-              : role.data[0].slice(0, 3) +
-                "..." +
-                role.data[0].slice(
-                  role.data[0].length - 3,
-                  role.data[0].length
-                ) +
-                " (" +
-                role.data[1] +
-                ")"
-            : ""
-        }${
-          role.type === "Trader"
-            ? role.data === null
-              ? ""
-              : role.data[0] + " (" + role.data[1] + ")"
-            : ""
-        }${
-          role.type === "Mining" ? (role.data === null ? "" : role.data) : ""
-        }`,
+      render: (role: SystemShipRole) => <RoleRenderer role={role} />,
       onFilter: (value, record) => record.role.type === value,
       sorter: (a, b) => a.role.type.localeCompare(b.role.type),
     },
@@ -221,6 +199,9 @@ function Ships() {
         dataSource={Object.values(ships)}
         columns={columns}
         rowKey={"symbol"}
+        pagination={{
+          showSizeChanger: true,
+        }}
       />
     </div>
   );

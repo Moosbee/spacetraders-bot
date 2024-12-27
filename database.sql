@@ -342,7 +342,7 @@ FROM
 group by
   contract.id
 order by
-  contract.deadline_to_accept DESC;
+  contract.deadline_to_accept ASC;
 
 SELECT
   id,
@@ -354,7 +354,7 @@ SELECT
   predicted_purchase_price,
   predicted_sell_price,
   created_at,
-  sum(market_transaction.total_price),
+  sum(market_transaction.total_price) as "sum",
   sum(
     CASE
       WHEN market_transaction.type = 'PURCHASE' THEN market_transaction.total_price

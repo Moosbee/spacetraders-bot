@@ -52,7 +52,7 @@ pub struct MarketTradeGood {
     pub created_at: sqlx::types::time::PrimitiveDateTime,
 }
 
-#[derive(Clone, Default, Debug, PartialEq)]
+#[derive(Clone, Default, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct MarketTransaction {
     /// The symbol of the waypoint.
     pub waypoint_symbol: String,
@@ -77,7 +77,7 @@ pub struct MarketTransaction {
     pub mining: Option<String>,
 }
 
-#[derive(Clone, Debug, PartialEq, Default)]
+#[derive(Clone, Debug, PartialEq, Default, serde::Serialize, serde::Deserialize)]
 pub enum TransactionReason {
     Contract(String),
     TradeRoute(i32),
@@ -105,6 +105,7 @@ impl Default for MarketTrade {
     }
 }
 
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Contract {
     pub id: String,
     pub faction_symbol: String,
@@ -117,12 +118,29 @@ pub struct Contract {
     pub deadline: String,
 }
 
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ContractDelivery {
     pub contract_id: String,
     pub trade_symbol: models::TradeSymbol,
     pub destination_symbol: String,
     pub units_required: i32,
     pub units_fulfilled: i32,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct ContractSummary {
+    pub id: String,
+    pub faction_symbol: String,
+    pub contract_type: models::contract::Type,
+    pub accepted: bool,
+    pub fulfilled: bool,
+    pub deadline_to_accept: Option<String>,
+    pub on_accepted: i32,
+    pub on_fulfilled: i32,
+    pub deadline: String,
+    pub totalprofit: Option<i32>,
+    pub total_expenses: Option<i32>,
+    pub net_profit: Option<i32>,
 }
 
 #[derive(Debug, Clone, serde::Serialize)]
@@ -150,6 +168,23 @@ pub struct TradeRoute {
     pub predicted_purchase_price: i32,
     pub predicted_sell_price: i32,
     pub created_at: sqlx::types::time::PrimitiveDateTime,
+}
+
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct TradeRouteSummary {
+    pub id: i32,
+    pub symbol: models::TradeSymbol,
+    pub ship_symbol: String,
+    pub purchase_waypoint: String,
+    pub sell_waypoint: String,
+    pub finished: bool,
+    pub trade_volume: i32,
+    pub predicted_purchase_price: i32,
+    pub predicted_sell_price: i32,
+    pub sum: Option<i32>,
+    pub expenses: Option<i32>,
+    pub income: Option<i32>,
+    pub profit: Option<i32>,
 }
 
 impl TradeRoute {

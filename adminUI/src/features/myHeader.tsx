@@ -3,6 +3,7 @@ import { Avatar, Badge, Button, Dropdown, Flex, Space, theme } from "antd";
 import type { AntHeaderHeader } from "../MyApp";
 import useMyStore from "../store";
 import FaIcon from "./FontAwsome/FaIcon";
+import MoneyDisplay from "./MonyDisplay";
 
 function MyHeader({ Header }: { Header: typeof AntHeaderHeader }) {
   const isDarkMode = useMyStore((state) => state.darkMode);
@@ -59,7 +60,7 @@ function MyHeader({ Header }: { Header: typeof AntHeaderHeader }) {
           <Avatar>{myAgent.symbol.slice(0, 1)}</Avatar>
           {myAgent.symbol}
           <Badge status={websocketConnected ? "success" : "error"} />
-          <span>{myAgent.credits.toLocaleString()}$</span>
+          <MoneyDisplay amount={myAgent.credits} />
         </Space>
         <div>
           {systemSymbol && (

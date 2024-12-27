@@ -59,7 +59,7 @@ impl RouteCalculator {
         );
 
         let ratio: f64 = rand::random::<f64>();
-        if ratio < cache_ratio {
+        if ratio > cache_ratio {
             return self
                 .get_routes_simple(market_trade, trade_goods, ship)
                 .first()
