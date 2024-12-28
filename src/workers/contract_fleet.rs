@@ -44,7 +44,7 @@ impl ContractFleet {
 
         tokio::time::sleep(Duration::from_millis(CONFIG.contracts.start_sleep_duration)).await;
 
-        let contract_ships = self.get_contract_ships()?;
+        let contract_ships = self.get_contract_ships().await?;
         let primary_ship = &contract_ships[0];
 
         // Process existing contracts
@@ -229,27 +229,16 @@ impl ContractFleet {
         Api::system_symbol(waypoint_symbol)
     }
 
-    fn get_contract_ships(&self) -> Result<Vec<String>> {
-        let ships: Vec<String> = self
-            .context
-            .ship_roles
-            .iter()
-            .filter(|(_, role)| {
-                let role = if let ship::Role::Contract(_) = role {
-                    true
-                } else {
-                    false
-                };
-
-                role
-            })
-            .map(|(symbol, _)| symbol.clone())
-            .collect();
-
+    async fn get_contract_ships(&self) -> Result<Vec<String>> {
+        let ships = sql::ShipInfo::get_by_role(
+            &self.context.database_pool,
+            &crate::sql::ShipInfoRole::Contract,
+        )
+        .await?;
         if ships.is_empty() {
-            return Err(Error::msg("No ships assigned to contract role"));
+            return Err(Error::msg("No ships found"));
         }
-        Ok(ships)
+        Ok(ships.iter().map(|s| s.symbol.clone()).collect())
     }
 
     async fn get_unfulfilled_contracts(&self) -> Result<VecDeque<Contract>> {

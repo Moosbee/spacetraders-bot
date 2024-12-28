@@ -9,6 +9,7 @@ use tokio_util::sync::CancellationToken;
 use crate::{
     config::CONFIG,
     ship::{self, Role},
+    sql::ShipInfo,
     workers::mining::m_types::MiningShipAssignment,
 };
 
@@ -47,7 +48,7 @@ impl MiningFleet {
         // Optional initial sleep to stagger worker start
         sleep(Duration::from_millis(CONFIG.mining.start_sleep_duration)).await;
 
-        let ships = self.get_mining_ships();
+        let ships = self.get_mining_ships().await;
         self.assign_ships(&ships).await;
 
         let handles = self.spawn_mining_ship_workers(ships)?;
@@ -108,15 +109,14 @@ impl MiningFleet {
         Ok(handles)
     }
 
-    fn get_mining_ships(&self) -> Vec<String> {
-        self.context
-            .ship_roles
-            .iter()
-            .filter_map(|(symbol, role)| match role {
-                ship::Role::Mining(_) => Some(symbol.clone()),
-                _ => None,
-            })
-            .collect()
+    async fn get_mining_ships(&self) -> Vec<String> {
+        let ships = ShipInfo::get_by_role(
+            &self.context.database_pool,
+            &crate::sql::ShipInfoRole::Mining,
+        )
+        .await
+        .unwrap();
+        ships.iter().map(|s| s.symbol.clone()).collect()
     }
 
     async fn run_mining_ship_worker(&self, ship_symbol: String) -> anyhow::Result<()> {

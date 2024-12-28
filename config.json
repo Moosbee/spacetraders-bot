@@ -3,7 +3,7 @@
   "contracts": {
     "start_sleep_duration": 0,
     "max_contracts": 100000,
-    "active": true
+    "active": false
   },
   "market": {
     "start_sleep_duration": 100,
@@ -23,15 +23,15 @@
       "ADVANCED_CIRCUITRY",
       "FAB_MATS"
     ],
-    "active": true
-  },
-  "construction": {
-    "start_sleep_duration": 0,
     "active": false
   },
+  "construction": {
+    "start_sleep_duration": 10000000,
+    "active": true
+  },
   "mining": {
+    "active": false,
     "start_sleep_duration": 2000,
-    "active": true,
     "max_miners_per_waypoint": 100,
     "max_extractions_per_miner": 1000000,
     "blacklist": [

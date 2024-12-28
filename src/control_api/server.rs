@@ -108,7 +108,8 @@ impl ControlApiServer {
             ])
             .allow_methods(&[warp::http::Method::GET, warp::http::Method::POST]);
 
-        main.or(ws_routes)
+        let main = main
+            .or(ws_routes)
             .or(ship_actions_route)
             .or(ship_route)
             .or(shutdown_route)
@@ -117,7 +118,9 @@ impl ControlApiServer {
             .or(contracts_route)
             .or(transactions_route)
             .or(trade_route_route)
-            .with(cors)
+            .with(cors);
+
+        main
     }
 
     fn build_websocket_routes(
@@ -195,68 +198,78 @@ impl ControlApiServer {
         warp::path!("ship" / String / "navigate")
             .and(warp::post())
             .and(warp::body::json())
-            .map(move |symbol: String, body: serde_json::Value| {
-                debug!("Navigating to waypoint for ship {}", symbol);
-                let ship_clone = context.ship_manager.get_clone(&symbol);
-                let waypoint_id = body["waypointSymbol"].as_str();
-
-                if waypoint_id.is_none() {
-                    return warp::reply::with_status(
-                        warp::reply::json(&"Waypoint not found"),
-                        warp::http::StatusCode::BAD_REQUEST,
-                    );
-                }
-
-                if let Some(ship) = ship_clone {
-                    if ship.role != ship::Role::Manuel {
-                        return warp::reply::with_status(
-                            warp::reply::json(&"Ship not in Manuel mode"),
-                            warp::http::StatusCode::BAD_REQUEST,
-                        );
-                    }
-                } else {
-                    return warp::reply::with_status(
-                        warp::reply::json(&"Ship not found"),
-                        warp::http::StatusCode::NOT_FOUND,
-                    );
-                }
-
-                let mut resp = HashMap::new();
-                resp.insert(
-                    "waypointSymbol".to_string(),
-                    waypoint_id.unwrap().to_string(),
-                );
-                resp.insert("shipSymbol".to_string(), symbol.to_string());
-
-                let context = context.clone();
-                let waypoint_id = waypoint_id.unwrap().to_string();
-
-                tokio::spawn(async move {
-                    let mut ship_guard = context.ship_manager.get_mut(&symbol).await;
-                    let ship = ship_guard.value_mut().unwrap();
-                    let waypoints = {
-                        context
-                            .all_waypoints
-                            .get(&ship.nav.system_symbol)
-                            .unwrap()
-                            .clone()
-                    };
-                    ship.nav_to(
-                        &waypoint_id,
-                        true,
-                        &waypoints,
-                        &context.api,
-                        context.database_pool.clone(),
-                        sql::TransactionReason::None,
-                    )
-                    .await
-                    .unwrap();
-                });
-
-                resp.insert("success".to_string(), "true".to_string());
-
-                warp::reply::with_status(warp::reply::json(&resp), warp::http::StatusCode::OK)
+            .and_then(move |symbol: String, body: serde_json::Value| {
+                Self::navigate_ship_handler(context.clone(), symbol, body)
             })
+    }
+
+    async fn navigate_ship_handler(
+        context: crate::workers::types::ConductorContext,
+        symbol: String,
+        body: serde_json::Value,
+    ) -> Result<impl Reply, warp::Rejection> {
+        debug!("Navigating to waypoint for ship {}", symbol);
+        let ship_clone = context.ship_manager.get_clone(&symbol);
+        let waypoint_id = body["waypointSymbol"].as_str();
+
+        if waypoint_id.is_none() {
+            return Ok(warp::reply::with_status(
+                warp::reply::json(&"Waypoint not found"),
+                warp::http::StatusCode::BAD_REQUEST,
+            ));
+        }
+
+        if let Some(ship) = ship_clone {
+            if ship.role != ship::Role::Manuel {
+                return Ok(warp::reply::with_status(
+                    warp::reply::json(&"Ship not in Manuel mode"),
+                    warp::http::StatusCode::BAD_REQUEST,
+                ));
+            }
+        } else {
+            return Ok(warp::reply::with_status(
+                warp::reply::json(&"Ship not found"),
+                warp::http::StatusCode::NOT_FOUND,
+            ));
+        }
+
+        let mut resp = HashMap::new();
+        resp.insert(
+            "waypointSymbol".to_string(),
+            waypoint_id.unwrap().to_string(),
+        );
+        resp.insert("shipSymbol".to_string(), symbol.to_string());
+
+        let waypoint_id = waypoint_id.unwrap().to_string();
+
+        tokio::spawn(async move {
+            let mut ship_guard = context.ship_manager.get_mut(&symbol).await;
+            let ship = ship_guard.value_mut().unwrap();
+            let waypoints = {
+                context
+                    .all_waypoints
+                    .get(&ship.nav.system_symbol)
+                    .unwrap()
+                    .clone()
+            };
+            ship.nav_to(
+                &waypoint_id,
+                true,
+                &waypoints,
+                &context.api,
+                context.database_pool.clone(),
+                sql::TransactionReason::None,
+            )
+            .await
+            .unwrap();
+        });
+
+        resp.insert("success".to_string(), "true".to_string());
+
+        Ok(warp::reply::with_status(
+            warp::reply::json(&resp),
+            warp::http::StatusCode::OK,
+        ))
     }
 
     fn build_trade_route_route(

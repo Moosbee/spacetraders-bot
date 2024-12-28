@@ -61,7 +61,7 @@ impl TradingFleet {
 
         tokio::time::sleep(Duration::from_millis(CONFIG.trading.start_sleep_duration)).await;
 
-        let ships = self.get_trading_ships();
+        let ships = self.get_trading_ships().await;
         let mut handles = Vec::new();
 
         for ship in ships {
@@ -108,28 +108,14 @@ impl TradingFleet {
         Ok(())
     }
 
-    fn get_trading_ships(&self) -> Vec<String> {
-        let all = self
-            .context
-            .ship_manager
-            .get_all_clone()
-            .keys()
-            .cloned()
-            .collect::<Vec<_>>();
-
-        self.context
-            .ship_roles
-            .iter()
-            .filter(|(symbol, _)| all.contains(symbol))
-            .filter(|(_, role)| {
-                if let ship::Role::Trader(_) = role {
-                    true
-                } else {
-                    false
-                }
-            })
-            .map(|(symbol, _)| symbol.clone())
-            .collect()
+    async fn get_trading_ships(&self) -> Vec<String> {
+        let ships = sql::ShipInfo::get_by_role(
+            &self.context.database_pool,
+            &crate::sql::ShipInfoRole::Trader,
+        )
+        .await
+        .unwrap();
+        ships.iter().map(|s| s.symbol.clone()).collect()
     }
 
     async fn run_trade_ship_worker(&self, ship_symbol: String) -> anyhow::Result<()> {

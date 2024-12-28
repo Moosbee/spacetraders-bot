@@ -9,6 +9,7 @@ use tokio::select;
 
 use crate::{
     api,
+    sql::DatabaseConnector,
     types::{SendFuture, Subject},
     workers::mining::m_types::MiningShipAssignment,
 };
@@ -21,8 +22,10 @@ impl Default for MyShip {
             role: Default::default(),
             registration_role: Default::default(),
             symbol: Default::default(),
+            display_name: Default::default(),
             engine_speed: Default::default(),
             cooldown_expiration: Default::default(),
+            active: false,
             nav: Default::default(),
             cargo: Default::default(),
             fuel: Default::default(),
@@ -36,15 +39,13 @@ impl Default for MyShip {
 }
 
 impl Clone for MyShip {
-    fn clone_from(&mut self, source: &Self) {
-        *self = source.clone()
-    }
-
     fn clone(&self) -> Self {
         Self {
             role: self.role.clone(),
             registration_role: self.registration_role.clone(),
+            display_name: self.display_name.clone(),
             symbol: self.symbol.clone(),
+            active: self.active,
             engine_speed: self.engine_speed.clone(),
             cooldown_expiration: self.cooldown_expiration.clone(),
             nav: self.nav.clone(),
@@ -59,7 +60,7 @@ impl Clone for MyShip {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Default, serde::Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Default, serde::Serialize)]
 #[serde(tag = "type", content = "data")]
 pub enum Role {
     Construction,
@@ -76,7 +77,9 @@ pub struct MyShip {
     pub role: Role,
     pub registration_role: ShipRole,
     pub symbol: String,
+    pub display_name: String,
     pub engine_speed: i32,
+    pub active: bool,
     pub cooldown_expiration: Option<DateTime<Utc>>,
     // Navigation state
     pub nav: super::nav::nav_models::NavigationState,
@@ -282,5 +285,69 @@ impl MyShip {
         let _erg = futures::future::join(update_future, sleep_future)
             .send() // https://github.com/rust-lang/rust/issues/96865
             .await;
+    }
+
+    pub async fn apply_from_db(&mut self, database_pool: crate::sql::DbPool) -> anyhow::Result<()> {
+        let db_ship = crate::sql::ShipInfo::get_by_symbol(&database_pool, &self.symbol).await?;
+        let ship_info = match db_ship {
+            Some(db_ship) => db_ship,
+            None => {
+                let display_name = if self.display_name.is_empty() {
+                    self.symbol.clone()
+                } else {
+                    self.display_name.clone()
+                };
+                let ship_info = crate::sql::ShipInfo {
+                    symbol: self.symbol.clone(),
+                    display_name,
+                    role: self.role.clone().into(),
+                    active: self.active,
+                };
+                crate::sql::ShipInfo::insert(&database_pool, &ship_info).await?;
+                ship_info
+            }
+        };
+
+        self.update_ship_info(ship_info);
+
+        Ok(())
+    }
+
+    fn update_ship_info(&mut self, ship_info: crate::sql::ShipInfo) {
+        self.active = ship_info.active;
+        self.display_name = ship_info.display_name;
+        self.symbol = ship_info.symbol;
+        match self.role {
+            Role::Construction => {
+                if ship_info.role != crate::sql::ShipInfoRole::Construction {
+                    self.role = ship_info.role.into();
+                }
+            }
+            Role::Trader(_) => {
+                if ship_info.role != crate::sql::ShipInfoRole::Trader {
+                    self.role = ship_info.role.into();
+                }
+            }
+            Role::Contract(_) => {
+                if ship_info.role != crate::sql::ShipInfoRole::Contract {
+                    self.role = ship_info.role.into();
+                }
+            }
+            Role::Scraper => {
+                if ship_info.role != crate::sql::ShipInfoRole::Scraper {
+                    self.role = ship_info.role.into();
+                }
+            }
+            Role::Mining(_) => {
+                if ship_info.role != crate::sql::ShipInfoRole::Mining {
+                    self.role = ship_info.role.into();
+                }
+            }
+            Role::Manuel => {
+                if ship_info.role != crate::sql::ShipInfoRole::Manuel {
+                    self.role = ship_info.role.into();
+                }
+            }
+        }
     }
 }

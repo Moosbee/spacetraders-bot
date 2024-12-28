@@ -170,6 +170,24 @@ CREATE TYPE activity_level AS ENUM ('WEAK', 'GROWING', 'STRONG', 'RESTRICTED');
 
 CREATE TYPE contract_type AS ENUM ('PROCUREMENT', 'TRANSPORT', 'SHUTTLE');
 
+CREATE TYPE ship_info_role AS ENUM (
+  'Construction',
+  'Trader',
+  'Contract',
+  'Scraper',
+  'Mining',
+  'Manuel'
+);
+
+CREATE TABLE
+  public.ship_info (
+    symbol character varying NOT NULL,
+    display_name character varying NOT NULL,
+    role ship_info_role NOT NULL,
+    active boolean NOT NULL,
+    PRIMARY KEY (symbol)
+  );
+
 -- Table: public.agent
 -- DROP TABLE IF EXISTS public.agent;
 CREATE TABLE

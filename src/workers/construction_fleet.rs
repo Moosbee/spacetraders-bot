@@ -4,7 +4,7 @@ use log::info;
 use tokio::time::sleep;
 use tokio_util::sync::CancellationToken;
 
-use crate::{config::CONFIG, ship};
+use crate::config::CONFIG;
 
 pub struct ConstructionFleet {
     context: super::types::ConductorContext,
@@ -29,27 +29,30 @@ impl ConstructionFleet {
             return Ok(());
         }
 
-        tokio::time::sleep(Duration::from_millis(
-            CONFIG.construction.start_sleep_duration,
-        ))
-        .await;
+        tokio::select! {
+            _ = self.cancellation_token.cancelled() => {
+                info!("Construction workers cancelled");
+            },
+            _ = sleep(Duration::from_millis(CONFIG.construction.start_sleep_duration)) => {},
+        }
 
         sleep(Duration::from_secs(1)).await;
 
-        let _ships = self.get_construction_ships();
+        let _ships = self.get_construction_ships().await;
 
         info!("Construction workers done");
 
         Ok(())
     }
 
-    fn get_construction_ships(&self) -> Vec<String> {
-        self.context
-            .ship_roles
-            .iter()
-            .filter(|(_, role)| **role == ship::Role::Construction)
-            .map(|(symbol, _)| symbol.clone())
-            .collect()
+    async fn get_construction_ships(&self) -> Vec<String> {
+        let ships = crate::sql::ShipInfo::get_by_role(
+            &self.context.database_pool,
+            &crate::sql::ShipInfoRole::Construction,
+        )
+        .await
+        .unwrap();
+        ships.iter().map(|s| s.symbol.clone()).collect()
     }
 }
 

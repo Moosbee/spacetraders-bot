@@ -244,6 +244,54 @@ pub struct Route {
     pub total_cargohold: i32,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ShipInfo {
+    pub symbol: String,
+    pub display_name: String,
+    pub role: ShipInfoRole,
+    pub active: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Default, serde::Serialize, sqlx::Type)]
+#[sqlx(type_name = "ship_info_role")]
+pub enum ShipInfoRole {
+    Construction,
+    Trader,
+    Contract,
+    Scraper,
+    Mining,
+    #[default]
+    Manuel,
+}
+
+impl From<crate::ship::Role> for ShipInfoRole {
+    fn from(role: crate::ship::Role) -> Self {
+        match role {
+            crate::ship::Role::Construction => Self::Construction,
+            crate::ship::Role::Trader(_) => Self::Trader,
+            crate::ship::Role::Contract(_) => Self::Contract,
+            crate::ship::Role::Scraper => Self::Scraper,
+            crate::ship::Role::Mining(_) => Self::Mining,
+            crate::ship::Role::Manuel => Self::Manuel,
+        }
+    }
+}
+
+impl From<ShipInfoRole> for crate::ship::Role {
+    fn from(role: ShipInfoRole) -> Self {
+        match role {
+            ShipInfoRole::Construction => Self::Construction,
+            ShipInfoRole::Trader => Self::Trader(None),
+            ShipInfoRole::Contract => Self::Contract(None),
+            ShipInfoRole::Scraper => Self::Scraper,
+            ShipInfoRole::Mining => {
+                Self::Mining(crate::workers::mining::m_types::MiningShipAssignment::Idle)
+            }
+            ShipInfoRole::Manuel => Self::Manuel,
+        }
+    }
+}
+
 pub trait DatabaseConnector<T> {
     /// Insert a new item into the database, or update it if it already exists.
     async fn insert(database_pool: &DbPool, item: &T) -> sqlx::Result<()>;

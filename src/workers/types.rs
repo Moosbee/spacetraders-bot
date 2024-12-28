@@ -9,7 +9,6 @@ use crate::{ship::ShipManager, sql::DbPool};
 pub struct ConductorContext {
     pub api: crate::api::Api,
     pub database_pool: DbPool,
-    pub ship_roles: HashMap<String, crate::ship::Role>,
     pub ship_manager: Arc<ShipManager>,
     pub all_waypoints:
         Arc<DashMap<String, HashMap<String, space_traders_client::models::Waypoint>>>,
