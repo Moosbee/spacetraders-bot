@@ -1,6 +1,6 @@
 use std::{collections::HashMap, sync::Arc};
 
-use lockable::{AsyncLimit, Lockable, LockableHashMap};
+use lockable::{AsyncLimit, Lockable, LockableHashMap, SyncLimit};
 use tokio::sync::RwLock;
 
 use crate::types::{safely_get_lock_mut_map, Observer, Subject};
@@ -96,12 +96,28 @@ impl ShipManager {
         erg.into_iter().map(|f| (f.symbol.clone(), f)).collect()
     }
 
+    /// Get a mutable reference to a ship by its symbol. The returned value is a lockguard which will be dropped when it's out of scope, releasing the lock on the ship.
+    /// If the ship is not found, an error will be returned.
+    ///
+    /// This function is async because it might wait for other tasks that have locked the ship.
     pub async fn get_mut(
         &self,
         symbol: &str,
     ) -> <LockableHashMap<String, MyShip> as Lockable<String, MyShip>>::Guard<'_> {
         let erg = safely_get_lock_mut_map(&self.locked_ships, symbol.to_owned()).await;
         // self.locked_ships.get(symbol)
+        erg
+    }
+
+    pub async fn try_get_mut(
+        &self,
+        symbol: &str,
+    ) -> Option<<LockableHashMap<String, MyShip> as Lockable<String, MyShip>>::Guard<'_>> {
+        let erg = self
+            .locked_ships
+            .try_lock(symbol.to_owned(), SyncLimit::no_limit())
+            .unwrap();
+
         erg
     }
 }
