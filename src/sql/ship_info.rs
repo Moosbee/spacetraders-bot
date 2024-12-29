@@ -29,7 +29,6 @@ impl ShipInfo {
             r#"
         SELECT symbol, display_name, role as "role: crate::sql::sql_models::ShipInfoRole", active
         FROM ship_info WHERE role = $1
-        LIMIT 1
       "#,
             symbol as &crate::sql::sql_models::ShipInfoRole
         )

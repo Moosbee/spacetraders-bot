@@ -135,9 +135,12 @@ fn calculate_travel_time(
     result
 }
 
-pub fn generate_route_instructions(route: Vec<ConnectionDetails>) -> Vec<RouteInstruction> {
+pub fn generate_route_instructions(
+    route: Vec<ConnectionDetails>,
+    prepare: bool,
+) -> Vec<RouteInstruction> {
     let mut instructions = Vec::new();
-    let mut last_fuel_cap = 0;
+    let mut last_fuel_cap = (prepare as i32) * 100;
 
     for conn in route.iter().rev() {
         let start_is_marketplace = conn.start.is_marketplace();

@@ -1,5 +1,6 @@
 import { Table, TableProps } from "antd";
 import { Link } from "react-router-dom";
+import { MarketTransactionTypeEnum, TradeSymbol } from "../../models/api";
 import { Transaction } from "../../models/Transaction";
 import MoneyDisplay from "../MonyDisplay";
 import WaypointLink from "../WaypointLink";
@@ -41,12 +42,24 @@ function TransactionTable({
       dataIndex: "trade_symbol",
       key: "trade_symbol",
       sorter: (a, b) => a.trade_symbol.localeCompare(b.trade_symbol),
+      filters: Object.values(TradeSymbol)
+        .sort((a, b) => a.localeCompare(b))
+        .map((type) => ({
+          text: type,
+          value: type,
+        })),
+      onFilter: (value, record) => record.trade_symbol === value,
     },
     {
       title: "Transaction Type",
       dataIndex: "type",
       key: "type",
       sorter: (a, b) => a.type.localeCompare(b.type),
+      filters: Object.values(MarketTransactionTypeEnum).map((type) => ({
+        text: type,
+        value: type,
+      })),
+      onFilter: (value, record) => record.type === value,
     },
     {
       title: "Units",

@@ -82,12 +82,12 @@ impl ShipManager {
         map.get(symbol).map(|s| s.clone())
     }
 
-    pub fn get_all_clone(&self) -> HashMap<String, MyShip> {
+    pub async fn get_all_clone(&self) -> HashMap<String, MyShip> {
         let erg = {
             let map = self.copy.try_read();
             let map = if map.is_err() {
                 log::warn!("Failed to get all ships waiting");
-                self.copy.blocking_read()
+                self.copy.read().await
             } else {
                 map.unwrap()
             };

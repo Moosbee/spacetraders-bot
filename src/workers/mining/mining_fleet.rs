@@ -2,7 +2,7 @@ use std::{sync::Arc, time::Duration};
 
 use anyhow::Ok;
 use futures::FutureExt;
-use log::{error, info};
+use log::{debug, error, info};
 use tokio::time::sleep;
 use tokio_util::sync::CancellationToken;
 
@@ -205,6 +205,8 @@ impl MiningFleet {
 
                 _ => Role::Mining(MiningShipAssignment::Useless),
             };
+
+            debug!("Assigning role {:?} to ship {}", ship.role, ship.symbol);
 
             ship.notify().await;
         }

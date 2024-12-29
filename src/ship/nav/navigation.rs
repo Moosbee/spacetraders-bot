@@ -22,6 +22,28 @@ impl MyShip {
         database_pool: crate::sql::DbPool,
         reason: TransactionReason,
     ) -> Result<()> {
+        self.nav_to_prepare(
+            waypoint,
+            update_market,
+            waypoints,
+            api,
+            database_pool,
+            reason,
+            false,
+        )
+        .await
+    }
+
+    pub async fn nav_to_prepare(
+        &mut self,
+        waypoint: &str,
+        update_market: bool,
+        waypoints: &HashMap<String, models::Waypoint>,
+        api: &api::Api,
+        database_pool: crate::sql::DbPool,
+        reason: TransactionReason,
+        prepare: bool,
+    ) -> Result<()> {
         let route = self.calculate_route(waypoints, waypoint)?;
         let route_stats: (Vec<super::nav_models::ConnectionDetails>, f64, i32, f64) =
             super::stats::calc_route_stats(
@@ -33,7 +55,7 @@ impl MyShip {
                 self.conditions.reactor.condition,
             );
         let instructions: Vec<RouteInstruction> =
-            super::stats::generate_route_instructions(route_stats.0.clone());
+            super::stats::generate_route_instructions(route_stats.0.clone(), prepare);
 
         let current = Utc::now();
         let arrival = current + TimeDelta::seconds(route_stats.3.round() as i64);

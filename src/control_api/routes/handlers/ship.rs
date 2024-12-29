@@ -11,7 +11,7 @@ use crate::{
 
 pub async fn handle_get_ships(context: ConductorContext) -> Result<impl Reply> {
     debug!("Getting ships");
-    let ships = context.ship_manager.get_all_clone();
+    let ships = context.ship_manager.get_all_clone().await;
     debug!("Got {} ships", ships.len());
     Ok(warp::reply::json(&ships))
 }

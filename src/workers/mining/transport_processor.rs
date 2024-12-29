@@ -101,13 +101,14 @@ impl TransportProcessor {
                 let route = routes.last().unwrap();
                 debug!("Route: {:?}", route);
 
-                ship.nav_to(
+                ship.nav_to_prepare(
                     &route.0,
                     true,
                     &waypoints,
                     &self.context.api,
                     self.context.database_pool.clone(),
                     TransactionReason::MiningWaypoint(mining_waypoints.clone()),
+                    true,
                 )
                 .await?;
 
@@ -187,7 +188,7 @@ impl TransportProcessor {
                     continue;
                 }
 
-                let duration = 2000 + (free_space * 50);
+                let duration = 200 + (free_space * 50);
 
                 ship.sleep(
                     std::time::Duration::from_millis(duration as u64),
@@ -239,7 +240,7 @@ impl TransportProcessor {
                         let _erg = select! {
                           _ = self.cancellation_token.cancelled() => {0},
                           _ = ship.sleep(
-                              std::time::Duration::from_millis(1000 + rand::random::<u64>() % 1000),
+                              std::time::Duration::from_millis(190),
                               &self.context.api,
                           ) => {1},
                         };
@@ -287,6 +288,7 @@ impl TransportProcessor {
             .context
             .ship_manager
             .get_all_clone()
+            .await
             .iter()
             .map(|s| s.1.clone())
             .filter(|s| !s.nav.is_in_transit() && s.cargo.units > 0)
@@ -434,7 +436,7 @@ impl TransportProcessor {
     async fn calculate_waypoint_urgencys(&self) -> Vec<(String, u32)> {
         let waypoints = self.mining_places.get_all().await;
         let the_ships: std::collections::HashMap<String, ship::MyShip> =
-            self.context.ship_manager.get_all_clone();
+            self.context.ship_manager.get_all_clone().await;
 
         let mut erg = waypoints
             .iter()

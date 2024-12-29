@@ -127,7 +127,7 @@ impl ExtractionProcessor {
             };
 
             if i == 0 {
-                info!(" for {}", ship.symbol);
+                info!("Cycle cancelled for {}", ship.symbol);
                 break;
             }
 

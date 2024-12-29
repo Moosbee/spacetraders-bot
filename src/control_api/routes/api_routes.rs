@@ -81,8 +81,8 @@ pub(crate) fn build_api_routes(
         .or(ship_toggle_orbit)
         .or(ship_purchase_cargo)
         .or(trade_routes)
-        .or(contracts)
         .or(contract)
+        .or(contracts)
         .or(transactions)
         .or(waypoints)
         .or(shutdown);
