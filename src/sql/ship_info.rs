@@ -3,7 +3,7 @@ use super::{sql_models::ShipInfo, DatabaseConnector, ShipInfoRole};
 impl ShipInfo {
     pub async fn get_by_symbol(
         database_pool: &super::DbPool,
-        symbol: &String,
+        symbol: &str,
     ) -> sqlx::Result<Option<ShipInfo>> {
         let erg = sqlx::query_as!(
             ShipInfo,

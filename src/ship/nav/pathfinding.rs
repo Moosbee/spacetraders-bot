@@ -1,10 +1,10 @@
-use crate::{ship::ship_models::MyShip, types::WaypointCan};
-
 use super::{
     nav_models::{NavMode, RouteConnection},
     utils::distance_between_waypoints,
 };
-use anyhow::Error;
+use crate::error::Result;
+use crate::ship::ship_models::MyShip;
+use crate::types::WaypointCan;
 use priority_queue::PriorityQueue;
 use space_traders_client::models;
 use std::collections::HashMap;
@@ -18,7 +18,7 @@ impl MyShip {
         nav_mode: &NavMode,
         only_markets: bool,
         start_range: i32,
-    ) -> Result<Vec<RouteConnection>, Error> {
+    ) -> Result<Vec<RouteConnection>> {
         let mut cache = self.nav.cache.clone();
         let erg = self.find_route_cached(
             waypoints,
@@ -44,7 +44,7 @@ impl MyShip {
         only_markets: bool,
         start_range: i32,
         cache: &mut super::nav_models::Cache,
-    ) -> Result<Vec<RouteConnection>, Error> {
+    ) -> Result<Vec<RouteConnection>> {
         if let Some(route) = cache.get(
             start_symbol.clone(),
             end_symbol.clone(),
@@ -119,10 +119,10 @@ impl MyShip {
         &self,
         waypoints: &'a HashMap<String, models::Waypoint>,
         symbol: &str,
-    ) -> Result<&'a models::Waypoint, Error> {
-        waypoints
-            .get(symbol)
-            .ok_or_else(|| anyhow::anyhow!("Could not find waypoint: {}", symbol))
+    ) -> Result<&'a models::Waypoint> {
+        waypoints.get(symbol).ok_or_else(|| {
+            crate::error::Error::General(format!("Could not find waypoint: {}", symbol))
+        })
     }
 
     fn process_current_node(
@@ -137,7 +137,7 @@ impl MyShip {
         nav_modes: &Vec<super::nav_models::Mode>,
         first: bool,
         start_range: &Vec<super::nav_models::Mode>,
-    ) -> Result<bool, Error> {
+    ) -> Result<bool> {
         *to_visit = to_visit
             .clone()
             .into_iter()
@@ -148,7 +148,7 @@ impl MyShip {
 
         let current = unvisited
             .remove(&current_route.end_symbol)
-            .ok_or_else(|| anyhow::anyhow!("Could not remove from queue"))?;
+            .ok_or_else(|| crate::error::Error::General("Could not remove from queue".into()))?;
 
         if current.symbol == end_symbol {
             return Ok(true);

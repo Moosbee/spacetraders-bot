@@ -20,7 +20,7 @@ impl MyShip {
         }
     }
 
-    pub async fn wait_for_cooldown(&mut self, api: &api::Api) -> anyhow::Result<()> {
+    pub async fn wait_for_cooldown(&mut self, api: &api::Api) -> crate::error::Result<()> {
         if self.cooldown_expiration.is_none() {
             return Ok(());
         }

@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use anyhow::Error;
+use crate::error::Result;
 use space_traders_client::models;
 
 use super::nav_models::RouteConnection;
@@ -26,16 +26,15 @@ pub fn get_route(
     visited: HashMap<String, RouteConnection>,
     start_symbol: String,
     end_symbol: String,
-) -> Result<Vec<RouteConnection>, Error> {
+) -> Result<Vec<RouteConnection>> {
     let mut route = Vec::new();
     let mut current = end_symbol.clone();
     while current != start_symbol {
         let connection = visited.get(&current).ok_or_else(|| {
-            anyhow::anyhow!(
+            crate::error::Error::General(format!(
                 "Could not find connection between waypoints {} {}",
-                start_symbol,
-                end_symbol
-            )
+                start_symbol, end_symbol
+            ))
         })?;
         route.push(connection.clone());
         current = connection.start_symbol.clone();

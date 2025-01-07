@@ -3,7 +3,15 @@ use std::{collections::HashMap, fmt::Debug, sync::Arc};
 use dashmap::DashMap;
 use tokio_util::sync::CancellationToken;
 
-use crate::{ship::ShipManager, sql::DbPool};
+use crate::{
+    manager::{
+        construction_manager::ConstructionManagerMessanger,
+        contract_manager::ContractManagerMessanger, mining_manager::MiningManagerMessanger,
+        scrapping_manager::ScrappingManagerMessanger, trade_manager::TradeManagerMessanger,
+    },
+    ship::ShipManager,
+    sql::DbPool,
+};
 
 #[derive(Debug, Clone)]
 pub struct ConductorContext {
@@ -12,6 +20,11 @@ pub struct ConductorContext {
     pub ship_manager: Arc<ShipManager>,
     pub all_waypoints:
         Arc<DashMap<String, HashMap<String, space_traders_client::models::Waypoint>>>,
+    pub construction_manager: ConstructionManagerMessanger,
+    pub contract_manager: ContractManagerMessanger,
+    pub mining_manager: MiningManagerMessanger,
+    pub scrapping_manager: ScrappingManagerMessanger,
+    pub trade_manager: TradeManagerMessanger,
 }
 
 pub trait Conductor: Send + Sync {

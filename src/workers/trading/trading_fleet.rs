@@ -138,7 +138,7 @@ impl TradingFleet {
                 info!("Trade cycle cancelled for {} ", ship_symbol);
                 break;
             }
-            let route = self
+            let route: sql::TradeRoute = self
                 .route_calculator
                 .get_best_route(&ship, &self.running_routes)
                 .await?;

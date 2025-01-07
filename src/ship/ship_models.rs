@@ -14,6 +14,8 @@ use crate::{
     workers::mining::m_types::MiningShipAssignment,
 };
 
+use crate::error::Result;
+
 use super::ShipManager;
 
 impl Default for MyShip {
@@ -287,7 +289,7 @@ impl MyShip {
             .await;
     }
 
-    pub async fn apply_from_db(&mut self, database_pool: crate::sql::DbPool) -> anyhow::Result<()> {
+    pub async fn apply_from_db(&mut self, database_pool: crate::sql::DbPool) -> Result<()> {
         let db_ship = crate::sql::ShipInfo::get_by_symbol(&database_pool, &self.symbol).await?;
         let ship_info = match db_ship {
             Some(db_ship) => db_ship,

@@ -393,7 +393,8 @@ mod path_finding_tests {
             }
         }
 
-        get_route(visited, start_symbol, end_symbol)
+        let erg = get_route(visited, start_symbol, end_symbol)?;
+        Ok(erg)
     }
 
     #[cfg(test)]
