@@ -1,7 +1,7 @@
 use log::debug;
 
 use crate::{
-    api,
+    api, error,
     sql::{self, DatabaseConnector},
 };
 
@@ -34,7 +34,8 @@ impl MyShip {
         database_pool: &sql::DbPool,
         update_market: bool,
         reason: sql::TransactionReason,
-    ) -> anyhow::Result<()> {
+    ) -> error::Result<()> {
+        self.mutate();
         let requirements = self.calculate_refuel_requirements(instruction);
 
         if !requirements.needs_refuel() {
@@ -75,7 +76,8 @@ impl MyShip {
         database_pool: &sql::DbPool,
         requirements: RefuelRequirements,
         reason: sql::TransactionReason,
-    ) -> anyhow::Result<()> {
+    ) -> error::Result<()> {
+        self.mutate();
         if requirements.refuel_amount > 0 {
             debug!("Space refueling");
             let refuel_data = api
@@ -114,7 +116,9 @@ impl MyShip {
         requirements: RefuelRequirements,
         update_market: bool,
         reason: sql::TransactionReason,
-    ) -> anyhow::Result<()> {
+    ) -> error::Result<()> {
+        self.mutate();
+        self.mutate();
         if !requirements.needs_marketplace_action() {
             return Ok(());
         }

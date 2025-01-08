@@ -16,6 +16,8 @@ pub struct ShipManager {
     id: u32,
 }
 
+pub type ShipGuard<'a> = <LockableHashMap<String, MyShip> as Lockable<String, MyShip>>::Guard<'a>;
+
 impl PartialEq for ShipManager {
     fn eq(&self, other: &Self) -> bool {
         self.id == other.id
@@ -100,19 +102,13 @@ impl ShipManager {
     /// If the ship is not found, an error will be returned.
     ///
     /// This function is async because it might wait for other tasks that have locked the ship.
-    pub async fn get_mut(
-        &self,
-        symbol: &str,
-    ) -> <LockableHashMap<String, MyShip> as Lockable<String, MyShip>>::Guard<'_> {
+    pub async fn get_mut(&self, symbol: &str) -> ShipGuard<'_> {
         let erg = safely_get_lock_mut_map(&self.locked_ships, symbol.to_owned()).await;
         // self.locked_ships.get(symbol)
         erg
     }
 
-    pub async fn try_get_mut(
-        &self,
-        symbol: &str,
-    ) -> Option<<LockableHashMap<String, MyShip> as Lockable<String, MyShip>>::Guard<'_>> {
+    pub async fn try_get_mut(&self, symbol: &str) -> Option<ShipGuard<'_>> {
         let erg = self
             .locked_ships
             .try_lock(symbol.to_owned(), SyncLimit::no_limit())

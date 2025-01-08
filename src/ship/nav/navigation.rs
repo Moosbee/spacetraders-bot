@@ -1,4 +1,4 @@
-use anyhow::Result;
+use crate::error::{self, Result};
 use chrono::{DateTime, TimeDelta, Utc};
 use log::debug;
 use space_traders_client::{apis, models};
@@ -22,6 +22,7 @@ impl MyShip {
         database_pool: crate::sql::DbPool,
         reason: TransactionReason,
     ) -> Result<()> {
+        self.mutate();
         self.nav_to_prepare(
             waypoint,
             update_market,
@@ -44,7 +45,9 @@ impl MyShip {
         reason: TransactionReason,
         prepare: bool,
     ) -> Result<()> {
-        let route = self.calculate_route(waypoints, waypoint)?;
+        self.mutate();
+        let route: Vec<super::nav_models::RouteConnection> =
+            self.calculate_route(waypoints, waypoint)?;
         let route_stats: (Vec<super::nav_models::ConnectionDetails>, f64, i32, f64) =
             super::stats::calc_route_stats(
                 waypoints,
@@ -144,6 +147,7 @@ impl MyShip {
         update_market: bool,
         reason: TransactionReason,
     ) -> Result<()> {
+        self.mutate();
         self.validate_current_waypoint(&instruction)?;
         let _ = self.wait_for_arrival(api).await;
 
@@ -191,11 +195,10 @@ impl MyShip {
 
     fn validate_current_waypoint(&self, instruction: &RouteInstruction) -> Result<()> {
         if instruction.start_symbol != self.nav.waypoint_symbol {
-            return Err(anyhow::anyhow!(
+            return Err(error::Error::General(format!(
                 "Not on waypoint {} {}",
-                self.nav.waypoint_symbol,
-                instruction.start_symbol
-            ));
+                self.nav.waypoint_symbol, instruction.start_symbol
+            )));
         }
         Ok(())
     }
@@ -206,7 +209,8 @@ impl MyShip {
         &mut self,
         api: &api::Api,
         waypoint_symbol: &str,
-    ) -> anyhow::Result<models::NavigateShip200Response> {
+    ) -> error::Result<models::NavigateShip200Response> {
+        self.mutate();
         let nav_data = api
             .navigate_ship(
                 &self.symbol,
@@ -228,7 +232,11 @@ impl MyShip {
     async fn dock(
         &mut self,
         api: &api::Api,
-    ) -> Result<models::DockShip200Response, apis::Error<apis::fleet_api::DockShipError>> {
+    ) -> core::result::Result<
+        models::DockShip200Response,
+        apis::Error<apis::fleet_api::DockShipError>,
+    > {
+        self.mutate();
         let dock_data = api.dock_ship(&self.symbol).await?;
         self.nav.update(&dock_data.data.nav);
         self.notify().await;
@@ -239,8 +247,11 @@ impl MyShip {
     async fn undock(
         &mut self,
         api: &api::Api,
-    ) -> anyhow::Result<models::OrbitShip200Response, apis::Error<apis::fleet_api::OrbitShipError>>
-    {
+    ) -> core::result::Result<
+        models::OrbitShip200Response,
+        apis::Error<apis::fleet_api::OrbitShipError>,
+    > {
+        self.mutate();
         let undock_data: models::OrbitShip200Response = api.orbit_ship(&self.symbol).await?;
         self.nav.update(&undock_data.data.nav);
         self.notify().await;
@@ -251,7 +262,8 @@ impl MyShip {
     pub async fn ensure_docked(
         &mut self,
         api: &api::Api,
-    ) -> Result<(), apis::Error<apis::fleet_api::DockShipError>> {
+    ) -> core::result::Result<(), apis::Error<apis::fleet_api::DockShipError>> {
+        self.mutate();
         if self.nav.get_status() != models::ShipNavStatus::Docked {
             self.dock(api).await?;
         }
@@ -261,7 +273,8 @@ impl MyShip {
     pub async fn ensure_undocked(
         &mut self,
         api: &api::Api,
-    ) -> anyhow::Result<(), apis::Error<apis::fleet_api::OrbitShipError>> {
+    ) -> core::result::Result<(), apis::Error<apis::fleet_api::OrbitShipError>> {
+        self.mutate();
         if self.nav.get_status() == models::ShipNavStatus::Docked {
             self.undock(api).await?;
         }
@@ -272,8 +285,11 @@ impl MyShip {
         &mut self,
         api: &api::Api,
         flight_mode: models::ShipNavFlightMode,
-    ) -> Result<models::GetShipNav200Response, apis::Error<apis::fleet_api::PatchShipNavError>>
-    {
+    ) -> core::result::Result<
+        models::GetShipNav200Response,
+        apis::Error<apis::fleet_api::PatchShipNavError>,
+    > {
+        self.mutate();
         let ship_patch_data: models::GetShipNav200Response = api
             .patch_ship_nav(
                 &self.symbol,
@@ -291,7 +307,8 @@ impl MyShip {
         &mut self,
         api: &api::Api,
         flight_mode: models::ShipNavFlightMode,
-    ) -> Result<(), apis::Error<apis::fleet_api::PatchShipNavError>> {
+    ) -> core::result::Result<(), apis::Error<apis::fleet_api::PatchShipNavError>> {
+        self.mutate();
         if flight_mode != self.nav.flight_mode {
             debug!("Changing flight mode to {:?}", flight_mode);
 
@@ -301,6 +318,7 @@ impl MyShip {
     }
 
     pub async fn wait_for_arrival(&mut self, api: &api::Api) -> anyhow::Result<()> {
+        self.mutate();
         let t = self.nav.route.arrival - Utc::now();
         let t = t.num_seconds().try_into()?;
         self.sleep(std::time::Duration::from_secs(t), api).await;

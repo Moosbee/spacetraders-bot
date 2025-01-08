@@ -147,9 +147,10 @@ impl From<MarketTransaction> for models::MarketTransaction {
 }
 
 impl TryFrom<models::MarketTransaction> for MarketTransaction {
-    type Error = anyhow::Error;
+    type Error = crate::error::Error;
     fn try_from(value: models::MarketTransaction) -> Result<Self, Self::Error> {
-        let tr_symbol = models::TradeSymbol::from_str(&value.trade_symbol)?;
+        let tr_symbol = models::TradeSymbol::from_str(&value.trade_symbol)
+            .map_err(|err| crate::error::Error::General(err.to_string()))?;
 
         Ok(MarketTransaction {
             ship_symbol: value.ship_symbol,

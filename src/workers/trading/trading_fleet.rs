@@ -143,7 +143,7 @@ impl TradingFleet {
                 .get_best_route(&ship, &self.running_routes)
                 .await?;
             self.trade_executor
-                .process_trade_route(ship, route.into(), i)
+                .process_trade_route(ship, route.into(), i as i32)
                 .await?;
         }
 

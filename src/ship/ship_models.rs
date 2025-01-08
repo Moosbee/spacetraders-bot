@@ -28,6 +28,7 @@ impl Default for MyShip {
             engine_speed: Default::default(),
             cooldown_expiration: Default::default(),
             active: false,
+            is_clone: false,
             nav: Default::default(),
             cargo: Default::default(),
             fuel: Default::default(),
@@ -48,6 +49,7 @@ impl Clone for MyShip {
             display_name: self.display_name.clone(),
             symbol: self.symbol.clone(),
             active: self.active,
+            is_clone: true,
             engine_speed: self.engine_speed.clone(),
             cooldown_expiration: self.cooldown_expiration.clone(),
             nav: self.nav.clone(),
@@ -66,7 +68,7 @@ impl Clone for MyShip {
 #[serde(tag = "type", content = "data")]
 pub enum Role {
     Construction,
-    Trader(Option<(i32, u32)>),
+    Trader(Option<(i32, i32)>),
     Contract(Option<(String, i32)>),
     Scraper,
     Mining(MiningShipAssignment),
@@ -93,6 +95,8 @@ pub struct MyShip {
     pub mounts: MountState,
     // Conditions
     pub conditions: ConditionState,
+    #[serde(skip)]
+    pub is_clone: bool,
     #[serde(skip)]
     pub broadcaster: InterShipBroadcaster,
     #[serde(skip)]
@@ -192,6 +196,7 @@ impl MyShip {
     }
 
     pub fn update(&mut self, ship: models::Ship) {
+        self.mutate();
         self.symbol = ship.symbol;
         self.engine_speed = ship.engine.speed;
         self.registration_role = ship.registration.role;
@@ -209,10 +214,20 @@ impl MyShip {
         self.conditions.reactor.integrity = ship.reactor.integrity;
     }
 
+    // pub fn can_mutate(&self) -> bool {
+    //     self.is_clone
+    // }
+    pub fn mutate(&self) {
+        if self.is_clone {
+            panic!("Cannot mutate a cloned ship");
+        }
+    }
+
     pub async fn notify(&self) {
         self.pubsub.notify_observers(self.clone()).await;
     }
     pub async fn try_recive_update(&mut self, api: &api::Api) {
+        self.mutate();
         while let Ok(data) = self.broadcaster.receiver.try_recv() {
             self.handle_update(data, api).await;
         }
@@ -276,6 +291,7 @@ impl MyShip {
     }
 
     pub async fn sleep(&mut self, duration: std::time::Duration, api: &api::Api) {
+        self.mutate();
         let cancel = tokio_util::sync::CancellationToken::new();
 
         let update_future = self.receive_update_loop(&cancel, api);
@@ -290,6 +306,7 @@ impl MyShip {
     }
 
     pub async fn apply_from_db(&mut self, database_pool: crate::sql::DbPool) -> Result<()> {
+        self.mutate();
         let db_ship = crate::sql::ShipInfo::get_by_symbol(&database_pool, &self.symbol).await?;
         let ship_info = match db_ship {
             Some(db_ship) => db_ship,
@@ -316,6 +333,7 @@ impl MyShip {
     }
 
     fn update_ship_info(&mut self, ship_info: crate::sql::ShipInfo) {
+        self.mutate();
         self.active = ship_info.active;
         self.display_name = ship_info.display_name;
         self.symbol = ship_info.symbol;

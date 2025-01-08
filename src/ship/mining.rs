@@ -21,6 +21,7 @@ impl MyShip {
     }
 
     pub async fn wait_for_cooldown(&mut self, api: &api::Api) -> crate::error::Result<()> {
+        self.mutate();
         if self.cooldown_expiration.is_none() {
             return Ok(());
         }
@@ -42,6 +43,7 @@ impl MyShip {
         models::ExtractResources201Response,
         space_traders_client::apis::Error<ExtractResourcesError>,
     > {
+        self.mutate();
         let extraction = api
             .extract_resources(&self.symbol, Some(Default::default()))
             .await?;
@@ -63,6 +65,7 @@ impl MyShip {
             space_traders_client::apis::fleet_api::ExtractResourcesWithSurveyError,
         >,
     > {
+        self.mutate();
         let extraction = api
             .extract_resources_with_survey(&self.symbol, Some(survey.clone()))
             .await?;
@@ -81,6 +84,7 @@ impl MyShip {
         models::SiphonResources201Response,
         space_traders_client::apis::Error<SiphonResourcesError>,
     > {
+        self.mutate();
         let extraction = api.siphon_resources(&self.symbol).await?;
 
         self.update_cooldown(&extraction.data.cooldown);
@@ -95,6 +99,7 @@ impl MyShip {
         api: &api::Api,
     ) -> Result<models::CreateSurvey201Response, space_traders_client::apis::Error<CreateSurveyError>>
     {
+        self.mutate();
         let survey = api.create_survey(&self.symbol).await?;
 
         self.update_cooldown(&survey.data.cooldown);
@@ -104,6 +109,7 @@ impl MyShip {
     }
 
     pub fn update_cooldown(&mut self, cooldown: &models::Cooldown) {
+        self.mutate();
         let cool_text = cooldown.expiration.as_ref().map_or("", |v| v);
         self.cooldown_expiration = DateTime::parse_from_rfc3339(&cool_text)
             .map(|op| op.to_utc())

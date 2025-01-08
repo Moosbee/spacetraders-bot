@@ -5,7 +5,7 @@ use warp::reply::Reply;
 
 use crate::{
     control_api::types::{Result, ServerError},
-    ship, sql,
+    error, ship, sql,
     workers::types::ConductorContext,
 };
 
@@ -158,16 +158,16 @@ async fn navigate_ship(
     context: &ConductorContext,
     symbol: &str,
     waypoint_id: &str,
-) -> anyhow::Result<()> {
+) -> error::Result<()> {
     let mut ship_guard = context.ship_manager.get_mut(symbol).await;
     let ship = ship_guard
         .value_mut()
-        .ok_or_else(|| anyhow::anyhow!("Ship not found"))?;
+        .ok_or_else(|| error::Error::General(format!("Ship not found")))?;
 
     let waypoints = context
         .all_waypoints
         .get(&ship.nav.system_symbol)
-        .ok_or_else(|| anyhow::anyhow!("Waypoints not found"))?
+        .ok_or_else(|| error::Error::General(format!("Waypoints not found")))?
         .clone();
 
     ship.nav_to(

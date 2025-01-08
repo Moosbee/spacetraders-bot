@@ -11,6 +11,7 @@ use scraper::ScraperPilot;
 use tokio_util::sync::CancellationToken;
 use trading::TradingPilot;
 
+use crate::config::CONFIG;
 use crate::{ship, sql, workers::types::ConductorContext};
 
 use crate::error::{Error, Result};
@@ -28,18 +29,18 @@ pub struct Pilot {
 
 impl Pilot {
     pub fn new(context: ConductorContext, ship_symbol: String) -> Self {
-        let context = Self {
-            context,
-            ship_symbol,
+        let pilot = Self {
+            context: context.clone(),
+            ship_symbol: ship_symbol.clone(),
             cancellation_token: CancellationToken::new(),
             construction_pilot: ConstructionPilot::new(),
-            trading_pilot: TradingPilot::new(),
+            trading_pilot: TradingPilot::new(context.clone(), ship_symbol.clone()),
             scraper_pilot: ScraperPilot::new(),
             contract_pilot: ContractPilot::new(),
             mining_pilot: MiningPilot::new(),
         };
 
-        context
+        pilot
     }
 
     pub fn get_cancel_token(&self) -> CancellationToken {
@@ -103,20 +104,23 @@ impl Pilot {
     }
 
     async fn pilot_circle(&self) -> Result<()> {
-        let mut ship_guard = self.context.ship_manager.get_mut(&self.ship_symbol).await;
-        // .ok_or(Error::General("Ship was locked".to_string()))?;
-        let ship = ship_guard
-            .value_mut()
-            .ok_or(Error::General("Ship not found".to_string()))?;
+        let role = {
+            let mut ship_guard = self.context.ship_manager.get_mut(&self.ship_symbol).await;
+            // .ok_or(Error::General("Ship was locked".to_string()))?;
+            let ship = ship_guard
+                .value_mut()
+                .ok_or(Error::General("Ship not found".to_string()))?;
 
-        ship.apply_from_db(self.context.database_pool.clone())
-            .await?;
+            ship.apply_from_db(self.context.database_pool.clone())
+                .await?;
 
-        if !ship.active {
-            return Ok(());
-        }
+            if !ship.active {
+                return Ok(());
+            }
+            ship.role.clone()
+        };
 
-        let _erg = match ship.role {
+        let _erg = match role {
             ship::Role::Construction => self.construction_pilot.execute_pilot_circle(&self).await,
             ship::Role::Trader(_) => self.trading_pilot.execute_pilot_circle(&self).await,
             ship::Role::Contract(_) => self.contract_pilot.execute_pilot_circle(&self).await,
@@ -126,5 +130,11 @@ impl Pilot {
         }?;
 
         Ok(())
+    }
+
+    async fn get_budget(&self) -> Result<i64> {
+        let agent =
+            sql::Agent::get_last_by_symbol(&self.context.database_pool, &CONFIG.symbol).await?;
+        Ok(agent.credits - 30_000)
     }
 }

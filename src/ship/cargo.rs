@@ -7,7 +7,7 @@ use log::debug;
 use space_traders_client::models::JettisonRequest;
 
 use crate::{
-    api,
+    api, error,
     sql::{self, DatabaseConnector},
 };
 
@@ -26,7 +26,8 @@ impl MyShip {
         units: i32,
         database_pool: &sql::DbPool,
         reason: sql::TransactionReason,
-    ) -> anyhow::Result<()> {
+    ) -> error::Result<()> {
+        self.mutate();
         let market_info = self.get_market_info(api, database_pool).await?;
         let purchase_volumes = self.calculate_volumes(units, &market_info, symbol)?;
 
@@ -52,7 +53,8 @@ impl MyShip {
         units: i32,
         database_pool: &sql::DbPool,
         reason: sql::TransactionReason,
-    ) -> anyhow::Result<()> {
+    ) -> error::Result<()> {
+        self.mutate();
         let market_info = self.get_market_info(api, database_pool).await?;
         let sell_volumes = self.calculate_volumes(units, &market_info, symbol)?;
 
@@ -75,7 +77,7 @@ impl MyShip {
         &self,
         api: &api::Api,
         database_pool: &sql::DbPool,
-    ) -> anyhow::Result<Vec<sql::MarketTradeGood>> {
+    ) -> error::Result<Vec<sql::MarketTradeGood>> {
         let market_info =
             sql::MarketTradeGood::get_last_by_waypoint(database_pool, &self.nav.waypoint_symbol)
                 .await?;
@@ -97,12 +99,12 @@ impl MyShip {
         quantity: i32,
         market_info: &[sql::MarketTradeGood],
         good: space_traders_client::models::TradeSymbol,
-    ) -> anyhow::Result<Vec<i32>> {
+    ) -> error::Result<Vec<i32>> {
         let max_purchase_volume = market_info
             .iter()
             .find(|m| m.symbol == good)
             .map(|m| m.trade_volume)
-            .ok_or_else(|| anyhow::anyhow!("Could not find good in market info"))?;
+            .ok_or_else(|| error::Error::General(format!("Could not find good in market info")))?;
 
         let mut volumes = Vec::new();
         let mut remaining = quantity;
@@ -124,7 +126,8 @@ impl MyShip {
         r_type: Mode,
         database_pool: &sql::DbPool,
         reason: sql::TransactionReason,
-    ) -> anyhow::Result<()> {
+    ) -> error::Result<()> {
+        self.mutate();
         let trade_data = match r_type {
             Mode::Sell => {
                 let sell_data: space_traders_client::models::SellCargo201Response = api
@@ -175,6 +178,7 @@ impl MyShip {
         units: i32,
         api: &api::Api,
     ) -> anyhow::Result<space_traders_client::models::DeliverContract200Response> {
+        self.mutate();
         let delivery_result: space_traders_client::models::DeliverContract200Response = api
             .deliver_contract(
                 contract_id,
@@ -198,6 +202,7 @@ impl MyShip {
         api: &api::Api,
         target_ship: &str,
     ) -> anyhow::Result<space_traders_client::models::TransferCargo200Response> {
+        self.mutate();
         let old_units = self.cargo.get_amount(&trade_symbol);
         if old_units < units {
             return Err(anyhow::anyhow!("Not enough cargo"));
@@ -236,6 +241,7 @@ impl MyShip {
         trade_symbol: space_traders_client::models::TradeSymbol,
         units: i32,
     ) -> anyhow::Result<()> {
+        self.mutate();
         let jettison_data: space_traders_client::models::Jettison200Response = api
             .jettison(
                 &self.symbol,
@@ -255,7 +261,7 @@ impl MyShip {
         &self,
         api: &api::Api,
         database_pool: &sql::DbPool,
-    ) -> anyhow::Result<()> {
+    ) -> error::Result<()> {
         let market_data = api
             .get_market(&self.nav.system_symbol, &self.nav.waypoint_symbol)
             .await?;

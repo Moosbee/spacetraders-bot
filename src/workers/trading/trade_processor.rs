@@ -28,7 +28,7 @@ impl TradeProcessor {
         &self,
         ship: &mut ship::MyShip,
         route: sql::TradeRoute,
-        num: u32,
+        num: i32,
     ) -> anyhow::Result<()> {
         let locked = self.running_routes.lock(&route.clone().into());
 
