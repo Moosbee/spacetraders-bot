@@ -1,0 +1,21 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            insert into route (\n              id,\n              \"from\",\n              \"to\",\n              nav_mode,\n              speed,\n              fuel_cost,\n              travel_time,\n              engine_condition\n            )\n            SELECT * FROM UNNEST(\n              $1::integer[],\n              $2::character varying[],\n              $3::character varying[],\n              $4::character varying[],\n              $5::integer[],\n              $6::integer[],\n              $7::double precision[],\n              $8::double precision[]\n            )\n            on conflict (id) do nothing\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4Array",
+        "VarcharArray",
+        "VarcharArray",
+        "VarcharArray",
+        "Int4Array",
+        "Int4Array",
+        "Float8Array",
+        "Float8Array"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "eb2f15b6b53461969ac4cc0a953126aa6ebcbd3501f6b7ec12ef7370534a4af9"
+}

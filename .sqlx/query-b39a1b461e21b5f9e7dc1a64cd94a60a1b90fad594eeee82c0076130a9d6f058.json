@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            INSERT INTO market_transaction (waypoint_symbol, ship_symbol,trade_symbol, \"type\", units, price_per_unit, total_price, \"timestamp\", contract, trade_route)\n              SELECT * FROM UNNEST(\n                $1::character varying[],\n                $2::character varying[],\n                $3::trade_symbol[],\n                $4::market_transaction_type[],\n                $5::integer[],\n                $6::integer[],\n                $7::integer[],\n                $8::character varying[],\n                $9::character varying[],\n                $10::integer[]\n            )\n            ON CONFLICT (waypoint_symbol, ship_symbol, trade_symbol, \"timestamp\") DO UPDATE\n            SET units = EXCLUDED.units,\n            price_per_unit = EXCLUDED.price_per_unit,\n            total_price = EXCLUDED.total_price\n        ",
+  "query": "\n            INSERT INTO market_transaction (waypoint_symbol, ship_symbol,trade_symbol, \"type\", units, price_per_unit, total_price, \"timestamp\", contract, trade_route, mining)\n              SELECT * FROM UNNEST(\n                $1::character varying[],\n                $2::character varying[],\n                $3::trade_symbol[],\n                $4::market_transaction_type[],\n                $5::integer[],\n                $6::integer[],\n                $7::integer[],\n                $8::character varying[],\n                $9::character varying[],\n                $10::integer[],\n                $11::character varying[]\n            )\n            ON CONFLICT (waypoint_symbol, ship_symbol, trade_symbol, \"timestamp\") DO UPDATE\n            SET units = EXCLUDED.units,\n            price_per_unit = EXCLUDED.price_per_unit,\n            total_price = EXCLUDED.total_price\n        ",
   "describe": {
     "columns": [],
     "parameters": {
@@ -189,10 +189,11 @@
         "Int4Array",
         "VarcharArray",
         "VarcharArray",
-        "Int4Array"
+        "Int4Array",
+        "VarcharArray"
       ]
     },
     "nullable": []
   },
-  "hash": "d540a6d66c8801bf8bbf9fa7892aaa30dac3aad0dbc7bc5d479833c7596dbdee"
+  "hash": "b39a1b461e21b5f9e7dc1a64cd94a60a1b90fad594eeee82c0076130a9d6f058"
 }

@@ -1,0 +1,92 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                SELECT \n                  id,\n                  \"from\",\n                  \"to\",\n                  nav_mode,\n                  distance,\n                  speed,\n                  fuel_cost,\n                  travel_time,\n                  engine_condition,\n                  frame_condition,\n                  reactor_condition,\n                  current_cargo,\n                  total_cargohold\n                FROM route\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "from",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "to",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "nav_mode",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "distance",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 5,
+        "name": "speed",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 6,
+        "name": "fuel_cost",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 7,
+        "name": "travel_time",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 8,
+        "name": "engine_condition",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 9,
+        "name": "frame_condition",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 10,
+        "name": "reactor_condition",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 11,
+        "name": "current_cargo",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 12,
+        "name": "total_cargohold",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "d8eeeec542277018d642b015d33f1062bfae818ed98fdfca0e288c429801419a"
+}

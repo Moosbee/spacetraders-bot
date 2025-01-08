@@ -1,0 +1,97 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\nSELECT\n  contract.id,\n  contract.faction_symbol,\n  contract.contract_type as \"contract_type: models::contract::Type\",\n  contract.accepted,\n  contract.fulfilled,\n  contract.deadline_to_accept,\n  contract.on_accepted,\n  contract.on_fulfilled,\n  contract.deadline,\n  contract.on_accepted + contract.on_fulfilled as \"totalprofit: i32\",\n  COALESCE(sum(market_transaction.total_price), 0) as \"total_expenses: i32\",\n  contract.on_accepted + contract.on_fulfilled - COALESCE(sum(market_transaction.total_price), 0) as \"net_profit: i32\"\nFROM\n  public.contract\n  join public.market_transaction ON market_transaction.contract = contract.id\ngroup by\n  contract.id\norder by\n  contract.deadline_to_accept ASC;\n    ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "faction_symbol",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "contract_type: models::contract::Type",
+        "type_info": {
+          "Custom": {
+            "name": "contract_type",
+            "kind": {
+              "Enum": [
+                "PROCUREMENT",
+                "TRANSPORT",
+                "SHUTTLE"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "accepted",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 4,
+        "name": "fulfilled",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 5,
+        "name": "deadline_to_accept",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 6,
+        "name": "on_accepted",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 7,
+        "name": "on_fulfilled",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 8,
+        "name": "deadline",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 9,
+        "name": "totalprofit: i32",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 10,
+        "name": "total_expenses: i32",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 11,
+        "name": "net_profit: i32",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "792cd2c59ac6d3f50dc8d51800cb028d588dafdc367a87acf0baac6b38cd1335"
+}

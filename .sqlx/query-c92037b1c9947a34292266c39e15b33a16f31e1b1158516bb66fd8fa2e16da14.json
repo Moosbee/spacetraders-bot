@@ -1,0 +1,81 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n          id,\n          faction_symbol,\n          contract_type as \"contract_type: models::contract::Type\",\n          accepted,\n          fulfilled,\n          deadline_to_accept,\n          on_accepted,\n          on_fulfilled,\n          deadline\n        FROM public.contract WHERE id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "faction_symbol",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "contract_type: models::contract::Type",
+        "type_info": {
+          "Custom": {
+            "name": "contract_type",
+            "kind": {
+              "Enum": [
+                "PROCUREMENT",
+                "TRANSPORT",
+                "SHUTTLE"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "accepted",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 4,
+        "name": "fulfilled",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 5,
+        "name": "deadline_to_accept",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 6,
+        "name": "on_accepted",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 7,
+        "name": "on_fulfilled",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 8,
+        "name": "deadline",
+        "type_info": "Varchar"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "c92037b1c9947a34292266c39e15b33a16f31e1b1158516bb66fd8fa2e16da14"
+}

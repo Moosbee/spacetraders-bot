@@ -1,0 +1,68 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT symbol, display_name, role as \"role: crate::sql::sql_models::ShipInfoRole\", active\n        FROM ship_info WHERE role = $1\n      ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "symbol",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "display_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "role: crate::sql::sql_models::ShipInfoRole",
+        "type_info": {
+          "Custom": {
+            "name": "ship_info_role",
+            "kind": {
+              "Enum": [
+                "Construction",
+                "Trader",
+                "Contract",
+                "Scraper",
+                "Mining",
+                "Manuel"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "active",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        {
+          "Custom": {
+            "name": "ship_info_role",
+            "kind": {
+              "Enum": [
+                "Construction",
+                "Trader",
+                "Contract",
+                "Scraper",
+                "Mining",
+                "Manuel"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "c1f6f90f856b3bf30109f30a90a8c6e9ca7038004b9ec36a4ef3623862301400"
+}
