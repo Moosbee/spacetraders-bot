@@ -45,7 +45,7 @@ impl RouteCalculator {
         if self.should_use_simple_routes(&trade_goods, &market_trade) {
             return self
                 .simple
-                .get_routes_simple(&market_trade, &trade_goods, ship)
+                .get_routes_simple(&market_trade, &trade_goods, &ship.symbol)
                 .first()
                 .cloned()
                 .ok_or_else(|| Error::General(format!("No routes simple found")));

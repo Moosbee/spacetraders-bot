@@ -113,7 +113,11 @@ impl TradeManager {
 
         let next_route = self.record_trade_start(&next_route).await?;
 
-        self.routes_tracker.lock(&next_route.clone().into());
+        let done = self.routes_tracker.lock(&next_route.clone().into());
+
+        if !done {
+            return Err("Failed to lock route".into());
+        }
         return Ok(next_route);
     }
 

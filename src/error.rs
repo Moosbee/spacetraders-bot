@@ -21,6 +21,12 @@ pub enum Error {
     General(String),
 }
 
+impl From<&str> for Error {
+    fn from(value: &str) -> Self {
+        Error::General(value.to_string())
+    }
+}
+
 impl<T: Clone> From<space_traders_client::apis::Error<T>> for Error {
     fn from(value: space_traders_client::apis::Error<T>) -> Self {
         match value {
