@@ -22,7 +22,7 @@ impl MyShip {
     pub async fn purchase_cargo(
         &mut self,
         api: &api::Api,
-        symbol: space_traders_client::models::TradeSymbol,
+        symbol: &space_traders_client::models::TradeSymbol,
         units: i32,
         database_pool: &sql::DbPool,
         reason: sql::TransactionReason,
@@ -49,7 +49,7 @@ impl MyShip {
     pub async fn sell_cargo(
         &mut self,
         api: &api::Api,
-        symbol: space_traders_client::models::TradeSymbol,
+        symbol: &space_traders_client::models::TradeSymbol,
         units: i32,
         database_pool: &sql::DbPool,
         reason: sql::TransactionReason,
@@ -98,11 +98,11 @@ impl MyShip {
         &self,
         quantity: i32,
         market_info: &[sql::MarketTradeGood],
-        good: space_traders_client::models::TradeSymbol,
+        good: &space_traders_client::models::TradeSymbol,
     ) -> error::Result<Vec<i32>> {
         let max_purchase_volume = market_info
             .iter()
-            .find(|m| m.symbol == good)
+            .find(|m| m.symbol == *good)
             .map(|m| m.trade_volume)
             .ok_or_else(|| error::Error::General(format!("Could not find good in market info")))?;
 
@@ -121,7 +121,7 @@ impl MyShip {
     async fn execute_trade(
         &mut self,
         api: &api::Api,
-        good: space_traders_client::models::TradeSymbol,
+        good: &space_traders_client::models::TradeSymbol,
         volume: i32,
         r_type: Mode,
         database_pool: &sql::DbPool,
@@ -134,7 +134,7 @@ impl MyShip {
                     .sell_cargo(
                         &self.symbol,
                         Some(space_traders_client::models::SellCargoRequest {
-                            symbol: good,
+                            symbol: good.clone(),
                             units: volume,
                         }),
                     )
@@ -148,7 +148,7 @@ impl MyShip {
                     .purchase_cargo(
                         &self.symbol,
                         Some(space_traders_client::models::PurchaseCargoRequest {
-                            symbol: good,
+                            symbol: good.clone(),
                             units: volume,
                         }),
                     )
@@ -177,7 +177,7 @@ impl MyShip {
         trade_symbol: space_traders_client::models::TradeSymbol,
         units: i32,
         api: &api::Api,
-    ) -> anyhow::Result<space_traders_client::models::DeliverContract200Response> {
+    ) -> Result<space_traders_client::models::DeliverContract200Response, error::Error> {
         self.mutate();
         let delivery_result: space_traders_client::models::DeliverContract200Response = api
             .deliver_contract(

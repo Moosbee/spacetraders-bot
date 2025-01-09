@@ -155,7 +155,7 @@ impl MyShip {
             debug!("Marketplace refueling to cargo");
             self.purchase_cargo(
                 api,
-                space_traders_client::models::TradeSymbol::Fuel,
+                &space_traders_client::models::TradeSymbol::Fuel,
                 requirements.restock_amount,
                 database_pool,
                 reason,

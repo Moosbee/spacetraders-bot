@@ -426,7 +426,7 @@ impl TransportProcessor {
                 continue;
             }
             debug!("Selling {} units of {} for {}", amount, trade, ship.symbol);
-            ship.sell_cargo(api, trade, amount, database_pool, reason.clone())
+            ship.sell_cargo(api, &trade, amount, database_pool, reason.clone())
                 .await?;
         }
 

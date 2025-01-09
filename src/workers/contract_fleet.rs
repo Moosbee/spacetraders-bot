@@ -391,7 +391,7 @@ impl ContractFleet {
             let purchase_volume = self.calculate_purchase_volume(ship, procurement);
             ship.purchase_cargo(
                 &self.context.api,
-                trade_symbol,
+                &trade_symbol,
                 purchase_volume,
                 &self.context.database_pool,
                 reason.clone(),

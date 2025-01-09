@@ -17,7 +17,12 @@ pub enum Error {
         code: Option<u32>,
         message: Option<String>,
     },
-    #[error("Ship error: {0}")]
+    #[error("Not enough funds: {remaining_funds} < {required_funds}")]
+    NotEnoughFunds {
+        remaining_funds: i64,
+        required_funds: i64,
+    },
+    #[error("General error: {0}")]
     General(String),
 }
 

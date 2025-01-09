@@ -1,8 +1,6 @@
-use crate::error::Result;
+use crate::{error::Result, manager::Manager};
 
-use super::Manager;
-
-type MiningManagerMessage = ();
+pub type MiningManagerMessage = ();
 
 #[derive(Debug)]
 pub struct MiningManager {
@@ -38,8 +36,8 @@ impl MiningManager {
         }
     }
 
-    async fn run_trade_worker(&self) -> Result<()> {
-        todo!()
+    async fn run_mining_worker(&self) -> Result<()> {
+        Ok(())
     }
 }
 
@@ -47,7 +45,7 @@ impl Manager for MiningManager {
     fn run(
         &mut self,
     ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<()>> + Send + '_>> {
-        Box::pin(async move { self.run_trade_worker().await })
+        Box::pin(async move { self.run_mining_worker().await })
     }
 
     fn get_name(&self) -> &str {

@@ -144,7 +144,7 @@ impl TradingPilot {
 
             ship.purchase_cargo(
                 &self.context.api,
-                route.symbol,
+                &route.symbol,
                 trade_volume,
                 &self.context.database_pool,
                 sql::TransactionReason::TradeRoute(route.id),
@@ -177,7 +177,7 @@ impl TradingPilot {
         let cargo_volume = ship.cargo.get_amount(&route.symbol);
         ship.sell_cargo(
             &self.context.api,
-            route.symbol,
+            &route.symbol,
             cargo_volume,
             &self.context.database_pool,
             sql::TransactionReason::TradeRoute(route.id),
