@@ -1,6 +1,7 @@
-use std::collections::HashSet;
+use std::collections::HashMap;
 
 use log::debug;
+use space_traders_client::models;
 
 use crate::{
     config::CONFIG,
@@ -11,16 +12,14 @@ use crate::{
 };
 
 use super::{
-    all_possible_routes::PossibleRoutes, route_calculator_concrete::ConcreteRouteCalculator,
-    route_calculator_simple::RouteCalculatorSimple, routes::PossibleTradeRoute,
+    route_calculator_concrete::ConcreteRouteCalculator,
+    routes::{ExtrapolatedTradeRoute, PossibleTradeRoute, RouteData},
     routes_tracker::RoutesTracker,
 };
 
 #[derive(Debug)]
 pub struct RouteCalculator {
     context: ConductorContext,
-    simple: RouteCalculatorSimple,
-    possible_routes: PossibleRoutes,
     concrete: ConcreteRouteCalculator,
 }
 
@@ -28,11 +27,15 @@ impl RouteCalculator {
     pub fn new(context: ConductorContext, cache: Cache) -> Self {
         Self {
             context: context.clone(),
-            simple: RouteCalculatorSimple {},
-            possible_routes: PossibleRoutes::default(),
             concrete: ConcreteRouteCalculator::new(context.clone(), cache),
         }
     }
+
+    /*
+
+    New Thing, instead of calculatin seperate routes for simple and complex, we can combine them and have all routes and all the knowlege we have for them
+
+    */
 
     pub async fn get_best_route(
         &mut self,
@@ -42,16 +45,26 @@ impl RouteCalculator {
         debug!("Getting new best route");
         let (trade_goods, market_trade) = self.fetch_market_data().await?;
 
-        if self.should_use_simple_routes(&trade_goods, &market_trade) {
-            return self
-                .simple
-                .get_routes_simple(&market_trade, &trade_goods, &ship.symbol)
-                .first()
-                .cloned()
-                .ok_or_else(|| Error::General(format!("No routes simple found")));
-        }
+        let possible_trades = self.gen_all_possible_trades(&trade_goods, &market_trade);
 
-        self.calculate_best_complex_route(trade_goods, ship, running_routes)
+        let routes = possible_trades
+            .into_iter()
+            .map(|route| self.extrapolate_trade_route(route))
+            .filter(|route| self.is_valid_route(route))
+            .collect::<Vec<_>>()
+            .into_iter()
+            .map(|route| self.concrete.calc(ship, route))
+            .collect::<Vec<_>>();
+
+        debug!("Routes: {}", routes.len());
+
+        let route = routes
+            .into_iter()
+            .filter(|route| !running_routes.is_locked(&(*route).clone().into()))
+            .max_by(|a, b| a.partial_cmp(b).unwrap())
+            .ok_or_else(|| Error::General(format!("No routes main found")));
+
+        route.map(|route| route.into())
     }
 
     async fn fetch_market_data(
@@ -62,55 +75,134 @@ impl RouteCalculator {
         Ok((trade_goods, market_trade))
     }
 
-    fn should_use_simple_routes(
+    fn gen_all_possible_trades<'a>(
         &self,
-        trade_goods: &[sql::MarketTradeGood],
-        market_trade: &[sql::MarketTrade],
-    ) -> bool {
-        let waypoints_g: HashSet<_> = trade_goods.iter().map(|t| &t.waypoint_symbol).collect();
-        let waypoints_m: HashSet<_> = market_trade.iter().map(|t| &t.waypoint_symbol).collect();
+        trade_goods: &'a [sql::MarketTradeGood],
+        market_trade: &'a [sql::MarketTrade],
+    ) -> Vec<PossibleTradeRoute> {
+        let trade_goods_map = trade_goods
+            .iter()
+            .map(|t| ((t.symbol.clone(), t.waypoint_symbol.clone()), t.clone()))
+            .collect::<HashMap<(models::TradeSymbol, String), sql::MarketTradeGood>>();
 
-        let cache_ratio = waypoints_g.len() as f64 / waypoints_m.len() as f64;
-        debug!(
-            "Cache ratio: {} Trade: {} Market: {}",
-            cache_ratio,
-            waypoints_g.len(),
-            waypoints_m.len()
-        );
+        let possible_trades = market_trade
+            .iter()
+            .flat_map(|t| market_trade.iter().map(move |t2| (t, t2)))
+            .filter(|t| t.0.symbol == t.1.symbol)
+            .map(|(t1, t2)| {
+                let trade_good_1 =
+                    trade_goods_map.get(&(t1.symbol.clone(), t1.waypoint_symbol.clone()));
 
-        rand::random::<f64>() > cache_ratio
-    }
+                let trade_good_2 =
+                    trade_goods_map.get(&(t2.symbol.clone(), t2.waypoint_symbol.clone()));
 
-    fn calculate_best_complex_route(
-        &mut self,
-        trade_goods: Vec<sql::MarketTradeGood>,
-        ship: &ship::MyShip,
-        running_routes: &RoutesTracker,
-    ) -> Result<sql::TradeRoute, Error> {
-        let possible_routes = self.possible_routes.calc_possible_trade_routes(trade_goods);
-        let routes = possible_routes
-            .into_iter()
-            .filter(|route| self.is_valid_route(route))
-            .collect::<Vec<_>>()
-            .into_iter()
-            .map(|route| self.concrete.calc(ship, route))
-            .filter(|route| route.profit > 0)
+                assert!(
+                    t1.symbol == t2.symbol
+                        && trade_good_1.map(|t| t.symbol).unwrap_or(t1.symbol)
+                            == trade_good_2.map(|t| t.symbol).unwrap_or(t2.symbol)
+                );
+
+                let trade = PossibleTradeRoute {
+                    symbol: t1.symbol.clone(),
+                    purchase_good: trade_good_1.cloned(),
+                    sell_good: trade_good_2.cloned(),
+                    purchase: t1.clone(),
+                    sell: t2.clone(),
+                };
+                trade
+            })
             .collect::<Vec<_>>();
 
-        debug!("Routes: {}", routes.len());
-
-        let route = routes
-            .iter()
-            .filter(|route| !running_routes.is_locked(&(*route).clone().into()))
-            .max_by(|a, b| a.partial_cmp(b).unwrap())
-            .cloned()
-            .map(|route| route)
-            .ok_or_else(|| Error::General(format!("No routes main found")));
-
-        route.map(|route| route.into())
+        possible_trades
     }
 
-    fn is_valid_route(&self, route: &PossibleTradeRoute) -> bool {
-        !CONFIG.trading.blacklist.contains(&route.symbol) && route.profit > 0
+    fn extrapolate_trade_route(&self, route: PossibleTradeRoute) -> ExtrapolatedTradeRoute {
+        let (min_trade_volume, max_trade_volume) = {
+            let min_volume = route
+                .purchase_good
+                .as_ref()
+                .map(|t| t.trade_volume)
+                .unwrap_or(i32::MAX)
+                .min(
+                    route
+                        .sell_good
+                        .as_ref()
+                        .map(|t| t.trade_volume)
+                        .unwrap_or(i32::MAX),
+                );
+
+            let max_volume = route
+                .purchase_good
+                .as_ref()
+                .map(|t| t.trade_volume)
+                .unwrap_or(i32::MIN)
+                .max(
+                    route
+                        .sell_good
+                        .as_ref()
+                        .map(|t| t.trade_volume)
+                        .unwrap_or(i32::MIN),
+                );
+
+            (
+                if min_volume == i32::MAX {
+                    20
+                } else {
+                    min_volume
+                },
+                if max_volume == i32::MIN {
+                    20
+                } else {
+                    max_volume
+                },
+            )
+        };
+
+        // Constants for price calculations
+
+        let purchase_price: Option<i32> = route.purchase_good.as_ref().map(|t| t.purchase_price);
+        let sell_price: Option<i32> = route.sell_good.as_ref().map(|t| t.sell_price);
+
+        let (final_purchase_price, final_sell_price, final_profit) =
+            match (purchase_price, sell_price) {
+                (Some(p), Some(s)) => {
+                    // Both prices are known
+                    let profit = s - p;
+                    (p, s, profit)
+                }
+                (Some(p), None) => {
+                    // Only purchase price is known, apply markup
+                    let markup = (p as f32 * CONFIG.trading.markup_percentage) as i32;
+                    let estimated_sell = p + markup;
+                    (p, estimated_sell, markup)
+                }
+                (None, Some(s)) => {
+                    // Only sell price is known, apply margin
+                    let margin = (s as f32 * CONFIG.trading.margin_percentage) as i32;
+                    let estimated_purchase = s - margin;
+                    (estimated_purchase, s, margin)
+                }
+                (None, None) => {
+                    // No prices known, use default values
+                    (
+                        CONFIG.trading.default_purchase_price,
+                        CONFIG.trading.default_sell_price,
+                        CONFIG.trading.default_profit,
+                    )
+                }
+            };
+
+        let data = RouteData {
+            min_trade_volume,
+            max_trade_volume,
+            purchase_price: final_purchase_price,
+            sell_price: final_sell_price,
+            profit: final_profit,
+        };
+
+        ExtrapolatedTradeRoute { route, data }
+    }
+    fn is_valid_route(&self, route: &ExtrapolatedTradeRoute) -> bool {
+        !CONFIG.trading.blacklist.contains(&route.route.symbol) && route.data.profit > 0
     }
 }

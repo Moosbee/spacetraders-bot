@@ -42,6 +42,14 @@ pub struct TradingFleet {
 
     pub blacklist: Vec<models::TradeSymbol>,
     pub active: bool,
+
+    pub default_purchase_price: i32,
+    pub default_sell_price: i32,
+    pub default_profit: i32,
+
+    // Markup and margin percentages (as decimals)
+    pub markup_percentage: f32,
+    pub margin_percentage: f32,
 }
 
 #[derive(Deserialize, Debug, Clone)]

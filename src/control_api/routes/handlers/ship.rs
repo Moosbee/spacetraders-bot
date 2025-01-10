@@ -96,7 +96,7 @@ pub async fn handle_purchase_cargo_ship(
 
     ship.purchase_cargo(
         &context.api,
-        trade_symbol,
+        &trade_symbol,
         units,
         &context.database_pool,
         sql::TransactionReason::None,

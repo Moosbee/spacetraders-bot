@@ -23,7 +23,12 @@
       "ADVANCED_CIRCUITRY",
       "FAB_MATS"
     ],
-    "active": true
+    "active": true,
+    "default_purchase_price": 100,
+    "default_sell_price": 150,
+    "default_profit": 50,
+    "markup_percentage": 0.5,
+    "margin_percentage": 0.33
   },
   "construction": {
     "start_sleep_duration": 10000000,

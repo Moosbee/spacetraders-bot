@@ -1,18 +1,7 @@
 use core::fmt;
+use std::cmp::Ordering;
 
 use crate::sql;
-
-#[derive(Debug, Clone, Default)]
-pub struct TripStats {
-    pub trip_time: f64,
-    pub trip_fuel_cost: i32,
-    pub trip_fuel_units: i32,
-    pub trip_units: i32,
-    pub trip_total_cost: i32,
-    pub trip_total_profit: i32,
-    pub trips_per_hour: f32,
-    pub profit_per_hour: i32,
-}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MinTradeRoute {
@@ -21,85 +10,25 @@ pub struct MinTradeRoute {
     pub sell_wp_symbol: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct PossibleTradeRoute {
-    pub symbol: space_traders_client::models::TradeSymbol,
-    pub export: sql::MarketTradeGood,
-    pub import: sql::MarketTradeGood,
-    pub min_trade_volume: i32,
-    pub max_trade_volume: i32,
-    pub purchase_wp_symbol: String,
-    pub sell_wp_symbol: String,
-    pub purchase_price: i32,
-    pub sell_price: i32,
-    pub profit: i32,
-}
-
-impl PartialOrd for PossibleTradeRoute {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl Ord for PossibleTradeRoute {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.profit.cmp(&other.profit)
-    }
-}
-
-impl fmt::Display for PossibleTradeRoute {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(
-            f,
-            "{}: {} -> {} {}",
-            self.symbol, self.purchase_wp_symbol, self.sell_wp_symbol, self.profit
-        )
-    }
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct ConcreteTradeRoute {
-    pub symbol: space_traders_client::models::TradeSymbol,
-    pub export: sql::MarketTradeGood,
-    pub import: sql::MarketTradeGood,
-    pub min_trade_volume: i32,
-    pub max_trade_volume: i32,
-    pub purchase_wp_symbol: String,
-    pub sell_wp_symbol: String,
-    pub purchase_price: i32,
-    pub sell_price: i32,
-    pub profit: i32,
-
-    pub ship_symbol: String,
-
-    pub trip_fuel_cost: i32,
-    pub trip_fuel_units: i32,
-    pub trip_time: f64,
-    pub trip_units: i32,
-    pub trip_total_cost: i32,
-    pub trip_total_profit: i32,
-
-    pub trips_per_hour: f32,
-    pub profit_per_hour: i32,
-}
-
 impl From<PossibleTradeRoute> for MinTradeRoute {
     fn from(value: PossibleTradeRoute) -> Self {
         MinTradeRoute {
             symbol: value.symbol,
-            purchase_wp_symbol: value.purchase_wp_symbol.clone(),
-            sell_wp_symbol: value.sell_wp_symbol.clone(),
+            purchase_wp_symbol: value.purchase.waypoint_symbol,
+            sell_wp_symbol: value.sell.waypoint_symbol,
         }
+    }
+}
+
+impl From<ExtrapolatedTradeRoute> for MinTradeRoute {
+    fn from(value: ExtrapolatedTradeRoute) -> Self {
+        value.route.into()
     }
 }
 
 impl From<ConcreteTradeRoute> for MinTradeRoute {
     fn from(value: ConcreteTradeRoute) -> Self {
-        MinTradeRoute {
-            symbol: value.symbol,
-            purchase_wp_symbol: value.purchase_wp_symbol.clone(),
-            sell_wp_symbol: value.sell_wp_symbol.clone(),
-        }
+        value.route.into()
     }
 }
 
@@ -113,32 +42,148 @@ impl From<sql::TradeRoute> for MinTradeRoute {
     }
 }
 
-impl From<ConcreteTradeRoute> for sql::TradeRoute {
-    fn from(value: ConcreteTradeRoute) -> Self {
-        sql::TradeRoute {
-            symbol: value.symbol,
-            finished: false,
-            ship_symbol: value.ship_symbol.clone(),
-            predicted_purchase_price: value.purchase_price,
-            predicted_sell_price: value.sell_price,
-            trade_volume: value.trip_units,
-            purchase_waypoint: value.purchase_wp_symbol.clone(),
-            sell_waypoint: value.sell_wp_symbol.clone(),
-            ..sql::TradeRoute::default()
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct RouteData {
+    pub min_trade_volume: i32,
+    pub max_trade_volume: i32,
+    pub purchase_price: i32,
+    pub sell_price: i32,
+    pub profit: i32,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PossibleTradeRoute {
+    pub symbol: space_traders_client::models::TradeSymbol,
+    pub purchase_good: Option<sql::MarketTradeGood>,
+    pub sell_good: Option<sql::MarketTradeGood>,
+    pub purchase: sql::MarketTrade,
+    pub sell: sql::MarketTrade,
+}
+
+impl Default for PossibleTradeRoute {
+    fn default() -> Self {
+        PossibleTradeRoute {
+            symbol: space_traders_client::models::TradeSymbol::default(),
+            purchase_good: None,
+            sell_good: None,
+            purchase: sql::MarketTrade::default(),
+            sell: sql::MarketTrade::default(),
         }
     }
 }
 
-// impl Ord for ConcreteTradeRoute {
-//     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-//         self.profit_per_hour.cmp(&other.profit_per_hour)
-//     }
-// }
+impl Ord for PossibleTradeRoute {
+    fn cmp(&self, other: &Self) -> Ordering {
+        // First compare sell_good Option presence (Some is better than None)
+        match (&self.sell_good, &other.sell_good) {
+            (Some(_), None) => return Ordering::Greater,
+            (None, Some(_)) => return Ordering::Less,
+            _ => {} // Both Some or both None, continue to next comparison
+        }
+
+        // Then compare purchase_good Option presence
+        match (&self.purchase_good, &other.purchase_good) {
+            (Some(_), None) => return Ordering::Greater,
+            (None, Some(_)) => return Ordering::Less,
+            _ => {} // Both Some or both None, continue to next comparison
+        }
+
+        // If all Option comparisons are equal, use symbol as tiebreaker
+        self.symbol.cmp(&other.symbol)
+    }
+}
+
+// Implement PartialOrd to be consistent with Ord
+impl PartialOrd for PossibleTradeRoute {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl fmt::Display for PossibleTradeRoute {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "{}: {} {} -> {} {}",
+            self.symbol,
+            self.purchase.waypoint_symbol,
+            self.purchase_good.is_some(),
+            self.sell.waypoint_symbol,
+            self.sell_good.is_some()
+        )
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ExtrapolatedTradeRoute {
+    pub route: PossibleTradeRoute,
+    pub data: RouteData,
+}
+
+impl fmt::Display for ExtrapolatedTradeRoute {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "{}: {} -> {} {}",
+            self.route.symbol,
+            self.route.purchase.waypoint_symbol,
+            self.route.sell.waypoint_symbol,
+            self.data.profit
+        )
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Default)]
+pub struct TripStats {
+    pub ship_symbol: String,
+
+    pub fuel_units: i32,
+    pub time: f64,
+    pub distance: f64,
+
+    pub volume: i32,
+
+    pub fuel_cost: i32,
+    pub total_cost: i32,
+    pub total_profit: i32,
+
+    pub trips_per_hour: f32,
+    pub profit_per_hour: i32,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct ConcreteTradeRoute {
+    pub route: PossibleTradeRoute,
+
+    pub data: RouteData,
+
+    pub trip: TripStats,
+}
+
+impl From<ConcreteTradeRoute> for sql::TradeRoute {
+    fn from(value: ConcreteTradeRoute) -> Self {
+        sql::TradeRoute {
+            symbol: value.route.symbol,
+            finished: false,
+            ship_symbol: value.trip.ship_symbol,
+            predicted_purchase_price: value.data.purchase_price,
+            predicted_sell_price: value.data.sell_price,
+            trade_volume: value.data.max_trade_volume,
+            purchase_waypoint: value.route.purchase.waypoint_symbol,
+            sell_waypoint: value.route.sell.waypoint_symbol,
+            ..Default::default()
+        }
+    }
+}
 
 impl PartialOrd for ConcreteTradeRoute {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        // Some(self.cmp(other))
-        Some(self.profit_per_hour.cmp(&other.profit_per_hour))
+        let cmp = self.route.cmp(&other.route);
+        if cmp != Ordering::Equal {
+            Some(cmp)
+        } else {
+            Some(self.trip.profit_per_hour.cmp(&other.trip.profit_per_hour))
+        }
     }
 }
 
@@ -147,11 +192,11 @@ impl fmt::Display for ConcreteTradeRoute {
         write!(
             f,
             "{} {}: {} -> {} {}/h",
-            self.ship_symbol,
-            self.symbol,
-            self.purchase_wp_symbol,
-            self.sell_wp_symbol,
-            self.profit_per_hour
+            self.trip.ship_symbol,
+            self.route.symbol,
+            self.route.purchase.waypoint_symbol,
+            self.route.sell.waypoint_symbol,
+            self.trip.profit_per_hour
         )
     }
 }
