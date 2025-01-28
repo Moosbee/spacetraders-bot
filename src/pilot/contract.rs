@@ -2,7 +2,7 @@ use std::sync::{atomic::AtomicI32, Arc};
 
 use crate::{
     error::{Error, Result},
-    manager::contract_manager::{ContractMessage, ContractShipment},
+    manager::contract_manager::{ContractMessage, NextShipmentResp},
     ship, sql,
     workers::types::ConductorContext,
 };
@@ -28,6 +28,14 @@ impl ContractPilot {
             .ok_or(Error::General("Ship not found".to_string()))?;
 
         let shipment = self.request_next_shipment(ship).await?;
+
+        let shipment = match shipment {
+            NextShipmentResp::Shipment(contract_shipment) => contract_shipment,
+            NextShipmentResp::ComeBackLater => {
+                return self.do_elsewhere(ship).await;
+            }
+        };
+
         self.count.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
 
         let storage_count = ship.cargo.get_amount(&shipment.trade_symbol);
@@ -62,11 +70,20 @@ impl ContractPilot {
         Ok(())
     }
 
-    async fn request_next_shipment(&self, ship: &ship::MyShip) -> Result<ContractShipment> {
+    async fn do_elsewhere(&self, ship: &mut ship::MyShip) -> Result<()> {
+        ship.role = ship::Role::Manuel;
+        todo!();
+        // ship.notify().await;
+
+        // Ok(())
+    }
+
+    async fn request_next_shipment(&self, ship: &ship::MyShip) -> Result<NextShipmentResp> {
         let (sender, receiver) = tokio::sync::oneshot::channel();
         let message = ContractMessage::RequestNextShipment {
             ship_clone: ship.clone(),
             callback: sender,
+            can_start_new_contract: true,
         };
         let _erg = self
             .context
@@ -79,10 +96,11 @@ impl ContractPilot {
         let resp = receiver
             .await
             .map_err(|e| Error::General(format!("Failed to get message: {}", e)))?;
+
         resp
     }
 
-    async fn fail_shipment(&self, shipment: ContractShipment, error: Error) -> Result<Error> {
+    async fn fail_shipment(&self, shipment: sql::ContractShipment, error: Error) -> Result<Error> {
         let (sender, receiver) = tokio::sync::oneshot::channel();
 
         let message = ContractMessage::FailedShipment {
@@ -107,7 +125,7 @@ impl ContractPilot {
 
     async fn complete_shipment(
         &self,
-        shipment: ContractShipment,
+        shipment: sql::ContractShipment,
         contract: space_traders_client::models::Contract,
     ) -> Result<()> {
         let message = ContractMessage::FinishedShipment {
@@ -129,7 +147,7 @@ impl ContractPilot {
     async fn purchase_cargo(
         &self,
         ship: &mut ship::MyShip,
-        shipment: &ContractShipment,
+        shipment: &sql::ContractShipment,
         pilot: &crate::pilot::Pilot,
     ) -> Result<()> {
         let waypoints = self
@@ -187,8 +205,11 @@ impl ContractPilot {
     async fn deliver_cargo(
         &self,
         ship: &mut ship::MyShip,
-        shipment: ContractShipment,
-    ) -> Result<(space_traders_client::models::Contract, ContractShipment)> {
+        shipment: sql::ContractShipment,
+    ) -> Result<(
+        space_traders_client::models::Contract,
+        sql::ContractShipment,
+    )> {
         let waypoints = self
             .context
             .all_waypoints

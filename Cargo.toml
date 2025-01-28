@@ -32,3 +32,4 @@ lockable = "0.1.1"
 moka = { version = "0.12.8", features = ["future"] }
 thiserror = "2.0.6"
 reqwest-middleware = {version = "0.3", features = ["json", "multipart"]}
+itertools = "0.14.0"

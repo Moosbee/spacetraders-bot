@@ -127,6 +127,31 @@ pub struct ContractDelivery {
     pub units_fulfilled: i32,
 }
 
+#[derive(Debug, Clone, Default)]
+pub struct ContractShipment {
+    pub id: i32,
+    pub contract_id: String,
+    pub ship_symbol: String,
+    pub trade_symbol: models::TradeSymbol,
+    pub units: i32,
+    pub destination_symbol: String,
+    pub purchase_symbol: String,
+    pub created_at: sqlx::types::time::PrimitiveDateTime,
+    pub updated_at: sqlx::types::time::PrimitiveDateTime,
+    pub status: ShipmentStatus,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, sqlx::Type, serde::Serialize, serde::Deserialize)]
+#[sqlx(type_name = "shipment_status")]
+pub enum ShipmentStatus {
+    #[sqlx(rename = "IN_TRANSIT")]
+    InTransit,
+    #[sqlx(rename = "FAILED")]
+    Failed,
+    #[sqlx(rename = "DELIVERED")]
+    Delivered,
+}
+
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ContractSummary {
     pub id: String,

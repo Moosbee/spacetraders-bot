@@ -105,7 +105,7 @@ use space_traders_client::models::{Register201ResponseData, RegisterRequest};
 
 #[derive(Debug, Clone)]
 pub struct Api {
-    configuration: Configuration,
+    configuration: Arc<Configuration>,
     limiter: Arc<
         RateLimiter<
             governor::state::NotKeyed,
@@ -130,10 +130,10 @@ impl Api {
         let limiter = Arc::new(RateLimiter::direct(quota));
 
         Api {
-            configuration: Configuration {
+            configuration: Arc::new(Configuration {
                 bearer_access_token: access_token,
                 ..Default::default()
-            },
+            }),
             limiter,
         }
     }
