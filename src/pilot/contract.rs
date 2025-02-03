@@ -1,5 +1,7 @@
 use std::sync::{atomic::AtomicI32, Arc};
 
+use log::debug;
+
 use crate::{
     error::{Error, Result},
     manager::contract_manager::{ContractMessage, NextShipmentResp},
@@ -21,17 +23,23 @@ impl ContractPilot {
             count: Arc::new(AtomicI32::new(0)),
         }
     }
+
     pub async fn execute_pilot_circle(&self, pilot: &super::Pilot) -> Result<()> {
         let mut erg = pilot.context.ship_manager.get_mut(&self.ship_symbol).await;
         let ship = erg
             .value_mut()
             .ok_or(Error::General("Ship not found".to_string()))?;
 
+        debug!("Requesting next shipment for ship: {:?}", ship.symbol);
+
         let shipment = self.request_next_shipment(ship).await?;
+
+        debug!("Next shipment: {:?}", shipment);
 
         let shipment = match shipment {
             NextShipmentResp::Shipment(contract_shipment) => contract_shipment,
             NextShipmentResp::ComeBackLater => {
+                debug!("No shipment available, doing something else");
                 return self.do_elsewhere(ship).await;
             }
         };
@@ -40,7 +48,10 @@ impl ContractPilot {
 
         let storage_count = ship.cargo.get_amount(&shipment.trade_symbol);
 
+        debug!("Storage count: {}", storage_count);
+
         if storage_count != shipment.units {
+            debug!("Purchasing cargo");
             let er = self.purchase_cargo(ship, &shipment, pilot).await;
             if let Err(e) = er {
                 let erg = self.fail_shipment(shipment, e).await?;
@@ -51,6 +62,8 @@ impl ContractPilot {
                 return Err(erg);
             }
         }
+
+        debug!("Delivering cargo");
 
         let del_erg = self.deliver_cargo(ship, shipment.clone()).await;
 
@@ -65,6 +78,8 @@ impl ContractPilot {
 
         let (contract, shipment) = del_erg.unwrap();
 
+        debug!("Completing shipment");
+
         let _complete_erg = self.complete_shipment(shipment, contract).await?;
 
         Ok(())
@@ -72,6 +87,7 @@ impl ContractPilot {
 
     async fn do_elsewhere(&self, ship: &mut ship::MyShip) -> Result<()> {
         ship.role = ship::Role::Manuel;
+        debug!("Doing something else");
         todo!();
         // ship.notify().await;
 
@@ -97,6 +113,8 @@ impl ContractPilot {
             .await
             .map_err(|e| Error::General(format!("Failed to get message: {}", e)))?;
 
+        debug!("Got response: {:?}", resp);
+
         resp
     }
 
@@ -120,6 +138,8 @@ impl ContractPilot {
             .await
             .map_err(|e| Error::General(format!("Failed to get message: {}", e)))?;
 
+        debug!("Got response: {:?}", resp);
+
         resp
     }
 
@@ -132,6 +152,8 @@ impl ContractPilot {
             contract: contract,
             shipment: shipment,
         };
+
+        debug!("Sending message: {:?}", message);
 
         let _erg = self
             .context
@@ -189,6 +211,8 @@ impl ContractPilot {
 
         let units_needed = shipment.units - ship.cargo.get_amount(&shipment.trade_symbol);
 
+        debug!("Purchasing units: {}", units_needed);
+
         let _erg = ship
             .purchase_cargo(
                 &self.context.api,
@@ -233,6 +257,8 @@ impl ContractPilot {
             .cargo
             .get_amount(&shipment.trade_symbol)
             .min(shipment.units);
+
+        debug!("Delivering units: {}", units_to_deliver);
 
         let response = ship
             .deliver_contract(

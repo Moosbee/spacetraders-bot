@@ -1,3 +1,5 @@
+use log::debug;
+
 use crate::{
     error::Result,
     manager::Manager,
@@ -7,6 +9,7 @@ use crate::{
 
 use super::{routes_calculator::RouteCalculator, routes_tracker::RoutesTracker};
 
+#[derive(Debug)]
 pub enum TradeMessage {
     RequestNextTradeRoute {
         ship_clone: crate::ship::MyShip,
@@ -40,7 +43,7 @@ impl TradeManager {
         TradeManagerMessanger,
     ) {
         let (sender, receiver) = tokio::sync::mpsc::channel(1024);
-
+        debug!("Created TradeManager channel");
         (receiver, TradeManagerMessanger { sender })
     }
 
@@ -49,6 +52,7 @@ impl TradeManager {
         context: crate::workers::types::ConductorContext,
         receiver: tokio::sync::mpsc::Receiver<TradeManagerMessage>,
     ) -> Self {
+        debug!("Created new TradeManager");
         Self {
             cancel_token,
             context: context.clone(),
@@ -59,9 +63,10 @@ impl TradeManager {
     }
 
     async fn run_trade_worker(&mut self) -> Result<()> {
+        debug!("Starting TradeManager worker");
         while !self.cancel_token.is_cancelled() {
-            let message = self.receiver.recv().await;
-
+            let message: Option<TradeMessage> = self.receiver.recv().await;
+            debug!("Received message: {:?}", message);
             match message {
                 Some(message) => {
                     self.handle_trade_message(message).await?;
@@ -74,12 +79,14 @@ impl TradeManager {
     }
 
     async fn handle_trade_message(&mut self, message: TradeManagerMessage) -> Result<()> {
+        debug!("Handling message: {:?}", message);
         match message {
             TradeMessage::RequestNextTradeRoute {
                 ship_clone,
                 callback,
             } => {
                 let route = self.request_next_trade_route(ship_clone).await;
+                debug!("Sending route: {:?}", route);
                 let _send = callback.send(route);
             }
             TradeMessage::CompleteTradeRoute {
@@ -87,6 +94,7 @@ impl TradeManager {
                 callback,
             } => {
                 let route = self.complete_trade_route(trade_route).await;
+                debug!("Sending route: {:?}", route);
                 let _send = callback.send(route);
             }
         }

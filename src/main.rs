@@ -33,7 +33,7 @@ use tokio_util::sync::CancellationToken;
 use workers::types::Conductor;
 
 use crate::api::Api;
-use log::info;
+use log::{debug, error, info};
 
 use std::num::NonZeroU32;
 
@@ -43,7 +43,7 @@ use sqlx::postgres::PgPoolOptions;
 async fn main() -> anyhow::Result<()> {
     let (context, main_token, managers) = setup_context().await?;
 
-    run_conductor(context.clone()).await?;
+    // run_conductor(context.clone()).await?;
 
     let erg = start(context, main_token, managers).await;
 
@@ -276,24 +276,34 @@ async fn start(
     main_token: CancellationToken,
     managers: Vec<Box<dyn Manager>>,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let _ = main_token.cancelled().await;
+    debug!("Start function started");
+
+    // let _ = main_token.cancelled().await;
 
     let managers_handles = start_managers(managers).await?;
     let ship_handles = start_ships(context.clone()).await?;
 
+    debug!("Managers and ships started");
+
     let manager_future = wait_managers(managers_handles);
     let ship_future = wait_ships(ship_handles);
+
+    debug!("Waiting for managers and ships to finish");
 
     let erg: (Result<(), error::Error>, Result<(), error::Error>) =
         tokio::join!(manager_future, ship_future);
 
+    debug!("Managers and ships finished");
+
     if let Err(errror) = erg.0 {
-        println!("Managers error: {} {}", errror, errror);
+        error!("Managers error: {} {}", errror, errror);
     }
 
     if let Err(errror) = erg.1 {
-        println!("Ships error: {} {}", errror, errror);
+        error!("Ships error: {} {}", errror, errror);
     }
+
+    debug!("Start function finished");
 
     Ok(())
 }
@@ -342,6 +352,7 @@ async fn start_ships(
         .map(|s| {
             let pilot = pilot::Pilot::new(context.clone(), s.symbol.clone());
             let cancel_token = pilot.get_cancel_token();
+            debug!("Starting pilot for ship {}", s.symbol);
             let handle: tokio::task::JoinHandle<Result<(), anyhow::Error>> =
                 tokio::task::spawn(async move {
                     let _erg = pilot.pilot_ship().await?;
@@ -350,6 +361,8 @@ async fn start_ships(
             (s, handle, cancel_token)
         })
         .collect::<Vec<_>>();
+
+    debug!("Started pilots for {} ships", ship_handles.len());
 
     Ok(ship_handles)
 }

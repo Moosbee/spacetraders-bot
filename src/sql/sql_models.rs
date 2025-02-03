@@ -127,7 +127,7 @@ pub struct ContractDelivery {
     pub units_fulfilled: i32,
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct ContractShipment {
     pub id: i32,
     pub contract_id: String,
@@ -141,9 +141,29 @@ pub struct ContractShipment {
     pub status: ShipmentStatus,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, sqlx::Type, serde::Serialize, serde::Deserialize)]
+impl Default for ContractShipment {
+    fn default() -> Self {
+        Self {
+            id: Default::default(),
+            contract_id: Default::default(),
+            ship_symbol: Default::default(),
+            trade_symbol: Default::default(),
+            units: Default::default(),
+            destination_symbol: Default::default(),
+            purchase_symbol: Default::default(),
+            created_at: sqlx::types::time::PrimitiveDateTime::MIN,
+            updated_at: sqlx::types::time::PrimitiveDateTime::MIN,
+            status: Default::default(),
+        }
+    }
+}
+
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, sqlx::Type, serde::Serialize, serde::Deserialize, Default,
+)]
 #[sqlx(type_name = "shipment_status")]
 pub enum ShipmentStatus {
+    #[default]
     #[sqlx(rename = "IN_TRANSIT")]
     InTransit,
     #[sqlx(rename = "FAILED")]

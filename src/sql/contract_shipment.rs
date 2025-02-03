@@ -184,11 +184,9 @@ impl super::sql_models::ContractShipment {
                     units,
                     destination_symbol,
                     purchase_symbol,
-                    created_at,
-                    updated_at,
                     status
                 )
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                VALUES ($1, $2, $3, $4, $5, $6, $7)
                 RETURNING id
             "#,
             item.contract_id,
@@ -197,8 +195,6 @@ impl super::sql_models::ContractShipment {
             item.units,
             item.destination_symbol,
             item.purchase_symbol,
-            item.created_at,
-            item.updated_at,
             item.status as ShipmentStatus
         )
         .fetch_one(&database_pool.database_pool)

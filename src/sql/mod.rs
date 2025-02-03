@@ -9,6 +9,7 @@ mod routes;
 mod ship_info;
 mod sql_models;
 mod trade_route;
+mod waypoint;
 
 pub use sql_models::Agent;
 pub use sql_models::Contract;

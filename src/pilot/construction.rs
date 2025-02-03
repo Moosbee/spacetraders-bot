@@ -8,6 +8,7 @@ impl ConstructionPilot {
         Self {}
     }
     pub async fn execute_pilot_circle(&self, pilot: &super::Pilot) -> Result<()> {
+      pilot.cancellation_token.cancelled().await;
         Ok(())
     }
 }

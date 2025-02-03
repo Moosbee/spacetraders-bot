@@ -39,7 +39,9 @@ impl ScrappingManager {
     }
 
     async fn run_scrapping_worker(&self) -> Result<()> {
-        todo!()
+        self.cancel_token.cancelled().await;
+
+        Ok(())
     }
 }
 

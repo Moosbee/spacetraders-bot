@@ -1,5 +1,7 @@
 use std::sync::{atomic::AtomicI32, Arc};
 
+use log::debug;
+
 use crate::{
     error::{Error, Result},
     manager::trade_manager::TradeManagerMessage,
@@ -27,7 +29,9 @@ impl TradingPilot {
         let ship = erg
             .value_mut()
             .ok_or(Error::General("Ship not found".to_string()))?;
+        debug!("Starting trading cycle for ship {}", ship.symbol);
         let route = self.get_route(ship).await?;
+        debug!("Starting trade route for ship {}: {:?}", ship.symbol, route);
         let _route_erg = self.execute_trade(ship, &route, pilot).await?;
         let _completed_route = self.complete_trade(route).await?;
         Ok(())
@@ -89,6 +93,13 @@ impl TradingPilot {
             .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
         let num = self.count.load(std::sync::atomic::Ordering::Relaxed);
         ship.role = ship::Role::Trader(Some((route.id, num)));
+        debug!(
+            "Starting trade route for ship {}: {:?} ({} of {})",
+            ship.symbol,
+            route,
+            num,
+            self.count.load(std::sync::atomic::Ordering::Relaxed)
+        );
         self.execute_purchase(ship, route, pilot).await?;
         self.execute_sale(ship, route).await?;
 

@@ -57,6 +57,7 @@ impl ContractManager {
         ContractManagerMessanger,
     ) {
         let (sender, receiver) = tokio::sync::mpsc::channel(1024);
+        debug!("Created ContractManager channel");
 
         (receiver, ContractManagerMessanger { sender })
     }
@@ -66,6 +67,7 @@ impl ContractManager {
         context: crate::workers::types::ConductorContext,
         receiver: tokio::sync::mpsc::Receiver<ContractManagerMessage>,
     ) -> Self {
+        debug!("Creating new ContractManager");
         Self {
             cancel_token,
             context,
@@ -76,12 +78,14 @@ impl ContractManager {
     }
 
     async fn run_contract_worker(&mut self) -> Result<()> {
+        debug!("Starting contract worker");
         let contracts = self.get_unfulfilled_contracts().await?;
 
         match contracts.len() {
-            0 => {}
+            0 => debug!("No unfulfilled contracts found"),
             1 => {
                 self.current_contract = Some(contracts[0].clone());
+                debug!("Current contract set: {:?}", self.current_contract);
             }
             _ => {
                 panic!("Too many contracts");
@@ -90,6 +94,7 @@ impl ContractManager {
 
         while !self.cancel_token.is_cancelled() {
             let message = self.receiver.recv().await;
+            debug!("Received message: {:?}", message);
 
             match message {
                 Some(message) => {
@@ -103,6 +108,7 @@ impl ContractManager {
     }
 
     async fn handle_contract_message(&mut self, message: ContractManagerMessage) -> Result<()> {
+        debug!("Handling contract message: {:?}", message);
         match message {
             ContractMessage::RequestNextShipment {
                 ship_clone,
@@ -137,6 +143,7 @@ impl ContractManager {
         ship_clone: ship::MyShip,
         can_start_new_contract: bool,
     ) -> Result<NextShipmentResp> {
+        debug!("Requesting next shipment for ship: {:?}", ship_clone.symbol);
         if self.current_contract.is_none() {
             if can_start_new_contract {
                 let has_done = self.get_new_contract(&ship_clone).await?;
@@ -175,17 +182,21 @@ impl ContractManager {
             .collect::<Vec<_>>();
 
         if all_procurment.is_empty() {
+            debug!("No procurement tasks available");
             return Ok(NextShipmentResp::ComeBackLater);
         }
 
         let next_procurment = all_procurment[0];
+        debug!("Next procurement task: {:?}", next_procurment);
 
         let purchase_volume = self.calculate_purchase_volume(&ship_clone, next_procurment);
+        debug!("Calculated purchase volume: {}", purchase_volume);
 
         let trade_symbol = models::TradeSymbol::from_str(&next_procurment.trade_symbol)
             .map_err(|err| Error::General(err.to_string()))?;
 
         let purchase_symbol = self.get_purchase_waypoint(&trade_symbol).await?;
+        debug!("Obtained purchase waypoint: {}", purchase_symbol);
 
         let mut next_shipment = sql::ContractShipment {
             contract_id: contract.id.clone(),
@@ -201,6 +212,7 @@ impl ContractManager {
 
         let id =
             sql::ContractShipment::insert_new(&self.context.database_pool, &next_shipment).await?;
+        debug!("Inserted new shipment with id: {}", id);
 
         next_shipment.id = id;
 
@@ -221,6 +233,7 @@ impl ContractManager {
         mut shipment: sql::ContractShipment,
         _error: &error::Error,
     ) -> Result<()> {
+        debug!("Handling failed shipment: {:?}", shipment);
         let pos = self
             .running_shipments
             .iter()
@@ -242,6 +255,7 @@ impl ContractManager {
         contract: models::Contract,
         mut shipment: sql::ContractShipment,
     ) -> Result<()> {
+        debug!("Handling finished shipment: {:?}", shipment);
         sql::Contract::insert_contract(&self.context.database_pool, contract.clone()).await?;
 
         let pos = self
@@ -285,6 +299,7 @@ impl ContractManager {
     }
 
     async fn get_unfulfilled_contracts(&self) -> Result<Vec<models::Contract>> {
+        debug!("Fetching unfulfilled contracts");
         let contracts = self.context.api.get_all_contracts(20).await?;
         Ok(contracts
             .into_iter()
@@ -293,13 +308,13 @@ impl ContractManager {
     }
 
     async fn is_contract_viable(&self, contract: &models::Contract) -> Result<bool> {
+        debug!("Checking if contract is viable: {:?}", contract);
         if !self.is_in_deadline(contract) {
             return Ok(false);
         }
 
         match contract.r#type {
             models::contract::Type::Procurement => self.check_procurement_viability(contract).await,
-            // _ => Ok(false),
             _ => panic!("Unimplemented contract type"),
         }
     }
@@ -309,6 +324,10 @@ impl ContractManager {
             return Ok(false);
         };
 
+        debug!(
+            "Checking procurement viability for deliveries: {:?}",
+            deliveries
+        );
         let market_trade_goods = sql::MarketTrade::get_last(&self.context.database_pool).await?;
 
         for delivery in deliveries {
@@ -357,6 +376,7 @@ impl ContractManager {
     /// Returns `true` if a contract was started, `false` if no contract was
     /// available.
     async fn get_new_contract(&mut self, ship_clone: &ship::MyShip) -> Result<bool> {
+        debug!("Negotiating new contract for ship: {:?}", ship_clone.symbol);
         if self.current_contract.is_some() || self.running_shipments.len() > 0 {
             panic!("Already running a contract");
         }
@@ -376,11 +396,16 @@ impl ContractManager {
 
         let viable = !self.is_contract_viable(&contract).await?;
         self.current_contract = Some(contract);
+        debug!("New contract negotiated: {:?}", self.current_contract);
 
         Ok(viable)
     }
 
     async fn get_purchase_waypoint(&self, trade_symbol: &models::TradeSymbol) -> Result<String> {
+        debug!(
+            "Getting purchase waypoint for trade symbol: {:?}",
+            trade_symbol
+        );
         let market_trades =
             sql::MarketTrade::get_last_by_symbol(&self.context.database_pool, trade_symbol).await?;
         let market_trade_goods: HashMap<(models::TradeSymbol, String), sql::MarketTradeGood> =

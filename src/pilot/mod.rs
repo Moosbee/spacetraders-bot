@@ -6,6 +6,7 @@ mod trading;
 
 use construction::ConstructionPilot;
 use contract::ContractPilot;
+use log::debug;
 use mining::MiningPilot;
 use scraper::ScraperPilot;
 use tokio_util::sync::CancellationToken;
@@ -29,6 +30,7 @@ pub struct Pilot {
 
 impl Pilot {
     pub fn new(context: ConductorContext, ship_symbol: String) -> Self {
+        debug!("Creating pilot for ship {}", ship_symbol);
         let pilot = Self {
             context: context.clone(),
             ship_symbol: ship_symbol.clone(),
@@ -48,6 +50,7 @@ impl Pilot {
     }
 
     pub async fn pilot_ship(&self) -> Result<()> {
+        debug!("Starting pilot for ship {}", self.ship_symbol);
         while !self.cancellation_token.is_cancelled() {
             let ship_info_res =
                 sql::ShipInfo::get_by_symbol(&self.context.database_pool, &self.ship_symbol).await;
@@ -64,6 +67,7 @@ impl Pilot {
     }
 
     async fn wait_for_activation(&self) -> Result<()> {
+        debug!("Waiting for activation");
         while !self.cancellation_token.is_cancelled() {
             let ship_info =
                 sql::ShipInfo::get_by_symbol(&self.context.database_pool, &self.ship_symbol)
@@ -77,7 +81,7 @@ impl Pilot {
                         _ = self.cancellation_token.cancelled() => {
                             return Ok(());
                         },
-                        _ = tokio::time::sleep(std::time::Duration::from_millis(1_000+ rand::random::<u64>() % 1_000)) => (),
+                        _ = tokio::time::sleep(std::time::Duration::from_millis(10_000+ rand::random::<u64>() % 1_000)) => (),
             };
         }
         Ok(())
@@ -97,7 +101,7 @@ impl Pilot {
                         _ = self.cancellation_token.cancelled() => {
                             return Ok(());
                         },
-                        _ = tokio::time::sleep(std::time::Duration::from_millis(1_000+ rand::random::<u64>() % 1_000)) => (),
+                        _ = tokio::time::sleep(std::time::Duration::from_millis(10_000+ rand::random::<u64>() % 1_000)) => (),
             };
         }
         Ok(())
@@ -119,6 +123,8 @@ impl Pilot {
             }
             ship.role.clone()
         };
+
+        debug!("Starting pilot circle for ship {}", self.ship_symbol);
 
         let _erg = match role {
             ship::Role::Construction => self.construction_pilot.execute_pilot_circle(&self).await,
