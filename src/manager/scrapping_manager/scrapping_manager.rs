@@ -1,6 +1,8 @@
-use crate::error::Result;
+use log::error;
 
-use super::Manager;
+use crate::{error::Result, manager::Manager};
+
+use super::{agent_scrapper, market_scrapper};
 
 type ScrappingManagerMessage = ();
 
@@ -39,7 +41,27 @@ impl ScrappingManager {
     }
 
     async fn run_scrapping_worker(&self) -> Result<()> {
-        self.cancel_token.cancelled().await;
+        let agent_scrapper = agent_scrapper::AgentScrapper::new(
+            self.cancel_token.child_token(),
+            self.context.clone(),
+        );
+        let market_scrapper = market_scrapper::MarketScrapper::new(
+            self.cancel_token.child_token(),
+            self.context.clone(),
+        );
+
+        let (_erg1, _erg2) = tokio::join!(
+            agent_scrapper.run_scrapping_worker(),
+            market_scrapper.run_scrapping_worker()
+        );
+
+        if let Err(err) = _erg1 {
+            error!("Agent scrapper error: {}", err);
+        }
+
+        if let Err(err) = _erg2 {
+            error!("Market scrapper error: {}", err);
+        }
 
         Ok(())
     }
