@@ -81,6 +81,13 @@ impl ContractManager {
         debug!("Starting contract worker");
         let contracts = self.get_unfulfilled_contracts().await?;
 
+        for contract in contracts.iter() {
+            debug!("Contract found: {}", contract.id);
+            // let in_db=sql::Contract::get_by_id(&self.context.database_pool, &contract.id).await;
+
+            sql::Contract::insert_contract(&self.context.database_pool, contract.clone()).await?;
+        }
+
         match contracts.len() {
             0 => debug!("No unfulfilled contracts found"),
             1 => {
@@ -144,9 +151,49 @@ impl ContractManager {
         can_start_new_contract: bool,
     ) -> Result<NextShipmentResp> {
         debug!("Requesting next shipment for ship: {:?}", ship_clone.symbol);
+
+        debug!("Current shipments {}", self.running_shipments.len());
+
+        if self.running_shipments.len() == 0
+            && self.current_contract.is_some()
+            && self
+                .current_contract
+                .as_ref()
+                .map(|c| self.can_fulfill_trade(c))
+                .unwrap_or(false)
+        {
+            let id = self
+                .current_contract
+                .as_ref()
+                .map(|c| c.id.clone())
+                .unwrap();
+            info!("Can Fulfilled contract: {}", id);
+            let fulfill_contract_data = self.context.api.fulfill_contract(&id).await?;
+
+            info!(
+                "Fulfilled contract: {}",
+                fulfill_contract_data.data.contract.id
+            );
+            self.current_contract = None;
+
+            sql::Contract::insert_contract(
+                &self.context.database_pool,
+                *fulfill_contract_data.data.contract,
+            )
+            .await?;
+
+            sql::Agent::insert(
+                &self.context.database_pool,
+                &sql::Agent::from(*fulfill_contract_data.data.agent),
+            )
+            .await?;
+        }
+
         if self.current_contract.is_none() {
             if can_start_new_contract {
                 let has_done = self.get_new_contract(&ship_clone).await?;
+
+                debug!("Has done: {}", has_done);
 
                 if !has_done {
                     return Ok(NextShipmentResp::ComeBackLater);
@@ -155,8 +202,47 @@ impl ContractManager {
                 return Ok(NextShipmentResp::ComeBackLater);
             }
         }
+        if !self.current_contract.as_ref().unwrap().accepted {
+            let resp = self
+                .context
+                .api
+                .accept_contract(&self.current_contract.as_ref().unwrap().id)
+                .await?;
+
+            self.current_contract = Some(*resp.data.contract.clone());
+
+            sql::Contract::insert_contract(&self.context.database_pool, *resp.data.contract)
+                .await?;
+
+            sql::Agent::insert(
+                &self.context.database_pool,
+                &sql::Agent::from(*resp.data.agent),
+            )
+            .await?;
+        }
+
+        let shipments = sql::ContractShipment::get_by_ship_symbol(
+            &self.context.database_pool,
+            &ship_clone.symbol,
+        )
+        .await?
+        .into_iter()
+        .filter(|s| s.contract_id == self.current_contract.as_ref().unwrap().id)
+        .filter(|s| s.status == sql::ShipmentStatus::InTransit)
+        .collect::<Vec<_>>();
+
+        if shipments.len() == 1 {
+            let shipment = shipments[0].clone();
+            debug!("Ship already has {:?} in transit", shipment);
+            self.running_shipments.push(shipment.clone());
+            return Ok(NextShipmentResp::Shipment(shipment));
+        } else if shipments.len() > 1 {
+            log::error!("Ship already has {} shipments in transit", shipments.len());
+            panic!("Ship already has {} shipments in transit", shipments.len());
+        }
 
         let contract = self.current_contract.as_ref().unwrap();
+
         let all_procurment = contract.terms.deliver.as_ref().unwrap();
 
         let all_procurment = all_procurment
@@ -214,7 +300,12 @@ impl ContractManager {
             sql::ContractShipment::insert_new(&self.context.database_pool, &next_shipment).await?;
         debug!("Inserted new shipment with id: {}", id);
 
-        next_shipment.id = id;
+        let sql_shipment =
+            sql::ContractShipment::get_by_id(&self.context.database_pool, id).await?;
+
+        next_shipment = sql_shipment;
+
+        self.running_shipments.push(next_shipment.clone());
 
         return Ok(NextShipmentResp::Shipment(next_shipment));
     }
@@ -394,7 +485,9 @@ impl ContractManager {
 
         let contract = *contract_resp.data.contract;
 
-        let viable = !self.is_contract_viable(&contract).await?;
+        sql::Contract::insert_contract(&self.context.database_pool, contract.clone()).await?;
+
+        let viable = self.is_contract_viable(&contract).await?;
         self.current_contract = Some(contract);
         debug!("New contract negotiated: {:?}", self.current_contract);
 

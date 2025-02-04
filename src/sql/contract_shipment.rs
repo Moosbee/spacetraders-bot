@@ -202,4 +202,58 @@ impl super::sql_models::ContractShipment {
 
         Ok(id.id)
     }
+
+    pub async fn get_by_id(
+        database_pool: &super::DbPool,
+        id: i32,
+    ) -> sqlx::Result<super::sql_models::ContractShipment> {
+        sqlx::query_as!(
+            super::sql_models::ContractShipment,
+            r#"
+            SELECT 
+                id,
+                contract_id,
+                ship_symbol,
+                trade_symbol as "trade_symbol: models::TradeSymbol",
+                units,
+                destination_symbol,
+                purchase_symbol,
+                created_at,
+                updated_at,
+                status as "status: ShipmentStatus"
+            FROM contract_shipment
+            WHERE id = $1
+            "#,
+            id
+        )
+        .fetch_one(&database_pool.database_pool)
+        .await
+    }
+
+    pub async fn get_by_ship_symbol(
+        database_pool: &super::DbPool,
+        ship_symbol: &str,
+    ) -> sqlx::Result<Vec<super::sql_models::ContractShipment>> {
+        sqlx::query_as!(
+            super::sql_models::ContractShipment,
+            r#"
+            SELECT 
+                id,
+                contract_id,
+                ship_symbol,
+                trade_symbol as "trade_symbol: models::TradeSymbol",
+                units,
+                destination_symbol,
+                purchase_symbol,
+                created_at,
+                updated_at,
+                status as "status: ShipmentStatus"
+            FROM contract_shipment
+            WHERE ship_symbol = $1
+            "#,
+            ship_symbol
+        )
+        .fetch_all(&database_pool.database_pool)
+        .await
+    }
 }
