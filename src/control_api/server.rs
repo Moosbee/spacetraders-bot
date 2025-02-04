@@ -3,7 +3,7 @@ use std::time::Duration;
 use futures::FutureExt;
 use tokio_util::sync::CancellationToken;
 
-use crate::{config::CONFIG, ship, sql, workers::types::ConductorContext};
+use crate::{config::CONFIG, manager::Manager, ship, sql, workers::types::ConductorContext};
 
 use super::types::MyReceiver;
 
@@ -113,5 +113,26 @@ impl crate::workers::types::Conductor for ControlApiServer {
 
     fn is_independent(&self) -> bool {
         false
+    }
+}
+
+impl Manager for ControlApiServer {
+    fn run(
+        &mut self,
+    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = crate::error::Result<()>> + Send + '_>>
+    {
+        Box::pin(async move {
+            self.run_server()
+                .await
+                .map_err(|e| crate::error::Error::General(e.to_string()))
+        })
+    }
+
+    fn get_name(&self) -> &str {
+        "ControlApiServer"
+    }
+
+    fn get_cancel_token(&self) -> &tokio_util::sync::CancellationToken {
+        &self.cancellation_token
     }
 }

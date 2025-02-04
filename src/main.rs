@@ -236,6 +236,12 @@ async fn setup_context() -> Result<
         trade_manager_data.0,
     );
 
+    let control_api = control_api::server::ControlApiServer::new(
+        context.clone(),
+        context.ship_manager.get_rx(),
+        vec![],
+    );
+
     Ok((
         context,
         cancel_token,
@@ -245,6 +251,7 @@ async fn setup_context() -> Result<
             Box::new(mining_manager),
             Box::new(scrapping_manager),
             Box::new(trade_manager),
+            Box::new(control_api),
         ],
     ))
 }
@@ -326,6 +333,7 @@ async fn start_managers(
     for mut manager in managers {
         let name = manager.get_name().to_string();
         let cancel_token = manager.get_cancel_token().clone();
+        debug!("Starting manager {}", name);
         let handle = tokio::task::spawn(async move { manager.run().await });
         handles.push((handle, name, cancel_token));
     }
@@ -378,12 +386,12 @@ async fn wait_managers(
         let manager_name = handle.1;
         let manager_handle = handle.0;
         let erg = manager_handle.await;
-        println!("{:?}: {:?}", manager_name, erg);
+        info!("{:?}: {:?}", manager_name, erg);
         if let Err(errror) = erg {
-            println!("{:?} manager error: {} {:?}", manager_name, errror, errror);
+            log::error!("{:?} manager error: {} {:?}", manager_name, errror, errror);
         } else if let Ok(r_erg) = erg {
             if let Err(errror) = r_erg {
-                println!(
+                log::error!(
                     "{:?} manager error: {} {:?}",
                     manager_name,
                     errror,
@@ -407,12 +415,12 @@ async fn wait_ships(
         let ship_name = handle.0;
         let ship_handle = handle.1;
         let erg = ship_handle.await;
-        println!("{:?}: {:?}", ship_name, erg);
+        info!("{:?}: {:?}", ship_name, erg);
         if let Err(errror) = erg {
-            println!("{:?} error: {} {:?}", ship_name, errror, errror);
+            log::error!("{:?} error: {} {:?}", ship_name, errror, errror);
         } else if let Ok(r_erg) = erg {
             if let Err(errror) = r_erg {
-                println!(
+                log::error!(
                     "{:?} error: {} {:?} {:?} {:?}",
                     ship_name,
                     errror,
