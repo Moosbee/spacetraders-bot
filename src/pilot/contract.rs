@@ -46,6 +46,15 @@ impl ContractPilot {
 
         self.count.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
 
+        if let ship::Role::Contract(_) = ship.role {
+            ship.role = ship::Role::Contract(Some((
+                shipment.contract_id.clone(),
+                self.count.load(std::sync::atomic::Ordering::SeqCst),
+            )));
+        }
+
+        ship.notify().await;
+
         let storage_count = ship.cargo.get_amount(&shipment.trade_symbol);
 
         debug!("Storage count: {}", storage_count);
@@ -81,6 +90,12 @@ impl ContractPilot {
         debug!("Completing shipment");
 
         let _complete_erg = self.complete_shipment(shipment, contract).await?;
+
+        if let ship::Role::Contract(_) = ship.role {
+            ship.role = ship::Role::Contract(None);
+        }
+
+        ship.notify().await;
 
         Ok(())
     }

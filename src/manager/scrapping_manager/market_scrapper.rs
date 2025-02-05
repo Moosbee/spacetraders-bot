@@ -66,7 +66,7 @@ impl MarketScrapper {
                 let api = self.context.api.clone();
                 let w = w.clone();
                 tokio::spawn(async move {
-                    debug!("Market: {:?}", w);
+                    debug!("Market: {}", w.symbol);
                     api.get_market(&w.system_symbol, &w.symbol).await.unwrap()
                 })
             })

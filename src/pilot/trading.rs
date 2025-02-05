@@ -31,9 +31,26 @@ impl TradingPilot {
             .ok_or(Error::General("Ship not found".to_string()))?;
         debug!("Starting trading cycle for ship {}", ship.symbol);
         let route = self.get_route(ship).await?;
+        self.count.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+
+        if let ship::Role::Trader(_) = ship.role {
+            ship.role = ship::Role::Trader(Some((
+                route.id,
+                self.count.load(std::sync::atomic::Ordering::SeqCst),
+            )));
+        }
+
+        ship.notify().await;
+
         debug!("Starting trade route for ship {}: {:?}", ship.symbol, route);
         let _route_erg = self.execute_trade(ship, &route, pilot).await?;
         let _completed_route = self.complete_trade(route).await?;
+        if let ship::Role::Trader(_) = ship.role {
+            ship.role = ship::Role::Trader(None);
+        }
+
+        ship.notify().await;
+
         Ok(())
     }
 

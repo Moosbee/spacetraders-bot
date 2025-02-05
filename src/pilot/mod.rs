@@ -39,7 +39,7 @@ impl Pilot {
             trading_pilot: TradingPilot::new(context.clone(), ship_symbol.clone()),
             scraper_pilot: ScraperPilot::new(),
             contract_pilot: ContractPilot::new(context.clone(), ship_symbol.clone()),
-            mining_pilot: MiningPilot::new(),
+            mining_pilot: MiningPilot::new(context.clone(), ship_symbol.clone()),
         };
 
         pilot
