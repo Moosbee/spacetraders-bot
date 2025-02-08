@@ -240,7 +240,7 @@ impl MyShip {
         api: &api::Api,
         trade_symbol: space_traders_client::models::TradeSymbol,
         units: i32,
-    ) -> anyhow::Result<()> {
+    ) -> error::Result<()> {
         self.mutate();
         let jettison_data: space_traders_client::models::Jettison200Response = api
             .jettison(
