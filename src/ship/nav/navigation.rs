@@ -43,7 +43,7 @@ impl MyShip {
         api: &api::Api,
         database_pool: crate::sql::DbPool,
         reason: TransactionReason,
-        prepare: bool,
+        prepare: bool, // prepare to have enough fuel to leave the waypoint without a marketplace
     ) -> Result<()> {
         self.mutate();
         let route: Vec<super::nav_models::RouteConnection> =
@@ -109,6 +109,17 @@ impl MyShip {
         Ok(())
     }
 
+    /// Calculate a route from the ship's current waypoint to the given waypoint.
+    ///
+    /// This function uses the ship's fuel capacity and current fuel levels to
+    /// determine how much fuel to use when calculating the route. It will use
+    /// the minimum of the ship's fuel capacity and the current fuel levels, minus
+    /// any fuel that is already allocated to the ship's cargo.
+    ///
+    /// The route is calculated using the `find_route` method, and the mode is set
+    /// to `BurnAndCruiseAndDrift`. The route is then returned as a `Vec` of
+    /// `RouteConnection`s.
+    ///
     pub fn calculate_route(
         &mut self,
         waypoints: &HashMap<String, models::Waypoint>,
@@ -139,6 +150,18 @@ impl MyShip {
         Ok(route)
     }
 
+    /// Execute a single navigation step.
+    ///
+    /// This function will validate the ship is currently at the correct waypoint,
+    /// wait for the ship to arrive at the next waypoint, handle any refueling
+    /// required, update the flight mode, ensure the ship is undocked and then
+    /// execute the navigation to the next waypoint, saving the route data to
+    /// the database.
+    ///
+    /// This function will return an error if the ship is not at the correct
+    /// waypoint, if the ship is unable to refuel or if the ship is unable to
+    /// navigate to the next waypoint.
+    ///
     async fn execute_navigation_step(
         &mut self,
         instruction: RouteInstruction,

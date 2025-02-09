@@ -8,6 +8,22 @@ use log::debug;
 use space_traders_client::models;
 use std::collections::HashMap;
 
+/// Calculate various statistics for a given route.
+///
+/// This function calculates the total distance, total fuel cost, and total travel time
+/// for a given route. The route is given as an array of `RouteConnection`s, and the
+/// engine speed, engine condition, frame condition, and reactor condition are given as
+/// arguments.
+///
+/// The function returns a tuple of four elements. The first element is a vector of
+/// `ConnectionDetails` which contains the detailed statistics for each connection in
+/// the route. The second element is the total distance of the route. The third element
+/// is the total fuel cost of the route. The fourth element is the total travel time of
+/// the route.
+///
+/// The total travel time is calculated by summing the travel times of all the
+/// connections in the route, and adding 1 to each travel time to account for the
+/// time it takes to transition between connections.
 pub fn calc_route_stats(
     waypoints: &HashMap<String, models::Waypoint>,
     route: &[RouteConnection],
@@ -135,6 +151,14 @@ fn calculate_travel_time(
     result
 }
 
+/// Generates a set of route instructions based on a route of ConnectionDetails.
+///
+/// The instructions are generated in reverse order of the route, and the
+/// `refuel_to` and `fuel_in_cargo` fields are filled in assuming that the
+/// ship is initially full of fuel (if `prepare` is true) and then
+/// incrementally updates its fuel capacity based on the fuel cost of each
+/// leg of the route.  If a leg of the route starts at a marketplace, the
+/// fuel capacity is reset to 0.
 pub fn generate_route_instructions(
     route: Vec<ConnectionDetails>,
     prepare: bool,

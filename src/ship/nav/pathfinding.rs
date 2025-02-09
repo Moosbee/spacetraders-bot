@@ -10,6 +10,27 @@ use space_traders_client::models;
 use std::collections::HashMap;
 
 impl MyShip {
+    /// Finds a route between two waypoints.
+    ///
+    /// This function attempts to find a path from the start waypoint to the end waypoint
+    /// using a specified navigation mode. It checks for routes that are either restricted
+    /// to markets or not, and considers a starting range for the search. The resulting
+    /// route, if found, is returned as a vector of `RouteConnection` objects.
+    ///
+    /// # Arguments
+    ///
+    /// * `waypoints` - A map of waypoint symbols to `Waypoint` objects representing the available waypoints.
+    /// * `start_symbol` - The symbol of the starting waypoint.
+    /// * `end_symbol` - The symbol of the destination waypoint.
+    /// * `nav_mode` - The navigation mode to use for finding the route.
+    /// * `only_markets` - Whether to restrict the search to markets only.
+    /// * `start_range` - The initial range to consider for the route search.
+    ///
+    /// # Returns
+    ///
+    /// * `Result<Vec<RouteConnection>>` - A result containing a vector of `RouteConnection` objects
+    /// representing the found route, or an error if the route could not be found.
+
     pub fn find_route(
         &mut self,
         waypoints: &HashMap<String, models::Waypoint>,
@@ -35,6 +56,27 @@ impl MyShip {
         erg
     }
 
+    /// Finds a route between two waypoints.
+    ///
+    /// This function attempts to find a path from the start waypoint to the end waypoint
+    /// using a specified navigation mode. It checks for routes that are either restricted
+    /// to markets or not, and considers a starting range for the search. If the route
+    /// is found, it is cached and the cached route is returned.
+    ///
+    /// # Arguments
+    ///
+    /// * `waypoints` - A map of waypoint symbols to `Waypoint` objects representing the available waypoints.
+    /// * `start_symbol` - The symbol of the starting waypoint.
+    /// * `end_symbol` - The symbol of the destination waypoint.
+    /// * `nav_mode` - The navigation mode to use for finding the route.
+    /// * `only_markets` - Whether to restrict the search to markets only.
+    /// * `start_range` - The initial range to consider for the route search.
+    /// * `cache` - A mutable cache to store the found route.
+    ///
+    /// # Returns
+    ///
+    /// * `Result<Vec<RouteConnection>>` - A result containing a vector of `RouteConnection` objects
+    /// representing the found route, or an error if the route could not be found.
     pub fn find_route_cached(
         &self,
         waypoints: &HashMap<String, models::Waypoint>,
