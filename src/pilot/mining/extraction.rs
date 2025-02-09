@@ -22,8 +22,13 @@ impl ExtractionPilot {
         &self,
         ship: &mut ship::MyShip,
         pilot: &crate::pilot::Pilot,
+        is_syphon: bool,
     ) -> Result<()> {
-        let waypoint_symbol = self.context.mining_manager.get_waypoint(&ship).await?;
+        let waypoint_symbol = self
+            .context
+            .mining_manager
+            .get_waypoint(&ship, is_syphon)
+            .await?;
 
         if !self.has_space(ship) {
             return Ok(());
@@ -35,13 +40,19 @@ impl ExtractionPilot {
 
         self.context.mining_manager.notify_waypoint(ship).await?;
 
-        self.wait_for_extraction(ship, pilot).await;
+        let i = self.wait_for_extraction(ship, pilot).await?;
 
-        self.extract(ship, pilot).await?;
+        if i == 0 {
+            self.context.mining_manager.unassign_waypoint(ship).await?;
+            return Ok(());
+        }
+
+        self.extract(ship, is_syphon).await?;
 
         self.eject_blacklist(ship).await?;
 
-        pilot.cancellation_token.cancelled().await;
+        self.context.mining_manager.unassign_waypoint(ship).await?;
+
         Ok(())
     }
 
@@ -77,14 +88,19 @@ impl ExtractionPilot {
         ship.cargo.units >= ship.cargo.capacity
     }
 
-    async fn extract(&self, ship: &mut ship::MyShip, pilot: &crate::pilot::Pilot) -> Result<()> {
+    async fn extract(&self, ship: &mut ship::MyShip, is_syphon: bool) -> Result<()> {
         if ship.is_on_cooldown() {
             return Err("Ship is on cooldown".into());
         }
 
         ship.ensure_undocked(&self.context.api).await?;
 
-        let action = ActionType::get_action(&ship).ok_or("Invalid ship role")?;
+        let action = if is_syphon {
+            ActionType::Siphon
+        } else {
+            ActionType::Extract
+        };
+        // let action = ActionType::get_action(&ship).ok_or("Invalid ship role")?;
 
         match action {
             ActionType::Extract => {
@@ -113,7 +129,7 @@ impl ExtractionPilot {
         &self,
         ship: &mut ship::MyShip,
         pilot: &crate::pilot::Pilot,
-    ) -> Result<()> {
+    ) -> Result<i32> {
         //needs revisit
 
         let i = tokio::select! {
@@ -121,6 +137,6 @@ impl ExtractionPilot {
             _ = ship.wait_for_cooldown(&self.context.api) => {1},
         };
 
-        Ok(())
+        Ok(i)
     }
 }

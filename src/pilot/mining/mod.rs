@@ -102,7 +102,9 @@ impl MiningPilot {
         ship: &mut ship::MyShip,
         pilot: &super::Pilot,
     ) -> Result<()> {
-        self.extraction.execute_extraction_circle(ship, pilot).await
+        self.extraction
+            .execute_extraction_circle(ship, pilot, false)
+            .await
     }
 
     async fn run_transporter_ship_worker(
@@ -118,8 +120,9 @@ impl MiningPilot {
         ship: &mut ship::MyShip,
         pilot: &super::Pilot,
     ) -> Result<()> {
-        pilot.cancellation_token.cancelled().await;
-        Ok(())
+        self.extraction
+            .execute_extraction_circle(ship, pilot, true)
+            .await
     }
 
     async fn run_surveyor_ship_worker(

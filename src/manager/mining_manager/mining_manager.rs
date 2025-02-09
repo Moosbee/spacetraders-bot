@@ -13,6 +13,7 @@ pub enum AssignWaypointMessage {
     AssignWaypoint {
         // assigns a ship to a waypoint, ship might need to get there
         ship_clone: crate::ship::MyShip,
+        is_syphon: bool,
         callback: tokio::sync::oneshot::Sender<Result<String>>,
     },
     NotifyWaypoint {
@@ -72,12 +73,17 @@ pub struct MiningManagerMessanger {
 }
 
 impl MiningManagerMessanger {
-    pub async fn get_waypoint(&self, ship: &crate::ship::MyShip) -> Result<String> {
+    pub async fn get_waypoint(
+        &self,
+        ship: &crate::ship::MyShip,
+        is_syphon: bool,
+    ) -> Result<String> {
         let (sender, callback) = tokio::sync::oneshot::channel();
 
         let message = MiningMessage::AssignWaypoint(AssignWaypointMessage::AssignWaypoint {
             ship_clone: ship.clone(),
             callback: sender,
+            is_syphon,
         });
         self.sender
             .send(message)
@@ -190,8 +196,9 @@ impl MiningManager {
             AssignWaypointMessage::AssignWaypoint {
                 ship_clone,
                 callback,
+                is_syphon,
             } => {
-                let erg = self.assign_waypoint(ship_clone).await;
+                let erg = self.assign_waypoint(ship_clone, is_syphon).await;
 
                 let _send = callback.send(erg);
             }
@@ -236,8 +243,17 @@ impl MiningManager {
         Ok(())
     }
 
-    async fn assign_waypoint(&mut self, ship_clone: crate::ship::MyShip) -> Result<String> {
-        let action: ActionType = ActionType::get_action(&ship_clone).ok_or("Invalid ship role")?;
+    async fn assign_waypoint(
+        &mut self,
+        ship_clone: crate::ship::MyShip,
+        is_syphon: bool,
+    ) -> Result<String> {
+        // let action: ActionType = ActionType::get_action(&ship_clone).ok_or("Invalid ship role")?;
+        let action: ActionType = if is_syphon {
+            ActionType::Siphon
+        } else {
+            ActionType::Extract
+        };
 
         let assigned_waypoint = self.find_and_assign(ship_clone, action).await?;
 
@@ -255,7 +271,7 @@ impl MiningManager {
         };
 
         let has = self.places.get_ship(&ship_clone.symbol);
-        if let Some((waypoint_symbol, assignment_level)) = has {
+        if let Some((waypoint_symbol, _assignment_level)) = has {
             let worked = self
                 .places
                 .try_assign_on_way(&ship_clone.symbol, &waypoint_symbol);
