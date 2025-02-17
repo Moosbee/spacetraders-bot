@@ -37,6 +37,7 @@ impl ActionType {
 pub struct FoundWaypointInfo {
     pub waypoint: models::Waypoint,
     pub distance: i32,
+    #[allow(dead_code)]
     pub next: String,
 }
 
