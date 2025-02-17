@@ -290,6 +290,7 @@ impl MyShip {
         self.notify().await;
     }
 
+    #[deprecated]
     pub async fn sleep(&mut self, duration: std::time::Duration, api: &api::Api) {
         self.mutate();
         let cancel = tokio_util::sync::CancellationToken::new();

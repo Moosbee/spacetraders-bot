@@ -83,7 +83,7 @@ impl TransportProcessor {
                     as f32
                 > 0.9)
             {
-                let route = self.calculate_waypoint_urgencys().await;
+                let route: Vec<(String, u32)> = self.calculate_waypoint_urgencys().await;
                 debug!("Routes: {:?}", route);
                 let routes = route.iter().filter(|r| r.1 > 0).collect::<Vec<_>>();
 

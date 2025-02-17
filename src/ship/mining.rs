@@ -20,7 +20,7 @@ impl MyShip {
         }
     }
 
-    pub async fn wait_for_cooldown(&mut self, api: &api::Api) -> crate::error::Result<()> {
+    pub async fn wait_for_cooldown_mut(&mut self, api: &api::Api) -> crate::error::Result<()> {
         self.mutate();
         if self.cooldown_expiration.is_none() {
             return Ok(());
@@ -34,6 +34,15 @@ impl MyShip {
             self.try_recive_update(api).await;
         }
         Ok(())
+    }
+
+    pub async fn wait_for_cooldown(&self) {
+        if let Some(cooldown_expiration) = self.cooldown_expiration {
+            let time_until_cooldown = cooldown_expiration.signed_duration_since(Utc::now());
+            if time_until_cooldown.num_milliseconds() > 0 {
+                tokio::time::sleep(time_until_cooldown.to_std().unwrap()).await;
+            }
+        }
     }
 
     pub async fn extract(

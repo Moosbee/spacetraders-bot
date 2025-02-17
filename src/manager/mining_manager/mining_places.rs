@@ -1,11 +1,11 @@
 use std::collections::{HashMap, HashSet};
 
 #[derive(Debug, Clone)]
-struct WaypointInfo {
-    waypoint_symbol: String,
+pub struct WaypointInfo {
+    pub waypoint_symbol: String,
     assigned_ships: HashMap<String, AssignLevel>, // ship_symbol -> level,
     last_updated: chrono::DateTime<chrono::Utc>,
-    ships_on_way: HashSet<String>,
+    pub ships_on_way: HashSet<String>,
 }
 
 impl WaypointInfo {
@@ -43,6 +43,14 @@ impl WaypointInfo {
             .iter()
             .filter(|(_, level)| *level != &AssignLevel::Inactive)
             .count()
+    }
+
+    pub fn ship_iter(&self) -> impl Iterator<Item = (&String, &AssignLevel)> {
+        self.assigned_ships.iter()
+    }
+
+    pub fn get_last_updated(&self) -> chrono::DateTime<chrono::Utc> {
+        self.last_updated
     }
 }
 
@@ -246,5 +254,9 @@ impl MiningPlaces {
 
     pub fn get_max_miners_per_waypoint(&self) -> u32 {
         self.max_miners_per_waypoint
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = (&String, &WaypointInfo)> {
+        self.mining_places.iter()
     }
 }

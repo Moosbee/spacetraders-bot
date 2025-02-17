@@ -110,14 +110,7 @@ async fn run_conductor(context: workers::types::ConductorContext) -> anyhow::Res
     Ok(())
 }
 
-async fn setup_context() -> Result<
-    (
-        workers::types::ConductorContext,
-        CancellationToken,
-        Vec<Box<dyn Manager>>,
-    ),
-    anyhow::Error,
-> {
+async fn setup_unauthed() -> Result<(Api, sql::DbPool), anyhow::Error> {
     dotenvy::dotenv()?;
 
     let env = Env::default()
@@ -143,6 +136,19 @@ async fn setup_context() -> Result<
             .connect(&database_url)
             .await?,
     );
+
+    Ok((api, database_pool))
+}
+
+async fn setup_context() -> Result<
+    (
+        workers::types::ConductorContext,
+        CancellationToken,
+        Vec<Box<dyn Manager>>,
+    ),
+    anyhow::Error,
+> {
+    let (api, database_pool) = setup_unauthed().await?;
 
     let my_agent = api.get_my_agent().await?;
     info!("My agent: {:?}", my_agent);

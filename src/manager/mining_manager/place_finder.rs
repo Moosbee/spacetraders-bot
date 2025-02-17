@@ -4,6 +4,7 @@ use crate::types::WaypointCan;
 
 use super::mining_places::MiningPlaces;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ActionType {
     Extract,
     Siphon,
@@ -33,7 +34,7 @@ impl ActionType {
     }
 }
 
-pub struct WaypointInfo {
+pub struct FoundWaypointInfo {
     pub waypoint: models::Waypoint,
     pub distance: i32,
     pub next: String,
@@ -54,11 +55,11 @@ impl PlaceFinder {
         ship_clone: crate::ship::MyShip,
         filter_fn: fn(&models::Waypoint) -> bool,
         mining_places: &MiningPlaces,
-    ) -> Vec<WaypointInfo> {
-        let waypoints: Vec<WaypointInfo> =
+    ) -> Vec<FoundWaypointInfo> {
+        let waypoints: Vec<FoundWaypointInfo> =
             self.get_best_waypoints(ship_clone.nav.system_symbol.clone(), filter_fn);
 
-        let possible_waypoints: Vec<WaypointInfo> = waypoints
+        let possible_waypoints: Vec<FoundWaypointInfo> = waypoints
             .into_iter()
             .filter(|wp| {
                 let count = mining_places.get_count(&wp.waypoint.symbol);
@@ -77,7 +78,7 @@ impl PlaceFinder {
         &self,
         system_symbol: String,
         filter: fn(&models::Waypoint) -> bool,
-    ) -> Vec<WaypointInfo> {
+    ) -> Vec<FoundWaypointInfo> {
         let waypoints = {
             let erg = self.context.all_waypoints.try_get(&system_symbol);
 
@@ -107,7 +108,7 @@ impl PlaceFinder {
             .filter(|w| w.is_marketplace())
             .collect::<Vec<_>>();
 
-        let mut d_points: Vec<WaypointInfo> = points
+        let mut d_points: Vec<FoundWaypointInfo> = points
             .iter()
             .map(|wp| {
                 let dis = markets
@@ -120,7 +121,7 @@ impl PlaceFinder {
 
                 let dis = dis.unwrap();
 
-                WaypointInfo {
+                FoundWaypointInfo {
                     waypoint: wp.clone(),
                     distance: dis.1,
                     next: dis.0.clone(),

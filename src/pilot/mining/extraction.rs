@@ -51,6 +51,13 @@ impl ExtractionPilot {
 
         self.eject_blacklist(ship).await?;
 
+        self.context
+            .mining_manager
+            .extraction_complete(&ship.symbol, &ship.nav.waypoint_symbol)
+            .await?;
+
+        let _i = self.wait_for_extraction(ship, pilot).await?;
+
         self.context.mining_manager.unassign_waypoint(ship).await?;
 
         Ok(())
@@ -132,9 +139,14 @@ impl ExtractionPilot {
     ) -> Result<i32> {
         //needs revisit
 
+        // tell mining manager you can transfer your cargo
+        // wait until cooldown is done
+        //    in meantime, listen to mining manager and transfer cargo it tells you
+        // cut connection to mining manager
+
         let i = tokio::select! {
             _ = pilot.cancellation_token.cancelled() => {0},// it's the end of the Programm we don't care(for now)
-            _ = ship.wait_for_cooldown(&self.context.api) => {1},
+            _ = ship.wait_for_cooldown() => {1},
         };
 
         Ok(i)

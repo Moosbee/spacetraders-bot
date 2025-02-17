@@ -123,7 +123,7 @@ impl ExtractionProcessor {
         for _ in 0..CONFIG.mining.max_extractions_per_miner {
             let i = tokio::select! {
                 _ = self.cancellation_token.cancelled() => {0},// it's the end of the Programm we don't care(for now)
-                _ = ship.wait_for_cooldown(&self.context.api) => {1},
+                _ = ship.wait_for_cooldown_mut(&self.context.api) => {1},
             };
 
             if i == 0 {
