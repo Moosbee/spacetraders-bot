@@ -6,21 +6,27 @@ use crate::error::Result;
 
 #[derive(Debug)]
 pub struct TransportTransferRequest {
-    from_symbol: String,
-    to_symbol: String,
-    amount: i32,
-    trade_symbol: models::TradeSymbol,
-    extractor_contact: tokio::sync::mpsc::Sender<ExtractorTransferRequest>,
-    callback: tokio::sync::oneshot::Sender<()>,
+    pub from_symbol: String,
+    pub to_symbol: String,
+    pub amount: i32,
+    pub trade_symbol: models::TradeSymbol,
+    pub extractor_contact: tokio::sync::mpsc::Sender<ExtractorTransferRequest>,
+    pub callback: tokio::sync::oneshot::Sender<()>,
 }
 
 #[derive(Debug)]
 pub struct ExtractorTransferRequest {
-    from_symbol: String,
-    to_symbol: String,
-    amount: i32,
-    trade_symbol: models::TradeSymbol,
-    callback: tokio::sync::oneshot::Sender<()>,
+    pub from_symbol: String,
+    pub to_symbol: String,
+    pub amount: i32,
+    pub trade_symbol: models::TradeSymbol,
+    pub callback: tokio::sync::oneshot::Sender<Option<TransferResult>>,
+}
+
+#[derive(Debug)]
+pub struct TransferResult {
+    pub trade_symbol: models::TradeSymbol,
+    pub units: i32,
 }
 
 #[derive(Debug)]
@@ -35,6 +41,23 @@ impl TransferManager {
             extraction_contacts: HashMap::new(),
             transportation_contacts: HashMap::new(),
         }
+    }
+
+    pub fn add_extractor_contact(
+        &mut self,
+        symbol: &str,
+        sender: mpsc::Sender<ExtractorTransferRequest>,
+    ) {
+        self.extraction_contacts.insert(symbol.to_string(), sender);
+    }
+
+    pub fn add_transportation_contact(
+        &mut self,
+        symbol: &str,
+        sender: mpsc::Sender<TransportTransferRequest>,
+    ) {
+        self.transportation_contacts
+            .insert(symbol.to_string(), sender);
     }
 
     pub async fn process_transfer(

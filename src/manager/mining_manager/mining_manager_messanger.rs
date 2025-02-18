@@ -1,5 +1,8 @@
-use super::mining_messages::{
-    AssignWaypointMessage, ExtractionNotification, MiningManagerMessage, MiningMessage,
+use super::{
+    mining_messages::{
+        AssignWaypointMessage, ExtractionNotification, MiningManagerMessage, MiningMessage,
+    },
+    transfer_manager::{ExtractorTransferRequest, TransportTransferRequest},
 };
 
 use crate::error::Result;
@@ -118,5 +121,44 @@ impl MiningManagerMessanger {
             .map_err(|e| crate::error::Error::General(format!("Failed to send message: {}", e)))?;
 
         Ok("ok".to_string())
+    }
+
+    pub async fn extractor_contact(
+        &self,
+        symbol: &str,
+    ) -> Result<tokio::sync::mpsc::Receiver<ExtractorTransferRequest>> {
+        let (sender, receiver) = tokio::sync::mpsc::channel(32);
+
+        let message =
+            MiningMessage::ExtractionNotification(ExtractionNotification::ExtractorContact {
+                symbol: symbol.to_string(),
+                sender,
+            });
+
+        self.sender
+            .send(message)
+            .await
+            .map_err(|e| crate::error::Error::General(format!("Failed to send message: {}", e)))?;
+
+        Ok(receiver)
+    }
+    pub async fn transport_contact(
+        &self,
+        symbol: &str,
+    ) -> Result<tokio::sync::mpsc::Receiver<TransportTransferRequest>> {
+        let (sender, receiver) = tokio::sync::mpsc::channel(32);
+
+        let message =
+            MiningMessage::ExtractionNotification(ExtractionNotification::TransportationContact {
+                symbol: symbol.to_string(),
+                sender,
+            });
+
+        self.sender
+            .send(message)
+            .await
+            .map_err(|e| crate::error::Error::General(format!("Failed to send message: {}", e)))?;
+
+        Ok(receiver)
     }
 }

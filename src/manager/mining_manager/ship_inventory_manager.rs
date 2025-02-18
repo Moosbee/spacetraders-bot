@@ -2,7 +2,7 @@ use space_traders_client::models;
 
 use crate::ship;
 
-pub struct TransferResult {
+pub struct TransporterResult {
     pub ship_symbol: String,
     pub available_space: i32,
 }
@@ -58,7 +58,7 @@ impl ShipInventoryManager {
         &self,
         ships: &[ship::MyShip],
         trade_symbol: &models::TradeSymbol,
-    ) -> Option<TransferResult> {
+    ) -> Option<TransporterResult> {
         // First try to find a ship that already has some of the cargo
         let transporter = ships
             .iter()
@@ -72,7 +72,7 @@ impl ShipInventoryManager {
                 .min_by_key(|ship| ship.cargo.capacity - ship.cargo.units)
         });
 
-        ship.map(|ship| TransferResult {
+        ship.map(|ship| TransporterResult {
             ship_symbol: ship.symbol.clone(),
             available_space: ship.cargo.capacity - ship.cargo.units,
         })

@@ -195,17 +195,18 @@ impl MyShip {
 
         Ok(delivery_result)
     }
-    pub async fn transfer_cargo(
+
+    pub async fn simple_transfer_cargo(
         &mut self,
         trade_symbol: space_traders_client::models::TradeSymbol,
         units: i32,
         api: &api::Api,
         target_ship: &str,
-    ) -> anyhow::Result<space_traders_client::models::TransferCargo200Response> {
+    ) -> crate::error::Result<space_traders_client::models::TransferCargo200Response> {
         self.mutate();
         let old_units = self.cargo.get_amount(&trade_symbol);
         if old_units < units {
-            return Err(anyhow::anyhow!("Not enough cargo"));
+            return Err("Not enough cargo".into());
         }
         let transfer_result: space_traders_client::models::TransferCargo200Response = api
             .transfer_cargo(
@@ -220,6 +221,23 @@ impl MyShip {
 
         self.cargo.update(&transfer_result.data.cargo);
         self.notify().await;
+
+        Ok(transfer_result)
+    }
+
+    pub async fn transfer_cargo(
+        &mut self,
+        trade_symbol: space_traders_client::models::TradeSymbol,
+        units: i32,
+        api: &api::Api,
+        target_ship: &str,
+    ) -> crate::error::Result<space_traders_client::models::TransferCargo200Response> {
+        self.mutate();
+
+        let transfer_result = self
+            .simple_transfer_cargo(trade_symbol, units, api, target_ship)
+            .await?;
+
         let update_event = super::ship_models::my_ship_update::MyShipUpdate {
             symbol: target_ship.to_string(),
             update: super::ship_models::my_ship_update::ShipUpdate::CargoChange(
@@ -230,7 +248,10 @@ impl MyShip {
             ),
         };
         debug!("Sending update event: {:#?}", update_event);
-        self.broadcaster.sender.send(update_event)?;
+        self.broadcaster
+            .sender
+            .send(update_event)
+            .map_err(|err| crate::error::Error::General(err.to_string()))?;
 
         Ok(transfer_result)
     }
@@ -320,19 +341,20 @@ impl super::ship_models::CargoState {
 
     pub fn handle_cago_update(
         &mut self,
-        cargo_change: super::ship_models::my_ship_update::CargoChange,
-    ) -> Result<(), anyhow::Error> {
-        debug!("Handling cargo update: {:?}", cargo_change);
+        units: i32,
+        trade_symbol: space_traders_client::models::TradeSymbol,
+    ) -> Result<(), crate::error::Error> {
+        debug!("Handling cargo update: {:?} {:?}", units, trade_symbol);
         let current_count = self.inventory.iter().map(|f| f.1).sum::<i32>();
         if !(current_count == self.units) {
-            return Err(anyhow::anyhow!("Not enough cargo"));
+            return Err("Not enough cargo".into());
         };
 
-        let entry = self.inventory.entry(cargo_change.trade_symbol);
+        let entry = self.inventory.entry(trade_symbol);
 
         let count = entry.or_insert(0);
 
-        count.add_assign(cargo_change.units);
+        count.add_assign(units);
 
         let new_count = self.inventory.iter().map(|f| f.1).sum::<i32>();
 

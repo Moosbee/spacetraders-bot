@@ -151,6 +151,13 @@ impl MiningManager {
             ExtractionNotification::TransportArrived { ship: _, waypoint } => {
                 let _erg = self.process_possible_transfers(&waypoint).await?;
             }
+            ExtractionNotification::ExtractorContact { symbol, sender } => {
+                self.transfer_manager.add_extractor_contact(&symbol, sender);
+            }
+            ExtractionNotification::TransportationContact { symbol, sender } => {
+                self.transfer_manager
+                    .add_transportation_contact(&symbol, sender);
+            }
         }
         Ok(())
     }

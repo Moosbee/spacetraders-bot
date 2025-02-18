@@ -1,8 +1,13 @@
 use std::sync::{atomic::AtomicI32, Arc};
 
 use crate::{
-    config::CONFIG, error::Result, manager::mining_manager::ActionType, ship,
-    sql::TransactionReason, types::safely_get_map, workers::types::ConductorContext,
+    config::CONFIG,
+    error::Result,
+    manager::mining_manager::{ActionType, ExtractorTransferRequest, TransferResult},
+    ship,
+    sql::TransactionReason,
+    types::safely_get_map,
+    workers::types::ConductorContext,
 };
 
 pub struct ExtractionPilot {
@@ -39,8 +44,13 @@ impl ExtractionPilot {
         self.go_to_waypoint(ship, &waypoint_symbol).await?;
 
         self.context.mining_manager.notify_waypoint(ship).await?;
+        let mut rec = self
+            .context
+            .mining_manager
+            .extractor_contact(&ship.symbol)
+            .await?;
 
-        let i = self.wait_for_extraction(ship, pilot).await?;
+        let i = self.wait_for_extraction(ship, pilot, &mut rec).await?;
 
         if i == 0 {
             self.context.mining_manager.unassign_waypoint(ship).await?;
@@ -56,7 +66,9 @@ impl ExtractionPilot {
             .extraction_complete(&ship.symbol, &ship.nav.waypoint_symbol)
             .await?;
 
-        let _i = self.wait_for_extraction(ship, pilot).await?;
+        let _i = self.wait_for_extraction(ship, pilot, &mut rec).await?;
+
+        drop(rec);
 
         self.context.mining_manager.unassign_waypoint(ship).await?;
 
@@ -136,6 +148,7 @@ impl ExtractionPilot {
         &self,
         ship: &mut ship::MyShip,
         pilot: &crate::pilot::Pilot,
+        receiver: &mut tokio::sync::mpsc::Receiver<ExtractorTransferRequest>,
     ) -> Result<i32> {
         //needs revisit
 
@@ -144,11 +157,56 @@ impl ExtractionPilot {
         //    in meantime, listen to mining manager and transfer cargo it tells you
         // cut connection to mining manager
 
-        let i = tokio::select! {
-            _ = pilot.cancellation_token.cancelled() => {0},// it's the end of the Programm we don't care(for now)
-            _ = ship.wait_for_cooldown() => {1},
+        loop {
+            let i = {
+                tokio::select! {
+                    _ = pilot.cancellation_token.cancelled() => {(None,0)},// it's the end of the Programm we don't care(for now)
+                    _ = ship.wait_for_cooldown() => {(None,1)},
+                    msg = receiver.recv() => {(msg,2)},
+                }
+            };
+
+            match i {
+                (Some(msg), _) => {
+                    self.handle_extractor_transfer_request(ship, msg).await?;
+                }
+                (None, 1) => {
+                    return Ok(1);
+                }
+                (None, 2) => {
+                    return Ok(2);
+                }
+                (None, _) => {
+                    return Ok(0);
+                }
+            }
+        }
+    }
+
+    async fn handle_extractor_transfer_request(
+        &self,
+        ship: &mut ship::MyShip,
+        request: ExtractorTransferRequest,
+    ) -> Result<()> {
+        let erg = ship
+            .simple_transfer_cargo(
+                request.trade_symbol,
+                request.amount,
+                &self.context.api,
+                &request.to_symbol,
+            )
+            .await;
+
+        let transfer_result = match erg {
+            Ok(_erg) => Some(TransferResult {
+                trade_symbol: request.trade_symbol,
+                units: request.amount,
+            }),
+            Err(_) => None,
         };
 
-        Ok(i)
+        let _erg = request.callback.send(transfer_result);
+
+        Ok(())
     }
 }

@@ -8,6 +8,7 @@ use space_traders_client::models;
 
 use crate::{
     error::Result,
+    manager::mining_manager::{ExtractorTransferRequest, TransportTransferRequest},
     ship,
     sql::{self, TransactionReason},
     workers::types::ConductorContext,
@@ -66,7 +67,7 @@ impl TransportPilot {
             )
             .await?;
 
-            self.handle_cargo_loading(ship).await?;
+            self.handle_cargo_loading(ship, pilot).await?;
         }
 
         self.sell_all_cargo(pilot, ship, &waypoints, last_waypoint)
@@ -82,11 +83,21 @@ impl TransportPilot {
         Ok(next_transport)
     }
 
-    async fn handle_cargo_loading(&self, ship: &mut ship::MyShip) -> Result<()> {
+    async fn handle_cargo_loading(
+        &self,
+        ship: &mut ship::MyShip,
+        pilot: &crate::pilot::Pilot,
+    ) -> Result<()> {
         // tell mining manager you have arrived
         // wait until storage is full or are told to leave
         //    in meantime, listen to mining manager and load cargo it tells you
         // cut connection to mining manager
+
+        let mut rec = self
+            .context
+            .mining_manager
+            .transport_contact(&ship.symbol)
+            .await?;
 
         let _erg = self
             .context
@@ -94,7 +105,67 @@ impl TransportPilot {
             .transport_arrived(&ship.symbol, &ship.nav.waypoint_symbol)
             .await?;
 
+        while !(ship.cargo.get_units_no_fuel() as f32
+            / (ship.cargo.capacity
+                - ship
+                    .cargo
+                    .get_amount(&space_traders_client::models::TradeSymbol::Fuel))
+                as f32
+            > 0.9)
+        {
+            let msg = tokio::select! {
+              _ = pilot.cancellation_token.cancelled() => {None},
+              msg = rec.recv() => msg,
+            };
+
+            match msg {
+                None => {
+                    break;
+                }
+                Some(transfer_request) => {
+                    self.handle_transfer_request(ship, transfer_request).await?;
+                }
+            }
+        }
+
+        drop(rec);
+
         todo!()
+    }
+
+    async fn handle_transfer_request(
+        &self,
+        ship: &mut ship::MyShip,
+        request: TransportTransferRequest,
+    ) -> Result<()> {
+        let (callback, receiver) = tokio::sync::oneshot::channel();
+
+        let extractor_req = ExtractorTransferRequest {
+            from_symbol: request.from_symbol.clone(),
+            to_symbol: ship.symbol.clone(),
+            amount: request.amount,
+            trade_symbol: request.trade_symbol,
+            callback,
+        };
+
+        let _erg = request
+            .extractor_contact
+            .send(extractor_req)
+            .await
+            .map_err(|e| crate::error::Error::General(format!("Failed to send message: {}", e)))?;
+
+        let transfer = receiver
+            .await
+            .map_err(|e| crate::error::Error::General(format!("Failed to receive message: {}", e)))?
+            .ok_or("Failed to receive message")?;
+
+        let _erg = ship
+            .cargo
+            .handle_cago_update(transfer.units, transfer.trade_symbol)?;
+
+        let _erg = request.callback.send(());
+
+        Ok(())
     }
 
     async fn sell_all_cargo(

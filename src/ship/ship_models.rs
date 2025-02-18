@@ -261,8 +261,10 @@ impl MyShip {
             "Handling update: {:?} for ship: {}",
             data.update, self.symbol
         );
-        let erg = match data.update {
-            ShipUpdate::CargoChange(cargo_change) => self.cargo.handle_cago_update(cargo_change),
+        let erg: std::result::Result<(), crate::error::Error> = match data.update {
+            ShipUpdate::CargoChange(cargo_change) => self
+                .cargo
+                .handle_cago_update(cargo_change.units, cargo_change.trade_symbol),
             ShipUpdate::TransferRequest(transfer_request) => {
                 let erg = self
                     .transfer_cargo(
@@ -273,19 +275,14 @@ impl MyShip {
                     )
                     .await;
                 debug!("Transfer cargo: {:?} {}", erg, self.symbol);
-                let _reg = transfer_request.callback.send(()).await;
+                let _reg: std::result::Result<(), tokio::sync::mpsc::error::SendError<()>> =
+                    transfer_request.callback.send(()).await;
                 erg.map(|_| ())
             }
             ShipUpdate::None => Ok(()),
         };
         if let Err(e) = erg {
-            log::error!(
-                "Failed to handle update: {} {:?} {:?} {:?}",
-                e,
-                e.root_cause(),
-                e.source(),
-                e.backtrace()
-            );
+            log::error!("Failed to handle update: {}", e);
         }
         self.notify().await;
     }

@@ -1,5 +1,7 @@
 use crate::error::Result;
 
+use super::transfer_manager::{ExtractorTransferRequest, TransportTransferRequest};
+
 #[derive(Debug)]
 pub enum MiningMessage {
     AssignWaypoint(AssignWaypointMessage),
@@ -52,5 +54,13 @@ pub enum ExtractionNotification {
         #[allow(dead_code)]
         ship: String,
         waypoint: String,
+    },
+    ExtractorContact {
+        symbol: String,
+        sender: tokio::sync::mpsc::Sender<ExtractorTransferRequest>,
+    },
+    TransportationContact {
+        symbol: String,
+        sender: tokio::sync::mpsc::Sender<TransportTransferRequest>,
     },
 }
