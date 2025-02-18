@@ -160,7 +160,7 @@ impl ContractFleet {
         let mut guard = self.context.ship_manager.get_mut(&ship_symbol).await;
         let ship = guard.value_mut().context("Ship not found")?;
 
-        ship.role = ship::Role::Contract(Some((current_contract.id.clone(), num)));
+        ship.status = ship::ShipStatus::Contract(Some((current_contract.id.clone(), num)));
         ship.notify().await;
 
         for mut procurement in procurements {
@@ -192,7 +192,7 @@ impl ContractFleet {
             }
         }
 
-        ship.role = ship::Role::Contract(None);
+        ship.status = ship::ShipStatus::Contract(None);
         ship.notify().await;
 
         Ok(current_contract)

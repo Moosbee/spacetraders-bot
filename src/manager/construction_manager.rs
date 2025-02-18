@@ -38,7 +38,7 @@ impl ConstructionManager {
         }
     }
 
-    async fn run_trade_worker(&self) -> Result<()> {
+    async fn run_construction_worker(&self) -> Result<()> {
         todo!()
     }
 }
@@ -47,7 +47,7 @@ impl Manager for ConstructionManager {
     fn run(
         &mut self,
     ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<()>> + Send + '_>> {
-        Box::pin(async move { self.run_trade_worker().await })
+        Box::pin(async move { self.run_construction_worker().await })
     }
 
     fn get_name(&self) -> &str {

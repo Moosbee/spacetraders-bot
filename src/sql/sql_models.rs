@@ -309,20 +309,20 @@ pub enum ShipInfoRole {
     Manuel,
 }
 
-impl From<crate::ship::Role> for ShipInfoRole {
-    fn from(role: crate::ship::Role) -> Self {
+impl From<crate::ship::ShipStatus> for ShipInfoRole {
+    fn from(role: crate::ship::ShipStatus) -> Self {
         match role {
-            crate::ship::Role::Construction => Self::Construction,
-            crate::ship::Role::Trader(_) => Self::Trader,
-            crate::ship::Role::Contract(_) => Self::Contract,
-            crate::ship::Role::Scraper => Self::Scraper,
-            crate::ship::Role::Mining(_) => Self::Mining,
-            crate::ship::Role::Manuel => Self::Manuel,
+            crate::ship::ShipStatus::Construction => Self::Construction,
+            crate::ship::ShipStatus::Trader(_) => Self::Trader,
+            crate::ship::ShipStatus::Contract(_) => Self::Contract,
+            crate::ship::ShipStatus::Scraper => Self::Scraper,
+            crate::ship::ShipStatus::Mining(_) => Self::Mining,
+            crate::ship::ShipStatus::Manuel => Self::Manuel,
         }
     }
 }
 
-impl From<ShipInfoRole> for crate::ship::Role {
+impl From<ShipInfoRole> for crate::ship::ShipStatus {
     fn from(role: ShipInfoRole) -> Self {
         match role {
             ShipInfoRole::Construction => Self::Construction,

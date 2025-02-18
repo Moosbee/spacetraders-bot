@@ -5,7 +5,7 @@ use log::debug;
 
 use crate::{
     error::{Error, Result},
-    ship::{self, Role},
+    ship::{self},
     workers::{mining::m_types::MiningShipAssignment, types::ConductorContext},
 };
 
@@ -34,7 +34,7 @@ impl MiningPilot {
 
         self.assign_ships(ship).await;
 
-        if let Role::Mining(assignment) = ship.role {
+        if let ship::ShipStatus::Mining(assignment) = ship.status {
             match assignment {
                 MiningShipAssignment::Extractor => {
                     self.run_extractor_ship_worker(ship, pilot).await?
@@ -59,29 +59,29 @@ impl MiningPilot {
     async fn assign_ships(&self, ship: &mut ship::MyShip) {
         let ship_capabilities = self.analyze_ship_capabilities(ship);
 
-        ship.role = match ship_capabilities {
+        ship.status = match ship_capabilities {
             ShipCapabilities {
                 can_extract: true,
                 can_cargo: true,
                 ..
-            } => Role::Mining(MiningShipAssignment::Extractor),
+            } => ship::ShipStatus::Mining(MiningShipAssignment::Extractor),
 
             ShipCapabilities {
                 can_extract: false,
                 can_siphon: true,
                 can_cargo: true,
                 ..
-            } => Role::Mining(MiningShipAssignment::Siphoner),
+            } => ship::ShipStatus::Mining(MiningShipAssignment::Siphoner),
 
             ShipCapabilities {
                 can_survey: true, ..
-            } => Role::Mining(MiningShipAssignment::Surveyor),
+            } => ship::ShipStatus::Mining(MiningShipAssignment::Surveyor),
 
             ShipCapabilities {
                 can_cargo: true, ..
-            } => Role::Mining(MiningShipAssignment::Transporter),
+            } => ship::ShipStatus::Mining(MiningShipAssignment::Transporter),
 
-            _ => Role::Mining(MiningShipAssignment::Useless),
+            _ => ship::ShipStatus::Mining(MiningShipAssignment::Useless),
         };
 
         debug!("Assigning role {:?} to ship {}", ship.role, ship.symbol);

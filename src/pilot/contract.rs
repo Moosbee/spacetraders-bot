@@ -46,12 +46,10 @@ impl ContractPilot {
 
         self.count.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
 
-        if let ship::Role::Contract(_) = ship.role {
-            ship.role = ship::Role::Contract(Some((
-                shipment.contract_id.clone(),
-                self.count.load(std::sync::atomic::Ordering::SeqCst),
-            )));
-        }
+        ship.status = ship::ShipStatus::Contract(Some((
+            shipment.contract_id.clone(),
+            self.count.load(std::sync::atomic::Ordering::SeqCst),
+        )));
 
         ship.notify().await;
 
@@ -91,9 +89,7 @@ impl ContractPilot {
 
         let _complete_erg = self.complete_shipment(shipment, contract).await?;
 
-        if let ship::Role::Contract(_) = ship.role {
-            ship.role = ship::Role::Contract(None);
-        }
+        ship.status = ship::ShipStatus::Contract(None);
 
         ship.notify().await;
 
@@ -101,7 +97,7 @@ impl ContractPilot {
     }
 
     async fn do_elsewhere(&self, ship: &mut ship::MyShip) -> Result<()> {
-        ship.role = ship::Role::Manuel;
+        ship.status = ship::ShipStatus::Manuel;
         debug!("Doing something else");
         todo!();
         // ship.notify().await;

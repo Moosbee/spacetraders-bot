@@ -41,14 +41,14 @@ impl TradeProcessor {
 
         let trade_record = self.record_trade_start(&route).await?;
 
-        ship.role = ship::Role::Trader(Some((trade_record.id, num)));
+        ship.status = ship::ShipStatus::Trader(Some((trade_record.id, num)));
         ship.notify().await;
 
         self.execute_trade(ship, &route, trade_record.id).await?;
 
         self.complete_trade_record(trade_record).await?;
 
-        ship.role = ship::Role::Trader(None);
+        ship.status = ship::ShipStatus::Trader(None);
         ship.notify().await;
 
         info!("Completed route: {}", route);

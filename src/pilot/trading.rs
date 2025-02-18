@@ -33,21 +33,17 @@ impl TradingPilot {
         let route = self.get_route(ship).await?;
         self.count.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
 
-        if let ship::Role::Trader(_) = ship.role {
-            ship.role = ship::Role::Trader(Some((
-                route.id,
-                self.count.load(std::sync::atomic::Ordering::SeqCst),
-            )));
-        }
+        ship.status = ship::ShipStatus::Trader(Some((
+            route.id,
+            self.count.load(std::sync::atomic::Ordering::SeqCst),
+        )));
 
         ship.notify().await;
 
         debug!("Starting trade route for ship {}: {:?}", ship.symbol, route);
         let _route_erg = self.execute_trade(ship, &route, pilot).await?;
         let _completed_route = self.complete_trade(route).await?;
-        if let ship::Role::Trader(_) = ship.role {
-            ship.role = ship::Role::Trader(None);
-        }
+        ship.status = ship::ShipStatus::Trader(None);
 
         ship.notify().await;
 
@@ -109,7 +105,7 @@ impl TradingPilot {
         self.count
             .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
         let num = self.count.load(std::sync::atomic::Ordering::Relaxed);
-        ship.role = ship::Role::Trader(Some((route.id, num)));
+        ship.status = ship::ShipStatus::Trader(Some((route.id, num)));
         debug!(
             "Starting trade route for ship {}: {:?} ({} of {})",
             ship.symbol,

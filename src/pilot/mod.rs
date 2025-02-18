@@ -127,12 +127,14 @@ impl Pilot {
         debug!("Starting pilot circle for ship {}", self.ship_symbol);
 
         let _erg = match role {
-            ship::Role::Construction => self.construction_pilot.execute_pilot_circle(&self).await,
-            ship::Role::Trader(_) => self.trading_pilot.execute_pilot_circle(&self).await,
-            ship::Role::Contract(_) => self.contract_pilot.execute_pilot_circle(&self).await,
-            ship::Role::Scraper => self.scraper_pilot.execute_pilot_circle(&self).await,
-            ship::Role::Mining(_) => self.mining_pilot.execute_pilot_circle(&self).await,
-            ship::Role::Manuel => self.wait_for_new_role().await,
+            sql::ShipInfoRole::Construction => {
+                self.construction_pilot.execute_pilot_circle(&self).await
+            }
+            sql::ShipInfoRole::Trader => self.trading_pilot.execute_pilot_circle(&self).await,
+            sql::ShipInfoRole::Contract => self.contract_pilot.execute_pilot_circle(&self).await,
+            sql::ShipInfoRole::Scraper => self.scraper_pilot.execute_pilot_circle(&self).await,
+            sql::ShipInfoRole::Mining => self.mining_pilot.execute_pilot_circle(&self).await,
+            sql::ShipInfoRole::Manuel => self.wait_for_new_role().await,
         }?;
 
         Ok(())

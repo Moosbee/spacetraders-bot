@@ -21,6 +21,7 @@ use super::ShipManager;
 impl Default for MyShip {
     fn default() -> Self {
         let me = Self {
+            status: Default::default(),
             role: Default::default(),
             registration_role: Default::default(),
             symbol: Default::default(),
@@ -44,6 +45,7 @@ impl Default for MyShip {
 impl Clone for MyShip {
     fn clone(&self) -> Self {
         Self {
+            status: self.status.clone(),
             role: self.role.clone(),
             registration_role: self.registration_role.clone(),
             display_name: self.display_name.clone(),
@@ -66,7 +68,7 @@ impl Clone for MyShip {
 
 #[derive(Debug, Clone, PartialEq, Eq, Default, serde::Serialize)]
 #[serde(tag = "type", content = "data")]
-pub enum Role {
+pub enum ShipStatus {
     Construction,
     Trader(Option<(i32, i32)>),
     Contract(Option<(String, i32)>),
@@ -78,7 +80,8 @@ pub enum Role {
 
 #[derive(Debug, serde::Serialize)]
 pub struct MyShip {
-    pub role: Role,
+    pub role: crate::sql::ShipInfoRole,
+    pub status: ShipStatus,
     pub registration_role: ShipRole,
     pub symbol: String,
     pub display_name: String,
@@ -335,37 +338,6 @@ impl MyShip {
         self.active = ship_info.active;
         self.display_name = ship_info.display_name;
         self.symbol = ship_info.symbol;
-        match self.role {
-            Role::Construction => {
-                if ship_info.role != crate::sql::ShipInfoRole::Construction {
-                    self.role = ship_info.role.into();
-                }
-            }
-            Role::Trader(_) => {
-                if ship_info.role != crate::sql::ShipInfoRole::Trader {
-                    self.role = ship_info.role.into();
-                }
-            }
-            Role::Contract(_) => {
-                if ship_info.role != crate::sql::ShipInfoRole::Contract {
-                    self.role = ship_info.role.into();
-                }
-            }
-            Role::Scraper => {
-                if ship_info.role != crate::sql::ShipInfoRole::Scraper {
-                    self.role = ship_info.role.into();
-                }
-            }
-            Role::Mining(_) => {
-                if ship_info.role != crate::sql::ShipInfoRole::Mining {
-                    self.role = ship_info.role.into();
-                }
-            }
-            Role::Manuel => {
-                if ship_info.role != crate::sql::ShipInfoRole::Manuel {
-                    self.role = ship_info.role.into();
-                }
-            }
-        }
+        self.role = ship_info.role;
     }
 }

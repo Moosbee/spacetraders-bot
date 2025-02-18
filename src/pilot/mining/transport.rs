@@ -130,7 +130,7 @@ impl TransportPilot {
 
         drop(rec);
 
-        todo!()
+        Ok(())
     }
 
     async fn handle_transfer_request(

@@ -12,12 +12,13 @@ pub enum ActionType {
 
 impl ActionType {
     pub fn get_action(ship_clone: &crate::ship::MyShip) -> Option<ActionType> {
-        match ship_clone.role {
-            crate::ship::Role::Construction => None,
-            crate::ship::Role::Trader(_) => None,
-            crate::ship::Role::Contract(_) => None,
-            crate::ship::Role::Scraper => None,
-            crate::ship::Role::Mining(mining_ship_assignment) => match mining_ship_assignment {
+        match ship_clone.status {
+            crate::ship::ShipStatus::Construction => None,
+            crate::ship::ShipStatus::Trader(_) => None,
+            crate::ship::ShipStatus::Contract(_) => None,
+            crate::ship::ShipStatus::Scraper => None,
+            crate::ship::ShipStatus::Mining(mining_ship_assignment) => match mining_ship_assignment
+            {
                 crate::workers::mining::m_types::MiningShipAssignment::Transporter => None,
                 crate::workers::mining::m_types::MiningShipAssignment::Extractor => {
                     Some(ActionType::Extract)
@@ -29,7 +30,7 @@ impl ActionType {
                 crate::workers::mining::m_types::MiningShipAssignment::Idle => None,
                 crate::workers::mining::m_types::MiningShipAssignment::Useless => None,
             },
-            crate::ship::Role::Manuel => None,
+            crate::ship::ShipStatus::Manuel => None,
         }
     }
 }

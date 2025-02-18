@@ -5,7 +5,7 @@ use warp::reply::Reply;
 
 use crate::{
     control_api::types::{Result, ServerError},
-    error, ship, sql,
+    error, sql,
     workers::types::ConductorContext,
 };
 
@@ -27,7 +27,7 @@ pub async fn handle_toggle_orbit(symbol: String, context: ConductorContext) -> R
         .value_mut()
         .ok_or_else(|| ServerError::BadRequest("Ship not found".into()))?;
 
-    if ship.role != ship::Role::Manuel {
+    if ship.role != sql::ShipInfoRole::Manuel {
         return Err(ServerError::BadRequest("Ship not in Manuel mode".into()).into());
     }
 
@@ -73,7 +73,7 @@ pub async fn handle_purchase_cargo_ship(
         .value_mut()
         .ok_or_else(|| ServerError::BadRequest("Ship not found".into()))?;
 
-    if ship.role != ship::Role::Manuel {
+    if ship.role != sql::ShipInfoRole::Manuel {
         return Err(ServerError::BadRequest("Ship not in Manuel mode".into()).into());
     }
 
@@ -127,7 +127,7 @@ pub async fn handle_navigate_ship(
         .value_mut()
         .ok_or_else(|| ServerError::BadRequest("Ship not found".into()))?;
 
-    if ship.role != ship::Role::Manuel {
+    if ship.role != sql::ShipInfoRole::Manuel {
         return Err(ServerError::BadRequest("Ship not in Manuel mode".into()).into());
     }
 

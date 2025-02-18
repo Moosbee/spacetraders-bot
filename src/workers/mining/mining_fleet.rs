@@ -8,7 +8,7 @@ use tokio_util::sync::CancellationToken;
 
 use crate::{
     config::CONFIG,
-    ship::{self, Role},
+    ship::{self},
     sql::ShipInfo,
     workers::mining::m_types::MiningShipAssignment,
 };
@@ -123,7 +123,7 @@ impl MiningFleet {
         let mut guard = self.context.ship_manager.get_mut(&ship_symbol).await;
         let ship = guard.value_mut().expect("Failed to get mining ship");
 
-        if let Role::Mining(assignment) = ship.role {
+        if let ship::ShipStatus::Mining(assignment) = ship.status {
             match assignment {
                 MiningShipAssignment::Extractor => self.run_extractor_ship_worker(ship).await?,
                 MiningShipAssignment::Transporter => self.run_transporter_ship_worker(ship).await?,
@@ -181,29 +181,29 @@ impl MiningFleet {
             let ship = guard.value_mut().unwrap();
             let ship_capabilities = self.analyze_ship_capabilities(ship);
 
-            ship.role = match ship_capabilities {
+            ship.status = match ship_capabilities {
                 ShipCapabilities {
                     can_extract: true,
                     can_cargo: true,
                     ..
-                } => Role::Mining(MiningShipAssignment::Extractor),
+                } => ship::ShipStatus::Mining(MiningShipAssignment::Extractor),
 
                 ShipCapabilities {
                     can_extract: false,
                     can_siphon: true,
                     can_cargo: true,
                     ..
-                } => Role::Mining(MiningShipAssignment::Siphoner),
+                } => ship::ShipStatus::Mining(MiningShipAssignment::Siphoner),
 
                 ShipCapabilities {
                     can_survey: true, ..
-                } => Role::Mining(MiningShipAssignment::Surveyor),
+                } => ship::ShipStatus::Mining(MiningShipAssignment::Surveyor),
 
                 ShipCapabilities {
                     can_cargo: true, ..
-                } => Role::Mining(MiningShipAssignment::Transporter),
+                } => ship::ShipStatus::Mining(MiningShipAssignment::Transporter),
 
-                _ => Role::Mining(MiningShipAssignment::Useless),
+                _ => ship::ShipStatus::Mining(MiningShipAssignment::Useless),
             };
 
             debug!("Assigning role {:?} to ship {}", ship.role, ship.symbol);
