@@ -301,6 +301,7 @@ pub struct ShipInfo {
 #[sqlx(type_name = "ship_info_role")]
 pub enum ShipInfoRole {
     Construction,
+    TempTrader,
     Trader,
     Contract,
     Scraper,
@@ -333,6 +334,7 @@ impl From<ShipInfoRole> for crate::ship::ShipStatus {
                 Self::Mining(crate::workers::mining::m_types::MiningShipAssignment::Idle)
             }
             ShipInfoRole::Manuel => Self::Manuel,
+            ShipInfoRole::TempTrader => Self::Trader(None),
         }
     }
 }

@@ -135,6 +135,7 @@ impl Pilot {
             sql::ShipInfoRole::Scraper => self.scraper_pilot.execute_pilot_circle(&self).await,
             sql::ShipInfoRole::Mining => self.mining_pilot.execute_pilot_circle(&self).await,
             sql::ShipInfoRole::Manuel => self.wait_for_new_role().await,
+            sql::ShipInfoRole::TempTrader => self.trading_pilot.execute_pilot_circle(&self).await,
         }?;
 
         Ok(())

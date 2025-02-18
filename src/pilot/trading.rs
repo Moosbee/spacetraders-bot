@@ -44,6 +44,9 @@ impl TradingPilot {
         let _route_erg = self.execute_trade(ship, &route, pilot).await?;
         let _completed_route = self.complete_trade(route).await?;
         ship.status = ship::ShipStatus::Trader(None);
+        if ship.role == sql::ShipInfoRole::TempTrader {
+            ship.role = sql::ShipInfoRole::Manuel;
+        }
 
         ship.notify().await;
 

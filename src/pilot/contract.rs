@@ -98,11 +98,11 @@ impl ContractPilot {
 
     async fn do_elsewhere(&self, ship: &mut ship::MyShip) -> Result<()> {
         ship.status = ship::ShipStatus::Manuel;
+        ship.role = sql::ShipInfoRole::Trader;
         debug!("Doing something else");
-        todo!();
-        // ship.notify().await;
+        ship.notify().await;
 
-        // Ok(())
+        Ok(())
     }
 
     async fn request_next_shipment(&self, ship: &ship::MyShip) -> Result<NextShipmentResp> {

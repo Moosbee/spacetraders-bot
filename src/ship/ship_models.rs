@@ -9,7 +9,7 @@ use tokio::select;
 
 use crate::{
     api,
-    sql::DatabaseConnector,
+    sql::{self, DatabaseConnector},
     types::{SendFuture, Subject},
     workers::mining::m_types::MiningShipAssignment,
 };
@@ -338,6 +338,8 @@ impl MyShip {
         self.active = ship_info.active;
         self.display_name = ship_info.display_name;
         self.symbol = ship_info.symbol;
-        self.role = ship_info.role;
+        if self.role != sql::ShipInfoRole::TempTrader {
+            self.role = ship_info.role;
+        }
     }
 }
