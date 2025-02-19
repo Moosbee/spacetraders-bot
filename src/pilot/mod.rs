@@ -13,7 +13,7 @@ use tokio_util::sync::CancellationToken;
 use trading::TradingPilot;
 
 use crate::config::CONFIG;
-use crate::{ship, sql, workers::types::ConductorContext};
+use crate::{sql, workers::types::ConductorContext};
 
 use crate::error::{Error, Result};
 
@@ -29,12 +29,16 @@ pub struct Pilot {
 }
 
 impl Pilot {
-    pub fn new(context: ConductorContext, ship_symbol: String) -> Self {
+    pub fn new(
+        context: ConductorContext,
+        ship_symbol: String,
+        cancellation_token: CancellationToken,
+    ) -> Self {
         debug!("Creating pilot for ship {}", ship_symbol);
         let pilot = Self {
             context: context.clone(),
             ship_symbol: ship_symbol.clone(),
-            cancellation_token: CancellationToken::new(),
+            cancellation_token,
             construction_pilot: ConstructionPilot::new(),
             trading_pilot: TradingPilot::new(context.clone(), ship_symbol.clone()),
             scraper_pilot: ScraperPilot::new(),

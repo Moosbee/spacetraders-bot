@@ -12,14 +12,14 @@ impl From<space_traders_client::models::Agent> for Agent {
             credits: item.credits,
             starting_faction: item.starting_faction,
             ship_count: item.ship_count,
-            created_at:  sqlx::types::time::PrimitiveDateTime::MIN,
+            created_at: sqlx::types::time::PrimitiveDateTime::MIN,
         }
     }
 }
 
 impl sql_models::Agent {
-  async fn get_last(database_pool: &DbPool) -> sqlx::Result<Vec<Agent>> {
-    let result = sqlx::query_as! {
+    async fn get_last(database_pool: &DbPool) -> sqlx::Result<Vec<Agent>> {
+        let result = sqlx::query_as! {
         Agent,
         r#"
         SELECT DISTINCT ON (symbol) symbol, account_id, headquarters, credits, starting_faction, ship_count, created_at
@@ -30,11 +30,11 @@ impl sql_models::Agent {
     .fetch_all(&database_pool.database_pool)
     .await;
 
-    result
-  }
+        result
+    }
 
-   pub async fn get_last_by_symbol(database_pool: &DbPool, symbol: &str) -> sqlx::Result<Agent> {
-    let result = sqlx::query_as! {
+    pub async fn get_last_by_symbol(database_pool: &DbPool, symbol: &str) -> sqlx::Result<Agent> {
+        let result = sqlx::query_as! {
         Agent,
         r#"
         SELECT DISTINCT ON (symbol) symbol, account_id, headquarters, credits, starting_faction, ship_count, created_at
@@ -47,8 +47,8 @@ impl sql_models::Agent {
     .fetch_one(&database_pool.database_pool)
     .await;
 
-    result
-  }
+        result
+    }
 }
 
 impl DatabaseConnector<Agent> for sql_models::Agent {
@@ -72,28 +72,36 @@ impl DatabaseConnector<Agent> for sql_models::Agent {
 
     async fn insert_bulk(database_pool: &DbPool, items: &Vec<Agent>) -> sqlx::Result<()> {
         let (
+            ((account_ids, symbols), (creditss, ship_counts)),
+            ((headquarterss, starting_factions), (_, _)),
+        ): (
             (
-              (account_ids,symbols),
-              (creditss,ship_counts)
-            ),(
-              (headquarterss, starting_factions),
-              (_,_)
-            )
-         ): (((Vec<_>, Vec<_>),(Vec<Result<i32, std::num::TryFromIntError>>, Vec<_>)),((Vec<_>, Vec<_>),(Vec<_>, Vec<_>)))=items.iter().map(|a|{
-          (
-            (
-              (a.account_id.clone(),a.symbol.clone()),
-              (a.credits.try_into(),a.ship_count)
-            ),(
-              (a.headquarters.clone(), a.starting_faction.clone()),
-              ((),())
-            )
-         )
-      }).unzip();
+                (Vec<_>, Vec<_>),
+                (Vec<Result<i32, std::num::TryFromIntError>>, Vec<_>),
+            ),
+            ((Vec<_>, Vec<_>), (Vec<_>, Vec<_>)),
+        ) = items
+            .iter()
+            .map(|a| {
+                (
+                    (
+                        (a.account_id.clone(), a.symbol.clone()),
+                        (a.credits.try_into(), a.ship_count),
+                    ),
+                    (
+                        (a.headquarters.clone(), a.starting_faction.clone()),
+                        ((), ()),
+                    ),
+                )
+            })
+            .unzip();
 
-      let creditss=creditss.into_iter().filter_map(|c|c.ok()).collect::<Vec<_>>();
+        let creditss = creditss
+            .into_iter()
+            .filter_map(|c| c.ok())
+            .collect::<Vec<_>>();
 
-    sqlx::query!(
+        sqlx::query!(
         r#"
             INSERT INTO agent (symbol, account_id, headquarters, credits, starting_faction, ship_count)
             select * from UNNEST($1::character varying[], $2::character varying[], $3::character varying[], $4::integer[], $5::character varying[], $6::integer[])
@@ -106,15 +114,15 @@ impl DatabaseConnector<Agent> for sql_models::Agent {
         &ship_counts
     ).execute(&database_pool.database_pool).await?;
 
-    for item in items {
-                database_pool
-            .agent_broadcast_channel
-            .0
-            .send(item.clone())
-            .unwrap();
-    }
-    
-// let mm:(Vec<_>,Vec<_>)=ag.iter().unzip();
+        for item in items {
+            database_pool
+                .agent_broadcast_channel
+                .0
+                .send(item.clone())
+                .unwrap();
+        }
+
+        // let mm:(Vec<_>,Vec<_>)=ag.iter().unzip();
 
         Ok(())
     }

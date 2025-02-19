@@ -1,10 +1,10 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, fmt::Debug};
 
 use chrono::{DateTime, Utc};
 use serde_with::serde_as;
 use space_traders_client::models;
 
-#[derive(Debug, Default, serde::Serialize, Clone)]
+#[derive(Default, serde::Serialize, Clone)]
 pub struct NavigationState {
     pub flight_mode: models::ShipNavFlightMode,
     pub status: models::ShipNavStatus,
@@ -14,6 +14,20 @@ pub struct NavigationState {
     pub auto_pilot: Option<AutopilotState>,
     #[serde(skip)]
     pub cache: Cache,
+}
+
+impl Debug for NavigationState {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("NavigationState")
+            .field("flight_mode", &self.flight_mode)
+            .field("status", &self.status)
+            .field("system_symbol", &self.system_symbol)
+            .field("waypoint_symbol", &self.waypoint_symbol)
+            .field("route", &self.route)
+            .field("auto_pilot", &self.auto_pilot)
+            // .field("cache", &self.cache)
+            .finish_non_exhaustive()
+    }
 }
 
 #[derive(Debug, Default, serde::Serialize, Clone)]
@@ -80,7 +94,7 @@ pub struct RouteConnection {
     pub re_cost: f64,
 }
 
-#[derive(Debug, Clone, Default, serde::Serialize)]
+#[derive(Clone, Default, serde::Serialize)]
 pub struct AutopilotState {
     pub arrival: DateTime<Utc>,
     pub departure_time: DateTime<Utc>,
@@ -93,6 +107,24 @@ pub struct AutopilotState {
     pub instructions: Vec<RouteInstruction>,
     pub connections: Vec<super::nav_models::ConnectionDetails>,
     pub travel_time: f64,
+}
+
+impl Debug for AutopilotState {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("AutopilotState")
+            .field("arrival", &self.arrival)
+            .field("departure_time", &self.departure_time)
+            .field("destination_symbol", &self.destination_symbol)
+            .field("destination_system_symbol", &self.destination_system_symbol)
+            .field("origin_symbol", &self.origin_symbol)
+            .field("origin_system_symbol", &self.origin_system_symbol)
+            .field("distance", &self.distance)
+            .field("fuel_cost", &self.fuel_cost)
+            // .field("instructions", &self.instructions)
+            // .field("connections", &self.connections)
+            .field("travel_time", &self.travel_time)
+            .finish_non_exhaustive()
+    }
 }
 
 #[derive(Debug, Default, Clone)]

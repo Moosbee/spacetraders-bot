@@ -45,7 +45,7 @@
   },
   "control_server": {
     "start_sleep_duration": 0,
-    "socket_address": "127.0.0.1:8080",
+    "socket_address": "127.0.0.1:8780",
     "active": true
   }
 }

@@ -5,7 +5,7 @@ use tokio::sync::RwLock;
 
 use crate::types::{safely_get_lock_mut_map, Observer, Subject};
 
-use super::MyShip;
+use super::{my_ship_update, MyShip};
 
 #[derive(Debug)]
 pub struct ShipManager {
@@ -14,6 +14,7 @@ pub struct ShipManager {
     mpsc_tx: tokio::sync::broadcast::Sender<MyShip>,
     mpsc_rx: tokio::sync::broadcast::Receiver<MyShip>,
     id: u32,
+    broadcaster: my_ship_update::InterShipBroadcaster,
 }
 
 pub type ShipGuard<'a> = <LockableHashMap<String, MyShip> as Lockable<String, MyShip>>::Guard<'a>;
@@ -49,7 +50,7 @@ impl Observer<MyShip> for ShipManager {
 }
 
 impl ShipManager {
-    pub fn new() -> Self {
+    pub fn new(broadcaster: my_ship_update::InterShipBroadcaster) -> Self {
         let (mpsc_tx, mpsc_rx) = tokio::sync::broadcast::channel(100);
         Self {
             locked_ships: LockableHashMap::new(),
@@ -57,6 +58,7 @@ impl ShipManager {
             mpsc_tx,
             mpsc_rx,
             id: rand::random::<u32>(),
+            broadcaster,
         }
     }
 
@@ -115,5 +117,9 @@ impl ShipManager {
             .unwrap();
 
         erg
+    }
+
+    pub fn get_broadcaster(&self) -> my_ship_update::InterShipBroadcaster {
+        self.broadcaster.clone()
     }
 }

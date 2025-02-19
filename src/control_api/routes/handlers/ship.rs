@@ -5,7 +5,8 @@ use warp::reply::Reply;
 
 use crate::{
     control_api::types::{Result, ServerError},
-    error, sql,
+    error,
+    sql::{self, DatabaseConnector},
     workers::types::ConductorContext,
 };
 
@@ -56,6 +57,51 @@ pub async fn handle_toggle_orbit(symbol: String, context: ConductorContext) -> R
     }
 
     Ok(warp::reply::json(&ship))
+}
+
+pub async fn handle_buy_ship(
+    body: serde_json::Value,
+    context: ConductorContext,
+) -> crate::control_api::types::Result<impl Reply> {
+    let ship_type = body["shipType"]
+        .as_str()
+        .ok_or(ServerError::BadRequest("Missing shipType".into()))?;
+
+    let waypoint_symbol = body["waypointSymbol"]
+        .as_str()
+        .ok_or(ServerError::BadRequest("Missing waypointSymbol".into()))?;
+
+    let purchase_ship_request = space_traders_client::models::PurchaseShipRequest::new(
+        space_traders_client::models::ShipType::from_str(ship_type)
+            .map_err(|_| ServerError::BadRequest("Invalid shipType".into()))?,
+        waypoint_symbol.to_string(),
+    );
+
+    let resp = context
+        .api
+        .purchase_ship(Some(purchase_ship_request))
+        .await
+        .map_err(|err| ServerError::Server(err.to_string()))?;
+
+    sql::Agent::insert(&context.database_pool, &sql::Agent::from(*resp.data.agent))
+        .await
+        .map_err(|err| ServerError::Server(err.to_string()))?;
+
+    let mut ship_i =
+        crate::ship::MyShip::from_ship(*resp.data.ship, context.ship_manager.get_broadcaster());
+
+    let ship_info = ship_i
+        .apply_from_db(context.database_pool.clone())
+        .await
+        .map_err(|err| ServerError::Server(err.to_string()))?;
+
+    context.ship_tasks.start_ship(ship_info).await;
+
+    crate::ship::ShipManager::add_ship(&context.ship_manager, ship_i).await;
+
+    Ok(warp::reply::json(&serde_json::json!({
+        "success": true,
+    })))
 }
 
 pub async fn handle_purchase_cargo_ship(

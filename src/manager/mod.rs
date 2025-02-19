@@ -5,6 +5,7 @@ pub mod construction_manager;
 pub mod contract_manager;
 pub mod mining_manager;
 pub mod scrapping_manager;
+pub mod ship_task;
 pub mod trade_manager;
 
 pub trait Manager: Send + Sync {

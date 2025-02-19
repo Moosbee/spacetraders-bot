@@ -1,6 +1,9 @@
 use space_traders_client::models;
 
-use super::{sql_models::{TradeRoute, TradeRouteSummary}, DatabaseConnector, DbPool};
+use super::{
+    sql_models::{TradeRoute, TradeRouteSummary},
+    DatabaseConnector, DbPool,
+};
 
 impl DatabaseConnector<TradeRoute> for TradeRoute {
     async fn insert(database_pool: &DbPool, item: &TradeRoute) -> sqlx::Result<()> {
@@ -25,13 +28,13 @@ impl DatabaseConnector<TradeRoute> for TradeRoute {
         Ok(())
     }
 
-    async fn insert_bulk(
-        database_pool: &DbPool,
-        items: &Vec<TradeRoute>,
-    ) -> sqlx::Result<()> {
+    async fn insert_bulk(database_pool: &DbPool, items: &Vec<TradeRoute>) -> sqlx::Result<()> {
         let (
             ((symbol_s, ship_symbol_s), (purchase_waypoint_s, sell_waypoint_s)),
-            ((finished_and_trade_volume_s, predicted_purchase_price_s), (predicted_sell_price_s, id_s)),
+            (
+                (finished_and_trade_volume_s, predicted_purchase_price_s),
+                (predicted_sell_price_s, id_s),
+            ),
         ): (
             (
                 (Vec<models::TradeSymbol>, Vec<String>),
@@ -61,7 +64,8 @@ impl DatabaseConnector<TradeRoute> for TradeRoute {
             .unzip();
         // .map(|f| f)
 
-        let (finished_s, trade_volume_s): (Vec<bool>, Vec<i32>) = finished_and_trade_volume_s.into_iter().unzip();
+        let (finished_s, trade_volume_s): (Vec<bool>, Vec<i32>) =
+            finished_and_trade_volume_s.into_iter().unzip();
 
         sqlx::query!(
             r#"
@@ -131,10 +135,10 @@ impl DatabaseConnector<TradeRoute> for TradeRoute {
 
 impl TradeRoute {
     pub async fn insert_new(database_pool: &DbPool, item: &TradeRoute) -> sqlx::Result<i32> {
-      struct Erg {
-        id:i32
-      }
-              let erg= sqlx::query_as!(
+        struct Erg {
+            id: i32,
+        }
+        let erg= sqlx::query_as!(
             Erg,          
             r#"
             insert into trade_route (symbol, ship_symbol, purchase_waypoint, sell_waypoint, finished,trade_volume, predicted_purchase_price, predicted_sell_price)
@@ -151,7 +155,7 @@ impl TradeRoute {
             item.predicted_sell_price
         ).fetch_all(&database_pool.database_pool).await?;
 
-       let erg= erg.first().ok_or_else(||sqlx::Error::RowNotFound)?;
+        let erg = erg.first().ok_or_else(|| sqlx::Error::RowNotFound)?;
 
         Ok(erg.id)
     }

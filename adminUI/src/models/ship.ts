@@ -63,7 +63,8 @@ interface Condition {
 }
 
 interface RustShip {
-  role: SystemShipRole;
+  role: any;
+  status: SystemShipRole;
   registration_role: ShipRole;
   symbol: string;
   engine_speed: number;

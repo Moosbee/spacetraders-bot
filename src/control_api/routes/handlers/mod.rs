@@ -26,6 +26,7 @@ pub use database::handle_get_contract;
 pub use database::handle_get_contracts;
 pub use database::handle_get_trade_routes;
 pub use database::handle_get_transactions;
+pub use ship::handle_buy_ship;
 pub use ship::handle_get_ships;
 pub use ship::handle_navigate_ship;
 pub use ship::handle_purchase_cargo_ship;

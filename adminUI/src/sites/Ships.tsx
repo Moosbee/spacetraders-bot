@@ -39,7 +39,9 @@ function Ships() {
         text: role,
         value: role,
       })),
-      render: (role: SystemShipRole) => <RoleRenderer role={role} />,
+      render: (role: SystemShipRole, record) => (
+        <RoleRenderer role={role} status={record.status} />
+      ),
       defaultFilteredValue: [
         "Construction",
         "Trader",

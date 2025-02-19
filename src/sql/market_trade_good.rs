@@ -1,6 +1,9 @@
 use space_traders_client::models;
 
-use super::{sql_models::{DatabaseConnector, MarketTradeGood}, DbPool};
+use super::{
+    sql_models::{DatabaseConnector, MarketTradeGood},
+    DbPool,
+};
 
 impl From<MarketTradeGood> for models::MarketTradeGood {
     fn from(val: MarketTradeGood) -> Self {

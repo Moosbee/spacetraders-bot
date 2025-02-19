@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, fmt::Debug};
 
 use chrono::{DateTime, Utc};
 use futures::FutureExt;
@@ -78,7 +78,7 @@ pub enum ShipStatus {
     Manuel,
 }
 
-#[derive(Debug, serde::Serialize)]
+#[derive(serde::Serialize)]
 pub struct MyShip {
     pub role: crate::sql::ShipInfoRole,
     pub status: ShipStatus,
@@ -104,6 +104,29 @@ pub struct MyShip {
     pub broadcaster: InterShipBroadcaster,
     #[serde(skip)]
     pub pubsub: crate::types::Publisher<ShipManager, MyShip>,
+}
+
+impl Debug for MyShip {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("MyShip")
+            .field("role", &self.role)
+            .field("status", &self.status)
+            .field("registration_role", &self.registration_role)
+            .field("symbol", &self.symbol)
+            .field("display_name", &self.display_name)
+            .field("engine_speed", &self.engine_speed)
+            .field("active", &self.active)
+            .field("cooldown_expiration", &self.cooldown_expiration)
+            .field("nav", &self.nav)
+            .field("cargo", &self.cargo)
+            .field("fuel", &self.fuel)
+            .field("mounts", &self.mounts)
+            .field("conditions", &self.conditions)
+            .field("is_clone", &self.is_clone)
+            // .field("broadcaster", &self.broadcaster)
+            // .field("pubsub", &self.pubsub)
+            .finish_non_exhaustive()
+    }
 }
 pub mod my_ship_update {
     use space_traders_client::models::TradeSymbol;
@@ -306,7 +329,10 @@ impl MyShip {
             .await;
     }
 
-    pub async fn apply_from_db(&mut self, database_pool: crate::sql::DbPool) -> Result<()> {
+    pub async fn apply_from_db(
+        &mut self,
+        database_pool: crate::sql::DbPool,
+    ) -> Result<crate::sql::ShipInfo> {
         self.mutate();
         let db_ship = crate::sql::ShipInfo::get_by_symbol(&database_pool, &self.symbol).await?;
         let ship_info = match db_ship {
@@ -328,9 +354,9 @@ impl MyShip {
             }
         };
 
-        self.update_ship_info(ship_info);
+        self.update_ship_info(ship_info.clone());
 
-        Ok(())
+        Ok(ship_info)
     }
 
     fn update_ship_info(&mut self, ship_info: crate::sql::ShipInfo) {

@@ -7,7 +7,8 @@ use crate::{
     manager::{
         construction_manager::ConstructionManagerMessanger,
         contract_manager::ContractManagerMessanger, mining_manager::MiningManagerMessanger,
-        scrapping_manager::ScrappingManagerMessanger, trade_manager::TradeManagerMessanger,
+        scrapping_manager::ScrappingManagerMessanger, ship_task::ShipTaskMessanger,
+        trade_manager::TradeManagerMessanger,
     },
     ship::ShipManager,
     sql::DbPool,
@@ -20,6 +21,7 @@ pub struct ConductorContext {
     pub ship_manager: Arc<ShipManager>,
     pub all_waypoints:
         Arc<DashMap<String, HashMap<String, space_traders_client::models::Waypoint>>>,
+    pub ship_tasks: ShipTaskMessanger,
     pub construction_manager: ConstructionManagerMessanger,
     pub contract_manager: ContractManagerMessanger,
     pub mining_manager: MiningManagerMessanger,

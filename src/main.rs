@@ -21,7 +21,7 @@ use dashmap::DashMap;
 use env_logger::{Env, Target};
 use manager::{
     construction_manager::ConstructionManager, contract_manager::ContractManager,
-    mining_manager::MiningManager, scrapping_manager::ScrappingManager,
+    mining_manager::MiningManager, scrapping_manager::ScrappingManager, ship_task::ShipTaskHandler,
     trade_manager::TradeManager, Manager,
 };
 use rsntp::AsyncSntpClient;
@@ -170,14 +170,14 @@ async fn setup_context() -> Result<
     )
     .await?;
 
-    let ship_manager = Arc::new(ship::ShipManager::new()); // ship::ShipManager::new();
-
     let (sender, receiver) = broadcast::channel(1024);
 
-    let broadcaster = ship::my_ship_update::InterShipBroadcaster { sender, receiver };
+    let ship_manager = Arc::new(ship::ShipManager::new(
+        ship::my_ship_update::InterShipBroadcaster { sender, receiver },
+    )); // ship::ShipManager::new();
 
     for ship in ships {
-        let mut ship_i = ship::MyShip::from_ship(ship.clone(), broadcaster.clone());
+        let mut ship_i = ship::MyShip::from_ship(ship.clone(), ship_manager.get_broadcaster());
 
         ship_i.apply_from_db(database_pool.clone()).await.unwrap();
 
@@ -201,11 +201,13 @@ async fn setup_context() -> Result<
     let mining_manager_data = MiningManager::create();
     let scrapping_manager_data = ScrappingManager::create();
     let trade_manager_data = TradeManager::create();
+    let ship_task_handler = ShipTaskHandler::create();
 
     let context = workers::types::ConductorContext {
         api: api.clone(),
         database_pool,
         ship_manager,
+        ship_tasks: ship_task_handler.1,
         all_waypoints: all_waypoints.clone(),
         construction_manager: construction_manager_data.1,
         contract_manager: contract_manager_data.1,
@@ -242,6 +244,13 @@ async fn setup_context() -> Result<
         trade_manager_data.0,
     );
 
+    let ship_task_handler = ShipTaskHandler::new(
+        cancel_token.child_token(),
+        cancel_token.child_token(),
+        context.clone(),
+        ship_task_handler.0,
+    );
+
     let control_api = control_api::server::ControlApiServer::new(
         context.clone(),
         context.ship_manager.get_rx(),
@@ -257,6 +266,7 @@ async fn setup_context() -> Result<
             Box::new(mining_manager),
             Box::new(scrapping_manager),
             Box::new(trade_manager),
+            Box::new(ship_task_handler),
             Box::new(control_api),
         ],
     ))
@@ -293,27 +303,23 @@ async fn start(
 
     // let _ = main_token.cancelled().await;
 
+    debug!("Starting managers and ships");
+
     let managers_handles = start_managers(managers).await?;
-    let ship_handles = start_ships(context.clone()).await?;
+    start_ships(&context).await?;
 
     debug!("Managers and ships started");
 
     let manager_future = wait_managers(managers_handles);
-    let ship_future = wait_ships(ship_handles);
 
     debug!("Waiting for managers and ships to finish");
 
-    let erg: (Result<(), error::Error>, Result<(), error::Error>) =
-        tokio::join!(manager_future, ship_future);
+    let erg = manager_future.await;
 
     debug!("Managers and ships finished");
 
-    if let Err(errror) = erg.0 {
-        error!("Managers error: {} {}", errror, errror);
-    }
-
-    if let Err(errror) = erg.1 {
-        error!("Ships error: {} {}", errror, errror);
+    if let Err(errror) = erg {
+        error!("Managers error: {} {:?}", errror, errror);
     }
 
     debug!("Start function finished");
@@ -347,38 +353,20 @@ async fn start_managers(
 }
 
 async fn start_ships(
-    context: workers::types::ConductorContext,
-) -> Result<
-    Vec<(
-        sql::ShipInfo,
-        tokio::task::JoinHandle<Result<(), anyhow::Error>>,
-        CancellationToken,
-    )>,
-    crate::error::Error,
-> {
-    let ship_names = sql::ShipInfo::get_all(&context.database_pool).await?;
-    let ship_handles: Vec<(
-        sql::ShipInfo,
-        tokio::task::JoinHandle<Result<(), anyhow::Error>>,
-        CancellationToken,
-    )> = ship_names
-        .into_iter()
-        .map(|s| {
-            let pilot = pilot::Pilot::new(context.clone(), s.symbol.clone());
-            let cancel_token = pilot.get_cancel_token();
-            debug!("Starting pilot for ship {}", s.symbol);
-            let handle: tokio::task::JoinHandle<Result<(), anyhow::Error>> =
-                tokio::task::spawn(async move {
-                    let _erg = pilot.pilot_ship().await?;
-                    Ok(())
-                });
-            (s, handle, cancel_token)
-        })
-        .collect::<Vec<_>>();
+    context: &workers::types::ConductorContext,
+) -> Result<(), crate::error::Error> {
+    let ship_names: Vec<sql::ShipInfo> = sql::ShipInfo::get_all(&context.database_pool).await?;
 
-    debug!("Started pilots for {} ships", ship_handles.len());
+    let len = ship_names.len();
+    debug!("Starting {} ships", len);
 
-    Ok(ship_handles)
+    for ship in ship_names {
+        context.ship_tasks.start_ship(ship).await;
+    }
+
+    debug!("Started pilots for {} ships", len);
+
+    Ok(())
 }
 
 async fn wait_managers(
@@ -402,37 +390,6 @@ async fn wait_managers(
                     manager_name,
                     errror,
                     errror.source(),
-                );
-            } else if let Ok(_res) = r_erg {
-            }
-        }
-    }
-    Ok(())
-}
-
-async fn wait_ships(
-    ship_handles: Vec<(
-        sql::ShipInfo,
-        tokio::task::JoinHandle<Result<(), anyhow::Error>>,
-        CancellationToken,
-    )>,
-) -> Result<(), crate::error::Error> {
-    for handle in ship_handles {
-        let ship_name = handle.0;
-        let ship_handle = handle.1;
-        let erg = ship_handle.await;
-        info!("{:?}: {:?}", ship_name, erg);
-        if let Err(errror) = erg {
-            log::error!("{:?} error: {} {:?}", ship_name, errror, errror);
-        } else if let Ok(r_erg) = erg {
-            if let Err(errror) = r_erg {
-                log::error!(
-                    "{:?} error: {} {:?} {:?} {:?}",
-                    ship_name,
-                    errror,
-                    errror.backtrace(),
-                    errror.source(),
-                    errror.root_cause()
                 );
             } else if let Ok(_res) = r_erg {
             }

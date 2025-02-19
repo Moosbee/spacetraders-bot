@@ -68,7 +68,9 @@ function System() {
         orbitals.length > 0 ? (
           <Flex gap={1} vertical>
             {orbitals.map((o: WaypointOrbital) => (
-              <WaypointLink waypoint={o.symbol}>{o.symbol}</WaypointLink>
+              <WaypointLink waypoint={o.symbol} key={o.symbol}>
+                {o.symbol}
+              </WaypointLink>
             ))}
           </Flex>
         ) : (
@@ -180,8 +182,8 @@ function System() {
       <Divider />
       <Table
         columns={columns}
-        dataSource={Object.values(Waypoints)}
-        rowKey={"symbol"}
+        dataSource={Object.values(Waypoints || {})}
+        rowKey={(row) => row.symbol}
       />
     </div>
   );
