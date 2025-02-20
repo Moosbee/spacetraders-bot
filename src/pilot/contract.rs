@@ -98,7 +98,7 @@ impl ContractPilot {
 
     async fn do_elsewhere(&self, ship: &mut ship::MyShip) -> Result<()> {
         ship.status = ship::ShipStatus::Manuel;
-        ship.role = sql::ShipInfoRole::Trader;
+        ship.role = sql::ShipInfoRole::TempTrader;
         debug!("Doing something else");
         ship.notify().await;
 
@@ -209,20 +209,28 @@ impl ContractPilot {
             .iter()
             .find(|t| t.symbol == shipment.trade_symbol)
             .unwrap();
-        let current_price = market_trade.purchase_price as i64;
+
+        let units_needed = shipment.units - ship.cargo.get_amount(&shipment.trade_symbol);
+
+        let current_price = (market_trade.purchase_price * units_needed) as i64;
 
         let budget = pilot.get_budget().await?;
 
         if budget < current_price {
+            debug!(
+                "Not enough funds to purchase units: {} should cost: {} funds has {} funds",
+                units_needed, current_price, budget
+            );
             return Err(Error::NotEnoughFunds {
                 remaining_funds: budget,
                 required_funds: current_price,
             });
         }
 
-        let units_needed = shipment.units - ship.cargo.get_amount(&shipment.trade_symbol);
-
-        debug!("Purchasing units: {}", units_needed);
+        debug!(
+            "Purchasing units: {} should cost: {} funds has {} funds",
+            units_needed, current_price, budget
+        );
 
         let _erg = ship
             .purchase_cargo(

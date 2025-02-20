@@ -47,8 +47,7 @@ const RoleRenderer = ({
 
   return (
     <div>
-      <span>{status.type}</span>{" "}
-      {renderContract() || renderTrader() || renderMining()}
+      <span>{role}</span> {renderContract() || renderTrader() || renderMining()}
     </div>
   );
 };

@@ -57,6 +57,7 @@ impl RouteCalculator {
             .collect::<Vec<_>>();
 
         debug!("Routes: {}", routes.len());
+        // debug!("Routes: {:#?}", routes);
 
         let route = routes
             .into_iter()
@@ -146,12 +147,12 @@ impl RouteCalculator {
 
             (
                 if min_volume == i32::MAX {
-                    20
+                    10
                 } else {
                     min_volume
                 },
                 if max_volume == i32::MIN {
-                    20
+                    10
                 } else {
                     max_volume
                 },
@@ -203,6 +204,8 @@ impl RouteCalculator {
         ExtrapolatedTradeRoute { route, data }
     }
     fn is_valid_route(&self, route: &ExtrapolatedTradeRoute) -> bool {
-        !CONFIG.trading.blacklist.contains(&route.route.symbol) && route.data.profit > 0
+        !CONFIG.trading.blacklist.contains(&route.route.symbol)
+            && route.data.profit > 0
+            && route.route.purchase.waypoint_symbol != route.route.sell.waypoint_symbol
     }
 }

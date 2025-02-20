@@ -18,8 +18,13 @@ impl ConcreteRouteCalculator {
     pub fn calc(
         &mut self,
         ship: &ship::MyShip,
-        trade_route: ExtrapolatedTradeRoute,
+        mut trade_route: ExtrapolatedTradeRoute,
     ) -> ConcreteTradeRoute {
+        let max_transport = ship.cargo.capacity;
+
+        trade_route.data.max_trade_volume = max_transport.min(trade_route.data.max_trade_volume);
+        trade_route.data.min_trade_volume = max_transport.min(trade_route.data.min_trade_volume);
+
         let (route_stats, route_to_stats) = self.calculate_route_statistics(ship, &trade_route);
 
         let trip_stats = if true {

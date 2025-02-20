@@ -95,9 +95,17 @@ pub async fn handle_buy_ship(
         .await
         .map_err(|err| ServerError::Server(err.to_string()))?;
 
-    context.ship_tasks.start_ship(ship_info).await;
-
     crate::ship::ShipManager::add_ship(&context.ship_manager, ship_i).await;
+
+    {
+        let mut ship_g = context.ship_manager.get_mut(&ship_info.symbol).await;
+        let ship = ship_g
+            .value_mut()
+            .ok_or_else(|| ServerError::BadRequest("Ship not found".into()))?;
+        ship.notify().await;
+    }
+
+    context.ship_tasks.start_ship(ship_info).await;
 
     Ok(warp::reply::json(&serde_json::json!({
         "success": true,

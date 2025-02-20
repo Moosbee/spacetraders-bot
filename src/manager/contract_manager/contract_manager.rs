@@ -5,6 +5,7 @@ use log::{debug, info};
 use space_traders_client::models::{self};
 
 use crate::{
+    config::CONFIG,
     error::{self, Error, Result},
     manager::Manager,
     ship,
@@ -114,6 +115,12 @@ impl ContractManager {
         Ok(())
     }
 
+    async fn get_budget(&self) -> Result<i64> {
+        let agent =
+            sql::Agent::get_last_by_symbol(&self.context.database_pool, &CONFIG.symbol).await?;
+        Ok(agent.credits - 30_000)
+    }
+
     async fn handle_contract_message(&mut self, message: ContractManagerMessage) -> Result<()> {
         debug!("Handling contract message: {:?}", message);
         match message {
@@ -122,11 +129,13 @@ impl ContractManager {
                 can_start_new_contract,
                 callback,
             } => {
-                let contract = self
+                let next_shipment = self
                     .request_next_shipment(ship_clone, can_start_new_contract)
                     .await;
 
-                let _send = callback.send(contract);
+                debug!("Got contract: {:?}", next_shipment);
+
+                let _send = callback.send(next_shipment);
             }
             ContractMessage::FailedShipment {
                 shipment,
@@ -275,14 +284,30 @@ impl ContractManager {
         let next_procurment = all_procurment[0];
         debug!("Next procurement task: {:?}", next_procurment);
 
-        let purchase_volume = self.calculate_purchase_volume(&ship_clone, next_procurment);
+        let (purchase_volume, remaining) =
+            self.calculate_purchase_volume(&ship_clone, next_procurment);
         debug!("Calculated purchase volume: {}", purchase_volume);
 
         let trade_symbol = models::TradeSymbol::from_str(&next_procurment.trade_symbol)
             .map_err(|err| Error::General(err.to_string()))?;
 
         let purchase_symbol = self.get_purchase_waypoint(&trade_symbol).await?;
-        debug!("Obtained purchase waypoint: {}", purchase_symbol);
+        debug!("Obtained purchase waypoint: {:?}", purchase_symbol);
+
+        if let Some(purchase_price) = purchase_symbol.1 {
+            debug!("Calculated purchase price: {}", purchase_price);
+            let total_price = (purchase_price * remaining) as i64;
+
+            let budget = self.get_budget().await?;
+            debug!("Calculated budget: {}", budget);
+            if total_price > budget {
+                debug!(
+                    "Not enough budget for purchase has {} needed {}",
+                    total_price, budget
+                );
+                return Ok(NextShipmentResp::ComeBackLater);
+            }
+        }
 
         let mut next_shipment = sql::ContractShipment {
             contract_id: contract.id.clone(),
@@ -291,7 +316,7 @@ impl ContractManager {
             units: purchase_volume,
             id: 0,
             ship_symbol: ship_clone.symbol.to_string(),
-            purchase_symbol: purchase_symbol.to_owned(),
+            purchase_symbol: purchase_symbol.0.to_owned(),
             status: sql::ShipmentStatus::InTransit,
             ..Default::default()
         };
@@ -314,9 +339,12 @@ impl ContractManager {
         &self,
         ship: &ship::MyShip,
         procurement: &models::ContractDeliverGood,
-    ) -> i32 {
+    ) -> (i32, i32) {
         let remaining_required = procurement.units_required - procurement.units_fulfilled;
-        (ship.cargo.capacity - ship.cargo.units).min(remaining_required)
+        (
+            (ship.cargo.capacity - ship.cargo.units).min(remaining_required),
+            remaining_required,
+        )
     }
 
     async fn failed_shipment(
@@ -494,7 +522,10 @@ impl ContractManager {
         Ok(viable)
     }
 
-    async fn get_purchase_waypoint(&self, trade_symbol: &models::TradeSymbol) -> Result<String> {
+    async fn get_purchase_waypoint(
+        &self,
+        trade_symbol: &models::TradeSymbol,
+    ) -> Result<(String, Option<i32>)> {
         debug!(
             "Getting purchase waypoint for trade symbol: {:?}",
             trade_symbol
@@ -534,7 +565,10 @@ impl ContractManager {
             .ok_or(Into::<Error>::into("No valid market found"))?;
 
         debug!("Selected market: {:?}", first_market);
-        Ok(first_market.0.waypoint_symbol.clone())
+        Ok((
+            first_market.0.waypoint_symbol.clone(),
+            first_market.1.as_ref().map(|t| t.purchase_price),
+        ))
     }
 }
 

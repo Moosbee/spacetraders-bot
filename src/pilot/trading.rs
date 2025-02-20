@@ -54,6 +54,7 @@ impl TradingPilot {
     }
 
     async fn get_route(&self, ship: &mut ship::MyShip) -> Result<sql::TradeRoute> {
+        debug!("Requesting next trade route for ship {}", ship.symbol);
         let (sender, receiver) = tokio::sync::oneshot::channel();
 
         let message = TradeManagerMessage::RequestNextTradeRoute {
@@ -61,8 +62,7 @@ impl TradingPilot {
             callback: sender,
         };
 
-        let _erg = self
-            .context
+        self.context
             .trade_manager
             .sender
             .send(message)
@@ -73,19 +73,20 @@ impl TradingPilot {
             .await
             .map_err(|e| Error::General(format!("Failed to get message: {}", e)))?;
 
+        debug!("Received trade route for ship {}: {:?}", ship.symbol, resp);
         resp
     }
 
     async fn complete_trade(&self, trade_route: sql::TradeRoute) -> Result<sql::TradeRoute> {
+        debug!("Completing trade route: {:?}", trade_route);
         let (sender, receiver) = tokio::sync::oneshot::channel();
 
         let message = TradeManagerMessage::CompleteTradeRoute {
-            trade_route: trade_route,
+            trade_route: trade_route.clone(),
             callback: sender,
         };
 
-        let _erg = self
-            .context
+        self.context
             .trade_manager
             .sender
             .send(message)
@@ -96,6 +97,7 @@ impl TradingPilot {
             .await
             .map_err(|e| Error::General(format!("Failed to get message: {}", e)))?;
 
+        debug!("Completed trade route: {:?}", resp);
         resp
     }
 
@@ -105,6 +107,10 @@ impl TradingPilot {
         route: &sql::TradeRoute,
         pilot: &crate::pilot::Pilot,
     ) -> Result<()> {
+        debug!(
+            "Executing trade for ship {} on route {:?}",
+            ship.symbol, route
+        );
         self.count
             .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
         let num = self.count.load(std::sync::atomic::Ordering::Relaxed);
@@ -119,6 +125,10 @@ impl TradingPilot {
         self.execute_purchase(ship, route, pilot).await?;
         self.execute_sale(ship, route).await?;
 
+        debug!(
+            "Trade execution completed for ship {} on route {:?}",
+            ship.symbol, route
+        );
         Ok(())
     }
 
@@ -128,6 +138,10 @@ impl TradingPilot {
         route: &sql::TradeRoute,
         pilot: &crate::pilot::Pilot,
     ) -> Result<()> {
+        debug!(
+            "Executing purchase for ship {} on route {:?}",
+            ship.symbol, route
+        );
         if !ship.cargo.has(&route.symbol) {
             let waypoints = self
                 .context
@@ -136,6 +150,10 @@ impl TradingPilot {
                 .unwrap()
                 .clone();
 
+            debug!(
+                "Navigating to purchase waypoint: {}",
+                route.purchase_waypoint
+            );
             ship.nav_to(
                 &route.purchase_waypoint,
                 true,
@@ -164,11 +182,19 @@ impl TradingPilot {
             let budget = pilot.get_budget().await?;
             let trade_volume = if budget < (purchase_price * route.trade_volume).into() {
                 let trade_volume = (budget as f64 / purchase_price as f64).floor() as i32;
+                debug!(
+                    "Purchasing {} units of {} for {} due to budget constraint",
+                    trade_volume, route.trade_volume, route.symbol
+                );
                 trade_volume
             } else {
                 route.trade_volume
             };
 
+            debug!(
+                "Purchasing cargo: {} units of {}",
+                trade_volume, route.symbol
+            );
             ship.purchase_cargo(
                 &self.context.api,
                 &route.symbol,
@@ -178,10 +204,18 @@ impl TradingPilot {
             )
             .await?;
         }
+        debug!(
+            "Purchase completed for ship {} on route {:?}",
+            ship.symbol, route
+        );
         Ok(())
     }
 
     async fn execute_sale(&self, ship: &mut ship::MyShip, route: &sql::TradeRoute) -> Result<()> {
+        debug!(
+            "Executing sale for ship {} on route {:?}",
+            ship.symbol, route
+        );
         let waypoints = self
             .context
             .all_waypoints
@@ -189,6 +223,7 @@ impl TradingPilot {
             .unwrap()
             .clone();
 
+        debug!("Navigating to sell waypoint: {}", route.sell_waypoint);
         ship.nav_to(
             &route.sell_waypoint,
             true,
@@ -202,6 +237,7 @@ impl TradingPilot {
         ship.ensure_docked(&self.context.api).await?;
 
         let cargo_volume = ship.cargo.get_amount(&route.symbol);
+        debug!("Selling cargo: {} units of {}", cargo_volume, route.symbol);
         ship.sell_cargo(
             &self.context.api,
             &route.symbol,
@@ -211,6 +247,10 @@ impl TradingPilot {
         )
         .await?;
 
+        debug!(
+            "Sale completed for ship {} on route {:?}",
+            ship.symbol, route
+        );
         Ok(())
     }
 }

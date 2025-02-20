@@ -184,6 +184,9 @@ function System() {
         columns={columns}
         dataSource={Object.values(Waypoints || {})}
         rowKey={(row) => row.symbol}
+        pagination={{
+          showTotal: (total, range) => `${range[0]}-${range[1]} of ${total}`,
+        }}
       />
     </div>
   );

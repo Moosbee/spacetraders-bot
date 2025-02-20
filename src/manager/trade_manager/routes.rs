@@ -1,5 +1,5 @@
 use core::fmt;
-use std::cmp::Ordering;
+use std::cmp::{Ordering, Reverse};
 
 use crate::sql;
 
@@ -88,8 +88,7 @@ impl Ord for PossibleTradeRoute {
             _ => {} // Both Some or both None, continue to next comparison
         }
 
-        // If all Option comparisons are equal, use symbol as tiebreaker
-        self.symbol.cmp(&other.symbol)
+        Ordering::Equal
     }
 }
 
@@ -178,7 +177,7 @@ impl From<ConcreteTradeRoute> for sql::TradeRoute {
 
 impl PartialOrd for ConcreteTradeRoute {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        let cmp = self.route.cmp(&other.route);
+        let cmp = self.route.cmp(&other.route).reverse();
         if cmp != Ordering::Equal {
             Some(cmp)
         } else {

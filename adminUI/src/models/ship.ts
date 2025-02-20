@@ -63,7 +63,7 @@ interface Condition {
 }
 
 interface RustShip {
-  role: any;
+  role: SystemShipRoles;
   status: SystemShipRole;
   registration_role: ShipRole;
   symbol: string;
@@ -85,6 +85,7 @@ export type SystemShipRoles =
 export const SystemShipRoles = {
   Construction: "Construction",
   Trader: "Trader",
+  TempTrader: "TempTrader",
   Contract: "Contract",
   Scraper: "Scraper",
   Mining: "Mining",

@@ -1,9 +1,10 @@
-import { Button, Flex, Input } from "antd";
+import { Button, Flex, Input, Typography } from "antd";
 import { useState } from "react";
 import PageTitle from "../features/PageTitle";
 import { backendUrl } from "../store";
 
 const { TextArea } = Input;
+const { Text } = Typography;
 
 function BulkActions() {
   const [text, setText] = useState("");
@@ -12,6 +13,12 @@ function BulkActions() {
     <div style={{ padding: "24px 24px" }}>
       <PageTitle title="Bulk Actions" />
       <h1>BulkActions</h1>
+      <Text>
+        Supported:
+        <ul>
+          <li>navigate ship_symbol -{">"} Waypoint_symbol</li>
+        </ul>
+      </Text>
       <Flex gap={12} vertical>
         <TextArea
           rows={20}

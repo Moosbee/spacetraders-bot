@@ -45,17 +45,18 @@ function Ships() {
       defaultFilteredValue: [
         "Construction",
         "Trader",
+        "TempTrader",
         "Contract",
         "Mining",
         "Manuel",
       ],
-      onFilter: (value, record) => record.role.type === value,
+      onFilter: (value, record) => record.role === value,
       sorter: (a, b) => {
-        const num = a.role.type.localeCompare(b.role.type);
+        const num = a.role.localeCompare(b.role);
         if (num === 0) {
-          if (a.role.type === "Mining" && b.role.type === "Mining") {
-            const data_a = a.role.data ?? "";
-            const data_b = b.role.data ?? "";
+          if (a.status.type === "Mining" && b.status.type === "Mining") {
+            const data_a = a.status.data ?? "";
+            const data_b = b.status.data ?? "";
             return data_a.localeCompare(data_b);
           }
         }
@@ -227,6 +228,7 @@ function Ships() {
           showSizeChanger: true,
           pageSizeOptions: ["10", "20", "50", "100", "200", "500", "1000"],
           defaultPageSize: 100,
+          showTotal: (total, range) => `${range[0]}-${range[1]} of ${total}`,
         }}
       />
     </div>
