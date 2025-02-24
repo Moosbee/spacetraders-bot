@@ -16,7 +16,7 @@ impl MyShip {
             let t = t.num_seconds();
             t > 0
         } else {
-            true
+            false
         }
     }
 
@@ -36,13 +36,14 @@ impl MyShip {
         Ok(())
     }
 
-    pub async fn wait_for_cooldown(&self) {
+    pub fn wait_for_cooldown(&self) -> impl std::future::Future<Output = ()> {
         if let Some(cooldown_expiration) = self.cooldown_expiration {
             let time_until_cooldown = cooldown_expiration.signed_duration_since(Utc::now());
             if time_until_cooldown.num_milliseconds() > 0 {
-                tokio::time::sleep(time_until_cooldown.to_std().unwrap()).await;
+                return tokio::time::sleep(time_until_cooldown.to_std().unwrap());
             }
         }
+        return tokio::time::sleep(std::time::Duration::ZERO);
     }
 
     pub async fn extract(

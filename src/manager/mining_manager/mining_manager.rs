@@ -33,7 +33,7 @@ impl MiningManager {
         MiningManagerMessanger,
     ) {
         let (sender, receiver) = tokio::sync::mpsc::channel(1024);
-
+        debug!("Created MiningManager channel");
         (receiver, MiningManagerMessanger { sender })
     }
 
@@ -42,6 +42,7 @@ impl MiningManager {
         context: crate::workers::types::ConductorContext,
         receiver: tokio::sync::mpsc::Receiver<MiningManagerMessage>,
     ) -> Self {
+        debug!("Initializing new MiningManager");
         Self {
             cancel_token,
             receiver,
@@ -62,22 +63,27 @@ impl MiningManager {
             debug!("Received mining message: {:?}", message);
             match message {
                 Some(message) => {
+                    debug!("Handling message: {:?}", message);
                     self.handle_message(message).await?;
                 }
-                None => break,
+                None => {
+                    debug!("No more messages, exiting loop");
+                    break;
+                }
             }
         }
 
+        debug!("MiningManager worker stopped");
         Ok(())
     }
 
     async fn handle_message(&mut self, message: MiningManagerMessage) -> Result<()> {
         match message {
             MiningMessage::AssignWaypoint(message) => {
-                self.handle_assign_waypoint_message(message).await?
+                self.handle_assign_waypoint_message(message).await?;
             }
             MiningMessage::ExtractionNotification(message) => {
-                self.handle_extraction_notification(message).await?
+                self.handle_extraction_notification(message).await?;
             }
         }
         Ok(())
@@ -88,39 +94,43 @@ impl MiningManager {
         message: AssignWaypointMessage,
     ) -> Result<()> {
         match message {
-            // Handle assigning a waypoint to a ship
             AssignWaypointMessage::AssignWaypoint {
                 ship_clone,
                 callback,
                 is_syphon,
             } => {
+                debug!("Assigning waypoint for ship: {}", ship_clone.symbol);
                 let erg = self
                     .waypoint_manager
                     .assign_waypoint_syphon(ship_clone, is_syphon)
                     .await;
+                debug!(
+                    "Waypoint assignment result: {:?} is_syphon: {}",
+                    erg, is_syphon
+                );
                 let _send = callback.send(erg);
             }
-            // Handle notification that a ship has arrived at a waypoint
             AssignWaypointMessage::NotifyWaypoint {
                 ship_clone,
                 callback,
             } => {
+                debug!("Notifying waypoint for ship: {:?}", ship_clone);
                 let erg = self.waypoint_manager.notify_waypoint(ship_clone).await;
                 let _send = callback.send(erg);
             }
-            // Handle unassigning a ship from a waypoint
             AssignWaypointMessage::UnassignWaypoint {
                 ship_clone,
                 callback,
             } => {
+                debug!("Unassigning waypoint for ship: {:?}", ship_clone);
                 let erg = self.waypoint_manager.unassign_waypoint(ship_clone).await;
                 let _send = callback.send(erg);
             }
-            // Handle completion of unassigning a ship
             AssignWaypointMessage::UnassignWaypointComplete {
                 ship_clone,
                 callback,
             } => {
+                debug!("Waypoint unassignment complete for ship: {:?}", ship_clone);
                 let erg = self
                     .waypoint_manager
                     .unassign_waypoint_complete(ship_clone)
@@ -141,20 +151,36 @@ impl MiningManager {
                 ship_clone,
                 callback,
             } => {
+                debug!("Getting next waypoint for ship: {:?}", ship_clone);
                 let erg = self.get_next_waypoint(ship_clone).await;
-
                 let _send = callback.send(erg);
             }
-            ExtractionNotification::ExtractionComplete { ship: _, waypoint } => {
+            ExtractionNotification::ExtractionComplete { ship, waypoint } => {
+                debug!(
+                    "Extraction complete for ship: {:?} at waypoint: {:?}",
+                    ship, waypoint
+                );
                 let _erg = self.process_possible_transfers(&waypoint).await?;
             }
-            ExtractionNotification::TransportArrived { ship: _, waypoint } => {
+            ExtractionNotification::TransportArrived { ship, waypoint } => {
+                debug!(
+                    "Transport arrived for ship: {:?} at waypoint: {:?}",
+                    ship, waypoint
+                );
                 let _erg = self.process_possible_transfers(&waypoint).await?;
             }
             ExtractionNotification::ExtractorContact { symbol, sender } => {
+                debug!(
+                    "Extractor contact for symbol: {:?}, sender: {:?}",
+                    symbol, sender
+                );
                 self.transfer_manager.add_extractor_contact(&symbol, sender);
             }
             ExtractionNotification::TransportationContact { symbol, sender } => {
+                debug!(
+                    "Transportation contact for symbol: {:?}, sender: {:?}",
+                    symbol, sender
+                );
                 self.transfer_manager
                     .add_transportation_contact(&symbol, sender);
             }
@@ -163,19 +189,35 @@ impl MiningManager {
     }
 
     async fn process_possible_transfers(&mut self, waypoint_symbol: &str) -> Result<()> {
+        debug!(
+            "Processing possible transfers at waypoint: {:?}",
+            waypoint_symbol
+        );
         let mut current_trade_symbol = None;
 
         loop {
             let ships = self.get_ships_at_waypoint(waypoint_symbol).await?;
-            let (transport_ships, extraction_ships) = self.partition_ships_by_role(ships);
+            let (extraction_ships, transport_ships) = self.partition_ships_by_role(ships);
+
+            debug!(
+                "Found {} extraction ships and {} transport ships at waypoint: {:?}",
+                extraction_ships.len(),
+                transport_ships.len(),
+                waypoint_symbol
+            );
 
             let extraction_ships = self.filter_ships_with_cargo(extraction_ships);
             if extraction_ships.is_empty() {
+                debug!("No ships with cargo at waypoint: {:?}", waypoint_symbol);
                 return Ok(());
             }
 
             let transport_ships = self.filter_ships_with_space(transport_ships);
             if transport_ships.is_empty() {
+                debug!(
+                    "No transport ships with space at waypoint: {:?}",
+                    waypoint_symbol
+                );
                 return Ok(());
             }
 
@@ -186,6 +228,10 @@ impl MiningManager {
                         .inventory_manager
                         .determine_most_abundant_cargo(&extraction_ships);
                     if symbol.is_none() {
+                        debug!(
+                            "No trade symbol determined at waypoint: {:?}",
+                            waypoint_symbol
+                        );
                         return Ok(());
                     }
                     symbol
@@ -193,6 +239,7 @@ impl MiningManager {
             };
             current_trade_symbol = Some(trade_symbol.clone());
 
+            debug!("Executing transfer with trade symbol: {:?}", trade_symbol);
             let transfer_result = self
                 .execute_transfer(
                     &transport_ships,
@@ -202,12 +249,14 @@ impl MiningManager {
                 .await?;
 
             if !transfer_result {
+                debug!("Transfer failed, resetting trade symbol");
                 current_trade_symbol = None;
             }
         }
     }
 
     async fn get_ships_at_waypoint(&self, waypoint_symbol: &str) -> Result<Vec<ship::MyShip>> {
+        debug!("Fetching ships at waypoint: {:?}", waypoint_symbol);
         Ok(self
             .context
             .ship_manager
@@ -215,7 +264,8 @@ impl MiningManager {
             .await
             .into_iter()
             .filter(|f| f.1.nav.waypoint_symbol == waypoint_symbol)
-            .filter(|f| ActionType::get_action(&f.1).is_some())
+            .filter(|f| !f.1.nav.is_in_transit())
+            .filter(|f| f.1.role == crate::sql::ShipInfoRole::Mining)
             .map(|f| f.1)
             .collect())
     }
@@ -224,19 +274,32 @@ impl MiningManager {
         &self,
         ships: Vec<ship::MyShip>,
     ) -> (Vec<ship::MyShip>, Vec<ship::MyShip>) {
+        debug!("Partitioning ships by role");
         ships.into_iter().partition(|f| {
-            let action = ActionType::get_action(&f)
-                .ok_or("Invalid ship role")
-                .unwrap();
-            action == ActionType::Extract
+            let action = ActionType::get_action(&f).is_some();
+            action
         })
     }
 
+    /*************  ✨ Codeium Command ⭐  *************/
+    /// Filters the provided list of ships, returning only those that have cargo units on board.
+    ///
+    /// # Arguments
+    ///
+    /// * `ships` - A vector of `MyShip` instances to be filtered.
+    ///
+    /// # Returns
+    ///
+    /// A vector containing only the ships that have cargo units greater than zero.
+
+    /******  ad872d95-00e3-45eb-aded-19a164a38851  *******/
     fn filter_ships_with_cargo(&self, ships: Vec<ship::MyShip>) -> Vec<ship::MyShip> {
+        debug!("Filtering ships with cargo");
         ships.into_iter().filter(|f| f.cargo.units > 0).collect()
     }
 
     fn filter_ships_with_space(&self, ships: Vec<ship::MyShip>) -> Vec<ship::MyShip> {
+        debug!("Filtering ships with space");
         ships
             .into_iter()
             .filter(|f| f.cargo.units < f.cargo.capacity)
@@ -249,12 +312,16 @@ impl MiningManager {
         extraction_ships: &[ship::MyShip],
         trade_symbol: &models::TradeSymbol,
     ) -> Result<bool> {
+        debug!("Executing transfer for trade symbol: {:?}", trade_symbol);
         let transporter = match self
             .inventory_manager
             .find_best_transporter(transport_ships, trade_symbol)
         {
             Some(t) => t,
-            None => return Ok(false),
+            None => {
+                debug!("No suitable transporter found");
+                return Ok(false);
+            }
         };
 
         let extractor = match self
@@ -262,33 +329,63 @@ impl MiningManager {
             .find_best_extractor(extraction_ships, trade_symbol)
         {
             Some(e) => e,
-            None => return Ok(false),
+            None => {
+                debug!("No suitable extractor found");
+                return Ok(false);
+            }
         };
 
         let transfer_amount = std::cmp::min(extractor.amount, transporter.available_space);
-        if transfer_amount > 0 {
-            self.transfer_manager
+        if transfer_amount > 0
+            && self
+                .transfer_manager
+                .viable(&extractor.ship_symbol, &transporter.ship_symbol)
+        {
+            debug!(
+                "Processing transfer: {} from {:?} to {:?}",
+                transfer_amount, extractor.ship_symbol, transporter.ship_symbol
+            );
+            let erg = self
+                .transfer_manager
                 .process_transfer(
                     &extractor.ship_symbol,
                     &transporter.ship_symbol,
                     *trade_symbol,
                     transfer_amount,
                 )
-                .await?;
+                .await;
+
+            if let Err(crate::error::Error::General(msg)) = erg {
+                if msg == "No valid contact found" {
+                    return Ok(false);
+                }
+            } else if let Err(rest) = erg {
+                return Err(rest);
+            }
+
             Ok(true)
         } else {
+            debug!(
+                "Transfer amount is zero, skipping {:?} to {:?} with {} {:?}",
+                extractor.ship_symbol,
+                transporter.ship_symbol,
+                transfer_amount,
+                self.transfer_manager
+                    .viable(&extractor.ship_symbol, &transporter.ship_symbol)
+            );
             Ok(false)
         }
     }
 
     async fn get_next_waypoint(&self, ship_clone: crate::ship::MyShip) -> Result<String> {
+        debug!("Getting next waypoint for ship: {:?}", ship_clone);
         let the_ships: std::collections::HashMap<String, ship::MyShip> =
             self.context.ship_manager.get_all_clone().await;
         let route = self
             .waypoint_manager
             .calculate_waypoint_urgencys(&the_ships);
 
-        debug!("Routes: {:?}", route);
+        debug!("Calculated routes: {:?}", route);
         let routes = route.into_iter().filter(|r| r.1 > 0).collect::<Vec<_>>();
 
         if routes.is_empty() {
@@ -297,9 +394,9 @@ impl MiningManager {
         }
 
         let route = routes.last().unwrap();
-        debug!("Route: {:?}", route);
+        debug!("Selected route: {:?}", route);
 
-        return Ok(route.0.clone());
+        Ok(route.0.clone())
     }
 }
 

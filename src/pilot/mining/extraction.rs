@@ -1,5 +1,8 @@
 use std::sync::{atomic::AtomicI32, Arc};
 
+use futures::FutureExt;
+use log::debug;
+
 use crate::{
     config::CONFIG,
     error::Result,
@@ -29,18 +32,21 @@ impl ExtractionPilot {
         pilot: &crate::pilot::Pilot,
         is_syphon: bool,
     ) -> Result<()> {
+        debug!("Executing extraction circle for ship: {}", ship.symbol);
         let waypoint_symbol = self
             .context
             .mining_manager
             .get_waypoint(&ship, is_syphon)
             .await?;
 
-        if !self.has_space(ship) {
-            return Ok(());
-        }
+        debug!("Mining Waypoint: {}", waypoint_symbol);
 
         self.count
             .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        debug!(
+            "Count: {}",
+            self.count.load(std::sync::atomic::Ordering::Relaxed)
+        );
         self.go_to_waypoint(ship, &waypoint_symbol).await?;
 
         self.context.mining_manager.notify_waypoint(ship).await?;
@@ -53,11 +59,29 @@ impl ExtractionPilot {
         let i = self.wait_for_extraction(ship, pilot, &mut rec).await?;
 
         if i == 0 {
+            debug!("No extraction for ship: {}", ship.symbol);
             self.context.mining_manager.unassign_waypoint(ship).await?;
             return Ok(());
         }
 
-        self.extract(ship, is_syphon).await?;
+        if !self.has_space(ship) {
+            debug!("No space on ship: {}", ship.symbol);
+            let pin_sleep = tokio::time::sleep(std::time::Duration::from_millis(
+                1000 + rand::random::<u64>() % 1000,
+            ));
+            let pin_sleep_pined = std::pin::pin!(pin_sleep);
+
+            let i = self
+                .wait_for(ship, pilot, &mut rec, pin_sleep_pined)
+                .await?;
+            if i == 0 {
+                debug!("No extraction after waiting for ship: {}", ship.symbol);
+                self.context.mining_manager.unassign_waypoint(ship).await?;
+                return Ok(());
+            }
+        } else {
+            self.extract(ship, is_syphon).await?;
+        }
 
         self.eject_blacklist(ship).await?;
 
@@ -72,11 +96,14 @@ impl ExtractionPilot {
 
         self.context.mining_manager.unassign_waypoint(ship).await?;
 
+        debug!("Extraction circle complete for ship: {}", ship.symbol);
         Ok(())
     }
 
     async fn go_to_waypoint(&self, ship: &mut ship::MyShip, waypoint_symbol: &str) -> Result<()> {
+        debug!("Going to waypoint: {}", waypoint_symbol);
         if ship.nav.waypoint_symbol == waypoint_symbol {
+            debug!("Already at waypoint: {}", waypoint_symbol);
             return Ok(());
         }
 
@@ -100,15 +127,22 @@ impl ExtractionPilot {
         )
         .await?;
 
+        debug!("Arrived at waypoint: {}", waypoint_symbol);
         Ok(())
     }
 
     fn has_space(&self, ship: &mut ship::MyShip) -> bool {
-        ship.cargo.units >= ship.cargo.capacity
+        debug!(
+            "Checking space on ship: {} can store: {} units has: {}",
+            ship.symbol, ship.cargo.capacity, ship.cargo.units
+        );
+        ship.cargo.units < ship.cargo.capacity
     }
 
     async fn extract(&self, ship: &mut ship::MyShip, is_syphon: bool) -> Result<()> {
+        debug!("Extracting on ship: {}", ship.symbol);
         if ship.is_on_cooldown() {
+            debug!("Ship is on cooldown: {}", ship.symbol);
             return Err("Ship is on cooldown".into());
         }
 
@@ -131,13 +165,16 @@ impl ExtractionPilot {
         }
         ship.notify().await;
 
+        debug!("Extracted on ship: {}", ship.symbol);
         Ok(())
     }
 
     async fn eject_blacklist(&self, ship: &mut ship::MyShip) -> Result<()> {
+        debug!("Ejecting blacklist on ship: {}", ship.symbol);
         let cargo = ship.cargo.inventory.clone();
         for item in cargo.iter() {
             if CONFIG.mining.blacklist.contains(&item.0) {
+                debug!("Ejecting: {:?}", item);
                 ship.jettison(&self.context.api, *item.0, *item.1).await?;
             }
         }
@@ -150,6 +187,21 @@ impl ExtractionPilot {
         pilot: &crate::pilot::Pilot,
         receiver: &mut tokio::sync::mpsc::Receiver<ExtractorTransferRequest>,
     ) -> Result<i32> {
+        let ship_future = ship.wait_for_cooldown();
+        let ship_future_pined = std::pin::pin!(ship_future);
+        let erg = self
+            .wait_for(ship, pilot, receiver, ship_future_pined)
+            .await?;
+        Ok(erg)
+    }
+
+    async fn wait_for(
+        &self,
+        ship: &mut ship::MyShip,
+        pilot: &crate::pilot::Pilot,
+        receiver: &mut tokio::sync::mpsc::Receiver<ExtractorTransferRequest>,
+        future: impl std::future::Future<Output = ()> + Unpin,
+    ) -> Result<i32> {
         //needs revisit
 
         // tell mining manager you can transfer your cargo
@@ -157,11 +209,13 @@ impl ExtractionPilot {
         //    in meantime, listen to mining manager and transfer cargo it tells you
         // cut connection to mining manager
 
+        let mut fused_future = future.fuse();
+
         loop {
             let i = {
                 tokio::select! {
                     _ = pilot.cancellation_token.cancelled() => {(None,0)},// it's the end of the Programm we don't care(for now)
-                    _ = ship.wait_for_cooldown() => {(None,1)},
+                    _ = &mut fused_future => {(None,1)},
                     msg = receiver.recv() => {(msg,2)},
                 }
             };
@@ -171,12 +225,15 @@ impl ExtractionPilot {
                     self.handle_extractor_transfer_request(ship, msg).await?;
                 }
                 (None, 1) => {
+                    debug!("Cooldown is done for ship: {}", ship.symbol);
                     return Ok(1);
                 }
                 (None, 2) => {
+                    debug!("No more messages for ship: {}", ship.symbol);
                     return Ok(2);
                 }
                 (None, _) => {
+                    debug!("No more messages for ship: {}", ship.symbol);
                     return Ok(0);
                 }
             }
@@ -188,6 +245,7 @@ impl ExtractionPilot {
         ship: &mut ship::MyShip,
         request: ExtractorTransferRequest,
     ) -> Result<()> {
+        debug!("Handling transfer request for ship: {}", ship.symbol);
         let erg = ship
             .simple_transfer_cargo(
                 request.trade_symbol,
@@ -207,6 +265,7 @@ impl ExtractionPilot {
 
         let _erg = request.callback.send(transfer_result);
 
+        debug!("Handled transfer request for ship: {}", ship.symbol);
         Ok(())
     }
 }

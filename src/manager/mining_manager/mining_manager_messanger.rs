@@ -1,3 +1,5 @@
+use log::debug;
+
 use super::{
     mining_messages::{
         AssignWaypointMessage, ExtractionNotification, MiningManagerMessage, MiningMessage,
@@ -25,15 +27,16 @@ impl MiningManagerMessanger {
             callback: sender,
             is_syphon,
         });
-        self.sender
-            .send(message)
-            .await
-            .map_err(|e| crate::error::Error::General(format!("Failed to send message: {}", e)))?;
+        debug!("Sending AssignWaypoint message for ship: {}", ship.symbol);
+        self.sender.send(message).await.map_err(|e| {
+            crate::error::Error::General(format!("Failed to send AssignWaypoint message: {}", e))
+        })?;
 
-        let erg = callback
-            .await
-            .map_err(|e| crate::error::Error::General(format!("Failed to get message: {}", e)))??;
+        let erg = callback.await.map_err(|e| {
+            crate::error::Error::General(format!("Failed to get AssignWaypoint message: {}", e))
+        })??;
 
+        debug!("Received waypoint: {}", erg);
         Ok(erg)
     }
 
@@ -44,15 +47,16 @@ impl MiningManagerMessanger {
             ship_clone: ship.clone(),
             callback: sender,
         });
-        self.sender
-            .send(message)
-            .await
-            .map_err(|e| crate::error::Error::General(format!("Failed to send message: {}", e)))?;
+        debug!("Sending NotifyWaypoint message for ship: {}", ship.symbol);
+        self.sender.send(message).await.map_err(|e| {
+            crate::error::Error::General(format!("Failed to send NotifyWaypoint message: {}", e))
+        })?;
 
-        let erg = callback
-            .await
-            .map_err(|e| crate::error::Error::General(format!("Failed to get message: {}", e)))??;
+        let erg = callback.await.map_err(|e| {
+            crate::error::Error::General(format!("Failed to get NotifyWaypoint message: {}", e))
+        })??;
 
+        debug!("Received notification response for ship: {}", ship.symbol);
         Ok(erg)
     }
 
@@ -63,15 +67,16 @@ impl MiningManagerMessanger {
             ship_clone: ship.clone(),
             callback: sender,
         });
-        self.sender
-            .send(message)
-            .await
-            .map_err(|e| crate::error::Error::General(format!("Failed to send message: {}", e)))?;
+        debug!("Sending UnassignWaypoint message for ship: {}", ship.symbol);
+        self.sender.send(message).await.map_err(|e| {
+            crate::error::Error::General(format!("Failed to send UnassignWaypoint message: {}", e))
+        })?;
 
-        let erg = callback
-            .await
-            .map_err(|e| crate::error::Error::General(format!("Failed to get message: {}", e)))??;
+        let erg = callback.await.map_err(|e| {
+            crate::error::Error::General(format!("Failed to get UnassignWaypoint message: {}", e))
+        })??;
 
+        debug!("Received unassignment response for ship: {}", ship.symbol);
         Ok(erg)
     }
 
@@ -83,15 +88,16 @@ impl MiningManagerMessanger {
                 ship_clone: ship.clone(),
                 callback: sender,
             });
-        self.sender
-            .send(message)
-            .await
-            .map_err(|e| crate::error::Error::General(format!("Failed to send message: {}", e)))?;
+        debug!("Sending GetNextWaypoint message for ship: {}", ship.symbol);
+        self.sender.send(message).await.map_err(|e| {
+            crate::error::Error::General(format!("Failed to send GetNextWaypoint message: {}", e))
+        })?;
 
-        let erg = callback
-            .await
-            .map_err(|e| crate::error::Error::General(format!("Failed to get message: {}", e)))??;
+        let erg = callback.await.map_err(|e| {
+            crate::error::Error::General(format!("Failed to get GetNextWaypoint message: {}", e))
+        })??;
 
+        debug!("Received next transport waypoint: {}", erg);
         Ok(erg)
     }
 
@@ -101,11 +107,21 @@ impl MiningManagerMessanger {
                 ship: ship.to_string(),
                 waypoint: waypoint.to_string(),
             });
-        self.sender
-            .send(message)
-            .await
-            .map_err(|e| crate::error::Error::General(format!("Failed to send message: {}", e)))?;
+        debug!(
+            "Sending ExtractionComplete message for ship: {}, waypoint: {}",
+            ship, waypoint
+        );
+        self.sender.send(message).await.map_err(|e| {
+            crate::error::Error::General(format!(
+                "Failed to send ExtractionComplete message: {}",
+                e
+            ))
+        })?;
 
+        debug!(
+            "Extraction complete for ship: {}, waypoint: {}",
+            ship, waypoint
+        );
         Ok("ok".to_string())
     }
 
@@ -115,11 +131,18 @@ impl MiningManagerMessanger {
                 ship: ship.to_string(),
                 waypoint: waypoint.to_string(),
             });
-        self.sender
-            .send(message)
-            .await
-            .map_err(|e| crate::error::Error::General(format!("Failed to send message: {}", e)))?;
+        debug!(
+            "Sending TransportArrived message for ship: {}, waypoint: {}",
+            ship, waypoint
+        );
+        self.sender.send(message).await.map_err(|e| {
+            crate::error::Error::General(format!("Failed to send TransportArrived message: {}", e))
+        })?;
 
+        debug!(
+            "Transport arrived for ship: {}, waypoint: {}",
+            ship, waypoint
+        );
         Ok("ok".to_string())
     }
 
@@ -135,13 +158,16 @@ impl MiningManagerMessanger {
                 sender,
             });
 
+        debug!("Sending ExtractorContact message for symbol: {}", symbol);
         self.sender
             .send(message)
             .await
             .map_err(|e| crate::error::Error::General(format!("Failed to send message: {}", e)))?;
 
+        debug!("Extractor contact established for symbol: {}", symbol);
         Ok(receiver)
     }
+
     pub async fn transport_contact(
         &self,
         symbol: &str,
@@ -154,11 +180,16 @@ impl MiningManagerMessanger {
                 sender,
             });
 
+        debug!(
+            "Sending TransportationContact message for symbol: {}",
+            symbol
+        );
         self.sender
             .send(message)
             .await
             .map_err(|e| crate::error::Error::General(format!("Failed to send message: {}", e)))?;
 
+        debug!("Transport contact established for symbol: {}", symbol);
         Ok(receiver)
     }
 }

@@ -131,9 +131,9 @@ fn calculate_fuel_and_multiplier(
     distance: f64,
 ) -> (i32, f64) {
     match flight_mode {
-        models::ShipNavFlightMode::Burn => ((2.0 * distance.max(1.0)).round() as i32, 12.5),
-        models::ShipNavFlightMode::Cruise => ((distance.max(1.0)).round() as i32, 25.0),
-        models::ShipNavFlightMode::Stealth => ((distance.max(1.0)).round() as i32, 30.0),
+        models::ShipNavFlightMode::Burn => ((2.0 * distance.max(1.0)).ceil() as i32, 12.5),
+        models::ShipNavFlightMode::Cruise => ((distance.max(1.0)).ceil() as i32, 25.0),
+        models::ShipNavFlightMode::Stealth => ((distance.max(1.0)).ceil() as i32, 30.0),
         models::ShipNavFlightMode::Drift => (1, 250.0),
     }
 }

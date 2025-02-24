@@ -50,7 +50,7 @@ impl ShipTaskHandler {
 
     pub async fn await_all(&mut self) -> Result<(), crate::error::Error> {
         log::debug!("ShipTaskHandler::await_all");
-        let mut set: JoinSet<Result<ShipFuture, anyhow::Error>> = JoinSet::new();
+        let mut set: JoinSet<(String, Result<ShipFuture, anyhow::Error>)> = JoinSet::new();
 
         tokio::time::sleep(std::time::Duration::from_millis(500)).await;
 
@@ -64,7 +64,12 @@ impl ShipTaskHandler {
                 ship_name.symbol.clone(),
                 self.ship_cancel_token.child_token(),
             );
-            set.spawn(async move { pilot.pilot_ship().await.map_err(anyhow::Error::from) });
+            set.spawn(async move {
+                (
+                    ship_name.symbol.clone(),
+                    pilot.pilot_ship().await.map_err(anyhow::Error::from),
+                )
+            });
         }
 
         loop {
@@ -74,7 +79,12 @@ impl ShipTaskHandler {
                         Some(ship_name) => {
                             log::debug!("ShipTaskHandler::await_all: got ship_name: {:?}", ship_name);
                             let pilot = crate::pilot::Pilot::new(self.context.clone(), ship_name.symbol.clone(), self.ship_cancel_token.child_token());
-                            set.spawn(async move { pilot.pilot_ship().await.map_err(anyhow::Error::from) });
+                             set.spawn(async move {
+                                (
+                                    ship_name.symbol.clone(),
+                                    pilot.pilot_ship().await.map_err(anyhow::Error::from),
+                                )
+                            });
                         }
                         None => {
                             log::debug!("ShipTaskHandler::await_all: receiver is closed");
@@ -86,12 +96,13 @@ impl ShipTaskHandler {
                   match finished_future {
                     Some(finished_future) => {
                       match finished_future {
-                        Ok(Ok(erg)) => {
-                          log::debug!("ShipTaskHandler::await_all: finished_future: {:?}", erg);
+                        Ok((ship_name,Ok(erg))) => {
+                          log::debug!("ShipTaskHandler::await_all: finished_future: {:?} last one: {}", erg,ship_name);
                         }
-                        Ok(Err(e)) => {
+                        Ok((ship_name,Err(e))) => {
                           log::error!(
-                              "Ship error: {} {:?} {:?} {:?}",
+                              "Ship error for ship: {} error: {} {:?} {:?} {:?}",
+                              ship_name,
                               e,
                               e.backtrace(),
                               e.source(),

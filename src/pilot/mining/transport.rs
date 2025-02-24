@@ -52,7 +52,24 @@ impl TransportPilot {
                 as f32
             > 0.9)
         {
-            let next_mining_waypoint = self.get_next_mining_waypoint(ship).await?;
+            let next_mining_waypoint = self.get_next_mining_waypoint(ship).await;
+            debug!("Next transport mining waypoint: {:?}", next_mining_waypoint);
+            if next_mining_waypoint.is_err() {
+                let next_err = next_mining_waypoint.unwrap_err();
+                if let crate::error::Error::General(err_r) = &next_err {
+                    if err_r == "No routes found" {
+                        info!("No more mining waypoints");
+                        tokio::time::sleep(std::time::Duration::from_millis(
+                            100 + rand::random::<u64>() % 500,
+                        ))
+                        .await;
+                        break;
+                    }
+                }
+                return Err(next_err);
+            }
+
+            let next_mining_waypoint = next_mining_waypoint.unwrap();
 
             last_waypoint = next_mining_waypoint.clone();
 
@@ -69,11 +86,9 @@ impl TransportPilot {
 
             self.handle_cargo_loading(ship, pilot).await?;
         }
-
         self.sell_all_cargo(pilot, ship, &waypoints, last_waypoint)
             .await?;
 
-        pilot.cancellation_token.cancelled().await;
         Ok(())
     }
 
@@ -148,20 +163,30 @@ impl TransportPilot {
             callback,
         };
 
-        let _erg = request
-            .extractor_contact
-            .send(extractor_req)
-            .await
-            .map_err(|e| crate::error::Error::General(format!("Failed to send message: {}", e)))?;
+        let erg = request.extractor_contact.send(extractor_req).await;
+
+        if let Err(err) = erg {
+            // the mining ship had dropped
+            log::error!("Failed to send message to extractor: {}", err);
+            let _erg = request.callback.send(());
+
+            return Ok(());
+        }
 
         let transfer = receiver
             .await
-            .map_err(|e| crate::error::Error::General(format!("Failed to receive message: {}", e)))?
-            .ok_or("Failed to receive message")?;
+            .map_err(|e| {
+                crate::error::Error::General(format!(
+                    "Failed to receive message from extractor: {}",
+                    e
+                ))
+            })?
+            .ok_or("Failed to receive message from extractor")?;
 
         let _erg = ship
             .cargo
             .handle_cago_update(transfer.units, transfer.trade_symbol)?;
+        ship.notify().await;
 
         let _erg = request.callback.send(());
 

@@ -1,3 +1,4 @@
+use log::debug;
 use space_traders_client::models;
 use std::collections::HashMap;
 use tokio::sync::mpsc;
@@ -56,8 +57,27 @@ impl TransferManager {
         symbol: &str,
         sender: mpsc::Sender<TransportTransferRequest>,
     ) {
+        debug!("Adding transportation contact for symbol: {}", symbol);
         self.transportation_contacts
             .insert(symbol.to_string(), sender);
+    }
+
+    pub fn viable(&self, from_extractor: &str, to_transporter: &str) -> bool {
+        self.valid_extractor(from_extractor) && self.valid_transporter(to_transporter)
+    }
+
+    fn valid_extractor(&self, symbol: &str) -> bool {
+        match self.extraction_contacts.get(symbol) {
+            Some(contact) => contact.is_closed(),
+            None => false,
+        }
+    }
+
+    fn valid_transporter(&self, symbol: &str) -> bool {
+        match self.transportation_contacts.get(symbol) {
+            Some(contact) => contact.is_closed(),
+            None => false,
+        }
     }
 
     pub async fn process_transfer(
@@ -70,12 +90,14 @@ impl TransferManager {
         let transporter = self
             .transportation_contacts
             .get(to_transporter)
-            .ok_or("No transporter contact")?;
+            .filter(|c| !c.is_closed())
+            .ok_or("No valid contact found")?;
 
         let extractor = self
             .extraction_contacts
             .get(from_extractor)
-            .ok_or("No extractor contact")?
+            .filter(|c| !c.is_closed())
+            .ok_or("No valid contact found")?
             .clone();
 
         let (callback, receiver) = tokio::sync::oneshot::channel();
@@ -95,9 +117,9 @@ impl TransferManager {
                 .into());
         }
 
-        receiver
-            .await
-            .map_err(|e| crate::error::Error::General(format!("Failed to get message: {}", e)))?;
+        receiver.await.map_err(|e| {
+            crate::error::Error::General(format!("Failed to get transfer processed message: {}", e))
+        })?;
         Ok(())
     }
 }

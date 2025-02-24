@@ -346,7 +346,15 @@ async fn start_managers(
         let name = manager.get_name().to_string();
         let cancel_token = manager.get_cancel_token().clone();
         debug!("Starting manager {}", name);
-        let handle = tokio::task::spawn(async move { manager.run().await });
+        let handle = tokio::task::spawn(async move {
+            let erg = manager.run().await;
+
+            if let Err(errror) = &erg {
+                error!("Managers error: {} {:?}", errror, errror);
+            }
+
+            erg
+        });
         handles.push((handle, name, cancel_token));
     }
     Ok(handles)

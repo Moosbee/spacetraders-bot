@@ -370,7 +370,7 @@ impl NavigationState {
     pub fn is_in_transit(&self) -> bool {
         if self.status == models::ShipNavStatus::InTransit {
             let t = self.route.arrival - Utc::now();
-            let t = t.num_seconds();
+            let t = t.num_milliseconds();
             t > 0
         } else {
             false
