@@ -174,6 +174,9 @@ function TransactionTable({
   ];
   return (
     <Table
+      rowKey={(id) =>
+        id.timestamp + id.ship_symbol + id.waypoint_symbol + id.trade_symbol
+      }
       dataSource={transactions}
       columns={columns}
       pagination={{

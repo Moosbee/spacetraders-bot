@@ -18,7 +18,7 @@ impl Default for Waypoint {
         Self {
             symbol: "".to_string(),
             system_symbol: "".to_string(),
-            created_at: sqlx::types::time::PrimitiveDateTime::MIN,
+            created_at: sqlx::types::chrono::NaiveDateTime::MIN,
         }
     }
 }

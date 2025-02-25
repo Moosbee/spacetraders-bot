@@ -242,7 +242,9 @@ impl MiningManager {
                 )
                 .await?;
 
-            if !transfer_result {
+            if transfer_result {
+                self.waypoint_manager.up_date(waypoint_symbol);
+            } else {
                 debug!("Transfer failed, resetting trade symbol");
                 current_trade_symbol = None;
             }

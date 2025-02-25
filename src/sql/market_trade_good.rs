@@ -30,8 +30,8 @@ impl MarketTradeGood {
             trade_volume: value.trade_volume,
             r#type: value.r#type,
             waypoint_symbol: waypoint_symbol.to_string(),
-            created: sqlx::types::time::PrimitiveDateTime::MIN, // will be ignored for inserts
-            created_at: sqlx::types::time::PrimitiveDateTime::MIN, // will be ignored for inserts
+            created: sqlx::types::chrono::NaiveDateTime::MIN, // will be ignored for inserts
+            created_at: sqlx::types::chrono::NaiveDateTime::MIN, // will be ignored for inserts
         }
     }
 }

@@ -1,4 +1,4 @@
-use space_traders_client::models;
+use space_traders_client::models::{self, waypoint};
 
 use crate::{ship, types::WaypointCan, workers::types::ConductorContext};
 
@@ -138,6 +138,10 @@ impl WaypointManager {
         } else {
             return Err("Could not deactivate craft".into());
         }
+    }
+
+    pub fn up_date(&mut self, waypoint: &str) {
+        self.places.up_date(waypoint);
     }
 
     pub fn calculate_waypoint_urgencys(

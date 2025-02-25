@@ -12,7 +12,7 @@ impl From<space_traders_client::models::Agent> for Agent {
             credits: item.credits,
             starting_faction: item.starting_faction,
             ship_count: item.ship_count,
-            created_at: sqlx::types::time::PrimitiveDateTime::MIN,
+            created_at: sqlx::types::chrono::NaiveDateTime::MIN,
         }
     }
 }

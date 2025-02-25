@@ -1,4 +1,4 @@
-import { Descriptions, Flex, Table } from "antd";
+import { Button, Descriptions, Flex, Space, Table } from "antd";
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import MoneyDisplay from "../features/MonyDisplay";
@@ -49,7 +49,22 @@ function Contract() {
   return (
     <div style={{ padding: "24px 24px" }}>
       <PageTitle title={`Contract ${contractID}`} />
-      <h1>Contract {contractID}</h1>
+      <Space>
+        <h1>Contract {contractID}</h1>
+        <Button
+          onClick={() => {
+            fetch(`http://${backendUrl}/contracts/${contractID}`)
+              .then((response) => response.json())
+              .then((data) => {
+                console.log("Contract", data);
+
+                setContract(data);
+              });
+          }}
+        >
+          Reload
+        </Button>
+      </Space>
       {contractResp && (
         <Flex gap={12} vertical>
           <Flex gap={8} justify="space-between" align="center">
@@ -133,6 +148,20 @@ function Contract() {
                   key: "total_expense",
                   children: <MoneyDisplay amount={total_expense} />,
                 },
+                {
+                  label: "Total Profit",
+                  key: "total_profit",
+                  children: (
+                    <MoneyDisplay
+                      amount={
+                        total_reward +
+                        contractResp[1].on_accepted +
+                        contractResp[1].on_fulfilled -
+                        total_expense
+                      }
+                    />
+                  ),
+                },
               ]}
             ></Descriptions>
 
@@ -165,6 +194,7 @@ function Contract() {
               ]}
               dataSource={contractResp[2]}
               rowKey={(record: ContractDeliverable) =>
+                "tt" +
                 record.trade_symbol +
                 record.destination_symbol +
                 record.contract_id +
@@ -172,9 +202,69 @@ function Contract() {
               }
             ></Table>
           </Flex>
+          <Table
+            size="small"
+            rowKey={(id) => id.id}
+            columns={[
+              {
+                title: "ID",
+                dataIndex: "id",
+                key: "id",
+              },
+              {
+                title: "Ship Symbol",
+                dataIndex: "ship_symbol",
+                key: "ship_symbol",
+              },
+              {
+                title: "Trade Symbol",
+                dataIndex: "trade_symbol",
+                key: "trade_symbol",
+              },
+              {
+                title: "Units",
+                dataIndex: "units",
+                key: "units",
+              },
+              {
+                title: "Destination Symbol",
+                dataIndex: "destination_symbol",
+                key: "destination_symbol",
+                render: (symbol) => (
+                  <WaypointLink waypoint={symbol}>{symbol}</WaypointLink>
+                ),
+              },
+              {
+                title: "Purchase Symbol",
+                dataIndex: "purchase_symbol",
+                key: "purchase_symbol",
+                render: (symbol) => (
+                  <WaypointLink waypoint={symbol}>{symbol}</WaypointLink>
+                ),
+              },
+              {
+                title: "Created At",
+                dataIndex: "created_at",
+                key: "created_at",
+                render: (date) => new Date(date).toLocaleString(),
+              },
+              {
+                title: "Updated At",
+                dataIndex: "updated_at",
+                key: "updated_at",
+                render: (date) => new Date(date).toLocaleString(),
+              },
+              {
+                title: "Status",
+                dataIndex: "status",
+                key: "status",
+              },
+            ]}
+            dataSource={contractResp[4]}
+          ></Table>
           <TransactionTable
             transactions={contractResp[3]}
-            reasons={{ contract: true, trade_route: true, mining: true }}
+            reasons={{ contract: true, trade_route: false, mining: false }}
           />
         </Flex>
       )}

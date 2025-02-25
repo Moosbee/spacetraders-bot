@@ -30,7 +30,17 @@ pub async fn handle_get_contract(id: String, context: ConductorContext) -> Resul
     .await
     .map_err(ServerError::Database)?;
 
-    Ok(warp::reply::json(&(id, contract, deliveries, transactions)))
+    let shipments = sql::ContractShipment::get_by_contract_id(&context.database_pool, &id)
+        .await
+        .map_err(ServerError::Database)?;
+
+    Ok(warp::reply::json(&(
+        id,
+        contract,
+        deliveries,
+        transactions,
+        shipments,
+    )))
 }
 
 pub async fn handle_get_contracts(context: ConductorContext) -> Result<impl Reply> {

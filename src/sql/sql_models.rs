@@ -1,3 +1,4 @@
+use serde::Serialize;
 use space_traders_client::models;
 
 #[derive(Debug)]
@@ -35,7 +36,7 @@ impl Clone for DbPool {
 pub struct Waypoint {
     pub symbol: String,
     pub system_symbol: String,
-    pub created_at: sqlx::types::time::PrimitiveDateTime,
+    pub created_at: sqlx::types::chrono::NaiveDateTime,
 }
 
 #[derive(Debug, Clone, sqlx::FromRow, PartialEq, Eq)]
@@ -48,8 +49,8 @@ pub struct MarketTradeGood {
     pub activity: Option<models::ActivityLevel>,
     pub purchase_price: i32,
     pub sell_price: i32,
-    pub created: sqlx::types::time::PrimitiveDateTime,
-    pub created_at: sqlx::types::time::PrimitiveDateTime,
+    pub created: sqlx::types::chrono::NaiveDateTime,
+    pub created_at: sqlx::types::chrono::NaiveDateTime,
 }
 
 #[derive(Clone, Default, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
@@ -90,7 +91,7 @@ pub enum TransactionReason {
 pub struct MarketTrade {
     pub waypoint_symbol: String,
     pub symbol: models::TradeSymbol,
-    pub created_at: sqlx::types::time::PrimitiveDateTime,
+    pub created_at: sqlx::types::chrono::NaiveDateTime,
     pub r#type: models::market_trade_good::Type,
 }
 
@@ -99,7 +100,7 @@ impl Default for MarketTrade {
         MarketTrade {
             waypoint_symbol: String::new(),
             symbol: models::TradeSymbol::PreciousStones,
-            created_at: sqlx::types::time::PrimitiveDateTime::MIN,
+            created_at: sqlx::types::chrono::NaiveDateTime::MIN,
             r#type: models::market_trade_good::Type::Exchange,
         }
     }
@@ -127,7 +128,7 @@ pub struct ContractDelivery {
     pub units_fulfilled: i32,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct ContractShipment {
     pub id: i32,
     pub contract_id: String,
@@ -136,8 +137,8 @@ pub struct ContractShipment {
     pub units: i32,
     pub destination_symbol: String,
     pub purchase_symbol: String,
-    pub created_at: sqlx::types::time::PrimitiveDateTime,
-    pub updated_at: sqlx::types::time::PrimitiveDateTime,
+    pub created_at: sqlx::types::chrono::NaiveDateTime,
+    pub updated_at: sqlx::types::chrono::NaiveDateTime,
     pub status: ShipmentStatus,
 }
 
@@ -151,8 +152,8 @@ impl Default for ContractShipment {
             units: Default::default(),
             destination_symbol: Default::default(),
             purchase_symbol: Default::default(),
-            created_at: sqlx::types::time::PrimitiveDateTime::MIN,
-            updated_at: sqlx::types::time::PrimitiveDateTime::MIN,
+            created_at: sqlx::types::chrono::NaiveDateTime::MIN,
+            updated_at: sqlx::types::chrono::NaiveDateTime::MIN,
             status: Default::default(),
         }
     }
@@ -197,8 +198,7 @@ pub struct Agent {
     pub starting_faction: String,
     pub ship_count: i32,
     #[allow(dead_code)]
-    #[serde(skip)]
-    pub created_at: sqlx::types::time::PrimitiveDateTime,
+    pub created_at: sqlx::types::chrono::NaiveDateTime,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -212,7 +212,7 @@ pub struct TradeRoute {
     pub trade_volume: i32,
     pub predicted_purchase_price: i32,
     pub predicted_sell_price: i32,
-    pub created_at: sqlx::types::time::PrimitiveDateTime,
+    pub created_at: sqlx::types::chrono::NaiveDateTime,
 }
 
 #[derive(Debug, Clone, serde::Serialize)]
@@ -253,7 +253,7 @@ impl Default for TradeRoute {
             trade_volume: 0,
             predicted_purchase_price: 0,
             predicted_sell_price: 0,
-            created_at: sqlx::types::time::PrimitiveDateTime::MIN,
+            created_at: sqlx::types::chrono::NaiveDateTime::MIN,
         }
     }
 }

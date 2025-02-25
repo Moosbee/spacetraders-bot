@@ -92,7 +92,7 @@ impl MiningPlaces {
             .or_insert_with(|| WaypointInfo {
                 waypoint_symbol: waypoint.to_string(),
                 assigned_ships: HashMap::new(),
-                last_updated: chrono::Utc::now(),
+                last_updated: chrono::DateTime::<chrono::Utc>::MIN_UTC, //never been updated
                 ships_on_way: HashSet::new(),
             });
 
