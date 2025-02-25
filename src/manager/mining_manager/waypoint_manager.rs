@@ -174,10 +174,17 @@ impl WaypointManager {
                 (units_sum + units, capacity_sum + capacity)
             });
 
-        let (_units_sum_on_way, _capacity_sum_on_way, earliest_arrival) = wp
-            .ships_on_way
+        let (_units_sum_on_way, _capacity_sum_on_way, earliest_arrival) = ships
             .iter()
-            .map(|s| ships.get(s).unwrap())
+            .map(|s| s.1)
+            .filter(|s| {
+                matches!(
+                    s.status,
+                    ship::ShipStatus::Mining(
+                        crate::workers::mining::m_types::MiningShipAssignment::Transporter
+                    )
+                )
+            })
             .filter(|sh| {
                 sh.nav.waypoint_symbol == wp.waypoint_symbol
                     || sh.nav.auto_pilot.as_ref().map(|a| &a.destination_symbol)

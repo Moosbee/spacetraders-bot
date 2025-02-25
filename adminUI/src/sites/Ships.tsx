@@ -193,7 +193,17 @@ function Ships() {
             title: "Cooldown",
             dataIndex: "cooldown_expiration",
             key: "cooldown_expiration",
-            render: (value: string | null) => value && <Timer time={value} />,
+            render: (value: string | null) =>
+              value && (
+                <span
+                  style={{
+                    color:
+                      new Date() < new Date(value) ? "currentColor" : "red",
+                  }}
+                >
+                  <Timer time={value} />
+                </span>
+              ),
           },
         ]
       : []),

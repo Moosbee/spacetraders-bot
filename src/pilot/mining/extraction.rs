@@ -41,12 +41,6 @@ impl ExtractionPilot {
 
         debug!("Mining Waypoint: {}", waypoint_symbol);
 
-        self.count
-            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-        debug!(
-            "Count: {}",
-            self.count.load(std::sync::atomic::Ordering::Relaxed)
-        );
         self.go_to_waypoint(ship, &waypoint_symbol).await?;
 
         self.context.mining_manager.notify_waypoint(ship).await?;
@@ -163,6 +157,14 @@ impl ExtractionPilot {
                 let _erg = ship.siphon(&self.context.api).await?;
             }
         }
+
+        self.count
+            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        debug!(
+            "Count after extraction: {}",
+            self.count.load(std::sync::atomic::Ordering::Relaxed)
+        );
+
         ship.notify().await;
 
         debug!("Extracted on ship: {}", ship.symbol);

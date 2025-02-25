@@ -81,7 +81,7 @@ impl TransportProcessor {
                         .cargo
                         .get_amount(&space_traders_client::models::TradeSymbol::Fuel))
                     as f32
-                > 0.9)
+                > 0.95)
             {
                 let route: Vec<(String, u32)> = self.calculate_waypoint_urgencys().await;
                 debug!("Routes: {:?}", route);

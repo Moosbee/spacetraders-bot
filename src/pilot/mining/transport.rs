@@ -50,7 +50,7 @@ impl TransportPilot {
                     .cargo
                     .get_amount(&space_traders_client::models::TradeSymbol::Fuel))
                 as f32
-            > 0.9)
+            > 0.95)
         {
             let next_mining_waypoint = self.get_next_mining_waypoint(ship).await;
             debug!("Next transport mining waypoint: {:?}", next_mining_waypoint);
@@ -136,7 +136,7 @@ impl TransportPilot {
                     .cargo
                     .get_amount(&space_traders_client::models::TradeSymbol::Fuel))
                 as f32
-            > 0.9)
+            > 0.95)
         {
             let msg = tokio::select! {
                 _ = pilot.cancellation_token.cancelled() => {
