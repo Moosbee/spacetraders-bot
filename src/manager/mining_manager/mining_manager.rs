@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use log::{debug, info};
 use space_traders_client::models::{self};
 
@@ -22,7 +24,7 @@ pub struct MiningManager {
     cancel_token: tokio_util::sync::CancellationToken,
     context: crate::workers::types::ConductorContext,
     receiver: tokio::sync::mpsc::Receiver<MiningManagerMessage>,
-    transfer_manager: TransferManager,
+    transfer_manager: Arc<TransferManager>,
     inventory_manager: ShipInventoryManager,
     waypoint_manager: WaypointManager,
 }
@@ -31,22 +33,30 @@ impl MiningManager {
     pub fn create() -> (
         tokio::sync::mpsc::Receiver<MiningManagerMessage>,
         MiningManagerMessanger,
+        Arc<TransferManager>,
     ) {
         let (sender, receiver) = tokio::sync::mpsc::channel(1024);
         debug!("Created MiningManager channel");
-        (receiver, MiningManagerMessanger { sender })
+        let transfer_manager = Arc::new(TransferManager::new());
+
+        (
+            receiver,
+            MiningManagerMessanger::new(sender, transfer_manager.clone()),
+            transfer_manager,
+        )
     }
 
     pub fn new(
         cancel_token: tokio_util::sync::CancellationToken,
         context: crate::workers::types::ConductorContext,
         receiver: tokio::sync::mpsc::Receiver<MiningManagerMessage>,
+        transfer_manager: Arc<TransferManager>,
     ) -> Self {
         debug!("Initializing new MiningManager");
         Self {
             cancel_token,
             receiver,
-            transfer_manager: TransferManager::new(),
+            transfer_manager,
             inventory_manager: ShipInventoryManager::new(),
             waypoint_manager: WaypointManager::new(
                 context.clone(),
@@ -60,10 +70,9 @@ impl MiningManager {
         debug!("Starting MiningManager worker");
         while !self.cancel_token.is_cancelled() {
             let message: Option<MiningMessage> = self.receiver.recv().await;
-            debug!("Received mining message: {:?}", message);
             match message {
                 Some(message) => {
-                    debug!("Handling message: {:?}", message);
+                    debug!("Handling message: {}", message);
                     self.handle_message(message).await?;
                 }
                 None => {
@@ -114,7 +123,7 @@ impl MiningManager {
                 ship_clone,
                 callback,
             } => {
-                debug!("Notifying waypoint for ship: {:?}", ship_clone);
+                debug!("Notifying waypoint for ship: {}", ship_clone.symbol);
                 let erg = self.waypoint_manager.notify_waypoint(ship_clone).await;
                 let _send = callback.send(erg);
             }
@@ -122,7 +131,7 @@ impl MiningManager {
                 ship_clone,
                 callback,
             } => {
-                debug!("Unassigning waypoint for ship: {:?}", ship_clone);
+                debug!("Unassigning waypoint for ship: {}", ship_clone.symbol);
                 let erg = self.waypoint_manager.unassign_waypoint(ship_clone).await;
                 let _send = callback.send(erg);
             }
@@ -151,7 +160,7 @@ impl MiningManager {
                 ship_clone,
                 callback,
             } => {
-                debug!("Getting next waypoint for ship: {:?}", ship_clone);
+                debug!("Getting next waypoint for ship: {}", ship_clone.symbol);
                 let erg = self.get_next_waypoint(ship_clone).await;
                 let _send = callback.send(erg);
             }
@@ -169,21 +178,6 @@ impl MiningManager {
                 );
                 let _erg = self.process_possible_transfers(&waypoint).await?;
             }
-            ExtractionNotification::ExtractorContact { symbol, sender } => {
-                debug!(
-                    "Extractor contact for symbol: {:?}, sender: {:?}",
-                    symbol, sender
-                );
-                self.transfer_manager.add_extractor_contact(&symbol, sender);
-            }
-            ExtractionNotification::TransportationContact { symbol, sender } => {
-                debug!(
-                    "Transportation contact for symbol: {:?}, sender: {:?}",
-                    symbol, sender
-                );
-                self.transfer_manager
-                    .add_transportation_contact(&symbol, sender);
-            }
         }
         Ok(())
     }
@@ -195,7 +189,7 @@ impl MiningManager {
         );
         let mut current_trade_symbol = None;
 
-        loop {
+        for _ in 0..20 {
             let ships = self.get_ships_at_waypoint(waypoint_symbol).await?;
             let (extraction_ships, transport_ships) = self.partition_ships_by_role(ships);
 
@@ -253,6 +247,8 @@ impl MiningManager {
                 current_trade_symbol = None;
             }
         }
+
+        Ok(())
     }
 
     async fn get_ships_at_waypoint(&self, waypoint_symbol: &str) -> Result<Vec<ship::MyShip>> {
@@ -373,12 +369,13 @@ impl MiningManager {
                 self.transfer_manager
                     .viable(&extractor.ship_symbol, &transporter.ship_symbol)
             );
+
             Ok(false)
         }
     }
 
     async fn get_next_waypoint(&self, ship_clone: crate::ship::MyShip) -> Result<String> {
-        debug!("Getting next waypoint for ship: {:?}", ship_clone);
+        debug!("Getting next waypoint for ship: {}", ship_clone.symbol);
         let the_ships: std::collections::HashMap<String, ship::MyShip> =
             self.context.ship_manager.get_all_clone().await;
         let route = self

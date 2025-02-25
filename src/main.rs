@@ -232,6 +232,7 @@ async fn setup_context() -> Result<
         cancel_token.child_token(),
         context.clone(),
         mining_manager_data.0,
+        mining_manager_data.2,
     );
     let scrapping_manager = ScrappingManager::new(
         cancel_token.child_token(),

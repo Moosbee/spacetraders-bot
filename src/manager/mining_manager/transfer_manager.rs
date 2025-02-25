@@ -1,9 +1,9 @@
+use dashmap::DashMap;
 use log::debug;
 use space_traders_client::models;
-use std::collections::HashMap;
 use tokio::sync::mpsc;
 
-use crate::error::Result;
+use crate::{error::Result, types::safely_get_map};
 
 #[derive(Debug)]
 pub struct TransportTransferRequest {
@@ -32,20 +32,20 @@ pub struct TransferResult {
 
 #[derive(Debug)]
 pub struct TransferManager {
-    extraction_contacts: HashMap<String, mpsc::Sender<ExtractorTransferRequest>>,
-    transportation_contacts: HashMap<String, mpsc::Sender<TransportTransferRequest>>,
+    extraction_contacts: DashMap<String, mpsc::Sender<ExtractorTransferRequest>>,
+    transportation_contacts: DashMap<String, mpsc::Sender<TransportTransferRequest>>,
 }
 
 impl TransferManager {
     pub fn new() -> Self {
         Self {
-            extraction_contacts: HashMap::new(),
-            transportation_contacts: HashMap::new(),
+            extraction_contacts: DashMap::new(),
+            transportation_contacts: DashMap::new(),
         }
     }
 
     pub fn add_extractor_contact(
-        &mut self,
+        &self,
         symbol: &str,
         sender: mpsc::Sender<ExtractorTransferRequest>,
     ) {
@@ -53,7 +53,7 @@ impl TransferManager {
     }
 
     pub fn add_transportation_contact(
-        &mut self,
+        &self,
         symbol: &str,
         sender: mpsc::Sender<TransportTransferRequest>,
     ) {
@@ -63,39 +63,51 @@ impl TransferManager {
     }
 
     pub fn viable(&self, from_extractor: &str, to_transporter: &str) -> bool {
-        self.valid_extractor(from_extractor) && self.valid_transporter(to_transporter)
+        let extractor = self.valid_extractor(from_extractor);
+        let transporter = self.valid_transporter(to_transporter);
+
+        extractor && transporter
     }
 
     fn valid_extractor(&self, symbol: &str) -> bool {
-        match self.extraction_contacts.get(symbol) {
-            Some(contact) => contact.is_closed(),
+        let refi = safely_get_map(&self.extraction_contacts, &symbol.to_string());
+        debug!(
+            "Valid extractor: {} is closed {:?}",
+            refi.is_some(),
+            refi.as_ref().map(|f| f.is_closed())
+        );
+        match refi {
+            Some(contact) => !contact.is_closed(),
             None => false,
         }
     }
 
     fn valid_transporter(&self, symbol: &str) -> bool {
-        match self.transportation_contacts.get(symbol) {
-            Some(contact) => contact.is_closed(),
+        let refi = safely_get_map(&self.transportation_contacts, &symbol.to_string());
+        debug!(
+            "Valid transporter: {} is closed {:?}",
+            refi.is_some(),
+            refi.as_ref().map(|f| f.is_closed())
+        );
+        match refi {
+            Some(contact) => !contact.is_closed(),
             None => false,
         }
     }
 
     pub async fn process_transfer(
-        &mut self,
+        &self,
         from_extractor: &str,
         to_transporter: &str,
         symbol: models::TradeSymbol,
         amount: i32,
     ) -> Result<()> {
-        let transporter = self
-            .transportation_contacts
-            .get(to_transporter)
-            .filter(|c| !c.is_closed())
-            .ok_or("No valid contact found")?;
+        let transporter =
+            safely_get_map(&self.transportation_contacts, &to_transporter.to_string())
+                .filter(|c| !c.is_closed())
+                .ok_or("No valid contact found")?;
 
-        let extractor = self
-            .extraction_contacts
-            .get(from_extractor)
+        let extractor = safely_get_map(&self.extraction_contacts, &from_extractor.to_string())
             .filter(|c| !c.is_closed())
             .ok_or("No valid contact found")?
             .clone();

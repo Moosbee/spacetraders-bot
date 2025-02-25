@@ -84,6 +84,8 @@ impl TransportPilot {
             )
             .await?;
 
+            debug!("Navigated to waypoint: {}", next_mining_waypoint);
+
             self.handle_cargo_loading(ship, pilot).await?;
         }
         self.sell_all_cargo(pilot, ship, &waypoints, last_waypoint)
@@ -95,6 +97,8 @@ impl TransportPilot {
     async fn get_next_mining_waypoint(&self, ship: &mut ship::MyShip) -> Result<String> {
         let next_transport = self.context.mining_manager.get_next_transport(ship).await?;
 
+        debug!("Next transport mining waypoint: {}", next_transport);
+
         Ok(next_transport)
     }
 
@@ -103,6 +107,7 @@ impl TransportPilot {
         ship: &mut ship::MyShip,
         pilot: &crate::pilot::Pilot,
     ) -> Result<()> {
+        debug!("Initiating cargo loading for ship: {}", ship.symbol);
         // tell mining manager you have arrived
         // wait until storage is full or are told to leave
         //    in meantime, listen to mining manager and load cargo it tells you
@@ -113,12 +118,17 @@ impl TransportPilot {
             .mining_manager
             .transport_contact(&ship.symbol)
             .await?;
+        debug!("Transport contact established for ship: {}", ship.symbol);
 
         let _erg = self
             .context
             .mining_manager
             .transport_arrived(&ship.symbol, &ship.nav.waypoint_symbol)
             .await?;
+        debug!(
+            "Transport arrived notification sent for ship: {}, waypoint: {}",
+            ship.symbol, ship.nav.waypoint_symbol
+        );
 
         while !(ship.cargo.get_units_no_fuel() as f32
             / (ship.cargo.capacity
@@ -129,20 +139,32 @@ impl TransportPilot {
             > 0.9)
         {
             let msg = tokio::select! {
-              _ = pilot.cancellation_token.cancelled() => {None},
-              msg = rec.recv() => msg,
+                _ = pilot.cancellation_token.cancelled() => {
+                    debug!("Cancellation token received for ship: {}", ship.symbol);
+                    None
+                },
+                msg = rec.recv() => msg,
             };
 
             match msg {
                 None => {
+                    debug!(
+                        "No more messages; shutting down transport for ship: {}",
+                        ship.symbol
+                    );
                     break;
                 }
                 Some(transfer_request) => {
+                    debug!("Received transfer request for ship: {}", ship.symbol);
                     self.handle_transfer_request(ship, transfer_request).await?;
                 }
             }
         }
 
+        debug!(
+            "Finalizing cargo loading; shutting down transport for ship: {}",
+            ship.symbol
+        );
         drop(rec);
 
         Ok(())
@@ -186,6 +208,7 @@ impl TransportPilot {
         let _erg = ship
             .cargo
             .handle_cago_update(transfer.units, transfer.trade_symbol)?;
+
         ship.notify().await;
 
         let _erg = request.callback.send(());

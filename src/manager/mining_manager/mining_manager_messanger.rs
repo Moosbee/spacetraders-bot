@@ -1,10 +1,12 @@
+use std::sync::Arc;
+
 use log::debug;
 
 use super::{
     mining_messages::{
         AssignWaypointMessage, ExtractionNotification, MiningManagerMessage, MiningMessage,
     },
-    transfer_manager::{ExtractorTransferRequest, TransportTransferRequest},
+    transfer_manager::{ExtractorTransferRequest, TransferManager, TransportTransferRequest},
 };
 
 use crate::error::Result;
@@ -12,9 +14,20 @@ use crate::error::Result;
 #[derive(Debug, Clone)]
 pub struct MiningManagerMessanger {
     pub(crate) sender: tokio::sync::mpsc::Sender<MiningManagerMessage>,
+    transfer_manager: Arc<TransferManager>,
 }
 
 impl MiningManagerMessanger {
+    pub fn new(
+        sender: tokio::sync::mpsc::Sender<MiningManagerMessage>,
+        transfer_manager: Arc<TransferManager>,
+    ) -> Self {
+        MiningManagerMessanger {
+            sender,
+            transfer_manager,
+        }
+    }
+
     pub async fn get_waypoint(
         &self,
         ship: &crate::ship::MyShip,
@@ -152,17 +165,7 @@ impl MiningManagerMessanger {
     ) -> Result<tokio::sync::mpsc::Receiver<ExtractorTransferRequest>> {
         let (sender, receiver) = tokio::sync::mpsc::channel(32);
 
-        let message =
-            MiningMessage::ExtractionNotification(ExtractionNotification::ExtractorContact {
-                symbol: symbol.to_string(),
-                sender,
-            });
-
-        debug!("Sending ExtractorContact message for symbol: {}", symbol);
-        self.sender
-            .send(message)
-            .await
-            .map_err(|e| crate::error::Error::General(format!("Failed to send message: {}", e)))?;
+        self.transfer_manager.add_extractor_contact(symbol, sender);
 
         debug!("Extractor contact established for symbol: {}", symbol);
         Ok(receiver)
@@ -174,20 +177,8 @@ impl MiningManagerMessanger {
     ) -> Result<tokio::sync::mpsc::Receiver<TransportTransferRequest>> {
         let (sender, receiver) = tokio::sync::mpsc::channel(32);
 
-        let message =
-            MiningMessage::ExtractionNotification(ExtractionNotification::TransportationContact {
-                symbol: symbol.to_string(),
-                sender,
-            });
-
-        debug!(
-            "Sending TransportationContact message for symbol: {}",
-            symbol
-        );
-        self.sender
-            .send(message)
-            .await
-            .map_err(|e| crate::error::Error::General(format!("Failed to send message: {}", e)))?;
+        self.transfer_manager
+            .add_transportation_contact(symbol, sender);
 
         debug!("Transport contact established for symbol: {}", symbol);
         Ok(receiver)

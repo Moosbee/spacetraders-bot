@@ -1,11 +1,18 @@
 use crate::error::Result;
 
-use super::transfer_manager::{ExtractorTransferRequest, TransportTransferRequest};
-
 #[derive(Debug)]
 pub enum MiningMessage {
     AssignWaypoint(AssignWaypointMessage),
     ExtractionNotification(ExtractionNotification),
+}
+
+impl std::fmt::Display for MiningMessage {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::AssignWaypoint(inner) => write!(f, "AssignWaypoint: {}", inner),
+            Self::ExtractionNotification(inner) => write!(f, "ExtractionNotification: {}", inner),
+        }
+    }
 }
 
 pub type MiningManagerMessage = MiningMessage;
@@ -36,6 +43,34 @@ pub enum AssignWaypointMessage {
     },
 }
 
+impl std::fmt::Display for AssignWaypointMessage {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            AssignWaypointMessage::AssignWaypoint {
+                ship_clone,
+                is_syphon,
+                callback: _,
+            } => write!(
+                f,
+                "AssignWaypoint for {} is_syphon {}",
+                ship_clone.symbol, is_syphon
+            ),
+            AssignWaypointMessage::NotifyWaypoint {
+                ship_clone,
+                callback: _,
+            } => write!(f, "NotifyWaypoint for {}", ship_clone.symbol),
+            AssignWaypointMessage::UnassignWaypoint {
+                ship_clone,
+                callback: _,
+            } => write!(f, "UnassignWaypoint for {}", ship_clone.symbol),
+            AssignWaypointMessage::UnassignWaypointComplete {
+                ship_clone,
+                callback: _,
+            } => write!(f, "UnassignWaypointComplete for {}", ship_clone.symbol),
+        }
+    }
+}
+
 #[derive(Debug)]
 pub enum ExtractionNotification {
     GetNextWaypoint {
@@ -55,12 +90,31 @@ pub enum ExtractionNotification {
         ship: String,
         waypoint: String,
     },
-    ExtractorContact {
-        symbol: String,
-        sender: tokio::sync::mpsc::Sender<ExtractorTransferRequest>,
-    },
-    TransportationContact {
-        symbol: String,
-        sender: tokio::sync::mpsc::Sender<TransportTransferRequest>,
-    },
+    // ExtractorContact {
+    //     symbol: String,
+    //     sender: tokio::sync::mpsc::Sender<ExtractorTransferRequest>,
+    // },
+    // TransportationContact {
+    //     symbol: String,
+    //     sender: tokio::sync::mpsc::Sender<TransportTransferRequest>,
+    // },
+}
+
+impl std::fmt::Display for ExtractionNotification {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ExtractionNotification::GetNextWaypoint {
+                ship_clone,
+                callback: _,
+            } => write!(f, "GetNextWaypoint for {}", ship_clone.symbol),
+            ExtractionNotification::ExtractionComplete { ship, waypoint } => write!(
+                f,
+                "ExtractionComplete for {} at waypoint {}",
+                ship, waypoint
+            ),
+            ExtractionNotification::TransportArrived { ship, waypoint } => {
+                write!(f, "TransportArrived for {} at waypoint {}", ship, waypoint)
+            }
+        }
+    }
 }
