@@ -1,7 +1,7 @@
 /*
  * SpaceTraders API
  *
- * SpaceTraders is an open-universe game and learning platform that offers a set of HTTP endpoints to control a fleet of ships and explore a multiplayer universe.  The API is documented using [OpenAPI](https://github.com/SpaceTradersAPI/api-docs). You can send your first request right here in your browser to check the status of the game server.  ```json http {   \"method\": \"GET\",   \"url\": \"https://api.spacetraders.io/v2\", } ```  Unlike a traditional game, SpaceTraders does not have a first-party client or app to play the game. Instead, you can use the API to build your own client, write a script to automate your ships, or try an app built by the community.  We have a [Discord channel](https://discord.com/invite/jh6zurdWk5) where you can share your projects, ask questions, and get help from other players.   
+ * SpaceTraders is an open-universe game and learning platform that offers a set of HTTP endpoints to control a fleet of ships and explore a multiplayer universe.  The API is documented using [OpenAPI](https://github.com/SpaceTradersAPI/api-docs). You can send your first request right here in your browser to check the status of the game server.  ```json http {   \"method\": \"GET\",   \"url\": \"https://api.spacetraders.io/v2\", } ```  Unlike a traditional game, SpaceTraders does not have a first-party client or app to play the game. Instead, you can use the API to build your own client, write a script to automate your ships, or try an app built by the community.  We have a [Discord channel](https://discord.com/invite/jh6zurdWk5) where you can share your projects, ask questions, and get help from other players.
  *
  * The version of the OpenAPI document: 2.0.0
  * Contact: joel@spacetraders.io
@@ -13,29 +13,41 @@ use serde::{Deserialize, Serialize};
 
 /// SystemType : The type of system.
 /// The type of system.
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize)]
+#[derive(
+    Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize, sqlx::Type,
+)]
+#[sqlx(type_name = "system_type")]
 pub enum SystemType {
     #[serde(rename = "NEUTRON_STAR")]
+    #[sqlx(rename = "NEUTRON_STAR")]
     NeutronStar,
     #[serde(rename = "RED_STAR")]
+    #[sqlx(rename = "RED_STAR")]
     RedStar,
     #[serde(rename = "ORANGE_STAR")]
+    #[sqlx(rename = "ORANGE_STAR")]
     OrangeStar,
     #[serde(rename = "BLUE_STAR")]
+    #[sqlx(rename = "BLUE_STAR")]
     BlueStar,
     #[serde(rename = "YOUNG_STAR")]
+    #[sqlx(rename = "YOUNG_STAR")]
     YoungStar,
     #[serde(rename = "WHITE_DWARF")]
+    #[sqlx(rename = "WHITE_DWARF")]
     WhiteDwarf,
     #[serde(rename = "BLACK_HOLE")]
+    #[sqlx(rename = "BLACK_HOLE")]
     BlackHole,
     #[serde(rename = "HYPERGIANT")]
+    #[sqlx(rename = "HYPERGIANT")]
     Hypergiant,
     #[serde(rename = "NEBULA")]
+    #[sqlx(rename = "NEBULA")]
     Nebula,
     #[serde(rename = "UNSTABLE")]
+    #[sqlx(rename = "UNSTABLE")]
     Unstable,
-
 }
 
 impl std::fmt::Display for SystemType {
@@ -60,4 +72,3 @@ impl Default for SystemType {
         Self::NeutronStar
     }
 }
-

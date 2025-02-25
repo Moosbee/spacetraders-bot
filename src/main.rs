@@ -13,7 +13,12 @@ mod manager;
 mod pilot;
 mod types;
 
-use std::{collections::HashMap, env, error::Error, sync::Arc};
+use std::{
+    collections::{HashMap, HashSet},
+    env,
+    error::Error,
+    sync::Arc,
+};
 
 use chrono::{DateTime, Utc};
 use config::CONFIG;
@@ -155,6 +160,33 @@ async fn setup_context() -> Result<
 
     let ships = api.get_all_my_ships(20).await?;
     info!("Ships: {:?}", ships.len());
+
+    let system_symbols = ships
+        .iter()
+        .map(|s| s.nav.system_symbol.clone())
+        .collect::<HashSet<_>>();
+
+    for system_symbol in system_symbols {
+        let db_system = sql::System::get_by_id(&database_pool, &system_symbol).await?;
+        let waypoints = sql::Waypoint::get_by_system(&database_pool, &system_symbol).await?;
+        if db_system.is_none() {
+            let system = api.get_system(&system_symbol).await?;
+            sql::System::insert(&database_pool, &(*system.data).into()).await?;
+        }
+
+        if waypoints.is_empty() {
+            // some systems have no waypoints, but we likely won't have ships there
+            let waypoints = api.get_all_waypoints(&system_symbol, 20).await?;
+            sql::Waypoint::insert_bulk(
+                &database_pool,
+                &waypoints
+                    .iter()
+                    .map(sql::Waypoint::from)
+                    .collect::<Vec<_>>(),
+            )
+            .await?;
+        }
+    }
 
     let waypoints = api
         .get_all_waypoints(&ships[0].nav.system_symbol, 20)

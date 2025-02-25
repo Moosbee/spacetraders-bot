@@ -33,6 +33,16 @@ impl Clone for DbPool {
 }
 
 #[derive(Clone, Debug, PartialEq, serde::Serialize)]
+pub struct System {
+    pub symbol: String,
+    pub sector_symbol: String,
+    pub system_type: models::SystemType,
+    pub x: i32,
+    pub y: i32,
+    // pub factions: Vec<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, serde::Serialize)]
 pub struct Waypoint {
     pub symbol: String,
     pub system_symbol: String,

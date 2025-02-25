@@ -8,6 +8,7 @@ mod market_transaction;
 mod routes;
 mod ship_info;
 mod sql_models;
+mod system;
 mod trade_route;
 mod waypoint;
 
@@ -24,6 +25,7 @@ pub use sql_models::Route;
 pub use sql_models::ShipInfo;
 pub use sql_models::ShipInfoRole;
 pub use sql_models::ShipmentStatus;
+pub use sql_models::System;
 pub use sql_models::TradeRoute;
 pub use sql_models::TransactionReason;
 pub use sql_models::Waypoint;
