@@ -32,11 +32,22 @@ impl Clone for DbPool {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, serde::Serialize)]
 pub struct Waypoint {
     pub symbol: String,
     pub system_symbol: String,
     pub created_at: sqlx::types::chrono::NaiveDateTime,
+    pub x: i32,
+    pub y: i32,
+    pub waypoint_type: models::WaypointType,
+    pub traits: Vec<models::WaypointTraitSymbol>,
+    pub is_under_construction: bool,
+    pub orbitals: Vec<String>,
+    pub orbits: Option<String>,
+    pub faction: Option<String>,
+    pub modifiers: Vec<models::WaypointModifierSymbol>,
+    pub charted_by: Option<String>,
+    pub charted_on: Option<String>,
 }
 
 #[derive(Debug, Clone, sqlx::FromRow, PartialEq, Eq)]
