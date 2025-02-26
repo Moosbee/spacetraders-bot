@@ -15,40 +15,47 @@ pub(crate) fn build_api_routes(
 
     // Ships routes
     let ships = warp::path("ships")
+        .and(warp::path::end())
         .and(warp::get())
         .and(with_context(context.clone()))
         .and_then(handlers::handle_get_ships);
 
     // Ships routes
     let ship_buy = warp::path!("ship" / "buy")
+        .and(warp::path::end())
         .and(warp::post())
         .and(warp::body::json())
         .and(with_context(context.clone()))
         .and_then(handlers::handle_buy_ship);
 
     let ship_navigation = warp::path!("ship" / String / "navigate")
+        .and(warp::path::end())
         .and(warp::post())
         .and(warp::body::json())
         .and(with_context(context.clone()))
         .and_then(handlers::handle_navigate_ship);
 
     let ship_toggle_orbit = warp::path!("ship" / String / "toggleOrbit")
+        .and(warp::path::end())
         .and(warp::post())
         .and(with_context(context.clone()))
         .and_then(handlers::handle_toggle_orbit);
 
     let ship_purchase_cargo = warp::path!("ship" / String / "purchaseCargo")
+        .and(warp::path::end())
         .and(warp::post())
         .and(warp::body::json())
         .and(with_context(context.clone()))
         .and_then(handlers::handle_purchase_cargo_ship);
 
     let ship_toggle_activation = warp::path!("ship" / String / "toggleActivation")
+        .and(warp::path::end())
         .and(warp::post())
         .and(with_context(context.clone()))
         .and_then(handlers::handle_toggle_activation);
 
     let ship_cargo = warp::path!("ship" / String / "role")
+        .and(warp::path::end())
         .and(warp::post())
         .and(warp::body::json())
         .and(with_context(context.clone()))
@@ -56,76 +63,90 @@ pub(crate) fn build_api_routes(
 
     // Trade routes
     let trade_routes = warp::path("tradeRoutes")
+        .and(warp::path::end())
         .and(warp::get())
         .and(with_context(context.clone()))
         .and_then(handlers::handle_get_trade_routes);
 
     // Contract routes
     let contracts = warp::path("contracts")
+        .and(warp::path::end())
         .and(warp::get())
         .and(with_context(context.clone()))
         .and_then(handlers::handle_get_contracts);
 
     let contract = warp::path!("contracts" / String)
+        .and(warp::path::end())
         .and(warp::get())
         .and(with_context(context.clone()))
         .and_then(handlers::handle_get_contract);
 
     // Transaction routes
     let transactions = warp::path("transactions")
+        .and(warp::path::end())
         .and(warp::get())
         .and(with_context(context.clone()))
         .and_then(handlers::handle_get_transactions);
 
     // Waypoints routes
     let waypoints = warp::path("waypoints")
+        .and(warp::path::end())
         .and(warp::get())
         .and(with_context(context.clone()))
         .and_then(handlers::handle_get_waypoints);
     // Waypoint routes
     let waypoint = warp::path!("waypoints" / String)
+        .and(warp::path::end())
         .and(warp::get())
         .and(with_context(context.clone()))
         .and_then(handlers::handle_get_waypoint);
 
     // systems routes
     let systems = warp::path("systems")
+        .and(warp::path::end())
         .and(warp::get())
         .and(with_context(context.clone()))
         .and_then(handlers::handle_get_systems);
 
     // system routes
     let system = warp::path!("systems" / String)
+        .and(warp::path::end())
         .and(warp::get())
         .and(with_context(context.clone()))
         .and_then(handlers::handle_get_system);
 
     // agents routes
     let agents = warp::path!("agents")
+        .and(warp::path::end())
         .and(warp::get())
         .and(with_context(context.clone()))
         .and_then(handlers::handle_get_agents);
 
     // agents routes
     let agent = warp::path!("agents" / String)
+        .and(warp::path::end())
         .and(warp::get())
         .and(with_context(context.clone()))
         .and_then(handlers::handle_get_agent);
 
     // agents routes
     let agent_history = warp::path!("agents" / String / "history")
+        .and(warp::path::end())
         .and(warp::get())
         .and(with_context(context.clone()))
         .and_then(handlers::handle_get_agent_history);
 
     // Shutdown route
-    let shutdown = warp::path("shutdown").and(warp::post()).map(move || {
-        log::info!("Shutting down server");
-        ship_cancellation_token.cancel();
-        log::debug!("Shut down server");
+    let shutdown = warp::path("shutdown")
+        .and(warp::path::end())
+        .and(warp::post())
+        .map(move || {
+            log::info!("Shutting down server");
+            ship_cancellation_token.cancel();
+            log::debug!("Shut down server");
 
-        warp::reply()
-    });
+            warp::reply()
+        });
 
     let routes = ships
         .or(ship_buy)
@@ -138,13 +159,13 @@ pub(crate) fn build_api_routes(
         .or(contract)
         .or(contracts)
         .or(transactions)
-        .or(waypoints)
         .or(waypoint)
-        .or(systems)
+        .or(waypoints)
         .or(system)
-        .or(agents)
-        .or(agent)
+        .or(systems)
         .or(agent_history)
+        .or(agent)
+        .or(agents)
         .or(shutdown);
 
     routes

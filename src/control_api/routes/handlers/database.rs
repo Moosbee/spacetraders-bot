@@ -146,7 +146,8 @@ pub async fn handle_get_agent(callsign: String, context: ConductorContext) -> Re
     debug!("Getting {} agent", callsign);
     let agents = sql::Agent::get_last_by_symbol(&context.database_pool, &callsign)
         .await
-        .map_err(ServerError::Database)?;
+        .map_err(ServerError::Database)?
+        .ok_or(ServerError::NotFound)?;
 
     Ok(warp::reply::json(&agents))
 }
