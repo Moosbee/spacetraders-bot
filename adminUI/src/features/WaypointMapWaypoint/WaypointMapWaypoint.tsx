@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactElement } from "react";
-import { SystemWaypoint, Waypoint, WaypointType } from "../../models/api";
+import { WaypointType } from "../../models/api";
+import { SQLWaypoint } from "../../models/SQLWaypoint";
 import useMyStore from "../../store";
 import FaIcon from "../FontAwsome/FaIcon";
 import NounIcon from "../FontAwsome/NounIcon";
@@ -76,7 +77,7 @@ function WaypointMapWaypoint({
   yOne,
 }: {
   systemSymbol: string;
-  waypoint: Waypoint | SystemWaypoint;
+  waypoint: SQLWaypoint;
   xOne: number;
   yOne: number;
 }) {
@@ -104,8 +105,8 @@ function WaypointMapWaypoint({
     };
   }, []);
 
-  const color = waypointIcons[waypoint.type].color;
-  const waypointIcon = waypointIcons[waypoint.type].icon;
+  const color = waypointIcons[waypoint.waypoint_type].color;
+  const waypointIcon = waypointIcons[waypoint.waypoint_type].icon;
 
   return (
     <div

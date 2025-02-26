@@ -106,7 +106,7 @@ pub async fn handle_get_waypoint(symbol: String, context: ConductorContext) -> R
 
 pub async fn handle_get_systems(context: ConductorContext) -> Result<impl Reply> {
     debug!("Getting all systems");
-    let systems = sql::System::get_all(&context.database_pool)
+    let systems = sql::RespSystem::get_all(&context.database_pool)
         .await
         .map_err(ServerError::Database)?;
 

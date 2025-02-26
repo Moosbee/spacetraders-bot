@@ -342,9 +342,9 @@ impl MiningManager {
                 .transfer_manager
                 .viable(&extractor.ship_symbol, &transporter.ship_symbol)
         {
-            debug!(
-                "Processing transfer: {} from {:?} to {:?}",
-                transfer_amount, extractor.ship_symbol, transporter.ship_symbol
+            info!(
+                "Processing transfer: {} of {} from {:?} to {:?}",
+                transfer_amount, trade_symbol, extractor.ship_symbol, transporter.ship_symbol
             );
             let erg = self
                 .transfer_manager

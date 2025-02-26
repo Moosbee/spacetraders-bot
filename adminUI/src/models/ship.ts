@@ -35,8 +35,17 @@ interface Navigation {
       end_symbol: string;
       flight_mode: ShipNavFlightMode;
       start_is_marketplace: boolean;
+      distance: number;
       refuel_to: number;
       fuel_in_cargo: number;
+    }[];
+    connections: {
+      start: unknown;
+      end: unknown;
+      flight_mode: string;
+      distance: number;
+      fuel_cost: number;
+      travel_time: number;
     }[];
     travel_time: number;
   } | null;
@@ -67,6 +76,8 @@ interface RustShip {
   status: SystemShipRole;
   registration_role: ShipRole;
   symbol: string;
+  display_name: string;
+  active: boolean;
   engine_speed: number;
   cooldown_expiration: string | null;
   nav: Navigation;
@@ -78,6 +89,13 @@ interface RustShip {
     frame: Condition;
     reactor: Condition;
   };
+}
+
+export interface ShipInfo {
+  symbol: string;
+  displayName: string;
+  role: SystemShipRoles;
+  active: boolean;
 }
 
 export type SystemShipRoles =

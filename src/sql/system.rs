@@ -1,6 +1,6 @@
 use space_traders_client::models;
 
-use super::DatabaseConnector;
+use super::{DatabaseConnector, RespSystem};
 
 impl From<&models::System> for super::sql_models::System {
     fn from(system: &models::System) -> Self {
@@ -11,6 +11,27 @@ impl From<&models::System> for super::sql_models::System {
             x: system.x,
             y: system.y,
         }
+    }
+}
+
+impl RespSystem {
+    pub async fn get_all(database_pool: &super::DbPool) -> sqlx::Result<Vec<RespSystem>> {
+        sqlx::query_as!(
+            super::sql_models::RespSystem,
+            r#"
+            SELECT 
+                system.symbol,
+                system.sector_symbol,
+                system.system_type as "system_type: models::SystemType",
+                system.x,
+                system.y,
+            		count(waypoint.symbol) as "waypoints: i32"
+            FROM system left join waypoint on system.symbol = waypoint.system_symbol
+			group by system.symbol
+            "#
+        )
+        .fetch_all(&database_pool.database_pool)
+        .await
     }
 }
 

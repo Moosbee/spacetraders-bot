@@ -1,8 +1,10 @@
 import { shared } from "use-broadcast-ts";
 import { create } from "zustand";
 import { createJSONStorage, devtools, persist } from "zustand/middleware";
-import { Agent, Waypoint } from "./models/api";
+import { Agent } from "./models/api";
 import RustShip from "./models/ship";
+import { SQLSystem } from "./models/SQLSystem";
+import { SQLWaypoint } from "./models/SQLWaypoint";
 // import type {} from '@redux-devtools/extension' // required for devtools typing
 
 const storage = createJSONStorage(() => localStorage);
@@ -49,7 +51,13 @@ type State = {
     | { systemSymbol: string; waypointSymbol: string }
     | undefined;
   selectedSystemSymbol: string | undefined;
-  waypoints: Record<string, Record<string, Waypoint>>;
+  systems: Record<
+    string,
+    {
+      system: SQLSystem;
+      waypoints: SQLWaypoint[];
+    }
+  >;
   websocketConnected: boolean;
 };
 
@@ -68,11 +76,16 @@ type Actions = {
       | undefined
   ) => void;
   setSelectedSystemSymbol: (systemSymbol: string | undefined) => void;
-  setWaypoints: (waypoints: Record<string, Record<string, Waypoint>>) => void;
-  setSystemWaypoints: (
-    systemSymbol: string,
-    waypoints: Record<string, Waypoint>
+  setSystems: (
+    waypoints: Record<
+      string,
+      {
+        system: SQLSystem;
+        waypoints: SQLWaypoint[];
+      }
+    >
   ) => void;
+  setSystem: (system: SQLSystem, waypoints: SQLWaypoint[]) => void;
   setWebsocketConnected: (websocketConnected: boolean) => void;
   setAgent: (agent: Agent) => void;
   reset: () => void;
@@ -94,7 +107,7 @@ const initialState: State = {
   selectedShipSymbol: undefined,
   selectedWaypointSymbol: undefined,
   selectedSystemSymbol: undefined,
-  waypoints: {},
+  systems: {},
   websocketConnected: false,
 };
 
@@ -116,12 +129,12 @@ const useMyStore = create<RootState>()(
           }),
         setSelectedSystemSymbol: (systemSymbol) =>
           set({ selectedSystemSymbol: systemSymbol }),
-        setWaypoints: (waypoints) => set({ waypoints: waypoints }),
-        setSystemWaypoints: (systemSymbol, waypoints) =>
+        setSystems: (systems) => set({ systems: systems }),
+        setSystem: (system, waypoints) =>
           set((state) => ({
-            waypoints: {
-              ...state.waypoints,
-              [systemSymbol]: waypoints,
+            systems: {
+              ...state.systems,
+              [system.symbol]: { system: system, waypoints: waypoints },
             },
           })),
         setWebsocketConnected: (websocketConnected) =>

@@ -43,6 +43,16 @@ pub struct System {
 }
 
 #[derive(Clone, Debug, PartialEq, serde::Serialize)]
+pub struct RespSystem {
+    pub symbol: String,
+    pub sector_symbol: String,
+    pub system_type: models::SystemType,
+    pub x: i32,
+    pub y: i32,
+    pub waypoints: Option<i32>,
+}
+
+#[derive(Clone, Debug, PartialEq, serde::Serialize)]
 pub struct Waypoint {
     pub symbol: String,
     pub system_symbol: String,

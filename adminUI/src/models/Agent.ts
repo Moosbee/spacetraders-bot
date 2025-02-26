@@ -5,4 +5,5 @@ export interface DbAgent {
   credits: number;
   starting_faction: string;
   ship_count: number;
+  created_at: string;
 }

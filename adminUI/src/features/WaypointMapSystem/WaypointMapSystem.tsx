@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState, type ReactElement } from "react";
-import { System, SystemType } from "../../models/api";
+import { SystemType } from "../../models/api";
+import { SQLSystem } from "../../models/SQLSystem";
 import useMyStore from "../../store";
 import FaIcon from "../FontAwsome/FaIcon";
 import NounIcon from "../FontAwsome/NounIcon";
-import classes from "./WaypointMapWaypoint.module.css";
+import classes from "./WaypointMapSystem.module.css";
 
 //TODO change color to antd color and dark/light mode
 
@@ -55,7 +56,7 @@ function WaypointMapSystem({
   xOne,
   yOne,
 }: {
-  system: System;
+  system: SQLSystem;
   xOne: number;
   yOne: number;
 }) {
@@ -83,8 +84,8 @@ function WaypointMapSystem({
     };
   }, []);
 
-  const color = systemIcons[system.type].color;
-  const waypointIcon = systemIcons[system.type].icon;
+  const color = systemIcons[system.system_type].color;
+  const waypointIcon = systemIcons[system.system_type].icon;
 
   return (
     <div

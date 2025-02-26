@@ -1,24 +1,97 @@
-import { Button, Divider, Flex, Space, Table, TableProps, Tooltip } from "antd";
+import {
+  Button,
+  Descriptions,
+  Divider,
+  Flex,
+  Space,
+  Table,
+  TableProps,
+} from "antd";
 import { Link, useParams } from "react-router-dom";
 import PageTitle from "../features/PageTitle";
 import WaypointLink from "../features/WaypointLink";
 import {
-  Waypoint,
-  WaypointModifier,
   WaypointModifierSymbol,
-  WaypointOrbital,
-  WaypointTrait,
   WaypointTraitSymbol,
   WaypointType,
 } from "../models/api";
+import { SQLSystem } from "../models/SQLSystem";
+import { SQLWaypoint } from "../models/SQLWaypoint";
 import useMyStore, { backendUrl } from "../store";
 
 function System() {
   const { systemID } = useParams();
-  const Waypoints = useMyStore((state) => state.waypoints[systemID || ""]);
-  const setWaypoints = useMyStore((state) => state.setWaypoints);
+  const System:
+    | {
+        system: SQLSystem;
+        waypoints: SQLWaypoint[];
+      }
+    | undefined = useMyStore((state) => state.systems[systemID || ""]);
+  const setWaypoints = useMyStore((state) => state.setSystem);
 
-  const columns: TableProps<Waypoint>["columns"] = [
+  const Waypoints = System?.waypoints || [];
+
+  const items = [
+    {
+      label: "Symbol",
+      key: "symbol",
+      children: System?.system?.symbol,
+    },
+    {
+      label: "Sector Symbol",
+      key: "sectorSymbol",
+      children: System?.system?.sector_symbol,
+    },
+    {
+      key: "reload",
+      children: (
+        <Button
+          onClick={() => {
+            fetch(`http://${backendUrl}/systems/${systemID}`)
+              .then((response) => response.json())
+              .then((data) => {
+                const system = data.system;
+                const waypoints = data.waypoints;
+                setWaypoints(system, waypoints);
+              });
+          }}
+        >
+          Reload
+        </Button>
+      ),
+    },
+    {
+      label: "System Type",
+      key: "systemType",
+      children: System?.system?.system_type,
+    },
+    {
+      label: "Waypoints",
+      key: "Waypoints",
+      children: System?.waypoints?.length,
+    },
+    {
+      key: "Map",
+      children: <Link to={`/map/system/${systemID}`}>Map</Link>,
+    },
+    {
+      label: "X Coordinate",
+      key: "x",
+      children: System?.system?.x,
+    },
+    {
+      label: "Y Coordinate",
+      key: "y",
+      children: System?.system?.y,
+    },
+
+    {
+      key: "placeholder",
+      children: "",
+    },
+  ];
+
+  const columns: TableProps<SQLWaypoint>["columns"] = [
     {
       title: "Symbol",
       dataIndex: "symbol",
@@ -30,32 +103,32 @@ function System() {
     },
     {
       title: "Type",
-      dataIndex: "type",
-      key: "type",
-      sorter: (a, b) => a.type.localeCompare(b.type),
+      dataIndex: "waypoint_type",
+      key: "waypoint_type",
+      sorter: (a, b) => a.waypoint_type.localeCompare(b.waypoint_type),
       filters: Object.values(WaypointType).map((type) => ({
         text: type,
         value: type,
       })),
-      onFilter: (value, record) => record.type === value,
+      onFilter: (value, record) => record.waypoint_type === value,
     },
     {
       title: "System Symbol",
-      dataIndex: "systemSymbol",
-      key: "systemSymbol",
-      render: (systemSymbol: string) => (
-        <Link to={`/system/${systemSymbol}`}>{systemSymbol}</Link>
+      dataIndex: "system_symbol",
+      key: "system_symbol",
+      render: (system_symbol) => (
+        <Link to={`/system/${system_symbol}`}>{system_symbol}</Link>
       ),
-      sorter: (a, b) => a.systemSymbol.localeCompare(b.systemSymbol),
+      sorter: (a, b) => a.system_symbol.localeCompare(b.system_symbol),
     },
     {
-      title: "Position (X)",
+      title: "Pos X",
       dataIndex: "x",
       key: "x",
       sorter: (a, b) => a.x - b.x,
     },
     {
-      title: "Position (Y)",
+      title: "Pos Y",
       dataIndex: "y",
       key: "y",
       sorter: (a, b) => a.y - b.y,
@@ -64,12 +137,12 @@ function System() {
       title: "Orbitals",
       dataIndex: "orbitals",
       key: "orbitals",
-      render: (orbitals) =>
+      render: (orbitals: string[]) =>
         orbitals.length > 0 ? (
           <Flex gap={1} vertical>
-            {orbitals.map((o: WaypointOrbital) => (
-              <WaypointLink waypoint={o.symbol} key={o.symbol}>
-                {o.symbol}
+            {orbitals.map((symbol) => (
+              <WaypointLink waypoint={symbol} key={symbol}>
+                {symbol}
               </WaypointLink>
             ))}
           </Flex>
@@ -94,9 +167,8 @@ function System() {
       title: "Faction",
       dataIndex: "faction",
       key: "faction",
-      render: (faction) => (faction ? faction.symbol : "N/A"), // Display faction symbol or "N/A"
-      sorter: (a, b) =>
-        (a.faction?.symbol ?? "").localeCompare(b.faction?.symbol ?? ""),
+      render: (faction) => (faction ? faction : "N/A"), // Display faction symbol or "N/A"
+      sorter: (a, b) => (a.faction ?? "").localeCompare(b.faction ?? ""),
     },
     {
       title: "Traits",
@@ -104,13 +176,8 @@ function System() {
       key: "traits",
       render: (traits) => (
         <Flex gap={1} vertical>
-          {traits.map((trait: WaypointTrait) => (
-            <Tooltip
-              key={trait.symbol}
-              title={`${trait.symbol} - ${trait.description}`}
-            >
-              <span>{trait.name}</span>
-            </Tooltip>
+          {traits.map((trait: WaypointTraitSymbol) => (
+            <span>{trait}</span>
           ))}
         </Flex>
       ), // List names of traits
@@ -119,8 +186,7 @@ function System() {
         text: trait,
         value: trait,
       })),
-      onFilter: (value, record) =>
-        record.traits.some((t) => t.symbol === value),
+      onFilter: (value, record) => record.traits.some((t) => t === value),
     },
     {
       title: "Modifiers",
@@ -129,13 +195,8 @@ function System() {
       render: (modifiers) =>
         modifiers && modifiers.length > 0 ? (
           <span>
-            {modifiers?.map((modifier: WaypointModifier) => (
-              <Tooltip
-                key={modifier.symbol}
-                title={`${modifier.symbol} - ${modifier.description}`}
-              >
-                <span>{modifier.name}</span>
-              </Tooltip>
+            {modifiers?.map((modifier: WaypointModifierSymbol) => (
+              <span>{modifier}</span>
             ))}
           </span>
         ) : (
@@ -147,19 +208,35 @@ function System() {
         value: modifier,
       })),
       onFilter: (value, record) =>
-        record.modifiers?.some((m) => m.symbol === value) ?? false,
+        record.modifiers?.some((m) => m === value) ?? false,
     },
     {
-      title: "Chart",
-      dataIndex: "chart",
-      key: "chart",
-      render: (chart) => (chart ? chart.submittedBy : "N/A"), // Display chart symbol or "N/A"
+      title: "Chart by",
+      dataIndex: "charted_by",
+      key: "charted_by",
+      render: (charted_by) => (charted_by ? charted_by : "N/A"), // Display chart symbol or "N/A"
+      sorter: (a, b) => (a.charted_by ?? "").localeCompare(b.charted_by ?? ""),
     },
     {
-      title: "Under Construction",
-      dataIndex: "isUnderConstruction",
-      key: "isUnderConstruction",
+      title: "Chart on",
+      dataIndex: "charted_on",
+      key: "charted_on",
+      render: (charted_on) =>
+        charted_on ? new Date(charted_on).toLocaleString() : "N/A", // Display chart symbol or "N/A"
+      sorter: (a, b) => (a.charted_on ?? "").localeCompare(b.charted_on ?? ""),
+    },
+    {
+      title: "Construction",
+      dataIndex: "is_under_construction",
+      key: "is_under_construction",
       render: (value) => (value ? "Yes" : "No"), // Render boolean as "Yes" or "No"
+      sorter: (a, b) =>
+        (a.is_under_construction ? 1 : 0) - (b.is_under_construction ? 1 : 0),
+      filters: [
+        { text: "Yes", value: true },
+        { text: "No", value: false },
+      ],
+      onFilter: (value, record) => record.is_under_construction === value,
     },
   ];
 
@@ -168,21 +245,12 @@ function System() {
       <PageTitle title={`System ${systemID}`} />
       <h2>System {systemID}</h2>
       <Space>
-        <Link to={`/map/system/${systemID}`}>Map</Link>
-        <Button
-          onClick={() => {
-            fetch(`http://${backendUrl}/waypoints`)
-              .then((response) => response.json())
-              .then(setWaypoints);
-          }}
-        >
-          Reload
-        </Button>
+        <Descriptions bordered column={3} items={items} />
       </Space>
       <Divider />
       <Table
         columns={columns}
-        dataSource={Object.values(Waypoints || {})}
+        dataSource={Waypoints || []}
         rowKey={(row) => row.symbol}
         pagination={{
           showTotal: (total, range) => `${range[0]}-${range[1]} of ${total}`,

@@ -70,12 +70,17 @@ impl TransferManager {
     }
 
     fn valid_extractor(&self, symbol: &str) -> bool {
+        {
+            self.extraction_contacts
+                .remove_if(symbol, |_, c| c.is_closed());
+        }
         let refi = safely_get_map(&self.extraction_contacts, &symbol.to_string());
         debug!(
             "Valid extractor: {} is closed {:?}",
             refi.is_some(),
             refi.as_ref().map(|f| f.is_closed())
         );
+
         match refi {
             Some(contact) => !contact.is_closed(),
             None => false,
@@ -83,6 +88,10 @@ impl TransferManager {
     }
 
     fn valid_transporter(&self, symbol: &str) -> bool {
+        {
+            self.transportation_contacts
+                .remove_if(symbol, |_, c| c.is_closed());
+        }
         let refi = safely_get_map(&self.transportation_contacts, &symbol.to_string());
         debug!(
             "Valid transporter: {} is closed {:?}",

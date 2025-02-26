@@ -7,12 +7,12 @@
   },
   "market": {
     "start_sleep_duration": 100,
-    "max_scraps": 200,
+    "max_scraps": 20000,
     "scrap_interval": 100000,
     "active": true,
     "agents": true,
     "agent_interval": 500000,
-    "max_agent_scraps": 200
+    "max_agent_scraps": 20000
   },
   "trading": {
     "start_sleep_duration": 1000,

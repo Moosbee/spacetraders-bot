@@ -52,6 +52,11 @@ const items: MenuItem[] = [
     icon: <DeliveredProcedureOutlined />,
   },
   {
+    label: <Link to="/systems">Systems</Link>,
+    key: "systems",
+    icon: <GlobalOutlined />,
+  },
+  {
     label: "Overview",
     key: "Overview",
     icon: <AppstoreOutlined />,
@@ -61,11 +66,7 @@ const items: MenuItem[] = [
         key: "agents",
         icon: <ContactsOutlined />,
       },
-      {
-        label: <Link to="/systems">Systems</Link>,
-        key: "systems",
-        icon: <GlobalOutlined />,
-      },
+
       {
         label: <Link to="/factions">Factions</Link>,
         key: "factions",

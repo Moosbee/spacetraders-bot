@@ -61,7 +61,7 @@ impl ExtractionPilot {
         if !self.has_space(ship) {
             debug!("No space on ship: {}", ship.symbol);
             let pin_sleep = tokio::time::sleep(std::time::Duration::from_millis(
-                1000 + rand::random::<u64>() % 1000,
+                10000 + rand::random::<u64>() % 60000,
             ));
             let pin_sleep_pined = std::pin::pin!(pin_sleep);
 
@@ -85,6 +85,8 @@ impl ExtractionPilot {
             .await?;
 
         let _i = self.wait_for_extraction(ship, pilot, &mut rec).await?;
+
+        debug!("Dropping extractor contact for ship: {}", ship.symbol);
 
         drop(rec);
 

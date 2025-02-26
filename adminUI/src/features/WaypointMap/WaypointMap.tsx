@@ -1,12 +1,14 @@
 import { theme } from "antd";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ShipNavFlightMode, System, Waypoint } from "../../models/api";
+import { ShipNavFlightMode, System } from "../../models/api";
 import RustShip from "../../models/ship";
+import { SQLWaypoint } from "../../models/SQLWaypoint";
 import useMyStore from "../../store";
 import { cyrb53, scaleNum, seedShuffle } from "../../utils/utils";
 import WaypointMapRoute from "../WaypointMapRoute/WaypointMapRoute";
 import WaypointMapShip from "../WaypointMapShip/WaypointMapShip";
 import WaypointMapShipOrbit from "../WaypointMapShipOrbit/WaypointMapShipOrbit";
+import WaypointMapSystem from "../WaypointMapSystem/WaypointMapSystem";
 import WaypointMapWaypoint from "../WaypointMapWaypoint/WaypointMapWaypoint";
 import WaypointMapWaypointOrbit from "../WaypointMapWaypointOrbit/WaypointMapWaypointOrbit";
 import classes from "./WaypointMap.module.css";
@@ -37,7 +39,7 @@ interface ShipMapPoint {
 }
 
 interface WaypointMapPoint {
-  waypoint: Waypoint;
+  waypoint: SQLWaypoint;
   xOne: number;
   yOne: number;
   xOneOrbitCenter: number;
@@ -56,13 +58,15 @@ interface RouteMapPoint {
 }
 
 function WaypointMap({ systemID }: { systemID: string }) {
-  const waypoints = useMyStore((state) => state.waypoints[systemID]);
+  const System = useMyStore((state) => state.systems[systemID]);
   const ships = useMyStore((state) => state.ships);
 
   const [shipsMp, setShipsMp] = useState<ShipMapPoint[]>([]);
   const [size, setSize] = useState(16);
 
   const textboxRef = useRef<SVGSVGElement>(null);
+
+  const waypoints = System.waypoints;
 
   const {
     token: { colorBgElevated },
@@ -73,12 +77,7 @@ function WaypointMap({ systemID }: { systemID: string }) {
   }, [systemID]);
 
   const waypointsMp = useMemo(
-    () =>
-      calculateWaypointMapPoints(
-        Object.values(waypoints),
-        undefined,
-        directions
-      ),
+    () => calculateWaypointMapPoints(waypoints, undefined, directions),
     [directions, waypoints]
   );
 
@@ -123,14 +122,14 @@ function WaypointMap({ systemID }: { systemID: string }) {
       <div className={classes.waypointMapIn}>
         {renderWaypoints(waypointsMp, systemID)}
         {renderShips(shipsMp)}
-        {/* <WaypointMapWaypoint system={system!} xOne={50} yOne={50} /> */}
+        <WaypointMapSystem system={System.system} xOne={50} yOne={50} />
       </div>
     </>
   );
 }
 
 function calculateWaypointMapPoints(
-  waypointsArr: Waypoint[],
+  waypointsArr: SQLWaypoint[],
   system: System | undefined,
   directions: typeof baseDirections
 ): WaypointMapPoint[] {
@@ -281,7 +280,7 @@ function renderShips(shipsMp: ShipMapPoint[]) {
 
 // Helper functions (calculateWaypointBoundaries, calculateWaypointBoundaryCalcs, calculateInitialCoordinates, calculateOrbitalCoordinates, createDockedShipPoint, createOrbitingShipPoint, createTransitingShipPoint) would be implemented here.
 
-function calculateWaypointBoundaries(waypointsArr: Waypoint[]) {
+function calculateWaypointBoundaries(waypointsArr: SQLWaypoint[]) {
   let wpMinX = Infinity;
   let wpMinY = Infinity;
   let wpMaxX = -Infinity;
@@ -311,7 +310,7 @@ function calculateWaypointBoundaryCalcs(
 }
 
 function calculateInitialCoordinates(
-  waypoint: Waypoint,
+  waypoint: SQLWaypoint,
   wbCalcX: number,
   wbCalcY: number
 ) {
@@ -321,7 +320,7 @@ function calculateInitialCoordinates(
 }
 
 function calculateOrbitalCoordinates(
-  waypoint: Waypoint,
+  waypoint: SQLWaypoint,
   wbCalcX: number,
   wbCalcY: number,
   direction: (typeof baseDirections)[number],
