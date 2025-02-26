@@ -146,8 +146,9 @@ impl Pilot {
     }
 
     async fn get_budget(&self) -> Result<i64> {
-        let agent =
-            sql::Agent::get_last_by_symbol(&self.context.database_pool, &CONFIG.symbol).await?;
+        let agent = sql::Agent::get_last_by_symbol(&self.context.database_pool, &CONFIG.symbol)
+            .await?
+            .ok_or(Error::General("Agent not found".to_string()))?;
         Ok(agent.credits - 30_000)
     }
 }

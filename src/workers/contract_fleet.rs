@@ -380,8 +380,9 @@ impl ContractFleet {
 
             let total_cost = procurement.units_required * current_price;
 
-            let agent =
-                sql::Agent::get_last_by_symbol(&self.context.database_pool, &CONFIG.symbol).await?;
+            let agent = sql::Agent::get_last_by_symbol(&self.context.database_pool, &CONFIG.symbol)
+                .await?
+                .ok_or(crate::error::Error::General("Agent not found".to_string()))?;
 
             if agent.credits - 10_000 < total_cost as i64 {
                 log::error!("Agent balance too low to purchase {}", trade_symbol);

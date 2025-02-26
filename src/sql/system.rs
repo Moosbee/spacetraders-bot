@@ -2,11 +2,11 @@ use space_traders_client::models;
 
 use super::DatabaseConnector;
 
-impl From<models::System> for super::sql_models::System {
-    fn from(system: models::System) -> Self {
+impl From<&models::System> for super::sql_models::System {
+    fn from(system: &models::System) -> Self {
         super::sql_models::System {
-            symbol: system.symbol,
-            sector_symbol: system.sector_symbol,
+            symbol: system.symbol.clone(),
+            sector_symbol: system.sector_symbol.clone(),
             system_type: system.r#type,
             x: system.x,
             y: system.y,

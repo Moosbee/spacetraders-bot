@@ -17,6 +17,47 @@ pub async fn handle_get_ships(context: ConductorContext) -> Result<impl Reply> {
     Ok(warp::reply::json(&ships))
 }
 
+pub async fn handle_toggle_activation(
+    symbol: String,
+    context: ConductorContext,
+) -> Result<impl Reply> {
+    let mut sql_ship = sql::ShipInfo::get_by_symbol(&context.database_pool, &symbol)
+        .await
+        .map_err(ServerError::Database)?
+        .ok_or(ServerError::NotFound)?;
+
+    sql_ship.active = !sql_ship.active;
+    sql::ShipInfo::insert(&context.database_pool, &sql_ship)
+        .await
+        .map_err(ServerError::Database)?;
+
+    Ok(warp::reply::json(&sql_ship))
+}
+
+pub async fn handle_change_role(
+    symbol: String,
+    body: serde_json::Value,
+    context: ConductorContext,
+) -> Result<impl Reply> {
+    let mut sql_ship = sql::ShipInfo::get_by_symbol(&context.database_pool, &symbol)
+        .await
+        .map_err(ServerError::Database)?
+        .ok_or(ServerError::NotFound)?;
+
+    let trade_symbol_str = body["role"]
+        .as_str()
+        .ok_or(ServerError::BadRequest("Missing role".into()))?;
+    let trade_symbol = sql::ShipInfoRole::try_from(trade_symbol_str)
+        .map_err(|_| ServerError::BadRequest("Invalid Role".into()))?;
+
+    sql_ship.role = trade_symbol;
+    sql::ShipInfo::insert(&context.database_pool, &sql_ship)
+        .await
+        .map_err(ServerError::Database)?;
+
+    Ok(warp::reply::json(&sql_ship))
+}
+
 pub async fn handle_toggle_orbit(symbol: String, context: ConductorContext) -> Result<impl Reply> {
     let mut ship_guard = context
         .ship_manager

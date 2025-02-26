@@ -11,29 +11,35 @@ pub struct ControlApiServer {
     context: ConductorContext,
     cancellation_token: CancellationToken,
     ship_rx: Option<tokio::sync::broadcast::Receiver<ship::MyShip>>,
-    cancellation_tokens: Vec<(String, bool, CancellationToken)>,
+    ship_cancellation_token: CancellationToken,
 }
 
 impl ControlApiServer {
     pub fn new(
         context: ConductorContext,
         ship_rx: tokio::sync::broadcast::Receiver<ship::MyShip>,
-        cancellation_tokens: Vec<(String, bool, CancellationToken)>,
+        cancellation_token: CancellationToken,
+        ship_cancellation_token: CancellationToken,
     ) -> Self {
         Self {
             context,
-            cancellation_token: CancellationToken::new(),
+            cancellation_token,
             ship_rx: Some(ship_rx),
-            cancellation_tokens,
+            ship_cancellation_token,
         }
     }
 
     pub fn new_box(
         context: ConductorContext,
         ship_rx: tokio::sync::broadcast::Receiver<ship::MyShip>,
-        cancellation_tokens: Vec<(String, bool, CancellationToken)>,
+        _cancellation_tokens: Vec<(String, bool, CancellationToken)>,
     ) -> Box<Self> {
-        Box::new(Self::new(context, ship_rx, cancellation_tokens))
+        Box::new(Self::new(
+            context,
+            ship_rx,
+            CancellationToken::new(),
+            CancellationToken::new(),
+        ))
     }
 
     fn setup_broadcast_channels(
@@ -79,7 +85,7 @@ impl ControlApiServer {
             self.context.clone(),
             ship_rx,
             agent_rx,
-            self.cancellation_tokens.clone(),
+            self.ship_cancellation_token.clone(),
         );
 
         tokio::select! {

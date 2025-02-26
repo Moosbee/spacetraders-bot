@@ -99,6 +99,28 @@ impl MarketTrade {
         Ok(row)
     }
 
+    pub async fn get_last_by_waypoint(
+        database_pool: &DbPool,
+        waypoint_symbol: &str,
+    ) -> sqlx::Result<Vec<MarketTrade>> {
+        let row: Vec<MarketTrade> = sqlx::query_as!(
+            MarketTrade,
+            r#"
+            SELECT DISTINCT ON (waypoint_symbol, symbol)
+            waypoint_symbol, 
+            symbol as "symbol: models::TradeSymbol",
+            "type" as "type: models::market_trade_good::Type",
+            created_at
+            FROM public.market_trade WHERE waypoint_symbol = $1
+            ORDER BY waypoint_symbol, symbol, created_at DESC
+    "#,
+            waypoint_symbol
+        )
+        .fetch_all(&database_pool.database_pool)
+        .await?;
+        Ok(row)
+    }
+
     pub async fn get_last(database_pool: &DbPool) -> sqlx::Result<Vec<MarketTrade>> {
         let row: Vec<MarketTrade> = sqlx::query_as!(
             MarketTrade,

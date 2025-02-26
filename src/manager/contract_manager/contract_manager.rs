@@ -101,7 +101,10 @@ impl ContractManager {
         }
 
         while !self.cancel_token.is_cancelled() {
-            let message = self.receiver.recv().await;
+            let message = tokio::select! {
+                message = self.receiver.recv() => message,
+                _ = self.cancel_token.cancelled() => None
+            };
             debug!("Received message: {:?}", message);
 
             match message {
@@ -116,8 +119,9 @@ impl ContractManager {
     }
 
     async fn get_budget(&self) -> Result<i64> {
-        let agent =
-            sql::Agent::get_last_by_symbol(&self.context.database_pool, &CONFIG.symbol).await?;
+        let agent = sql::Agent::get_last_by_symbol(&self.context.database_pool, &CONFIG.symbol)
+            .await?
+            .ok_or(Error::General("Agent not found".to_string()))?;
         Ok(agent.credits - 30_000)
     }
 

@@ -69,7 +69,10 @@ impl MiningManager {
     async fn run_mining_worker(&mut self) -> Result<()> {
         debug!("Starting MiningManager worker");
         while !self.cancel_token.is_cancelled() {
-            let message: Option<MiningMessage> = self.receiver.recv().await;
+            let message: Option<MiningMessage> = tokio::select! {
+                message = self.receiver.recv() => message,
+                _ = self.cancel_token.cancelled() => None
+            };
             match message {
                 Some(message) => {
                     debug!("Handling message: {}", message);

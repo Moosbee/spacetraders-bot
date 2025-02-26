@@ -15,7 +15,7 @@ pub fn build_routes(
     context: ConductorContext,
     ship_rx: MyReceiver<ship::MyShip>,
     agent_rx: MyReceiver<sql::Agent>,
-    cancel_tokens: Vec<(String, bool, CancellationToken)>,
+    ship_cancellation_token: CancellationToken,
 ) -> impl Filter<Extract = impl Reply> + Clone {
     let cors = warp::cors()
         .allow_any_origin()
@@ -30,7 +30,7 @@ pub fn build_routes(
 
     let main_routes = build_main_routes(&context);
     let ws_routes = websocket::build_ws_routes(ship_rx, agent_rx);
-    let api_routes = api_routes::build_api_routes(&context, cancel_tokens);
+    let api_routes = api_routes::build_api_routes(&context, ship_cancellation_token);
 
     main_routes
         .or(ws_routes)
@@ -43,6 +43,7 @@ async fn handle_rejection(err: warp::Rejection) -> crate::control_api::types::Re
     if let Some(e) = err.find::<ServerError>() {
         let code = match e {
             ServerError::BadRequest(_) => warp::http::StatusCode::BAD_REQUEST,
+            ServerError::NotFound => warp::http::StatusCode::NOT_FOUND,
             _ => warp::http::StatusCode::INTERNAL_SERVER_ERROR,
         };
         Ok(warp::reply::with_status(

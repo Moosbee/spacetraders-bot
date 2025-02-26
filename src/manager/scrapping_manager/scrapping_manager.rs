@@ -1,4 +1,4 @@
-use log::error;
+use log::{error, info};
 
 use crate::{error::Result, manager::Manager};
 
@@ -62,6 +62,8 @@ impl ScrappingManager {
         if let Err(err) = _erg2 {
             error!("Market scrapper error: {}", err);
         }
+
+        info!("ScrappingManager done");
 
         Ok(())
     }

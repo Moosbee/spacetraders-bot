@@ -1,4 +1,5 @@
 use log::debug;
+use tokio::select;
 
 use crate::{
     error::Result,
@@ -65,7 +66,10 @@ impl TradeManager {
     async fn run_trade_worker(&mut self) -> Result<()> {
         debug!("Starting TradeManager worker");
         while !self.cancel_token.is_cancelled() {
-            let message: Option<TradeMessage> = self.receiver.recv().await;
+            let message: Option<TradeMessage> = select! {
+                message = self.receiver.recv() => message,
+                _ = self.cancel_token.cancelled() => None
+            };
             debug!("Received message: {:?}", message);
             match message {
                 Some(message) => {

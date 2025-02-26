@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, str::FromStr};
 
 use space_traders_client::models;
 
@@ -42,6 +42,71 @@ impl From<&models::Waypoint> for super::sql_models::Waypoint {
                 .flatten(),
             ..Default::default()
         }
+    }
+}
+
+impl From<&super::sql_models::Waypoint> for models::Waypoint {
+    fn from(value: &super::sql_models::Waypoint) -> Self {
+        let chart = match (value.charted_by.as_ref(), value.charted_on.as_ref()) {
+            (Some(charted_by), Some(charted_on)) => Some(models::Chart {
+                submitted_by: Some(charted_by.clone()),
+                submitted_on: Some(charted_on.clone()),
+                waypoint_symbol: Some(value.symbol.clone()),
+            }),
+            (None, Some(charted_on)) => Some(models::Chart {
+                submitted_by: None,
+                submitted_on: Some(charted_on.clone()),
+                waypoint_symbol: Some(value.symbol.clone()),
+            }),
+            (Some(charted_by), None) => Some(models::Chart {
+                submitted_by: Some(charted_by.clone()),
+                submitted_on: None,
+                waypoint_symbol: Some(value.symbol.clone()),
+            }),
+            _ => None,
+        };
+
+        let chart = chart.map(|c| Box::new(c));
+
+        let faction = value
+            .faction
+            .as_ref()
+            .map(|f| models::FactionSymbol::from_str(f).ok())
+            .flatten()
+            .map(|f| Box::new(models::WaypointFaction::new(f)));
+
+        let erg = Self {
+            symbol: value.symbol.clone(),
+            system_symbol: value.system_symbol.clone(),
+            x: value.x,
+            y: value.y,
+            r#type: value.waypoint_type,
+            traits: value
+                .traits
+                .iter()
+                .map(|t| models::WaypointTrait::new(t.clone(), "".to_string(), "".to_string()))
+                .collect(),
+            is_under_construction: value.is_under_construction,
+            orbitals: value
+                .orbitals
+                .iter()
+                .map(|o| models::WaypointOrbital::new(o.clone()))
+                .collect(),
+            orbits: value.orbits.clone(),
+            faction,
+            modifiers: Some(
+                value
+                    .modifiers
+                    .iter()
+                    .map(|m| {
+                        models::WaypointModifier::new(m.clone(), "".to_string(), "".to_string())
+                    })
+                    .collect::<Vec<_>>(),
+            ),
+            chart,
+        };
+
+        erg
     }
 }
 
@@ -127,6 +192,38 @@ impl Waypoint {
             system_symbol
         )
         .fetch_all(&database_pool.database_pool)
+        .await
+    }
+
+    pub async fn get_by_symbol(
+        database_pool: &DbPool,
+        symbol: &str,
+    ) -> sqlx::Result<Option<Waypoint>> {
+        sqlx::query_as!(
+            Waypoint,
+            r#"
+                SELECT 
+                  symbol,
+                  system_symbol,
+                  created_at,
+                  x,
+                  y,
+                  type as "waypoint_type: models::WaypointType",
+                  traits as "traits: Vec<models::WaypointTraitSymbol>",
+                  is_under_construction,
+                  orbitals,
+                  orbits,
+                  faction,
+                  modifiers as "modifiers: Vec<models::WaypointModifierSymbol>",
+                  charted_by,
+                  charted_on
+                FROM waypoint
+                WHERE symbol = $1
+                LIMIT 1
+            "#,
+            symbol
+        )
+        .fetch_optional(&database_pool.database_pool)
         .await
     }
 }

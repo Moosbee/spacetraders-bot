@@ -18,7 +18,7 @@ impl From<space_traders_client::models::Agent> for Agent {
 }
 
 impl sql_models::Agent {
-    async fn get_last(database_pool: &DbPool) -> sqlx::Result<Vec<Agent>> {
+   pub async fn get_last(database_pool: &DbPool) -> sqlx::Result<Vec<Agent>> {
         let result = sqlx::query_as! {
         Agent,
         r#"
@@ -33,7 +33,7 @@ impl sql_models::Agent {
         result
     }
 
-    pub async fn get_last_by_symbol(database_pool: &DbPool, symbol: &str) -> sqlx::Result<Agent> {
+    pub async fn get_last_by_symbol(database_pool: &DbPool, symbol: &str) -> sqlx::Result<Option<Agent>> {
         let result = sqlx::query_as! {
         Agent,
         r#"
@@ -44,10 +44,31 @@ impl sql_models::Agent {
         "#,
         symbol
     }
-    .fetch_one(&database_pool.database_pool)
+    .fetch_optional(&database_pool.database_pool)
     .await;
 
         result
+    }
+
+    pub async fn get_by_symbol(database_pool: &DbPool, symbol: &str) -> sqlx::Result<Vec<Agent>> {
+            sqlx::query_as!(
+            Agent,
+            r#"
+                SELECT 
+                  symbol,
+                  account_id,
+                  headquarters,
+                  credits,
+                  starting_faction,
+                  ship_count,
+                  created_at
+                FROM agent WHERE symbol = $1
+                ORDER BY  symbol ASC, created_at DESC
+            "#,
+            symbol
+        ) 
+        .fetch_all(&database_pool.database_pool)
+        .await
     }
 }
 

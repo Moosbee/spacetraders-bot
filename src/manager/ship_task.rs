@@ -7,6 +7,7 @@ use super::Manager;
 pub struct ShipTaskHandler {
     receiver: tokio::sync::mpsc::Receiver<sql::ShipInfo>,
     ship_cancel_token: tokio_util::sync::CancellationToken,
+    manager_cancel_token: tokio_util::sync::CancellationToken,
     cancel_token: tokio_util::sync::CancellationToken,
     context: crate::workers::types::ConductorContext,
 }
@@ -35,6 +36,7 @@ impl ShipTaskHandler {
     }
     pub fn new(
         ship_cancel_token: tokio_util::sync::CancellationToken,
+        manager_cancel_token: tokio_util::sync::CancellationToken,
         cancel_token: tokio_util::sync::CancellationToken,
         context: crate::workers::types::ConductorContext,
         receiver: tokio::sync::mpsc::Receiver<sql::ShipInfo>,
@@ -43,6 +45,7 @@ impl ShipTaskHandler {
         Self {
             ship_cancel_token,
             receiver,
+            manager_cancel_token,
             cancel_token,
             context,
         }
@@ -124,6 +127,7 @@ impl ShipTaskHandler {
         }
 
         log::debug!("ShipTaskHandler::await_all finished");
+        self.manager_cancel_token.cancel();
         Ok(())
     }
 }

@@ -129,6 +129,33 @@ impl MarketTransaction {
         .fetch_all(&database_pool.database_pool)
         .await
     }
+
+    pub async fn get_by_waypoint(
+        database_pool: &DbPool,
+        waypoint: &str,
+    ) -> sqlx::Result<Vec<Self>> {
+        sqlx::query_as!(
+            MarketTransaction,
+            r#"
+      select 
+        waypoint_symbol,
+        ship_symbol,trade_symbol as "trade_symbol: models::TradeSymbol",
+        "type" as "type: models::market_transaction::Type",
+        units,
+        price_per_unit,
+        total_price,
+        "timestamp",
+        contract,
+        trade_route,
+        mining
+      from market_transaction
+      where waypoint_symbol = $1
+    "#,
+            waypoint
+        )
+        .fetch_all(&database_pool.database_pool)
+        .await
+    }
 }
 
 impl From<MarketTransaction> for models::MarketTransaction {

@@ -1,5 +1,5 @@
 use core::fmt;
-use std::cmp::{Ordering, Reverse};
+use std::cmp::Ordering;
 
 use crate::sql;
 

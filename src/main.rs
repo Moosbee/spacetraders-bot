@@ -46,11 +46,11 @@ use sqlx::postgres::PgPoolOptions;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    let (context, main_token, managers) = setup_context().await?;
+    let (context, manager_token, managers) = setup_context().await?;
 
     // run_conductor(context.clone()).await?;
 
-    let erg = start(context, main_token, managers).await;
+    let erg = start(context, manager_token, managers).await;
 
     if let Err(errror) = erg {
         println!("Main error: {} {}", errror, errror);
@@ -166,12 +166,16 @@ async fn setup_context() -> Result<
         .map(|s| s.nav.system_symbol.clone())
         .collect::<HashSet<_>>();
 
+    let all_waypoints: Arc<dashmap::DashMap<String, HashMap<String, waypoint::Waypoint>>> =
+        Arc::new(DashMap::new());
+
     for system_symbol in system_symbols {
         let db_system = sql::System::get_by_id(&database_pool, &system_symbol).await?;
         let waypoints = sql::Waypoint::get_by_system(&database_pool, &system_symbol).await?;
         if db_system.is_none() {
-            let system = api.get_system(&system_symbol).await?;
-            sql::System::insert(&database_pool, &(*system.data).into()).await?;
+            let system_resp = api.get_system(&system_symbol).await?;
+            let system = sql::System::from(&*system_resp.data);
+            sql::System::insert(&database_pool, &system).await?;
         }
 
         if waypoints.is_empty() {
@@ -186,21 +190,18 @@ async fn setup_context() -> Result<
             )
             .await?;
         }
+        let waypoints = sql::Waypoint::get_by_system(&database_pool, &system_symbol).await?;
+
+        {
+            let mut a_wps = all_waypoints.entry(system_symbol).or_default();
+            for wp in waypoints.iter() {
+                a_wps.insert(
+                    wp.symbol.clone(),
+                    Into::<waypoint::Waypoint>::into(wp).clone(),
+                );
+            }
+        }
     }
-
-    let waypoints = api
-        .get_all_waypoints(&ships[0].nav.system_symbol, 20)
-        .await?;
-    info!("Waypoints: {:?}", waypoints.len());
-
-    sql::Waypoint::insert_bulk(
-        &database_pool,
-        &waypoints
-            .iter()
-            .map(sql::Waypoint::from)
-            .collect::<Vec<_>>(),
-    )
-    .await?;
 
     let (sender, receiver) = broadcast::channel(1024);
 
@@ -214,18 +215,6 @@ async fn setup_context() -> Result<
         ship_i.apply_from_db(database_pool.clone()).await.unwrap();
 
         ShipManager::add_ship(&ship_manager, ship_i).await;
-    }
-
-    let all_waypoints: Arc<dashmap::DashMap<String, HashMap<String, waypoint::Waypoint>>> =
-        Arc::new(DashMap::new());
-
-    {
-        let mut a_wps = all_waypoints
-            .entry(waypoints[0].system_symbol.clone())
-            .or_default();
-        for wp in waypoints.iter() {
-            a_wps.insert(wp.symbol.clone(), wp.clone());
-        }
     }
 
     let construction_manager_data = ConstructionManager::create();
@@ -248,38 +237,41 @@ async fn setup_context() -> Result<
         trade_manager: trade_manager_data.1,
     };
 
-    let cancel_token = CancellationToken::new();
+    let main_cancel_token = CancellationToken::new();
+    let manager_cancel_token = main_cancel_token.child_token();
+    let ship_cancel_token = main_cancel_token.child_token();
 
     let construction_manager = ConstructionManager::new(
-        cancel_token.child_token(),
+        manager_cancel_token.child_token(),
         context.clone(),
         construction_manager_data.0,
     );
     let contract_manager = ContractManager::new(
-        cancel_token.child_token(),
+        manager_cancel_token.child_token(),
         context.clone(),
         contract_manager_data.0,
     );
     let mining_manager = MiningManager::new(
-        cancel_token.child_token(),
+        manager_cancel_token.child_token(),
         context.clone(),
         mining_manager_data.0,
         mining_manager_data.2,
     );
     let scrapping_manager = ScrappingManager::new(
-        cancel_token.child_token(),
+        manager_cancel_token.child_token(),
         context.clone(),
         scrapping_manager_data.0,
     );
     let trade_manager = TradeManager::new(
-        cancel_token.child_token(),
+        manager_cancel_token.child_token(),
         context.clone(),
         trade_manager_data.0,
     );
 
     let ship_task_handler = ShipTaskHandler::new(
-        cancel_token.child_token(),
-        cancel_token.child_token(),
+        ship_cancel_token.clone(),
+        manager_cancel_token.clone(),
+        manager_cancel_token.child_token(),
         context.clone(),
         ship_task_handler.0,
     );
@@ -287,12 +279,13 @@ async fn setup_context() -> Result<
     let control_api = control_api::server::ControlApiServer::new(
         context.clone(),
         context.ship_manager.get_rx(),
-        vec![],
+        manager_cancel_token.child_token(),
+        ship_cancel_token.clone(),
     );
 
     Ok((
         context,
-        cancel_token,
+        manager_cancel_token,
         vec![
             Box::new(construction_manager),
             Box::new(contract_manager),
@@ -329,7 +322,7 @@ async fn check_time() {
 
 async fn start(
     context: workers::types::ConductorContext,
-    main_token: CancellationToken,
+    manager_token: CancellationToken,
     managers: Vec<Box<dyn Manager>>,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     debug!("Start function started");

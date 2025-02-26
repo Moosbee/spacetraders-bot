@@ -60,7 +60,7 @@ pub struct Waypoint {
     pub charted_on: Option<String>,
 }
 
-#[derive(Debug, Clone, sqlx::FromRow, PartialEq, Eq)]
+#[derive(Debug, Clone, sqlx::FromRow, PartialEq, Eq, serde::Serialize)]
 pub struct MarketTradeGood {
     pub symbol: models::TradeSymbol,
     pub waypoint_symbol: String,
@@ -108,7 +108,7 @@ pub enum TransactionReason {
     None,
 }
 
-#[derive(Debug, Clone, sqlx::FromRow, PartialEq, Eq)]
+#[derive(Debug, Clone, sqlx::FromRow, PartialEq, Eq, Serialize)]
 pub struct MarketTrade {
     pub waypoint_symbol: String,
     pub symbol: models::TradeSymbol,
@@ -310,7 +310,7 @@ pub struct Route {
     pub total_cargohold: i32,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
 pub struct ShipInfo {
     pub symbol: String,
     pub display_name: String,
@@ -329,6 +329,22 @@ pub enum ShipInfoRole {
     Mining,
     #[default]
     Manuel,
+}
+
+impl TryFrom<&str> for ShipInfoRole {
+    type Error = ();
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        match value {
+            "Construction" => Ok(ShipInfoRole::Construction),
+            "Trader" => Ok(ShipInfoRole::Trader),
+            "Contract" => Ok(ShipInfoRole::Contract),
+            "Scraper" => Ok(ShipInfoRole::Scraper),
+            "Mining" => Ok(ShipInfoRole::Mining),
+            "Manuel" => Ok(ShipInfoRole::Manuel),
+            _ => Err(()),
+        }
+    }
 }
 
 impl From<crate::ship::ShipStatus> for ShipInfoRole {

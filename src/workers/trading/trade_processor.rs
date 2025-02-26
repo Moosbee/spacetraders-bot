@@ -119,8 +119,8 @@ impl TradeProcessor {
                 .purchase_price;
 
             let agent = sql::Agent::get_last_by_symbol(&self.context.database_pool, &CONFIG.symbol)
-                .await
-                .unwrap();
+                .await?
+                .ok_or(crate::error::Error::General("Agent not found".to_string()))?;
             let trade_volume = if (agent.credits - 20_000)
                 < (purchase_price * route.trade_volume).into()
             {

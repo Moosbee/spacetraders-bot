@@ -1,11 +1,10 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
 pub struct WaypointInfo {
     pub waypoint_symbol: String,
     assigned_ships: HashMap<String, AssignLevel>, // ship_symbol -> level,
     last_updated: chrono::DateTime<chrono::Utc>,
-    pub ships_on_way: HashSet<String>,
 }
 
 impl WaypointInfo {
@@ -93,7 +92,6 @@ impl MiningPlaces {
                 waypoint_symbol: waypoint.to_string(),
                 assigned_ships: HashMap::new(),
                 last_updated: chrono::DateTime::<chrono::Utc>::MIN_UTC, //never been updated
-                ships_on_way: HashSet::new(),
             });
 
         let size = wp.get_count_active_on_way() as u32;

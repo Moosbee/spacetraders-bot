@@ -26,6 +26,8 @@ pub type Result<T> = std::result::Result<T, warp::Rejection>;
 pub enum ServerError {
     #[error("Database error: {0}")]
     Database(#[from] sqlx::Error),
+    #[error("Not found")]
+    NotFound,
     #[error("Server error: {0}")]
     Server(String),
     #[error("Invalid request: {0}")]
