@@ -241,8 +241,7 @@ impl MyShip {
                     waypoint_symbol: waypoint_symbol.to_string(),
                 }),
             )
-            .await
-            .unwrap();
+            .await?;
 
         self.fuel.update(&nav_data.data.fuel);
         self.nav.update(&nav_data.data.nav);

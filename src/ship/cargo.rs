@@ -138,8 +138,7 @@ impl MyShip {
                             units: volume,
                         }),
                     )
-                    .await
-                    .unwrap();
+                    .await?;
 
                 sell_data.data
             }
@@ -152,8 +151,7 @@ impl MyShip {
                             units: volume,
                         }),
                     )
-                    .await
-                    .unwrap();
+                    .await?;
 
                 purchase_data.data
             }
@@ -325,7 +323,7 @@ impl super::ship_models::CargoState {
         &mut self,
         symbol: &space_traders_client::models::TradeSymbol,
         amount: i32,
-    ) -> anyhow::Result<i32> {
+    ) -> error::Result<i32> {
         let amount_in = self.get_amount(symbol);
         if amount_in > amount {
             self.inventory
@@ -335,7 +333,10 @@ impl super::ship_models::CargoState {
                 .sub_assign(amount);
             Ok(self.get_amount(symbol))
         } else {
-            Err(anyhow::anyhow!("Not enough cargo"))
+            Err(error::Error::General(format!(
+                "Not enough cargo of trade symbol {} to remove {}",
+                symbol, amount
+            )))
         }
     }
 

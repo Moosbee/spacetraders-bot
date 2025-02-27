@@ -62,7 +62,13 @@ impl WaypointManager {
             .find(
                 ship.clone(),
                 match action {
-                    ActionType::Extract => models::Waypoint::is_minable,
+                    ActionType::Extract => |waypoint| {
+                        waypoint.is_minable()
+                            && !waypoint
+                                .traits
+                                .iter()
+                                .any(|t| t.symbol == models::WaypointTraitSymbol::Stripped)
+                    },
                     ActionType::Siphon => models::Waypoint::is_sipherable,
                 },
                 &self.places,

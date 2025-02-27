@@ -3,6 +3,8 @@ import { Route, Routes } from "react-router-dom";
 import "./MyApp.css";
 import MyHeader from "./features/myHeader";
 import MySider from "./features/mySider";
+import Agent from "./sites/Agent";
+import Agents from "./sites/Agents";
 import BulkActions from "./sites/BulkActions";
 import Contract from "./sites/Contract";
 import Contracts from "./sites/Contracts";
@@ -82,6 +84,8 @@ function MyApp() {
                       path="/transactions/market"
                       element={<MarketTransactions />}
                     />
+                    <Route path="/agents/:agentID" element={<Agent />} />
+                    <Route path="/agents" element={<Agents />} />
 
                     <Route path="*" element={<ErrorPage />} />
                   </Routes>

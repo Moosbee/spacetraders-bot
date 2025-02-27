@@ -124,7 +124,7 @@ impl MyShip {
         }
 
         // Dock the ship
-        self.ensure_docked(api).await.unwrap();
+        self.ensure_docked(api).await?;
 
         // Perform refueling if needed
         if requirements.refuel_amount > 0 {

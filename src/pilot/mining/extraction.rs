@@ -58,10 +58,10 @@ impl ExtractionPilot {
             return Ok(());
         }
 
-        if !self.has_space(ship) {
+        let done = if !self.has_space(ship) {
             debug!("No space on ship: {}", ship.symbol);
             let pin_sleep = tokio::time::sleep(std::time::Duration::from_millis(
-                10000 + rand::random::<u64>() % 60000,
+                1000 + rand::random::<u64>() % 10000,
             ));
             let pin_sleep_pined = std::pin::pin!(pin_sleep);
 
@@ -73,16 +73,20 @@ impl ExtractionPilot {
                 self.context.mining_manager.unassign_waypoint(ship).await?;
                 return Ok(());
             }
+            0
         } else {
             self.extract(ship, is_syphon).await?;
+            self.eject_blacklist(ship).await?;
+
+            1
+        };
+
+        if done == 1 || rand::random::<u64>() % 10 == 0 {
+            self.context
+                .mining_manager
+                .extraction_complete(&ship.symbol, &ship.nav.waypoint_symbol)
+                .await?;
         }
-
-        self.eject_blacklist(ship).await?;
-
-        self.context
-            .mining_manager
-            .extraction_complete(&ship.symbol, &ship.nav.waypoint_symbol)
-            .await?;
 
         let _i = self.wait_for_extraction(ship, pilot, &mut rec).await?;
 

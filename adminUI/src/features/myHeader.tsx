@@ -1,5 +1,17 @@
 import type { MenuProps } from "antd";
-import { Avatar, Badge, Button, Dropdown, Flex, Space, theme } from "antd";
+import {
+  Avatar,
+  Badge,
+  Button,
+  Col,
+  Dropdown,
+  Flex,
+  Row,
+  Space,
+  theme,
+  Tooltip,
+} from "antd";
+import { Link } from "react-router-dom";
 import type { AntHeaderHeader } from "../MyApp";
 import useMyStore from "../store";
 import FaIcon from "./FontAwsome/FaIcon";
@@ -56,12 +68,51 @@ function MyHeader({ Header }: { Header: typeof AntHeaderHeader }) {
       }}
     >
       <Flex gap="middle" align="center" justify="space-between">
-        <Space>
-          <Avatar>{myAgent.symbol.slice(0, 1)}</Avatar>
-          {myAgent.symbol}
-          <Badge status={websocketConnected ? "success" : "error"} />
-          <MoneyDisplay amount={myAgent.credits} />
-        </Space>
+        <Tooltip
+          title={
+            <Row gutter={[2, 2]}>
+              <Col span={24} style={{ textAlign: "center" }}>
+                {myAgent.accountId}
+              </Col>
+              <Col span={12} style={{ textAlign: "center" }}>
+                {myAgent.symbol}
+              </Col>
+              <Col span={12} style={{ textAlign: "center" }}>
+                {myAgent.shipCount} Ships
+              </Col>
+              <Col span={12} style={{ textAlign: "center" }}>
+                {myAgent.startingFaction}
+              </Col>
+              <Col span={12} style={{ textAlign: "center" }}>
+                {myAgent.headquarters}
+              </Col>
+              <Col span={12} style={{ textAlign: "center" }}>
+                <Space>
+                  <Badge status={websocketConnected ? "success" : "error"} />
+                  {websocketConnected ? "Online" : "Offline"}
+                </Space>
+              </Col>
+              <Col span={12} style={{ textAlign: "center" }}>
+                <MoneyDisplay amount={myAgent.credits} />
+              </Col>
+
+              <br />
+
+              <br />
+
+              <br />
+            </Row>
+          }
+        >
+          <Link to={`/agents/${myAgent.symbol}`} style={{ color: "inherit" }}>
+            <Space>
+              <Avatar>{myAgent.symbol.slice(0, 1)}</Avatar>
+              {myAgent.symbol}
+              <Badge status={websocketConnected ? "success" : "error"} />
+              <MoneyDisplay amount={myAgent.credits} />
+            </Space>
+          </Link>
+        </Tooltip>
         <div>
           {systemSymbol && (
             <span>
