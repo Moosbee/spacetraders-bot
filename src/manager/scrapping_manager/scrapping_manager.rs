@@ -1,6 +1,8 @@
+use std::time::Duration;
+
 use log::{error, info};
 
-use crate::{error::Result, manager::Manager};
+use crate::{config::CONFIG, error::Result, manager::Manager};
 
 use super::{agent_scrapper, market_scrapper};
 
@@ -41,6 +43,7 @@ impl ScrappingManager {
     }
 
     async fn run_scrapping_worker(&self) -> Result<()> {
+        tokio::time::sleep(Duration::from_millis(CONFIG.market.start_sleep_duration)).await;
         let agent_scrapper = agent_scrapper::AgentScrapper::new(
             self.cancel_token.child_token(),
             self.context.clone(),

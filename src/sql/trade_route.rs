@@ -217,7 +217,7 @@ impl TradeRoute {
   ) as "profit: i32"
 FROM
   public.trade_route
-  join public.market_transaction ON market_transaction.trade_route = trade_route.id
+ left join public.market_transaction ON market_transaction.trade_route = trade_route.id
 group by
   id
 ORDER BY

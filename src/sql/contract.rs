@@ -222,7 +222,7 @@ SELECT
   contract.on_accepted + contract.on_fulfilled - COALESCE(sum(market_transaction.total_price), 0) as "net_profit: i32"
 FROM
   public.contract
-  join public.market_transaction ON market_transaction.contract = contract.id
+ left join public.market_transaction ON market_transaction.contract = contract.id
 group by
   contract.id
 order by

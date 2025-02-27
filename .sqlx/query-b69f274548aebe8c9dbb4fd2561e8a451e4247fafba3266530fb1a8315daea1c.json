@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n                SELECT\n  id,\n  symbol as \"symbol: models::TradeSymbol\",\n  trade_route.ship_symbol,\n  purchase_waypoint,\n  sell_waypoint,\n  finished,\n  trade_volume,\n  predicted_purchase_price,\n  predicted_sell_price,\n  sum(market_transaction.total_price) as \"sum: i32\",\n  sum(\n    CASE\n      WHEN market_transaction.type = 'PURCHASE' THEN market_transaction.total_price\n      ELSE 0\n    END\n  ) as \"expenses: i32\",\n  sum(\n    CASE\n      WHEN market_transaction.type = 'PURCHASE' THEN 0\n      ELSE market_transaction.total_price\n    END\n  ) as \"income: i32\",\n  sum(\n    CASE\n      WHEN market_transaction.type = 'PURCHASE' THEN (market_transaction.total_price * -1)\n      ELSE market_transaction.total_price\n    END\n  ) as \"profit: i32\"\nFROM\n  public.trade_route\n  join public.market_transaction ON market_transaction.trade_route = trade_route.id\ngroup by\n  id\nORDER BY\n  id ASC;\n            ",
+  "query": "\n                SELECT\n  id,\n  symbol as \"symbol: models::TradeSymbol\",\n  trade_route.ship_symbol,\n  purchase_waypoint,\n  sell_waypoint,\n  finished,\n  trade_volume,\n  predicted_purchase_price,\n  predicted_sell_price,\n  sum(market_transaction.total_price) as \"sum: i32\",\n  sum(\n    CASE\n      WHEN market_transaction.type = 'PURCHASE' THEN market_transaction.total_price\n      ELSE 0\n    END\n  ) as \"expenses: i32\",\n  sum(\n    CASE\n      WHEN market_transaction.type = 'PURCHASE' THEN 0\n      ELSE market_transaction.total_price\n    END\n  ) as \"income: i32\",\n  sum(\n    CASE\n      WHEN market_transaction.type = 'PURCHASE' THEN (market_transaction.total_price * -1)\n      ELSE market_transaction.total_price\n    END\n  ) as \"profit: i32\"\nFROM\n  public.trade_route\n left join public.market_transaction ON market_transaction.trade_route = trade_route.id\ngroup by\n  id\nORDER BY\n  id ASC;\n            ",
   "describe": {
     "columns": [
       {
@@ -239,5 +239,5 @@
       null
     ]
   },
-  "hash": "203632b85af065c8499b38edd9aced0d0f45dfef9dc5b018aa2eb213e1c820f2"
+  "hash": "b69f274548aebe8c9dbb4fd2561e8a451e4247fafba3266530fb1a8315daea1c"
 }
