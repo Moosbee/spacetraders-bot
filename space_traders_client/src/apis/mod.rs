@@ -17,11 +17,31 @@ pub enum Error<T> {
     ResponseError(ResponseContent<T>),
 }
 
+#[derive(Debug)]
+pub struct ResponseContent<T> {
+    pub status: reqwest::StatusCode,
+    pub content: String,
+    pub entity: Option<ResponseContentEntity<T>>,
+}
+
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+pub struct ResponseContentEntityData<T> {
+    pub message: String,
+    pub code: u32,
+    pub data: T,
+}
+
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+pub struct ResponseContentEntity<T> {
+    pub error: ResponseContentEntityData<T>,
+}
+
 impl<T> fmt::Display for Error<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let (module, e) = match self {
             Error::Reqwest(e) => ("reqwest", e.to_string()),
             Error::Serde(e) => ("serde", e.to_string()),
+            Error::ReqwestMiddleware(e) => ("reqwest-middleware", e.to_string()),
             Error::Io(e) => ("IO", e.to_string()),
             Error::ResponseError(e) => ("response", format!("status code {}", e.status)),
         };

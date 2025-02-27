@@ -23,3 +23,12 @@ impl Default for GetSystemWaypointsTraitsParameter {
         Self::WaypointTraitSymbol(Default::default())
     }
 }
+
+impl std::fmt::Display for GetSystemWaypointsTraitsParameter {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::WaypointTraitSymbol(inner) => write!(f, "{:?}", inner),
+            Self::Array(inner) => write!(f, "{:?}", inner),
+        }
+    }
+}

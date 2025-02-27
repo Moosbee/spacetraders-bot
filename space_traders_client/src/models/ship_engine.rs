@@ -35,8 +35,8 @@ pub struct ShipEngine {
     #[serde(rename = "requirements")]
     pub requirements: Box<models::ShipRequirements>,
     /// The overall quality of the component, which determines the quality of the component. High quality components return more ships parts and ship plating when a ship is scrapped. But also require more of these parts to repair. This is transparent to the player, as the parts are bought from/sold to the marketplace.
-    #[serde(rename = "quality")]
-    pub quality: f64,
+    #[serde(rename = "quality", skip_serializing_if = "Option::is_none")]
+    pub quality: Option<f64>,
 }
 
 impl ShipEngine {
@@ -49,7 +49,7 @@ impl ShipEngine {
         integrity: f64,
         speed: i32,
         requirements: models::ShipRequirements,
-        quality: f64,
+        quality: Option<f64>,
     ) -> ShipEngine {
         ShipEngine {
             symbol,

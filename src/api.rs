@@ -10,18 +10,19 @@ use space_traders_client::apis::contracts_api::{
     AcceptContractError, DeliverContractError, FulfillContractError, GetContractError,
     GetContractsError,
 };
-use space_traders_client::apis::default_api::{GetStatusError, RegisterError};
 use space_traders_client::apis::factions_api::{GetFactionError, GetFactionsError};
 use space_traders_client::apis::fleet_api::{
     CreateChartError, CreateShipShipScanError, CreateShipSystemScanError,
     CreateShipWaypointScanError, CreateSurveyError, DockShipError, ExtractResourcesError,
     ExtractResourcesWithSurveyError, GetMountsError, GetMyShipCargoError, GetMyShipError,
-    GetMyShipsError, GetRepairShipError, GetScrapShipError, GetShipCooldownError, GetShipNavError,
-    InstallMountError, JettisonError, JumpShipError, NavigateShipError, NegotiateContractError,
-    OrbitShipError, PatchShipNavError, PurchaseCargoError, PurchaseShipError, RefuelShipError,
-    RemoveMountError, RepairShipError, ScrapShipError, SellCargoError, ShipRefineError,
+    GetMyShipsError, GetRepairShipError, GetScrapShipError, GetShipCooldownError,
+    GetShipModulesError, GetShipNavError, InstallMountError, InstallShipModuleError, JettisonError,
+    JumpShipError, NavigateShipError, NegotiateContractError, OrbitShipError, PatchShipNavError,
+    PurchaseCargoError, PurchaseShipError, RefuelShipError, RemoveMountError,
+    RemoveShipModuleError, RepairShipError, ScrapShipError, SellCargoError, ShipRefineError,
     SiphonResourcesError, TransferCargoError, WarpShipError,
 };
+use space_traders_client::apis::global_api::{GetStatusError, RegisterError};
 use space_traders_client::apis::systems_api::{
     GetConstructionError, GetJumpGateError, GetMarketError, GetShipyardError, GetSystemError,
     GetSystemWaypointsError, GetSystemsError, GetWaypointError, SupplyConstructionError,
@@ -85,6 +86,9 @@ use space_traders_client::models::{Register201ResponseData, RegisterRequest};
 // const SHIP_INVALID_REFINERY_TYPE_ERROR: u32 = 4238;
 // const SHIP_MISSING_REFINERY_ERROR: u32 = 4239;
 // const SHIP_MISSING_SURVEYOR_ERROR: u32 = 4240;
+// const SHIP_MODULE_NO_SHIPYARD: u32 = 4266;
+// const SHIP_MODULE_NOT_INSTALLED: u32 = 4267;
+// const SHIP_MODULE_INSUFFICIENT_CREDITS: u32 = 4268;
 // // Contract error codes
 // const ACCEPT_CONTRACT_NOT_AUTHORIZED_ERROR: u32 = 4500;
 // const ACCEPT_CONTRACT_CONFLICT_ERROR: u32 = 4501;
@@ -142,7 +146,7 @@ impl Api {
     pub async fn get_status(&self) -> Result<models::GetStatus200Response, Error<GetStatusError>> {
         self.limiter.until_ready().await;
         let result =
-            space_traders_client::apis::default_api::get_status(&self.configuration).await?;
+            space_traders_client::apis::global_api::get_status(&self.configuration).await?;
 
         Ok(result)
     }
@@ -154,15 +158,16 @@ impl Api {
         faction: FactionSymbol,
         email: Option<String>,
     ) -> Result<Register201ResponseData, Error<RegisterError>> {
-        let register_response = space_traders_client::apis::default_api::register(
-            &self.configuration,
-            Some(RegisterRequest {
-                symbol,
-                faction,
-                email,
-            }),
-        )
-        .await?;
+        let register_response: models::Register201Response =
+            space_traders_client::apis::global_api::register(
+                &self.configuration,
+                Some(RegisterRequest {
+                    symbol,
+                    faction,
+                    email,
+                }),
+            )
+            .await?;
 
         Ok(*register_response.data)
     }
@@ -595,6 +600,24 @@ impl Api {
         Ok(result)
     }
 
+    /// Get the modules installed on a ship.
+    pub async fn get_ship_modules(
+        &self,
+        ship_symbol: &str,
+    ) -> Result<models::GetShipModules200Response, Error<GetShipModulesError>> {
+        if self.configuration.bearer_access_token.is_none() {
+            panic!("Invalid bearer_access_token");
+        }
+        self.limiter.until_ready().await;
+        let result = space_traders_client::apis::fleet_api::get_ship_modules(
+            &self.configuration,
+            ship_symbol,
+        )
+        .await?;
+
+        Ok(result)
+    }
+
     /// Retrieve the details of a ship under your agent's ownership.
     pub async fn get_my_ship(
         &self,
@@ -772,6 +795,26 @@ impl Api {
         Ok(result)
     }
 
+    /// Install a module on a ship. The module must be in your cargo.
+    pub async fn install_ship_module(
+        &self,
+        ship_symbol: &str,
+        install_ship_module_request: Option<models::InstallShipModuleRequest>,
+    ) -> Result<models::InstallShipModule201Response, Error<InstallShipModuleError>> {
+        if self.configuration.bearer_access_token.is_none() {
+            panic!("Invalid bearer_access_token");
+        }
+        self.limiter.until_ready().await;
+        let result = space_traders_client::apis::fleet_api::install_ship_module(
+            &self.configuration,
+            ship_symbol,
+            install_ship_module_request,
+        )
+        .await?;
+
+        Ok(result)
+    }
+
     /// Jettison cargo from your ship's cargo hold.
     pub async fn jettison(
         &self,
@@ -871,7 +914,7 @@ impl Api {
         &self,
         ship_symbol: &str,
         patch_ship_nav_request: Option<models::PatchShipNavRequest>,
-    ) -> Result<models::GetShipNav200Response, Error<PatchShipNavError>> {
+    ) -> Result<models::PatchShipNav200Response, Error<PatchShipNavError>> {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
@@ -958,6 +1001,26 @@ impl Api {
             &self.configuration,
             ship_symbol,
             remove_mount_request,
+        )
+        .await?;
+
+        Ok(result)
+    }
+
+    /// Remove a module from a ship. The module will be placed in cargo.
+    pub async fn remove_ship_module(
+        &self,
+        ship_symbol: &str,
+        remove_ship_module_request: Option<models::RemoveShipModuleRequest>,
+    ) -> Result<models::InstallShipModule201Response, Error<RemoveShipModuleError>> {
+        if self.configuration.bearer_access_token.is_none() {
+            panic!("Invalid bearer_access_token");
+        }
+        self.limiter.until_ready().await;
+        let result = space_traders_client::apis::fleet_api::remove_ship_module(
+            &self.configuration,
+            ship_symbol,
+            remove_ship_module_request,
         )
         .await?;
 

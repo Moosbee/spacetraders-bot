@@ -308,11 +308,11 @@ impl MyShip {
         api: &api::Api,
         flight_mode: models::ShipNavFlightMode,
     ) -> core::result::Result<
-        models::GetShipNav200Response,
+        models::PatchShipNav200Response,
         apis::Error<apis::fleet_api::PatchShipNavError>,
     > {
         self.mutate();
-        let ship_patch_data: models::GetShipNav200Response = api
+        let ship_patch_data = api
             .patch_ship_nav(
                 &self.symbol,
                 Some(models::PatchShipNavRequest {
@@ -320,7 +320,8 @@ impl MyShip {
                 }),
             )
             .await?;
-        self.nav.update(&ship_patch_data.data);
+        self.nav.update(&ship_patch_data.data.nav);
+        self.fuel.update(&ship_patch_data.data.fuel);
         self.notify().await;
         core::result::Result::Ok(ship_patch_data)
     }

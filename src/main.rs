@@ -217,9 +217,9 @@ async fn setup_context() -> Result<
         ShipManager::add_ship(&ship_manager, ship_i).await;
     }
 
-    manager::scrapping_manager::update_all_systems(&database_pool, &api).await?;
+    // manager::scrapping_manager::update_all_systems(&database_pool, &api).await?;
 
-    panic!();
+    // panic!();
 
     let construction_manager_data = ConstructionManager::create();
     let contract_manager_data = ContractManager::create();

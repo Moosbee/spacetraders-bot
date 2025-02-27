@@ -11,7 +11,7 @@
 use crate::models;
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Default, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Default, Debug, PartialEq, Serialize, Deserialize, Hash, Eq)]
 pub struct WaypointModifier {
     #[serde(rename = "symbol")]
     pub symbol: models::WaypointModifierSymbol,

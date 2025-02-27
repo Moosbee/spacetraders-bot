@@ -20,7 +20,7 @@ pub async fn update_all_systems(
             match waypoints {
                 Ok(waypoints) => break waypoints,
                 Err(e) => {
-                    println!("Error getting waypoints: {}", e);
+                    log::error!("Error getting waypoints: {}", e);
                     std::thread::sleep(std::time::Duration::from_millis(1000));
                 }
             }
