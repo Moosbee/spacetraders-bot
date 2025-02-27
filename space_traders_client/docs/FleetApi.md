@@ -19,8 +19,10 @@ Method | HTTP request | Description
 [**get_repair_ship**](FleetApi.md#get_repair_ship) | **GET** /my/ships/{shipSymbol}/repair | Get Repair Ship
 [**get_scrap_ship**](FleetApi.md#get_scrap_ship) | **GET** /my/ships/{shipSymbol}/scrap | Get Scrap Ship
 [**get_ship_cooldown**](FleetApi.md#get_ship_cooldown) | **GET** /my/ships/{shipSymbol}/cooldown | Get Ship Cooldown
+[**get_ship_modules**](FleetApi.md#get_ship_modules) | **GET** /my/ships/{shipSymbol}/modules | Get Ship Modules
 [**get_ship_nav**](FleetApi.md#get_ship_nav) | **GET** /my/ships/{shipSymbol}/nav | Get Ship Nav
 [**install_mount**](FleetApi.md#install_mount) | **POST** /my/ships/{shipSymbol}/mounts/install | Install Mount
+[**install_ship_module**](FleetApi.md#install_ship_module) | **POST** /my/ships/{shipSymbol}/modules/install | Install Ship Module
 [**jettison**](FleetApi.md#jettison) | **POST** /my/ships/{shipSymbol}/jettison | Jettison Cargo
 [**jump_ship**](FleetApi.md#jump_ship) | **POST** /my/ships/{shipSymbol}/jump | Jump Ship
 [**navigate_ship**](FleetApi.md#navigate_ship) | **POST** /my/ships/{shipSymbol}/navigate | Navigate Ship
@@ -31,6 +33,7 @@ Method | HTTP request | Description
 [**purchase_ship**](FleetApi.md#purchase_ship) | **POST** /my/ships | Purchase Ship
 [**refuel_ship**](FleetApi.md#refuel_ship) | **POST** /my/ships/{shipSymbol}/refuel | Refuel Ship
 [**remove_mount**](FleetApi.md#remove_mount) | **POST** /my/ships/{shipSymbol}/mounts/remove | Remove Mount
+[**remove_ship_module**](FleetApi.md#remove_ship_module) | **POST** /my/ships/{shipSymbol}/modules/remove | Remove Ship Module
 [**repair_ship**](FleetApi.md#repair_ship) | **POST** /my/ships/{shipSymbol}/repair | Repair Ship
 [**scrap_ship**](FleetApi.md#scrap_ship) | **POST** /my/ships/{shipSymbol}/scrap | Scrap Ship
 [**sell_cargo**](FleetApi.md#sell_cargo) | **POST** /my/ships/{shipSymbol}/sell | Sell Cargo
@@ -494,6 +497,36 @@ Name | Type | Description  | Required | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 
+## get_ship_modules
+
+> models::GetShipModules200Response get_ship_modules(ship_symbol)
+Get Ship Modules
+
+Get the modules installed on a ship.
+
+### Parameters
+
+
+Name | Type | Description  | Required | Notes
+------------- | ------------- | ------------- | ------------- | -------------
+**ship_symbol** | **String** | The symbol of the ship | [required] |
+
+### Return type
+
+[**models::GetShipModules200Response**](get_ship_modules_200_response.md)
+
+### Authorization
+
+[AccountToken](../README.md#AccountToken), [AgentToken](../README.md#AgentToken)
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: application/json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+
 ## get_ship_nav
 
 > models::GetShipNav200Response get_ship_nav(ship_symbol)
@@ -546,6 +579,37 @@ Name | Type | Description  | Required | Notes
 ### Authorization
 
 [AgentToken](../README.md#AgentToken)
+
+### HTTP request headers
+
+- **Content-Type**: application/json
+- **Accept**: application/json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+
+## install_ship_module
+
+> models::InstallShipModule201Response install_ship_module(ship_symbol, install_ship_module_request)
+Install Ship Module
+
+Install a module on a ship. The module must be in your cargo.
+
+### Parameters
+
+
+Name | Type | Description  | Required | Notes
+------------- | ------------- | ------------- | ------------- | -------------
+**ship_symbol** | **String** | The symbol of the ship | [required] |
+**install_ship_module_request** | Option<[**InstallShipModuleRequest**](InstallShipModuleRequest.md)> |  |  |
+
+### Return type
+
+[**models::InstallShipModule201Response**](install_ship_module_201_response.md)
+
+### Authorization
+
+[AccountToken](../README.md#AccountToken), [AgentToken](../README.md#AgentToken)
 
 ### HTTP request headers
 
@@ -710,7 +774,7 @@ Name | Type | Description  | Required | Notes
 
 ## patch_ship_nav
 
-> models::GetShipNav200Response patch_ship_nav(ship_symbol, patch_ship_nav_request)
+> models::PatchShipNav200Response patch_ship_nav(ship_symbol, patch_ship_nav_request)
 Patch Ship Nav
 
 Update the nav configuration of a ship.  Currently only supports configuring the Flight Mode of the ship, which affects its speed and fuel consumption.
@@ -725,7 +789,7 @@ Name | Type | Description  | Required | Notes
 
 ### Return type
 
-[**models::GetShipNav200Response**](get_ship_nav_200_response.md)
+[**models::PatchShipNav200Response**](patch_ship_nav_200_response.md)
 
 ### Authorization
 
@@ -862,6 +926,37 @@ Name | Type | Description  | Required | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 
+## remove_ship_module
+
+> models::InstallShipModule201Response remove_ship_module(ship_symbol, remove_ship_module_request)
+Remove Ship Module
+
+Remove a module from a ship. The module will be placed in cargo.
+
+### Parameters
+
+
+Name | Type | Description  | Required | Notes
+------------- | ------------- | ------------- | ------------- | -------------
+**ship_symbol** | **String** | The symbol of the ship | [required] |
+**remove_ship_module_request** | Option<[**RemoveShipModuleRequest**](RemoveShipModuleRequest.md)> |  |  |
+
+### Return type
+
+[**models::InstallShipModule201Response**](install_ship_module_201_response.md)
+
+### Authorization
+
+[AccountToken](../README.md#AccountToken), [AgentToken](../README.md#AgentToken)
+
+### HTTP request headers
+
+- **Content-Type**: application/json
+- **Accept**: application/json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+
 ## repair_ship
 
 > models::RepairShip200Response repair_ship(ship_symbol)
@@ -958,7 +1053,7 @@ Name | Type | Description  | Required | Notes
 > models::ShipRefine201Response ship_refine(ship_symbol, ship_refine_request)
 Ship Refine
 
-Attempt to refine the raw materials on your ship. The request will only succeed if your ship is capable of refining at the time of the request. In order to be able to refine, a ship must have goods that can be refined and have installed a `Refinery` module that can refine it.  When refining, 30 basic goods will be converted into 10 processed goods.
+Attempt to refine the raw materials on your ship. The request will only succeed if your ship is capable of refining at the time of the request. In order to be able to refine, a ship must have goods that can be refined and have installed a `Refinery` module that can refine it.  When refining, 100 basic goods will be converted into 10 processed goods.
 
 ### Parameters
 

@@ -4,6 +4,7 @@
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
+**accounts** | Option<**i32**> | Total number of accounts registered on the game server. | [optional]
 **agents** | **i32** | Number of registered agents in the game. | 
 **ships** | **i32** | Total number of ships in the game. | 
 **systems** | **i32** | Total number of systems in the game. | 

@@ -29,7 +29,7 @@ Name | Type | Description  | Required | Notes
 
 ### Authorization
 
-[AgentToken](../README.md#AgentToken)
+[AccountToken](../README.md#AccountToken), [AgentToken](../README.md#AgentToken)
 
 ### HTTP request headers
 

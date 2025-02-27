@@ -7,7 +7,7 @@ Name | Type | Description | Notes
 **symbol** | [**models::FactionSymbol**](FactionSymbol.md) |  | 
 **name** | **String** | Name of the faction. | 
 **description** | **String** | Description of the faction. | 
-**headquarters** | **String** | The waypoint in which the faction's HQ is located in. | 
+**headquarters** | Option<**String**> | The waypoint in which the faction's HQ is located in. | [optional]
 **traits** | [**Vec<models::FactionTrait>**](FactionTrait.md) | List of traits that define this faction. | 
 **is_recruiting** | **bool** | Whether or not the faction is currently recruiting new agents. | 
 

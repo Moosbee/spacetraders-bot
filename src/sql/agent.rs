@@ -18,7 +18,7 @@ impl From<space_traders_client::models::Agent> for Agent {
 }
 
 impl sql_models::Agent {
-   pub async fn get_last(database_pool: &DbPool) -> sqlx::Result<Vec<Agent>> {
+    pub async fn get_last(database_pool: &DbPool) -> sqlx::Result<Vec<Agent>> {
         let result = sqlx::query_as! {
         Agent,
         r#"
@@ -33,7 +33,10 @@ impl sql_models::Agent {
         result
     }
 
-    pub async fn get_last_by_symbol(database_pool: &DbPool, symbol: &str) -> sqlx::Result<Option<Agent>> {
+    pub async fn get_last_by_symbol(
+        database_pool: &DbPool,
+        symbol: &str,
+    ) -> sqlx::Result<Option<Agent>> {
         let result = sqlx::query_as! {
         Agent,
         r#"
@@ -51,7 +54,7 @@ impl sql_models::Agent {
     }
 
     pub async fn get_by_symbol(database_pool: &DbPool, symbol: &str) -> sqlx::Result<Vec<Agent>> {
-            sqlx::query_as!(
+        sqlx::query_as!(
             Agent,
             r#"
                 SELECT 
@@ -66,7 +69,7 @@ impl sql_models::Agent {
                 ORDER BY  symbol ASC, created_at DESC
             "#,
             symbol
-        ) 
+        )
         .fetch_all(&database_pool.database_pool)
         .await
     }
@@ -128,10 +131,10 @@ impl DatabaseConnector<Agent> for sql_models::Agent {
             select * from UNNEST($1::character varying[], $2::character varying[], $3::character varying[], $4::integer[], $5::character varying[], $6::integer[])
         "#,
         &symbols,
-        &account_ids as &[Option<String>], 
+        &account_ids as &[Option<String>],
         &headquarterss,
         &creditss,
-        &starting_factions,  
+        &starting_factions,
         &ship_counts
     ).execute(&database_pool.database_pool).await?;
 
@@ -154,7 +157,7 @@ impl DatabaseConnector<Agent> for sql_models::Agent {
             r#"
                 SELECT symbol, account_id, headquarters, credits, starting_faction, ship_count, created_at FROM agent
             "#
-        ) 
+        )
         .fetch_all(&database_pool.database_pool)
         .await
     }

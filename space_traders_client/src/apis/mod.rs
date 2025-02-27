@@ -1,6 +1,5 @@
+use std::error;
 use std::fmt;
-
-use serde::{Deserialize, Serialize};
 
 // #[derive(Debug, Clone)]
 // pub struct ResponseContent<T> {
@@ -10,7 +9,7 @@ use serde::{Deserialize, Serialize};
 // }
 
 #[derive(Debug)]
-pub enum Error<T: Clone> {
+pub enum Error<T> {
     Reqwest(reqwest::Error),
     ReqwestMiddleware(reqwest_middleware::Error),
     Serde(serde_json::Error),
@@ -18,30 +17,10 @@ pub enum Error<T: Clone> {
     ResponseError(ResponseContent<T>),
 }
 
-#[derive(Debug, Clone)]
-pub struct ResponseContent<T: Clone> {
-    pub status: reqwest::StatusCode,
-    pub content: String,
-    pub entity: Option<ResponseContentEntity<T>>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ResponseContentEntityData<T: Clone> {
-    pub message: String,
-    pub code: u32,
-    pub data: T,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ResponseContentEntity<T: Clone> {
-    pub error: ResponseContentEntityData<T>,
-}
-
-impl<T: std::clone::Clone> fmt::Display for Error<T> {
+impl<T> fmt::Display for Error<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let (module, e) = match self {
             Error::Reqwest(e) => ("reqwest", e.to_string()),
-            Error::ReqwestMiddleware(e) => ("reqwest-middleware", e.to_string()),
             Error::Serde(e) => ("serde", e.to_string()),
             Error::Io(e) => ("IO", e.to_string()),
             Error::ResponseError(e) => ("response", format!("status code {}", e.status)),
@@ -50,8 +29,8 @@ impl<T: std::clone::Clone> fmt::Display for Error<T> {
     }
 }
 
-impl<T: fmt::Debug + std::clone::Clone> std::error::Error for Error<T> {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+impl<T: fmt::Debug> error::Error for Error<T> {
+    fn source(&self) -> Option<&(dyn error::Error + 'static)> {
         Some(match self {
             Error::Reqwest(e) => e,
             Error::ReqwestMiddleware(e) => e,
@@ -62,25 +41,25 @@ impl<T: fmt::Debug + std::clone::Clone> std::error::Error for Error<T> {
     }
 }
 
-impl<T: std::clone::Clone> From<reqwest::Error> for Error<T> {
+impl<T> From<reqwest::Error> for Error<T> {
     fn from(e: reqwest::Error) -> Self {
         Error::Reqwest(e)
     }
 }
 
-impl<T: std::clone::Clone> From<reqwest_middleware::Error> for Error<T> {
+impl<T> From<reqwest_middleware::Error> for Error<T> {
     fn from(e: reqwest_middleware::Error) -> Self {
         Error::ReqwestMiddleware(e)
     }
 }
 
-impl<T: std::clone::Clone> From<serde_json::Error> for Error<T> {
+impl<T> From<serde_json::Error> for Error<T> {
     fn from(e: serde_json::Error) -> Self {
         Error::Serde(e)
     }
 }
 
-impl<T: std::clone::Clone> From<std::io::Error> for Error<T> {
+impl<T> From<std::io::Error> for Error<T> {
     fn from(e: std::io::Error) -> Self {
         Error::Io(e)
     }
@@ -126,6 +105,7 @@ pub mod contracts_api;
 pub mod default_api;
 pub mod factions_api;
 pub mod fleet_api;
+pub mod global_api;
 pub mod systems_api;
 
 pub mod configuration;

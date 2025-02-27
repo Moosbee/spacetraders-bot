@@ -139,7 +139,7 @@ impl TradeRoute {
             id: i32,
         }
         let erg= sqlx::query_as!(
-            Erg,          
+            Erg,
             r#"
             insert into trade_route (symbol, ship_symbol, purchase_waypoint, sell_waypoint, finished,trade_volume, predicted_purchase_price, predicted_sell_price)
             values ($1, $2, $3, $4, $5, $6, $7, $8)

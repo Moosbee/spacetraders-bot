@@ -15,7 +15,16 @@ pub async fn update_all_systems(
     .await?;
 
     for system in &all_systems {
-        let waypoints = api.get_all_waypoints(&system.symbol, 20).await?;
+        let waypoints = loop {
+            let waypoints = api.get_all_waypoints(&system.symbol, 20).await;
+            match waypoints {
+                Ok(waypoints) => break waypoints,
+                Err(e) => {
+                    println!("Error getting waypoints: {}", e);
+                    std::thread::sleep(std::time::Duration::from_millis(1000));
+                }
+            }
+        };
         sql::Waypoint::insert_bulk(
             &database_pool,
             &waypoints
