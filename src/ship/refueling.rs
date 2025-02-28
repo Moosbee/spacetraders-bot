@@ -34,20 +34,22 @@ impl MyShip {
         database_pool: &sql::DbPool,
         update_market: bool,
         reason: sql::TransactionReason,
-    ) -> error::Result<()> {
+    ) -> error::Result<i32> {
         self.mutate();
         let requirements = self.calculate_refuel_requirements(instruction);
 
         if !requirements.needs_refuel() {
-            return Ok(());
+            return Ok(0);
         }
 
         if instruction.start_is_marketplace {
             self.handle_marketplace_refuel(api, database_pool, requirements, update_market, reason)
-                .await
+                .await?;
+            Ok(2)
         } else {
             self.handle_space_refuel(api, database_pool, requirements, reason)
-                .await
+                .await?;
+            Ok(1)
         }
     }
 

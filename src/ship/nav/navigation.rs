@@ -174,14 +174,18 @@ impl MyShip {
         self.validate_current_waypoint(&instruction)?;
         let _ = self.wait_for_arrival(api).await;
 
-        self.handle_refueling(
-            &instruction,
-            api,
-            database_pool,
-            update_market,
-            reason.clone(),
-        )
-        .await?;
+        let erg = self
+            .handle_refueling(
+                &instruction,
+                api,
+                database_pool,
+                update_market,
+                reason.clone(),
+            )
+            .await?;
+        if erg != 2 {
+            tokio::time::sleep(std::time::Duration::from_millis(200)).await;
+        }
         self.update_flight_mode(api, instruction.flight_mode)
             .await?;
         self.ensure_undocked(api).await?;
@@ -340,11 +344,11 @@ impl MyShip {
         core::result::Result::Ok(())
     }
 
-    pub async fn wait_for_arrival(&mut self, api: &api::Api) -> anyhow::Result<()> {
+    pub async fn wait_for_arrival(&mut self, _api: &api::Api) -> anyhow::Result<()> {
         self.mutate();
         let t = self.nav.route.arrival - Utc::now();
-        let t = t.num_seconds().try_into()?;
-        self.sleep(std::time::Duration::from_secs(t), api).await;
+        let t = t.num_milliseconds().try_into()?;
+        tokio::time::sleep(tokio::time::Duration::from_millis(t)).await;
         Ok(())
     }
 }

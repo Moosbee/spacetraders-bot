@@ -288,12 +288,12 @@ impl ContractManager {
         let next_procurment = all_procurment[0];
         debug!("Next procurement task: {:?}", next_procurment);
 
-        let (purchase_volume, remaining) =
-            self.calculate_purchase_volume(&ship_clone, next_procurment);
-        debug!("Calculated purchase volume: {}", purchase_volume);
-
         let trade_symbol = models::TradeSymbol::from_str(&next_procurment.trade_symbol)
             .map_err(|err| Error::General(err.to_string()))?;
+
+        let (purchase_volume, remaining) =
+            self.calculate_purchase_volume(&ship_clone, next_procurment, &trade_symbol);
+        debug!("Calculated purchase volume: {}", purchase_volume);
 
         let purchase_symbol = self.get_purchase_waypoint(&trade_symbol).await?;
         debug!("Obtained purchase waypoint: {:?}", purchase_symbol);
@@ -343,10 +343,12 @@ impl ContractManager {
         &self,
         ship: &ship::MyShip,
         procurement: &models::ContractDeliverGood,
+        trade_symbol: &models::TradeSymbol,
     ) -> (i32, i32) {
         let remaining_required = procurement.units_required - procurement.units_fulfilled;
         (
-            (ship.cargo.capacity - ship.cargo.units).min(remaining_required),
+            (ship.cargo.capacity - ship.cargo.units + ship.cargo.get_amount(trade_symbol))
+                .min(remaining_required),
             remaining_required,
         )
     }
