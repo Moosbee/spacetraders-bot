@@ -17,6 +17,9 @@ function BulkActions() {
         Supported:
         <ul>
           <li>navigate ship_symbol -{">"} Waypoint_symbol</li>
+          <li>toggleOrbit ship_symbol</li>
+          <li>toggleActivation ship_symbol</li>
+          <li>newRole ship_symbol -{">"} role</li>
         </ul>
       </Text>
       <Flex gap={12} vertical>
@@ -40,6 +43,33 @@ function BulkActions() {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({ waypointSymbol: Waypoint_symbol }),
+                })
+                  .then((response) => response.json())
+                  .then((data) => console.log("denden", data));
+              } else if (args[0] === "toggleOrbit") {
+                const ship_symbol = args[1];
+                fetch(`http://${backendUrl}/ship/${ship_symbol}/toggleOrbit`, {
+                  method: "POST",
+                })
+                  .then((response) => response.json())
+                  .then((data) => console.log("denden", data));
+              } else if (args[0] === "toggleActivation") {
+                const ship_symbol = args[1];
+                fetch(
+                  `http://${backendUrl}/ship/${ship_symbol}/toggleActivation`,
+                  {
+                    method: "POST",
+                  }
+                )
+                  .then((response) => response.json())
+                  .then((data) => console.log("denden", data));
+              } else if (args[0] === "newRole" && args[2] === "->") {
+                const ship_symbol = args[1];
+                const role = args[3];
+                fetch(`http://${backendUrl}/ship/${ship_symbol}/role`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ role }),
                 })
                   .then((response) => response.json())
                   .then((data) => console.log("denden", data));

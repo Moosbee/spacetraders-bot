@@ -128,7 +128,18 @@ function Ships() {
         value: status,
       })),
       onFilter: (value, record) => record.nav.status === value,
-      sorter: (a, b) => a.nav.status.localeCompare(b.nav.status),
+      sorter: (a, b) => {
+        const num = a.nav.status.localeCompare(b.nav.status);
+        if (num === 0) {
+          if (a.nav.status === "IN_TRANSIT" && b.nav.status === "IN_TRANSIT") {
+            const data_a = new Date(a.nav.route.arrival).getTime();
+            const data_b = new Date(b.nav.route.arrival).getTime();
+            return data_a - data_b;
+          }
+        }
+
+        return num;
+      },
     },
 
     {
