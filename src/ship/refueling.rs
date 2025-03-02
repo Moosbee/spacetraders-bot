@@ -101,12 +101,14 @@ impl MyShip {
                     .with(reason);
             sql::MarketTransaction::insert(database_pool, &transaction).await?;
 
-            self.cargo
-                .remove_cargo(
-                    &space_traders_client::models::TradeSymbol::Fuel,
-                    requirements.refuel_amount,
-                )
-                .unwrap();
+            let refule_units = ((requirements.refuel_amount as f32) / 100.0).ceil() as i32;
+
+            self.cargo.remove_cargo(
+                &space_traders_client::models::TradeSymbol::Fuel,
+                refule_units,
+            )?;
+
+            self.notify().await;
         }
         Ok(())
     }
@@ -162,8 +164,7 @@ impl MyShip {
                 database_pool,
                 reason,
             )
-            .await
-            .unwrap();
+            .await?;
         }
 
         // Update market data if requested

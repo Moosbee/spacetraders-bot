@@ -68,6 +68,7 @@ pub struct Waypoint {
     pub modifiers: Vec<models::WaypointModifierSymbol>,
     pub charted_by: Option<String>,
     pub charted_on: Option<String>,
+    pub unstable_since: Option<sqlx::types::chrono::NaiveDateTime>,
 }
 
 #[derive(Debug, Clone, sqlx::FromRow, PartialEq, Eq, serde::Serialize)]

@@ -1,6 +1,6 @@
 use crate::error::{self, Result};
 use chrono::{DateTime, TimeDelta, Utc};
-use log::debug;
+use log::{debug, warn};
 use space_traders_client::{apis, models};
 use std::collections::HashMap;
 
@@ -183,9 +183,10 @@ impl MyShip {
                 reason.clone(),
             )
             .await?;
-        if erg != 2 {
-            tokio::time::sleep(std::time::Duration::from_millis(200)).await;
-        }
+        tokio::time::sleep(std::time::Duration::from_millis(200)).await;
+
+        self.mutate();
+
         self.update_flight_mode(api, instruction.flight_mode)
             .await?;
         self.ensure_undocked(api).await?;
@@ -316,14 +317,34 @@ impl MyShip {
         apis::Error<apis::fleet_api::PatchShipNavError>,
     > {
         self.mutate();
-        let ship_patch_data = api
-            .patch_ship_nav(
-                &self.symbol,
-                Some(models::PatchShipNavRequest {
-                    flight_mode: Some(flight_mode),
-                }),
-            )
-            .await?;
+        let mut count = 0;
+        let ship_patch_data = loop {
+            let ship_patch_data_result = api
+                .patch_ship_nav(
+                    &self.symbol,
+                    Some(models::PatchShipNavRequest {
+                        flight_mode: Some(flight_mode),
+                    }),
+                )
+                .await;
+
+            match ship_patch_data_result {
+                Ok(ship_patch_data) => break ship_patch_data,
+                Err(space_traders_client::apis::Error::ResponseError(e)) => {
+                    if count > 3 {
+                        return core::result::Result::Err(
+                            space_traders_client::apis::Error::ResponseError(e),
+                        );
+                    }
+                    if e.status == 400 && e.content == "You can't slow down while in transit." {
+                        log::error!("Slow down while in transit");
+                        count += 1;
+                        continue;
+                    }
+                }
+                Err(e) => return core::result::Result::Err(e),
+            }
+        };
         self.nav.update(&ship_patch_data.data.nav);
         self.fuel.update(&ship_patch_data.data.fuel);
         self.notify().await;
@@ -339,7 +360,15 @@ impl MyShip {
         if flight_mode != self.nav.flight_mode {
             debug!("Changing flight mode to {:?}", flight_mode);
 
-            self.patch_ship_nav(api, flight_mode).await?;
+            let current_fuel = self.fuel.current;
+
+            let erg = self.patch_ship_nav(api, flight_mode).await?;
+            if erg.data.fuel.current != current_fuel {
+                warn!(
+                    "Fuel changed from {} to {} {:?}",
+                    current_fuel, erg.data.fuel.current, erg.data.fuel.consumed
+                );
+            }
         }
         core::result::Result::Ok(())
     }

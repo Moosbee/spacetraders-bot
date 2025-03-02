@@ -1,4 +1,5 @@
 pub mod accept_contract_200_response;
+pub mod error_codes;
 pub use self::accept_contract_200_response::AcceptContract200Response;
 pub mod accept_contract_200_response_data;
 pub use self::accept_contract_200_response_data::AcceptContract200ResponseData;

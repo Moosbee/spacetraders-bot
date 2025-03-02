@@ -125,6 +125,10 @@ impl WaypointCan for Waypoint {
     fn is_sipherable(&self) -> bool {
         self.waypoint_type == models::WaypointType::GasGiant
     }
+
+    fn is_shipyard(&self) -> bool {
+        self.traits.contains(&models::WaypointTraitSymbol::Shipyard)
+    }
 }
 
 impl Default for Waypoint {
@@ -144,6 +148,7 @@ impl Default for Waypoint {
             modifiers: Default::default(),
             charted_by: Default::default(),
             charted_on: Default::default(),
+            unstable_since: Default::default(),
         }
     }
 }
@@ -185,7 +190,8 @@ impl Waypoint {
                   faction,
                   modifiers as "modifiers: Vec<models::WaypointModifierSymbol>",
                   charted_by,
-                  charted_on
+                  charted_on,
+                  unstable_since
                 FROM waypoint
                 WHERE system_symbol = $1
             "#,
@@ -216,7 +222,8 @@ impl Waypoint {
                   faction,
                   modifiers as "modifiers: Vec<models::WaypointModifierSymbol>",
                   charted_by,
-                  charted_on
+                  charted_on,
+                  unstable_since
                 FROM waypoint
                 WHERE symbol = $1
                 LIMIT 1
@@ -245,7 +252,8 @@ impl DatabaseConnector<Waypoint> for Waypoint {
                   faction,
                   modifiers,
                   charted_by,
-                  charted_on
+                  charted_on,
+                  unstable_since
                 )
                 VALUES ($1,
                         $2,
@@ -259,7 +267,8 @@ impl DatabaseConnector<Waypoint> for Waypoint {
                         $10,
                         $11::waypoint_modifier_symbol[],
                         $12,
-                        $13
+                        $13,
+                        $14
                         )
                 ON CONFLICT (symbol) DO UPDATE SET 
                 system_symbol = EXCLUDED.system_symbol,
@@ -273,7 +282,8 @@ impl DatabaseConnector<Waypoint> for Waypoint {
                 faction = EXCLUDED.faction,
                 modifiers = EXCLUDED.modifiers,
                 charted_by = EXCLUDED.charted_by,
-                charted_on = EXCLUDED.charted_on;
+                charted_on = EXCLUDED.charted_on,
+                unstable_since = EXCLUDED.unstable_since;
             "#,
             &item.symbol,
             &item.system_symbol,
@@ -287,7 +297,8 @@ impl DatabaseConnector<Waypoint> for Waypoint {
             &item.faction as &Option<String>,
             &item.modifiers as &[models::WaypointModifierSymbol],
             &item.charted_by as &Option<String>,
-            &item.charted_on as &Option<String>
+            &item.charted_on as &Option<String>,
+            &item.unstable_since as &Option<sqlx::types::chrono::NaiveDateTime>,
         )
         .execute(&database_pool.database_pool)
         .await?;
@@ -321,7 +332,8 @@ impl DatabaseConnector<Waypoint> for Waypoint {
                   faction,
                   modifiers as "modifiers: Vec<models::WaypointModifierSymbol>",
                   charted_by,
-                  charted_on
+                  charted_on,
+                  unstable_since
                 FROM waypoint
             "#
         )

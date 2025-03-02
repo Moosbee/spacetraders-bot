@@ -325,17 +325,20 @@ impl super::ship_models::CargoState {
         amount: i32,
     ) -> error::Result<i32> {
         let amount_in = self.get_amount(symbol);
-        if amount_in > amount {
+        if amount_in >= amount {
             self.inventory
                 .iter_mut()
                 .find_map(|(k, v)| if k == symbol { Some(v) } else { None })
                 .unwrap()
                 .sub_assign(amount);
+            if self.get_amount(symbol) == 0 {
+                self.inventory.remove(symbol);
+            }
             Ok(self.get_amount(symbol))
         } else {
             Err(error::Error::General(format!(
-                "Not enough cargo of trade symbol {} to remove {}",
-                symbol, amount
+                "Not enough cargo of trade symbol {} to remove {} only has {} cargo is: {:?}",
+                symbol, amount, amount_in, self
             )))
         }
     }

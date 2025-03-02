@@ -148,6 +148,7 @@ pub trait WaypointCan {
     fn is_marketplace(&self) -> bool;
     fn is_minable(&self) -> bool;
     fn is_sipherable(&self) -> bool;
+    fn is_shipyard(&self) -> bool;
 }
 
 impl WaypointCan for space_traders_client::models::Waypoint {
@@ -158,13 +159,22 @@ impl WaypointCan for space_traders_client::models::Waypoint {
     }
 
     fn is_minable(&self) -> bool {
-        self.r#type == space_traders_client::models::WaypointType::Asteroid
+        (self.r#type == space_traders_client::models::WaypointType::Asteroid
             || self.r#type == space_traders_client::models::WaypointType::AsteroidField
-            || self.r#type == space_traders_client::models::WaypointType::EngineeredAsteroid
+            || self.r#type == space_traders_client::models::WaypointType::EngineeredAsteroid)
+            && !self.traits.iter().any(|t| {
+                t.symbol == space_traders_client::models::WaypointTraitSymbol::UnstableComposition
+            })
     }
 
     fn is_sipherable(&self) -> bool {
         self.r#type == space_traders_client::models::WaypointType::GasGiant
+    }
+
+    fn is_shipyard(&self) -> bool {
+        self.traits
+            .iter()
+            .any(|t| t.symbol == space_traders_client::models::WaypointTraitSymbol::Shipyard)
     }
 }
 

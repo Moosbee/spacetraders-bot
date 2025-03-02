@@ -3,7 +3,7 @@ use log::debug;
 use space_traders_client::models;
 use tokio::sync::mpsc;
 
-use crate::{error::Result, types::safely_get_map};
+use crate::types::safely_get_map;
 
 #[derive(Debug)]
 pub struct TransportTransferRequest {
@@ -69,39 +69,50 @@ impl TransferManager {
         extractor && transporter
     }
 
-    fn valid_extractor(&self, symbol: &str) -> bool {
+    pub fn valid_extractor(&self, symbol: &str) -> bool {
         {
             self.extraction_contacts
                 .remove_if(symbol, |_, c| c.is_closed());
         }
         let refi = safely_get_map(&self.extraction_contacts, &symbol.to_string());
+
+        let is = match refi.as_ref() {
+            Some(contact) => !contact.is_closed(),
+            None => false,
+        };
+
         debug!(
-            "Valid extractor: {} is closed {:?}",
+            "Valid extractor {} valid: {} some {} is closed {:?}",
+            symbol,
+            is,
             refi.is_some(),
             refi.as_ref().map(|f| f.is_closed())
         );
 
-        match refi {
-            Some(contact) => !contact.is_closed(),
-            None => false,
-        }
+        is
     }
 
-    fn valid_transporter(&self, symbol: &str) -> bool {
+    pub fn valid_transporter(&self, symbol: &str) -> bool {
         {
             self.transportation_contacts
                 .remove_if(symbol, |_, c| c.is_closed());
         }
         let refi = safely_get_map(&self.transportation_contacts, &symbol.to_string());
+
+        let is = match refi.as_ref() {
+            Some(contact) => !contact.is_closed(),
+            None => false,
+        };
+
         debug!(
-            "Valid transporter: {} is closed {:?}",
+            "Valid transporter {} valid: {} some {} is closed {:?}",
+            symbol,
+            is,
             refi.is_some(),
             refi.as_ref().map(|f| f.is_closed())
         );
-        match refi {
-            Some(contact) => !contact.is_closed(),
-            None => false,
-        }
+
+        is
     }
 
     pub async fn process_transfer(
@@ -110,15 +121,23 @@ impl TransferManager {
         to_transporter: &str,
         symbol: models::TradeSymbol,
         amount: i32,
-    ) -> Result<()> {
+    ) -> Result<(), Error> {
         let transporter =
             safely_get_map(&self.transportation_contacts, &to_transporter.to_string())
                 .filter(|c| !c.is_closed())
-                .ok_or("No valid contact found")?;
+                .ok_or(Error::TransporterDropped {
+                    symbol: to_transporter.to_string(),
+                    from: from_extractor.to_string(),
+                    to: to_transporter.to_string(),
+                })?;
 
         let extractor = safely_get_map(&self.extraction_contacts, &from_extractor.to_string())
             .filter(|c| !c.is_closed())
-            .ok_or("No valid contact found")?
+            .ok_or(Error::ExtractorDropped {
+                symbol: from_extractor.to_string(),
+                from: from_extractor.to_string(),
+                to: to_transporter.to_string(),
+            })?
             .clone();
 
         let (callback, receiver) = tokio::sync::oneshot::channel();
@@ -131,16 +150,33 @@ impl TransferManager {
             callback,
         };
 
-        if let Err(err) = transporter.send(request).await {
+        if let Err(_err) = transporter.send(request).await {
             self.transportation_contacts.remove(to_transporter);
-            return Err(format!("Transporter no longer receives requests: {}", err)
-                .as_str()
-                .into());
+            return Err(Error::TransporterDropped {
+                symbol: to_transporter.to_string(),
+                from: from_extractor.to_string(),
+                to: to_transporter.to_string(),
+            });
         }
 
-        receiver.await.map_err(|e| {
-            crate::error::Error::General(format!("Failed to get transfer processed message: {}", e))
+        receiver.await.map_err(|_e| Error::TransporterDropped {
+            symbol: to_transporter.to_string(),
+            from: from_extractor.to_string(),
+            to: to_transporter.to_string(),
         })?;
         Ok(())
     }
+}
+
+pub enum Error {
+    TransporterDropped {
+        symbol: String,
+        from: String,
+        to: String,
+    },
+    ExtractorDropped {
+        symbol: String,
+        from: String,
+        to: String,
+    },
 }

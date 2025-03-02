@@ -1,14 +1,15 @@
 use std::sync::{atomic::AtomicI32, Arc};
 
 use futures::FutureExt;
-use log::debug;
+use log::{debug, info};
+use space_traders_client::models;
 
 use crate::{
     config::CONFIG,
     error::Result,
     manager::mining_manager::{ActionType, ExtractorTransferRequest, TransferResult},
     ship,
-    sql::TransactionReason,
+    sql::{self, DatabaseConnector, TransactionReason},
     types::safely_get_map,
     workers::types::ConductorContext,
 };
@@ -157,10 +158,61 @@ impl ExtractionPilot {
 
         match action {
             ActionType::Extract => {
-                let _erg = ship.extract(&self.context.api).await?;
+                let erg = ship.extract(&self.context.api).await;
+                match erg {
+                    Err(space_traders_client::apis::Error::ResponseError(e)) => {
+                        if e.entity
+                            .as_ref()
+                            .map(|e| {
+                                e.error.code == models::error_codes::SHIP_EXTRACT_DESTABILIZED_ERROR
+                            })
+                            .unwrap_or(false)
+                        {
+                            log::warn!(
+                                "Waypoint {} is destabilized by {}",
+                                ship.nav.waypoint_symbol,
+                                ship.symbol
+                            );
+
+                            let new_wp = sql::Waypoint::get_by_symbol(
+                                &self.context.database_pool,
+                                &ship.nav.waypoint_symbol,
+                            )
+                            .await?;
+                            let mut wp = if let Some(new_wp) = new_wp {
+                                new_wp
+                            } else {
+                                let new_wp = self
+                                    .context
+                                    .api
+                                    .get_waypoint(
+                                        &ship.nav.system_symbol,
+                                        &ship.nav.waypoint_symbol,
+                                    )
+                                    .await?;
+                                (&(*new_wp.data)).into()
+                            };
+                            wp.unstable_since = Some(chrono::Utc::now().naive_local());
+                            sql::Waypoint::insert(&self.context.database_pool, &wp).await?;
+                        } else {
+                            return Err(space_traders_client::apis::Error::ResponseError(e).into());
+                        }
+                    }
+                    Err(e) => return Err(e.into()),
+                    Ok(erg) => {
+                        info!(
+                            "Extracted on ship: {} erg {:?}",
+                            erg.data.extraction.ship_symbol, erg.data.extraction.r#yield
+                        );
+                    }
+                }
             }
             ActionType::Siphon => {
-                let _erg = ship.siphon(&self.context.api).await?;
+                let erg = ship.siphon(&self.context.api).await?;
+                info!(
+                    "Siphoned on ship: {} erg {:?}",
+                    erg.data.siphon.ship_symbol, erg.data.siphon.r#yield
+                );
             }
         }
 

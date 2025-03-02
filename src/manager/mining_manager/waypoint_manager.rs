@@ -192,9 +192,8 @@ impl WaypointManager {
                 )
             })
             .filter(|sh| {
-                sh.nav.waypoint_symbol == wp.waypoint_symbol
-                    || sh.nav.auto_pilot.as_ref().map(|a| &a.destination_symbol)
-                        == Some(&wp.waypoint_symbol)
+                sh.nav.auto_pilot.as_ref().map(|a| &a.destination_symbol)
+                    == Some(&wp.waypoint_symbol)
             })
             .map(|sh| {
                 (

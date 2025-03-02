@@ -1,6 +1,7 @@
 mod agent_scrapper;
 mod market_scrapper;
 mod scrapping_manager;
+mod shipyard_scrapper;
 mod system_scrapper;
 
 pub use scrapping_manager::ScrappingManager;

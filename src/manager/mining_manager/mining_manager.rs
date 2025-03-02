@@ -192,7 +192,11 @@ impl MiningManager {
         );
         let mut current_trade_symbol = None;
 
-        for _ in 0..20 {
+        let mut count = 10;
+        loop {
+            if count <= 0 {
+                break;
+            }
             let ships = self.get_ships_at_waypoint(waypoint_symbol).await?;
             let (extraction_ships, transport_ships) = self.partition_ships_by_role(ships);
 
@@ -203,13 +207,23 @@ impl MiningManager {
                 waypoint_symbol
             );
 
-            let extraction_ships = self.filter_ships_with_cargo(extraction_ships);
+            let extraction_ships = self.filter_ships_with_cargo(
+                extraction_ships
+                    .into_iter()
+                    .filter(|f| self.transfer_manager.valid_extractor(&f.symbol))
+                    .collect::<Vec<_>>(),
+            );
             if extraction_ships.is_empty() {
                 debug!("No ships with cargo at waypoint: {:?}", waypoint_symbol);
                 return Ok(());
             }
 
-            let transport_ships = self.filter_ships_with_space(transport_ships);
+            let transport_ships = self.filter_ships_with_space(
+                transport_ships
+                    .into_iter()
+                    .filter(|f| self.transfer_manager.valid_transporter(&f.symbol))
+                    .collect::<Vec<_>>(),
+            );
             if transport_ships.is_empty() {
                 debug!(
                     "No transport ships with space at waypoint: {:?}",
@@ -249,6 +263,7 @@ impl MiningManager {
                 self.waypoint_manager.up_date(waypoint_symbol);
             } else {
                 debug!("Transfer failed, resetting trade symbol");
+                count = count - 1;
                 current_trade_symbol = None;
             }
         }
@@ -282,7 +297,6 @@ impl MiningManager {
         })
     }
 
-    /*************  ✨ Codeium Command ⭐  *************/
     /// Filters the provided list of ships, returning only those that have cargo units on board.
     ///
     /// # Arguments
@@ -292,8 +306,6 @@ impl MiningManager {
     /// # Returns
     ///
     /// A vector containing only the ships that have cargo units greater than zero.
-
-    /******  ad872d95-00e3-45eb-aded-19a164a38851  *******/
     fn filter_ships_with_cargo(&self, ships: Vec<ship::MyShip>) -> Vec<ship::MyShip> {
         debug!("Filtering ships with cargo");
         ships.into_iter().filter(|f| f.cargo.units > 0).collect()
@@ -356,12 +368,22 @@ impl MiningManager {
                 )
                 .await;
 
-            if let Err(crate::error::Error::General(msg)) = erg {
-                if msg == "No valid contact found" {
-                    return Ok(false);
-                }
-            } else if let Err(rest) = erg {
-                return Err(rest);
+            match erg {
+                Ok(_) => {}
+                Err(err) => match err {
+                    crate::manager::mining_manager::transfer_manager::Error::TransporterDropped { symbol, from, to } => log::error!(
+                        "Transporter dropped: {} from {} to {}",
+                        symbol,
+                        from,
+                        to
+                    ),
+                    crate::manager::mining_manager::transfer_manager::Error::ExtractorDropped { symbol, from, to } => log::error!(
+                        "Extractor dropped: {} from {} to {}",
+                        symbol,
+                        from,
+                        to
+                    ),
+                },
             }
 
             Ok(true)

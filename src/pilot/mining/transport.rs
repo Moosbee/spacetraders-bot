@@ -60,7 +60,7 @@ impl TransportPilot {
                     if err_r == "No routes found" {
                         info!("No more mining waypoints");
                         tokio::time::sleep(std::time::Duration::from_millis(
-                            100 + rand::random::<u64>() % 500,
+                            1000 + rand::random::<u64>() % 500,
                         ))
                         .await;
                         break;
@@ -156,7 +156,16 @@ impl TransportPilot {
                 }
                 Some(transfer_request) => {
                     debug!("Received transfer request for ship: {}", ship.symbol);
-                    self.handle_transfer_request(ship, transfer_request).await?;
+                    let erg = self.handle_transfer_request(ship, transfer_request).await;
+                    if let Err(err) = erg {
+                        log::error!(
+                            "Failed to handle transfer request: {} and also {:?} on ship: {}",
+                            err,
+                            err,
+                            ship.symbol
+                        );
+                        return Err(err);
+                    }
                 }
             }
         }
