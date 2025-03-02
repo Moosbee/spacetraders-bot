@@ -4,16 +4,16 @@ use log::info;
 use tokio::time::sleep;
 use tokio_util::sync::CancellationToken;
 
-use crate::config::CONFIG;
+use crate::{config::CONFIG, types::ConductorContext};
 
 pub struct ConstructionFleet {
-    context: super::types::ConductorContext,
+    context: ConductorContext,
     cancellation_token: CancellationToken,
 }
 
 impl ConstructionFleet {
     #[allow(dead_code)]
-    pub fn new_box(_context: super::types::ConductorContext) -> Box<Self> {
+    pub fn new_box(_context: ConductorContext) -> Box<Self> {
         Box::new(ConstructionFleet {
             context: _context,
             cancellation_token: CancellationToken::new(),

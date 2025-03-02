@@ -11,7 +11,8 @@ use crate::{
     config::CONFIG,
     ship::{self, nav_models::Cache},
     sql,
-    workers::types::{Conductor, ConductorContext},
+    types::ConductorContext,
+    workers::types::Conductor,
 };
 
 use super::{

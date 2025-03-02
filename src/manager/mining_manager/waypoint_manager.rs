@@ -1,6 +1,9 @@
-use space_traders_client::models::{self, waypoint};
+use space_traders_client::models;
 
-use crate::{ship, types::WaypointCan, workers::types::ConductorContext};
+use crate::{
+    ship, sql,
+    types::{ConductorContext, WaypointCan},
+};
 
 use super::{
     mining_places::{AssignLevel, MiningPlaces},
@@ -64,16 +67,20 @@ impl WaypointManager {
                 match action {
                     ActionType::Extract => |waypoint| {
                         waypoint.is_minable()
-                            && !waypoint
-                                .traits
-                                .iter()
-                                .any(|t| t.symbol == models::WaypointTraitSymbol::Stripped)
+                            && waypoint.waypoint_type != models::WaypointType::EngineeredAsteroid
+                            && waypoint
+                                .unstable_since
+                                .map(|last| {
+                                    last + chrono::Duration::hours(20)
+                                        < chrono::Utc::now().naive_local()
+                                })
+                                .unwrap_or(true)
                     },
-                    ActionType::Siphon => models::Waypoint::is_sipherable,
+                    ActionType::Siphon => sql::Waypoint::is_sipherable,
                 },
                 &self.places,
             )
-            .await;
+            .await?;
 
         self.assign_to_available_waypoint(ship, waypoints)
     }

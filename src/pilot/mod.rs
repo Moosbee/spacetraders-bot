@@ -13,9 +13,10 @@ use tokio_util::sync::CancellationToken;
 use trading::TradingPilot;
 
 use crate::config::CONFIG;
-use crate::{sql, workers::types::ConductorContext};
+use crate::sql;
 
 use crate::error::{Error, Result};
+use crate::types::ConductorContext;
 
 pub struct Pilot {
     context: ConductorContext,

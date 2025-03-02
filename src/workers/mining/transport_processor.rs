@@ -13,13 +13,14 @@ use crate::{
         my_ship_update::{MyShipUpdate, ShipUpdate, TransferRequest},
     },
     sql::{self, MarketTradeGood, TransactionReason},
+    types::ConductorContext,
 };
 
 use super::mining_manager::{MiningManager, WaypointInfo};
 
 #[derive(Debug, Clone)]
 pub struct TransportProcessor {
-    context: crate::workers::types::ConductorContext,
+    context: ConductorContext,
     cancellation_token: CancellationToken,
     mining_places: Arc<MiningManager>,
 }
@@ -43,7 +44,7 @@ enum GetNextShipToUnloadError {
 
 impl TransportProcessor {
     pub fn new(
-        context: crate::workers::types::ConductorContext,
+        context: ConductorContext,
         cancellation_token: CancellationToken,
         mining_places: Arc<MiningManager>,
     ) -> TransportProcessor {

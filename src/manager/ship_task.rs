@@ -1,6 +1,6 @@
 use tokio::{select, task::JoinSet};
 
-use crate::sql;
+use crate::{sql, types::ConductorContext};
 
 use super::Manager;
 
@@ -9,7 +9,7 @@ pub struct ShipTaskHandler {
     ship_cancel_token: tokio_util::sync::CancellationToken,
     manager_cancel_token: tokio_util::sync::CancellationToken,
     cancel_token: tokio_util::sync::CancellationToken,
-    context: crate::workers::types::ConductorContext,
+    context: ConductorContext,
 }
 
 type ShipFuture = ();
@@ -38,7 +38,7 @@ impl ShipTaskHandler {
         ship_cancel_token: tokio_util::sync::CancellationToken,
         manager_cancel_token: tokio_util::sync::CancellationToken,
         cancel_token: tokio_util::sync::CancellationToken,
-        context: crate::workers::types::ConductorContext,
+        context: ConductorContext,
         receiver: tokio::sync::mpsc::Receiver<sql::ShipInfo>,
     ) -> Self {
         log::debug!("ShipTaskHandler::new");

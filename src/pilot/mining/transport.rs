@@ -11,7 +11,7 @@ use crate::{
     manager::mining_manager::{ExtractorTransferRequest, TransportTransferRequest},
     ship,
     sql::{self, TransactionReason},
-    workers::types::ConductorContext,
+    types::ConductorContext,
 };
 
 pub struct TransportPilot {

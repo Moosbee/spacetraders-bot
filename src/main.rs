@@ -35,6 +35,7 @@ use space_traders_client::models::waypoint;
 use sql::DatabaseConnector;
 use tokio::sync::broadcast;
 use tokio_util::sync::CancellationToken;
+use types::ConductorContext;
 use workers::types::Conductor;
 
 use crate::api::Api;
@@ -59,7 +60,7 @@ async fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
-async fn run_conductor(context: workers::types::ConductorContext) -> anyhow::Result<()> {
+async fn run_conductor(context: ConductorContext) -> anyhow::Result<()> {
     let mut conductors: Vec<Box<dyn Conductor>> = vec![
         workers::construction_fleet::ConstructionFleet::new_box(context.clone()),
         workers::contract_fleet::ContractFleet::new_box(context.clone()),
@@ -145,14 +146,8 @@ async fn setup_unauthed() -> Result<(Api, sql::DbPool), anyhow::Error> {
     Ok((api, database_pool))
 }
 
-async fn setup_context() -> Result<
-    (
-        workers::types::ConductorContext,
-        CancellationToken,
-        Vec<Box<dyn Manager>>,
-    ),
-    anyhow::Error,
-> {
+async fn setup_context(
+) -> Result<(ConductorContext, CancellationToken, Vec<Box<dyn Manager>>), anyhow::Error> {
     let (api, database_pool) = setup_unauthed().await?;
 
     let my_agent = api.get_my_agent().await?;
@@ -228,7 +223,7 @@ async fn setup_context() -> Result<
     let trade_manager_data = TradeManager::create();
     let ship_task_handler = ShipTaskHandler::create();
 
-    let context = workers::types::ConductorContext {
+    let context = ConductorContext {
         api: api.clone(),
         database_pool,
         ship_manager,
@@ -325,7 +320,7 @@ async fn check_time() {
 }
 
 async fn start(
-    context: workers::types::ConductorContext,
+    context: ConductorContext,
     manager_token: CancellationToken,
     managers: Vec<Box<dyn Manager>>,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
@@ -390,9 +385,7 @@ async fn start_managers(
     Ok(handles)
 }
 
-async fn start_ships(
-    context: &workers::types::ConductorContext,
-) -> Result<(), crate::error::Error> {
+async fn start_ships(context: &ConductorContext) -> Result<(), crate::error::Error> {
     let ship_names: Vec<sql::ShipInfo> = sql::ShipInfo::get_all(&context.database_pool).await?;
 
     let len = ship_names.len();

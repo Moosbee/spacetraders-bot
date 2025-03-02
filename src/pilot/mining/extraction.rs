@@ -10,8 +10,7 @@ use crate::{
     manager::mining_manager::{ActionType, ExtractorTransferRequest, TransferResult},
     ship,
     sql::{self, DatabaseConnector, TransactionReason},
-    types::safely_get_map,
-    workers::types::ConductorContext,
+    types::{safely_get_map, ConductorContext},
 };
 
 pub struct ExtractionPilot {
@@ -201,8 +200,10 @@ impl ExtractionPilot {
                     Err(e) => return Err(e.into()),
                     Ok(erg) => {
                         info!(
-                            "Extracted on ship: {} erg {:?}",
-                            erg.data.extraction.ship_symbol, erg.data.extraction.r#yield
+                            "Extracted on ship: {} erg {:?} events: {:?}",
+                            erg.data.extraction.ship_symbol,
+                            erg.data.extraction.r#yield,
+                            erg.data.events
                         );
                     }
                 }
@@ -210,8 +211,8 @@ impl ExtractionPilot {
             ActionType::Siphon => {
                 let erg = ship.siphon(&self.context.api).await?;
                 info!(
-                    "Siphoned on ship: {} erg {:?}",
-                    erg.data.siphon.ship_symbol, erg.data.siphon.r#yield
+                    "Siphoned on ship: {} erg {:?} events: {:?}",
+                    erg.data.siphon.ship_symbol, erg.data.siphon.r#yield, erg.data.events
                 );
             }
         }

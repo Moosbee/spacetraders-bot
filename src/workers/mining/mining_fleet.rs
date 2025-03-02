@@ -10,6 +10,7 @@ use crate::{
     config::CONFIG,
     ship::{self},
     sql::ShipInfo,
+    types::ConductorContext,
     workers::mining::m_types::MiningShipAssignment,
 };
 
@@ -20,14 +21,14 @@ use super::{
 
 #[derive(Debug, Clone)]
 pub struct MiningFleet {
-    context: crate::workers::types::ConductorContext,
+    context: ConductorContext,
     cancellation_token: CancellationToken,
     mining_places: Arc<MiningManager>,
 }
 
 impl MiningFleet {
     #[allow(dead_code)]
-    pub fn new_box(_context: crate::workers::types::ConductorContext) -> Box<Self> {
+    pub fn new_box(_context: ConductorContext) -> Box<Self> {
         let cancellation_token = CancellationToken::new();
         let mining_places = Arc::new(MiningManager::new());
         Box::new(MiningFleet {

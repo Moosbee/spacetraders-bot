@@ -15,18 +15,19 @@ use crate::{
     config::CONFIG,
     ship,
     sql::{self, DatabaseConnector},
+    types::ConductorContext,
 };
 
 // Constants
 
 pub struct ContractFleet {
-    context: super::types::ConductorContext,
+    context: ConductorContext,
     please_stop: CancellationToken,
 }
 
 impl ContractFleet {
     #[allow(dead_code)]
-    pub fn new_box(context: super::types::ConductorContext) -> Box<Self> {
+    pub fn new_box(context: ConductorContext) -> Box<Self> {
         Box::new(ContractFleet {
             context,
             please_stop: CancellationToken::new(),

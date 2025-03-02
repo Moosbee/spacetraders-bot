@@ -7,7 +7,8 @@ use crate::{
     config::CONFIG,
     ship,
     sql::{self, DatabaseConnector},
-    workers::{trading::routes_track_keeper::RoutesTrackKeeper, types::ConductorContext},
+    types::ConductorContext,
+    workers::trading::routes_track_keeper::RoutesTrackKeeper,
 };
 
 #[derive(Debug, Clone)]

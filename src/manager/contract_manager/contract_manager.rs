@@ -10,6 +10,7 @@ use crate::{
     manager::Manager,
     ship,
     sql::{self, DatabaseConnector},
+    types::ConductorContext,
 };
 
 #[derive(Debug)]
@@ -41,7 +42,7 @@ type ContractManagerMessage = ContractMessage;
 #[derive(Debug)]
 pub struct ContractManager {
     cancel_token: tokio_util::sync::CancellationToken,
-    context: crate::workers::types::ConductorContext,
+    context: ConductorContext,
     receiver: tokio::sync::mpsc::Receiver<ContractManagerMessage>,
     current_contract: Option<models::Contract>,
     running_shipments: Vec<sql::ContractShipment>,
@@ -65,7 +66,7 @@ impl ContractManager {
 
     pub fn new(
         cancel_token: tokio_util::sync::CancellationToken,
-        context: crate::workers::types::ConductorContext,
+        context: ConductorContext,
         receiver: tokio::sync::mpsc::Receiver<ContractManagerMessage>,
     ) -> Self {
         debug!("Creating new ContractManager");

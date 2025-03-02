@@ -6,7 +6,7 @@ use crate::{
     error::{Error, Result},
     manager::contract_manager::{ContractMessage, NextShipmentResp},
     ship, sql,
-    workers::types::ConductorContext,
+    types::ConductorContext,
 };
 
 pub struct ContractPilot {

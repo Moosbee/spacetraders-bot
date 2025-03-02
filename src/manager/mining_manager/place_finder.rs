@@ -1,6 +1,7 @@
-use space_traders_client::models;
-
-use crate::types::WaypointCan;
+use crate::{
+    sql,
+    types::{ConductorContext, WaypointCan},
+};
 
 use super::mining_places::MiningPlaces;
 
@@ -36,7 +37,7 @@ impl ActionType {
 }
 
 pub struct FoundWaypointInfo {
-    pub waypoint: models::Waypoint,
+    pub waypoint: sql::Waypoint,
     pub distance: i32,
     #[allow(dead_code)]
     pub next: String,
@@ -44,22 +45,26 @@ pub struct FoundWaypointInfo {
 
 #[derive(Debug)]
 pub struct PlaceFinder {
-    context: crate::workers::types::ConductorContext,
+    context: ConductorContext,
 }
 
 impl PlaceFinder {
-    pub fn new(context: crate::workers::types::ConductorContext) -> Self {
+    pub fn new(context: ConductorContext) -> Self {
         Self { context }
     }
 
     pub async fn find(
         &self,
         ship_clone: crate::ship::MyShip,
-        filter_fn: fn(&models::Waypoint) -> bool,
+        filter_fn: fn(&sql::Waypoint) -> bool,
         mining_places: &MiningPlaces,
-    ) -> Vec<FoundWaypointInfo> {
-        let waypoints: Vec<FoundWaypointInfo> =
-            self.get_best_waypoints(ship_clone.nav.system_symbol.clone(), filter_fn);
+    ) -> Result<Vec<FoundWaypointInfo>, crate::error::Error> {
+        let sql_waypoints = sql::Waypoint::get_by_system(
+            &self.context.database_pool,
+            &ship_clone.nav.system_symbol,
+        )
+        .await?;
+        let waypoints: Vec<FoundWaypointInfo> = self.get_best_waypoints(&sql_waypoints, filter_fn);
 
         let possible_waypoints: Vec<FoundWaypointInfo> = waypoints
             .into_iter()
@@ -73,40 +78,21 @@ impl PlaceFinder {
             })
             .collect::<Vec<_>>();
 
-        possible_waypoints
+        Ok(possible_waypoints)
     }
 
     fn get_best_waypoints(
         &self,
-        system_symbol: String,
-        filter: fn(&models::Waypoint) -> bool,
+        system_waypoints: &[sql::Waypoint],
+        filter: fn(&sql::Waypoint) -> bool,
     ) -> Vec<FoundWaypointInfo> {
-        let waypoints = {
-            let erg = self.context.all_waypoints.try_get(&system_symbol);
-
-            let waypoints = if erg.is_locked() {
-                log::warn!("Failed to get system: {} waiting", system_symbol);
-                let erg = self.context.all_waypoints.get(&system_symbol);
-                log::warn!("Got system: {} waiting", system_symbol);
-                erg
-            } else {
-                erg.try_unwrap()
-            };
-
-            let waypoints = waypoints.unwrap();
-
-            waypoints.clone()
-        };
-
-        let points = waypoints
+        let points = system_waypoints
             .iter()
-            .map(|w| w.1.clone())
             .filter(|w| filter(w))
             .collect::<Vec<_>>();
 
-        let markets = waypoints
+        let markets = system_waypoints
             .iter()
-            .map(|w| w.1.clone())
             .filter(|w| w.is_marketplace())
             .collect::<Vec<_>>();
 
@@ -124,7 +110,7 @@ impl PlaceFinder {
                 let dis = dis.unwrap();
 
                 FoundWaypointInfo {
-                    waypoint: wp.clone(),
+                    waypoint: (*wp).clone(),
                     distance: dis.1,
                     next: dis.0.clone(),
                 }
@@ -136,7 +122,7 @@ impl PlaceFinder {
         d_points
     }
 
-    fn distance_squared(&self, a: &models::Waypoint, b: &models::Waypoint) -> i32 {
+    fn distance_squared(&self, a: &sql::Waypoint, b: &sql::Waypoint) -> i32 {
         let dx = a.x - b.x;
         let dy = a.y - b.y;
         dx * dx + dy * dy

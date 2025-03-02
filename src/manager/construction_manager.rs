@@ -1,4 +1,4 @@
-use crate::error::Result;
+use crate::{error::Result, types::ConductorContext};
 
 use super::Manager;
 
@@ -7,7 +7,7 @@ type ConstructionManagerMessage = ();
 #[derive(Debug)]
 pub struct ConstructionManager {
     cancel_token: tokio_util::sync::CancellationToken,
-    context: crate::workers::types::ConductorContext,
+    context: ConductorContext,
     receiver: tokio::sync::mpsc::Receiver<ConstructionManagerMessage>,
 }
 
@@ -28,7 +28,7 @@ impl ConstructionManager {
 
     pub fn new(
         cancel_token: tokio_util::sync::CancellationToken,
-        context: crate::workers::types::ConductorContext,
+        context: ConductorContext,
         receiver: tokio::sync::mpsc::Receiver<ConstructionManagerMessage>,
     ) -> Self {
         Self {

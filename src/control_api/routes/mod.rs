@@ -8,7 +8,7 @@ use warp::{reply::Reply, Filter};
 use crate::{
     control_api::types::{MyReceiver, ServerError},
     ship, sql,
-    workers::types::ConductorContext,
+    types::ConductorContext,
 };
 
 pub fn build_routes(

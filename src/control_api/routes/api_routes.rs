@@ -3,7 +3,7 @@
 use tokio_util::sync::CancellationToken;
 use warp::Filter;
 
-use crate::workers::types::ConductorContext;
+use crate::types::ConductorContext;
 
 use super::{handlers, with_context};
 

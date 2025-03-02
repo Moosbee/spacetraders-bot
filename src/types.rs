@@ -1,8 +1,17 @@
-use std::fmt::Debug;
+use std::collections::HashMap;
 use std::sync::Weak;
+use std::{fmt::Debug, sync::Arc};
 
 use dashmap::DashMap;
 use lockable::{AsyncLimit, Lockable, LockableHashMap, SyncLimit};
+
+use crate::manager::construction_manager::ConstructionManagerMessanger;
+use crate::manager::contract_manager::ContractManagerMessanger;
+use crate::manager::mining_manager::MiningManagerMessanger;
+use crate::manager::scrapping_manager::ScrappingManagerMessanger;
+use crate::manager::ship_task::ShipTaskMessanger;
+use crate::manager::trade_manager::TradeManagerMessanger;
+use crate::{ship::ShipManager, sql::DbPool};
 
 /// Trait representing an observer that can be updated
 pub trait Observer<K> {
@@ -176,6 +185,22 @@ impl WaypointCan for space_traders_client::models::Waypoint {
             .iter()
             .any(|t| t.symbol == space_traders_client::models::WaypointTraitSymbol::Shipyard)
     }
+}
+
+#[derive(Debug, Clone)]
+pub struct ConductorContext {
+    pub api: crate::api::Api,
+    pub database_pool: DbPool,
+    pub ship_manager: Arc<ShipManager>,
+    #[deprecated]
+    pub all_waypoints:
+        Arc<DashMap<String, HashMap<String, space_traders_client::models::Waypoint>>>,
+    pub ship_tasks: ShipTaskMessanger,
+    pub construction_manager: ConstructionManagerMessanger,
+    pub contract_manager: ContractManagerMessanger,
+    pub mining_manager: MiningManagerMessanger,
+    pub scrapping_manager: ScrappingManagerMessanger,
+    pub trade_manager: TradeManagerMessanger,
 }
 
 pub trait SendFuture: core::future::Future {

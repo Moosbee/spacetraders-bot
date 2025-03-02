@@ -7,7 +7,7 @@ use crate::{
     control_api::types::{Result, ServerError},
     error,
     sql::{self, DatabaseConnector},
-    workers::types::ConductorContext,
+    types::ConductorContext,
 };
 
 pub async fn handle_get_ships(context: ConductorContext) -> Result<impl Reply> {

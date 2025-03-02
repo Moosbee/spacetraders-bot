@@ -6,6 +6,7 @@ use crate::{
     manager::Manager,
     ship::nav_models::Cache,
     sql::{self, DatabaseConnector},
+    types::ConductorContext,
 };
 
 use super::{routes_calculator::RouteCalculator, routes_tracker::RoutesTracker};
@@ -27,7 +28,7 @@ pub type TradeManagerMessage = TradeMessage;
 #[derive(Debug)]
 pub struct TradeManager {
     cancel_token: tokio_util::sync::CancellationToken,
-    context: crate::workers::types::ConductorContext,
+    context: ConductorContext,
     receiver: tokio::sync::mpsc::Receiver<TradeManagerMessage>,
     routes_tracker: RoutesTracker,
     calculator: RouteCalculator,
@@ -50,7 +51,7 @@ impl TradeManager {
 
     pub fn new(
         cancel_token: tokio_util::sync::CancellationToken,
-        context: crate::workers::types::ConductorContext,
+        context: ConductorContext,
         receiver: tokio::sync::mpsc::Receiver<TradeManagerMessage>,
     ) -> Self {
         debug!("Created new TradeManager");

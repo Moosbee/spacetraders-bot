@@ -11,12 +11,10 @@ use crate::{
     config::CONFIG,
     ship::{self, nav_models::Cache},
     sql,
-    workers::{
-        trading::{
-            routes_track_keeper::RoutesTrackKeeper,
-            t_types::{ConcreteTradeRoute, PossibleTradeRoute, TripStats},
-        },
-        types::ConductorContext,
+    types::ConductorContext,
+    workers::trading::{
+        routes_track_keeper::RoutesTrackKeeper,
+        t_types::{ConcreteTradeRoute, PossibleTradeRoute, TripStats},
     },
 };
 

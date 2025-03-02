@@ -174,7 +174,7 @@ impl MyShip {
         self.validate_current_waypoint(&instruction)?;
         let _ = self.wait_for_arrival(api).await;
 
-        let erg = self
+        let _erg = self
             .handle_refueling(
                 &instruction,
                 api,

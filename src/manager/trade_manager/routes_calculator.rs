@@ -7,8 +7,8 @@ use crate::{
     config::CONFIG,
     error::Error,
     ship::{self, nav_models::Cache},
-    sql,
-    workers::types::ConductorContext,
+    sql::{self, DatabaseConnector},
+    types::ConductorContext,
 };
 
 use super::{
@@ -27,7 +27,7 @@ impl RouteCalculator {
     pub fn new(context: ConductorContext, cache: Cache) -> Self {
         Self {
             context: context.clone(),
-            concrete: ConcreteRouteCalculator::new(context.clone(), cache),
+            concrete: ConcreteRouteCalculator::new(cache),
         }
     }
 
@@ -47,13 +47,15 @@ impl RouteCalculator {
 
         let possible_trades = self.gen_all_possible_trades(&trade_goods, &market_trade);
 
+        let waypoints = sql::Waypoint::get_all(&self.context.database_pool).await?;
+
         let routes = possible_trades
             .into_iter()
             .map(|route| self.extrapolate_trade_route(route))
             .filter(|route| self.is_valid_route(route))
             .collect::<Vec<_>>()
             .into_iter()
-            .map(|route| self.concrete.calc(ship, route))
+            .map(|route| self.concrete.calc(ship, route, &waypoints))
             .collect::<Vec<_>>();
 
         debug!("Routes: {}", routes.len());

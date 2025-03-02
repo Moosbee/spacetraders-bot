@@ -10,21 +10,21 @@ use crate::{
     config::CONFIG,
     ship,
     sql::TransactionReason,
-    types::{safely_get_map, WaypointCan},
+    types::{safely_get_map, ConductorContext, WaypointCan},
 };
 
 use super::mining_manager::MiningManager;
 
 #[derive(Debug, Clone)]
 pub struct ExtractionProcessor {
-    context: crate::workers::types::ConductorContext,
+    context: ConductorContext,
     cancellation_token: CancellationToken,
     mining_places: Arc<MiningManager>,
 }
 
 impl ExtractionProcessor {
     pub fn new(
-        context: crate::workers::types::ConductorContext,
+        context: ConductorContext,
         cancellation_token: CancellationToken,
         mining_places: Arc<MiningManager>,
     ) -> ExtractionProcessor {

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n                INSERT INTO waypoint (\n\t                symbol,\n                  system_symbol,\n                  x,\n                  y,\n                  type,\n                  traits,\n                  is_under_construction,\n                  orbitals,\n                  orbits,\n                  faction,\n                  modifiers,\n                  charted_by,\n                  charted_on\n                )\n                VALUES ($1,\n                        $2,\n                        $3,\n                        $4,\n                        $5::waypoint_type,\n                        $6::waypoint_trait_symbol[],\n                        $7,\n                        $8,\n                        $9,\n                        $10,\n                        $11::waypoint_modifier_symbol[],\n                        $12,\n                        $13\n                        )\n                ON CONFLICT (symbol) DO UPDATE SET \n                system_symbol = EXCLUDED.system_symbol,\n                x = EXCLUDED.x,\n                y = EXCLUDED.y,\n                type = EXCLUDED.type,\n                traits = EXCLUDED.traits,\n                is_under_construction = EXCLUDED.is_under_construction,\n                orbitals = EXCLUDED.orbitals,\n                orbits = EXCLUDED.orbits,\n                faction = EXCLUDED.faction,\n                modifiers = EXCLUDED.modifiers,\n                charted_by = EXCLUDED.charted_by,\n                charted_on = EXCLUDED.charted_on;\n            ",
+  "query": "\n                INSERT INTO waypoint (\n\t                symbol,\n                  system_symbol,\n                  x,\n                  y,\n                  type,\n                  traits,\n                  is_under_construction,\n                  orbitals,\n                  orbits,\n                  faction,\n                  modifiers,\n                  charted_by,\n                  charted_on,\n                  unstable_since\n                )\n                VALUES ($1,\n                        $2,\n                        $3,\n                        $4,\n                        $5::waypoint_type,\n                        $6::waypoint_trait_symbol[],\n                        $7,\n                        $8,\n                        $9,\n                        $10,\n                        $11::waypoint_modifier_symbol[],\n                        $12,\n                        $13,\n                        $14\n                        )\n                ON CONFLICT (symbol) DO UPDATE SET \n                system_symbol = EXCLUDED.system_symbol,\n                x = EXCLUDED.x,\n                y = EXCLUDED.y,\n                type = EXCLUDED.type,\n                traits = EXCLUDED.traits,\n                is_under_construction = EXCLUDED.is_under_construction,\n                orbitals = EXCLUDED.orbitals,\n                orbits = EXCLUDED.orbits,\n                faction = EXCLUDED.faction,\n                modifiers = EXCLUDED.modifiers,\n                charted_by = EXCLUDED.charted_by,\n                charted_on = EXCLUDED.charted_on,\n                unstable_since = EXCLUDED.unstable_since;\n            ",
   "describe": {
     "columns": [],
     "parameters": {
@@ -143,10 +143,11 @@
           }
         },
         "Varchar",
-        "Varchar"
+        "Varchar",
+        "Timestamp"
       ]
     },
     "nullable": []
   },
-  "hash": "679c02b23fd7d483e0e36bd7f705d2487d548e8f50d237d5eee74db5cc70243d"
+  "hash": "12857447078eb229f8e208bdd38d4824b4547da47dcccb1e679b8a36e91f0f3b"
 }

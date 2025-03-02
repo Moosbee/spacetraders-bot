@@ -8,6 +8,7 @@ use crate::{
     error::Result,
     manager::{mining_manager::mining_messages::MiningMessage, Manager},
     ship,
+    types::ConductorContext,
 };
 
 use super::{
@@ -22,7 +23,7 @@ use super::{
 #[derive(Debug)]
 pub struct MiningManager {
     cancel_token: tokio_util::sync::CancellationToken,
-    context: crate::workers::types::ConductorContext,
+    context: ConductorContext,
     receiver: tokio::sync::mpsc::Receiver<MiningManagerMessage>,
     transfer_manager: Arc<TransferManager>,
     inventory_manager: ShipInventoryManager,
@@ -48,7 +49,7 @@ impl MiningManager {
 
     pub fn new(
         cancel_token: tokio_util::sync::CancellationToken,
-        context: crate::workers::types::ConductorContext,
+        context: ConductorContext,
         receiver: tokio::sync::mpsc::Receiver<MiningManagerMessage>,
         transfer_manager: Arc<TransferManager>,
     ) -> Self {

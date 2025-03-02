@@ -1,31 +1,35 @@
+use std::collections::HashMap;
+
 use crate::{
     config::CONFIG,
     ship::{self, nav_models::Cache},
+    sql,
 };
 
 use super::routes::{ConcreteTradeRoute, ExtrapolatedTradeRoute, TripStats};
 
 #[derive(Debug)]
 pub struct ConcreteRouteCalculator {
-    context: crate::workers::types::ConductorContext,
     cache: Cache,
 }
 
 impl ConcreteRouteCalculator {
-    pub fn new(context: crate::workers::types::ConductorContext, cache: Cache) -> Self {
-        Self { context, cache }
+    pub fn new(cache: Cache) -> Self {
+        Self { cache }
     }
     pub fn calc(
         &mut self,
         ship: &ship::MyShip,
         mut trade_route: ExtrapolatedTradeRoute,
+        waypoints: &[sql::Waypoint],
     ) -> ConcreteTradeRoute {
         let max_transport = ship.cargo.capacity;
 
         trade_route.data.max_trade_volume = max_transport.min(trade_route.data.max_trade_volume);
         trade_route.data.min_trade_volume = max_transport.min(trade_route.data.min_trade_volume);
 
-        let (route_stats, route_to_stats) = self.calculate_route_statistics(ship, &trade_route);
+        let (route_stats, route_to_stats) =
+            self.calculate_route_statistics(ship, &trade_route, waypoints);
 
         let trip_stats = if true {
             self.calculate_reoccurring_trip_stats(
@@ -55,14 +59,12 @@ impl ConcreteRouteCalculator {
         &mut self,
         ship: &ship::MyShip,
         trade_route: &ExtrapolatedTradeRoute,
+        waypoints: &[sql::Waypoint],
     ) -> (RouteStats, RouteStats) {
-        let waypoints = self
-            .context
-            .all_waypoints
-            .get(&ship.nav.system_symbol)
-            .unwrap()
-            .clone();
-
+        let waypoints = waypoints
+            .iter()
+            .map(|w| (w.symbol.clone(), w.into()))
+            .collect::<HashMap<_, _>>();
         let route = self.find_route(
             ship,
             &waypoints,

@@ -4,17 +4,21 @@ use log::{debug, info};
 use space_traders_client::models;
 use tokio::time::sleep;
 
-use crate::{config::CONFIG, types::WaypointCan, workers::market_scrapers::update_markets};
+use crate::{
+    config::CONFIG,
+    types::{ConductorContext, WaypointCan},
+    workers::market_scrapers::update_markets,
+};
 
 pub struct MarketScrapper {
     cancel_token: tokio_util::sync::CancellationToken,
-    context: crate::workers::types::ConductorContext,
+    context: ConductorContext,
 }
 
 impl MarketScrapper {
     pub fn new(
         cancel_token: tokio_util::sync::CancellationToken,
-        context: crate::workers::types::ConductorContext,
+        context: ConductorContext,
     ) -> Self {
         Self {
             cancel_token,

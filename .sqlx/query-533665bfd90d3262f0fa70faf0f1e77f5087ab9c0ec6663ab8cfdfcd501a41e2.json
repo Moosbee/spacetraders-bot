@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n                SELECT \n                  symbol,\n                  system_symbol,\n                  created_at,\n                  x,\n                  y,\n                  type as \"waypoint_type: models::WaypointType\",\n                  traits as \"traits: Vec<models::WaypointTraitSymbol>\",\n                  is_under_construction,\n                  orbitals,\n                  orbits,\n                  faction,\n                  modifiers as \"modifiers: Vec<models::WaypointModifierSymbol>\",\n                  charted_by,\n                  charted_on\n                FROM waypoint\n                WHERE symbol = $1\n                LIMIT 1\n            ",
+  "query": "\n                SELECT \n                  symbol,\n                  system_symbol,\n                  created_at,\n                  x,\n                  y,\n                  type as \"waypoint_type: models::WaypointType\",\n                  traits as \"traits: Vec<models::WaypointTraitSymbol>\",\n                  is_under_construction,\n                  orbitals,\n                  orbits,\n                  faction,\n                  modifiers as \"modifiers: Vec<models::WaypointModifierSymbol>\",\n                  charted_by,\n                  charted_on,\n                  unstable_since\n                FROM waypoint\n                WHERE system_symbol = $1\n            ",
   "describe": {
     "columns": [
       {
@@ -198,6 +198,11 @@
         "ordinal": 13,
         "name": "charted_on",
         "type_info": "Varchar"
+      },
+      {
+        "ordinal": 14,
+        "name": "unstable_since",
+        "type_info": "Timestamp"
       }
     ],
     "parameters": {
@@ -219,8 +224,9 @@
       true,
       false,
       true,
+      true,
       true
     ]
   },
-  "hash": "c75724ad711f2a4e05dd01de160136d71f850b7fc645541c04523b10cab0756f"
+  "hash": "533665bfd90d3262f0fa70faf0f1e77f5087ab9c0ec6663ab8cfdfcd501a41e2"
 }

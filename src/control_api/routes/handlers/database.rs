@@ -4,7 +4,7 @@ use warp::reply::Reply;
 use crate::{
     control_api::types::{Result, ServerError},
     sql::{self, DatabaseConnector},
-    workers::types::ConductorContext,
+    types::ConductorContext,
 };
 
 pub async fn handle_get_trade_routes(context: ConductorContext) -> Result<impl Reply> {

@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use log::{error, info};
 
-use crate::{config::CONFIG, error::Result, manager::Manager};
+use crate::{config::CONFIG, error::Result, manager::Manager, types::ConductorContext};
 
 use super::{agent_scrapper, market_scrapper};
 
@@ -11,7 +11,7 @@ type ScrappingManagerMessage = ();
 #[derive(Debug)]
 pub struct ScrappingManager {
     cancel_token: tokio_util::sync::CancellationToken,
-    context: crate::workers::types::ConductorContext,
+    context: ConductorContext,
     receiver: tokio::sync::mpsc::Receiver<ScrappingManagerMessage>,
 }
 
@@ -32,7 +32,7 @@ impl ScrappingManager {
 
     pub fn new(
         cancel_token: tokio_util::sync::CancellationToken,
-        context: crate::workers::types::ConductorContext,
+        context: ConductorContext,
         receiver: tokio::sync::mpsc::Receiver<ScrappingManagerMessage>,
     ) -> Self {
         Self {

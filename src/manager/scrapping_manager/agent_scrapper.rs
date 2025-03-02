@@ -6,17 +6,18 @@ use tokio::time::sleep;
 use crate::{
     config::CONFIG,
     sql::{self, DatabaseConnector},
+    types::ConductorContext,
 };
 
 pub struct AgentScrapper {
     cancel_token: tokio_util::sync::CancellationToken,
-    context: crate::workers::types::ConductorContext,
+    context: ConductorContext,
 }
 
 impl AgentScrapper {
     pub fn new(
         cancel_token: tokio_util::sync::CancellationToken,
-        context: crate::workers::types::ConductorContext,
+        context: ConductorContext,
     ) -> Self {
         Self {
             cancel_token,

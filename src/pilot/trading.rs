@@ -7,7 +7,7 @@ use crate::{
     manager::trade_manager::TradeManagerMessage,
     ship,
     sql::{self},
-    workers::types::ConductorContext,
+    types::ConductorContext,
 };
 
 pub struct TradingPilot {

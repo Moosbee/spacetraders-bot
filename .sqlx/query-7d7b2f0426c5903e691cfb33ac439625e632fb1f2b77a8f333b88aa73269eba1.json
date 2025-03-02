@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n                SELECT \n                  symbol,\n                  system_symbol,\n                  created_at,\n                  x,\n                  y,\n                  type as \"waypoint_type: models::WaypointType\",\n                  traits as \"traits: Vec<models::WaypointTraitSymbol>\",\n                  is_under_construction,\n                  orbitals,\n                  orbits,\n                  faction,\n                  modifiers as \"modifiers: Vec<models::WaypointModifierSymbol>\",\n                  charted_by,\n                  charted_on\n                FROM waypoint\n            ",
+  "query": "\n                SELECT \n                  symbol,\n                  system_symbol,\n                  created_at,\n                  x,\n                  y,\n                  type as \"waypoint_type: models::WaypointType\",\n                  traits as \"traits: Vec<models::WaypointTraitSymbol>\",\n                  is_under_construction,\n                  orbitals,\n                  orbits,\n                  faction,\n                  modifiers as \"modifiers: Vec<models::WaypointModifierSymbol>\",\n                  charted_by,\n                  charted_on,\n                  unstable_since\n                FROM waypoint\n                WHERE symbol = $1\n                LIMIT 1\n            ",
   "describe": {
     "columns": [
       {
@@ -198,10 +198,17 @@
         "ordinal": 13,
         "name": "charted_on",
         "type_info": "Varchar"
+      },
+      {
+        "ordinal": 14,
+        "name": "unstable_since",
+        "type_info": "Timestamp"
       }
     ],
     "parameters": {
-      "Left": []
+      "Left": [
+        "Text"
+      ]
     },
     "nullable": [
       false,
@@ -217,8 +224,9 @@
       true,
       false,
       true,
+      true,
       true
     ]
   },
-  "hash": "da6b2e55f545a61912e2a6f5ea86c4041bd2c9a9e1c187b124a968e406bd626e"
+  "hash": "7d7b2f0426c5903e691cfb33ac439625e632fb1f2b77a8f333b88aa73269eba1"
 }

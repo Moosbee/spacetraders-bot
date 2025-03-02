@@ -9,18 +9,18 @@ use tokio_util::sync::CancellationToken;
 use crate::{
     config::CONFIG,
     sql::{self, DatabaseConnector},
-    types::WaypointCan,
+    types::{ConductorContext, WaypointCan},
 };
 
 #[derive(Debug)]
 pub struct MarketScraper {
-    context: super::types::ConductorContext,
+    context: ConductorContext,
     stopper: CancellationToken,
 }
 
 impl MarketScraper {
     #[allow(dead_code)]
-    pub fn new_box(context: super::types::ConductorContext) -> Box<Self> {
+    pub fn new_box(context: ConductorContext) -> Box<Self> {
         Box::new(MarketScraper {
             context,
             stopper: CancellationToken::new(),
