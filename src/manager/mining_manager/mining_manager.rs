@@ -125,10 +125,19 @@ impl MiningManager {
             }
             AssignWaypointMessage::NotifyWaypoint {
                 ship_clone,
+                is_syphon,
                 callback,
             } => {
                 debug!("Notifying waypoint for ship: {}", ship_clone.symbol);
-                let erg = self.waypoint_manager.notify_waypoint(ship_clone).await;
+                let action: ActionType = if is_syphon {
+                    ActionType::Siphon
+                } else {
+                    ActionType::Extract
+                };
+                let erg = self
+                    .waypoint_manager
+                    .notify_waypoint(ship_clone, action)
+                    .await;
                 let _send = callback.send(erg);
             }
             AssignWaypointMessage::UnassignWaypoint {

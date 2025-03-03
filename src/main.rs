@@ -11,6 +11,7 @@ mod control_api;
 mod error;
 mod manager;
 mod pilot;
+mod rate_limiter;
 mod types;
 
 use std::{

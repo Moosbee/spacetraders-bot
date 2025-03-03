@@ -43,7 +43,10 @@ impl ExtractionPilot {
 
         self.go_to_waypoint(ship, &waypoint_symbol).await?;
 
-        self.context.mining_manager.notify_waypoint(ship).await?;
+        self.context
+            .mining_manager
+            .notify_waypoint(ship, is_syphon)
+            .await?;
         let mut rec = self
             .context
             .mining_manager

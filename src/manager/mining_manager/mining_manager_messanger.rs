@@ -53,12 +53,17 @@ impl MiningManagerMessanger {
         Ok(erg)
     }
 
-    pub async fn notify_waypoint(&self, ship: &crate::ship::MyShip) -> Result<String> {
+    pub async fn notify_waypoint(
+        &self,
+        ship: &crate::ship::MyShip,
+        is_syphon: bool,
+    ) -> Result<String> {
         let (sender, callback) = tokio::sync::oneshot::channel();
 
         let message = MiningMessage::AssignWaypoint(AssignWaypointMessage::NotifyWaypoint {
             ship_clone: ship.clone(),
             callback: sender,
+            is_syphon,
         });
         debug!("Sending NotifyWaypoint message for ship: {}", ship.symbol);
         self.sender.send(message).await.map_err(|e| {

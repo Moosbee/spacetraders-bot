@@ -25,6 +25,7 @@ export interface SQLWaypoint {
   waypoint_type: WaypointType;
   x: number;
   y: number;
+  unstable_since?: string;
 }
 
 export interface WaypointResponse {

@@ -84,7 +84,7 @@ impl MiningPlaces {
     /// If the waypoint is not at max capacity, the ship will be assigned to the waypoint at level "on the way"
     ///
     /// Returns 1 if the ship was assigned, 0 if the waypoint is at max capacity, 3 if the ship is already the active ship
-    pub fn try_assign_on_way(&mut self, ship_symbol: &str, waypoint: &str) -> u8 {
+    pub fn try_assign_on_way(&mut self, ship_symbol: &str, waypoint: &str, no_limit: bool) -> u8 {
         let wp = self
             .mining_places
             .entry(waypoint.to_string())
@@ -132,7 +132,7 @@ impl MiningPlaces {
     /// If the waypoint is not at max capacity, the ship will be assigned to the waypoint at level "active"
     ///
     /// Returns true if the ship was assigned, false otherwise
-    pub fn try_assign_active(&mut self, ship_symbol: &str, waypoint: &str) -> bool {
+    pub fn try_assign_active(&mut self, ship_symbol: &str, waypoint: &str, no_limit: bool) -> bool {
         let wp = self.mining_places.get_mut(waypoint);
 
         match wp {

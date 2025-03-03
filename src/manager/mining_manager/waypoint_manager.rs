@@ -17,13 +17,15 @@ use crate::error::Result;
 pub struct WaypointManager {
     places: MiningPlaces,
     finder: PlaceFinder,
+    context: ConductorContext,
 }
 
 impl WaypointManager {
     pub fn new(context: ConductorContext, max_miners: u32) -> Self {
         Self {
             places: MiningPlaces::new(max_miners),
-            finder: PlaceFinder::new(context),
+            finder: PlaceFinder::new(context.clone()),
+            context,
         }
     }
 
@@ -51,12 +53,30 @@ impl WaypointManager {
         action: ActionType,
     ) -> Result<String> {
         if let Some((waypoint_symbol, _)) = self.places.get_ship(&ship.symbol) {
-            if self
-                .places
-                .try_assign_on_way(&ship.symbol, &waypoint_symbol)
-                != 0
+            let waypoint =
+                sql::Waypoint::get_by_symbol(&self.context.database_pool, &waypoint_symbol).await?;
+            if !waypoint
+                .map(|waypoint| {
+                    waypoint.is_minable()
+                        && waypoint.waypoint_type != models::WaypointType::EngineeredAsteroid
+                        && waypoint
+                            .unstable_since
+                            .map(|last| {
+                                last + chrono::Duration::hours(20)
+                                    < chrono::Utc::now().naive_local()
+                            })
+                            .unwrap_or(true)
+                })
+                .unwrap_or(false)
             {
-                return Ok(waypoint_symbol.to_string());
+                if self.places.try_assign_on_way(
+                    &ship.symbol,
+                    &waypoint_symbol,
+                    action == ActionType::Siphon,
+                ) != 0
+                {
+                    return Ok(waypoint_symbol.to_string());
+                }
             }
         }
 
@@ -82,19 +102,21 @@ impl WaypointManager {
             )
             .await?;
 
-        self.assign_to_available_waypoint(ship, waypoints)
+        self.assign_to_available_waypoint(ship, waypoints, action)
     }
 
     fn assign_to_available_waypoint(
         &mut self,
         ship: &ship::MyShip,
         waypoints: Vec<place_finder::FoundWaypointInfo>,
+        action: ActionType,
     ) -> Result<String> {
         for waypoint in waypoints {
-            if self
-                .places
-                .try_assign_on_way(&ship.symbol, &waypoint.waypoint.symbol)
-                != 0
+            if self.places.try_assign_on_way(
+                &ship.symbol,
+                &waypoint.waypoint.symbol,
+                action == ActionType::Siphon,
+            ) != 0
             {
                 return Ok(waypoint.waypoint.symbol.clone());
             }
@@ -105,12 +127,15 @@ impl WaypointManager {
     pub async fn notify_waypoint(
         &mut self,
         ship_clone: crate::ship::MyShip,
+        action: ActionType,
     ) -> std::result::Result<String, crate::error::Error> {
         let waypoint_symbol = ship_clone.nav.waypoint_symbol.clone();
 
-        let wp = self
-            .places
-            .try_assign_active(&ship_clone.symbol, &waypoint_symbol);
+        let wp = self.places.try_assign_active(
+            &ship_clone.symbol,
+            &waypoint_symbol,
+            action == ActionType::Siphon,
+        );
 
         if wp {
             return Ok(waypoint_symbol);

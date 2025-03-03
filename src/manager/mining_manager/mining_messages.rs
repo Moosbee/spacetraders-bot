@@ -28,6 +28,7 @@ pub enum AssignWaypointMessage {
     NotifyWaypoint {
         // assigns a ship to a waypoint(level two), ship is now there
         ship_clone: crate::ship::MyShip,
+        is_syphon: bool,
         callback: tokio::sync::oneshot::Sender<Result<String>>,
     },
     UnassignWaypoint {
@@ -57,8 +58,13 @@ impl std::fmt::Display for AssignWaypointMessage {
             ),
             AssignWaypointMessage::NotifyWaypoint {
                 ship_clone,
+                is_syphon,
                 callback: _,
-            } => write!(f, "NotifyWaypoint for {}", ship_clone.symbol),
+            } => write!(
+                f,
+                "NotifyWaypoint for {} is_syphon {}",
+                ship_clone.symbol, is_syphon
+            ),
             AssignWaypointMessage::UnassignWaypoint {
                 ship_clone,
                 callback: _,

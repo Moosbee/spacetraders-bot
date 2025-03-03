@@ -13,6 +13,7 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import MoneyDisplay from "../features/MonyDisplay";
 import PageTitle from "../features/PageTitle";
+import Timer from "../features/Timer/Timer";
 import TransactionTable from "../features/TransactionTable/TransactionTable";
 import WaypointLink from "../features/WaypointLink";
 import {
@@ -124,6 +125,7 @@ function Waypoint() {
     {
       key: "traits",
       label: "Traits",
+      span: 2,
       children: (
         <List
           size="small"
@@ -142,6 +144,18 @@ function Waypoint() {
       label: "Under Construction",
       children: (
         <p>{waypoint?.waypoint.is_under_construction ? "Yes" : "No"}</p>
+      ),
+    });
+  }
+
+  if (waypoint?.waypoint.unstable_since) {
+    items.push({
+      key: "unstable_since",
+      label: "Unstable Since",
+      children: (
+        <p>
+          <Timer time={waypoint?.waypoint.unstable_since} />
+        </p>
       ),
     });
   }

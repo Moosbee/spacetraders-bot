@@ -37,7 +37,7 @@
   "mining": {
     "active": true,
     "start_sleep_duration": 2000,
-    "max_miners_per_waypoint": 100,
+    "max_miners_per_waypoint": 8,
     "max_extractions_per_miner": 1000000,
     "blacklist": [
       "ICE_WATER"

@@ -1,8 +1,6 @@
 use std::num::NonZeroU32;
 use std::sync::Arc;
-use std::time::Duration;
 
-use governor::{Quota, RateLimiter};
 use log::debug;
 use space_traders_client::apis::agents_api::{GetAgentError, GetAgentsError, GetMyAgentError};
 use space_traders_client::apis::configuration::Configuration;
@@ -31,17 +29,12 @@ use space_traders_client::apis::{Error, ResponseContent, ResponseContentEntity};
 use space_traders_client::models::{self, FactionSymbol, System};
 use space_traders_client::models::{Register201ResponseData, RegisterRequest};
 
+use crate::rate_limiter::PriorityRateLimiter;
+
 #[derive(Debug, Clone)]
 pub struct Api {
     configuration: Arc<Configuration>,
-    limiter: Arc<
-        RateLimiter<
-            governor::state::NotKeyed,
-            governor::state::InMemoryState,
-            governor::clock::QuantaClock,
-            governor::middleware::NoOpMiddleware<governor::clock::QuantaInstant>,
-        >,
-    >,
+    limiter: Arc<PriorityRateLimiter>,
 }
 
 #[allow(dead_code)]
@@ -49,26 +42,19 @@ impl Api {
     pub fn new(access_token: Option<String>, quota: u64, burst: NonZeroU32) -> Api {
         // Create a rate limiter: 2 requests per 1 seconds
         // let quota = Quota::with_period(Duration::from_millis(550)).unwrap();
-        let quota = Quota::with_period(Duration::from_millis(quota))
-            .unwrap()
-            .allow_burst(burst);
-        // let quota = Quota::per_second(NonZeroU32::new(2).unwrap());
-
-        // let store = DashMapStateStore::new();
-        let limiter = Arc::new(RateLimiter::direct(quota));
 
         Api {
             configuration: Arc::new(Configuration {
                 bearer_access_token: access_token,
                 ..Default::default()
             }),
-            limiter,
+            limiter: Arc::new(PriorityRateLimiter::new(quota, burst)),
         }
     }
 
     /// Return the status of the game server. This also includes a few global elements, such as announcements, server reset dates and leaderboards.
     pub async fn get_status(&self) -> Result<models::GetStatus200Response, Error<GetStatusError>> {
-        self.limiter.until_ready().await;
+        self.limiter.until_ready(50, "").await;
         let result =
             space_traders_client::apis::global_api::get_status(&self.configuration).await?;
 
@@ -101,7 +87,7 @@ impl Api {
         &self,
         agent_symbol: &str,
     ) -> Result<models::GetMyAgent200Response, Error<GetAgentError>> {
-        self.limiter.until_ready().await;
+        self.limiter.until_ready(50, "get_agent").await;
         let result =
             space_traders_client::apis::agents_api::get_agent(&self.configuration, agent_symbol)
                 .await?;
@@ -115,7 +101,7 @@ impl Api {
         page: Option<i32>,
         limit: Option<i32>,
     ) -> Result<models::GetAgents200Response, Error<GetAgentsError>> {
-        self.limiter.until_ready().await;
+        self.limiter.until_ready(50, "get_agents").await;
         let result =
             space_traders_client::apis::agents_api::get_agents(&self.configuration, page, limit)
                 .await?;
@@ -161,7 +147,7 @@ impl Api {
     pub async fn get_my_agent(
         &self,
     ) -> Result<models::GetMyAgent200Response, Error<GetMyAgentError>> {
-        self.limiter.until_ready().await;
+        self.limiter.until_ready(50, "get_my_agent").await;
         let result =
             space_traders_client::apis::agents_api::get_my_agent(&self.configuration).await?;
 
@@ -176,7 +162,7 @@ impl Api {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
-        self.limiter.until_ready().await;
+        self.limiter.until_ready(50, "").await;
         let result = space_traders_client::apis::contracts_api::accept_contract(
             &self.configuration,
             contract_id,
@@ -195,7 +181,7 @@ impl Api {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
-        self.limiter.until_ready().await;
+        self.limiter.until_ready(50, "deliver_contract").await;
         let result = space_traders_client::apis::contracts_api::deliver_contract(
             &self.configuration,
             contract_id,
@@ -214,7 +200,7 @@ impl Api {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
-        self.limiter.until_ready().await;
+        self.limiter.until_ready(50, "fulfill_contract").await;
         let result = space_traders_client::apis::contracts_api::fulfill_contract(
             &self.configuration,
             contract_id,
@@ -232,7 +218,7 @@ impl Api {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
-        self.limiter.until_ready().await;
+        self.limiter.until_ready(50, "get_contract").await;
         let result = space_traders_client::apis::contracts_api::get_contract(
             &self.configuration,
             contract_id,
@@ -251,7 +237,7 @@ impl Api {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
-        self.limiter.until_ready().await;
+        self.limiter.until_ready(50, "get_contracts").await;
         let result = space_traders_client::apis::contracts_api::get_contracts(
             &self.configuration,
             page,
@@ -305,7 +291,7 @@ impl Api {
         &self,
         faction_symbol: &str,
     ) -> Result<models::GetFaction200Response, Error<GetFactionError>> {
-        self.limiter.until_ready().await;
+        self.limiter.until_ready(50, "get_faction").await;
         let result = space_traders_client::apis::factions_api::get_faction(
             &self.configuration,
             faction_symbol,
@@ -321,7 +307,7 @@ impl Api {
         page: Option<i32>,
         limit: Option<i32>,
     ) -> Result<models::GetFactions200Response, Error<GetFactionsError>> {
-        self.limiter.until_ready().await;
+        self.limiter.until_ready(50, "get_factions").await;
         let result = space_traders_client::apis::factions_api::get_factions(
             &self.configuration,
             page,
@@ -374,7 +360,7 @@ impl Api {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
-        self.limiter.until_ready().await;
+        self.limiter.until_ready(50, "create_chart").await;
         let result =
             space_traders_client::apis::fleet_api::create_chart(&self.configuration, ship_symbol)
                 .await?;
@@ -390,7 +376,7 @@ impl Api {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
-        self.limiter.until_ready().await;
+        self.limiter.until_ready(50, "create_ship_ship_scan").await;
         let result = space_traders_client::apis::fleet_api::create_ship_ship_scan(
             &self.configuration,
             ship_symbol,
@@ -408,7 +394,9 @@ impl Api {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
-        self.limiter.until_ready().await;
+        self.limiter
+            .until_ready(50, "create_ship_system_scan")
+            .await;
         let result = space_traders_client::apis::fleet_api::create_ship_system_scan(
             &self.configuration,
             ship_symbol,
@@ -426,7 +414,9 @@ impl Api {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
-        self.limiter.until_ready().await;
+        self.limiter
+            .until_ready(50, "create_ship_waypoint_scan")
+            .await;
         let result = space_traders_client::apis::fleet_api::create_ship_waypoint_scan(
             &self.configuration,
             ship_symbol,
@@ -444,7 +434,7 @@ impl Api {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
-        self.limiter.until_ready().await;
+        self.limiter.until_ready(50, "create_survey").await;
         let result =
             space_traders_client::apis::fleet_api::create_survey(&self.configuration, ship_symbol)
                 .await?;
@@ -460,7 +450,7 @@ impl Api {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
-        self.limiter.until_ready().await;
+        self.limiter.until_ready(50, "dock_ship").await;
         let result =
             space_traders_client::apis::fleet_api::dock_ship(&self.configuration, ship_symbol)
                 .await?;
@@ -477,7 +467,7 @@ impl Api {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
-        self.limiter.until_ready().await;
+        self.limiter.until_ready(50, "extract_resources").await;
         let result = space_traders_client::apis::fleet_api::extract_resources(
             &self.configuration,
             ship_symbol,
@@ -497,7 +487,9 @@ impl Api {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
-        self.limiter.until_ready().await;
+        self.limiter
+            .until_ready(50, "extract_resources_with_survey")
+            .await;
         let result = space_traders_client::apis::fleet_api::extract_resources_with_survey(
             &self.configuration,
             ship_symbol,
@@ -516,7 +508,7 @@ impl Api {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
-        self.limiter.until_ready().await;
+        self.limiter.until_ready(50, "get_mounts").await;
         let result =
             space_traders_client::apis::fleet_api::get_mounts(&self.configuration, ship_symbol)
                 .await?;
@@ -532,7 +524,7 @@ impl Api {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
-        self.limiter.until_ready().await;
+        self.limiter.until_ready(50, "get_ship_modules").await;
         let result = space_traders_client::apis::fleet_api::get_ship_modules(
             &self.configuration,
             ship_symbol,
@@ -550,7 +542,7 @@ impl Api {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
-        self.limiter.until_ready().await;
+        self.limiter.until_ready(50, "get_my_ship").await;
         let result =
             space_traders_client::apis::fleet_api::get_my_ship(&self.configuration, ship_symbol)
                 .await?;
@@ -566,7 +558,7 @@ impl Api {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
-        self.limiter.until_ready().await;
+        self.limiter.until_ready(50, "get_my_ship_cargo").await;
         let result = space_traders_client::apis::fleet_api::get_my_ship_cargo(
             &self.configuration,
             ship_symbol,
@@ -585,7 +577,7 @@ impl Api {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
-        self.limiter.until_ready().await;
+        self.limiter.until_ready(50, "get_my_ships").await;
         let result =
             space_traders_client::apis::fleet_api::get_my_ships(&self.configuration, page, limit)
                 .await?;
@@ -639,7 +631,7 @@ impl Api {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
-        self.limiter.until_ready().await;
+        self.limiter.until_ready(50, "get_repair_ship").await;
         let result = space_traders_client::apis::fleet_api::get_repair_ship(
             &self.configuration,
             ship_symbol,
@@ -657,7 +649,7 @@ impl Api {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
-        self.limiter.until_ready().await;
+        self.limiter.until_ready(50, "get_scrap_ship").await;
         let result =
             space_traders_client::apis::fleet_api::get_scrap_ship(&self.configuration, ship_symbol)
                 .await?;
@@ -673,7 +665,7 @@ impl Api {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
-        self.limiter.until_ready().await;
+        self.limiter.until_ready(50, "get_ship_cooldown").await;
         let result = space_traders_client::apis::fleet_api::get_ship_cooldown(
             &self.configuration,
             ship_symbol,
@@ -691,7 +683,7 @@ impl Api {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
-        self.limiter.until_ready().await;
+        self.limiter.until_ready(50, "get_ship_nav").await;
         let result =
             space_traders_client::apis::fleet_api::get_ship_nav(&self.configuration, ship_symbol)
                 .await?;
@@ -708,7 +700,7 @@ impl Api {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
-        self.limiter.until_ready().await;
+        self.limiter.until_ready(50, "install_mount").await;
         let result = space_traders_client::apis::fleet_api::install_mount(
             &self.configuration,
             ship_symbol,
@@ -728,7 +720,7 @@ impl Api {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
-        self.limiter.until_ready().await;
+        self.limiter.until_ready(50, "install_ship_module").await;
         let result = space_traders_client::apis::fleet_api::install_ship_module(
             &self.configuration,
             ship_symbol,
@@ -748,7 +740,7 @@ impl Api {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
-        self.limiter.until_ready().await;
+        self.limiter.until_ready(50, "jettison").await;
         let result = space_traders_client::apis::fleet_api::jettison(
             &self.configuration,
             ship_symbol,
@@ -768,7 +760,7 @@ impl Api {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
-        self.limiter.until_ready().await;
+        self.limiter.until_ready(50, "jump_ship").await;
         let result = space_traders_client::apis::fleet_api::jump_ship(
             &self.configuration,
             ship_symbol,
@@ -788,7 +780,7 @@ impl Api {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
-        self.limiter.until_ready().await;
+        self.limiter.until_ready(50, "navigate_ship").await;
         let result = space_traders_client::apis::fleet_api::navigate_ship(
             &self.configuration,
             ship_symbol,
@@ -807,7 +799,7 @@ impl Api {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
-        self.limiter.until_ready().await;
+        self.limiter.until_ready(50, "negotiate_contract").await;
         let result = space_traders_client::apis::fleet_api::negotiate_contract(
             &self.configuration,
             ship_symbol,
@@ -825,7 +817,7 @@ impl Api {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
-        self.limiter.until_ready().await;
+        self.limiter.until_ready(50, "orbit_ship").await;
         let result =
             space_traders_client::apis::fleet_api::orbit_ship(&self.configuration, ship_symbol)
                 .await?;
@@ -842,7 +834,7 @@ impl Api {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
-        self.limiter.until_ready().await;
+        self.limiter.until_ready(50, "patch_ship_nav").await;
         let result = space_traders_client::apis::fleet_api::patch_ship_nav(
             &self.configuration,
             ship_symbol,
@@ -862,7 +854,7 @@ impl Api {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
-        self.limiter.until_ready().await;
+        self.limiter.until_ready(50, "purchase_cargo").await;
         let result = space_traders_client::apis::fleet_api::purchase_cargo(
             &self.configuration,
             ship_symbol,
@@ -881,7 +873,7 @@ impl Api {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
-        self.limiter.until_ready().await;
+        self.limiter.until_ready(50, "purchase_ship").await;
         let result = space_traders_client::apis::fleet_api::purchase_ship(
             &self.configuration,
             purchase_ship_request,
@@ -900,7 +892,7 @@ impl Api {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
-        self.limiter.until_ready().await;
+        self.limiter.until_ready(50, "refuel_ship").await;
         let result = space_traders_client::apis::fleet_api::refuel_ship(
             &self.configuration,
             ship_symbol,
@@ -920,7 +912,7 @@ impl Api {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
-        self.limiter.until_ready().await;
+        self.limiter.until_ready(50, "remove_mount").await;
         let result = space_traders_client::apis::fleet_api::remove_mount(
             &self.configuration,
             ship_symbol,
@@ -940,7 +932,7 @@ impl Api {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
-        self.limiter.until_ready().await;
+        self.limiter.until_ready(50, "remove_ship_module").await;
         let result = space_traders_client::apis::fleet_api::remove_ship_module(
             &self.configuration,
             ship_symbol,
@@ -959,7 +951,7 @@ impl Api {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
-        self.limiter.until_ready().await;
+        self.limiter.until_ready(50, "repair_ship").await;
         let result =
             space_traders_client::apis::fleet_api::repair_ship(&self.configuration, ship_symbol)
                 .await?;
@@ -975,7 +967,7 @@ impl Api {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
-        self.limiter.until_ready().await;
+        self.limiter.until_ready(50, "scrap_ship").await;
         let result =
             space_traders_client::apis::fleet_api::scrap_ship(&self.configuration, ship_symbol)
                 .await?;
@@ -992,7 +984,7 @@ impl Api {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
-        self.limiter.until_ready().await;
+        self.limiter.until_ready(50, "sell_cargo").await;
         let result = space_traders_client::apis::fleet_api::sell_cargo(
             &self.configuration,
             ship_symbol,
@@ -1012,7 +1004,7 @@ impl Api {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
-        self.limiter.until_ready().await;
+        self.limiter.until_ready(50, "ship_refine").await;
         let result = space_traders_client::apis::fleet_api::ship_refine(
             &self.configuration,
             ship_symbol,
@@ -1031,7 +1023,7 @@ impl Api {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
-        self.limiter.until_ready().await;
+        self.limiter.until_ready(50, "siphon_resources").await;
         let result = space_traders_client::apis::fleet_api::siphon_resources(
             &self.configuration,
             ship_symbol,
@@ -1050,7 +1042,7 @@ impl Api {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
-        self.limiter.until_ready().await;
+        self.limiter.until_ready(50, "transfer_cargo").await;
         let result = space_traders_client::apis::fleet_api::transfer_cargo(
             &self.configuration,
             ship_symbol,
@@ -1070,7 +1062,7 @@ impl Api {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
-        self.limiter.until_ready().await;
+        self.limiter.until_ready(50, "warp_ship").await;
         let result = space_traders_client::apis::fleet_api::warp_ship(
             &self.configuration,
             ship_symbol,
@@ -1087,7 +1079,7 @@ impl Api {
         system_symbol: &str,
         waypoint_symbol: &str,
     ) -> Result<models::GetConstruction200Response, Error<GetConstructionError>> {
-        self.limiter.until_ready().await;
+        self.limiter.until_ready(50, "get_construction").await;
         let result = space_traders_client::apis::systems_api::get_construction(
             &self.configuration,
             system_symbol,
@@ -1104,7 +1096,7 @@ impl Api {
         system_symbol: &str,
         waypoint_symbol: &str,
     ) -> Result<models::GetJumpGate200Response, Error<GetJumpGateError>> {
-        self.limiter.until_ready().await;
+        self.limiter.until_ready(50, "get_jump_gate").await;
         let result = space_traders_client::apis::systems_api::get_jump_gate(
             &self.configuration,
             system_symbol,
@@ -1121,7 +1113,7 @@ impl Api {
         system_symbol: &str,
         waypoint_symbol: &str,
     ) -> Result<models::GetMarket200Response, Error<GetMarketError>> {
-        self.limiter.until_ready().await;
+        self.limiter.until_ready(50, "get_market").await;
         let result = space_traders_client::apis::systems_api::get_market(
             &self.configuration,
             system_symbol,
@@ -1138,7 +1130,7 @@ impl Api {
         system_symbol: &str,
         waypoint_symbol: &str,
     ) -> Result<models::GetShipyard200Response, Error<GetShipyardError>> {
-        self.limiter.until_ready().await;
+        self.limiter.until_ready(50, "get_shipyard").await;
         let result = space_traders_client::apis::systems_api::get_shipyard(
             &self.configuration,
             system_symbol,
@@ -1154,7 +1146,7 @@ impl Api {
         &self,
         system_symbol: &str,
     ) -> Result<models::GetSystem200Response, Error<GetSystemError>> {
-        self.limiter.until_ready().await;
+        self.limiter.until_ready(50, "get_system").await;
         let result =
             space_traders_client::apis::systems_api::get_system(&self.configuration, system_symbol)
                 .await?;
@@ -1171,7 +1163,7 @@ impl Api {
         r#type: Option<models::WaypointType>,
         traits: Option<models::GetSystemWaypointsTraitsParameter>,
     ) -> Result<models::GetSystemWaypoints200Response, Error<GetSystemWaypointsError>> {
-        self.limiter.until_ready().await;
+        self.limiter.until_ready(50, "get_system_waypoints").await;
         let result = space_traders_client::apis::systems_api::get_system_waypoints(
             &self.configuration,
             system_symbol,
@@ -1229,7 +1221,7 @@ impl Api {
         page: Option<i32>,
         limit: Option<i32>,
     ) -> Result<models::GetSystems200Response, Error<GetSystemsError>> {
-        self.limiter.until_ready().await;
+        self.limiter.until_ready(50, "get_systems").await;
         let result =
             space_traders_client::apis::systems_api::get_systems(&self.configuration, page, limit)
                 .await?;
@@ -1274,7 +1266,7 @@ impl Api {
 
     /// Return a list of ALL systems using the undocumented `/systems.json` endpoint
     pub async fn get_all_systems_json(&self) -> Result<Vec<System>, Error<GetSystemsError>> {
-        self.limiter.until_ready().await;
+        self.limiter.until_ready(50, "get_all_systems_json").await;
         let local_var_configuration = &self.configuration;
 
         let local_var_client = &local_var_configuration.client;
@@ -1317,7 +1309,7 @@ impl Api {
         system_symbol: &str,
         waypoint_symbol: &str,
     ) -> Result<models::GetWaypoint200Response, Error<GetWaypointError>> {
-        self.limiter.until_ready().await;
+        self.limiter.until_ready(50, "get_waypoint").await;
         let result = space_traders_client::apis::systems_api::get_waypoint(
             &self.configuration,
             system_symbol,
@@ -1338,7 +1330,7 @@ impl Api {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
-        self.limiter.until_ready().await;
+        self.limiter.until_ready(50, "supply_construction").await;
         let result = space_traders_client::apis::systems_api::supply_construction(
             &self.configuration,
             system_symbol,
