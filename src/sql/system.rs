@@ -1,10 +1,30 @@
 use space_traders_client::models;
 
-use super::{DatabaseConnector, RespSystem};
+use super::DatabaseConnector;
 
-impl From<&models::System> for super::sql_models::System {
+#[derive(Clone, Debug, PartialEq, serde::Serialize)]
+pub struct System {
+    pub symbol: String,
+    pub sector_symbol: String,
+    pub system_type: models::SystemType,
+    pub x: i32,
+    pub y: i32,
+    // pub factions: Vec<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, serde::Serialize)]
+pub struct RespSystem {
+    pub symbol: String,
+    pub sector_symbol: String,
+    pub system_type: models::SystemType,
+    pub x: i32,
+    pub y: i32,
+    pub waypoints: Option<i32>,
+}
+
+impl From<&models::System> for System {
     fn from(system: &models::System) -> Self {
-        super::sql_models::System {
+        System {
             symbol: system.symbol.clone(),
             sector_symbol: system.sector_symbol.clone(),
             system_type: system.r#type,
@@ -17,7 +37,7 @@ impl From<&models::System> for super::sql_models::System {
 impl RespSystem {
     pub async fn get_all(database_pool: &super::DbPool) -> sqlx::Result<Vec<RespSystem>> {
         sqlx::query_as!(
-            super::sql_models::RespSystem,
+            RespSystem,
             r#"
             SELECT 
                 system.symbol,
@@ -35,11 +55,8 @@ impl RespSystem {
     }
 }
 
-impl DatabaseConnector<super::sql_models::System> for super::sql_models::System {
-    async fn insert(
-        database_pool: &super::DbPool,
-        item: &super::sql_models::System,
-    ) -> sqlx::Result<()> {
+impl DatabaseConnector<System> for System {
+    async fn insert(database_pool: &super::DbPool, item: &System) -> sqlx::Result<()> {
         sqlx::query!(
             r#"
                 INSERT INTO system (
@@ -68,10 +85,7 @@ impl DatabaseConnector<super::sql_models::System> for super::sql_models::System 
         Ok(())
     }
 
-    async fn insert_bulk(
-        database_pool: &super::DbPool,
-        items: &Vec<super::sql_models::System>,
-    ) -> sqlx::Result<()> {
+    async fn insert_bulk(database_pool: &super::DbPool, items: &Vec<System>) -> sqlx::Result<()> {
         let (symbols, sector_symbols, system_types, xs, ys): (
             Vec<String>,
             Vec<String>,
@@ -122,11 +136,9 @@ impl DatabaseConnector<super::sql_models::System> for super::sql_models::System 
         Ok(())
     }
 
-    async fn get_all(
-        database_pool: &super::DbPool,
-    ) -> sqlx::Result<Vec<super::sql_models::System>> {
+    async fn get_all(database_pool: &super::DbPool) -> sqlx::Result<Vec<System>> {
         sqlx::query_as!(
-            super::sql_models::System,
+            System,
             r#"
             SELECT 
                 symbol,
@@ -142,13 +154,13 @@ impl DatabaseConnector<super::sql_models::System> for super::sql_models::System 
     }
 }
 
-impl super::sql_models::System {
+impl System {
     pub async fn get_by_id(
         database_pool: &super::DbPool,
         id: &String,
-    ) -> sqlx::Result<Option<super::sql_models::System>> {
+    ) -> sqlx::Result<Option<System>> {
         sqlx::query_as!(
-            super::sql_models::System,
+            System,
             r#"
         SELECT 
             symbol,

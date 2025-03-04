@@ -1,7 +1,16 @@
-use super::{
-    sql_models::{self, Agent},
-    DatabaseConnector, DbPool,
-};
+use super::{DatabaseConnector, DbPool};
+
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct Agent {
+    pub symbol: String,
+    pub account_id: Option<String>,
+    pub headquarters: String,
+    pub credits: i64,
+    pub starting_faction: String,
+    pub ship_count: i32,
+    #[allow(dead_code)]
+    pub created_at: sqlx::types::chrono::NaiveDateTime,
+}
 
 impl From<space_traders_client::models::Agent> for Agent {
     fn from(item: space_traders_client::models::Agent) -> Agent {
@@ -17,7 +26,7 @@ impl From<space_traders_client::models::Agent> for Agent {
     }
 }
 
-impl sql_models::Agent {
+impl Agent {
     pub async fn get_last(database_pool: &DbPool) -> sqlx::Result<Vec<Agent>> {
         let result = sqlx::query_as! {
         Agent,
@@ -75,7 +84,7 @@ impl sql_models::Agent {
     }
 }
 
-impl DatabaseConnector<Agent> for sql_models::Agent {
+impl DatabaseConnector<Agent> for Agent {
     async fn insert(database_pool: &DbPool, item: &Agent) -> sqlx::Result<()> {
         sqlx::query!(
             r#"

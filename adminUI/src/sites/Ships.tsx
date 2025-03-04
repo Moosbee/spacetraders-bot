@@ -21,7 +21,8 @@ function Ships() {
   const ships = useMyStore((state) => state.ships);
   const setShips = useMyStore((state) => state.setShips);
 
-  const [showCooldown, setShowCooldown] = useState(false);
+  const [showCooldown, setShowCooldown] = useState(true);
+  const [showCondition, setShowCondition] = useState(false);
 
   // useEffect(() => {
   //   fetch(`http://${backendUrl}/ships`)
@@ -244,45 +245,51 @@ function Ships() {
       align: "right",
       sorter: (a, b) => a.fuel.capacity - b.fuel.capacity,
     },
-    {
-      title: "Conditions",
-      key: "conditions",
-      render: (_value, record) => (
-        <Space>
-          <Progress
-            type="circle"
-            percent={record.conditions.engine.condition * 100}
-            format={(value) => (
-              <>
-                Engine: {value}% {record.conditions.engine.integrity * 100}%
-              </>
-            )}
-            size={20}
-          />
-          <Progress
-            type="circle"
-            percent={record.conditions.frame.condition * 100}
-            size={20}
-            format={(value) => (
-              <>
-                Frame: {value}% {record.conditions.frame.integrity * 100}%
-              </>
-            )}
-          />
-          <Progress
-            type="circle"
-            percent={record.conditions.reactor.condition * 100}
-            size={20}
-            format={(value) => (
-              <>
-                Reactor: {value}% {record.conditions.reactor.integrity * 100}%
-              </>
-            )}
-          />
-        </Space>
-      ),
-      // align: "right",
-    },
+    ...(showCondition
+      ? [
+          {
+            title: "Conditions",
+            key: "conditions",
+            render: (_value: unknown, record: RustShip) => (
+              <Space>
+                <Progress
+                  type="circle"
+                  percent={record.conditions.engine.condition * 100}
+                  format={(value) => (
+                    <>
+                      Engine: {value}%{" "}
+                      {record.conditions.engine.integrity * 100}%
+                    </>
+                  )}
+                  size={20}
+                />
+                <Progress
+                  type="circle"
+                  percent={record.conditions.frame.condition * 100}
+                  size={20}
+                  format={(value) => (
+                    <>
+                      Frame: {value}% {record.conditions.frame.integrity * 100}%
+                    </>
+                  )}
+                />
+                <Progress
+                  type="circle"
+                  percent={record.conditions.reactor.condition * 100}
+                  size={20}
+                  format={(value) => (
+                    <>
+                      Reactor: {value}%{" "}
+                      {record.conditions.reactor.integrity * 100}%
+                    </>
+                  )}
+                />
+              </Space>
+            ),
+            // align: "right",
+          },
+        ]
+      : []),
 
     ...(showCooldown
       ? [
@@ -326,6 +333,11 @@ function Ships() {
           onChange={(checked) => setShowCooldown(checked)}
         />
         Show Cooldown
+        <Switch
+          checked={showCondition}
+          onChange={(checked) => setShowCondition(checked)}
+        />
+        Show Condition
       </Space>
       <Table
         dataSource={Object.values(ships)}

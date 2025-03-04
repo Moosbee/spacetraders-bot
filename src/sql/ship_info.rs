@@ -1,4 +1,70 @@
-use super::{sql_models::ShipInfo, DatabaseConnector, ShipInfoRole};
+use super::DatabaseConnector;
+
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+pub struct ShipInfo {
+    pub symbol: String,
+    pub display_name: String,
+    pub role: ShipInfoRole,
+    pub active: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Default, serde::Serialize, sqlx::Type)]
+#[sqlx(type_name = "ship_info_role")]
+pub enum ShipInfoRole {
+    Construction,
+    TempTrader,
+    Trader,
+    Contract,
+    Scraper,
+    Mining,
+    #[default]
+    Manuel,
+}
+
+impl TryFrom<&str> for ShipInfoRole {
+    type Error = ();
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        match value {
+            "Construction" => Ok(ShipInfoRole::Construction),
+            "Trader" => Ok(ShipInfoRole::Trader),
+            "Contract" => Ok(ShipInfoRole::Contract),
+            "Scraper" => Ok(ShipInfoRole::Scraper),
+            "Mining" => Ok(ShipInfoRole::Mining),
+            "Manuel" => Ok(ShipInfoRole::Manuel),
+            _ => Err(()),
+        }
+    }
+}
+
+impl From<crate::ship::ShipStatus> for ShipInfoRole {
+    fn from(role: crate::ship::ShipStatus) -> Self {
+        match role {
+            crate::ship::ShipStatus::Construction => Self::Construction,
+            crate::ship::ShipStatus::Trader(_) => Self::Trader,
+            crate::ship::ShipStatus::Contract(_) => Self::Contract,
+            crate::ship::ShipStatus::Scraper => Self::Scraper,
+            crate::ship::ShipStatus::Mining(_) => Self::Mining,
+            crate::ship::ShipStatus::Manuel => Self::Manuel,
+        }
+    }
+}
+
+impl From<ShipInfoRole> for crate::ship::ShipStatus {
+    fn from(role: ShipInfoRole) -> Self {
+        match role {
+            ShipInfoRole::Construction => Self::Construction,
+            ShipInfoRole::Trader => Self::Trader(None),
+            ShipInfoRole::Contract => Self::Contract(None),
+            ShipInfoRole::Scraper => Self::Scraper,
+            ShipInfoRole::Mining => {
+                Self::Mining(crate::workers::mining::m_types::MiningShipAssignment::Idle)
+            }
+            ShipInfoRole::Manuel => Self::Manuel,
+            ShipInfoRole::TempTrader => Self::Trader(None),
+        }
+    }
+}
 
 impl ShipInfo {
     pub async fn get_by_symbol(
@@ -8,7 +74,7 @@ impl ShipInfo {
         let erg = sqlx::query_as!(
             ShipInfo,
             r#"
-        SELECT symbol, display_name, role as "role: crate::sql::sql_models::ShipInfoRole", active
+        SELECT symbol, display_name, role as "role: ShipInfoRole", active
         FROM ship_info WHERE symbol = $1
         LIMIT 1
       "#,
@@ -27,10 +93,10 @@ impl ShipInfo {
         let erg = sqlx::query_as!(
             ShipInfo,
             r#"
-        SELECT symbol, display_name, role as "role: crate::sql::sql_models::ShipInfoRole", active
+        SELECT symbol, display_name, role as "role: ShipInfoRole", active
         FROM ship_info WHERE role = $1
       "#,
-            symbol as &crate::sql::sql_models::ShipInfoRole
+            symbol as &ShipInfoRole
         )
         .fetch_all(&database_pool.database_pool)
         .await?;
@@ -61,7 +127,7 @@ impl DatabaseConnector<ShipInfo> for ShipInfo {
             "#,
             &item.symbol,
             &item.display_name,
-            &item.role as &crate::sql::sql_models::ShipInfoRole,
+            &item.role as &ShipInfoRole,
             &item.active
         )
         .execute(&database_pool.database_pool)
@@ -73,7 +139,7 @@ impl DatabaseConnector<ShipInfo> for ShipInfo {
     async fn insert_bulk(database_pool: &super::DbPool, items: &Vec<ShipInfo>) -> sqlx::Result<()> {
         let ((symbol_s, display_name_s), (role_s, active_s)): (
             (Vec<String>, Vec<String>),
-            (Vec<crate::sql::sql_models::ShipInfoRole>, Vec<bool>),
+            (Vec<ShipInfoRole>, Vec<bool>),
         ) = items
             .iter()
             .map(|s| {
@@ -105,7 +171,7 @@ impl DatabaseConnector<ShipInfo> for ShipInfo {
             "#,
             &symbol_s as &[String],
             &display_name_s as &[String],
-            &role_s as &[crate::sql::sql_models::ShipInfoRole],
+            &role_s as &[ShipInfoRole],
             &active_s as &[bool]
         )
         .execute(&database_pool.database_pool)
@@ -121,7 +187,7 @@ impl DatabaseConnector<ShipInfo> for ShipInfo {
                 SELECT 
                     symbol,
                     display_name,
-                    role as "role: crate::sql::sql_models::ShipInfoRole",
+                    role as "role: ShipInfoRole",
                     active
                 FROM ship_info
             "#

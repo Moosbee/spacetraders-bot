@@ -1,4 +1,21 @@
-use super::{sql_models::Route, DatabaseConnector};
+use super::DatabaseConnector;
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Route {
+    pub id: i32,
+    pub from: String,
+    pub to: String,
+    pub nav_mode: String,
+    pub speed: i32,
+    pub distance: f64,
+    pub fuel_cost: i32,
+    pub travel_time: f64,
+    pub engine_condition: f64,
+    pub frame_condition: f64,
+    pub reactor_condition: f64,
+    pub current_cargo: i32,
+    pub total_cargohold: i32,
+}
 
 impl DatabaseConnector<Route> for Route {
     async fn insert(database_pool: &super::DbPool, item: &Route) -> sqlx::Result<()> {

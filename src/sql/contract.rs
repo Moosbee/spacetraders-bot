@@ -1,11 +1,35 @@
 use space_traders_client::models;
 
-use crate::sql::sql_models::ContractSummary;
+use super::{ContractDelivery, DatabaseConnector, DbPool};
 
-use super::{
-    sql_models::{Contract, ContractDelivery, DatabaseConnector},
-    DbPool,
-};
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct Contract {
+    pub id: String,
+    pub faction_symbol: String,
+    pub contract_type: models::contract::Type,
+    pub accepted: bool,
+    pub fulfilled: bool,
+    pub deadline_to_accept: Option<String>,
+    pub on_accepted: i32,
+    pub on_fulfilled: i32,
+    pub deadline: String,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct ContractSummary {
+    pub id: String,
+    pub faction_symbol: String,
+    pub contract_type: models::contract::Type,
+    pub accepted: bool,
+    pub fulfilled: bool,
+    pub deadline_to_accept: Option<String>,
+    pub on_accepted: i32,
+    pub on_fulfilled: i32,
+    pub deadline: String,
+    pub totalprofit: Option<i32>,
+    pub total_expenses: Option<i32>,
+    pub net_profit: Option<i32>,
+}
 
 impl From<models::Contract> for Contract {
     fn from(value: models::Contract) -> Self {

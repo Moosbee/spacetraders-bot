@@ -2,10 +2,42 @@ use std::str::FromStr;
 
 use space_traders_client::models::{self};
 
-use super::{
-    sql_models::{DatabaseConnector, MarketTransaction, TransactionReason},
-    DbPool,
-};
+use super::{DatabaseConnector, DbPool};
+
+
+#[derive(Clone, Default, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct MarketTransaction {
+    /// The symbol of the waypoint.
+    pub waypoint_symbol: String,
+    /// The symbol of the ship that made the transaction.
+    pub ship_symbol: String,
+    /// The symbol of the trade good.
+    pub trade_symbol: models::TradeSymbol,
+    /// The type of transaction.
+    pub r#type: models::market_transaction::Type,
+    /// The number of units of the transaction.
+    pub units: i32,
+    /// The price per unit of the transaction.
+    pub price_per_unit: i32,
+    /// The total price of the transaction.
+    pub total_price: i32,
+    /// The timestamp of the transaction.
+    pub timestamp: String,
+    /// The reason for the transaction.
+    /// pub reason: TransactionReason,
+    pub contract: Option<String>,
+    pub trade_route: Option<i32>,
+    pub mining: Option<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, Default, serde::Serialize, serde::Deserialize)]
+pub enum TransactionReason {
+    Contract(String),
+    TradeRoute(i32),
+    MiningWaypoint(String),
+    #[default]
+    None,
+}
 
 impl MarketTransaction {
     pub fn with(self, reason: TransactionReason) -> Self {

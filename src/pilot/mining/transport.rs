@@ -204,9 +204,15 @@ impl TransportPilot {
             return Ok(());
         }
 
-        let transfer = receiver.await.map_err(|e| {
-            crate::error::Error::General(format!("Failed to receive message from extractor: {}", e))
-        })?;
+        let transfer = receiver.await;
+
+        let transfer = match transfer {
+            Ok(transfer) => transfer,
+            Err(e) => {
+                log::error!("Failed to receive message from extractor: {}", e);
+                return Ok(());
+            }
+        };
 
         let transfer = if let Some(transfer) = transfer {
             transfer

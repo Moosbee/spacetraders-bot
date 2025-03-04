@@ -1,9 +1,77 @@
 use space_traders_client::models;
 
-use super::{
-    sql_models::{TradeRoute, TradeRouteSummary},
-    DatabaseConnector, DbPool,
-};
+use super::{DatabaseConnector, DbPool};
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TradeRoute {
+    pub id: i32,
+    pub symbol: models::TradeSymbol,
+    pub ship_symbol: String,
+    pub purchase_waypoint: String,
+    pub sell_waypoint: String,
+    pub finished: bool,
+    pub trade_volume: i32,
+    pub predicted_purchase_price: i32,
+    pub predicted_sell_price: i32,
+    pub created_at: sqlx::types::chrono::NaiveDateTime,
+}
+
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct TradeRouteSummary {
+    pub id: i32,
+    pub symbol: models::TradeSymbol,
+    pub ship_symbol: String,
+    pub purchase_waypoint: String,
+    pub sell_waypoint: String,
+    pub finished: bool,
+    pub trade_volume: i32,
+    pub predicted_purchase_price: i32,
+    pub predicted_sell_price: i32,
+    pub sum: Option<i32>,
+    pub expenses: Option<i32>,
+    pub income: Option<i32>,
+    pub profit: Option<i32>,
+}
+
+impl TradeRoute {
+    pub fn complete(self) -> Self {
+        TradeRoute {
+            finished: true,
+            ..self
+        }
+    }
+}
+
+impl Default for TradeRoute {
+    fn default() -> TradeRoute {
+        TradeRoute {
+            id: 0,
+            symbol: models::TradeSymbol::PreciousStones,
+            ship_symbol: String::new(),
+            purchase_waypoint: String::new(),
+            sell_waypoint: String::new(),
+            finished: false,
+            trade_volume: 0,
+            predicted_purchase_price: 0,
+            predicted_sell_price: 0,
+            created_at: sqlx::types::chrono::NaiveDateTime::MIN,
+        }
+    }
+}
+
+impl std::fmt::Display for TradeRoute {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{} {}: {} -> {} {}",
+            self.ship_symbol,
+            self.symbol,
+            self.purchase_waypoint,
+            self.sell_waypoint,
+            self.trade_volume * self.predicted_sell_price
+        )
+    }
+}
 
 impl DatabaseConnector<TradeRoute> for TradeRoute {
     async fn insert(database_pool: &DbPool, item: &TradeRoute) -> sqlx::Result<()> {

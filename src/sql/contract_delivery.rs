@@ -1,15 +1,24 @@
 use space_traders_client::models;
 
-use super::{sql_models::DatabaseConnector, DbPool};
+use super::{DatabaseConnector, DbPool};
 
-impl super::sql_models::ContractDelivery {
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct ContractDelivery {
+    pub contract_id: String,
+    pub trade_symbol: models::TradeSymbol,
+    pub destination_symbol: String,
+    pub units_required: i32,
+    pub units_fulfilled: i32,
+}
+
+impl ContractDelivery {
     pub fn from_contract_deliver_good(
         contract_delivery: models::contract_deliver_good::ContractDeliverGood,
         contract_id: &str,
     ) -> Result<Self, anyhow::Error> {
         let trade_symbol = models::TradeSymbol::try_from(contract_delivery.trade_symbol.as_str())?;
 
-        Ok(super::sql_models::ContractDelivery {
+        Ok(ContractDelivery {
             contract_id: contract_id.to_string(),
             trade_symbol,
             destination_symbol: contract_delivery.destination_symbol,
@@ -21,9 +30,9 @@ impl super::sql_models::ContractDelivery {
     pub async fn get_by_contract_id(
         database_pool: &DbPool,
         contract_id: &str,
-    ) -> sqlx::Result<Vec<super::sql_models::ContractDelivery>> {
+    ) -> sqlx::Result<Vec<ContractDelivery>> {
         sqlx::query_as!(
-            super::sql_models::ContractDelivery,
+            ContractDelivery,
             r#"
             SELECT 
               contract_id,
@@ -41,13 +50,8 @@ impl super::sql_models::ContractDelivery {
     }
 }
 
-impl DatabaseConnector<super::sql_models::ContractDelivery>
-    for super::sql_models::ContractDelivery
-{
-    async fn insert(
-        database_pool: &DbPool,
-        item: &super::sql_models::ContractDelivery,
-    ) -> sqlx::Result<()> {
+impl DatabaseConnector<ContractDelivery> for ContractDelivery {
+    async fn insert(database_pool: &DbPool, item: &ContractDelivery) -> sqlx::Result<()> {
         sqlx::query!(
             r#"
                 INSERT INTO contract_delivery (contract_id, trade_symbol, destination_symbol, units_required, units_fulfilled)
@@ -68,7 +72,7 @@ impl DatabaseConnector<super::sql_models::ContractDelivery>
 
     async fn insert_bulk(
         database_pool: &DbPool,
-        items: &Vec<super::sql_models::ContractDelivery>,
+        items: &Vec<ContractDelivery>,
     ) -> sqlx::Result<()> {
         let (
             ((contract_ids, trade_symbols), (units_fulfilled, units_required)),
@@ -123,11 +127,9 @@ impl DatabaseConnector<super::sql_models::ContractDelivery>
         Ok(())
     }
 
-    async fn get_all(
-        database_pool: &DbPool,
-    ) -> sqlx::Result<Vec<super::sql_models::ContractDelivery>> {
+    async fn get_all(database_pool: &DbPool) -> sqlx::Result<Vec<ContractDelivery>> {
         sqlx::query_as!(
-            super::sql_models::ContractDelivery,
+            ContractDelivery,
             r#"
             SELECT 
               contract_id,

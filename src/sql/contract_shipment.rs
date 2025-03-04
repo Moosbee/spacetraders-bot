@@ -1,14 +1,54 @@
 use space_traders_client::models;
 
-use super::{sql_models::ShipmentStatus, DatabaseConnector};
+use super::DatabaseConnector;
 
-impl DatabaseConnector<super::sql_models::ContractShipment>
-    for super::sql_models::ContractShipment
-{
-    async fn insert(
-        database_pool: &super::DbPool,
-        item: &super::sql_models::ContractShipment,
-    ) -> sqlx::Result<()> {
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, sqlx::Type, serde::Serialize, serde::Deserialize, Default,
+)]
+#[sqlx(type_name = "shipment_status")]
+pub enum ShipmentStatus {
+    #[default]
+    #[sqlx(rename = "IN_TRANSIT")]
+    InTransit,
+    #[sqlx(rename = "FAILED")]
+    Failed,
+    #[sqlx(rename = "DELIVERED")]
+    Delivered,
+}
+
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct ContractShipment {
+    pub id: i32,
+    pub contract_id: String,
+    pub ship_symbol: String,
+    pub trade_symbol: models::TradeSymbol,
+    pub units: i32,
+    pub destination_symbol: String,
+    pub purchase_symbol: String,
+    pub created_at: sqlx::types::chrono::NaiveDateTime,
+    pub updated_at: sqlx::types::chrono::NaiveDateTime,
+    pub status: ShipmentStatus,
+}
+
+impl Default for ContractShipment {
+    fn default() -> Self {
+        Self {
+            id: Default::default(),
+            contract_id: Default::default(),
+            ship_symbol: Default::default(),
+            trade_symbol: Default::default(),
+            units: Default::default(),
+            destination_symbol: Default::default(),
+            purchase_symbol: Default::default(),
+            created_at: sqlx::types::chrono::NaiveDateTime::MIN,
+            updated_at: sqlx::types::chrono::NaiveDateTime::MIN,
+            status: Default::default(),
+        }
+    }
+}
+
+impl DatabaseConnector<ContractShipment> for ContractShipment {
+    async fn insert(database_pool: &super::DbPool, item: &ContractShipment) -> sqlx::Result<()> {
         sqlx::query!(
             r#"
                 INSERT INTO contract_shipment (
@@ -53,7 +93,7 @@ impl DatabaseConnector<super::sql_models::ContractShipment>
 
     async fn insert_bulk(
         database_pool: &super::DbPool,
-        items: &Vec<super::sql_models::ContractShipment>,
+        items: &Vec<ContractShipment>,
     ) -> sqlx::Result<()> {
         let (
             ids,
@@ -145,11 +185,9 @@ impl DatabaseConnector<super::sql_models::ContractShipment>
         Ok(())
     }
 
-    async fn get_all(
-        database_pool: &super::DbPool,
-    ) -> sqlx::Result<Vec<super::sql_models::ContractShipment>> {
+    async fn get_all(database_pool: &super::DbPool) -> sqlx::Result<Vec<ContractShipment>> {
         sqlx::query_as!(
-            super::sql_models::ContractShipment,
+            ContractShipment,
             r#"
             SELECT 
                 id,
@@ -170,10 +208,10 @@ impl DatabaseConnector<super::sql_models::ContractShipment>
     }
 }
 
-impl super::sql_models::ContractShipment {
+impl ContractShipment {
     pub async fn insert_new(
         database_pool: &super::DbPool,
-        item: &super::sql_models::ContractShipment,
+        item: &ContractShipment,
     ) -> sqlx::Result<i32> {
         let id = sqlx::query!(
             r#"
@@ -206,9 +244,9 @@ impl super::sql_models::ContractShipment {
     pub async fn get_by_contract_id(
         database_pool: &super::DbPool,
         contract_id: &str,
-    ) -> sqlx::Result<Vec<super::sql_models::ContractShipment>> {
+    ) -> sqlx::Result<Vec<ContractShipment>> {
         sqlx::query_as!(
-            super::sql_models::ContractShipment,
+            ContractShipment,
             r#"
                 SELECT 
                     id,
@@ -233,9 +271,9 @@ impl super::sql_models::ContractShipment {
     pub async fn get_by_id(
         database_pool: &super::DbPool,
         id: i32,
-    ) -> sqlx::Result<super::sql_models::ContractShipment> {
+    ) -> sqlx::Result<ContractShipment> {
         sqlx::query_as!(
-            super::sql_models::ContractShipment,
+            ContractShipment,
             r#"
             SELECT 
                 id,
@@ -260,9 +298,9 @@ impl super::sql_models::ContractShipment {
     pub async fn get_by_ship_symbol(
         database_pool: &super::DbPool,
         ship_symbol: &str,
-    ) -> sqlx::Result<Vec<super::sql_models::ContractShipment>> {
+    ) -> sqlx::Result<Vec<ContractShipment>> {
         sqlx::query_as!(
-            super::sql_models::ContractShipment,
+            ContractShipment,
             r#"
             SELECT 
                 id,

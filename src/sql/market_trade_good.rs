@@ -1,9 +1,21 @@
 use space_traders_client::models;
 
-use super::{
-    sql_models::{DatabaseConnector, MarketTradeGood},
-    DbPool,
-};
+use super::{DatabaseConnector, DbPool};
+
+
+#[derive(Debug, Clone, sqlx::FromRow, PartialEq, Eq, serde::Serialize)]
+pub struct MarketTradeGood {
+    pub symbol: models::TradeSymbol,
+    pub waypoint_symbol: String,
+    pub r#type: models::market_trade_good::Type,
+    pub trade_volume: i32,
+    pub supply: models::SupplyLevel,
+    pub activity: Option<models::ActivityLevel>,
+    pub purchase_price: i32,
+    pub sell_price: i32,
+    pub created: sqlx::types::chrono::NaiveDateTime,
+    pub created_at: sqlx::types::chrono::NaiveDateTime,
+}
 
 impl From<MarketTradeGood> for models::MarketTradeGood {
     fn from(val: MarketTradeGood) -> Self {

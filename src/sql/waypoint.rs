@@ -4,12 +4,28 @@ use space_traders_client::models;
 
 use crate::types::WaypointCan;
 
-use super::{
-    sql_models::{DatabaseConnector, Waypoint},
-    DbPool,
-};
+use super::{DatabaseConnector, DbPool};
 
-impl From<&models::Waypoint> for super::sql_models::Waypoint {
+#[derive(Clone, Debug, PartialEq, serde::Serialize)]
+pub struct Waypoint {
+    pub symbol: String,
+    pub system_symbol: String,
+    pub created_at: sqlx::types::chrono::NaiveDateTime,
+    pub x: i32,
+    pub y: i32,
+    pub waypoint_type: models::WaypointType,
+    pub traits: Vec<models::WaypointTraitSymbol>,
+    pub is_under_construction: bool,
+    pub orbitals: Vec<String>,
+    pub orbits: Option<String>,
+    pub faction: Option<String>,
+    pub modifiers: Vec<models::WaypointModifierSymbol>,
+    pub charted_by: Option<String>,
+    pub charted_on: Option<String>,
+    pub unstable_since: Option<sqlx::types::chrono::NaiveDateTime>,
+}
+
+impl From<&models::Waypoint> for Waypoint {
     fn from(value: &models::Waypoint) -> Self {
         Self {
             symbol: value.symbol.clone(),
@@ -45,8 +61,8 @@ impl From<&models::Waypoint> for super::sql_models::Waypoint {
     }
 }
 
-impl From<&super::sql_models::Waypoint> for models::Waypoint {
-    fn from(value: &super::sql_models::Waypoint) -> Self {
+impl From<&Waypoint> for models::Waypoint {
+    fn from(value: &Waypoint) -> Self {
         let chart = match (value.charted_by.as_ref(), value.charted_on.as_ref()) {
             (Some(charted_by), Some(charted_on)) => Some(models::Chart {
                 submitted_by: Some(charted_by.clone()),
