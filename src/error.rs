@@ -32,6 +32,12 @@ impl From<&str> for Error {
     }
 }
 
+impl From<String> for Error {
+    fn from(value: String) -> Self {
+        Error::General(value)
+    }
+}
+
 impl<T: Clone> From<space_traders_client::apis::Error<T>> for Error {
     fn from(value: space_traders_client::apis::Error<T>) -> Self {
         match value {

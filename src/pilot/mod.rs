@@ -102,6 +102,7 @@ impl Pilot {
             if ship_info.role != sql::ShipInfoRole::Manuel {
                 break;
             }
+
             let _ = tokio::select! {
                         _ = self.cancellation_token.cancelled() => {
                             return Ok(());

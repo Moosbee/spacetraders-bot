@@ -1,4 +1,5 @@
 import {
+  ShipModuleSymbolEnum,
   ShipMountSymbolEnum,
   ShipNavFlightMode,
   ShipNavStatus,
@@ -66,7 +67,11 @@ interface Mounts {
   mounts: ShipMountSymbolEnum[];
 }
 
-interface Condition {
+interface Modules {
+  modules: ShipModuleSymbolEnum[];
+}
+
+export interface Condition {
   integrity: number;
   condition: number;
 }
@@ -79,11 +84,13 @@ interface RustShip {
   display_name: string;
   active: boolean;
   engine_speed: number;
-  cooldown_expiration: string | null;
   nav: Navigation;
   cargo: Cargo;
   fuel: Fuel;
+  modules: Modules;
   mounts: Mounts;
+  cooldown_expiration: string | null;
+
   conditions: {
     engine: Condition;
     frame: Condition;

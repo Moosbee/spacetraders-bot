@@ -1,5 +1,6 @@
 mod cargo;
 mod mining;
+mod modules;
 mod mounts;
 mod nav;
 mod refueling;

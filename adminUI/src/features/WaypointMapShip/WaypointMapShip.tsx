@@ -73,7 +73,7 @@ function WaypointMapShip({
       }}
       onDoubleClick={() => {
         if (ship) {
-          window.open(`/fleet/${ship.symbol}`, "_blank", "popup:true");
+          window.open(`/ships/${ship.symbol}`, "_blank", "popup:true");
         }
       }}
     >

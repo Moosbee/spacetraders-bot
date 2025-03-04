@@ -376,7 +376,11 @@ impl MyShip {
     pub async fn wait_for_arrival(&mut self, _api: &api::Api) -> anyhow::Result<()> {
         self.mutate();
         let t = self.nav.route.arrival - Utc::now();
-        let t = t.num_milliseconds().try_into()?;
+        let t = t.num_milliseconds();
+        if t < 0 {
+            return Ok(());
+        }
+        let t = t.try_into()?;
         tokio::time::sleep(tokio::time::Duration::from_millis(t)).await;
         Ok(())
     }

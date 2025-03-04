@@ -28,6 +28,7 @@ impl Default for MyShip {
             display_name: Default::default(),
             engine_speed: Default::default(),
             cooldown_expiration: Default::default(),
+            modules: Default::default(),
             active: false,
             is_clone: false,
             nav: Default::default(),
@@ -54,6 +55,7 @@ impl Clone for MyShip {
             is_clone: true,
             engine_speed: self.engine_speed.clone(),
             cooldown_expiration: self.cooldown_expiration.clone(),
+            modules: self.modules.clone(),
             nav: self.nav.clone(),
             cargo: self.cargo.clone(),
             fuel: self.fuel.clone(),
@@ -94,8 +96,10 @@ pub struct MyShip {
     pub cargo: CargoState,
     // Fuel state
     pub fuel: FuelState,
-    // Mining state
+    // Mount state
     pub mounts: MountState,
+    // Modules state
+    pub modules: ModuleState,
     // Conditions
     pub conditions: ConditionState,
     #[serde(skip)]
@@ -188,6 +192,11 @@ pub struct MountState {
 }
 
 #[derive(Debug, Default, serde::Serialize, Clone)]
+pub struct ModuleState {
+    pub modules: Vec<models::ship_module::Symbol>,
+}
+
+#[derive(Debug, Default, serde::Serialize, Clone)]
 pub struct CargoState {
     pub capacity: i32,
     pub units: i32,
@@ -231,6 +240,11 @@ impl MyShip {
         self.cargo.update(&ship.cargo);
         self.fuel.update(&ship.fuel);
         self.mounts.update(&ship.mounts);
+        self.modules.update(&ship.modules);
+
+        ship.frame.module_slots;
+        ship.frame.mounting_points;
+        // ship.frame.requirements.;
 
         self.conditions.engine.condition = ship.engine.condition;
         self.conditions.engine.integrity = ship.engine.integrity;
@@ -355,6 +369,8 @@ impl MyShip {
         };
 
         self.update_ship_info(ship_info.clone());
+
+        self.notify().await;
 
         Ok(ship_info)
     }

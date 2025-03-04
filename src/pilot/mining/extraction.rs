@@ -105,6 +105,9 @@ impl ExtractionPilot {
 
     async fn go_to_waypoint(&self, ship: &mut ship::MyShip, waypoint_symbol: &str) -> Result<()> {
         debug!("Going to waypoint: {}", waypoint_symbol);
+        ship.wait_for_arrival(&self.context.api)
+            .await
+            .map_err(|e| e.to_string())?;
         if ship.nav.waypoint_symbol == waypoint_symbol {
             debug!("Already at waypoint: {}", waypoint_symbol);
             return Ok(());
@@ -310,6 +313,17 @@ impl ExtractionPilot {
         request: ExtractorTransferRequest,
     ) -> Result<()> {
         debug!("Handling transfer request for ship: {}", ship.symbol);
+
+        if ship.cargo.get_amount(&request.trade_symbol) < request.amount {
+            log::warn!(
+                "Ship {} does not have enough {} to transfer",
+                ship.symbol,
+                request.trade_symbol
+            );
+            let _erg = request.callback.send(None);
+            return Ok(());
+        }
+
         let erg = ship
             .simple_transfer_cargo(
                 request.trade_symbol,
@@ -324,12 +338,26 @@ impl ExtractionPilot {
                 trade_symbol: request.trade_symbol,
                 units: request.amount,
             }),
-            Err(_) => None,
+            Err(error) => {
+                log::error!(
+                    "Transfer request failed for ship: {} to {} error {} {:?} request: {:?}",
+                    ship.symbol,
+                    request.to_symbol,
+                    error,
+                    error,
+                    request
+                );
+
+                None
+            }
         };
 
         let _erg = request.callback.send(transfer_result);
 
-        debug!("Handled transfer request for ship: {}", ship.symbol);
+        debug!(
+            "Handled transfer request for ship: {} to {}",
+            ship.symbol, request.to_symbol
+        );
         Ok(())
     }
 }

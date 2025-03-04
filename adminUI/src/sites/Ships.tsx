@@ -1,4 +1,13 @@
-import { Button, Flex, Popover, Space, Switch, Table, TableProps } from "antd";
+import {
+  Button,
+  Flex,
+  Popover,
+  Progress,
+  Space,
+  Switch,
+  Table,
+  TableProps,
+} from "antd";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import PageTitle from "../features/PageTitle";
@@ -57,7 +66,19 @@ function Ships() {
           if (a.status.type === "Mining" && b.status.type === "Mining") {
             const data_a = a.status.data ?? "";
             const data_b = b.status.data ?? "";
+            if (data_a === "Transporter" && data_b === "Transporter") {
+              return a.symbol.localeCompare(b.symbol);
+            }
+            if (
+              (data_a === "Siphoner" && data_b === "Siphoner") ||
+              (data_a === "Extractor" && data_b === "Extractor")
+            ) {
+              return a.nav.waypoint_symbol.localeCompare(b.nav.waypoint_symbol);
+            }
             return data_a.localeCompare(data_b);
+          }
+          if (a.status.type === "Trader" && b.status.type === "Trader") {
+            return a.symbol.localeCompare(b.symbol);
           }
         }
         return num;
@@ -116,8 +137,21 @@ function Ships() {
               (<Timer time={record.nav.route.arrival} />)
               <br />
               <span>
-                {record.nav.route.origin_symbol} -{">"}{" "}
-                {record.nav.route.destination_symbol}
+                {record.nav.route.origin_system_symbol ==
+                record.nav.route.destination_system_symbol
+                  ? record.nav.route.origin_symbol.replace(
+                      record.nav.route.origin_system_symbol + "-",
+                      ""
+                    )
+                  : record.nav.route.origin_symbol}{" "}
+                -{">"}{" "}
+                {record.nav.route.origin_system_symbol ==
+                record.nav.route.destination_system_symbol
+                  ? record.nav.route.destination_symbol.replace(
+                      record.nav.route.destination_system_symbol + "-",
+                      ""
+                    )
+                  : record.nav.route.destination_symbol}
               </span>
             </>
           )}
@@ -150,8 +184,21 @@ function Ships() {
         <>
           {record.nav.auto_pilot && (
             <span>
-              {record.nav.auto_pilot.origin_symbol} -{">"}{" "}
-              {record.nav.auto_pilot.destination_symbol}
+              {record.nav.auto_pilot.origin_system_symbol ==
+              record.nav.auto_pilot.destination_system_symbol
+                ? record.nav.auto_pilot.origin_symbol.replace(
+                    record.nav.auto_pilot.origin_system_symbol + "-",
+                    ""
+                  )
+                : record.nav.auto_pilot.origin_symbol}{" "}
+              -{">"}{" "}
+              {record.nav.auto_pilot.origin_system_symbol ===
+              record.nav.auto_pilot.destination_system_symbol
+                ? record.nav.auto_pilot.destination_symbol.replace(
+                    record.nav.auto_pilot.destination_system_symbol + "-",
+                    ""
+                  )
+                : record.nav.auto_pilot.destination_symbol}
               <br />(
               <Timer time={record.nav.auto_pilot.arrival} />)
             </span>
@@ -175,7 +222,7 @@ function Ships() {
           content={
             <Flex vertical>
               {Object.entries(record.cargo.inventory).map((item) => (
-                <Flex gap={6} justify="space-between">
+                <Flex gap={6} justify="space-between" key={item[0]}>
                   <span>{item[0]}</span>
                   <span>{item[1]}</span>
                 </Flex>
@@ -196,6 +243,45 @@ function Ships() {
       render: (value: number, record) => `${value} / ${record.fuel.capacity}`,
       align: "right",
       sorter: (a, b) => a.fuel.capacity - b.fuel.capacity,
+    },
+    {
+      title: "Conditions",
+      key: "conditions",
+      render: (_value, record) => (
+        <Space>
+          <Progress
+            type="circle"
+            percent={record.conditions.engine.condition * 100}
+            format={(value) => (
+              <>
+                Engine: {value}% {record.conditions.engine.integrity * 100}%
+              </>
+            )}
+            size={20}
+          />
+          <Progress
+            type="circle"
+            percent={record.conditions.frame.condition * 100}
+            size={20}
+            format={(value) => (
+              <>
+                Frame: {value}% {record.conditions.frame.integrity * 100}%
+              </>
+            )}
+          />
+          <Progress
+            type="circle"
+            percent={record.conditions.reactor.condition * 100}
+            size={20}
+            format={(value) => (
+              <>
+                Reactor: {value}% {record.conditions.reactor.integrity * 100}%
+              </>
+            )}
+          />
+        </Space>
+      ),
+      // align: "right",
     },
 
     ...(showCooldown

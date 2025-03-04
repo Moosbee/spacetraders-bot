@@ -4,7 +4,8 @@ import { BrowserRouter } from "react-router-dom";
 import "./index.css";
 import MyApp from "./MyApp.tsx";
 
-let promise = await Notification.requestPermission();
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const _promise = await Notification.requestPermission();
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

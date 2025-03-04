@@ -217,17 +217,6 @@ impl MiningManager {
                 waypoint_symbol
             );
 
-            let extraction_ships = self.filter_ships_with_cargo(
-                extraction_ships
-                    .into_iter()
-                    .filter(|f| self.transfer_manager.valid_extractor(&f.symbol))
-                    .collect::<Vec<_>>(),
-            );
-            if extraction_ships.is_empty() {
-                debug!("No ships with cargo at waypoint: {:?}", waypoint_symbol);
-                return Ok(());
-            }
-
             let transport_ships = self.filter_ships_with_space(
                 transport_ships
                     .into_iter()
@@ -239,6 +228,17 @@ impl MiningManager {
                     "No transport ships with space at waypoint: {:?}",
                     waypoint_symbol
                 );
+                return Ok(());
+            }
+
+            let extraction_ships = self.filter_ships_with_cargo(
+                extraction_ships
+                    .into_iter()
+                    .filter(|f| self.transfer_manager.valid_extractor(&f.symbol))
+                    .collect::<Vec<_>>(),
+            );
+            if extraction_ships.is_empty() {
+                debug!("No ships with cargo at waypoint: {:?}", waypoint_symbol);
                 return Ok(());
             }
 
@@ -415,12 +415,12 @@ impl MiningManager {
         debug!("Getting next waypoint for ship: {}", ship_clone.symbol);
         let the_ships: std::collections::HashMap<String, ship::MyShip> =
             self.context.ship_manager.get_all_clone().await;
-        let route = self
+        let routes = self
             .waypoint_manager
             .calculate_waypoint_urgencys(&the_ships);
 
-        debug!("Calculated routes: {:?}", route);
-        let routes = route.into_iter().filter(|r| r.1 > 0).collect::<Vec<_>>();
+        debug!("Calculated routes: {:?}", routes);
+        // let routes = routes.into_iter().filter(|r| r.1 > 0).collect::<Vec<_>>();
 
         if routes.is_empty() {
             info!("No routes found for {}", ship_clone.symbol);

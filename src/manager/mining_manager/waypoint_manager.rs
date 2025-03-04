@@ -55,7 +55,7 @@ impl WaypointManager {
         if let Some((waypoint_symbol, _)) = self.places.get_ship(&ship.symbol) {
             let waypoint =
                 sql::Waypoint::get_by_symbol(&self.context.database_pool, &waypoint_symbol).await?;
-            if !waypoint
+            if waypoint
                 .map(|waypoint| {
                     waypoint.is_minable()
                         && waypoint.waypoint_type != models::WaypointType::EngineeredAsteroid
@@ -185,7 +185,7 @@ impl WaypointManager {
     pub fn calculate_waypoint_urgencys(
         &self,
         the_ships: &std::collections::HashMap<String, ship::MyShip>,
-    ) -> Vec<(String, u32)> {
+    ) -> Vec<(String, i64)> {
         let mut erg = self
             .places
             .iter()
@@ -201,7 +201,7 @@ impl WaypointManager {
     fn calculate_waypoint_urgency(
         wp: &super::mining_places::WaypointInfo,
         ships: &std::collections::HashMap<String, ship::MyShip>,
-    ) -> (String, u32) {
+    ) -> (String, i64) {
         let (units_sum, capacity_sum) = wp
             .ship_iter()
             .filter(|s| s.1 == &AssignLevel::Active)
@@ -260,6 +260,6 @@ impl WaypointManager {
 
         let urgency = (since_last.num_seconds() + to_next.num_seconds()) * cargo_ratio as i64;
 
-        (wp.waypoint_symbol.clone(), urgency as u32)
+        (wp.waypoint_symbol.clone(), urgency)
     }
 }
