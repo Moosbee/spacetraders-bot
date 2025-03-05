@@ -2,6 +2,7 @@ use space_traders_client::models;
 
 use super::DatabaseConnector;
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct MountInfo {
     pub symbol: models::ship_mount::Symbol,
     pub name: String,

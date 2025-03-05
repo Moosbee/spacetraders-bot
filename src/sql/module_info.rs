@@ -2,6 +2,7 @@ use space_traders_client::models;
 
 use super::DatabaseConnector;
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ModuleInfo {
     pub symbol: models::ship_module::Symbol,
     pub name: String,

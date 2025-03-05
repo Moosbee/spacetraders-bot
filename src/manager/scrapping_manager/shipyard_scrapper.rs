@@ -93,7 +93,7 @@ impl ShipyardScrapper {
         &self,
         database_pool: &crate::sql::DbPool,
         shipyards: Vec<models::Shipyard>,
-    ) -> Result<(), sqlx::Error> {
+    ) -> Result<(), crate::error::Error> {
         for shipyard in shipyards {
             let sql_shipyard = crate::sql::Shipyard::from(&shipyard);
             let id = crate::sql::Shipyard::insert_get_id(database_pool, &sql_shipyard).await?;
@@ -111,6 +111,11 @@ impl ShipyardScrapper {
             crate::sql::ShipyardShipTypes::insert_bulk(database_pool, &ship_types).await?;
 
             if let Some(ships) = shipyard.ships {
+                for ship in ships.iter() {
+                    crate::ship::MyShip::update_info_db_shipyard((ship).clone(), database_pool)
+                        .await?;
+                }
+
                 let shipyard_ships = ships
                     .into_iter()
                     .map(|s| {

@@ -1,4 +1,7 @@
-use std::{collections::HashMap, fmt::Debug};
+use std::{
+    collections::{HashMap, HashSet},
+    fmt::Debug,
+};
 
 use chrono::{DateTime, Utc};
 use futures::FutureExt;
@@ -385,6 +388,39 @@ impl MyShip {
         }
     }
 
+    pub async fn update_info_db_shipyard(
+        ship: models::ShipyardShip,
+        database_pool: &crate::sql::DbPool,
+    ) -> Result<()> {
+        sql::EngineInfo::insert(database_pool, &sql::EngineInfo::from(*ship.engine)).await?;
+        sql::FrameInfo::insert(database_pool, &sql::FrameInfo::from(*ship.frame)).await?;
+        sql::ReactorInfo::insert(database_pool, &sql::ReactorInfo::from(*ship.reactor)).await?;
+
+        sql::ModuleInfo::insert_bulk(
+            database_pool,
+            &ship
+                .modules
+                .into_iter()
+                .map(|m| sql::ModuleInfo::from(m))
+                .collect::<HashSet<_>>()
+                .into_iter()
+                .collect::<Vec<_>>(),
+        )
+        .await?;
+        sql::MountInfo::insert_bulk(
+            database_pool,
+            &ship
+                .mounts
+                .into_iter()
+                .map(|m| sql::MountInfo::from(m))
+                .collect::<HashSet<_>>()
+                .into_iter()
+                .collect::<Vec<_>>(),
+        )
+        .await?;
+        Ok(())
+    }
+
     pub async fn update_info_db(
         ship: models::Ship,
         database_pool: &crate::sql::DbPool,
@@ -399,6 +435,8 @@ impl MyShip {
                 .modules
                 .into_iter()
                 .map(|m| sql::ModuleInfo::from(m))
+                .collect::<HashSet<_>>()
+                .into_iter()
                 .collect::<Vec<_>>(),
         )
         .await?;
@@ -408,6 +446,8 @@ impl MyShip {
                 .mounts
                 .into_iter()
                 .map(|m| sql::MountInfo::from(m))
+                .collect::<HashSet<_>>()
+                .into_iter()
                 .collect::<Vec<_>>(),
         )
         .await?;
