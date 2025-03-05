@@ -128,6 +128,13 @@ pub async fn handle_buy_ship(
         .await
         .map_err(|err| ServerError::Server(err.to_string()))?;
 
+    let transaction = sql::ShipyardTransaction::try_from(*resp.data.transaction)
+        .map_err(|err| ServerError::Server(err.to_string()))?;
+
+    sql::ShipyardTransaction::insert(&context.database_pool, &transaction)
+        .await
+        .map_err(|err| ServerError::Server(err.to_string()))?;
+
     let mut ship_i =
         crate::ship::MyShip::from_ship(*resp.data.ship, context.ship_manager.get_broadcaster());
 

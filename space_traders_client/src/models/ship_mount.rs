@@ -46,38 +46,56 @@ impl ShipMount {
         }
     }
 }
-/// Symbo of this mount.
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize)]
+/// Symbol of this mount.
+#[derive(
+    Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize, sqlx::Type,
+)]
+#[sqlx(type_name = "ship_mount_symbol")]
 pub enum Symbol {
     #[serde(rename = "MOUNT_GAS_SIPHON_I")]
+    #[sqlx(rename = "MOUNT_GAS_SIPHON_I")]
     GasSiphonI,
     #[serde(rename = "MOUNT_GAS_SIPHON_II")]
+    #[sqlx(rename = "MOUNT_GAS_SIPHON_II")]
     GasSiphonIi,
     #[serde(rename = "MOUNT_GAS_SIPHON_III")]
+    #[sqlx(rename = "MOUNT_GAS_SIPHON_III")]
     GasSiphonIii,
     #[serde(rename = "MOUNT_SURVEYOR_I")]
+    #[sqlx(rename = "MOUNT_SURVEYOR_I")]
     SurveyorI,
     #[serde(rename = "MOUNT_SURVEYOR_II")]
+    #[sqlx(rename = "MOUNT_SURVEYOR_II")]
     SurveyorIi,
     #[serde(rename = "MOUNT_SURVEYOR_III")]
+    #[sqlx(rename = "MOUNT_SURVEYOR_III")]
     SurveyorIii,
     #[serde(rename = "MOUNT_SENSOR_ARRAY_I")]
+    #[sqlx(rename = "MOUNT_SENSOR_ARRAY_I")]
     SensorArrayI,
     #[serde(rename = "MOUNT_SENSOR_ARRAY_II")]
+    #[sqlx(rename = "MOUNT_SENSOR_ARRAY_II")]
     SensorArrayIi,
     #[serde(rename = "MOUNT_SENSOR_ARRAY_III")]
+    #[sqlx(rename = "MOUNT_SENSOR_ARRAY_III")]
     SensorArrayIii,
     #[serde(rename = "MOUNT_MINING_LASER_I")]
+    #[sqlx(rename = "MOUNT_MINING_LASER_I")]
     MiningLaserI,
     #[serde(rename = "MOUNT_MINING_LASER_II")]
+    #[sqlx(rename = "MOUNT_MINING_LASER_II")]
     MiningLaserIi,
     #[serde(rename = "MOUNT_MINING_LASER_III")]
+    #[sqlx(rename = "MOUNT_MINING_LASER_III")]
     MiningLaserIii,
     #[serde(rename = "MOUNT_LASER_CANNON_I")]
+    #[sqlx(rename = "MOUNT_LASER_CANNON_I")]
     LaserCannonI,
     #[serde(rename = "MOUNT_MISSILE_LAUNCHER_I")]
+    #[sqlx(rename = "MOUNT_MISSILE_LAUNCHER_I")]
     MissileLauncherI,
     #[serde(rename = "MOUNT_TURRET_I")]
+    #[sqlx(rename = "MOUNT_TURRET_I")]
     TurretI,
 }
 

@@ -1,11 +1,13 @@
 use std::time::Duration;
 
+use chrono::NaiveDateTime;
 use log::{debug, info};
 use space_traders_client::models;
 use tokio::time::sleep;
 
 use crate::{
     config::CONFIG,
+    sql::DatabaseConnector,
     types::{ConductorContext, WaypointCan},
 };
 
@@ -49,7 +51,8 @@ impl ShipyardScrapper {
             let shipyards = self.get_all_shipyards().await?;
 
             info!("shipyards: {:?}", shipyards.len());
-            // update_shipyards(shipyards, self.context.database_pool.clone()).await;
+            self.update_shipyards(&self.context.database_pool, shipyards)
+                .await?;
         }
 
         info!("shipyard scrapping workers done");
@@ -84,5 +87,51 @@ impl ShipyardScrapper {
         }
 
         Ok(shipyards)
+    }
+
+    async fn update_shipyards(
+        &self,
+        database_pool: &crate::sql::DbPool,
+        shipyards: Vec<models::Shipyard>,
+    ) -> Result<(), sqlx::Error> {
+        for shipyard in shipyards {
+            let sql_shipyard = crate::sql::Shipyard::from(&shipyard);
+            let id = crate::sql::Shipyard::insert_get_id(database_pool, &sql_shipyard).await?;
+            let ship_types = shipyard
+                .ship_types
+                .iter()
+                .map(|st| crate::sql::ShipyardShipTypes {
+                    id: 0,
+                    shipyard_id: id,
+                    ship_type: st.r#type,
+                    created_at: NaiveDateTime::MIN,
+                })
+                .collect::<Vec<_>>();
+
+            crate::sql::ShipyardShipTypes::insert_bulk(database_pool, &ship_types).await?;
+
+            if let Some(ships) = shipyard.ships {
+                let shipyard_ships = ships
+                    .into_iter()
+                    .map(|s| {
+                        let ship = crate::sql::ShipyardShip::with_waypoint(s, &shipyard.symbol);
+                        ship
+                    })
+                    .collect::<Vec<_>>();
+
+                crate::sql::ShipyardShip::insert_bulk(database_pool, &shipyard_ships).await?;
+            }
+
+            if let Some(transactions) = shipyard.transactions {
+                let shipyard_transactions = transactions
+                    .into_iter()
+                    .filter_map(|t| crate::sql::ShipyardTransaction::try_from(t).ok())
+                    .collect::<Vec<_>>();
+                crate::sql::ShipyardTransaction::insert_bulk(database_pool, &shipyard_transactions)
+                    .await?
+            }
+        }
+
+        Ok(())
     }
 }

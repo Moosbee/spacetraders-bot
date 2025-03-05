@@ -9,6 +9,16 @@ mod route;
 mod ship_info;
 mod system;
 mod trade_route;
+
+mod shipyard;
+mod shipyard_ship;
+mod shipyard_ship_types;
+mod shipyard_transaction;
+
+mod repair_transaction;
+mod scrap_transaction;
+mod ship_modification_transaction;
+
 mod waypoint;
 
 pub use agent::Agent;
@@ -23,6 +33,10 @@ pub use market_transaction::TransactionReason;
 pub use route::Route;
 pub use ship_info::ShipInfo;
 pub use ship_info::ShipInfoRole;
+pub use shipyard::Shipyard;
+pub use shipyard_ship::ShipyardShip;
+pub use shipyard_ship_types::ShipyardShipTypes;
+pub use shipyard_transaction::ShipyardTransaction;
 pub use system::RespSystem;
 pub use system::System;
 pub use trade_route::TradeRoute;

@@ -64,15 +64,22 @@ impl ShipEngine {
     }
 }
 /// The symbol of the engine.
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize)]
+#[derive(
+    Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize, sqlx::Type,
+)]
+#[sqlx(type_name = "ship_engine_symbol")]
 pub enum Symbol {
     #[serde(rename = "ENGINE_IMPULSE_DRIVE_I")]
+    #[sqlx(rename = "ENGINE_IMPULSE_DRIVE_I")]
     ImpulseDriveI,
     #[serde(rename = "ENGINE_ION_DRIVE_I")]
+    #[sqlx(rename = "ENGINE_ION_DRIVE_I")]
     IonDriveI,
     #[serde(rename = "ENGINE_ION_DRIVE_II")]
+    #[sqlx(rename = "ENGINE_ION_DRIVE_II")]
     IonDriveIi,
     #[serde(rename = "ENGINE_HYPER_DRIVE_I")]
+    #[sqlx(rename = "ENGINE_HYPER_DRIVE_I")]
     HyperDriveI,
 }
 

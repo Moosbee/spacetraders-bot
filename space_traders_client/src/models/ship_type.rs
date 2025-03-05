@@ -15,44 +15,68 @@ use strum_macros::EnumString;
 /// ShipType : Type of ship
 /// Type of ship
 #[derive(
-    Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize, EnumString,
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    PartialEq,
+    Ord,
+    PartialOrd,
+    Hash,
+    Serialize,
+    Deserialize,
+    EnumString,
+    sqlx::Type,
 )]
+#[sqlx(type_name = "ship_type")]
 pub enum ShipType {
     #[serde(rename = "SHIP_PROBE")]
     #[strum(serialize = "SHIP_PROBE")]
+    #[sqlx(rename = "SHIP_PROBE")]
     Probe,
     #[serde(rename = "SHIP_MINING_DRONE")]
     #[strum(serialize = "SHIP_MINING_DRONE")]
+    #[sqlx(rename = "SHIP_MINING_DRONE")]
     MiningDrone,
     #[serde(rename = "SHIP_SIPHON_DRONE")]
     #[strum(serialize = "SHIP_SIPHON_DRONE")]
+    #[sqlx(rename = "SHIP_SIPHON_DRONE")]
     SiphonDrone,
     #[serde(rename = "SHIP_INTERCEPTOR")]
     #[strum(serialize = "SHIP_INTERCEPTOR")]
+    #[sqlx(rename = "SHIP_INTERCEPTOR")]
     Interceptor,
     #[serde(rename = "SHIP_LIGHT_HAULER")]
     #[strum(serialize = "SHIP_LIGHT_HAULER")]
+    #[sqlx(rename = "SHIP_LIGHT_HAULER")]
     LightHauler,
     #[serde(rename = "SHIP_COMMAND_FRIGATE")]
     #[strum(serialize = "SHIP_COMMAND_FRIGATE")]
+    #[sqlx(rename = "SHIP_COMMAND_FRIGATE")]
     CommandFrigate,
     #[serde(rename = "SHIP_EXPLORER")]
     #[strum(serialize = "SHIP_EXPLORER")]
+    #[sqlx(rename = "SHIP_EXPLORER")]
     Explorer,
     #[serde(rename = "SHIP_HEAVY_FREIGHTER")]
     #[strum(serialize = "SHIP_HEAVY_FREIGHTER")]
+    #[sqlx(rename = "SHIP_HEAVY_FREIGHTER")]
     HeavyFreighter,
     #[serde(rename = "SHIP_LIGHT_SHUTTLE")]
     #[strum(serialize = "SHIP_LIGHT_SHUTTLE")]
+    #[sqlx(rename = "SHIP_LIGHT_SHUTTLE")]
     LightShuttle,
     #[serde(rename = "SHIP_ORE_HOUND")]
     #[strum(serialize = "SHIP_ORE_HOUND")]
+    #[sqlx(rename = "SHIP_ORE_HOUND")]
     OreHound,
     #[serde(rename = "SHIP_REFINING_FREIGHTER")]
     #[strum(serialize = "SHIP_REFINING_FREIGHTER")]
+    #[sqlx(rename = "SHIP_REFINING_FREIGHTER")]
     RefiningFreighter,
     #[serde(rename = "SHIP_SURVEYOR")]
     #[strum(serialize = "SHIP_SURVEYOR")]
+    #[sqlx(rename = "SHIP_SURVEYOR")]
     Surveyor,
 }
 

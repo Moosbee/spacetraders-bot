@@ -74,37 +74,55 @@ impl ShipFrame {
     }
 }
 /// Symbol of the frame.
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize)]
+#[derive(
+    Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize, sqlx::Type,
+)]
+#[sqlx(type_name = "ship_frame_symbol")]
 pub enum Symbol {
     #[serde(rename = "FRAME_PROBE")]
+    #[sqlx(rename = "FRAME_PROBE")]
     Probe,
     #[serde(rename = "FRAME_DRONE")]
+    #[sqlx(rename = "FRAME_DRONE")]
     Drone,
     #[serde(rename = "FRAME_INTERCEPTOR")]
+    #[sqlx(rename = "FRAME_INTERCEPTOR")]
     Interceptor,
     #[serde(rename = "FRAME_RACER")]
+    #[sqlx(rename = "FRAME_RACER")]
     Racer,
     #[serde(rename = "FRAME_FIGHTER")]
+    #[sqlx(rename = "FRAME_FIGHTER")]
     Fighter,
     #[serde(rename = "FRAME_FRIGATE")]
+    #[sqlx(rename = "FRAME_FRIGATE")]
     Frigate,
     #[serde(rename = "FRAME_SHUTTLE")]
+    #[sqlx(rename = "FRAME_SHUTTLE")]
     Shuttle,
     #[serde(rename = "FRAME_EXPLORER")]
+    #[sqlx(rename = "FRAME_EXPLORER")]
     Explorer,
     #[serde(rename = "FRAME_MINER")]
+    #[sqlx(rename = "FRAME_MINER")]
     Miner,
     #[serde(rename = "FRAME_LIGHT_FREIGHTER")]
+    #[sqlx(rename = "FRAME_LIGHT_FREIGHTER")]
     LightFreighter,
     #[serde(rename = "FRAME_HEAVY_FREIGHTER")]
+    #[sqlx(rename = "FRAME_HEAVY_FREIGHTER")]
     HeavyFreighter,
     #[serde(rename = "FRAME_TRANSPORT")]
+    #[sqlx(rename = "FRAME_TRANSPORT")]
     Transport,
     #[serde(rename = "FRAME_DESTROYER")]
+    #[sqlx(rename = "FRAME_DESTROYER")]
     Destroyer,
     #[serde(rename = "FRAME_CRUISER")]
+    #[sqlx(rename = "FRAME_CRUISER")]
     Cruiser,
     #[serde(rename = "FRAME_CARRIER")]
+    #[sqlx(rename = "FRAME_CARRIER")]
     Carrier,
 }
 

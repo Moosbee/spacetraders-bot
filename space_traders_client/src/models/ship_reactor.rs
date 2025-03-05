@@ -64,17 +64,25 @@ impl ShipReactor {
     }
 }
 /// Symbol of the reactor.
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize)]
+#[derive(
+    Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize, sqlx::Type,
+)]
+#[sqlx(type_name = "ship_reactor_symbol")]
 pub enum Symbol {
     #[serde(rename = "REACTOR_SOLAR_I")]
+    #[sqlx(rename = "REACTOR_SOLAR_I")]
     SolarI,
     #[serde(rename = "REACTOR_FUSION_I")]
+    #[sqlx(rename = "REACTOR_FUSION_I")]
     FusionI,
     #[serde(rename = "REACTOR_FISSION_I")]
+    #[sqlx(rename = "REACTOR_FISSION_I")]
     FissionI,
     #[serde(rename = "REACTOR_CHEMICAL_I")]
+    #[sqlx(rename = "REACTOR_CHEMICAL_I")]
     ChemicalI,
     #[serde(rename = "REACTOR_ANTIMATTER_I")]
+    #[sqlx(rename = "REACTOR_ANTIMATTER_I")]
     AntimatterI,
 }
 

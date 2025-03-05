@@ -52,47 +52,70 @@ impl ShipModule {
     }
 }
 /// The symbol of the module.
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize)]
+#[derive(
+    Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize, sqlx::Type,
+)]
+#[sqlx(type_name = "ship_module_symbol")]
 pub enum Symbol {
     #[serde(rename = "MODULE_MINERAL_PROCESSOR_I")]
+    #[sqlx(rename = "MODULE_MINERAL_PROCESSOR_I")]
     MineralProcessorI,
     #[serde(rename = "MODULE_GAS_PROCESSOR_I")]
+    #[sqlx(rename = "MODULE_GAS_PROCESSOR_I")]
     GasProcessorI,
     #[serde(rename = "MODULE_CARGO_HOLD_I")]
+    #[sqlx(rename = "MODULE_CARGO_HOLD_I")]
     CargoHoldI,
     #[serde(rename = "MODULE_CARGO_HOLD_II")]
+    #[sqlx(rename = "MODULE_CARGO_HOLD_II")]
     CargoHoldIi,
     #[serde(rename = "MODULE_CARGO_HOLD_III")]
+    #[sqlx(rename = "MODULE_CARGO_HOLD_III")]
     CargoHoldIii,
     #[serde(rename = "MODULE_CREW_QUARTERS_I")]
+    #[sqlx(rename = "MODULE_CREW_QUARTERS_I")]
     CrewQuartersI,
     #[serde(rename = "MODULE_ENVOY_QUARTERS_I")]
+    #[sqlx(rename = "MODULE_ENVOY_QUARTERS_I")]
     EnvoyQuartersI,
     #[serde(rename = "MODULE_PASSENGER_CABIN_I")]
+    #[sqlx(rename = "MODULE_PASSENGER_CABIN_I")]
     PassengerCabinI,
     #[serde(rename = "MODULE_MICRO_REFINERY_I")]
+    #[sqlx(rename = "MODULE_MICRO_REFINERY_I")]
     MicroRefineryI,
     #[serde(rename = "MODULE_ORE_REFINERY_I")]
+    #[sqlx(rename = "MODULE_ORE_REFINERY_I")]
     OreRefineryI,
     #[serde(rename = "MODULE_FUEL_REFINERY_I")]
+    #[sqlx(rename = "MODULE_FUEL_REFINERY_I")]
     FuelRefineryI,
     #[serde(rename = "MODULE_SCIENCE_LAB_I")]
+    #[sqlx(rename = "MODULE_SCIENCE_LAB_I")]
     ScienceLabI,
     #[serde(rename = "MODULE_JUMP_DRIVE_I")]
+    #[sqlx(rename = "MODULE_JUMP_DRIVE_I")]
     JumpDriveI,
     #[serde(rename = "MODULE_JUMP_DRIVE_II")]
+    #[sqlx(rename = "MODULE_JUMP_DRIVE_II")]
     JumpDriveIi,
     #[serde(rename = "MODULE_JUMP_DRIVE_III")]
+    #[sqlx(rename = "MODULE_JUMP_DRIVE_III")]
     JumpDriveIii,
     #[serde(rename = "MODULE_WARP_DRIVE_I")]
+    #[sqlx(rename = "MODULE_WARP_DRIVE_I")]
     WarpDriveI,
     #[serde(rename = "MODULE_WARP_DRIVE_II")]
+    #[sqlx(rename = "MODULE_WARP_DRIVE_II")]
     WarpDriveIi,
     #[serde(rename = "MODULE_WARP_DRIVE_III")]
+    #[sqlx(rename = "MODULE_WARP_DRIVE_III")]
     WarpDriveIii,
     #[serde(rename = "MODULE_SHIELD_GENERATOR_I")]
+    #[sqlx(rename = "MODULE_SHIELD_GENERATOR_I")]
     ShieldGeneratorI,
     #[serde(rename = "MODULE_SHIELD_GENERATOR_II")]
+    #[sqlx(rename = "MODULE_SHIELD_GENERATOR_II")]
     ShieldGeneratorIi,
 }
 
