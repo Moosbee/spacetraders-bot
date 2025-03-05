@@ -103,6 +103,7 @@ impl MyShip {
         }
 
         let _ = self.wait_for_arrival(api).await;
+        self.refresh_nav();
         self.nav.auto_pilot = None;
         self.notify().await;
 
@@ -183,7 +184,7 @@ impl MyShip {
                 reason.clone(),
             )
             .await?;
-        tokio::time::sleep(std::time::Duration::from_millis(200)).await;
+        // tokio::time::sleep(std::time::Duration::from_millis(200)).await;
 
         self.mutate();
 
@@ -197,6 +198,10 @@ impl MyShip {
         );
 
         let nav_data = self.navigate(api, &instruction.end_symbol).await?;
+
+        if nav_data.data.events.len() > 0 {
+            debug!("Nav Events: {:#?} ", nav_data.data.events);
+        }
 
         let rote = crate::sql::Route {
             id: 0,
@@ -363,6 +368,11 @@ impl MyShip {
             let current_fuel = self.fuel.current;
 
             let erg = self.patch_ship_nav(api, flight_mode).await?;
+
+            if erg.data.events.len() > 0 {
+                debug!("Patch Nav Events: {:#?}", erg.data.events);
+            }
+
             if erg.data.fuel.current != current_fuel {
                 warn!(
                     "Fuel changed from {} to {} {:?}",

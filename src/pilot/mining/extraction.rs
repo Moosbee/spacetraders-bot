@@ -161,6 +161,8 @@ impl ExtractionPilot {
         };
         // let action = ActionType::get_action(&ship).ok_or("Invalid ship role")?;
 
+        let state_id = ship.snapshot(&self.context.database_pool).await?;
+
         match action {
             ActionType::Extract => {
                 let erg = ship.extract(&self.context.api).await;
@@ -205,6 +207,22 @@ impl ExtractionPilot {
                     }
                     Err(e) => return Err(e.into()),
                     Ok(erg) => {
+                        let after_state_id = ship.snapshot(&self.context.database_pool).await?;
+
+                        let extraction = sql::Extraction {
+                            id: 0,
+                            ship_symbol: ship.symbol.clone(),
+                            waypoint_symbol: ship.nav.waypoint_symbol.clone(),
+                            ship_info_before: state_id,
+                            ship_info_after: after_state_id,
+                            siphon: false,
+                            yield_symbol: erg.data.extraction.r#yield.symbol.clone(),
+                            yield_units: erg.data.extraction.r#yield.units,
+                            created_at: chrono::Utc::now().naive_local(),
+                        };
+
+                        sql::Extraction::insert(&self.context.database_pool, &extraction).await?;
+
                         info!(
                             "Extracted on ship: {} erg {:?} events: {:?}",
                             erg.data.extraction.ship_symbol,
@@ -216,6 +234,23 @@ impl ExtractionPilot {
             }
             ActionType::Siphon => {
                 let erg = ship.siphon(&self.context.api).await?;
+
+                let after_state_id = ship.snapshot(&self.context.database_pool).await?;
+
+                let extraction = sql::Extraction {
+                    id: 0,
+                    ship_symbol: ship.symbol.clone(),
+                    waypoint_symbol: ship.nav.waypoint_symbol.clone(),
+                    ship_info_before: state_id,
+                    ship_info_after: after_state_id,
+                    siphon: true,
+                    yield_symbol: erg.data.siphon.r#yield.symbol.clone(),
+                    yield_units: erg.data.siphon.r#yield.units,
+                    created_at: chrono::Utc::now().naive_local(),
+                };
+
+                sql::Extraction::insert(&self.context.database_pool, &extraction).await?;
+
                 info!(
                     "Siphoned on ship: {} erg {:?} events: {:?}",
                     erg.data.siphon.ship_symbol, erg.data.siphon.r#yield, erg.data.events

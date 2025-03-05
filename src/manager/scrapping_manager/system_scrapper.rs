@@ -1,3 +1,5 @@
+use log::debug;
+
 use crate::{
     api::Api,
     sql::{self, DatabaseConnector},
@@ -16,6 +18,7 @@ pub async fn update_all_systems(
 
     for system in &all_systems {
         let waypoints = loop {
+            debug!("Getting waypoints for system {}", system.symbol);
             let waypoints = api.get_all_waypoints(&system.symbol, 20).await;
             match waypoints {
                 Ok(waypoints) => break waypoints,

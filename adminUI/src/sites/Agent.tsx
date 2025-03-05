@@ -303,6 +303,12 @@ function Agent() {
             />
             <YAxis
               type="number"
+              // domain={["dataMin - 10000", "dataMax + 10000"]}
+              domain={([dataMin, dataMax]) => {
+                const min = Math.floor((dataMin * 0.9) / 10000) * 10000;
+                const max = Math.ceil((dataMax * 1.05) / 10000) * 10000;
+                return [min, max];
+              }}
               // eslint-disable-next-line @typescript-eslint/no-unused-vars
               tickFormatter={(v, _index) => {
                 // console.log("v", v, index);

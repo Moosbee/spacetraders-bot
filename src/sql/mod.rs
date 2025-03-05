@@ -26,7 +26,8 @@ mod module_info;
 mod mount_info;
 mod reactor_info;
 
-mod waypoint;
+mod extraction;
+mod ship_state;
 
 pub use agent::Agent;
 pub use contract::Contract;

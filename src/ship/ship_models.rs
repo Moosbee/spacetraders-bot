@@ -453,4 +453,12 @@ impl MyShip {
         .await?;
         Ok(())
     }
+
+    pub async fn snapshot(&self, database_pool: &crate::sql::DbPool) -> Result<i64> {
+        let state = sql::ShipState::from(self);
+
+        let id = sql::ShipState::insert_get_id(database_pool, &state).await?;
+
+        Ok(id)
+    }
 }
