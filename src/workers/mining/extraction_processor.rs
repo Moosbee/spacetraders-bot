@@ -82,8 +82,8 @@ impl ExtractionProcessor {
                     .mining_places
                     .assign_to(&ship.symbol, &waypoint.0)
                     .await;
-                let ship_resp = self.context.api.get_my_ship(&ship.symbol).await?;
-                ship.update(*ship_resp.data);
+                // let ship_resp = self.context.api.get_my_ship(&ship.symbol).await?;
+                // ship.update(*ship_resp.data);
                 if worked {
                     wp = Some(waypoint.0.clone());
                 }

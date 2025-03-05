@@ -604,6 +604,27 @@ pub enum TradeSymbol {
     ShipSurveyor,
 }
 
+impl From<models::ship_mount::Deposits> for TradeSymbol {
+    fn from(value: models::ship_mount::Deposits) -> Self {
+        match value {
+            models::ship_mount::Deposits::QuartzSand => Self::QuartzSand,
+            models::ship_mount::Deposits::SiliconCrystals => Self::SiliconCrystals,
+            models::ship_mount::Deposits::PreciousStones => Self::PreciousStones,
+            models::ship_mount::Deposits::IceWater => Self::IceWater,
+            models::ship_mount::Deposits::AmmoniaIce => Self::AmmoniaIce,
+            models::ship_mount::Deposits::IronOre => Self::IronOre,
+            models::ship_mount::Deposits::CopperOre => Self::CopperOre,
+            models::ship_mount::Deposits::SilverOre => Self::SilverOre,
+            models::ship_mount::Deposits::AluminumOre => Self::AluminumOre,
+            models::ship_mount::Deposits::GoldOre => Self::GoldOre,
+            models::ship_mount::Deposits::PlatinumOre => Self::PlatinumOre,
+            models::ship_mount::Deposits::Diamonds => Self::Diamonds,
+            models::ship_mount::Deposits::UraniteOre => Self::UraniteOre,
+            models::ship_mount::Deposits::MeritiumOre => Self::MeritiumOre,
+        }
+    }
+}
+
 impl std::fmt::Display for TradeSymbol {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {

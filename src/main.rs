@@ -208,7 +208,9 @@ async fn setup_context(
     for ship in ships {
         let mut ship_i = ship::MyShip::from_ship(ship.clone(), ship_manager.get_broadcaster());
 
-        ship_i.apply_from_db(database_pool.clone()).await.unwrap();
+        ship::MyShip::update_info_db(ship.clone(), &database_pool).await?;
+
+        ship_i.apply_from_db(database_pool.clone()).await?;
 
         ShipManager::add_ship(&ship_manager, ship_i).await;
     }

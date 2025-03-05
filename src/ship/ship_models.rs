@@ -384,4 +384,33 @@ impl MyShip {
             self.role = ship_info.role;
         }
     }
+
+    pub async fn update_info_db(
+        ship: models::Ship,
+        database_pool: &crate::sql::DbPool,
+    ) -> Result<()> {
+        sql::EngineInfo::insert(database_pool, &sql::EngineInfo::from(*ship.engine)).await?;
+        sql::FrameInfo::insert(database_pool, &sql::FrameInfo::from(*ship.frame)).await?;
+        sql::ReactorInfo::insert(database_pool, &sql::ReactorInfo::from(*ship.reactor)).await?;
+
+        sql::ModuleInfo::insert_bulk(
+            database_pool,
+            &ship
+                .modules
+                .into_iter()
+                .map(|m| sql::ModuleInfo::from(m))
+                .collect::<Vec<_>>(),
+        )
+        .await?;
+        sql::MountInfo::insert_bulk(
+            database_pool,
+            &ship
+                .mounts
+                .into_iter()
+                .map(|m| sql::MountInfo::from(m))
+                .collect::<Vec<_>>(),
+        )
+        .await?;
+        Ok(())
+    }
 }

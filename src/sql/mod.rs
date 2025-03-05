@@ -9,6 +9,7 @@ mod route;
 mod ship_info;
 mod system;
 mod trade_route;
+mod waypoint;
 
 mod shipyard;
 mod shipyard_ship;
@@ -19,6 +20,12 @@ mod repair_transaction;
 mod scrap_transaction;
 mod ship_modification_transaction;
 
+mod engine_info;
+mod frame_info;
+mod module_info;
+mod mount_info;
+mod reactor_info;
+
 mod waypoint;
 
 pub use agent::Agent;
@@ -26,10 +33,15 @@ pub use contract::Contract;
 pub use contract_delivery::ContractDelivery;
 pub use contract_shipment::ContractShipment;
 pub use contract_shipment::ShipmentStatus;
+pub use engine_info::EngineInfo;
+pub use frame_info::FrameInfo;
 pub use market_trade::MarketTrade;
 pub use market_trade_good::MarketTradeGood;
 pub use market_transaction::MarketTransaction;
 pub use market_transaction::TransactionReason;
+pub use module_info::ModuleInfo;
+pub use mount_info::MountInfo;
+pub use reactor_info::ReactorInfo;
 pub use route::Route;
 pub use ship_info::ShipInfo;
 pub use ship_info::ShipInfoRole;

@@ -135,6 +135,10 @@ pub async fn handle_buy_ship(
         .await
         .map_err(|err| ServerError::Server(err.to_string()))?;
 
+    crate::ship::MyShip::update_info_db((*resp.data.ship).clone(), &context.database_pool)
+        .await
+        .map_err(|err| ServerError::Server(err.to_string()))?;
+
     let mut ship_i =
         crate::ship::MyShip::from_ship(*resp.data.ship, context.ship_manager.get_broadcaster());
 
