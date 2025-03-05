@@ -1,3 +1,5 @@
+use chrono::NaiveDateTime;
+
 use super::DatabaseConnector;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -15,14 +17,47 @@ pub struct Route {
     pub reactor_condition: f64,
     pub current_cargo: i32,
     pub total_cargohold: i32,
+    pub ship_info_before: Option<i64>,
+    pub ship_info_after: Option<i64>,
+    pub created_at: NaiveDateTime,
 }
 
 impl DatabaseConnector<Route> for Route {
     async fn insert(database_pool: &super::DbPool, item: &Route) -> sqlx::Result<()> {
         sqlx::query!(
             r#"
-            insert into route ( "from", "to", distance, nav_mode, speed, fuel_cost, travel_time, engine_condition, frame_condition, reactor_condition, current_cargo, total_cargohold)
-            values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+            insert into route (
+            "from",
+            "to",
+            distance,
+            nav_mode,
+            speed,
+            fuel_cost,
+            travel_time,
+            engine_condition,
+            frame_condition,
+            reactor_condition,
+            current_cargo,
+            total_cargohold,
+            ship_info_before,
+            ship_info_after
+            )
+            values (
+            $1,
+            $2,
+            $3,
+            $4,
+            $5,
+            $6,
+            $7,
+            $8,
+            $9,
+            $10,
+            $11,
+            $12,
+            $13,
+            $14
+            )
             on conflict (id) do nothing
             "#,
             item.from,
@@ -36,7 +71,9 @@ impl DatabaseConnector<Route> for Route {
             item.frame_condition,
             item.reactor_condition,
             item.current_cargo,
-            item.total_cargohold
+            item.total_cargohold,
+            item.ship_info_before,
+            item.ship_info_after
         )
         .execute(&database_pool.database_pool)
         .await?;
@@ -45,58 +82,9 @@ impl DatabaseConnector<Route> for Route {
     }
 
     async fn insert_bulk(database_pool: &super::DbPool, items: &Vec<Route>) -> sqlx::Result<()> {
-        let (
-            ((id_s, engine_condition_s), (from_s, to_s)),
-            ((nav_mode_s, speed_s), (fuel_cost_s, travel_time_s)),
-        ): (
-            ((Vec<i32>, Vec<f64>), (Vec<String>, Vec<String>)),
-            ((Vec<String>, Vec<i32>), (Vec<i32>, Vec<f64>)),
-        ) = items
-            .iter()
-            .cloned()
-            .map(|r| {
-                (
-                    ((r.id, r.engine_condition), (r.from, r.to)),
-                    ((r.nav_mode, r.speed), (r.fuel_cost, r.travel_time)),
-                )
-            })
-            .unzip();
-
-        sqlx::query!(
-            r#"
-            insert into route (
-              id,
-              "from",
-              "to",
-              nav_mode,
-              speed,
-              fuel_cost,
-              travel_time,
-              engine_condition
-            )
-            SELECT * FROM UNNEST(
-              $1::integer[],
-              $2::character varying[],
-              $3::character varying[],
-              $4::character varying[],
-              $5::integer[],
-              $6::integer[],
-              $7::double precision[],
-              $8::double precision[]
-            )
-            on conflict (id) do nothing
-            "#,
-            &id_s,
-            &from_s,
-            &to_s,
-            &nav_mode_s,
-            &speed_s,
-            &fuel_cost_s,
-            &travel_time_s,
-            &engine_condition_s
-        )
-        .execute(&database_pool.database_pool)
-        .await?;
+        for item in items {
+            Self::insert(database_pool, item).await?;
+        }
 
         Ok(())
     }
@@ -118,7 +106,10 @@ impl DatabaseConnector<Route> for Route {
                   frame_condition,
                   reactor_condition,
                   current_cargo,
-                  total_cargohold
+                  total_cargohold,
+                  ship_info_before,
+                  ship_info_after,
+                  created_at
                 FROM route
             "#
         )

@@ -103,7 +103,7 @@ impl MyShip {
         }
 
         let _ = self.wait_for_arrival(api).await;
-        self.refresh_nav();
+        self.nav.refresh_nav();
         self.nav.auto_pilot = None;
         self.notify().await;
 
@@ -197,7 +197,11 @@ impl MyShip {
             self.nav.waypoint_symbol, instruction.end_symbol
         );
 
+        let start_id = self.snapshot(database_pool).await?;
+
         let nav_data = self.navigate(api, &instruction.end_symbol).await?;
+
+        let end_id = self.snapshot(database_pool).await?;
 
         if nav_data.data.events.len() > 0 {
             debug!("Nav Events: {:#?} ", nav_data.data.events);
@@ -219,6 +223,9 @@ impl MyShip {
             reactor_condition: self.conditions.reactor.condition,
             current_cargo: self.cargo.units,
             total_cargohold: self.cargo.capacity,
+            ship_info_before: Some(start_id),
+            ship_info_after: Some(end_id),
+            created_at: Utc::now().naive_utc(),
         };
 
         crate::sql::Route::insert(database_pool, &rote).await?;
@@ -421,6 +428,12 @@ impl NavigationState {
             t > 0
         } else {
             false
+        }
+    }
+
+    pub(crate) fn refresh_nav(&mut self) -> () {
+        if !self.is_in_transit() && self.status == models::ShipNavStatus::InTransit {
+            self.status = models::ShipNavStatus::InOrbit;
         }
     }
 
