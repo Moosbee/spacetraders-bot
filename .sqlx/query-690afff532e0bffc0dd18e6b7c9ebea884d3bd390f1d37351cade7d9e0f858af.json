@@ -1,0 +1,45 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO shipyard_transaction (\n                waypoint_symbol,\n                ship_type,\n                price,\n                agent_symbol,\n                \"timestamp\"\n            )\n            SELECT * FROM UNNEST(\n                $1::character varying[],\n                $2::ship_type[],\n                $3::integer[],\n                $4::character varying[],\n                $5::timestamp[]\n            )\n            ON CONFLICT (waypoint_symbol, ship_type, agent_symbol, \"timestamp\") DO NOTHING\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "VarcharArray",
+        {
+          "Custom": {
+            "name": "ship_type[]",
+            "kind": {
+              "Array": {
+                "Custom": {
+                  "name": "ship_type",
+                  "kind": {
+                    "Enum": [
+                      "SHIP_PROBE",
+                      "SHIP_MINING_DRONE",
+                      "SHIP_SIPHON_DRONE",
+                      "SHIP_INTERCEPTOR",
+                      "SHIP_LIGHT_HAULER",
+                      "SHIP_COMMAND_FRIGATE",
+                      "SHIP_EXPLORER",
+                      "SHIP_HEAVY_FREIGHTER",
+                      "SHIP_LIGHT_SHUTTLE",
+                      "SHIP_ORE_HOUND",
+                      "SHIP_REFINING_FREIGHTER",
+                      "SHIP_SURVEYOR"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "Int4Array",
+        "VarcharArray",
+        "TimestampArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "690afff532e0bffc0dd18e6b7c9ebea884d3bd390f1d37351cade7d9e0f858af"
+}

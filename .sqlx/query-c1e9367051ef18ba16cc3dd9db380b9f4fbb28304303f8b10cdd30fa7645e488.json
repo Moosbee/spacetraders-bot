@@ -1,0 +1,333 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                SELECT\n                  id,\n                  symbol,\n                  display_name,\n                  role as \"role: crate::sql::ShipInfoRole\",\n                  active,\n                  engine_speed,\n                  engine_condition,\n                  engine_integrity,\n                  frame_condition,\n                  frame_integrity,\n                  reactor_condition,\n                  reactor_integrity,\n                  fuel_capacity,\n                  fuel_current,\n                  cargo_capacity,\n                  cargo_units,\n                  cargo_inventory as \"cargo_inventory: sqlx::types::Json<CargoInv>\",\n                  mounts as \"mounts: Vec<models::ship_mount::Symbol>\",\n                  modules as \"modules: Vec<models::ship_module::Symbol>\",\n                  cooldown_expiration,\n                  flight_mode,\n                  nav_status,\n                  system_symbol,\n                  waypoint_symbol,\n                  route_arrival,\n                  route_departure,\n                  route_destination_symbol,\n                  route_destination_system,\n                  route_origin_symbol,\n                  route_origin_system,\n                  auto_pilot_arrival,\n                  auto_pilot_departure_time,\n                  auto_pilot_destination_symbol,\n                  auto_pilot_destination_system_symbol,\n                  auto_pilot_origin_symbol,\n                  auto_pilot_origin_system_symbol,\n                  auto_pilot_distance,\n                  auto_pilot_fuel_cost,\n                  auto_pilot_travel_time,\n                  created_at\n                FROM ship_state\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "symbol",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "display_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "role: crate::sql::ShipInfoRole",
+        "type_info": {
+          "Custom": {
+            "name": "ship_info_role",
+            "kind": {
+              "Enum": [
+                "Construction",
+                "Trader",
+                "Contract",
+                "Scraper",
+                "Mining",
+                "Manuel"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "active",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 5,
+        "name": "engine_speed",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 6,
+        "name": "engine_condition",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 7,
+        "name": "engine_integrity",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 8,
+        "name": "frame_condition",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 9,
+        "name": "frame_integrity",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 10,
+        "name": "reactor_condition",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 11,
+        "name": "reactor_integrity",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 12,
+        "name": "fuel_capacity",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 13,
+        "name": "fuel_current",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 14,
+        "name": "cargo_capacity",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 15,
+        "name": "cargo_units",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 16,
+        "name": "cargo_inventory: sqlx::types::Json<CargoInv>",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 17,
+        "name": "mounts: Vec<models::ship_mount::Symbol>",
+        "type_info": {
+          "Custom": {
+            "name": "ship_mount_symbol[]",
+            "kind": {
+              "Array": {
+                "Custom": {
+                  "name": "ship_mount_symbol",
+                  "kind": {
+                    "Enum": [
+                      "MOUNT_GAS_SIPHON_I",
+                      "MOUNT_GAS_SIPHON_II",
+                      "MOUNT_GAS_SIPHON_III",
+                      "MOUNT_SURVEYOR_I",
+                      "MOUNT_SURVEYOR_II",
+                      "MOUNT_SURVEYOR_III",
+                      "MOUNT_SENSOR_ARRAY_I",
+                      "MOUNT_SENSOR_ARRAY_II",
+                      "MOUNT_SENSOR_ARRAY_III",
+                      "MOUNT_MINING_LASER_I",
+                      "MOUNT_MINING_LASER_II",
+                      "MOUNT_MINING_LASER_III",
+                      "MOUNT_LASER_CANNON_I",
+                      "MOUNT_MISSILE_LAUNCHER_I",
+                      "MOUNT_TURRET_I"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 18,
+        "name": "modules: Vec<models::ship_module::Symbol>",
+        "type_info": {
+          "Custom": {
+            "name": "ship_module_symbol[]",
+            "kind": {
+              "Array": {
+                "Custom": {
+                  "name": "ship_module_symbol",
+                  "kind": {
+                    "Enum": [
+                      "MODULE_MINERAL_PROCESSOR_I",
+                      "MODULE_GAS_PROCESSOR_I",
+                      "MODULE_CARGO_HOLD_I",
+                      "MODULE_CARGO_HOLD_II",
+                      "MODULE_CARGO_HOLD_III",
+                      "MODULE_CREW_QUARTERS_I",
+                      "MODULE_ENVOY_QUARTERS_I",
+                      "MODULE_PASSENGER_CABIN_I",
+                      "MODULE_MICRO_REFINERY_I",
+                      "MODULE_ORE_REFINERY_I",
+                      "MODULE_FUEL_REFINERY_I",
+                      "MODULE_SCIENCE_LAB_I",
+                      "MODULE_JUMP_DRIVE_I",
+                      "MODULE_JUMP_DRIVE_II",
+                      "MODULE_JUMP_DRIVE_III",
+                      "MODULE_WARP_DRIVE_I",
+                      "MODULE_WARP_DRIVE_II",
+                      "MODULE_WARP_DRIVE_III",
+                      "MODULE_SHIELD_GENERATOR_I",
+                      "MODULE_SHIELD_GENERATOR_II"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 19,
+        "name": "cooldown_expiration",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 20,
+        "name": "flight_mode",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 21,
+        "name": "nav_status",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 22,
+        "name": "system_symbol",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 23,
+        "name": "waypoint_symbol",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 24,
+        "name": "route_arrival",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 25,
+        "name": "route_departure",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 26,
+        "name": "route_destination_symbol",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 27,
+        "name": "route_destination_system",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 28,
+        "name": "route_origin_symbol",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 29,
+        "name": "route_origin_system",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 30,
+        "name": "auto_pilot_arrival",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 31,
+        "name": "auto_pilot_departure_time",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 32,
+        "name": "auto_pilot_destination_symbol",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 33,
+        "name": "auto_pilot_destination_system_symbol",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 34,
+        "name": "auto_pilot_origin_symbol",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 35,
+        "name": "auto_pilot_origin_system_symbol",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 36,
+        "name": "auto_pilot_distance",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 37,
+        "name": "auto_pilot_fuel_cost",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 38,
+        "name": "auto_pilot_travel_time",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 39,
+        "name": "created_at",
+        "type_info": "Timestamp"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "c1e9367051ef18ba16cc3dd9db380b9f4fbb28304303f8b10cdd30fa7645e488"
+}

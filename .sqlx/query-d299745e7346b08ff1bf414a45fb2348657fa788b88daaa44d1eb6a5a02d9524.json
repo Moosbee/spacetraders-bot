@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n                SELECT \n                  id,\n                  \"from\",\n                  \"to\",\n                  nav_mode,\n                  distance,\n                  speed,\n                  fuel_cost,\n                  travel_time,\n                  engine_condition,\n                  frame_condition,\n                  reactor_condition,\n                  current_cargo,\n                  total_cargohold\n                FROM route\n            ",
+  "query": "\n                SELECT \n                  id,\n                  \"from\",\n                  \"to\",\n                  nav_mode,\n                  distance,\n                  speed,\n                  fuel_cost,\n                  travel_time,\n                  engine_condition,\n                  frame_condition,\n                  reactor_condition,\n                  current_cargo,\n                  total_cargohold,\n                  ship_info_before,\n                  ship_info_after,\n                  created_at\n                FROM route\n            ",
   "describe": {
     "columns": [
       {
@@ -67,6 +67,21 @@
         "ordinal": 12,
         "name": "total_cargohold",
         "type_info": "Int4"
+      },
+      {
+        "ordinal": 13,
+        "name": "ship_info_before",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 14,
+        "name": "ship_info_after",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 15,
+        "name": "created_at",
+        "type_info": "Timestamp"
       }
     ],
     "parameters": {
@@ -85,8 +100,11 @@
       false,
       false,
       false,
+      false,
+      true,
+      true,
       false
     ]
   },
-  "hash": "d8eeeec542277018d642b015d33f1062bfae818ed98fdfca0e288c429801419a"
+  "hash": "d299745e7346b08ff1bf414a45fb2348657fa788b88daaa44d1eb6a5a02d9524"
 }

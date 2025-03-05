@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        SELECT symbol, display_name, role as \"role: crate::sql::sql_models::ShipInfoRole\", active\n        FROM ship_info WHERE symbol = $1\n        LIMIT 1\n      ",
+  "query": "\n        SELECT symbol, display_name, role as \"role: ShipInfoRole\", active\n        FROM ship_info WHERE symbol = $1\n        LIMIT 1\n      ",
   "describe": {
     "columns": [
       {
@@ -15,7 +15,7 @@
       },
       {
         "ordinal": 2,
-        "name": "role: crate::sql::sql_models::ShipInfoRole",
+        "name": "role: ShipInfoRole",
         "type_info": {
           "Custom": {
             "name": "ship_info_role",
@@ -50,5 +50,5 @@
       false
     ]
   },
-  "hash": "3c71ff748795a5c69df87702d7328231becb3d42660ae2a165448a238f3f5df6"
+  "hash": "2767df82f42cf1610a55ca3e39b5c0eebe037a90e774c277f7d831d797f33cb0"
 }

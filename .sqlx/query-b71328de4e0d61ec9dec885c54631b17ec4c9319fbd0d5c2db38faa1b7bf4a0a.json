@@ -1,0 +1,35 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                INSERT INTO shipyard_ship_types (\n                    shipyard_id,\n                    ship_type\n                )\n                VALUES ($1, $2)\n                ON CONFLICT (id) DO UPDATE\n                SET shipyard_id = EXCLUDED.shipyard_id,\n                    ship_type = EXCLUDED.ship_type\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        {
+          "Custom": {
+            "name": "ship_type",
+            "kind": {
+              "Enum": [
+                "SHIP_PROBE",
+                "SHIP_MINING_DRONE",
+                "SHIP_SIPHON_DRONE",
+                "SHIP_INTERCEPTOR",
+                "SHIP_LIGHT_HAULER",
+                "SHIP_COMMAND_FRIGATE",
+                "SHIP_EXPLORER",
+                "SHIP_HEAVY_FREIGHTER",
+                "SHIP_LIGHT_SHUTTLE",
+                "SHIP_ORE_HOUND",
+                "SHIP_REFINING_FREIGHTER",
+                "SHIP_SURVEYOR"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b71328de4e0d61ec9dec885c54631b17ec4c9319fbd0d5c2db38faa1b7bf4a0a"
+}
