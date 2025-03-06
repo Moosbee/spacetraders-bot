@@ -162,6 +162,8 @@ async fn setup_context(
         .map(|s| s.nav.system_symbol.clone())
         .collect::<HashSet<_>>();
 
+    debug!("Systems: {}", system_symbols.len());
+
     let all_waypoints: Arc<dashmap::DashMap<String, HashMap<String, waypoint::Waypoint>>> =
         Arc::new(DashMap::new());
 
@@ -199,6 +201,8 @@ async fn setup_context(
         }
     }
 
+    debug!("Waypoints: {}", all_waypoints.len());
+
     let (sender, receiver) = broadcast::channel(1024);
 
     let ship_manager = Arc::new(ship::ShipManager::new(
@@ -207,11 +211,8 @@ async fn setup_context(
 
     for ship in ships {
         let mut ship_i = ship::MyShip::from_ship(ship.clone(), ship_manager.get_broadcaster());
-
         ship::MyShip::update_info_db(ship.clone(), &database_pool).await?;
-
         ship_i.apply_from_db(database_pool.clone()).await?;
-
         ShipManager::add_ship(&ship_manager, ship_i).await;
     }
 
@@ -238,6 +239,8 @@ async fn setup_context(
         scrapping_manager: scrapping_manager_data.1,
         trade_manager: trade_manager_data.1,
     };
+
+    debug!("Context created");
 
     let main_cancel_token = CancellationToken::new();
     let manager_cancel_token = main_cancel_token.child_token();
@@ -284,6 +287,8 @@ async fn setup_context(
         manager_cancel_token.child_token(),
         ship_cancel_token.clone(),
     );
+
+    debug!("Managers created");
 
     Ok((
         context,

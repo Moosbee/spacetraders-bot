@@ -3,6 +3,7 @@ use space_traders_client::models;
 
 use super::DatabaseConnector;
 
+#[derive(Clone, Debug, PartialEq, serde::Serialize)]
 pub struct ShipyardShipTypes {
     #[allow(dead_code)]
     pub id: i64,
@@ -10,6 +11,29 @@ pub struct ShipyardShipTypes {
     pub ship_type: models::ShipType,
     #[allow(dead_code)]
     pub created_at: NaiveDateTime,
+}
+
+impl ShipyardShipTypes {
+    pub async fn get_last_by_waypoint(
+        database_pool: &super::DbPool,
+        waypoint_symbol: &str,
+    ) -> sqlx::Result<Vec<ShipyardShipTypes>> {
+        sqlx::query_as!(
+            ShipyardShipTypes,
+            r#"
+            SELECT
+                id,
+                shipyard_id,
+                ship_type as "ship_type: models::ShipType",
+                created_at
+            FROM shipyard_ship_types
+            WHERE shipyard_id = (SELECT id FROM shipyard WHERE waypoint_symbol = $1 ORDER BY created_at DESC LIMIT 1)
+            "#,
+            waypoint_symbol
+        )
+        .fetch_all(&database_pool.database_pool)
+        .await
+    }
 }
 
 impl DatabaseConnector<ShipyardShipTypes> for ShipyardShipTypes {

@@ -56,6 +56,10 @@ impl Pilot {
 
     pub async fn pilot_ship(&self) -> Result<()> {
         debug!("Starting pilot for ship {}", self.ship_symbol);
+        tokio::time::sleep(std::time::Duration::from_millis(
+            500 + rand::random::<u64>() % 500,
+        ))
+        .await;
         while !self.cancellation_token.is_cancelled() {
             let ship_info_res =
                 sql::ShipInfo::get_by_symbol(&self.context.database_pool, &self.ship_symbol).await;

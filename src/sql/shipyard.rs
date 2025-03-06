@@ -3,6 +3,7 @@ use chrono::NaiveDateTime;
 use super::DatabaseConnector;
 use space_traders_client::models;
 
+#[derive(Clone, Debug, PartialEq, serde::Serialize)]
 pub struct Shipyard {
     #[allow(dead_code)]
     pub id: i64,
@@ -44,6 +45,28 @@ impl Shipyard {
         .await?
         .id;
         Ok(id)
+    }
+
+    pub async fn get_last_by_waypoint(
+        database_pool: &super::DbPool,
+        waypoint_symbol: &str,
+    ) -> sqlx::Result<Option<Shipyard>> {
+        sqlx::query_as!(
+            Shipyard,
+            r#"
+            SELECT DISTINCT ON (waypoint_symbol)
+                id,
+                waypoint_symbol,
+                modifications_fee,
+                created_at
+            FROM shipyard
+            WHERE waypoint_symbol = $1
+            ORDER BY waypoint_symbol, created_at DESC
+            "#,
+            waypoint_symbol
+        )
+        .fetch_optional(&database_pool.database_pool)
+        .await
     }
 }
 

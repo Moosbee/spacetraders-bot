@@ -16,16 +16,17 @@ import PageTitle from "../features/PageTitle";
 import Timer from "../features/Timer/Timer";
 import TransactionTable from "../features/TransactionTable/TransactionTable";
 import WaypointLink from "../features/WaypointLink";
+
+import ShipyardShipTable from "../features/ShipyardShipTable/ShipyardShipTable";
 import {
   ActivityLevel,
   MarketTradeGoodTypeEnum,
+  ShipType,
   SupplyLevel,
 } from "../models/api";
-import {
-  MarketTrade,
-  MarketTradeGood,
-  WaypointResponse,
-} from "../models/SQLWaypoint";
+import { MarketTrade, MarketTradeGood } from "../models/Market";
+import { ShipTransaction, ShipyardShipType } from "../models/Shipyard";
+import { WaypointResponse } from "../models/SQLWaypoint";
 import { backendUrl } from "../store";
 
 function Waypoint() {
@@ -125,7 +126,10 @@ function Waypoint() {
     {
       key: "traits",
       label: "Traits",
-      span: 2,
+      span:
+        3 -
+        (waypoint?.waypoint.is_under_construction ? 1 : 0) -
+        (waypoint?.waypoint.unstable_since ? 1 : 0),
       children: (
         <List
           size="small"
@@ -167,7 +171,7 @@ function Waypoint() {
       key: "symbol",
       sorter: (a, b) => a.symbol.localeCompare(b.symbol),
       filters: [
-        ...new Set(waypoint?.market_trade_goods.map((t) => t.symbol)),
+        ...new Set((waypoint?.market_trade_goods || []).map((t) => t.symbol)),
       ].map((t) => ({
         text: t,
         value: t,
@@ -194,7 +198,7 @@ function Waypoint() {
       key: "symbol",
       sorter: (a, b) => a.symbol.localeCompare(b.symbol),
       filters: [
-        ...new Set(waypoint?.market_trade_goods.map((t) => t.symbol)),
+        ...new Set((waypoint?.market_trade_goods || []).map((t) => t.symbol)),
       ].map((t) => ({
         text: t,
         value: t,
@@ -281,6 +285,65 @@ function Waypoint() {
     },
   ];
 
+  const shipTypesColumns: TableProps<ShipyardShipType>["columns"] = [
+    {
+      title: "Ship Type",
+      dataIndex: "ship_type",
+      key: "ship_type",
+      sorter: (a, b) => a.ship_type.localeCompare(b.ship_type),
+      filters: Object.values(ShipType).map((t) => ({
+        text: t,
+        value: t,
+      })),
+      onFilter: (value, record) => record.ship_type === value,
+    },
+    {
+      title: "Created At",
+      dataIndex: "created_at",
+      key: "created_at",
+      render: (date: string) => new Date(date).toLocaleString(),
+      sorter: (a, b) =>
+        new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+    },
+  ];
+
+  const shipTransactionColumns: TableProps<ShipTransaction>["columns"] = [
+    {
+      title: "Agent Symbol",
+      dataIndex: "agent_symbol",
+      key: "agent_symbol",
+      sorter: (a, b) => a.agent_symbol.localeCompare(b.agent_symbol),
+    },
+    {
+      title: "Ship Type",
+      dataIndex: "ship_type",
+      key: "ship_type",
+      sorter: (a, b) => a.ship_type.localeCompare(b.ship_type),
+      filters: Object.values(ShipType).map((t) => ({
+        text: t,
+        value: t,
+      })),
+      onFilter: (value, record) => record.ship_type === value,
+    },
+    {
+      title: "Price",
+      dataIndex: "price",
+      key: "price",
+      align: "right",
+      sorter: (a, b) => a.price - b.price,
+      render: (price: number) => <MoneyDisplay amount={price} />,
+    },
+    {
+      title: "Timestamp",
+      dataIndex: "timestamp",
+      key: "timestamp",
+      render: (date: string) => new Date(date).toLocaleString(),
+      sorter: (a, b) =>
+        new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
+      defaultSortOrder: "descend",
+    },
+  ];
+
   return (
     <div style={{ padding: "24px 24px" }}>
       <PageTitle title={`Waypoint ${waypointID}`} />
@@ -301,6 +364,7 @@ function Waypoint() {
         >
           Reload
         </Button>
+        {waypoint?.shipyard && <a href="#shipyard">Shipyard</a>}
       </Space>
       <Flex align="stretch" justify="flex-start" gap={24}>
         <Descriptions
@@ -310,24 +374,143 @@ function Waypoint() {
           layout="vertical"
           size="small"
         />
-        <Table
-          columns={marketTradeColumns}
-          dataSource={waypoint?.market_trades}
-          size="small"
-        />
-        <Table
-          columns={marketTradeGoodsColumns}
-          dataSource={waypoint?.market_trade_goods}
-          size="small"
-        />
+        {waypoint?.market_trades && waypoint.market_trades.length > 0 && (
+          <Table
+            columns={marketTradeColumns}
+            dataSource={waypoint?.market_trades}
+            rowKey={(symbol) => symbol.symbol + symbol.waypoint_symbol}
+            size="small"
+          />
+        )}
+        {waypoint?.market_trade_goods &&
+          waypoint.market_trade_goods.length > 0 && (
+            <Table
+              columns={marketTradeGoodsColumns}
+              dataSource={waypoint?.market_trade_goods}
+              rowKey={(symbol) => symbol.symbol + symbol.waypoint_symbol}
+              size="small"
+            />
+          )}
       </Flex>
       <Divider />
-      <p>{waypoint?.market_trade_goods.map((t) => t.symbol + " ")}</p>
-      <p>{waypoint?.market_trades.map((t) => t.symbol)}</p>
-      <TransactionTable
-        transactions={waypoint?.transactions || []}
-        reasons={{ contract: true, trade_route: true, mining: true }}
-      />
+      {waypoint?.transactions && waypoint.transactions.length > 0 && (
+        <TransactionTable
+          transactions={waypoint?.transactions || []}
+          reasons={{ contract: true, trade_route: true, mining: true }}
+        />
+      )}
+      <Divider />
+      <Flex align="stretch" justify="space-evenly" gap={24} id="shipyard">
+        <Descriptions
+          bordered
+          column={2}
+          items={[
+            {
+              label: "Shipyard",
+              key: "shipyard",
+              children: (
+                <Space>
+                  {waypoint?.shipyard?.waypoint_symbol}{" "}
+                  <Button
+                    onClick={() => {
+                      fetch(`http://${backendUrl}/waypoints/${waypointID}`)
+                        .then((response) => response.json())
+                        .then((data) => {
+                          console.log("waypoint", data);
+
+                          setWaypoint(data);
+                        });
+                    }}
+                  >
+                    Reload
+                  </Button>
+                </Space>
+              ),
+            },
+            {
+              label: "Last Updated",
+              key: "last_updated",
+              children: new Date(
+                waypoint?.shipyard?.created_at || ""
+              ).toLocaleString(),
+            },
+            {
+              label: "Modifications Fee",
+              key: "modifications_fee",
+              children: (
+                <MoneyDisplay
+                  amount={waypoint?.shipyard?.modifications_fee || 0}
+                />
+              ),
+            },
+            {
+              label: "Ships",
+              key: "ships",
+              children: waypoint?.ship_types?.length,
+            },
+          ]}
+          // layout="vertical"
+          // size="small"
+        />
+        {waypoint?.ship_types && waypoint.ship_types.length > 0 && (
+          <Table
+            columns={shipTypesColumns}
+            dataSource={waypoint?.ship_types}
+            rowKey={(symbol) => symbol.ship_type + symbol.shipyard_id}
+            size="small"
+          />
+        )}
+      </Flex>
+      <Divider />
+      {waypoint?.ships && waypoint.ships.length > 0 && (
+        <ShipyardShipTable
+          ships={waypoint?.ships}
+          onPurchase={(ship) => {
+            fetch(`http://${backendUrl}/ship/buy`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                waypointSymbol: waypointID,
+                shipType: ship.ship_type,
+              }),
+            })
+              .then((response) => response.json())
+              .then((data) => {
+                console.log("Brought Ship", data);
+              })
+              .then(() => fetch(`http://${backendUrl}/waypoints/${waypointID}`))
+              .then((response) => response.json())
+              .then((data) => {
+                console.log("waypoint", data);
+
+                setWaypoint(data);
+              });
+          }}
+        />
+      )}
+      <Divider />
+      {waypoint?.ship_transactions && waypoint.ship_transactions.length > 0 && (
+        <Table
+          columns={shipTransactionColumns}
+          dataSource={waypoint?.ship_transactions}
+          rowKey={(symbol) =>
+            symbol.agent_symbol +
+            symbol.waypoint_symbol +
+            symbol.ship_type +
+            symbol.timestamp
+          }
+          // size="small"
+
+          pagination={{
+            showSizeChanger: true,
+            pageSizeOptions: ["10", "20", "50", "100", "200", "500", "1000"],
+            defaultPageSize: 20,
+            showTotal: (total, range) => `${range[0]}-${range[1]} of ${total}`,
+          }}
+        />
+      )}
     </div>
   );
 }

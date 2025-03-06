@@ -76,7 +76,10 @@ impl TradeManager {
                 Some(message) => {
                     self.handle_trade_message(message).await?;
                 }
-                None => break,
+                None => {
+                    debug!("No TradeManager more messages, exiting loop");
+                    break;
+                }
             }
         }
 
@@ -84,7 +87,7 @@ impl TradeManager {
     }
 
     async fn handle_trade_message(&mut self, message: TradeManagerMessage) -> Result<()> {
-        debug!("Handling message: {:?}", message);
+        debug!("Handling trade message: {:?}", message);
         match message {
             TradeMessage::RequestNextTradeRoute {
                 ship_clone,

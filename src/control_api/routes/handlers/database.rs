@@ -4,7 +4,7 @@ use warp::reply::Reply;
 use crate::{
     control_api::types::{Result, ServerError},
     sql::{self, DatabaseConnector},
-    types::ConductorContext,
+    types::{ConductorContext, WaypointCan},
 };
 
 pub async fn handle_get_trade_routes(context: ConductorContext) -> Result<impl Reply> {
@@ -78,29 +78,78 @@ pub async fn handle_get_waypoint(symbol: String, context: ConductorContext) -> R
         .map_err(ServerError::Database)?
         .ok_or(ServerError::NotFound)?;
 
-    let market_trades = sql::MarketTrade::get_last_by_waypoint(&context.database_pool, &symbol)
-        .await
-        .map_err(ServerError::Database)?;
-
-    let market_trade_goods =
-        sql::MarketTradeGood::get_last_by_waypoint(&context.database_pool, &symbol)
+    let (market_trades, market_trade_goods, transactions) = if waypoint.is_marketplace() {
+        let market_trades = sql::MarketTrade::get_last_by_waypoint(&context.database_pool, &symbol)
             .await
             .map_err(ServerError::Database)?;
 
-    let transactions = sql::MarketTransaction::get_by_waypoint(&context.database_pool, &symbol)
-        .await
-        .map_err(ServerError::Database)?;
+        let market_trade_goods =
+            sql::MarketTradeGood::get_last_by_waypoint(&context.database_pool, &symbol)
+                .await
+                .map_err(ServerError::Database)?;
 
-    debug!(
-        "Got {} market_trades and {} market_trade_goods",
-        market_trades.len(),
-        market_trade_goods.len()
-    );
+        let transactions = sql::MarketTransaction::get_by_waypoint(&context.database_pool, &symbol)
+            .await
+            .map_err(ServerError::Database)?;
+
+        debug!(
+            "Got {} market_trades and {} market_trade_goods",
+            market_trades.len(),
+            market_trade_goods.len()
+        );
+
+        (
+            Some(market_trades),
+            Some(market_trade_goods),
+            Some(transactions),
+        )
+    } else {
+        (None, None, None)
+    };
+
+    let (shipyard, ship_types, ships, ship_transactions) = if waypoint.is_shipyard() {
+        let shipyard = sql::Shipyard::get_last_by_waypoint(&context.database_pool, &symbol)
+            .await
+            .map_err(ServerError::Database)?;
+        let ship_types =
+            sql::ShipyardShipTypes::get_last_by_waypoint(&context.database_pool, &symbol)
+                .await
+                .map_err(ServerError::Database)?;
+        let ships = sql::ShipyardShip::get_last_by_waypoint(&context.database_pool, &symbol)
+            .await
+            .map_err(ServerError::Database)?;
+        let ship_transactions =
+            sql::ShipyardTransaction::get_by_waypoint(&context.database_pool, &symbol)
+                .await
+                .map_err(ServerError::Database)?;
+
+        debug!(
+            "Got {:?} shipyard, {} ship_types, {} ships and {} ship_transactions",
+            shipyard,
+            ship_types.len(),
+            ships.len(),
+            ship_transactions.len()
+        );
+
+        (
+            Some(shipyard),
+            Some(ship_types),
+            Some(ships),
+            Some(ship_transactions),
+        )
+    } else {
+        (None, None, None, None)
+    };
+
     Ok(warp::reply::json(&serde_json::json!({
         "waypoint":waypoint,
         "market_trades":market_trades,
         "market_trade_goods":market_trade_goods,
-        "transactions":transactions
+        "transactions":transactions,
+        "shipyard":shipyard,
+        "ship_types":ship_types,
+        "ships":ships,
+        "ship_transactions":ship_transactions
     })))
 }
 

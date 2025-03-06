@@ -5,6 +5,7 @@ use space_traders_client::models;
 
 use super::DatabaseConnector;
 
+#[derive(Clone, Debug, PartialEq, serde::Serialize)]
 pub struct ShipyardTransaction {
     pub waypoint_symbol: String,
     pub ship_type: models::ShipType,
@@ -42,6 +43,30 @@ impl TryFrom<models::ShipyardTransaction> for ShipyardTransaction {
             agent_symbol: item.agent_symbol,
             timestamp,
         })
+    }
+}
+
+impl ShipyardTransaction {
+    pub async fn get_by_waypoint(
+        database_pool: &super::DbPool,
+        waypoint_symbol: &str,
+    ) -> sqlx::Result<Vec<ShipyardTransaction>> {
+        sqlx::query_as!(
+            ShipyardTransaction,
+            r#"
+            SELECT
+                waypoint_symbol,
+                ship_type as "ship_type: models::ShipType",
+                price,
+                agent_symbol,
+                "timestamp"
+            FROM shipyard_transaction
+            WHERE waypoint_symbol = $1
+            "#,
+            waypoint_symbol
+        )
+        .fetch_all(&database_pool.database_pool)
+        .await
     }
 }
 

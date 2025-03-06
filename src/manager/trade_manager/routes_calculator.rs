@@ -47,7 +47,9 @@ impl RouteCalculator {
 
         let possible_trades = self.gen_all_possible_trades(&trade_goods, &market_trade);
 
-        let waypoints = sql::Waypoint::get_all(&self.context.database_pool).await?;
+        let waypoints =
+            sql::Waypoint::get_by_system(&self.context.database_pool, &ship.nav.system_symbol)
+                .await?;
 
         let routes = possible_trades
             .into_iter()

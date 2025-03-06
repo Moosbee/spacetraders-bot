@@ -122,4 +122,8 @@ impl ShipManager {
     pub fn get_broadcaster(&self) -> my_ship_update::InterShipBroadcaster {
         self.broadcaster.clone()
     }
+
+    pub fn get_ship_count(&self) -> usize {
+        self.locked_ships.num_entries_or_locked()
+    }
 }

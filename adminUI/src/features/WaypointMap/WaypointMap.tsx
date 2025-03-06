@@ -82,7 +82,7 @@ function WaypointMap({ systemID }: { systemID: string }) {
   );
 
   const routesMp = useMemo(() => {
-    return calculateRouteMapPoints(waypointsMp, shipsMp);
+    return calculateRouteMapPoints(waypointsMp, shipsMp, "route");
   }, [shipsMp, waypointsMp]);
 
   useEffect(() => {
@@ -423,10 +423,36 @@ function createTransitingShipPoint(
 
 function calculateRouteMapPoints(
   waypointsMp: WaypointMapPoint[],
-  shipsMp: ShipMapPoint[]
+  shipsMp: ShipMapPoint[],
+  type: "route" | "auto_pilot" | "none"
 ): RouteMapPoint[] {
   const routesMp: RouteMapPoint[][] = shipsMp.map((s) => {
-    if (s.ship.nav.auto_pilot === null) return [];
+    if (type === "route" && s.ship.nav.status === "IN_TRANSIT") {
+      const startWaypoint = waypointsMp.find(
+        (w) => w.waypoint.symbol === s.ship.nav.route.origin_symbol
+      );
+      const endWaypoint = waypointsMp.find(
+        (w) => w.waypoint.symbol === s.ship.nav.route.destination_symbol
+      );
+      // const distance = Math.sqrt(
+      //   Math.pow(startWaypoint?.xOne ?? 0 - (endWaypoint?.xOne ?? 0), 2) +
+      //     Math.pow(startWaypoint?.yOne ?? 0 - (endWaypoint?.yOne ?? 0), 2)
+      // );
+      const route: RouteMapPoint = {
+        destination: s.ship.nav.route.destination_symbol,
+        wpSymbol: s.ship.nav.route.origin_symbol,
+        mode: s.ship.nav.flight_mode,
+        x1: startWaypoint?.xOne ?? 0,
+        y1: startWaypoint?.yOne ?? 0,
+        x2: endWaypoint?.xOne ?? 0,
+        y2: endWaypoint?.yOne ?? 0,
+        distance: 1,
+      };
+      return [route];
+    }
+
+    if (s.ship.nav.auto_pilot === null || type !== "auto_pilot") return [];
+
     return s.ship.nav.auto_pilot.instructions.map((i) => {
       const startWaypoint = waypointsMp.find(
         (w) => w.waypoint.symbol === i.start_symbol

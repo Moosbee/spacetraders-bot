@@ -24,23 +24,26 @@ use super::ShipManager;
 impl Default for MyShip {
     fn default() -> Self {
         let me = Self {
-            status: Default::default(),
+            active: false,
+            is_clone: false,
+            pubsub: crate::types::Publisher::new(),
+            broadcaster: Default::default(),
             role: Default::default(),
+            status: Default::default(),
             registration_role: Default::default(),
             symbol: Default::default(),
             display_name: Default::default(),
             engine_speed: Default::default(),
             cooldown_expiration: Default::default(),
-            modules: Default::default(),
-            active: false,
-            is_clone: false,
             nav: Default::default(),
             cargo: Default::default(),
             fuel: Default::default(),
             mounts: Default::default(),
+            modules: Default::default(),
+            engine: Default::default(),
+            reactor: Default::default(),
+            frame: Default::default(),
             conditions: Default::default(),
-            broadcaster: Default::default(),
-            pubsub: crate::types::Publisher::new(),
         };
         me
     }
@@ -67,6 +70,9 @@ impl Clone for MyShip {
             broadcaster: self.broadcaster.clone(),
             // mpsc: None,
             pubsub: crate::types::Publisher::new(),
+            engine: self.engine.clone(),
+            reactor: self.reactor.clone(),
+            frame: self.frame.clone(),
         }
     }
 }
@@ -103,6 +109,9 @@ pub struct MyShip {
     pub mounts: MountState,
     // Modules state
     pub modules: ModuleState,
+    pub engine: models::ship_engine::Symbol,
+    pub reactor: models::ship_reactor::Symbol,
+    pub frame: models::ship_frame::Symbol,
     // Conditions
     pub conditions: ConditionState,
     #[serde(skip)]
@@ -242,6 +251,9 @@ impl MyShip {
         self.nav.update(&ship.nav);
         self.cargo.update(&ship.cargo);
         self.fuel.update(&ship.fuel);
+        self.reactor = ship.reactor.symbol;
+        self.frame = ship.frame.symbol;
+        self.engine = ship.engine.symbol;
         self.mounts.update(&ship.mounts);
         self.modules.update(&ship.modules);
 

@@ -139,6 +139,15 @@ pub async fn handle_buy_ship(
         .await
         .map_err(|err| ServerError::Server(err.to_string()))?;
 
+    let shipyard = context
+        .api
+        .get_shipyard(
+            &resp.data.ship.nav.system_symbol,
+            &resp.data.ship.nav.waypoint_symbol,
+        )
+        .await
+        .map_err(|err| ServerError::Server(err.to_string()))?;
+
     let mut ship_i =
         crate::ship::MyShip::from_ship(*resp.data.ship, context.ship_manager.get_broadcaster());
 
@@ -156,6 +165,10 @@ pub async fn handle_buy_ship(
             .ok_or_else(|| ServerError::BadRequest("Ship not found".into()))?;
         ship.notify().await;
     }
+
+    crate::manager::scrapping_manager::update_shipyard(&context.database_pool, *shipyard.data)
+        .await
+        .map_err(|err| ServerError::Server(err.to_string()))?;
 
     context.ship_tasks.start_ship(ship_info).await;
 

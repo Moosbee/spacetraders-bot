@@ -69,6 +69,8 @@ impl TradingPilot {
             .await
             .map_err(|e| Error::General(format!("Failed to send message: {}", e)))?;
 
+        debug!("Requested next trade route for ship {}", ship.symbol);
+
         let resp = receiver
             .await
             .map_err(|e| Error::General(format!("Failed to get message: {}", e)))?;
