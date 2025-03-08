@@ -18,6 +18,8 @@ use crate::sql;
 use crate::error::{Error, Result};
 use crate::types::ConductorContext;
 
+pub use mining::MiningShipAssignment;
+
 pub struct Pilot {
     context: ConductorContext,
     ship_symbol: String,
@@ -40,7 +42,7 @@ impl Pilot {
             context: context.clone(),
             ship_symbol: ship_symbol.clone(),
             cancellation_token,
-            construction_pilot: ConstructionPilot::new(),
+            construction_pilot: ConstructionPilot::new(context.clone(), ship_symbol.clone()),
             trading_pilot: TradingPilot::new(context.clone(), ship_symbol.clone()),
             scraper_pilot: ScraperPilot::new(),
             contract_pilot: ContractPilot::new(context.clone(), ship_symbol.clone()),

@@ -101,26 +101,26 @@ impl ControlApiServer {
     }
 }
 
-// Implement the Conductor trait
-impl crate::workers::types::Conductor for ControlApiServer {
-    fn run(
-        &mut self,
-    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = anyhow::Result<()>> + Send + '_>> {
-        Box::pin(async move { self.run_server().await })
-    }
+// // Implement the Conductor trait
+// impl crate::workers::types::Conductor for ControlApiServer {
+//     fn run(
+//         &mut self,
+//     ) -> std::pin::Pin<Box<dyn std::future::Future<Output = anyhow::Result<()>> + Send + '_>> {
+//         Box::pin(async move { self.run_server().await })
+//     }
 
-    fn get_name(&self) -> String {
-        "ControlApiServer".to_string()
-    }
+//     fn get_name(&self) -> String {
+//         "ControlApiServer".to_string()
+//     }
 
-    fn get_cancel_token(&self) -> CancellationToken {
-        self.cancellation_token.clone()
-    }
+//     fn get_cancel_token(&self) -> CancellationToken {
+//         self.cancellation_token.clone()
+//     }
 
-    fn is_independent(&self) -> bool {
-        false
-    }
-}
+//     fn is_independent(&self) -> bool {
+//         false
+//     }
+// }
 
 impl Manager for ControlApiServer {
     fn run(

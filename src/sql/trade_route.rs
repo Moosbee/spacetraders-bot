@@ -1,6 +1,8 @@
 use space_traders_client::models;
 
-use super::{DatabaseConnector, DbPool};
+use crate::sql;
+
+use super::{DatabaseConnector, DbPool, ShipmentStatus};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TradeRoute {
@@ -9,7 +11,7 @@ pub struct TradeRoute {
     pub ship_symbol: String,
     pub purchase_waypoint: String,
     pub sell_waypoint: String,
-    pub finished: bool,
+    pub status: ShipmentStatus,
     pub trade_volume: i32,
     pub predicted_purchase_price: i32,
     pub predicted_sell_price: i32,
@@ -23,7 +25,7 @@ pub struct TradeRouteSummary {
     pub ship_symbol: String,
     pub purchase_waypoint: String,
     pub sell_waypoint: String,
-    pub finished: bool,
+    pub status: ShipmentStatus,
     pub trade_volume: i32,
     pub predicted_purchase_price: i32,
     pub predicted_sell_price: i32,
@@ -36,7 +38,7 @@ pub struct TradeRouteSummary {
 impl TradeRoute {
     pub fn complete(self) -> Self {
         TradeRoute {
-            finished: true,
+            status: ShipmentStatus::Delivered,
             ..self
         }
     }
@@ -50,7 +52,7 @@ impl Default for TradeRoute {
             ship_symbol: String::new(),
             purchase_waypoint: String::new(),
             sell_waypoint: String::new(),
-            finished: false,
+            status: ShipmentStatus::InTransit,
             trade_volume: 0,
             predicted_purchase_price: 0,
             predicted_sell_price: 0,
@@ -77,63 +79,80 @@ impl DatabaseConnector<TradeRoute> for TradeRoute {
     async fn insert(database_pool: &DbPool, item: &TradeRoute) -> sqlx::Result<()> {
         sqlx::query!(
             r#"
-            insert into trade_route (id, symbol, ship_symbol, purchase_waypoint, sell_waypoint, finished, trade_volume, predicted_purchase_price, predicted_sell_price)
-            values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+            insert into trade_route (
+            id,
+            symbol,
+            ship_symbol,
+            purchase_waypoint,
+            sell_waypoint,
+            status,
+            trade_volume,
+            predicted_purchase_price,
+            predicted_sell_price
+            ) values (
+            $1,
+            $2,
+            $3,
+            $4,
+            $5,
+            $6,
+            $7,
+            $8,
+            $9
+            )
             on conflict (id) do update
-            set finished = EXCLUDED.finished
+            set status = EXCLUDED.status
             "#,
             item.id,
             item.symbol as models::TradeSymbol,
             item.ship_symbol,
             item.purchase_waypoint,
             item.sell_waypoint,
-            item.finished,
+            item.status as sql::ShipmentStatus,
             item.trade_volume,
             item.predicted_purchase_price,
             item.predicted_sell_price
-        ).execute(&database_pool.database_pool).await?;
+        )
+        .execute(&database_pool.database_pool)
+        .await?;
 
         Ok(())
     }
 
     async fn insert_bulk(database_pool: &DbPool, items: &Vec<TradeRoute>) -> sqlx::Result<()> {
         let (
-            ((symbol_s, ship_symbol_s), (purchase_waypoint_s, sell_waypoint_s)),
-            (
-                (finished_and_trade_volume_s, predicted_purchase_price_s),
-                (predicted_sell_price_s, id_s),
-            ),
+            id_s,
+            symbol_s,
+            ship_symbol_s,
+            purchase_waypoint_s,
+            sell_waypoint_s,
+            status_s,
+            trade_volume_s,
+            predicted_purchase_price_s,
+            predicted_sell_price_s,
         ): (
+            Vec<i32>,
+            Vec<models::TradeSymbol>,
+            Vec<String>,
+            Vec<String>,
+            Vec<String>,
+            Vec<sql::ShipmentStatus>,
+            Vec<i32>,
+            Vec<i32>,
+            Vec<i32>,
+        ) = itertools::multiunzip(items.iter().map(|s| {
             (
-                (Vec<models::TradeSymbol>, Vec<String>),
-                (Vec<String>, Vec<String>),
-            ),
-            ((Vec<(bool, i32)>, Vec<i32>), (Vec<i32>, Vec<i32>)),
-        ) = items
-            .iter()
-            .map(|t| {
-                (
-                    (
-                        (t.symbol, t.ship_symbol.clone()),
-                        (t.purchase_waypoint.clone(), t.sell_waypoint.clone()),
-                    ),
-                    (
-                        ((t.finished, t.trade_volume), t.predicted_purchase_price),
-                        (t.predicted_sell_price, t.id),
-                    ),
-                )
-            })
-            .map(
-                |f: (
-                    ((models::TradeSymbol, String), (String, String)),
-                    (((bool, i32), i32), (i32, i32)),
-                )| f,
+                s.id,
+                s.symbol as models::TradeSymbol,
+                s.ship_symbol.clone(),
+                s.purchase_waypoint.clone(),
+                s.sell_waypoint.clone(),
+                s.status as sql::ShipmentStatus,
+                s.trade_volume,
+                s.predicted_purchase_price,
+                s.predicted_sell_price,
             )
-            .unzip();
-        // .map(|f| f)
-
-        let (finished_s, trade_volume_s): (Vec<bool>, Vec<i32>) =
-            finished_and_trade_volume_s.into_iter().unzip();
+        }));
 
         sqlx::query!(
             r#"
@@ -143,7 +162,7 @@ impl DatabaseConnector<TradeRoute> for TradeRoute {
               ship_symbol,
               purchase_waypoint,
               sell_waypoint,
-              finished,
+              status,
               trade_volume,
               predicted_purchase_price,
               predicted_sell_price
@@ -154,20 +173,20 @@ impl DatabaseConnector<TradeRoute> for TradeRoute {
               $3::character varying[],
               $4::character varying[],
               $5::character varying[],
-              $6::boolean[],
+              $6::shipment_status[],
               $7::integer[],
               $8::integer[],
               $9::integer[]
             )
             on conflict (id) do update
-            set finished = EXCLUDED.finished
+            set status = EXCLUDED.status
             "#,
             &id_s,
             &symbol_s as &[models::TradeSymbol],
             &ship_symbol_s,
             &purchase_waypoint_s,
             &sell_waypoint_s,
-            &finished_s,
+            &status_s as &[ShipmentStatus],
             &trade_volume_s,
             &predicted_purchase_price_s,
             &predicted_sell_price_s
@@ -188,7 +207,7 @@ impl DatabaseConnector<TradeRoute> for TradeRoute {
                   ship_symbol,
                   purchase_waypoint,
                   sell_waypoint,
-                  finished,
+                  status as "status: ShipmentStatus",
                   trade_volume,
                   predicted_purchase_price,
                   predicted_sell_price,
@@ -206,22 +225,41 @@ impl TradeRoute {
         struct Erg {
             id: i32,
         }
-        let erg= sqlx::query_as!(
+        let erg = sqlx::query_as!(
             Erg,
             r#"
-            insert into trade_route (symbol, ship_symbol, purchase_waypoint, sell_waypoint, finished,trade_volume, predicted_purchase_price, predicted_sell_price)
-            values ($1, $2, $3, $4, $5, $6, $7, $8)
+            insert into trade_route (
+            symbol,
+            ship_symbol,
+            purchase_waypoint,
+            sell_waypoint,
+            status,
+            trade_volume,
+            predicted_purchase_price,
+            predicted_sell_price
+            ) values (
+            $1,
+            $2,
+            $3,
+            $4,
+            $5,
+            $6,
+            $7,
+            $8
+            )
             RETURNING id
             "#,
             item.symbol as models::TradeSymbol,
             item.ship_symbol,
             item.purchase_waypoint,
             item.sell_waypoint,
-            item.finished,
+            item.status as sql::ShipmentStatus,
             item.trade_volume,
             item.predicted_purchase_price,
             item.predicted_sell_price
-        ).fetch_all(&database_pool.database_pool).await?;
+        )
+        .fetch_all(&database_pool.database_pool)
+        .await?;
 
         let erg = erg.first().ok_or_else(|| sqlx::Error::RowNotFound)?;
 
@@ -238,12 +276,12 @@ impl TradeRoute {
                   ship_symbol,
                   purchase_waypoint,
                   sell_waypoint,
-                  finished,
+                  status as "status: ShipmentStatus",
                   trade_volume,
                   predicted_purchase_price,
                   predicted_sell_price,
                   created_at
-                 FROM trade_route WHERE finished=false
+                 FROM trade_route WHERE status='IN_TRANSIT'
             "#
         )
         .fetch_all(&database_pool.database_pool)
@@ -255,41 +293,41 @@ impl TradeRoute {
             TradeRouteSummary,
             r#"
                 SELECT
-  id,
-  symbol as "symbol: models::TradeSymbol",
-  trade_route.ship_symbol,
-  purchase_waypoint,
-  sell_waypoint,
-  finished,
-  trade_volume,
-  predicted_purchase_price,
-  predicted_sell_price,
-  sum(market_transaction.total_price) as "sum: i32",
-  sum(
-    CASE
-      WHEN market_transaction.type = 'PURCHASE' THEN market_transaction.total_price
-      ELSE 0
-    END
-  ) as "expenses: i32",
-  sum(
-    CASE
-      WHEN market_transaction.type = 'PURCHASE' THEN 0
-      ELSE market_transaction.total_price
-    END
-  ) as "income: i32",
-  sum(
-    CASE
-      WHEN market_transaction.type = 'PURCHASE' THEN (market_transaction.total_price * -1)
-      ELSE market_transaction.total_price
-    END
-  ) as "profit: i32"
-FROM
-  public.trade_route
- left join public.market_transaction ON market_transaction.trade_route = trade_route.id
-group by
-  id
-ORDER BY
-  id ASC;
+                id,
+                symbol as "symbol: models::TradeSymbol",
+                trade_route.ship_symbol,
+                purchase_waypoint,
+                sell_waypoint,
+                status as "status: ShipmentStatus",
+                trade_volume,
+                predicted_purchase_price,
+                predicted_sell_price,
+                sum(market_transaction.total_price) as "sum: i32",
+                sum(
+                  CASE
+                    WHEN market_transaction.type = 'PURCHASE' THEN market_transaction.total_price
+                    ELSE 0
+                  END
+                ) as "expenses: i32",
+                sum(
+                  CASE
+                    WHEN market_transaction.type = 'PURCHASE' THEN 0
+                    ELSE market_transaction.total_price
+                  END
+                ) as "income: i32",
+                sum(
+                  CASE
+                    WHEN market_transaction.type = 'PURCHASE' THEN (market_transaction.total_price * -1)
+                    ELSE market_transaction.total_price
+                  END
+                ) as "profit: i32"
+              FROM
+                public.trade_route
+              left join public.market_transaction ON market_transaction.trade_route = trade_route.id
+              group by
+                id
+              ORDER BY
+                id ASC;
             "#
         )
         .fetch_all(&database_pool.database_pool)

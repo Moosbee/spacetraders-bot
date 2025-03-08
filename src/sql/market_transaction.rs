@@ -1,9 +1,9 @@
 use std::str::FromStr;
 
+use chrono::{DateTime, NaiveDateTime};
 use space_traders_client::models::{self};
 
 use super::{DatabaseConnector, DbPool};
-
 
 #[derive(Clone, Default, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct MarketTransaction {
@@ -22,7 +22,7 @@ pub struct MarketTransaction {
     /// The total price of the transaction.
     pub total_price: i32,
     /// The timestamp of the transaction.
-    pub timestamp: String,
+    pub timestamp: NaiveDateTime,
     /// The reason for the transaction.
     /// pub reason: TransactionReason,
     pub contract: Option<String>,
@@ -199,7 +199,7 @@ impl From<MarketTransaction> for models::MarketTransaction {
             units: val.units,
             price_per_unit: val.price_per_unit,
             total_price: val.total_price,
-            timestamp: val.timestamp,
+            timestamp: val.timestamp.to_string(),
             waypoint_symbol: val.waypoint_symbol,
         }
     }
@@ -209,7 +209,10 @@ impl TryFrom<models::MarketTransaction> for MarketTransaction {
     type Error = crate::error::Error;
     fn try_from(value: models::MarketTransaction) -> Result<Self, Self::Error> {
         let tr_symbol = models::TradeSymbol::from_str(&value.trade_symbol)
-            .map_err(|err| crate::error::Error::General(err.to_string()))?;
+            .map_err(|err| crate::error::Error::General(err.to_string() + "trade_symbol"))?;
+        let timestamp = DateTime::<chrono::Utc>::from_str(&value.timestamp)
+            .map_err(|err| crate::error::Error::General(err.to_string() + "timestamp"))?
+            .naive_utc();
 
         Ok(MarketTransaction {
             ship_symbol: value.ship_symbol,
@@ -218,7 +221,7 @@ impl TryFrom<models::MarketTransaction> for MarketTransaction {
             units: value.units,
             price_per_unit: value.price_per_unit,
             total_price: value.total_price,
-            timestamp: value.timestamp,
+            timestamp,
             waypoint_symbol: value.waypoint_symbol,
             // reason: TransactionReason::None,
             contract: None,
@@ -262,63 +265,44 @@ impl DatabaseConnector<MarketTransaction> for MarketTransaction {
         items: &Vec<MarketTransaction>,
     ) -> sqlx::Result<()> {
         let (
-            ((t_waypoint_symbol, t_ship_symbol), (t_trade_symbol, t_type)),
-            (
-                (t_units_and_trade_route, t_timestamp_and_contract),
-                (t_price_per_unit_and_total_price, t_mining_and_klamm),
-            ),
+            t_waypoint_symbol,
+            t_ship_symbol,
+            t_trade_symbol,
+            t_type,
+            t_units,
+            t_price_per_unit,
+            t_total_price,
+            t_timestamp,
+            t_contract,
+            t_trade_route,
+            t_mining,
         ): (
+            Vec<String>,
+            Vec<String>,
+            Vec<models::TradeSymbol>,
+            Vec<models::market_transaction::Type>,
+            Vec<i32>,
+            Vec<i32>,
+            Vec<i32>,
+            Vec<NaiveDateTime>,
+            Vec<Option<String>>,
+            Vec<Option<i32>>,
+            Vec<Option<String>>,
+        ) = itertools::multiunzip(items.iter().map(|item| {
             (
-                (Vec<String>, Vec<String>),
-                (
-                    Vec<models::TradeSymbol>,
-                    Vec<models::market_transaction::Type>,
-                ),
-            ),
-            (
-                (Vec<(i32, Option<i32>)>, Vec<(String, Option<String>)>),
-                (Vec<(i32, i32)>, Vec<(Option<String>, ())>),
-            ),
-        ) = items
-            .iter()
-            .map(|t| {
-                (
-                    (
-                        (t.waypoint_symbol.clone(), t.ship_symbol.clone()),
-                        (t.trade_symbol, t.r#type),
-                    ),
-                    (
-                        (
-                            (t.units, t.trade_route),
-                            (t.timestamp.clone(), t.contract.clone()),
-                        ),
-                        ((t.price_per_unit, t.total_price), (t.mining.clone(), ())),
-                    ),
-                )
-            })
-            .map(
-                |f: (
-                    (
-                        (String, String),
-                        (models::TradeSymbol, models::market_transaction::Type),
-                    ),
-                    (
-                        ((i32, Option<i32>), (String, Option<String>)),
-                        ((i32, i32), (Option<String>, ())),
-                    ),
-                )| f,
+                item.waypoint_symbol.clone(),
+                item.ship_symbol.clone(),
+                item.trade_symbol.clone(),
+                item.r#type.clone(),
+                item.units,
+                item.price_per_unit,
+                item.total_price,
+                item.timestamp.clone(),
+                item.contract.clone(),
+                item.trade_route.clone(),
+                item.mining.clone(),
             )
-            .unzip();
-
-        let (t_timestamp, t_contract): (Vec<String>, Vec<Option<String>>) =
-            t_timestamp_and_contract.into_iter().unzip();
-
-        let (t_units, t_trade_route): (Vec<i32>, Vec<Option<i32>>) =
-            t_units_and_trade_route.into_iter().unzip();
-
-        let (t_price_per_unit, t_total_price): (Vec<i32>, Vec<i32>) =
-            t_price_per_unit_and_total_price.into_iter().unzip();
-        let (t_mining, _): (Vec<Option<String>>, Vec<()>) = t_mining_and_klamm.into_iter().unzip();
+        }));
 
         sqlx::query!(
         r#"
@@ -331,7 +315,7 @@ impl DatabaseConnector<MarketTransaction> for MarketTransaction {
                 $5::integer[],
                 $6::integer[],
                 $7::integer[],
-                $8::character varying[],
+                $8::timestamp[],
                 $9::character varying[],
                 $10::integer[],
                 $11::character varying[]

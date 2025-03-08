@@ -218,9 +218,9 @@ impl WaypointManager {
             .filter(|s| {
                 matches!(
                     s.status,
-                    ship::ShipStatus::Mining(
-                        crate::workers::mining::m_types::MiningShipAssignment::Transporter
-                    )
+                    ship::ShipStatus::Mining {
+                        assignment: crate::pilot::MiningShipAssignment::Extractor { .. }
+                    }
                 )
             })
             .filter(|sh| {

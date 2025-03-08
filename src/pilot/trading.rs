@@ -33,17 +33,22 @@ impl TradingPilot {
         let route = self.get_route(ship).await?;
         self.count.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
 
-        ship.status = ship::ShipStatus::Trader(Some((
-            route.id,
-            self.count.load(std::sync::atomic::Ordering::SeqCst),
-        )));
+        ship.status = ship::ShipStatus::Trader {
+            shipment_id: Some(route.id),
+            cycle: Some(self.count.load(std::sync::atomic::Ordering::SeqCst)),
+            shipping_status: Some(ship::ShippingStatus::InTransitToPurchase),
+        };
 
         ship.notify().await;
 
         debug!("Starting trade route for ship {}: {:?}", ship.symbol, route);
         let _route_erg = self.execute_trade(ship, &route, pilot).await?;
         let _completed_route = self.complete_trade(route).await?;
-        ship.status = ship::ShipStatus::Trader(None);
+        ship.status = ship::ShipStatus::Trader {
+            shipment_id: None,
+            cycle: None,
+            shipping_status: None,
+        };
         if ship.role == sql::ShipInfoRole::TempTrader {
             ship.role = sql::ShipInfoRole::Manuel;
         }
@@ -113,18 +118,9 @@ impl TradingPilot {
             "Executing trade for ship {} on route {:?}",
             ship.symbol, route
         );
-        self.count
-            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-        let num = self.count.load(std::sync::atomic::Ordering::Relaxed);
-        ship.status = ship::ShipStatus::Trader(Some((route.id, num)));
-        debug!(
-            "Starting trade route for ship {}: {:?} ({} of {})",
-            ship.symbol,
-            route,
-            num,
-            self.count.load(std::sync::atomic::Ordering::Relaxed)
-        );
+
         self.execute_purchase(ship, route, pilot).await?;
+
         self.execute_sale(ship, route).await?;
 
         debug!(
@@ -144,6 +140,15 @@ impl TradingPilot {
             "Executing purchase for ship {} on route {:?}",
             ship.symbol, route
         );
+
+        ship.status = ship::ShipStatus::Trader {
+            shipment_id: Some(route.id),
+            cycle: Some(self.count.load(std::sync::atomic::Ordering::SeqCst)),
+            shipping_status: Some(ship::ShippingStatus::InTransitToPurchase),
+        };
+
+        ship.notify().await;
+
         if !ship.cargo.has(&route.symbol) {
             let waypoints = self
                 .context
@@ -165,6 +170,14 @@ impl TradingPilot {
                 sql::TransactionReason::TradeRoute(route.id),
             )
             .await?;
+
+            ship.status = ship::ShipStatus::Trader {
+                shipment_id: Some(route.id),
+                cycle: Some(self.count.load(std::sync::atomic::Ordering::SeqCst)),
+                shipping_status: Some(ship::ShippingStatus::Purchasing),
+            };
+
+            ship.notify().await;
 
             ship.ensure_docked(&self.context.api).await?;
 
@@ -218,6 +231,15 @@ impl TradingPilot {
             "Executing sale for ship {} on route {:?}",
             ship.symbol, route
         );
+
+        ship.status = ship::ShipStatus::Trader {
+            shipment_id: Some(route.id),
+            cycle: Some(self.count.load(std::sync::atomic::Ordering::SeqCst)),
+            shipping_status: Some(ship::ShippingStatus::InTransitToDelivery),
+        };
+
+        ship.notify().await;
+
         let waypoints = self
             .context
             .all_waypoints
@@ -235,6 +257,14 @@ impl TradingPilot {
             sql::TransactionReason::TradeRoute(route.id),
         )
         .await?;
+
+        ship.status = ship::ShipStatus::Trader {
+            shipment_id: Some(route.id),
+            cycle: Some(self.count.load(std::sync::atomic::Ordering::SeqCst)),
+            shipping_status: Some(ship::ShippingStatus::Delivering),
+        };
+
+        ship.notify().await;
 
         ship.ensure_docked(&self.context.api).await?;
 

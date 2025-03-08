@@ -202,7 +202,7 @@
       {
         "ordinal": 7,
         "name": "timestamp",
-        "type_info": "Varchar"
+        "type_info": "Timestamp"
       },
       {
         "ordinal": 8,

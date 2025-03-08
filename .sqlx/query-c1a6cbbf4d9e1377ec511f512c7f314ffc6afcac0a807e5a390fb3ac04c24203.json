@@ -1,17 +1,17 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            insert into trade_route (symbol, ship_symbol, purchase_waypoint, sell_waypoint, finished,trade_volume, predicted_purchase_price, predicted_sell_price)\n            values ($1, $2, $3, $4, $5, $6, $7, $8)\n            RETURNING id\n            ",
+  "query": "\n                SELECT \n                  id,\n                  symbol as \"symbol: models::TradeSymbol\",\n                  ship_symbol,\n                  purchase_waypoint,\n                  sell_waypoint,\n                  status as \"status: ShipmentStatus\",\n                  trade_volume,\n                  predicted_purchase_price,\n                  predicted_sell_price,\n                  created_at\n                FROM trade_route\n            ",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
         "name": "id",
         "type_info": "Int4"
-      }
-    ],
-    "parameters": {
-      "Left": [
-        {
+      },
+      {
+        "ordinal": 1,
+        "name": "symbol: models::TradeSymbol",
+        "type_info": {
           "Custom": {
             "name": "trade_symbol",
             "kind": {
@@ -162,19 +162,75 @@
               ]
             }
           }
-        },
-        "Varchar",
-        "Varchar",
-        "Varchar",
-        "Bool",
-        "Int4",
-        "Int4",
-        "Int4"
-      ]
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "ship_symbol",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "purchase_waypoint",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "sell_waypoint",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 5,
+        "name": "status: ShipmentStatus",
+        "type_info": {
+          "Custom": {
+            "name": "shipment_status",
+            "kind": {
+              "Enum": [
+                "IN_TRANSIT",
+                "FAILED",
+                "DELIVERED"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "trade_volume",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 7,
+        "name": "predicted_purchase_price",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 8,
+        "name": "predicted_sell_price",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 9,
+        "name": "created_at",
+        "type_info": "Timestamp"
+      }
+    ],
+    "parameters": {
+      "Left": []
     },
     "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
       false
     ]
   },
-  "hash": "71d2f604dc628ecc768acde8579762b1ef332ada018df63a3c93858f7dea3d3a"
+  "hash": "c1a6cbbf4d9e1377ec511f512c7f314ffc6afcac0a807e5a390fb3ac04c24203"
 }

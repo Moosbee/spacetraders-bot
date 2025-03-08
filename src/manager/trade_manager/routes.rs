@@ -163,7 +163,7 @@ impl From<ConcreteTradeRoute> for sql::TradeRoute {
     fn from(value: ConcreteTradeRoute) -> Self {
         sql::TradeRoute {
             symbol: value.route.symbol,
-            finished: false,
+            status: sql::ShipmentStatus::InTransit,
             ship_symbol: value.trip.ship_symbol,
             predicted_purchase_price: value.data.purchase_price,
             predicted_sell_price: value.data.sell_price,

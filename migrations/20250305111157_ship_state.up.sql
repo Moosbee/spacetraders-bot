@@ -19,6 +19,9 @@ CREATE TABLE public.ship_state (
   cargo_inventory jsonb NOT NULL,
   mounts ship_mount_symbol [] NOT NULL,
   modules ship_module_symbol [] NOT NULL,
+  reactor_symbol ship_reactor_symbol NOT NULL,
+  frame_symbol ship_frame_symbol NOT NULL,
+  engine_symbol ship_engine_symbol NOT NULL,
   cooldown_expiration timestamp without time zone,
   flight_mode character varying NOT NULL,
   nav_status character varying NOT NULL,
@@ -40,5 +43,21 @@ CREATE TABLE public.ship_state (
   auto_pilot_fuel_cost integer,
   auto_pilot_travel_time double precision,
   created_at timestamp without time zone NOT NULL DEFAULT now(),
-  PRIMARY KEY (id)
+  PRIMARY KEY (id),
+  CONSTRAINT ship_symbol_relation FOREIGN KEY ("symbol") REFERENCES public.ship_info (symbol) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
+  CONSTRAINT waypoint_symbol_relation FOREIGN KEY ("waypoint_symbol") REFERENCES public.waypoint (symbol) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
+  CONSTRAINT route_origin_symbol_relation FOREIGN KEY ("route_origin_symbol") REFERENCES public.waypoint (symbol) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
+  CONSTRAINT route_destination_symbol_relation FOREIGN KEY ("route_destination_symbol") REFERENCES public.waypoint (symbol) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
+  CONSTRAINT auto_pilot_origin_symbol_relation FOREIGN KEY ("auto_pilot_origin_symbol") REFERENCES public.waypoint (symbol) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
+  CONSTRAINT auto_pilot_destination_symbol_relation FOREIGN KEY ("auto_pilot_destination_symbol") REFERENCES public.waypoint (symbol) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
+  CONSTRAINT system_symbol_relation FOREIGN KEY ("system_symbol") REFERENCES public.system (symbol) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
+  CONSTRAINT route_origin_system_relation FOREIGN KEY ("route_origin_system") REFERENCES public.system (symbol) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
+  CONSTRAINT route_destination_system_relation FOREIGN KEY ("route_destination_system") REFERENCES public.system (symbol) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
+  CONSTRAINT auto_pilot_origin_system_symbol_relation FOREIGN KEY ("auto_pilot_origin_system_symbol") REFERENCES public.system (symbol) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
+  CONSTRAINT auto_pilot_destination_system_symbol_relation FOREIGN KEY ("auto_pilot_destination_system_symbol") REFERENCES public.system (symbol) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
+  CONSTRAINT reactor_symbol_relation FOREIGN KEY ("reactor_symbol") REFERENCES public.reactor_info (symbol) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
+  CONSTRAINT frame_symbol_relation FOREIGN KEY ("frame_symbol") REFERENCES public.frame_info (symbol) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
+  -- CONSTRAINT mounts_relation FOREIGN KEY (mounts) REFERENCES public.mount_info (symbol) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
+  -- CONSTRAINT modules_relation FOREIGN KEY (modules) REFERENCES public.module_info (symbol) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION
+  CONSTRAINT engine_symbol_relation FOREIGN KEY ("engine_symbol") REFERENCES public.engine_info (symbol) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION
 );

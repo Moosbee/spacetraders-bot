@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n                SELECT \n                  id,\n                  symbol as \"symbol: models::TradeSymbol\",\n                  ship_symbol,\n                  purchase_waypoint,\n                  sell_waypoint,\n                  finished,\n                  trade_volume,\n                  predicted_purchase_price,\n                  predicted_sell_price,\n                  created_at\n                FROM trade_route\n            ",
+  "query": "\n                SELECT\n                id,\n                symbol as \"symbol: models::TradeSymbol\",\n                trade_route.ship_symbol,\n                purchase_waypoint,\n                sell_waypoint,\n                status as \"status: ShipmentStatus\",\n                trade_volume,\n                predicted_purchase_price,\n                predicted_sell_price,\n                sum(market_transaction.total_price) as \"sum: i32\",\n                sum(\n                  CASE\n                    WHEN market_transaction.type = 'PURCHASE' THEN market_transaction.total_price\n                    ELSE 0\n                  END\n                ) as \"expenses: i32\",\n                sum(\n                  CASE\n                    WHEN market_transaction.type = 'PURCHASE' THEN 0\n                    ELSE market_transaction.total_price\n                  END\n                ) as \"income: i32\",\n                sum(\n                  CASE\n                    WHEN market_transaction.type = 'PURCHASE' THEN (market_transaction.total_price * -1)\n                    ELSE market_transaction.total_price\n                  END\n                ) as \"profit: i32\"\n              FROM\n                public.trade_route\n              left join public.market_transaction ON market_transaction.trade_route = trade_route.id\n              group by\n                id\n              ORDER BY\n                id ASC;\n            ",
   "describe": {
     "columns": [
       {
@@ -181,8 +181,19 @@
       },
       {
         "ordinal": 5,
-        "name": "finished",
-        "type_info": "Bool"
+        "name": "status: ShipmentStatus",
+        "type_info": {
+          "Custom": {
+            "name": "shipment_status",
+            "kind": {
+              "Enum": [
+                "IN_TRANSIT",
+                "FAILED",
+                "DELIVERED"
+              ]
+            }
+          }
+        }
       },
       {
         "ordinal": 6,
@@ -201,8 +212,23 @@
       },
       {
         "ordinal": 9,
-        "name": "created_at",
-        "type_info": "Timestamp"
+        "name": "sum: i32",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 10,
+        "name": "expenses: i32",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 11,
+        "name": "income: i32",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 12,
+        "name": "profit: i32",
+        "type_info": "Int8"
       }
     ],
     "parameters": {
@@ -218,8 +244,11 @@
       false,
       false,
       false,
-      false
+      null,
+      null,
+      null,
+      null
     ]
   },
-  "hash": "8e38cdae354e81e85ec16a94000407e39d6f97b322f2f3211f303c8fd11fc210"
+  "hash": "c5873f1ca97a9c08a7114603a6fc2648e331f568cab89d88ac8b1555dfc8127f"
 }

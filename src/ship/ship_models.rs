@@ -12,9 +12,9 @@ use tokio::select;
 
 use crate::{
     api,
+    pilot::MiningShipAssignment,
     sql::{self, DatabaseConnector},
     types::{SendFuture, Subject},
-    workers::mining::m_types::MiningShipAssignment,
 };
 
 use crate::error::Result;
@@ -78,13 +78,38 @@ impl Clone for MyShip {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Default, serde::Serialize)]
+pub enum ShippingStatus {
+    InTransitToPurchase,
+    Purchasing,
+    InTransitToDelivery,
+    Delivering,
+    #[default]
+    Unknown,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Default, serde::Serialize)]
 #[serde(tag = "type", content = "data")]
 pub enum ShipStatus {
-    Construction,
-    Trader(Option<(i32, i32)>),
-    Contract(Option<(String, i32)>),
+    Construction {
+        cycle: Option<i32>,
+        shipment_id: Option<i64>,
+        shipping_status: Option<ShippingStatus>,
+    },
+    Trader {
+        shipment_id: Option<i32>,
+        cycle: Option<i32>,
+        shipping_status: Option<ShippingStatus>,
+    },
+    Contract {
+        contract_id: Option<String>,
+        run_id: Option<i32>,
+        cycle: Option<i32>,
+        shipping_status: Option<ShippingStatus>,
+    },
     Scraper,
-    Mining(MiningShipAssignment),
+    Mining {
+        assignment: MiningShipAssignment,
+    },
     #[default]
     Manuel,
 }

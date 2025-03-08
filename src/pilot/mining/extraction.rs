@@ -8,6 +8,7 @@ use crate::{
     config::CONFIG,
     error::Result,
     manager::mining_manager::{ActionType, ExtractorTransferRequest, TransferResult},
+    pilot::{mining::ExtractorState, MiningShipAssignment},
     ship,
     sql::{self, DatabaseConnector, TransactionReason},
     types::{safely_get_map, ConductorContext},
@@ -41,7 +42,25 @@ impl ExtractionPilot {
 
         debug!("Mining Waypoint: {}", waypoint_symbol);
 
+        ship.status = ship::ShipStatus::Mining {
+            assignment: MiningShipAssignment::Extractor {
+                state: ExtractorState::Unknown,
+                waypoint_symbol: Some(waypoint_symbol.clone()),
+                extractions: None,
+            },
+        };
+        ship.notify().await;
+
         self.go_to_waypoint(ship, &waypoint_symbol).await?;
+
+        ship.status = ship::ShipStatus::Mining {
+            assignment: MiningShipAssignment::Extractor {
+                state: ExtractorState::OnCooldown,
+                waypoint_symbol: Some(waypoint_symbol.to_string()),
+                extractions: None,
+            },
+        };
+        ship.notify().await;
 
         self.context
             .mining_manager
@@ -56,13 +75,23 @@ impl ExtractionPilot {
         let i = self.wait_for_extraction(ship, pilot, &mut rec).await?;
 
         if i == 0 {
-            debug!("No extraction for ship: {}", ship.symbol);
+            debug!("Extraction Cancelled for ship: {}", ship.symbol);
             self.context.mining_manager.unassign_waypoint(ship).await?;
             return Ok(());
         }
 
         let done = if !self.has_space(ship) {
             debug!("No space on ship: {}", ship.symbol);
+
+            ship.status = ship::ShipStatus::Mining {
+                assignment: MiningShipAssignment::Extractor {
+                    state: ExtractorState::InvFull,
+                    waypoint_symbol: Some(waypoint_symbol.to_string()),
+                    extractions: None,
+                },
+            };
+            ship.notify().await;
+
             let pin_sleep = tokio::time::sleep(std::time::Duration::from_millis(
                 1000 + rand::random::<u64>() % 10000,
             ));
@@ -78,11 +107,28 @@ impl ExtractionPilot {
             }
             0
         } else {
+            ship.status = ship::ShipStatus::Mining {
+                assignment: MiningShipAssignment::Extractor {
+                    state: ExtractorState::Mining,
+                    waypoint_symbol: Some(waypoint_symbol.to_string()),
+                    extractions: None,
+                },
+            };
+            ship.notify().await;
             self.extract(ship, is_syphon).await?;
             self.eject_blacklist(ship).await?;
 
             1
         };
+
+        ship.status = ship::ShipStatus::Mining {
+            assignment: MiningShipAssignment::Extractor {
+                state: ExtractorState::OnCooldown,
+                waypoint_symbol: Some(waypoint_symbol.to_string()),
+                extractions: None,
+            },
+        };
+        ship.notify().await;
 
         if done == 1 || rand::random::<u64>() % 10 == 0 {
             self.context
@@ -99,12 +145,31 @@ impl ExtractionPilot {
 
         self.context.mining_manager.unassign_waypoint(ship).await?;
 
+        ship.status = ship::ShipStatus::Mining {
+            assignment: MiningShipAssignment::Extractor {
+                state: ExtractorState::Unknown,
+                waypoint_symbol: Some(waypoint_symbol.to_string()),
+                extractions: None,
+            },
+        };
+        ship.notify().await;
+
         debug!("Extraction circle complete for ship: {}", ship.symbol);
         Ok(())
     }
 
     async fn go_to_waypoint(&self, ship: &mut ship::MyShip, waypoint_symbol: &str) -> Result<()> {
         debug!("Going to waypoint: {}", waypoint_symbol);
+
+        ship.status = ship::ShipStatus::Mining {
+            assignment: MiningShipAssignment::Extractor {
+                state: ExtractorState::InTransit,
+                waypoint_symbol: Some(waypoint_symbol.to_string()),
+                extractions: None,
+            },
+        };
+        ship.notify().await;
+
         ship.wait_for_arrival(&self.context.api)
             .await
             .map_err(|e| e.to_string())?;

@@ -13,23 +13,20 @@ pub enum ActionType {
 
 impl ActionType {
     pub fn get_action(ship_clone: &crate::ship::MyShip) -> Option<ActionType> {
-        match ship_clone.status {
-            crate::ship::ShipStatus::Construction => None,
-            crate::ship::ShipStatus::Trader(_) => None,
-            crate::ship::ShipStatus::Contract(_) => None,
+        match &ship_clone.status {
+            crate::ship::ShipStatus::Construction { .. } => None,
+            crate::ship::ShipStatus::Trader { .. } => None,
+            crate::ship::ShipStatus::Contract { .. } => None,
             crate::ship::ShipStatus::Scraper => None,
-            crate::ship::ShipStatus::Mining(mining_ship_assignment) => match mining_ship_assignment
-            {
-                crate::workers::mining::m_types::MiningShipAssignment::Transporter => None,
-                crate::workers::mining::m_types::MiningShipAssignment::Extractor => {
-                    Some(ActionType::Extract)
-                }
-                crate::workers::mining::m_types::MiningShipAssignment::Siphoner => {
-                    Some(ActionType::Siphon)
-                }
-                crate::workers::mining::m_types::MiningShipAssignment::Surveyor => None,
-                crate::workers::mining::m_types::MiningShipAssignment::Idle => None,
-                crate::workers::mining::m_types::MiningShipAssignment::Useless => None,
+            crate::ship::ShipStatus::Mining {
+                assignment: mining_ship_assignment,
+            } => match mining_ship_assignment {
+                crate::pilot::MiningShipAssignment::Transporter { .. } => None,
+                crate::pilot::MiningShipAssignment::Extractor { .. } => Some(ActionType::Extract),
+                crate::pilot::MiningShipAssignment::Siphoner { .. } => Some(ActionType::Siphon),
+                crate::pilot::MiningShipAssignment::Surveyor => None,
+                crate::pilot::MiningShipAssignment::Idle => None,
+                crate::pilot::MiningShipAssignment::Useless => None,
             },
             crate::ship::ShipStatus::Manuel => None,
         }

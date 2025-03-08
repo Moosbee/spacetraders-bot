@@ -1,11 +1,16 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            insert into trade_route (id, symbol, ship_symbol, purchase_waypoint, sell_waypoint, finished, trade_volume, predicted_purchase_price, predicted_sell_price)\n            values ($1, $2, $3, $4, $5, $6, $7, $8, $9)\n            on conflict (id) do update\n            set finished = EXCLUDED.finished\n            ",
+  "query": "\n            insert into trade_route (\n            symbol,\n            ship_symbol,\n            purchase_waypoint,\n            sell_waypoint,\n            status,\n            trade_volume,\n            predicted_purchase_price,\n            predicted_sell_price\n            ) values (\n            $1,\n            $2,\n            $3,\n            $4,\n            $5,\n            $6,\n            $7,\n            $8\n            )\n            RETURNING id\n            ",
   "describe": {
-    "columns": [],
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int4"
+      }
+    ],
     "parameters": {
       "Left": [
-        "Int4",
         {
           "Custom": {
             "name": "trade_symbol",
@@ -161,13 +166,26 @@
         "Varchar",
         "Varchar",
         "Varchar",
-        "Bool",
+        {
+          "Custom": {
+            "name": "shipment_status",
+            "kind": {
+              "Enum": [
+                "IN_TRANSIT",
+                "FAILED",
+                "DELIVERED"
+              ]
+            }
+          }
+        },
         "Int4",
         "Int4",
         "Int4"
       ]
     },
-    "nullable": []
+    "nullable": [
+      false
+    ]
   },
-  "hash": "60650b0a5a014682edb1178cc46aa4f56c03e5f431f699856486366ab2d8f08d"
+  "hash": "40e1e7d9eb8e2ec4172b69e9f18ac008f1ce69cb4222d31227ee42a2fc6b4158"
 }

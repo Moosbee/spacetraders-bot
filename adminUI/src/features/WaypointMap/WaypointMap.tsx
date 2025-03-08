@@ -60,6 +60,7 @@ interface RouteMapPoint {
 function WaypointMap({ systemID }: { systemID: string }) {
   const System = useMyStore((state) => state.systems[systemID]);
   const ships = useMyStore((state) => state.ships);
+  const selectedShip = useMyStore((state) => state.selectedShipSymbol);
 
   const [shipsMp, setShipsMp] = useState<ShipMapPoint[]>([]);
   const [size, setSize] = useState(16);
@@ -82,7 +83,7 @@ function WaypointMap({ systemID }: { systemID: string }) {
   );
 
   const routesMp = useMemo(() => {
-    return calculateRouteMapPoints(waypointsMp, shipsMp, "route");
+    return calculateRouteMapPoints(waypointsMp, shipsMp, "route", selectedShip);
   }, [shipsMp, waypointsMp]);
 
   useEffect(() => {
@@ -424,7 +425,8 @@ function createTransitingShipPoint(
 function calculateRouteMapPoints(
   waypointsMp: WaypointMapPoint[],
   shipsMp: ShipMapPoint[],
-  type: "route" | "auto_pilot" | "none"
+  type: "route" | "auto_pilot" | "none",
+  selectedShipSymbol?: string
 ): RouteMapPoint[] {
   const routesMp: RouteMapPoint[][] = shipsMp.map((s) => {
     if (type === "route" && s.ship.nav.status === "IN_TRANSIT") {
@@ -451,7 +453,9 @@ function calculateRouteMapPoints(
       return [route];
     }
 
-    if (s.ship.nav.auto_pilot === null || type !== "auto_pilot") return [];
+    if (s.ship.nav.auto_pilot === null) return [];
+    if (!(type === "auto_pilot" || selectedShipSymbol === s.ship.symbol))
+      return [];
 
     return s.ship.nav.auto_pilot.instructions.map((i) => {
       const startWaypoint = waypointsMp.find(

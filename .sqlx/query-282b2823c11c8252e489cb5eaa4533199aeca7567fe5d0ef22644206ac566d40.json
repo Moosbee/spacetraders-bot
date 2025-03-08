@@ -1,17 +1,14 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n                SELECT\n  id,\n  symbol as \"symbol: models::TradeSymbol\",\n  trade_route.ship_symbol,\n  purchase_waypoint,\n  sell_waypoint,\n  finished,\n  trade_volume,\n  predicted_purchase_price,\n  predicted_sell_price,\n  sum(market_transaction.total_price) as \"sum: i32\",\n  sum(\n    CASE\n      WHEN market_transaction.type = 'PURCHASE' THEN market_transaction.total_price\n      ELSE 0\n    END\n  ) as \"expenses: i32\",\n  sum(\n    CASE\n      WHEN market_transaction.type = 'PURCHASE' THEN 0\n      ELSE market_transaction.total_price\n    END\n  ) as \"income: i32\",\n  sum(\n    CASE\n      WHEN market_transaction.type = 'PURCHASE' THEN (market_transaction.total_price * -1)\n      ELSE market_transaction.total_price\n    END\n  ) as \"profit: i32\"\nFROM\n  public.trade_route\n left join public.market_transaction ON market_transaction.trade_route = trade_route.id\ngroup by\n  id\nORDER BY\n  id ASC;\n            ",
+  "query": "\n                INSERT INTO contract_shipment (\n                    id,\n                    contract_id,\n                    ship_symbol,\n                    trade_symbol,\n                    units,\n                    destination_symbol,\n                    purchase_symbol,\n                    status\n                )\n                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)\n                ON CONFLICT (id) DO UPDATE\n                SET contract_id = EXCLUDED.contract_id,\n                    ship_symbol = EXCLUDED.ship_symbol,\n                    trade_symbol = EXCLUDED.trade_symbol,\n                    units = EXCLUDED.units,\n                    destination_symbol = EXCLUDED.destination_symbol,\n                    purchase_symbol = EXCLUDED.purchase_symbol,\n                    updated_at = now(),\n                    status = EXCLUDED.status\n            ",
   "describe": {
-    "columns": [
-      {
-        "ordinal": 0,
-        "name": "id",
-        "type_info": "Int4"
-      },
-      {
-        "ordinal": 1,
-        "name": "symbol: models::TradeSymbol",
-        "type_info": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Varchar",
+        "Varchar",
+        {
           "Custom": {
             "name": "trade_symbol",
             "kind": {
@@ -162,82 +159,25 @@
               ]
             }
           }
+        },
+        "Int4",
+        "Varchar",
+        "Varchar",
+        {
+          "Custom": {
+            "name": "shipment_status",
+            "kind": {
+              "Enum": [
+                "IN_TRANSIT",
+                "FAILED",
+                "DELIVERED"
+              ]
+            }
+          }
         }
-      },
-      {
-        "ordinal": 2,
-        "name": "ship_symbol",
-        "type_info": "Varchar"
-      },
-      {
-        "ordinal": 3,
-        "name": "purchase_waypoint",
-        "type_info": "Varchar"
-      },
-      {
-        "ordinal": 4,
-        "name": "sell_waypoint",
-        "type_info": "Varchar"
-      },
-      {
-        "ordinal": 5,
-        "name": "finished",
-        "type_info": "Bool"
-      },
-      {
-        "ordinal": 6,
-        "name": "trade_volume",
-        "type_info": "Int4"
-      },
-      {
-        "ordinal": 7,
-        "name": "predicted_purchase_price",
-        "type_info": "Int4"
-      },
-      {
-        "ordinal": 8,
-        "name": "predicted_sell_price",
-        "type_info": "Int4"
-      },
-      {
-        "ordinal": 9,
-        "name": "sum: i32",
-        "type_info": "Int8"
-      },
-      {
-        "ordinal": 10,
-        "name": "expenses: i32",
-        "type_info": "Int8"
-      },
-      {
-        "ordinal": 11,
-        "name": "income: i32",
-        "type_info": "Int8"
-      },
-      {
-        "ordinal": 12,
-        "name": "profit: i32",
-        "type_info": "Int8"
-      }
-    ],
-    "parameters": {
-      "Left": []
+      ]
     },
-    "nullable": [
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      null,
-      null,
-      null,
-      null
-    ]
+    "nullable": []
   },
-  "hash": "b69f274548aebe8c9dbb4fd2561e8a451e4247fafba3266530fb1a8315daea1c"
+  "hash": "282b2823c11c8252e489cb5eaa4533199aeca7567fe5d0ef22644206ac566d40"
 }

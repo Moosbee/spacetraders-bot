@@ -1,3 +1,4 @@
+use chrono::{NaiveDateTime, Utc};
 use space_traders_client::models;
 
 use super::{ContractDelivery, DatabaseConnector, DbPool};
@@ -13,6 +14,8 @@ pub struct Contract {
     pub on_accepted: i32,
     pub on_fulfilled: i32,
     pub deadline: String,
+    pub updated_at: NaiveDateTime,
+    pub created_at: NaiveDateTime,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -29,6 +32,8 @@ pub struct ContractSummary {
     pub totalprofit: Option<i32>,
     pub total_expenses: Option<i32>,
     pub net_profit: Option<i32>,
+    pub updated_at: NaiveDateTime,
+    pub created_at: NaiveDateTime,
 }
 
 impl From<models::Contract> for Contract {
@@ -43,6 +48,8 @@ impl From<models::Contract> for Contract {
             on_accepted: value.terms.payment.on_accepted,
             on_fulfilled: value.terms.payment.on_fulfilled,
             deadline: value.terms.deadline,
+            updated_at: Utc::now().naive_utc(),
+            created_at: Utc::now().naive_utc(),
         }
     }
 }
@@ -71,7 +78,8 @@ impl DatabaseConnector<Contract> for Contract {
               deadline_to_accept = EXCLUDED.deadline_to_accept,
               on_accepted = EXCLUDED.on_accepted,
               on_fulfilled = EXCLUDED.on_fulfilled,
-              deadline = EXCLUDED.deadline
+              deadline = EXCLUDED.deadline,
+              updated_at = EXCLUDED.updated_at
         "#,
             item.id,
             item.faction_symbol,
@@ -147,7 +155,8 @@ impl DatabaseConnector<Contract> for Contract {
               deadline_to_accept = EXCLUDED.deadline_to_accept,
               on_accepted = EXCLUDED.on_accepted,
               on_fulfilled = EXCLUDED.on_fulfilled,
-              deadline = EXCLUDED.deadline
+              deadline = EXCLUDED.deadline,
+              updated_at = EXCLUDED.updated_at
         "#,
             &id as &[String],
             &contract_type as &[models::contract::Type],
@@ -177,7 +186,9 @@ impl DatabaseConnector<Contract> for Contract {
                     deadline_to_accept,
                     on_accepted,
                     on_fulfilled,
-                    deadline
+                    deadline,
+                    updated_at,
+                    created_at
                 FROM contract
             "#
         )
@@ -219,7 +230,9 @@ impl Contract {
           deadline_to_accept,
           on_accepted,
           on_fulfilled,
-          deadline
+          deadline,
+          updated_at,
+          created_at
         FROM public.contract WHERE id = $1"#,
             &id
         )
@@ -243,7 +256,9 @@ SELECT
   contract.deadline,
   contract.on_accepted + contract.on_fulfilled as "totalprofit: i32",
   COALESCE(sum(market_transaction.total_price), 0) as "total_expenses: i32",
-  contract.on_accepted + contract.on_fulfilled - COALESCE(sum(market_transaction.total_price), 0) as "net_profit: i32"
+  contract.on_accepted + contract.on_fulfilled - COALESCE(sum(market_transaction.total_price), 0) as "net_profit: i32",
+  contract.updated_at,
+  contract.created_at
 FROM
   public.contract
  left join public.market_transaction ON market_transaction.contract = contract.id

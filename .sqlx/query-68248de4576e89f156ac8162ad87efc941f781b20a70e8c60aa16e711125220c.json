@@ -1,0 +1,189 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                INSERT INTO ship_state (\n                  symbol,\n                  display_name,\n                  role,\n                  active,\n                  engine_speed,\n                  engine_condition,\n                  engine_integrity,\n                  frame_condition,\n                  frame_integrity,\n                  reactor_condition,\n                  reactor_integrity,\n                  fuel_capacity,\n                  fuel_current,\n                  cargo_capacity,\n                  cargo_units,\n                  cargo_inventory,\n                  mounts,\n                  modules,\n                  cooldown_expiration,\n                  reactor_symbol,\n                  frame_symbol,\n                  engine_symbol,\n                  flight_mode,\n                  nav_status,\n                  system_symbol,\n                  waypoint_symbol,\n                  route_arrival,\n                  route_departure,\n                  route_destination_symbol,\n                  route_destination_system,\n                  route_origin_symbol,\n                  route_origin_system,\n                  auto_pilot_arrival,\n                  auto_pilot_departure_time,\n                  auto_pilot_destination_symbol,\n                  auto_pilot_destination_system_symbol,\n                  auto_pilot_origin_symbol,\n                  auto_pilot_origin_system_symbol,\n                  auto_pilot_distance,\n                  auto_pilot_fuel_cost,\n                  auto_pilot_travel_time\n                )\n                VALUES (\n                  $1,\n                  $2,\n                  $3::ship_info_role,\n                  $4,\n                  $5,\n                  $6,\n                  $7,\n                  $8,\n                  $9,\n                  $10,\n                  $11,\n                  $12,\n                  $13,\n                  $14,\n                  $15,\n                  $16::jsonb,\n                  $17::ship_mount_symbol[],\n                  $18::ship_module_symbol[],\n                  $19,\n                  $20::ship_reactor_symbol,\n                  $21::ship_frame_symbol,\n                  $22::ship_engine_symbol,\n                  $23,\n                  $24,\n                  $25,\n                  $26,\n                  $27,\n                  $28,\n                  $29,\n                  $30,\n                  $31,\n                  $32,\n                  $33,\n                  $34,\n                  $35,\n                  $36,\n                  $37,\n                  $38,\n                  $39,\n                  $40,\n                  $41\n                )\n                RETURNING id;\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Varchar",
+        "Varchar",
+        {
+          "Custom": {
+            "name": "ship_info_role",
+            "kind": {
+              "Enum": [
+                "Construction",
+                "Trader",
+                "Contract",
+                "Scraper",
+                "Mining",
+                "Manuel"
+              ]
+            }
+          }
+        },
+        "Bool",
+        "Int4",
+        "Float8",
+        "Float8",
+        "Float8",
+        "Float8",
+        "Float8",
+        "Float8",
+        "Int4",
+        "Int4",
+        "Int4",
+        "Int4",
+        "Jsonb",
+        {
+          "Custom": {
+            "name": "ship_mount_symbol[]",
+            "kind": {
+              "Array": {
+                "Custom": {
+                  "name": "ship_mount_symbol",
+                  "kind": {
+                    "Enum": [
+                      "MOUNT_GAS_SIPHON_I",
+                      "MOUNT_GAS_SIPHON_II",
+                      "MOUNT_GAS_SIPHON_III",
+                      "MOUNT_SURVEYOR_I",
+                      "MOUNT_SURVEYOR_II",
+                      "MOUNT_SURVEYOR_III",
+                      "MOUNT_SENSOR_ARRAY_I",
+                      "MOUNT_SENSOR_ARRAY_II",
+                      "MOUNT_SENSOR_ARRAY_III",
+                      "MOUNT_MINING_LASER_I",
+                      "MOUNT_MINING_LASER_II",
+                      "MOUNT_MINING_LASER_III",
+                      "MOUNT_LASER_CANNON_I",
+                      "MOUNT_MISSILE_LAUNCHER_I",
+                      "MOUNT_TURRET_I"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "Custom": {
+            "name": "ship_module_symbol[]",
+            "kind": {
+              "Array": {
+                "Custom": {
+                  "name": "ship_module_symbol",
+                  "kind": {
+                    "Enum": [
+                      "MODULE_MINERAL_PROCESSOR_I",
+                      "MODULE_GAS_PROCESSOR_I",
+                      "MODULE_CARGO_HOLD_I",
+                      "MODULE_CARGO_HOLD_II",
+                      "MODULE_CARGO_HOLD_III",
+                      "MODULE_CREW_QUARTERS_I",
+                      "MODULE_ENVOY_QUARTERS_I",
+                      "MODULE_PASSENGER_CABIN_I",
+                      "MODULE_MICRO_REFINERY_I",
+                      "MODULE_ORE_REFINERY_I",
+                      "MODULE_FUEL_REFINERY_I",
+                      "MODULE_SCIENCE_LAB_I",
+                      "MODULE_JUMP_DRIVE_I",
+                      "MODULE_JUMP_DRIVE_II",
+                      "MODULE_JUMP_DRIVE_III",
+                      "MODULE_WARP_DRIVE_I",
+                      "MODULE_WARP_DRIVE_II",
+                      "MODULE_WARP_DRIVE_III",
+                      "MODULE_SHIELD_GENERATOR_I",
+                      "MODULE_SHIELD_GENERATOR_II"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "Timestamp",
+        {
+          "Custom": {
+            "name": "ship_reactor_symbol",
+            "kind": {
+              "Enum": [
+                "REACTOR_SOLAR_I",
+                "REACTOR_FUSION_I",
+                "REACTOR_FISSION_I",
+                "REACTOR_CHEMICAL_I",
+                "REACTOR_ANTIMATTER_I"
+              ]
+            }
+          }
+        },
+        {
+          "Custom": {
+            "name": "ship_frame_symbol",
+            "kind": {
+              "Enum": [
+                "FRAME_PROBE",
+                "FRAME_DRONE",
+                "FRAME_INTERCEPTOR",
+                "FRAME_RACER",
+                "FRAME_FIGHTER",
+                "FRAME_FRIGATE",
+                "FRAME_SHUTTLE",
+                "FRAME_EXPLORER",
+                "FRAME_MINER",
+                "FRAME_LIGHT_FREIGHTER",
+                "FRAME_HEAVY_FREIGHTER",
+                "FRAME_TRANSPORT",
+                "FRAME_DESTROYER",
+                "FRAME_CRUISER",
+                "FRAME_CARRIER"
+              ]
+            }
+          }
+        },
+        {
+          "Custom": {
+            "name": "ship_engine_symbol",
+            "kind": {
+              "Enum": [
+                "ENGINE_IMPULSE_DRIVE_I",
+                "ENGINE_ION_DRIVE_I",
+                "ENGINE_ION_DRIVE_II",
+                "ENGINE_HYPER_DRIVE_I"
+              ]
+            }
+          }
+        },
+        "Varchar",
+        "Varchar",
+        "Varchar",
+        "Varchar",
+        "Timestamp",
+        "Timestamp",
+        "Varchar",
+        "Varchar",
+        "Varchar",
+        "Varchar",
+        "Timestamp",
+        "Timestamp",
+        "Varchar",
+        "Varchar",
+        "Varchar",
+        "Varchar",
+        "Float8",
+        "Int4",
+        "Float8"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "68248de4576e89f156ac8162ad87efc941f781b20a70e8c60aa16e711125220c"
+}

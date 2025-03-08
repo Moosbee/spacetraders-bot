@@ -14,6 +14,8 @@ use crate::{
     types::ConductorContext,
 };
 
+use super::{MiningShipAssignment, TransporterState};
+
 pub struct TransportPilot {
     count: Arc<AtomicI32>,
     context: ConductorContext,
@@ -44,6 +46,15 @@ impl TransportPilot {
 
         let mut last_waypoint = ship.nav.waypoint_symbol.clone();
 
+        ship.status = ship::ShipStatus::Mining {
+            assignment: MiningShipAssignment::Transporter {
+                state: TransporterState::Unknown,
+                waypoint_symbol: None,
+                cycles: Some(self.count.load(std::sync::atomic::Ordering::Relaxed)),
+            },
+        };
+        ship.notify().await;
+
         while !(ship.cargo.get_units_no_fuel() as f32
             / (ship.cargo.capacity
                 - ship
@@ -73,6 +84,15 @@ impl TransportPilot {
 
             last_waypoint = next_mining_waypoint.clone();
 
+            ship.status = ship::ShipStatus::Mining {
+                assignment: MiningShipAssignment::Transporter {
+                    state: TransporterState::InTransitToAsteroid,
+                    waypoint_symbol: Some(next_mining_waypoint.clone()),
+                    cycles: Some(self.count.load(std::sync::atomic::Ordering::Relaxed)),
+                },
+            };
+            ship.notify().await;
+
             ship.nav_to_prepare(
                 &next_mining_waypoint,
                 true,
@@ -90,6 +110,15 @@ impl TransportPilot {
         }
         self.sell_all_cargo(pilot, ship, &waypoints, last_waypoint)
             .await?;
+
+        ship.status = ship::ShipStatus::Mining {
+            assignment: MiningShipAssignment::Transporter {
+                state: TransporterState::Unknown,
+                waypoint_symbol: None,
+                cycles: None,
+            },
+        };
+        ship.notify().await;
 
         Ok(())
     }
@@ -138,6 +167,15 @@ impl TransportPilot {
                 as f32
             > 0.95)
         {
+            ship.status = ship::ShipStatus::Mining {
+                assignment: MiningShipAssignment::Transporter {
+                    state: TransporterState::WaitingForCargo,
+                    waypoint_symbol: Some(ship.nav.waypoint_symbol.clone()),
+                    cycles: Some(self.count.load(std::sync::atomic::Ordering::Relaxed)),
+                },
+            };
+            ship.notify().await;
+
             let msg = tokio::select! {
                 _ = pilot.cancellation_token.cancelled() => {
                     debug!("Cancellation token received for ship: {}", ship.symbol);
@@ -145,6 +183,15 @@ impl TransportPilot {
                 },
                 msg = rec.recv() => msg,
             };
+
+            ship.status = ship::ShipStatus::Mining {
+                assignment: MiningShipAssignment::Transporter {
+                    state: TransporterState::LoadingCargo,
+                    waypoint_symbol: Some(ship.nav.waypoint_symbol.clone()),
+                    cycles: Some(self.count.load(std::sync::atomic::Ordering::Relaxed)),
+                },
+            };
+            ship.notify().await;
 
             match msg {
                 None => {
@@ -243,6 +290,15 @@ impl TransportPilot {
                 info!("Transport cycle cancelled for {} ", ship.symbol);
                 break;
             }
+
+            ship.status = ship::ShipStatus::Mining {
+                assignment: MiningShipAssignment::Transporter {
+                    state: TransporterState::InTransitToMarket,
+                    waypoint_symbol: Some(mining_waypoint.clone()),
+                    cycles: Some(self.count.load(std::sync::atomic::Ordering::Relaxed)),
+                },
+            };
+            ship.notify().await;
             let (next_waypoint, trade_symbols) =
                 self.get_next_best_sell_waypoint(&ship).await.unwrap();
             ship.nav_to(
@@ -254,6 +310,15 @@ impl TransportPilot {
                 TransactionReason::MiningWaypoint(mining_waypoint.clone()),
             )
             .await?;
+
+            ship.status = ship::ShipStatus::Mining {
+                assignment: MiningShipAssignment::Transporter {
+                    state: TransporterState::SellingCargo,
+                    waypoint_symbol: Some(mining_waypoint.clone()),
+                    cycles: Some(self.count.load(std::sync::atomic::Ordering::Relaxed)),
+                },
+            };
+            ship.notify().await;
 
             self.handle_cargo_selling(
                 ship,

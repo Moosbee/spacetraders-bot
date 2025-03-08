@@ -2,7 +2,6 @@ mod api;
 mod ship;
 
 mod sql;
-mod workers;
 
 mod config;
 mod tests;
@@ -37,7 +36,6 @@ use sql::DatabaseConnector;
 use tokio::sync::broadcast;
 use tokio_util::sync::CancellationToken;
 use types::ConductorContext;
-use workers::types::Conductor;
 
 use crate::api::Api;
 use log::{debug, error, info};
@@ -56,62 +54,6 @@ async fn main() -> anyhow::Result<()> {
 
     if let Err(errror) = erg {
         println!("Main error: {} {}", errror, errror);
-    }
-
-    Ok(())
-}
-
-async fn run_conductor(context: ConductorContext) -> anyhow::Result<()> {
-    let mut conductors: Vec<Box<dyn Conductor>> = vec![
-        workers::construction_fleet::ConstructionFleet::new_box(context.clone()),
-        workers::contract_fleet::ContractFleet::new_box(context.clone()),
-        workers::mining::mining_fleet::MiningFleet::new_box(context.clone()),
-        workers::trading::trading_fleet::TradingFleet::new_box(context.clone()),
-        workers::market_scrapers::MarketScraper::new_box(context.clone()),
-    ];
-    conductors.push(control_api::server::ControlApiServer::new_box(
-        context.clone(),
-        context.ship_manager.get_rx(),
-        conductors
-            .iter()
-            .map(|c| (c.get_name(), c.is_independent(), c.get_cancel_token()))
-            .collect(),
-    ));
-
-    let conductor_join_handles = conductors
-        .into_iter()
-        .map(|mut c| {
-            (
-                c.get_name(),
-                c.is_independent(),
-                c.get_cancel_token(),
-                tokio::task::spawn(async move { c.run().await }),
-            )
-        })
-        .collect::<Vec<_>>();
-
-    for handle in conductor_join_handles {
-        let name = handle.0;
-        if !handle.1 {
-            handle.2.cancel();
-        }
-        let erg = handle.3.await;
-        println!("{}: {:?}", name, erg);
-        if let Err(errror) = erg {
-            println!("{} error: {} {:?}", name, errror, errror);
-        } else if let Ok(r_erg) = erg {
-            if let Err(errror) = r_erg {
-                println!(
-                    "{} error: {} {:?} {:?} {:?}",
-                    name,
-                    errror,
-                    errror.backtrace(),
-                    errror.source(),
-                    errror.root_cause()
-                );
-            } else if let Ok(_res) = r_erg {
-            }
-        }
     }
 
     Ok(())

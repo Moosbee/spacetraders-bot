@@ -44,6 +44,11 @@ pub struct ShipState {
     pub mounts: Vec<models::ship_mount::Symbol>,
     pub modules: Vec<models::ship_module::Symbol>,
 
+    // Reactor, Frame and Engine
+    pub reactor_symbol: models::ship_reactor::Symbol,
+    pub frame_symbol: models::ship_frame::Symbol,
+    pub engine_symbol: models::ship_engine::Symbol,
+
     // Cooldown
     pub cooldown_expiration: Option<NaiveDateTime>,
 
@@ -99,6 +104,9 @@ impl From<&ship::MyShip> for ShipState {
             cargo_inventory: sqlx::types::Json(value.cargo.inventory.clone()),
             mounts: value.mounts.mounts.clone(),
             modules: value.modules.modules.clone(),
+            reactor_symbol: value.reactor.clone(),
+            frame_symbol: value.frame.clone(),
+            engine_symbol: value.engine.clone(),
             cooldown_expiration: value.cooldown_expiration.as_ref().map(|t| t.naive_utc()),
             flight_mode: value.nav.flight_mode.to_string(),
             nav_status: value.nav.status.to_string(),
@@ -146,6 +154,8 @@ impl From<&ship::MyShip> for ShipState {
 
 impl ShipState {
     pub async fn insert_get_id(database_pool: &DbPool, item: &ShipState) -> sqlx::Result<i64> {
+        item.reactor_symbol;
+
         let id = sqlx::query!(
             r#"
                 INSERT INTO ship_state (
@@ -168,6 +178,9 @@ impl ShipState {
                   mounts,
                   modules,
                   cooldown_expiration,
+                  reactor_symbol,
+                  frame_symbol,
+                  engine_symbol,
                   flight_mode,
                   nav_status,
                   system_symbol,
@@ -208,9 +221,9 @@ impl ShipState {
                   $17::ship_mount_symbol[],
                   $18::ship_module_symbol[],
                   $19,
-                  $20,
-                  $21,
-                  $22,
+                  $20::ship_reactor_symbol,
+                  $21::ship_frame_symbol,
+                  $22::ship_engine_symbol,
                   $23,
                   $24,
                   $25,
@@ -226,7 +239,10 @@ impl ShipState {
                   $35,
                   $36,
                   $37,
-                  $38
+                  $38,
+                  $39,
+                  $40,
+                  $41
                 )
                 RETURNING id;
             "#,
@@ -249,6 +265,9 @@ impl ShipState {
             &item.mounts as &[models::ship_mount::Symbol],
             &item.modules as &[models::ship_module::Symbol],
             &item.cooldown_expiration as &Option<NaiveDateTime>,
+            &item.reactor_symbol as &models::ship_reactor::Symbol,
+            &item.frame_symbol as &models::ship_frame::Symbol,
+            &item.engine_symbol as &models::ship_engine::Symbol,
             &item.flight_mode,
             &item.nav_status,
             &item.system_symbol,
@@ -313,6 +332,9 @@ impl DatabaseConnector<ShipState> for ShipState {
                   cargo_inventory as "cargo_inventory: sqlx::types::Json<CargoInv>",
                   mounts as "mounts: Vec<models::ship_mount::Symbol>",
                   modules as "modules: Vec<models::ship_module::Symbol>",
+                  reactor_symbol as "reactor_symbol: models::ship_reactor::Symbol",
+                  frame_symbol as "frame_symbol: models::ship_frame::Symbol",
+                  engine_symbol as "engine_symbol: models::ship_engine::Symbol",
                   cooldown_expiration,
                   flight_mode,
                   nav_status,

@@ -14,3 +14,4 @@ pub use ship_manager::ShipManager;
 pub use ship_models::my_ship_update;
 pub use ship_models::MyShip;
 pub use ship_models::ShipStatus;
+pub use ship_models::ShippingStatus;

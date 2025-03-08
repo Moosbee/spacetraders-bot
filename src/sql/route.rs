@@ -5,18 +5,13 @@ use super::DatabaseConnector;
 #[derive(Debug, Clone, PartialEq)]
 pub struct Route {
     pub id: i32,
+    pub ship_symbol: String,
     pub from: String,
     pub to: String,
     pub nav_mode: String,
-    pub speed: i32,
     pub distance: f64,
     pub fuel_cost: i32,
     pub travel_time: f64,
-    pub engine_condition: f64,
-    pub frame_condition: f64,
-    pub reactor_condition: f64,
-    pub current_cargo: i32,
-    pub total_cargohold: i32,
     pub ship_info_before: Option<i64>,
     pub ship_info_after: Option<i64>,
     pub created_at: NaiveDateTime,
@@ -27,18 +22,13 @@ impl DatabaseConnector<Route> for Route {
         sqlx::query!(
             r#"
             insert into route (
+            ship_symbol,
             "from",
             "to",
             distance,
             nav_mode,
-            speed,
             fuel_cost,
             travel_time,
-            engine_condition,
-            frame_condition,
-            reactor_condition,
-            current_cargo,
-            total_cargohold,
             ship_info_before,
             ship_info_after
             )
@@ -51,27 +41,17 @@ impl DatabaseConnector<Route> for Route {
             $6,
             $7,
             $8,
-            $9,
-            $10,
-            $11,
-            $12,
-            $13,
-            $14
+            $9
             )
             on conflict (id) do nothing
             "#,
+            item.ship_symbol,
             item.from,
             item.to,
             item.distance,
             item.nav_mode,
-            item.speed,
             item.fuel_cost,
             item.travel_time,
-            item.engine_condition,
-            item.frame_condition,
-            item.reactor_condition,
-            item.current_cargo,
-            item.total_cargohold,
             item.ship_info_before,
             item.ship_info_after
         )
@@ -95,18 +75,13 @@ impl DatabaseConnector<Route> for Route {
             r#"
                 SELECT 
                   id,
+                  ship_symbol,
                   "from",
                   "to",
                   nav_mode,
                   distance,
-                  speed,
                   fuel_cost,
                   travel_time,
-                  engine_condition,
-                  frame_condition,
-                  reactor_condition,
-                  current_cargo,
-                  total_cargohold,
                   ship_info_before,
                   ship_info_after,
                   created_at

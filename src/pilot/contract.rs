@@ -46,10 +46,12 @@ impl ContractPilot {
 
         self.count.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
 
-        ship.status = ship::ShipStatus::Contract(Some((
-            shipment.contract_id.clone(),
-            self.count.load(std::sync::atomic::Ordering::SeqCst),
-        )));
+        ship.status = ship::ShipStatus::Contract {
+            contract_id: Some(shipment.contract_id.clone()),
+            run_id: Some(shipment.id),
+            cycle: Some(self.count.load(std::sync::atomic::Ordering::SeqCst)),
+            shipping_status: Some(ship::ShippingStatus::Unknown),
+        };
 
         ship.notify().await;
 
@@ -89,7 +91,12 @@ impl ContractPilot {
 
         let _complete_erg = self.complete_shipment(shipment, contract).await?;
 
-        ship.status = ship::ShipStatus::Contract(None);
+        ship.status = ship::ShipStatus::Contract {
+            contract_id: None,
+            run_id: None,
+            cycle: None,
+            shipping_status: None,
+        };
 
         ship.notify().await;
 
@@ -183,6 +190,15 @@ impl ContractPilot {
         shipment: &sql::ContractShipment,
         pilot: &crate::pilot::Pilot,
     ) -> Result<()> {
+        ship.status = ship::ShipStatus::Contract {
+            contract_id: Some(shipment.contract_id.clone()),
+            run_id: Some(shipment.id),
+            cycle: Some(self.count.load(std::sync::atomic::Ordering::SeqCst)),
+            shipping_status: Some(ship::ShippingStatus::InTransitToPurchase),
+        };
+
+        ship.notify().await;
+
         let waypoints = self
             .context
             .all_waypoints
@@ -199,6 +215,15 @@ impl ContractPilot {
             sql::TransactionReason::Contract(shipment.contract_id.clone()),
         )
         .await?;
+
+        ship.status = ship::ShipStatus::Contract {
+            contract_id: Some(shipment.contract_id.clone()),
+            run_id: Some(shipment.id),
+            cycle: Some(self.count.load(std::sync::atomic::Ordering::SeqCst)),
+            shipping_status: Some(ship::ShippingStatus::Purchasing),
+        };
+
+        ship.notify().await;
 
         ship.ensure_docked(&self.context.api).await?;
 
@@ -253,6 +278,15 @@ impl ContractPilot {
         space_traders_client::models::Contract,
         sql::ContractShipment,
     )> {
+        ship.status = ship::ShipStatus::Contract {
+            contract_id: Some(shipment.contract_id.clone()),
+            run_id: Some(shipment.id),
+            cycle: Some(self.count.load(std::sync::atomic::Ordering::SeqCst)),
+            shipping_status: Some(ship::ShippingStatus::InTransitToDelivery),
+        };
+
+        ship.notify().await;
+
         let waypoints = self
             .context
             .all_waypoints
@@ -269,6 +303,15 @@ impl ContractPilot {
             sql::TransactionReason::Contract(shipment.contract_id.clone()),
         )
         .await?;
+
+        ship.status = ship::ShipStatus::Contract {
+            contract_id: Some(shipment.contract_id.clone()),
+            run_id: Some(shipment.id),
+            cycle: Some(self.count.load(std::sync::atomic::Ordering::SeqCst)),
+            shipping_status: Some(ship::ShippingStatus::Delivering),
+        };
+
+        ship.notify().await;
 
         ship.ensure_docked(&self.context.api).await?;
 

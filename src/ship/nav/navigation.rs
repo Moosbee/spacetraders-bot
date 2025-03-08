@@ -209,20 +209,15 @@ impl MyShip {
 
         let rote = crate::sql::Route {
             id: 0,
+            ship_symbol: self.symbol.clone(),
             from: self.nav.waypoint_symbol.clone(),
             to: instruction.end_symbol.clone(),
             nav_mode: self.nav.flight_mode.to_string(),
             distance: instruction.distance,
-            speed: self.engine_speed,
             fuel_cost: nav_data.data.fuel.consumed.map(|f| f.amount).unwrap_or(0),
             travel_time: (self.nav.route.arrival - self.nav.route.departure_time).num_milliseconds()
                 as f64
                 / 1000.0,
-            engine_condition: self.conditions.engine.condition,
-            frame_condition: self.conditions.frame.condition,
-            reactor_condition: self.conditions.reactor.condition,
-            current_cargo: self.cargo.units,
-            total_cargohold: self.cargo.capacity,
             ship_info_before: Some(start_id),
             ship_info_after: Some(end_id),
             created_at: Utc::now().naive_utc(),

@@ -7,7 +7,6 @@ use crate::{
     error::{Error, Result},
     ship::{self},
     types::ConductorContext,
-    workers::mining::m_types::MiningShipAssignment,
 };
 
 pub struct MiningPilot {
@@ -35,15 +34,15 @@ impl MiningPilot {
 
         self.assign_ships(ship).await;
 
-        if let ship::ShipStatus::Mining(assignment) = ship.status {
+        if let ship::ShipStatus::Mining { assignment } = &ship.status {
             match assignment {
-                MiningShipAssignment::Extractor => {
+                MiningShipAssignment::Extractor { .. } => {
                     self.run_extractor_ship_worker(ship, pilot).await?
                 }
-                MiningShipAssignment::Transporter => {
+                MiningShipAssignment::Transporter { .. } => {
                     self.run_transporter_ship_worker(ship, pilot).await?
                 }
-                MiningShipAssignment::Siphoner => {
+                MiningShipAssignment::Siphoner { .. } => {
                     self.run_siphoned_ship_worker(ship, pilot).await?
                 }
                 MiningShipAssignment::Surveyor => {
@@ -65,24 +64,46 @@ impl MiningPilot {
                 can_extract: true,
                 can_cargo: true,
                 ..
-            } => ship::ShipStatus::Mining(MiningShipAssignment::Extractor),
+            } => ship::ShipStatus::Mining {
+                assignment: MiningShipAssignment::Extractor {
+                    state: Default::default(),
+                    waypoint_symbol: None,
+                    extractions: None,
+                },
+            },
 
             ShipCapabilities {
                 can_extract: false,
                 can_siphon: true,
                 can_cargo: true,
                 ..
-            } => ship::ShipStatus::Mining(MiningShipAssignment::Siphoner),
+            } => ship::ShipStatus::Mining {
+                assignment: MiningShipAssignment::Siphoner {
+                    state: Default::default(),
+                    waypoint_symbol: None,
+                    extractions: None,
+                },
+            },
 
             ShipCapabilities {
                 can_survey: true, ..
-            } => ship::ShipStatus::Mining(MiningShipAssignment::Surveyor),
+            } => ship::ShipStatus::Mining {
+                assignment: MiningShipAssignment::Surveyor,
+            },
 
             ShipCapabilities {
                 can_cargo: true, ..
-            } => ship::ShipStatus::Mining(MiningShipAssignment::Transporter),
+            } => ship::ShipStatus::Mining {
+                assignment: MiningShipAssignment::Transporter {
+                    state: Default::default(),
+                    waypoint_symbol: None,
+                    cycles: None,
+                },
+            },
 
-            _ => ship::ShipStatus::Mining(MiningShipAssignment::Useless),
+            _ => ship::ShipStatus::Mining {
+                assignment: MiningShipAssignment::Useless,
+            },
         };
 
         debug!("Assigning role {:?} to ship {}", ship.role, ship.symbol);
@@ -142,4 +163,50 @@ struct ShipCapabilities {
     can_siphon: bool,
     can_survey: bool,
     can_cargo: bool,
+}
+
+#[derive(Debug, Default, Clone, serde::Serialize, PartialEq, Eq)]
+pub enum MiningShipAssignment {
+    Transporter {
+        state: TransporterState,
+        waypoint_symbol: Option<String>,
+        cycles: Option<i32>,
+    },
+    Extractor {
+        state: ExtractorState,
+        waypoint_symbol: Option<String>,
+        extractions: Option<i32>,
+    },
+    Siphoner {
+        state: SiphonerState,
+        waypoint_symbol: Option<String>,
+        extractions: Option<i32>,
+    },
+    Surveyor,
+    #[default]
+    Idle,
+    Useless,
+}
+
+#[derive(Debug, Default, Clone, Copy, serde::Serialize, PartialEq, Eq)]
+pub enum TransporterState {
+    InTransitToAsteroid,
+    LoadingCargo,
+    WaitingForCargo,
+    InTransitToMarket,
+    SellingCargo,
+    #[default]
+    Unknown,
+}
+
+pub type SiphonerState = ExtractorState;
+
+#[derive(Debug, Default, Clone, Copy, serde::Serialize, PartialEq, Eq)]
+pub enum ExtractorState {
+    InTransit,
+    Mining,
+    OnCooldown,
+    InvFull,
+    #[default]
+    Unknown,
 }

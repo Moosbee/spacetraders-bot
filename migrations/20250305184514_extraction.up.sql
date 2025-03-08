@@ -10,6 +10,8 @@ CREATE TABLE public.extraction (
   yield_units integer NOT NULL,
   created_at timestamp without time zone NOT NULL DEFAULT now(),
   PRIMARY KEY (id),
-  CONSTRAINT ship_info_before_fk FOREIGN KEY (ship_info_before) REFERENCES public.ship_state (id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION NOT VALID,
-  CONSTRAINT ship_info_after FOREIGN KEY (ship_info_after) REFERENCES public.ship_state (id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION NOT VALID
+  CONSTRAINT ship_symbol_relation FOREIGN KEY (ship_symbol) REFERENCES public.ship_info (symbol) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
+  CONSTRAINT waypoint_symbol_relation FOREIGN KEY (waypoint_symbol) REFERENCES public.waypoint (symbol) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
+  CONSTRAINT ship_info_before_fk FOREIGN KEY (ship_info_before) REFERENCES public.ship_state (id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
+  CONSTRAINT ship_info_after FOREIGN KEY (ship_info_after) REFERENCES public.ship_state (id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION
 );

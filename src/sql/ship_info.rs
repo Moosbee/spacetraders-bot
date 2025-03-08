@@ -1,3 +1,5 @@
+use crate::pilot::MiningShipAssignment;
+
 use super::DatabaseConnector;
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
@@ -40,11 +42,11 @@ impl TryFrom<&str> for ShipInfoRole {
 impl From<crate::ship::ShipStatus> for ShipInfoRole {
     fn from(role: crate::ship::ShipStatus) -> Self {
         match role {
-            crate::ship::ShipStatus::Construction => Self::Construction,
-            crate::ship::ShipStatus::Trader(_) => Self::Trader,
-            crate::ship::ShipStatus::Contract(_) => Self::Contract,
+            crate::ship::ShipStatus::Construction { .. } => Self::Construction,
+            crate::ship::ShipStatus::Trader { .. } => Self::Trader,
+            crate::ship::ShipStatus::Contract { .. } => Self::Contract,
             crate::ship::ShipStatus::Scraper => Self::Scraper,
-            crate::ship::ShipStatus::Mining(_) => Self::Mining,
+            crate::ship::ShipStatus::Mining { .. } => Self::Mining,
             crate::ship::ShipStatus::Manuel => Self::Manuel,
         }
     }
@@ -53,15 +55,32 @@ impl From<crate::ship::ShipStatus> for ShipInfoRole {
 impl From<ShipInfoRole> for crate::ship::ShipStatus {
     fn from(role: ShipInfoRole) -> Self {
         match role {
-            ShipInfoRole::Construction => Self::Construction,
-            ShipInfoRole::Trader => Self::Trader(None),
-            ShipInfoRole::Contract => Self::Contract(None),
+            ShipInfoRole::Construction => Self::Construction {
+                cycle: None,
+                shipment_id: None,
+                shipping_status: None,
+            },
+            ShipInfoRole::Trader => Self::Trader {
+                cycle: None,
+                shipment_id: None,
+                shipping_status: None,
+            },
+            ShipInfoRole::Contract => Self::Contract {
+                contract_id: None,
+                run_id: None,
+                cycle: None,
+                shipping_status: None,
+            },
             ShipInfoRole::Scraper => Self::Scraper,
-            ShipInfoRole::Mining => {
-                Self::Mining(crate::workers::mining::m_types::MiningShipAssignment::Idle)
-            }
+            ShipInfoRole::Mining => Self::Mining {
+                assignment: MiningShipAssignment::Idle,
+            },
             ShipInfoRole::Manuel => Self::Manuel,
-            ShipInfoRole::TempTrader => Self::Trader(None),
+            ShipInfoRole::TempTrader => Self::Trader {
+                cycle: None,
+                shipment_id: None,
+                shipping_status: None,
+            },
         }
     }
 }

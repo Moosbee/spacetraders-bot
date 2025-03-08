@@ -1,17 +1,12 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n                SELECT \n                  id,\n                  symbol as \"symbol: models::TradeSymbol\",\n                  ship_symbol,\n                  purchase_waypoint,\n                  sell_waypoint,\n                  finished,\n                  trade_volume,\n                  predicted_purchase_price,\n                  predicted_sell_price,\n                  created_at\n                 FROM trade_route WHERE finished=false\n            ",
+  "query": "\n            insert into trade_route (\n            id,\n            symbol,\n            ship_symbol,\n            purchase_waypoint,\n            sell_waypoint,\n            status,\n            trade_volume,\n            predicted_purchase_price,\n            predicted_sell_price\n            ) values (\n            $1,\n            $2,\n            $3,\n            $4,\n            $5,\n            $6,\n            $7,\n            $8,\n            $9\n            )\n            on conflict (id) do update\n            set status = EXCLUDED.status\n            ",
   "describe": {
-    "columns": [
-      {
-        "ordinal": 0,
-        "name": "id",
-        "type_info": "Int4"
-      },
-      {
-        "ordinal": 1,
-        "name": "symbol: models::TradeSymbol",
-        "type_info": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4",
+        {
           "Custom": {
             "name": "trade_symbol",
             "kind": {
@@ -162,64 +157,28 @@
               ]
             }
           }
-        }
-      },
-      {
-        "ordinal": 2,
-        "name": "ship_symbol",
-        "type_info": "Varchar"
-      },
-      {
-        "ordinal": 3,
-        "name": "purchase_waypoint",
-        "type_info": "Varchar"
-      },
-      {
-        "ordinal": 4,
-        "name": "sell_waypoint",
-        "type_info": "Varchar"
-      },
-      {
-        "ordinal": 5,
-        "name": "finished",
-        "type_info": "Bool"
-      },
-      {
-        "ordinal": 6,
-        "name": "trade_volume",
-        "type_info": "Int4"
-      },
-      {
-        "ordinal": 7,
-        "name": "predicted_purchase_price",
-        "type_info": "Int4"
-      },
-      {
-        "ordinal": 8,
-        "name": "predicted_sell_price",
-        "type_info": "Int4"
-      },
-      {
-        "ordinal": 9,
-        "name": "created_at",
-        "type_info": "Timestamp"
-      }
-    ],
-    "parameters": {
-      "Left": []
+        },
+        "Varchar",
+        "Varchar",
+        "Varchar",
+        {
+          "Custom": {
+            "name": "shipment_status",
+            "kind": {
+              "Enum": [
+                "IN_TRANSIT",
+                "FAILED",
+                "DELIVERED"
+              ]
+            }
+          }
+        },
+        "Int4",
+        "Int4",
+        "Int4"
+      ]
     },
-    "nullable": [
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false
-    ]
+    "nullable": []
   },
-  "hash": "53c27bd18c6c9f461f8ac3363e5bc8d3161a8b64ff5dc607da6bebfb13526ffb"
+  "hash": "d30ae2ceb082c320134b2e6f6dcf6aa69c43f7280a24eaaf109254ede78ff719"
 }

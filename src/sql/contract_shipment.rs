@@ -59,11 +59,9 @@ impl DatabaseConnector<ContractShipment> for ContractShipment {
                     units,
                     destination_symbol,
                     purchase_symbol,
-                    created_at,
-                    updated_at,
                     status
                 )
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
                 ON CONFLICT (id) DO UPDATE
                 SET contract_id = EXCLUDED.contract_id,
                     ship_symbol = EXCLUDED.ship_symbol,
@@ -71,7 +69,7 @@ impl DatabaseConnector<ContractShipment> for ContractShipment {
                     units = EXCLUDED.units,
                     destination_symbol = EXCLUDED.destination_symbol,
                     purchase_symbol = EXCLUDED.purchase_symbol,
-                    updated_at = EXCLUDED.updated_at,
+                    updated_at = now(),
                     status = EXCLUDED.status
             "#,
             item.id,
@@ -81,8 +79,6 @@ impl DatabaseConnector<ContractShipment> for ContractShipment {
             item.units,
             item.destination_symbol,
             item.purchase_symbol,
-            item.created_at,
-            item.updated_at,
             item.status as ShipmentStatus
         )
         .execute(&database_pool.database_pool)
@@ -103,8 +99,6 @@ impl DatabaseConnector<ContractShipment> for ContractShipment {
             units,
             destination_symbols,
             purchase_symbols,
-            created_ats,
-            updated_ats,
             statuses,
         ): (
             Vec<i32>,
@@ -114,8 +108,6 @@ impl DatabaseConnector<ContractShipment> for ContractShipment {
             Vec<i32>,
             Vec<String>,
             Vec<String>,
-            Vec<sqlx::types::chrono::NaiveDateTime>,
-            Vec<sqlx::types::chrono::NaiveDateTime>,
             Vec<ShipmentStatus>,
         ) = itertools::multiunzip(items.iter().map(|c| {
             (
@@ -126,8 +118,6 @@ impl DatabaseConnector<ContractShipment> for ContractShipment {
                 c.units,
                 c.destination_symbol.clone(),
                 c.purchase_symbol.clone(),
-                c.created_at,
-                c.updated_at,
                 c.status,
             )
         }));
@@ -142,8 +132,6 @@ impl DatabaseConnector<ContractShipment> for ContractShipment {
                 units,
                 destination_symbol,
                 purchase_symbol,
-                created_at,
-                updated_at,
                 status
             )
             SELECT * FROM UNNEST(
@@ -154,9 +142,7 @@ impl DatabaseConnector<ContractShipment> for ContractShipment {
                 $5::integer[],
                 $6::character varying[],
                 $7::character varying[],
-                $8::timestamp[],
-                $9::timestamp[],
-                $10::shipment_status[]
+                $8::shipment_status[]
             )
             ON CONFLICT (id) DO UPDATE
             SET contract_id = EXCLUDED.contract_id,
@@ -165,7 +151,7 @@ impl DatabaseConnector<ContractShipment> for ContractShipment {
                 units = EXCLUDED.units,
                 destination_symbol = EXCLUDED.destination_symbol,
                 purchase_symbol = EXCLUDED.purchase_symbol,
-                updated_at = EXCLUDED.updated_at,
+                updated_at = now(),
                 status = EXCLUDED.status
             "#,
             &ids,
@@ -175,8 +161,6 @@ impl DatabaseConnector<ContractShipment> for ContractShipment {
             &units,
             &destination_symbols,
             &purchase_symbols,
-            &created_ats,
-            &updated_ats,
             &statuses as &[ShipmentStatus]
         )
         .execute(&database_pool.database_pool)

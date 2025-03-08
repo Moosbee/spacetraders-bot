@@ -1,4 +1,6 @@
 mod agent;
+mod construction_material;
+mod construction_shipment;
 mod contract;
 mod contract_delivery;
 mod contract_shipment;
@@ -30,6 +32,7 @@ mod extraction;
 mod ship_state;
 
 pub use agent::Agent;
+pub use construction_shipment::ConstructionShipment;
 pub use contract::Contract;
 pub use contract_delivery::ContractDelivery;
 pub use contract_shipment::ContractShipment;

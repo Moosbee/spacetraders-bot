@@ -194,6 +194,31 @@ impl MyShip {
         Ok(delivery_result)
     }
 
+    pub async fn supply_construction(
+        &mut self,
+        trade_symbol: space_traders_client::models::TradeSymbol,
+        units: i32,
+        api: &api::Api,
+    ) -> Result<space_traders_client::models::SupplyConstruction201Response, error::Error> {
+        self.mutate();
+        let delivery_result: space_traders_client::models::SupplyConstruction201Response = api
+            .supply_construction(
+                &self.nav.system_symbol,
+                &self.nav.waypoint_symbol,
+                Some(space_traders_client::models::SupplyConstructionRequest {
+                    units,
+                    ship_symbol: self.symbol.clone(),
+                    trade_symbol: trade_symbol.to_string(),
+                }),
+            )
+            .await?;
+
+        self.cargo.update(&delivery_result.data.cargo);
+        self.notify().await;
+
+        Ok(delivery_result)
+    }
+
     pub async fn simple_transfer_cargo(
         &mut self,
         trade_symbol: space_traders_client::models::TradeSymbol,
@@ -284,7 +309,7 @@ impl MyShip {
         let market_data = api
             .get_market(&self.nav.system_symbol, &self.nav.waypoint_symbol)
             .await?;
-        crate::workers::market_scrapers::update_market(*market_data.data, database_pool).await;
+        crate::manager::scrapping_manager::update_market(*market_data.data, database_pool).await;
 
         Ok(())
     }

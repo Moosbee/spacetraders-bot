@@ -1,12 +1,10 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n                INSERT INTO contract_shipment (\n                    id,\n                    contract_id,\n                    ship_symbol,\n                    trade_symbol,\n                    units,\n                    destination_symbol,\n                    purchase_symbol,\n                    created_at,\n                    updated_at,\n                    status\n                )\n                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)\n                ON CONFLICT (id) DO UPDATE\n                SET contract_id = EXCLUDED.contract_id,\n                    ship_symbol = EXCLUDED.ship_symbol,\n                    trade_symbol = EXCLUDED.trade_symbol,\n                    units = EXCLUDED.units,\n                    destination_symbol = EXCLUDED.destination_symbol,\n                    purchase_symbol = EXCLUDED.purchase_symbol,\n                    updated_at = EXCLUDED.updated_at,\n                    status = EXCLUDED.status\n            ",
+  "query": "\n                INSERT INTO construction_material (\n                  waypoint_symbol,\n                  trade_symbol,\n                  required,\n                  fulfilled,\n                  updated_at\n                )\n                VALUES ($1, $2::trade_symbol, $3, $4, NOW())\n                ON CONFLICT (waypoint_symbol, trade_symbol) DO UPDATE SET\n                  required = EXCLUDED.required,\n                  fulfilled = EXCLUDED.fulfilled,\n                  updated_at = NOW();\n            ",
   "describe": {
     "columns": [],
     "parameters": {
       "Left": [
-        "Int4",
-        "Varchar",
         "Varchar",
         {
           "Custom": {
@@ -161,25 +159,10 @@
           }
         },
         "Int4",
-        "Varchar",
-        "Varchar",
-        "Timestamp",
-        "Timestamp",
-        {
-          "Custom": {
-            "name": "shipment_status",
-            "kind": {
-              "Enum": [
-                "IN_TRANSIT",
-                "FAILED",
-                "DELIVERED"
-              ]
-            }
-          }
-        }
+        "Int4"
       ]
     },
     "nullable": []
   },
-  "hash": "caa0564121ba14f927e28afc9975b7b8ed2befc930bae72bb77fee722524afd9"
+  "hash": "e44c94fe8ad898bab4adcdc4a7238f491da7a071c93e16f39092bb900d8f566d"
 }
