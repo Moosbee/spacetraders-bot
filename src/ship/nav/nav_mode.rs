@@ -13,6 +13,11 @@ impl NavMode {
     }
 
     fn get_flight_mode_configs(max_fuel: i32) -> Modes {
+        let cruise_base_radius = if max_fuel == 0 {
+            f64::INFINITY
+        } else {
+            max_fuel as f64
+        };
         Modes {
             burn: Mode {
                 radius: (max_fuel as f64) / 2.0,
@@ -20,7 +25,7 @@ impl NavMode {
                 mode: models::ShipNavFlightMode::Burn,
             },
             cruise: Mode {
-                radius: (max_fuel as f64),
+                radius: cruise_base_radius,
                 cost_multiplier: 1.0,
                 mode: models::ShipNavFlightMode::Cruise,
             },

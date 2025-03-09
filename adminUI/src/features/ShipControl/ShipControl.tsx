@@ -136,6 +136,7 @@ function ShipControl({ ship }: { ship: RustShip }) {
                   label: w.symbol,
                   value: w.symbol,
                 }))}
+                showSearch
               />
               <Button
                 disabled={

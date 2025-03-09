@@ -108,7 +108,7 @@ impl MiningPilot {
 
         debug!("Assigning role {:?} to ship {}", ship.role, ship.symbol);
 
-        ship.notify().await;
+        // ship.notify().await;
     }
     fn analyze_ship_capabilities(&self, ship: &ship::MyShip) -> ShipCapabilities {
         ShipCapabilities {
@@ -166,6 +166,7 @@ struct ShipCapabilities {
 }
 
 #[derive(Debug, Default, Clone, serde::Serialize, PartialEq, Eq)]
+#[serde(tag = "type", content = "data")]
 pub enum MiningShipAssignment {
     Transporter {
         state: TransporterState,

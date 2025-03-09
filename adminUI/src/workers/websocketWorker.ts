@@ -40,9 +40,9 @@ const work = () => {
     };
 
     websocket.onmessage = (event) => {
-      console.log(event.data);
+      // console.log(event.data);
       const wsObject: WsObject = JSON.parse(event.data);
-      console.log(wsObject);
+      console.log("WS OBJECT", wsObject);
       switch (wsObject.data.type) {
         case "RustShip":
           setShip(wsObject.data.data);

@@ -6,7 +6,7 @@ export interface TradeRoute {
   ship_symbol: string;
   purchase_waypoint: string;
   sell_waypoint: string;
-  finished: boolean;
+  status: "Delivered" | "InTransit" | "Failed";
   trade_volume: number;
   predicted_purchase_price: number;
   predicted_sell_price: number;

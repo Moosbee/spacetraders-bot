@@ -1,7 +1,7 @@
 use std::{collections::HashMap, sync::Arc};
 
 use lockable::{AsyncLimit, Lockable, LockableHashMap, SyncLimit};
-use tokio::sync::RwLock;
+use tokio::{sync::RwLock, time::Instant};
 
 use crate::types::{safely_get_lock_mut_map, Observer, Subject};
 
@@ -34,8 +34,13 @@ impl Observer<MyShip> for ShipManager {
 
             let mut map = if map.is_err() {
                 log::warn!("Failed to update get ship: {} waiting", symbol);
+                let start = Instant::now();
                 let map = self.copy.write().await;
-                log::warn!("Got update ship: {} waiting", symbol);
+                log::warn!(
+                    "Got update ship: {} waiting took {:?}",
+                    symbol,
+                    start.elapsed()
+                );
                 map
             } else {
                 map.unwrap()
@@ -51,7 +56,7 @@ impl Observer<MyShip> for ShipManager {
 
 impl ShipManager {
     pub fn new(broadcaster: my_ship_update::InterShipBroadcaster) -> Self {
-        let (mpsc_tx, mpsc_rx) = tokio::sync::broadcast::channel(100);
+        let (mpsc_tx, mpsc_rx) = tokio::sync::broadcast::channel(1000);
         Self {
             locked_ships: LockableHashMap::new(),
             copy: RwLock::new(HashMap::new()),

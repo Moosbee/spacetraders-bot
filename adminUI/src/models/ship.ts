@@ -118,11 +118,90 @@ export const SystemShipRoles = {
 } as const;
 
 export type SystemShipRole =
-  | { type: "Construction" }
-  | { type: "Trader"; data: [number, number] | null }
-  | { type: "Contract"; data: [string, number] | null }
-  | { type: "Scraper" }
-  | { type: "Mining"; data: string | null }
-  | { type: "Manuel" }; // Default role
+  | { type: "Construction"; data: ConstructionData }
+  | { type: "Trader"; data: TraderData }
+  | { type: "Contract"; data: ContractData }
+  | { type: "Scraper"; data: null }
+  | { type: "Mining"; data: MiningData }
+  | { type: "Manuel"; data: null }; // Default role
+
+interface ConstructionData {
+  cycle?: number;
+  shipment_id?: number;
+  shipping_status?: ShippingStatus;
+}
+
+interface TraderData {
+  shipment_id?: number;
+  cycle?: number;
+  shipping_status?: ShippingStatus;
+}
+
+interface ContractData {
+  contract_id?: string;
+  run_id?: number;
+  cycle?: number;
+  shipping_status?: ShippingStatus;
+}
+
+interface MiningData {
+  assignment: MiningShipAssignment;
+}
+
+enum ShippingStatus {
+  InTransitToPurchase = "InTransitToPurchase",
+  Purchasing = "Purchasing",
+  InTransitToDelivery = "InTransitToDelivery",
+  Delivering = "Delivering",
+  Unknown = "Unknown",
+}
+
+type MiningShipAssignment =
+  | {
+      type: "Transporter";
+      data: {
+        state: TransporterState;
+        waypoint_symbol?: string;
+        cycles?: number;
+      };
+    }
+  | {
+      type: "Extractor";
+      data: {
+        state: ExtractorState;
+        waypoint_symbol?: string;
+        extractions?: number;
+      };
+    }
+  | {
+      type: "Siphoner";
+      data: {
+        state: SiphonerState;
+        waypoint_symbol?: string;
+        extractions?: number;
+      };
+    }
+  | { type: "Surveyor" }
+  | { type: "Idle" }
+  | { type: "Useless" };
+
+enum TransporterState {
+  InTransitToAsteroid = "InTransitToAsteroid",
+  LoadingCargo = "LoadingCargo",
+  WaitingForCargo = "WaitingForCargo",
+  InTransitToMarket = "InTransitToMarket",
+  SellingCargo = "SellingCargo",
+  Unknown = "Unknown",
+}
+
+type SiphonerState = ExtractorState;
+
+enum ExtractorState {
+  InTransit = "InTransit",
+  Mining = "Mining",
+  OnCooldown = "OnCooldown",
+  InvFull = "InvFull",
+  Unknown = "Unknown",
+}
 
 export default RustShip;

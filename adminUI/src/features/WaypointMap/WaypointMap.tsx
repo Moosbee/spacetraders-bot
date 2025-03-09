@@ -84,7 +84,7 @@ function WaypointMap({ systemID }: { systemID: string }) {
 
   const routesMp = useMemo(() => {
     return calculateRouteMapPoints(waypointsMp, shipsMp, "route", selectedShip);
-  }, [shipsMp, waypointsMp]);
+  }, [shipsMp, waypointsMp, selectedShip]);
 
   useEffect(() => {
     const intervalId = setInterval(() => {
@@ -429,7 +429,11 @@ function calculateRouteMapPoints(
   selectedShipSymbol?: string
 ): RouteMapPoint[] {
   const routesMp: RouteMapPoint[][] = shipsMp.map((s) => {
-    if (type === "route" && s.ship.nav.status === "IN_TRANSIT") {
+    if (
+      type === "route" &&
+      s.ship.nav.status === "IN_TRANSIT" &&
+      !(selectedShipSymbol === s.ship.symbol)
+    ) {
       const startWaypoint = waypointsMp.find(
         (w) => w.waypoint.symbol === s.ship.nav.route.origin_symbol
       );

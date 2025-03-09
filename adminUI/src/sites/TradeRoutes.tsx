@@ -51,16 +51,17 @@ function TradeRoutes() {
       sorter: (a, b) => a.sell_waypoint.localeCompare(b.sell_waypoint),
     },
     {
-      title: "Finished",
-      dataIndex: "finished",
-      key: "finished",
-      render: (value) => (value ? "Yes" : "No"), // Render boolean as "Yes" or "No"
-      sorter: (a, b) => (a.finished === b.finished ? 0 : a.finished ? -1 : 1),
+      title: "Status",
+      dataIndex: "status",
+      key: "status",
+      render: (value) => value,
+      sorter: (a, b) => (a.status === b.status ? 0 : a.status ? -1 : 1),
       filters: [
-        { text: "Yes", value: true },
-        { text: "No", value: false },
+        { text: "Delivered", value: "Delivered" },
+        { text: "InTransit", value: "InTransit" },
+        { text: "Failed", value: "Failed" },
       ],
-      onFilter: (value, record) => record.finished === value,
+      onFilter: (value, record) => record.status === value,
     },
     {
       title: "Trade Volume",

@@ -27,6 +27,35 @@ impl ExtractionPilot {
         }
     }
 
+    async fn update_assignment(
+        &self,
+        ship: &mut ship::MyShip,
+        is_syphon: bool,
+        state: ExtractorState,
+        waypoint_symbol: Option<String>,
+        extractions: Option<i32>,
+        notify: bool,
+    ) {
+        let assignment = if is_syphon {
+            MiningShipAssignment::Siphoner {
+                state,
+                waypoint_symbol,
+                extractions,
+            }
+        } else {
+            MiningShipAssignment::Extractor {
+                state,
+                waypoint_symbol,
+                extractions,
+            }
+        };
+
+        ship.status = ship::ShipStatus::Mining { assignment };
+        if notify {
+            ship.notify().await;
+        }
+    }
+
     pub async fn execute_extraction_circle(
         &self,
         ship: &mut ship::MyShip,
@@ -42,25 +71,28 @@ impl ExtractionPilot {
 
         debug!("Mining Waypoint: {}", waypoint_symbol);
 
-        ship.status = ship::ShipStatus::Mining {
-            assignment: MiningShipAssignment::Extractor {
-                state: ExtractorState::Unknown,
-                waypoint_symbol: Some(waypoint_symbol.clone()),
-                extractions: None,
-            },
-        };
-        ship.notify().await;
+        self.update_assignment(
+            ship,
+            is_syphon,
+            ExtractorState::Unknown,
+            Some(waypoint_symbol.clone()),
+            Some(self.count.load(std::sync::atomic::Ordering::Relaxed)),
+            false,
+        )
+        .await;
 
-        self.go_to_waypoint(ship, &waypoint_symbol).await?;
+        self.go_to_waypoint(ship, &waypoint_symbol, is_syphon)
+            .await?;
 
-        ship.status = ship::ShipStatus::Mining {
-            assignment: MiningShipAssignment::Extractor {
-                state: ExtractorState::OnCooldown,
-                waypoint_symbol: Some(waypoint_symbol.to_string()),
-                extractions: None,
-            },
-        };
-        ship.notify().await;
+        self.update_assignment(
+            ship,
+            is_syphon,
+            ExtractorState::OnCooldown,
+            Some(waypoint_symbol.clone()),
+            Some(self.count.load(std::sync::atomic::Ordering::Relaxed)),
+            false,
+        )
+        .await;
 
         self.context
             .mining_manager
@@ -83,17 +115,18 @@ impl ExtractionPilot {
         let done = if !self.has_space(ship) {
             debug!("No space on ship: {}", ship.symbol);
 
-            ship.status = ship::ShipStatus::Mining {
-                assignment: MiningShipAssignment::Extractor {
-                    state: ExtractorState::InvFull,
-                    waypoint_symbol: Some(waypoint_symbol.to_string()),
-                    extractions: None,
-                },
-            };
-            ship.notify().await;
+            self.update_assignment(
+                ship,
+                is_syphon,
+                ExtractorState::InvFull,
+                Some(waypoint_symbol.clone()),
+                Some(self.count.load(std::sync::atomic::Ordering::Relaxed)),
+                true,
+            )
+            .await;
 
             let pin_sleep = tokio::time::sleep(std::time::Duration::from_millis(
-                1000 + rand::random::<u64>() % 10000,
+                5000 + rand::random::<u64>() % 10000,
             ));
             let pin_sleep_pined = std::pin::pin!(pin_sleep);
 
@@ -107,28 +140,30 @@ impl ExtractionPilot {
             }
             0
         } else {
-            ship.status = ship::ShipStatus::Mining {
-                assignment: MiningShipAssignment::Extractor {
-                    state: ExtractorState::Mining,
-                    waypoint_symbol: Some(waypoint_symbol.to_string()),
-                    extractions: None,
-                },
-            };
-            ship.notify().await;
+            self.update_assignment(
+                ship,
+                is_syphon,
+                ExtractorState::Mining,
+                Some(waypoint_symbol.clone()),
+                Some(self.count.load(std::sync::atomic::Ordering::Relaxed)),
+                false,
+            )
+            .await;
             self.extract(ship, is_syphon).await?;
             self.eject_blacklist(ship).await?;
 
             1
         };
 
-        ship.status = ship::ShipStatus::Mining {
-            assignment: MiningShipAssignment::Extractor {
-                state: ExtractorState::OnCooldown,
-                waypoint_symbol: Some(waypoint_symbol.to_string()),
-                extractions: None,
-            },
-        };
-        ship.notify().await;
+        self.update_assignment(
+            ship,
+            is_syphon,
+            ExtractorState::OnCooldown,
+            Some(waypoint_symbol.clone()),
+            Some(self.count.load(std::sync::atomic::Ordering::Relaxed)),
+            true,
+        )
+        .await;
 
         if done == 1 || rand::random::<u64>() % 10 == 0 {
             self.context
@@ -145,30 +180,42 @@ impl ExtractionPilot {
 
         self.context.mining_manager.unassign_waypoint(ship).await?;
 
-        ship.status = ship::ShipStatus::Mining {
-            assignment: MiningShipAssignment::Extractor {
-                state: ExtractorState::Unknown,
-                waypoint_symbol: Some(waypoint_symbol.to_string()),
-                extractions: None,
-            },
-        };
-        ship.notify().await;
+        self.update_assignment(
+            ship,
+            is_syphon,
+            ExtractorState::Unknown,
+            Some(waypoint_symbol.clone()),
+            Some(self.count.load(std::sync::atomic::Ordering::Relaxed)),
+            false,
+        )
+        .await;
 
         debug!("Extraction circle complete for ship: {}", ship.symbol);
         Ok(())
     }
 
-    async fn go_to_waypoint(&self, ship: &mut ship::MyShip, waypoint_symbol: &str) -> Result<()> {
+    async fn go_to_waypoint(
+        &self,
+        ship: &mut ship::MyShip,
+        waypoint_symbol: &str,
+        is_syphon: bool,
+    ) -> Result<()> {
         debug!("Going to waypoint: {}", waypoint_symbol);
 
-        ship.status = ship::ShipStatus::Mining {
-            assignment: MiningShipAssignment::Extractor {
-                state: ExtractorState::InTransit,
-                waypoint_symbol: Some(waypoint_symbol.to_string()),
-                extractions: None,
-            },
-        };
-        ship.notify().await;
+        if ship.nav.waypoint_symbol == waypoint_symbol && !ship.nav.is_in_transit() {
+            debug!("Already at waypoint: {}", waypoint_symbol);
+            return Ok(());
+        }
+
+        self.update_assignment(
+            ship,
+            is_syphon,
+            ExtractorState::InTransit,
+            Some(waypoint_symbol.to_string()),
+            None,
+            true,
+        )
+        .await;
 
         ship.wait_for_arrival(&self.context.api)
             .await
@@ -294,6 +341,39 @@ impl ExtractionPilot {
                             erg.data.extraction.r#yield,
                             erg.data.events
                         );
+
+                        let new_wp = self
+                            .context
+                            .api
+                            .get_waypoint(&ship.nav.system_symbol, &ship.nav.waypoint_symbol)
+                            .await?;
+
+                        if new_wp
+                            .data
+                            .modifiers
+                            .as_ref()
+                            .map(|v| {
+                                v.iter().any(|m| {
+                                    m.symbol == models::WaypointModifierSymbol::CriticalLimit
+                                })
+                            })
+                            .unwrap_or(false)
+                        {
+                            log::warn!("Waypoint {} has critical limit", ship.nav.waypoint_symbol);
+                        }
+
+                        if new_wp
+                            .data
+                            .modifiers
+                            .as_ref()
+                            .map(|v| {
+                                v.iter()
+                                    .any(|m| m.symbol == models::WaypointModifierSymbol::Unstable)
+                            })
+                            .unwrap_or(false)
+                        {
+                            log::warn!("Waypoint {} is unstable", ship.nav.waypoint_symbol);
+                        }
                     }
                 }
             }

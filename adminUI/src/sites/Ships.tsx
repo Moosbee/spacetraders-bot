@@ -14,7 +14,7 @@ import PageTitle from "../features/PageTitle";
 import RoleRenderer from "../features/RoleRenderer/RoleRenderer";
 import Timer from "../features/Timer/Timer";
 import { ShipNavFlightMode, ShipNavStatus, ShipRole } from "../models/api";
-import RustShip, { SystemShipRole, SystemShipRoles } from "../models/ship";
+import RustShip, { SystemShipRoles } from "../models/ship";
 import useMyStore, { backendUrl } from "../store";
 
 function Ships() {
@@ -49,7 +49,7 @@ function Ships() {
         text: role,
         value: role,
       })),
-      render: (role: SystemShipRole, record) => (
+      render: (role: SystemShipRoles, record) => (
         <RoleRenderer role={role} status={record.status} />
       ),
       defaultFilteredValue: [
@@ -67,16 +67,21 @@ function Ships() {
           if (a.status.type === "Mining" && b.status.type === "Mining") {
             const data_a = a.status.data ?? "";
             const data_b = b.status.data ?? "";
-            if (data_a === "Transporter" && data_b === "Transporter") {
+            if (
+              data_a.assignment.type === "Transporter" &&
+              data_b.assignment.type === "Transporter"
+            ) {
               return a.symbol.localeCompare(b.symbol);
             }
             if (
-              (data_a === "Siphoner" && data_b === "Siphoner") ||
-              (data_a === "Extractor" && data_b === "Extractor")
+              (data_a.assignment.type === "Siphoner" &&
+                data_b.assignment.type === "Siphoner") ||
+              (data_a.assignment.type === "Extractor" &&
+                data_b.assignment.type === "Extractor")
             ) {
               return a.nav.waypoint_symbol.localeCompare(b.nav.waypoint_symbol);
             }
-            return data_a.localeCompare(data_b);
+            return data_a.assignment.type.localeCompare(data_b.assignment.type);
           }
           if (a.status.type === "Trader" && b.status.type === "Trader") {
             return a.symbol.localeCompare(b.symbol);

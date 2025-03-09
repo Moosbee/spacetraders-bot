@@ -9,7 +9,7 @@ import {
   Table,
   TableProps,
 } from "antd";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import MoneyDisplay from "../features/MonyDisplay";
 import PageTitle from "../features/PageTitle";
@@ -27,13 +27,21 @@ import {
 import { MarketTrade, MarketTradeGood } from "../models/Market";
 import { ShipTransaction, ShipyardShipType } from "../models/Shipyard";
 import { WaypointResponse } from "../models/SQLWaypoint";
-import { backendUrl } from "../store";
+import useMyStore, { backendUrl } from "../store";
 
 function Waypoint() {
   const { systemID } = useParams();
   const { waypointID } = useParams();
 
   const [waypoint, setWaypoint] = useState<WaypointResponse | null>(null);
+
+  const ships = useMyStore((state) => state.ships);
+
+  const onSystemsShips = useMemo(() => {
+    return Object.values(ships).filter(
+      (ship) => ship.nav.waypoint_symbol === waypointID
+    );
+  }, [waypointID, ships]);
 
   useEffect(() => {
     fetch(`http://${backendUrl}/waypoints/${waypointID}`)
@@ -365,6 +373,9 @@ function Waypoint() {
           Reload
         </Button>
         {waypoint?.shipyard && <a href="#shipyard">Shipyard</a>}
+        {onSystemsShips.map((s) => (
+          <Link to={`/ships/${s.symbol}`}>{s.symbol}</Link>
+        ))}
       </Space>
       <Flex align="stretch" justify="flex-start" gap={24}>
         <Descriptions
@@ -399,59 +410,62 @@ function Waypoint() {
           reasons={{ contract: true, trade_route: true, mining: true }}
         />
       )}
-      <Divider />
-      <Flex align="stretch" justify="space-evenly" gap={24} id="shipyard">
-        <Descriptions
-          bordered
-          column={2}
-          items={[
-            {
-              label: "Shipyard",
-              key: "shipyard",
-              children: (
-                <Space>
-                  {waypoint?.shipyard?.waypoint_symbol}{" "}
-                  <Button
-                    onClick={() => {
-                      fetch(`http://${backendUrl}/waypoints/${waypointID}`)
-                        .then((response) => response.json())
-                        .then((data) => {
-                          console.log("waypoint", data);
+      {(waypoint?.shipyard || waypoint?.ship_types) && <Divider />}
 
-                          setWaypoint(data);
-                        });
-                    }}
-                  >
-                    Reload
-                  </Button>
-                </Space>
-              ),
-            },
-            {
-              label: "Last Updated",
-              key: "last_updated",
-              children: new Date(
-                waypoint?.shipyard?.created_at || ""
-              ).toLocaleString(),
-            },
-            {
-              label: "Modifications Fee",
-              key: "modifications_fee",
-              children: (
-                <MoneyDisplay
-                  amount={waypoint?.shipyard?.modifications_fee || 0}
-                />
-              ),
-            },
-            {
-              label: "Ships",
-              key: "ships",
-              children: waypoint?.ship_types?.length,
-            },
-          ]}
-          // layout="vertical"
-          // size="small"
-        />
+      <Flex align="stretch" justify="space-evenly" gap={24} id="shipyard">
+        {waypoint?.shipyard && (
+          <Descriptions
+            bordered
+            column={2}
+            items={[
+              {
+                label: "Shipyard",
+                key: "shipyard",
+                children: (
+                  <Space>
+                    {waypoint?.shipyard?.waypoint_symbol}{" "}
+                    <Button
+                      onClick={() => {
+                        fetch(`http://${backendUrl}/waypoints/${waypointID}`)
+                          .then((response) => response.json())
+                          .then((data) => {
+                            console.log("waypoint", data);
+
+                            setWaypoint(data);
+                          });
+                      }}
+                    >
+                      Reload
+                    </Button>
+                  </Space>
+                ),
+              },
+              {
+                label: "Last Updated",
+                key: "last_updated",
+                children: new Date(
+                  waypoint?.shipyard?.created_at || ""
+                ).toLocaleString(),
+              },
+              {
+                label: "Modifications Fee",
+                key: "modifications_fee",
+                children: (
+                  <MoneyDisplay
+                    amount={waypoint?.shipyard?.modifications_fee || 0}
+                  />
+                ),
+              },
+              {
+                label: "Ships",
+                key: "ships",
+                children: waypoint?.ship_types?.length,
+              },
+            ]}
+            // layout="vertical"
+            // size="small"
+          />
+        )}
         {waypoint?.ship_types && waypoint.ship_types.length > 0 && (
           <Table
             columns={shipTypesColumns}
@@ -461,7 +475,7 @@ function Waypoint() {
           />
         )}
       </Flex>
-      <Divider />
+      {(waypoint?.shipyard || waypoint?.ship_types) && <Divider />}
       {waypoint?.ships && waypoint.ships.length > 0 && (
         <ShipyardShipTable
           ships={waypoint?.ships}
@@ -491,6 +505,8 @@ function Waypoint() {
         />
       )}
       <Divider />
+      {(waypoint?.ships || waypoint?.ship_types) && <Divider />}
+
       {waypoint?.ship_transactions && waypoint.ship_transactions.length > 0 && (
         <Table
           columns={shipTransactionColumns}
