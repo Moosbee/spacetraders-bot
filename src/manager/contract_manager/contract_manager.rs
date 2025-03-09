@@ -260,11 +260,8 @@ impl ContractManager {
         let all_procurment = contract.terms.deliver.as_ref().unwrap();
 
         let all_procurment = all_procurment
-            .iter()
-            .filter(|p| {
-                let fulfilled = p.units_fulfilled;
-                let required = p.units_required;
-
+            .into_iter()
+            .map(|p| {
                 let running = self
                     .running_shipments
                     .iter()
@@ -275,9 +272,11 @@ impl ContractManager {
                     })
                     .map(|s| s.units)
                     .sum::<i32>();
-                let remaining = required - fulfilled - running;
 
-                remaining > 0
+                let mut p = p.clone();
+                let units_fullfiled = p.units_fulfilled + running;
+                p.units_fulfilled = units_fullfiled.min(p.units_required);
+                p
             })
             .collect::<Vec<_>>();
 
@@ -286,14 +285,14 @@ impl ContractManager {
             return Ok(NextShipmentResp::ComeBackLater);
         }
 
-        let next_procurment = all_procurment[0];
+        let next_procurment = &all_procurment[0];
         debug!("Next procurement task: {:?}", next_procurment);
 
         let trade_symbol = models::TradeSymbol::from_str(&next_procurment.trade_symbol)
             .map_err(|err| Error::General(err.to_string()))?;
 
         let (purchase_volume, remaining) =
-            self.calculate_purchase_volume(&ship_clone, next_procurment, &trade_symbol);
+            self.calculate_purchase_volume(&ship_clone, &next_procurment, &trade_symbol);
         debug!("Calculated purchase volume: {}", purchase_volume);
 
         let purchase_symbol = self.get_purchase_waypoint(&trade_symbol).await?;

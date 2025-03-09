@@ -15,6 +15,71 @@ pub struct ConstructionShipment {
     pub updated_at: sqlx::types::chrono::NaiveDateTime,
     pub status: ShipmentStatus,
 }
+impl ConstructionShipment {
+    pub(crate) async fn insert_new(
+        database_pool: &DbPool,
+        next_shipment: &ConstructionShipment,
+    ) -> sqlx::Result<i64> {
+        let id = sqlx::query!(
+            r#"
+                INSERT INTO construction_shipment (
+                  material_id,
+                  construction_site_waypoint,
+                  ship_symbol,
+                  trade_symbol,
+                  units,
+                  purchase_waypoint,
+                  created_at,
+                  updated_at,
+                  status
+                )
+                VALUES (
+                  $1, $2, $3, $4::trade_symbol, $5, $6, 
+                  NOW(), NOW(), $7::shipment_status
+                )
+                RETURNING id;
+            "#,
+            &next_shipment.material_id,
+            &next_shipment.construction_site_waypoint,
+            &next_shipment.ship_symbol,
+            &next_shipment.trade_symbol as &models::TradeSymbol,
+            &next_shipment.units,
+            &next_shipment.purchase_waypoint,
+            &next_shipment.status as &ShipmentStatus
+        )
+        .fetch_one(&database_pool.database_pool)
+        .await?;
+        Ok(id.id)
+    }
+
+    pub(crate) async fn get_by_id(
+        database_pool: &DbPool,
+        id: i64,
+    ) -> sqlx::Result<Option<ConstructionShipment>> {
+        sqlx::query_as!(
+            ConstructionShipment,
+            r#"
+                SELECT
+                  id,
+                  material_id,
+                  construction_site_waypoint,
+                  ship_symbol,
+                  trade_symbol as "trade_symbol: models::TradeSymbol",
+                  units,
+                  purchase_waypoint,
+                  created_at,
+                  updated_at,
+                  status as "status: ShipmentStatus"
+                FROM construction_shipment
+                WHERE id = $1
+                LIMIT 1
+            "#,
+            id
+        )
+        .fetch_optional(&database_pool.database_pool)
+        .await
+    }
+}
 
 impl DatabaseConnector<ConstructionShipment> for ConstructionShipment {
     async fn insert(database_pool: &DbPool, item: &ConstructionShipment) -> sqlx::Result<()> {

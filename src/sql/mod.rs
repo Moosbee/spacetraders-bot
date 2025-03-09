@@ -32,6 +32,7 @@ mod extraction;
 mod ship_state;
 
 pub use agent::Agent;
+pub use construction_material::ConstructionMaterial;
 pub use construction_shipment::ConstructionShipment;
 pub use contract::Contract;
 pub use contract_delivery::ContractDelivery;
