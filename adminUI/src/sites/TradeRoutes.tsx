@@ -74,7 +74,9 @@ function TradeRoutes() {
       title: "Predicted Purchase Price",
       dataIndex: "predicted_purchase_price",
       key: "predicted_purchase_price",
-      render: (value) => <MoneyDisplay amount={value} />,
+      render: (value, record) => (
+        <MoneyDisplay amount={value * record.trade_volume} />
+      ),
       align: "right",
       sorter: (a, b) => a.predicted_purchase_price - b.predicted_purchase_price,
     },
@@ -82,17 +84,38 @@ function TradeRoutes() {
       title: "Predicted Sell Price",
       dataIndex: "predicted_sell_price",
       key: "predicted_sell_price",
-      render: (value) => <MoneyDisplay amount={value} />,
+      render: (value, record) => (
+        <MoneyDisplay amount={value * record.trade_volume} />
+      ),
       align: "right",
       sorter: (a, b) => a.predicted_sell_price - b.predicted_sell_price,
     },
+    // {
+    //   title: "Sum",
+    //   dataIndex: "sum",
+    //   key: "sum",
+    //   render: (value) => <MoneyDisplay amount={value} />,
+    //   align: "right",
+    //   sorter: (a, b) => a.sum - b.sum,
+    // },
     {
-      title: "Sum",
-      dataIndex: "sum",
-      key: "sum",
-      render: (value) => <MoneyDisplay amount={value} />,
+      title: "Predicted Profit",
+      dataIndex: "",
+      key: "predicted_profit",
+      render: (_, record) => (
+        <MoneyDisplay
+          amount={
+            record.predicted_sell_price * record.trade_volume -
+            record.predicted_purchase_price * record.trade_volume
+          }
+        />
+      ),
       align: "right",
-      sorter: (a, b) => a.sum - b.sum,
+      sorter: (a, b) =>
+        a.predicted_sell_price * a.trade_volume -
+        a.predicted_purchase_price * a.trade_volume -
+        (b.predicted_sell_price * b.trade_volume -
+          b.predicted_purchase_price * b.trade_volume),
     },
     {
       title: "Expenses",
@@ -122,6 +145,54 @@ function TradeRoutes() {
       ),
       align: "right",
       sorter: (a, b) => a.profit - b.profit,
+    },
+    {
+      title: "Delta",
+      dataIndex: "",
+      key: "delta",
+      render: (_, record) => {
+        const predicted_purchase_price =
+          record.predicted_purchase_price * record.trade_volume;
+        const predicted_sell_price =
+          record.predicted_sell_price * record.trade_volume;
+
+        const predicted_profit =
+          predicted_sell_price - predicted_purchase_price;
+        const actual_profit = record.profit;
+
+        const delta = actual_profit - predicted_profit;
+
+        return (
+          <MoneyDisplay
+            amount={delta}
+            // style={{ color: delta < 0 ? "red" : "currentColor" }}
+          />
+        );
+      },
+      align: "right",
+      sorter: (a, b) => {
+        const a_predicted_purchase_price =
+          a.predicted_purchase_price * a.trade_volume;
+        const a_predicted_sell_price = a.predicted_sell_price * a.trade_volume;
+
+        const a_predicted_profit =
+          a_predicted_sell_price - a_predicted_purchase_price;
+        const a_actual_profit = a.profit;
+
+        const a_delta = a_actual_profit - a_predicted_profit;
+
+        const b_predicted_purchase_price =
+          b.predicted_purchase_price * b.trade_volume;
+        const b_predicted_sell_price = b.predicted_sell_price * b.trade_volume;
+
+        const b_predicted_profit =
+          b_predicted_sell_price - b_predicted_purchase_price;
+        const b_actual_profit = b.profit;
+
+        const b_delta = b_actual_profit - b_predicted_profit;
+
+        return a_delta - b_delta;
+      },
     },
   ];
 

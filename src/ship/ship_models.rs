@@ -392,6 +392,11 @@ impl MyShip {
         let ship_info = match db_ship {
             Some(db_ship) => db_ship,
             None => {
+                if self.role == sql::ShipInfoRole::TempTrader {
+                    return Err(crate::error::Error::General(
+                        "Ship was a temp trader".to_string(),
+                    ));
+                }
                 let display_name = if self.display_name.is_empty() {
                     self.symbol.clone()
                 } else {

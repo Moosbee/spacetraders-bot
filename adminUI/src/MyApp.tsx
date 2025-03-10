@@ -6,6 +6,8 @@ import MySider from "./features/mySider";
 import Agent from "./sites/Agent";
 import Agents from "./sites/Agents";
 import BulkActions from "./sites/BulkActions";
+import ConstructionMaterials from "./sites/ConstructionMaterials";
+import ConstructionShipments from "./sites/ConstructionShipments";
 import Contract from "./sites/Contract";
 import Contracts from "./sites/Contracts";
 import ErrorPage from "./sites/ErrorPage";
@@ -17,6 +19,7 @@ import Systems from "./sites/Systems";
 import TradeRoutes from "./sites/TradeRoutes";
 import Waypoint from "./sites/Waypoint";
 import WpMap from "./sites/WaypointMap";
+import WaypointMarketHistory from "./sites/WaypointMarketHistory";
 import Main from "./sites/main";
 import useMyStore from "./store";
 import MessageAntD from "./utils/message";
@@ -69,6 +72,10 @@ function MyApp() {
                       element={<Waypoint />}
                     />
                     <Route
+                      path="/system/:systemID/:waypointID/marketHistory"
+                      element={<WaypointMarketHistory />}
+                    />
+                    <Route
                       path="/map/system/:systemID"
                       element={<WpMap></WpMap>}
                     />
@@ -86,6 +93,15 @@ function MyApp() {
                     />
                     <Route path="/agents/:agentID" element={<Agent />} />
                     <Route path="/agents" element={<Agents />} />
+
+                    <Route
+                      path="/construction/Materials"
+                      element={<ConstructionMaterials />}
+                    />
+                    <Route
+                      path="/construction/shipments"
+                      element={<ConstructionShipments />}
+                    />
 
                     <Route path="*" element={<ErrorPage />} />
                   </Routes>

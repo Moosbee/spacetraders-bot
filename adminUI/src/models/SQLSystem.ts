@@ -1,9 +1,10 @@
 import { SystemType } from "./api";
+import { MarketTrade } from "./Market";
 import { SQLWaypoint } from "./SQLWaypoint";
 
 export interface SystemResp {
   system: SQLSystem;
-  waypoints: SQLWaypoint[];
+  waypoints: { waypoint: SQLWaypoint; trade_goods: MarketTrade[] }[];
 }
 
 export interface SQLSystem {

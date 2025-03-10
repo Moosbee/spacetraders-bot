@@ -151,6 +151,22 @@ impl ConstructionManager {
         &mut self,
         ship_clone: crate::ship::MyShip,
     ) -> std::result::Result<super::NextShipmentResp, crate::error::Error> {
+        let shipments =
+            sql::ConstructionShipment::get_all_in_transit(&self.context.database_pool).await?;
+        let running_shipments = shipments
+            .iter()
+            .filter(|s| s.status == sql::ShipmentStatus::InTransit)
+            .filter(|s| s.ship_symbol == ship_clone.symbol)
+            .collect::<Vec<_>>();
+
+        if !running_shipments.is_empty() {
+            let next_shipment = running_shipments.iter().min_by_key(|s| s.id).unwrap();
+
+            self.running_shipments.push((**next_shipment).clone());
+
+            return Ok(super::NextShipmentResp::Shipment((**next_shipment).clone()));
+        }
+
         let construction_materials =
             sql::ConstructionMaterial::get_unfulfilled(&self.context.database_pool).await?;
 
@@ -194,7 +210,7 @@ impl ConstructionManager {
 
         if let Some(purchase_price) = purchase_symbol.1 {
             debug!("Calculated purchase price: {}", purchase_price);
-            let total_price = (purchase_price * remaining) as i64;
+            let total_price = (purchase_price * (purchase_volume * 2).min(remaining)) as i64;
 
             let budget = self.get_budget().await?;
             debug!("Calculated budget: {}", budget);

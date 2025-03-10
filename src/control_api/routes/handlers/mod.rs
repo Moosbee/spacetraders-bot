@@ -4,6 +4,8 @@ mod ship;
 pub use database::handle_get_agent;
 pub use database::handle_get_agent_history;
 pub use database::handle_get_agents;
+pub use database::handle_get_construction_materials;
+pub use database::handle_get_construction_shipments;
 pub use database::handle_get_contract;
 pub use database::handle_get_contracts;
 pub use database::handle_get_system;

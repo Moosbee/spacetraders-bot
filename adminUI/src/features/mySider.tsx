@@ -8,6 +8,7 @@ import {
   HomeOutlined,
   ReconciliationOutlined,
   RocketOutlined,
+  ShoppingCartOutlined,
   TeamOutlined,
   TruckOutlined,
 } from "@ant-design/icons";
@@ -44,7 +45,7 @@ const items: MenuItem[] = [
   {
     label: <Link to="/tradeRoutes">Trade Routes</Link>,
     key: "tradeRoutes",
-    icon: <TruckOutlined />,
+    icon: <ShoppingCartOutlined />,
   },
   {
     label: <Link to="/transactions/market">Market Transactions</Link>,
@@ -57,16 +58,25 @@ const items: MenuItem[] = [
     icon: <GlobalOutlined />,
   },
   {
+    label: <Link to="/agents">Agents</Link>,
+    key: "agents",
+    icon: <ContactsOutlined />,
+  },
+  {
+    label: <Link to="/construction/Materials">Constructions</Link>,
+    key: "construction/Materials",
+    icon: <FaIcon type="regular" icon="fa-person-digging" />,
+  },
+  {
+    label: <Link to="/construction/shipments">Construction Shipments</Link>,
+    key: "construction/shipments",
+    icon: <TruckOutlined />,
+  },
+  {
     label: "Overview",
     key: "Overview",
     icon: <AppstoreOutlined />,
     children: [
-      {
-        label: <Link to="/agents">Agents</Link>,
-        key: "agents",
-        icon: <ContactsOutlined />,
-      },
-
       {
         label: <Link to="/factions">Factions</Link>,
         key: "factions",

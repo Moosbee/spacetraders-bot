@@ -24,6 +24,7 @@ import {
   ShipType,
   SupplyLevel,
 } from "../models/api";
+import { ConstructionMaterial } from "../models/Construction";
 import { MarketTrade, MarketTradeGood } from "../models/Market";
 import { ShipTransaction, ShipyardShipType } from "../models/Shipyard";
 import { WaypointResponse } from "../models/SQLWaypoint";
@@ -352,6 +353,36 @@ function Waypoint() {
     },
   ];
 
+  const constructionMaterialColumns: TableProps<ConstructionMaterial>["columns"] =
+    [
+      {
+        title: "Trade Symbol",
+        dataIndex: "trade_symbol",
+        key: "trade_symbol",
+        sorter: (a, b) => a.trade_symbol.localeCompare(b.trade_symbol),
+      },
+      {
+        title: "Required",
+        dataIndex: "required",
+        key: "required",
+        sorter: (a, b) => a.required - b.required,
+      },
+      {
+        title: "Fulfilled",
+        dataIndex: "fulfilled",
+        key: "fulfilled",
+        sorter: (a, b) => a.fulfilled - b.fulfilled,
+      },
+      {
+        title: "Last Updated",
+        dataIndex: "updated_at",
+        key: "updated_at",
+        render: (date: string) => new Date(date).toLocaleString(),
+        sorter: (a, b) =>
+          new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime(),
+      },
+    ];
+
   return (
     <div style={{ padding: "24px 24px" }}>
       <PageTitle title={`Waypoint ${waypointID}`} />
@@ -373,6 +404,11 @@ function Waypoint() {
           Reload
         </Button>
         {waypoint?.shipyard && <a href="#shipyard">Shipyard</a>}
+        {waypoint?.trade_good_history && (
+          <Link to={`/system/${systemID}/${waypointID}/marketHistory`}>
+            Market History
+          </Link>
+        )}
         {onSystemsShips.map((s) => (
           <Link to={`/ships/${s.symbol}`}>{s.symbol}</Link>
         ))}
@@ -393,17 +429,29 @@ function Waypoint() {
             size="small"
           />
         )}
-        {waypoint?.market_trade_goods &&
-          waypoint.market_trade_goods.length > 0 && (
+        <Flex vertical gap={24}>
+          {waypoint?.market_trade_goods &&
+            waypoint.market_trade_goods.length > 0 && (
+              <Table
+                columns={marketTradeGoodsColumns}
+                dataSource={waypoint?.market_trade_goods}
+                rowKey={(symbol) => symbol.symbol + symbol.waypoint_symbol}
+                size="small"
+              />
+            )}
+          {waypoint?.constructions && waypoint.constructions.length > 0 && (
             <Table
-              columns={marketTradeGoodsColumns}
-              dataSource={waypoint?.market_trade_goods}
-              rowKey={(symbol) => symbol.symbol + symbol.waypoint_symbol}
+              columns={constructionMaterialColumns}
+              dataSource={waypoint?.constructions}
+              rowKey={(symbol) => symbol.trade_symbol + symbol.waypoint_symbol}
               size="small"
             />
           )}
+        </Flex>
       </Flex>
-      <Divider />
+      {waypoint?.transactions && waypoint.transactions.length > 0 && (
+        <Divider />
+      )}
       {waypoint?.transactions && waypoint.transactions.length > 0 && (
         <TransactionTable
           transactions={waypoint?.transactions || []}

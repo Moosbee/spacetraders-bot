@@ -67,8 +67,22 @@ pub async fn handle_get_waypoints(context: ConductorContext) -> Result<impl Repl
         .await
         .map_err(ServerError::Database)?;
 
+    let mut waypoints_data = vec![];
+
+    for waypoint in &waypoints {
+        let trade_goods =
+            sql::MarketTradeGood::get_last_by_waypoint(&context.database_pool, &waypoint.symbol)
+                .await
+                .map_err(ServerError::Database)?;
+
+        waypoints_data.push(serde_json::json!({
+            "waypoint": waypoint,
+            "trade_goods": trade_goods,
+        }));
+    }
+
     debug!("Got {} waypoints", waypoints.len());
-    Ok(warp::reply::json(&waypoints))
+    Ok(warp::reply::json(&waypoints_data))
 }
 
 pub async fn handle_get_waypoint(symbol: String, context: ConductorContext) -> Result<impl Reply> {
@@ -78,7 +92,22 @@ pub async fn handle_get_waypoint(symbol: String, context: ConductorContext) -> R
         .map_err(ServerError::Database)?
         .ok_or(ServerError::NotFound)?;
 
-    let (market_trades, market_trade_goods, transactions) = if waypoint.is_marketplace() {
+    let constructions = {
+        let construction_material =
+            sql::ConstructionMaterial::get_by_waypoint(&context.database_pool, &symbol)
+                .await
+                .map_err(ServerError::Database)?;
+
+        if construction_material.is_empty() {
+            None
+        } else {
+            Some(construction_material)
+        }
+    };
+
+    let (market_trades, market_trade_goods, transactions, trade_good_history) = if waypoint
+        .is_marketplace()
+    {
         let market_trades = sql::MarketTrade::get_last_by_waypoint(&context.database_pool, &symbol)
             .await
             .map_err(ServerError::Database)?;
@@ -92,19 +121,27 @@ pub async fn handle_get_waypoint(symbol: String, context: ConductorContext) -> R
             .await
             .map_err(ServerError::Database)?;
 
+        let trade_good_history =
+            sql::MarketTradeGood::get_by_waypoint(&context.database_pool, &symbol)
+                .await
+                .map_err(ServerError::Database)?;
+
         debug!(
-            "Got {} market_trades and {} market_trade_goods",
+            "Got {} market_trades and {} market_trade_goods and {} transactions and {} trade good history",
             market_trades.len(),
-            market_trade_goods.len()
+            market_trade_goods.len(),
+            transactions.len(),
+            trade_good_history.len(),
         );
 
         (
             Some(market_trades),
             Some(market_trade_goods),
             Some(transactions),
+            Some(trade_good_history),
         )
     } else {
-        (None, None, None)
+        (None, None, None, None)
     };
 
     let (shipyard, ship_types, ships, ship_transactions) = if waypoint.is_shipyard() {
@@ -143,14 +180,36 @@ pub async fn handle_get_waypoint(symbol: String, context: ConductorContext) -> R
 
     Ok(warp::reply::json(&serde_json::json!({
         "waypoint":waypoint,
+        "constructions":constructions,
         "market_trades":market_trades,
         "market_trade_goods":market_trade_goods,
         "transactions":transactions,
+        "trade_good_history":trade_good_history,
         "shipyard":shipyard,
         "ship_types":ship_types,
         "ships":ships,
         "ship_transactions":ship_transactions
     })))
+}
+
+pub async fn handle_get_construction_materials(context: ConductorContext) -> Result<impl Reply> {
+    debug!("Getting all construction materials");
+
+    let construction_materials = sql::ConstructionMaterial::get_summary(&context.database_pool)
+        .await
+        .map_err(ServerError::Database)?;
+
+    Ok(warp::reply::json(&construction_materials))
+}
+
+pub async fn handle_get_construction_shipments(context: ConductorContext) -> Result<impl Reply> {
+    debug!("Getting all construction shipments");
+
+    let construction_shipments = sql::ConstructionShipment::get_summary(&context.database_pool)
+        .await
+        .map_err(ServerError::Database)?;
+
+    Ok(warp::reply::json(&construction_shipments))
 }
 
 pub async fn handle_get_systems(context: ConductorContext) -> Result<impl Reply> {
@@ -174,10 +233,24 @@ pub async fn handle_get_system(symbol: String, context: ConductorContext) -> Res
         .await
         .map_err(ServerError::Database)?;
 
-    debug!("Got {} waypoints", waypoints.len());
+    let mut waypoints_data = vec![];
+
+    for waypoint in &waypoints {
+        let trade_goods =
+            sql::MarketTradeGood::get_last_by_waypoint(&context.database_pool, &waypoint.symbol)
+                .await
+                .map_err(ServerError::Database)?;
+
+        waypoints_data.push(serde_json::json!({
+            "waypoint": waypoint,
+            "trade_goods": trade_goods,
+        }));
+    }
+
+    debug!("Got {} waypoints", waypoints_data.len());
     Ok(warp::reply::json(&serde_json::json!({
         "system": system,
-        "waypoints":waypoints
+        "waypoints":waypoints_data
     })))
 }
 

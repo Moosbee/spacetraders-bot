@@ -20,7 +20,7 @@ pub(crate) fn build_api_routes(
         .and(with_context(context.clone()))
         .and_then(handlers::handle_get_ships);
 
-    // Ships routes
+    // Ship routes
     let ship_buy = warp::path!("ship" / "buy")
         .and(warp::path::end())
         .and(warp::post())
@@ -80,6 +80,19 @@ pub(crate) fn build_api_routes(
         .and(warp::get())
         .and(with_context(context.clone()))
         .and_then(handlers::handle_get_contract);
+
+    // Construction routes
+    let construction_materials = warp::path!("construction" / "materials")
+        .and(warp::path::end())
+        .and(warp::get())
+        .and(with_context(context.clone()))
+        .and_then(handlers::handle_get_construction_materials);
+
+    let construction_shipments = warp::path!("construction" / "shipments")
+        .and(warp::path::end())
+        .and(warp::get())
+        .and(with_context(context.clone()))
+        .and_then(handlers::handle_get_construction_shipments);
 
     // Transaction routes
     let transactions = warp::path("transactions")
@@ -158,6 +171,8 @@ pub(crate) fn build_api_routes(
         .or(trade_routes)
         .or(contract)
         .or(contracts)
+        .or(construction_materials)
+        .or(construction_shipments)
         .or(transactions)
         .or(waypoint)
         .or(waypoints)

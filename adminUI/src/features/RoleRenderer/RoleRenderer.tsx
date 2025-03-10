@@ -81,9 +81,26 @@ const RoleRenderer = ({
     return null;
   };
 
+  const renderConstruction = () => {
+    if (status.type === "Construction" && status.data !== null) {
+      return (
+        <span>
+          {status.data.shipment_id} ({status.data.cycle})
+          <br />
+          {status.data.shipping_status}
+        </span>
+      );
+    }
+    return null;
+  };
+
   return (
     <div>
-      <span>{role}</span> {renderContract() || renderTrader() || renderMining()}
+      <span>{role}</span>{" "}
+      {renderContract() ||
+        renderTrader() ||
+        renderMining() ||
+        renderConstruction()}
     </div>
   );
 };

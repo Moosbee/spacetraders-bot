@@ -153,7 +153,7 @@ impl ConstructionPilot {
             &waypoints,
             &self.context.api,
             self.context.database_pool.clone(),
-            sql::TransactionReason::None, //todo fix
+            sql::TransactionReason::Construction(shipment.id),
         )
         .await?;
 
@@ -203,7 +203,7 @@ impl ConstructionPilot {
                 &shipment.trade_symbol,
                 units_needed,
                 &self.context.database_pool,
-                sql::TransactionReason::None, //todo fix
+                sql::TransactionReason::Construction(shipment.id),
             )
             .await?;
 
@@ -236,7 +236,7 @@ impl ConstructionPilot {
             &waypoints,
             &self.context.api,
             self.context.database_pool.clone(),
-            sql::TransactionReason::None, //todo fix
+            sql::TransactionReason::Construction(shipment.id),
         )
         .await?;
 

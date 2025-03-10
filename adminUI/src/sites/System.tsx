@@ -3,6 +3,7 @@ import {
   Descriptions,
   Divider,
   Flex,
+  Popover,
   Space,
   Table,
   TableProps,
@@ -11,11 +12,13 @@ import { Link, useParams } from "react-router-dom";
 import PageTitle from "../features/PageTitle";
 import WaypointLink from "../features/WaypointLink";
 import {
+  MarketTradeGoodTypeEnum,
+  TradeSymbol,
   WaypointModifierSymbol,
   WaypointTraitSymbol,
   WaypointType,
 } from "../models/api";
-import { SQLSystem } from "../models/SQLSystem";
+import { SQLSystem, SystemResp } from "../models/SQLSystem";
 import { SQLWaypoint } from "../models/SQLWaypoint";
 import useMyStore, { backendUrl } from "../store";
 
@@ -49,9 +52,21 @@ function System() {
           onClick={() => {
             fetch(`http://${backendUrl}/systems/${systemID}`)
               .then((response) => response.json())
-              .then((data) => {
+              .then((data: SystemResp) => {
                 const system = data.system;
-                const waypoints = data.waypoints;
+                const waypoints_date = data.waypoints;
+                const waypoints = waypoints_date.map((waypoint) => {
+                  const sql_wp = waypoint.waypoint;
+
+                  sql_wp.trade_goods = waypoint.trade_goods.map((good) => {
+                    return {
+                      symbol: good.symbol,
+                      type: good.type,
+                    };
+                  });
+
+                  return sql_wp;
+                });
                 setWaypoints(system, waypoints);
               });
           }}
@@ -137,12 +152,12 @@ function System() {
       title: "Orbitals",
       dataIndex: "orbitals",
       key: "orbitals",
-      render: (orbitals: string[]) =>
+      render: (orbitals: string[], record) =>
         orbitals.length > 0 ? (
           <Flex gap={1} vertical>
             {orbitals.map((symbol) => (
               <WaypointLink waypoint={symbol} key={symbol}>
-                {symbol}
+                {symbol.replace(record.system_symbol + "-", "")}
               </WaypointLink>
             ))}
           </Flex>
@@ -155,9 +170,11 @@ function System() {
       title: "Orbits",
       dataIndex: "orbits",
       key: "orbits",
-      render: (orbits) =>
+      render: (orbits: string, record) =>
         orbits ? (
-          <WaypointLink waypoint={orbits}>{orbits}</WaypointLink>
+          <WaypointLink waypoint={orbits}>
+            {orbits.replace(record.system_symbol + "-", "")}
+          </WaypointLink>
         ) : (
           "N/A"
         ), // Display "N/A" if undefined
@@ -177,7 +194,7 @@ function System() {
       render: (traits) => (
         <Flex gap={1} vertical>
           {traits.map((trait: WaypointTraitSymbol) => (
-            <span>{trait}</span>
+            <span key={trait}>{trait}</span>
           ))}
         </Flex>
       ), // List names of traits
@@ -196,7 +213,7 @@ function System() {
         modifiers && modifiers.length > 0 ? (
           <span>
             {modifiers?.map((modifier: WaypointModifierSymbol) => (
-              <span>{modifier}</span>
+              <span key={modifier}>{modifier}</span>
             ))}
           </span>
         ) : (
@@ -209,6 +226,73 @@ function System() {
       })),
       onFilter: (value, record) =>
         record.modifiers?.some((m) => m === value) ?? false,
+    },
+    {
+      title: "Trade Goods",
+      dataIndex: "trade_goods",
+      key: "trade_goods",
+      render: (
+        trade_goods:
+          | {
+              symbol: TradeSymbol;
+              type: MarketTradeGoodTypeEnum;
+            }[]
+          | undefined
+      ) =>
+        trade_goods && trade_goods.length > 0 ? (
+          <>
+            {/* <Flex gap={1} vertical>
+              {trade_goods.map((trade_good) => (
+                <span>
+                  {trade_good.type.slice(0, 3)} {trade_good.symbol}
+                </span>
+              ))}
+            </Flex> */}
+            <Popover
+              content={
+                <Flex gap={1} vertical>
+                  {trade_goods.map((trade_good) => (
+                    <span key={trade_good.symbol}>
+                      {trade_good.type.slice(0, 3)} {trade_good.symbol}
+                    </span>
+                  ))}
+                </Flex>
+              }
+            >
+              <Flex gap={1} vertical>
+                {trade_goods.filter((t) => t.type === "EXCHANGE").length >
+                  0 && (
+                  <span>
+                    EXCHANGE{" "}
+                    {trade_goods.filter((t) => t.type === "EXCHANGE").length}
+                  </span>
+                )}
+                {trade_goods.filter((t) => t.type === "IMPORT").length > 0 && (
+                  <span>
+                    IMPORT{" "}
+                    {trade_goods.filter((t) => t.type === "IMPORT").length}
+                  </span>
+                )}
+                {trade_goods.filter((t) => t.type === "EXPORT").length > 0 && (
+                  <span>
+                    EXPORT{" "}
+                    {trade_goods.filter((t) => t.type === "EXPORT").length}
+                  </span>
+                )}
+              </Flex>
+            </Popover>
+          </>
+        ) : (
+          "None"
+        ),
+      sorter: (a, b) =>
+        (a.trade_goods?.length ?? 0) - (b.trade_goods?.length ?? 0),
+      filters: Object.values(TradeSymbol).map((trade_good) => ({
+        text: trade_good,
+        value: trade_good,
+      })),
+      onFilter: (value, record) =>
+        record.trade_goods?.some((t) => t.symbol === value) ?? false,
     },
     {
       title: "Chart by",
@@ -249,6 +333,7 @@ function System() {
       </Space>
       <Divider />
       <Table
+        size="small"
         columns={columns}
         dataSource={Waypoints || []}
         rowKey={(row) => row.symbol}

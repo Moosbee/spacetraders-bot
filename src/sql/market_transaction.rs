@@ -28,6 +28,7 @@ pub struct MarketTransaction {
     pub contract: Option<String>,
     pub trade_route: Option<i32>,
     pub mining: Option<String>,
+    pub construction: Option<i64>,
 }
 
 #[derive(Clone, Debug, PartialEq, Default, serde::Serialize, serde::Deserialize)]
@@ -35,6 +36,7 @@ pub enum TransactionReason {
     Contract(String),
     TradeRoute(i32),
     MiningWaypoint(String),
+    Construction(i64),
     #[default]
     None,
 }
@@ -66,6 +68,13 @@ impl MarketTransaction {
                 mining: Some(waypoint),
                 ..self
             },
+            TransactionReason::Construction(construction) => MarketTransaction {
+                contract: None,
+                trade_route: None,
+                mining: None,
+                construction: Some(construction),
+                ..self
+            },
         }
     }
 
@@ -84,6 +93,9 @@ impl MarketTransaction {
             TransactionReason::MiningWaypoint(waypoint) => {
                 MarketTransaction::get_by_mining_waypoint(database_pool, &waypoint).await
             }
+            TransactionReason::Construction(construction) => {
+                MarketTransaction::get_by_construction(database_pool, construction).await
+            }
         }
     }
 
@@ -101,7 +113,8 @@ impl MarketTransaction {
         "timestamp",
         contract,
         trade_route,
-        mining
+        mining,
+        construction
       from market_transaction
       where contract = $1
     "#,
@@ -125,7 +138,8 @@ impl MarketTransaction {
         "timestamp",
         contract,
         trade_route,
-        mining
+        mining,
+        construction
       from market_transaction
       where trade_route = $1
     "#,
@@ -152,7 +166,8 @@ impl MarketTransaction {
         "timestamp",
         contract,
         trade_route,
-        mining
+        mining,
+        construction
       from market_transaction
       where mining = $1
     "#,
@@ -179,11 +194,40 @@ impl MarketTransaction {
         "timestamp",
         contract,
         trade_route,
-        mining
+        mining,
+        construction
       from market_transaction
       where waypoint_symbol = $1
     "#,
             waypoint
+        )
+        .fetch_all(&database_pool.database_pool)
+        .await
+    }
+
+    async fn get_by_construction(
+        database_pool: &DbPool,
+        construction: i64,
+    ) -> Result<Vec<MarketTransaction>, sqlx::Error> {
+        sqlx::query_as!(
+            MarketTransaction,
+            r#"
+      select 
+        waypoint_symbol,
+        ship_symbol,trade_symbol as "trade_symbol: models::TradeSymbol",
+        "type" as "type: models::market_transaction::Type",
+        units,
+        price_per_unit,
+        total_price,
+        "timestamp",
+        contract,
+        trade_route,
+        mining,
+        construction
+      from market_transaction
+      where construction = $1
+    "#,
+            construction
         )
         .fetch_all(&database_pool.database_pool)
         .await
@@ -227,6 +271,7 @@ impl TryFrom<models::MarketTransaction> for MarketTransaction {
             contract: None,
             trade_route: None,
             mining: None,
+            construction: None,
         })
     }
 }
@@ -235,8 +280,8 @@ impl DatabaseConnector<MarketTransaction> for MarketTransaction {
     async fn insert(database_pool: &DbPool, item: &MarketTransaction) -> sqlx::Result<()> {
         sqlx::query!(
         r#"
-            INSERT INTO market_transaction (waypoint_symbol, ship_symbol, trade_symbol, "type", units, price_per_unit, total_price, "timestamp", contract, trade_route, mining)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+            INSERT INTO market_transaction (waypoint_symbol, ship_symbol, trade_symbol, "type", units, price_per_unit, total_price, "timestamp", contract, trade_route, mining, construction)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
             ON CONFLICT (waypoint_symbol, ship_symbol, trade_symbol, "timestamp") DO UPDATE
             SET units = EXCLUDED.units,
             price_per_unit = EXCLUDED.price_per_unit,
@@ -252,7 +297,8 @@ impl DatabaseConnector<MarketTransaction> for MarketTransaction {
         item.timestamp,
         item.contract,
         item.trade_route,
-        item.mining
+        item.mining,
+        item.construction
     )
     .execute(&database_pool.database_pool)
     .await?;
@@ -276,6 +322,7 @@ impl DatabaseConnector<MarketTransaction> for MarketTransaction {
             t_contract,
             t_trade_route,
             t_mining,
+            t_construction,
         ): (
             Vec<String>,
             Vec<String>,
@@ -288,6 +335,7 @@ impl DatabaseConnector<MarketTransaction> for MarketTransaction {
             Vec<Option<String>>,
             Vec<Option<i32>>,
             Vec<Option<String>>,
+            Vec<Option<i64>>,
         ) = itertools::multiunzip(items.iter().map(|item| {
             (
                 item.waypoint_symbol.clone(),
@@ -301,12 +349,13 @@ impl DatabaseConnector<MarketTransaction> for MarketTransaction {
                 item.contract.clone(),
                 item.trade_route.clone(),
                 item.mining.clone(),
+                item.construction.clone(),
             )
         }));
 
         sqlx::query!(
         r#"
-            INSERT INTO market_transaction (waypoint_symbol, ship_symbol,trade_symbol, "type", units, price_per_unit, total_price, "timestamp", contract, trade_route, mining)
+            INSERT INTO market_transaction (waypoint_symbol, ship_symbol,trade_symbol, "type", units, price_per_unit, total_price, "timestamp", contract, trade_route, mining, construction)
               SELECT * FROM UNNEST(
                 $1::character varying[],
                 $2::character varying[],
@@ -318,7 +367,8 @@ impl DatabaseConnector<MarketTransaction> for MarketTransaction {
                 $8::timestamp[],
                 $9::character varying[],
                 $10::integer[],
-                $11::character varying[]
+                $11::character varying[],
+                $12::bigint[]
             )
             ON CONFLICT (waypoint_symbol, ship_symbol, trade_symbol, "timestamp") DO UPDATE
             SET units = EXCLUDED.units,
@@ -335,7 +385,9 @@ impl DatabaseConnector<MarketTransaction> for MarketTransaction {
         &t_timestamp,
         &t_contract as &[Option<String>],
         &t_trade_route as &[Option<i32>],
-        &t_mining as &[Option<String>]
+        &t_mining as &[Option<String>],
+        &t_construction as &[Option<i64>]
+
     )
     .execute(&database_pool.database_pool)
     .await?;
@@ -357,7 +409,8 @@ impl DatabaseConnector<MarketTransaction> for MarketTransaction {
         "timestamp",
         contract,
         trade_route,
-        mining
+        mining,
+        construction
       from market_transaction
     "#,
         )

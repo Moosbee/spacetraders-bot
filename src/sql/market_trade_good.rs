@@ -2,7 +2,6 @@ use space_traders_client::models;
 
 use super::{DatabaseConnector, DbPool};
 
-
 #[derive(Debug, Clone, sqlx::FromRow, PartialEq, Eq, serde::Serialize)]
 pub struct MarketTradeGood {
     pub symbol: models::TradeSymbol,
@@ -163,6 +162,34 @@ impl DatabaseConnector<MarketTradeGood> for MarketTradeGood {
 }
 
 impl MarketTradeGood {
+    pub async fn get_by_waypoint(
+        database_pool: &DbPool,
+        waypoint_symbol: &str,
+    ) -> sqlx::Result<Vec<MarketTradeGood>> {
+        sqlx::query_as!(
+            MarketTradeGood,
+            r#"
+            SELECT
+                created_at,
+                created,
+                waypoint_symbol,
+                symbol as "symbol: models::TradeSymbol",
+                "type" as "type: models::market_trade_good::Type",
+                trade_volume,
+                supply as "supply: models::SupplyLevel",
+                activity as "activity: models::ActivityLevel",
+                purchase_price,
+                sell_price
+            FROM public.market_trade_good
+            WHERE waypoint_symbol = $1
+            ORDER BY created DESC
+        "#,
+            waypoint_symbol,
+        )
+        .fetch_all(&database_pool.database_pool)
+        .await
+    }
+
     pub async fn get_last_by_waypoint(
         database_pool: &DbPool,
         waypoint_symbol: &str,

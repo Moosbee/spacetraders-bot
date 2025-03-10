@@ -381,13 +381,13 @@ impl MiningManager {
             match erg {
                 Ok(_) => {}
                 Err(err) => match err {
-                    crate::manager::mining_manager::transfer_manager::Error::TransporterDropped { symbol, from, to } => log::error!(
+                    crate::manager::mining_manager::transfer_manager::Error::TransporterDropped { symbol, from, to } => log::warn!(
                         "Transporter dropped: {} from {} to {}",
                         symbol,
                         from,
                         to
                     ),
-                    crate::manager::mining_manager::transfer_manager::Error::ExtractorDropped { symbol, from, to } => log::error!(
+                    crate::manager::mining_manager::transfer_manager::Error::ExtractorDropped { symbol, from, to } => log::warn!(
                         "Extractor dropped: {} from {} to {}",
                         symbol,
                         from,

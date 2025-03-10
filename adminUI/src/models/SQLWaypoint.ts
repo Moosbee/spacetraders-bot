@@ -1,9 +1,12 @@
 import {
   FactionSymbol,
+  MarketTradeGoodTypeEnum,
+  TradeSymbol,
   WaypointModifierSymbol,
   WaypointTraitSymbol,
   WaypointType,
 } from "./api";
+import { ConstructionMaterial } from "./Construction";
 import { MarketTrade, MarketTradeGood } from "./Market";
 import {
   ShipTransaction,
@@ -29,12 +32,18 @@ export interface SQLWaypoint {
   x: number;
   y: number;
   unstable_since?: string;
+  trade_goods?: {
+    symbol: TradeSymbol;
+    type: MarketTradeGoodTypeEnum;
+  }[];
 }
 
 export interface WaypointResponse {
   market_trade_goods?: MarketTradeGood[];
   market_trades?: MarketTrade[];
   transactions?: Transaction[];
+  constructions?: ConstructionMaterial[];
+  trade_good_history?: MarketTradeGood[];
   ship_transactions?: ShipTransaction[];
   ship_types?: ShipyardShipType[];
   ships?: ShipyardShip[];

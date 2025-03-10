@@ -3,16 +3,29 @@ use space_traders_client::models;
 
 use super::{DatabaseConnector, DbPool};
 
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
 pub struct ConstructionMaterial {
     pub id: i64,
     pub waypoint_symbol: String,
     pub trade_symbol: models::TradeSymbol,
     pub required: i32,
     pub fulfilled: i32,
-    #[allow(dead_code)]
     pub created_at: NaiveDateTime,
-    #[allow(dead_code)]
     pub updated_at: NaiveDateTime,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+pub struct ConstructionMaterialSummary {
+    pub id: i64,
+    pub waypoint_symbol: String,
+    pub trade_symbol: models::TradeSymbol,
+    pub required: i32,
+    pub fulfilled: i32,
+    pub created_at: NaiveDateTime,
+    pub updated_at: NaiveDateTime,
+    pub sum: Option<i32>,
+    pub expenses: Option<i32>,
+    pub income: Option<i32>,
 }
 
 impl ConstructionMaterial {
@@ -26,6 +39,30 @@ impl ConstructionMaterial {
             created_at: Utc::now().naive_utc(),
             updated_at: Utc::now().naive_utc(),
         }
+    }
+
+    pub async fn get_by_waypoint(
+        database_pool: &DbPool,
+        waypoint_symbol: &str,
+    ) -> sqlx::Result<Vec<ConstructionMaterial>> {
+        sqlx::query_as!(
+            ConstructionMaterial,
+            r#"
+        SELECT
+          id,
+          waypoint_symbol,
+          trade_symbol as "trade_symbol: models::TradeSymbol",
+          required,
+          fulfilled,
+          created_at,
+          updated_at
+        FROM construction_material
+        WHERE waypoint_symbol = $1
+      "#,
+            waypoint_symbol
+        )
+        .fetch_all(&database_pool.database_pool)
+        .await
     }
 
     pub async fn get_unfulfilled(
@@ -44,6 +81,47 @@ impl ConstructionMaterial {
           updated_at
         FROM construction_material
         WHERE fulfilled < required
+      "#
+        )
+        .fetch_all(&database_pool.database_pool)
+        .await
+    }
+
+    pub(crate) async fn get_summary(
+        database_pool: &DbPool,
+    ) -> sqlx::Result<Vec<ConstructionMaterialSummary>> {
+        sqlx::query_as!(
+            ConstructionMaterialSummary,
+            r#"
+              SELECT
+                CONSTRUCTION_MATERIAL.ID,
+                CONSTRUCTION_MATERIAL.WAYPOINT_SYMBOL,
+                CONSTRUCTION_MATERIAL.TRADE_SYMBOL AS "trade_symbol: models::TradeSymbol",
+                CONSTRUCTION_MATERIAL.REQUIRED,
+                CONSTRUCTION_MATERIAL.FULFILLED,
+                CONSTRUCTION_MATERIAL.CREATED_AT,
+                CONSTRUCTION_MATERIAL.UPDATED_AT,
+                SUM(MARKET_TRANSACTION.TOTAL_PRICE) AS "sum: i32",
+                SUM(
+                  CASE
+                    WHEN MARKET_TRANSACTION.TYPE = 'PURCHASE' THEN MARKET_TRANSACTION.TOTAL_PRICE
+                    ELSE 0
+                  END
+                ) AS "expenses: i32",
+                SUM(
+                  CASE
+                    WHEN MARKET_TRANSACTION.TYPE = 'PURCHASE' THEN 0
+                    ELSE MARKET_TRANSACTION.TOTAL_PRICE
+                  END
+                ) AS "income: i32"
+              FROM
+                CONSTRUCTION_MATERIAL
+                LEFT JOIN PUBLIC.CONSTRUCTION_SHIPMENT ON CONSTRUCTION_SHIPMENT.MATERIAL_ID = CONSTRUCTION_MATERIAL.ID
+                LEFT JOIN PUBLIC.MARKET_TRANSACTION ON CONSTRUCTION_SHIPMENT.ID = MARKET_TRANSACTION.CONSTRUCTION
+              GROUP BY
+                CONSTRUCTION_MATERIAL.ID
+              ORDER BY
+                CONSTRUCTION_MATERIAL.ID ASC;
       "#
         )
         .fetch_all(&database_pool.database_pool)

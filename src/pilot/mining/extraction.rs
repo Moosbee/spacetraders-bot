@@ -342,38 +342,38 @@ impl ExtractionPilot {
                             erg.data.events
                         );
 
-                        let new_wp = self
-                            .context
-                            .api
-                            .get_waypoint(&ship.nav.system_symbol, &ship.nav.waypoint_symbol)
-                            .await?;
+                        // let new_wp = self
+                        //     .context
+                        //     .api
+                        //     .get_waypoint(&ship.nav.system_symbol, &ship.nav.waypoint_symbol)
+                        //     .await?;
 
-                        if new_wp
-                            .data
-                            .modifiers
-                            .as_ref()
-                            .map(|v| {
-                                v.iter().any(|m| {
-                                    m.symbol == models::WaypointModifierSymbol::CriticalLimit
-                                })
-                            })
-                            .unwrap_or(false)
-                        {
-                            log::warn!("Waypoint {} has critical limit", ship.nav.waypoint_symbol);
-                        }
+                        // if new_wp
+                        //     .data
+                        //     .modifiers
+                        //     .as_ref()
+                        //     .map(|v| {
+                        //         v.iter().any(|m| {
+                        //             m.symbol == models::WaypointModifierSymbol::CriticalLimit
+                        //         })
+                        //     })
+                        //     .unwrap_or(false)
+                        // {
+                        //     log::warn!("Waypoint {} has critical limit", ship.nav.waypoint_symbol);
+                        // }
 
-                        if new_wp
-                            .data
-                            .modifiers
-                            .as_ref()
-                            .map(|v| {
-                                v.iter()
-                                    .any(|m| m.symbol == models::WaypointModifierSymbol::Unstable)
-                            })
-                            .unwrap_or(false)
-                        {
-                            log::warn!("Waypoint {} is unstable", ship.nav.waypoint_symbol);
-                        }
+                        // if new_wp
+                        //     .data
+                        //     .modifiers
+                        //     .as_ref()
+                        //     .map(|v| {
+                        //         v.iter()
+                        //             .any(|m| m.symbol == models::WaypointModifierSymbol::Unstable)
+                        //     })
+                        //     .unwrap_or(false)
+                        // {
+                        //     log::warn!("Waypoint {} is unstable", ship.nav.waypoint_symbol);
+                        // }
                     }
                 }
             }
