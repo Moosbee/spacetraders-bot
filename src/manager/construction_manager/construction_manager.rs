@@ -4,7 +4,7 @@ use std::{
 };
 
 use chrono::Utc;
-use log::debug;
+use log::{debug, info};
 use space_traders_client::models;
 
 use crate::{
@@ -189,6 +189,7 @@ impl ConstructionManager {
             .collect::<Vec<_>>();
 
         if construction_materials.is_empty() {
+            info!("No more constructions");
             return Ok(super::NextShipmentResp::ComeBackLater);
         }
 

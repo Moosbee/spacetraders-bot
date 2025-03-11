@@ -26,7 +26,8 @@
                 "Contract",
                 "Scraper",
                 "Mining",
-                "Manuel"
+                "Manuel",
+                "TempTrader"
               ]
             }
           }
@@ -50,7 +51,8 @@
                 "Contract",
                 "Scraper",
                 "Mining",
-                "Manuel"
+                "Manuel",
+                "TempTrader"
               ]
             }
           }

@@ -229,7 +229,7 @@ impl MyShip {
         self.mutate();
         let old_units = self.cargo.get_amount(&trade_symbol);
         if old_units < units {
-            return Err("Not enough cargo".into());
+            return Err("Not enough cargo to transfer".into());
         }
         let transfer_result: space_traders_client::models::TransferCargo200Response = api
             .transfer_cargo(
@@ -375,7 +375,7 @@ impl super::ship_models::CargoState {
     ) -> Result<(), crate::error::Error> {
         debug!("Handling cargo update: {:?} {:?}", units, trade_symbol);
         let current_count = self.inventory.iter().map(|f| f.1).sum::<i32>();
-        if !(current_count == self.units) {
+        if !((current_count + units) > self.units) {
             return Err("Not enough cargo".into());
         };
 

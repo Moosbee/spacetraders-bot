@@ -1,14 +1,22 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n                INSERT INTO construction_shipment (\n                  material_id,\n                  construction_site_waypoint,\n                  ship_symbol,\n                  trade_symbol,\n                  units,\n                  purchase_waypoint,\n                  created_at,\n                  updated_at,\n                  status\n                )\n                VALUES (\n                  $1, $2, $3, $4::trade_symbol, $5, $6, \n                  NOW(), NOW(), $7::shipment_status\n                )\n                ON CONFLICT (id) DO UPDATE SET\n                  material_id = EXCLUDED.material_id,\n                  construction_site_waypoint = EXCLUDED.construction_site_waypoint,\n                  ship_symbol = EXCLUDED.ship_symbol,\n                  trade_symbol = EXCLUDED.trade_symbol,\n                  units = EXCLUDED.units,\n                  purchase_waypoint = EXCLUDED.purchase_waypoint,\n                  updated_at = NOW(),\n                  status = EXCLUDED.status;\n            ",
+  "query": "\n      select \n        waypoint_symbol,\n        ship_symbol,trade_symbol as \"trade_symbol: models::TradeSymbol\",\n        \"type\" as \"type: models::market_transaction::Type\",\n        units,\n        price_per_unit,\n        total_price,\n        \"timestamp\",\n        contract,\n        trade_route,\n        mining,\n        construction\n      from market_transaction\n    ",
   "describe": {
-    "columns": [],
-    "parameters": {
-      "Left": [
-        "Int8",
-        "Varchar",
-        "Varchar",
-        {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "waypoint_symbol",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "ship_symbol",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "trade_symbol: models::TradeSymbol",
+        "type_info": {
           "Custom": {
             "name": "trade_symbol",
             "kind": {
@@ -159,24 +167,81 @@
               ]
             }
           }
-        },
-        "Int4",
-        "Varchar",
-        {
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "type: models::market_transaction::Type",
+        "type_info": {
           "Custom": {
-            "name": "shipment_status",
+            "name": "market_transaction_type",
             "kind": {
               "Enum": [
-                "IN_TRANSIT",
-                "FAILED",
-                "DELIVERED"
+                "PURCHASE",
+                "SELL"
               ]
             }
           }
         }
-      ]
+      },
+      {
+        "ordinal": 4,
+        "name": "units",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 5,
+        "name": "price_per_unit",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 6,
+        "name": "total_price",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 7,
+        "name": "timestamp",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 8,
+        "name": "contract",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 9,
+        "name": "trade_route",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 10,
+        "name": "mining",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 11,
+        "name": "construction",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": []
     },
-    "nullable": []
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true
+    ]
   },
-  "hash": "e5e3bef6dbea24963646cd7fe17c11654239705748aa41c47f780e8c8c958768"
+  "hash": "64b60c5844767473fdf07896b076cf5d1658306e96265f8f844b6cb728b57546"
 }

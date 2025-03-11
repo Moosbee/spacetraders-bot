@@ -132,7 +132,7 @@ function ShipControl({ ship }: { ship: RustShip }) {
                 value={waypointSymbol}
                 onChange={setWaypointSymbol}
                 style={{ minWidth: "8rem" }}
-                options={waypoints.map((w) => ({
+                options={(waypoints || []).map((w) => ({
                   label: w.symbol,
                   value: w.symbol,
                 }))}

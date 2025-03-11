@@ -1,13 +1,32 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            INSERT INTO market_transaction (waypoint_symbol, ship_symbol, trade_symbol, \"type\", units, price_per_unit, total_price, \"timestamp\", contract, trade_route, mining)\n            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)\n            ON CONFLICT (waypoint_symbol, ship_symbol, trade_symbol, \"timestamp\") DO UPDATE\n            SET units = EXCLUDED.units,\n            price_per_unit = EXCLUDED.price_per_unit,\n            total_price = EXCLUDED.total_price\n        ",
+  "query": "\n                SELECT\n                  id,\n                  material_id,\n                  construction_site_waypoint,\n                  construction_shipment.ship_symbol,\n                  construction_shipment.trade_symbol as \"trade_symbol: models::TradeSymbol\",\n                  construction_shipment.units,\n                  purchase_waypoint,\n                  construction_shipment.created_at,\n                  construction_shipment.updated_at,\n                  status as \"status: ShipmentStatus\",\n                  sum(market_transaction.total_price) as \"sum: i32\",\n                  sum(\n                    CASE\n                      WHEN market_transaction.type = 'PURCHASE' THEN market_transaction.total_price\n                      ELSE 0\n                    END\n                  ) as \"expenses: i32\",\n                  sum(\n                    CASE\n                      WHEN market_transaction.type = 'PURCHASE' THEN 0\n                      ELSE market_transaction.total_price\n                    END\n                  ) as \"income: i32\"\n                FROM \n                  public.construction_shipment \n                  left join public.market_transaction ON market_transaction.construction = construction_shipment.id\n                group by\n                  id\n                ORDER BY\n                  id ASC;\n            ",
   "describe": {
-    "columns": [],
-    "parameters": {
-      "Left": [
-        "Varchar",
-        "Varchar",
-        {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "material_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "construction_site_waypoint",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "ship_symbol",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "trade_symbol: models::TradeSymbol",
+        "type_info": {
           "Custom": {
             "name": "trade_symbol",
             "kind": {
@@ -158,28 +177,78 @@
               ]
             }
           }
-        },
-        {
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "units",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 6,
+        "name": "purchase_waypoint",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 7,
+        "name": "created_at",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 8,
+        "name": "updated_at",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 9,
+        "name": "status: ShipmentStatus",
+        "type_info": {
           "Custom": {
-            "name": "market_transaction_type",
+            "name": "shipment_status",
             "kind": {
               "Enum": [
-                "PURCHASE",
-                "SELL"
+                "IN_TRANSIT",
+                "FAILED",
+                "DELIVERED"
               ]
             }
           }
-        },
-        "Int4",
-        "Int4",
-        "Int4",
-        "Timestamp",
-        "Varchar",
-        "Int4",
-        "Varchar"
-      ]
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "sum: i32",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 11,
+        "name": "expenses: i32",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 12,
+        "name": "income: i32",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": []
     },
-    "nullable": []
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      null,
+      null,
+      null
+    ]
   },
-  "hash": "d28e7efea6448a1c5938fd4a3dc77ec0972ebcb620ae861e7032f534bb199b9b"
+  "hash": "3f8ead524ac1adb505ab511113fd8274060b60b249d67ff27d7424cd7183f31d"
 }

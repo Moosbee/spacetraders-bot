@@ -158,6 +158,7 @@ CREATE TYPE contract_type AS ENUM ('PROCUREMENT', 'TRANSPORT', 'SHUTTLE');
 CREATE TYPE ship_info_role AS ENUM (
   'Construction',
   'Trader',
+  'TempTrader',
   'Contract',
   'Scraper',
   'Mining',
