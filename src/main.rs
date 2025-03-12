@@ -12,6 +12,7 @@ mod manager;
 mod pilot;
 mod rate_limiter;
 mod types;
+mod utils;
 
 use std::{
     collections::{HashMap, HashSet},
@@ -25,9 +26,13 @@ use config::CONFIG;
 use dashmap::DashMap;
 use env_logger::{Env, Target};
 use manager::{
-    construction_manager::ConstructionManager, contract_manager::ContractManager,
-    mining_manager::MiningManager, scrapping_manager::ScrappingManager, ship_task::ShipTaskHandler,
-    trade_manager::TradeManager, Manager,
+    construction_manager::ConstructionManager,
+    contract_manager::ContractManager,
+    mining_manager::MiningManager,
+    scrapping_manager::{update_system, ScrappingManager},
+    ship_task::ShipTaskHandler,
+    trade_manager::TradeManager,
+    Manager,
 };
 use rsntp::AsyncSntpClient;
 use ship::ShipManager;
@@ -112,23 +117,10 @@ async fn setup_context(
     for system_symbol in system_symbols {
         let db_system = sql::System::get_by_id(&database_pool, &system_symbol).await?;
         let waypoints = sql::Waypoint::get_by_system(&database_pool, &system_symbol).await?;
-        if db_system.is_none() {
-            let system_resp = api.get_system(&system_symbol).await?;
-            let system = sql::System::from(&*system_resp.data);
-            sql::System::insert(&database_pool, &system).await?;
-        }
 
-        if waypoints.is_empty() {
+        if db_system.is_none() || waypoints.is_empty() {
             // some systems have no waypoints, but we likely won't have ships there
-            let waypoints = api.get_all_waypoints(&system_symbol, 20).await?;
-            sql::Waypoint::insert_bulk(
-                &database_pool,
-                &waypoints
-                    .iter()
-                    .map(sql::Waypoint::from)
-                    .collect::<Vec<_>>(),
-            )
-            .await?;
+            update_system(&database_pool, &api, &system_symbol, true).await?;
         }
         let waypoints = sql::Waypoint::get_by_system(&database_pool, &system_symbol).await?;
 

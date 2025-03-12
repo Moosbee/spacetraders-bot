@@ -36,7 +36,11 @@ function Ships() {
       dataIndex: "symbol",
       key: "symbol",
       defaultSortOrder: "ascend",
-      render: (symbol) => <Link to={`/ships/${symbol}`}>{symbol}</Link>,
+      render: (symbol) => (
+        <>
+          <Link to={`/ships/${symbol}`}>{symbol}</Link> ({})
+        </>
+      ),
       sorter: (a, b) =>
         Number.parseInt(a.symbol.split("-")[1], 16) -
         Number.parseInt(b.symbol.split("-")[1], 16),

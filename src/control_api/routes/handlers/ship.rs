@@ -6,8 +6,10 @@ use warp::reply::Reply;
 use crate::{
     control_api::types::{Result, ServerError},
     error,
+    manager::scrapping_manager::update_system,
     sql::{self, DatabaseConnector},
     types::ConductorContext,
+    utils::get_system_symbol,
 };
 
 pub async fn handle_get_ships(context: ConductorContext) -> Result<impl Reply> {
@@ -170,10 +172,12 @@ pub async fn handle_buy_ship(
         .await
         .map_err(|err| ServerError::Server(err.to_string()))?;
 
-    context.ship_tasks.start_ship(ship_info).await;
+    context.ship_tasks.start_ship(ship_info.clone()).await;
 
     Ok(warp::reply::json(&serde_json::json!({
         "success": true,
+        "shipSymbol": ship_info.symbol,
+        "transaction": transaction
     })))
 }
 
@@ -228,6 +232,61 @@ pub async fn handle_purchase_cargo_ship(
         "shipSymbol": symbol,
         "tradeSymbol": trade_symbol,
         "units": units
+    })))
+}
+
+pub async fn handle_jump_ship(
+    symbol: String,
+    body: serde_json::Value,
+    context: ConductorContext,
+) -> crate::control_api::types::Result<impl Reply> {
+    let mut ship_guard = context
+        .ship_manager
+        .try_get_mut(&symbol)
+        .await
+        .ok_or_else(|| ServerError::BadRequest("Ship was locked".into()))?;
+
+    let ship = ship_guard
+        .value_mut()
+        .ok_or_else(|| ServerError::BadRequest("Ship not found".into()))?;
+
+    if ship.role != sql::ShipInfoRole::Manuel {
+        return Err(ServerError::BadRequest("Ship not in Manuel mode".into()).into());
+    }
+
+    let waypoint_symbol = body["waypointSymbol"]
+        .as_str()
+        .map(|s| s.to_string())
+        .ok_or(ServerError::BadRequest("Missing waypointSymbol".into()))?;
+
+    let waypoint = sql::Waypoint::get_by_symbol(&context.database_pool, &waypoint_symbol)
+        .await
+        .map_err(|err| ServerError::Database(err))?;
+
+    if waypoint.is_none() {
+        let system_symbol = get_system_symbol(&waypoint_symbol);
+        update_system(&context.database_pool, &context.api, &system_symbol, true)
+            .await
+            .map_err(|err| ServerError::Server(err.to_string()))?;
+    }
+
+    ship.ensure_undocked(&context.api)
+        .await
+        .map_err(ServerError::from)?;
+
+    ship.jump(
+        &context.api,
+        &waypoint_symbol,
+        &context.database_pool,
+        sql::TransactionReason::None,
+    )
+    .await
+    .map_err(ServerError::from)?;
+
+    Ok(warp::reply::json(&serde_json::json!({
+        "success": true,
+        "shipSymbol": symbol,
+        "waypointSymbol": waypoint_symbol,
     })))
 }
 

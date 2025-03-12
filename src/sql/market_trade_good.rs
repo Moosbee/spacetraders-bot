@@ -270,4 +270,34 @@ impl MarketTradeGood {
         .fetch_all(&database_pool.database_pool)
         .await
     }
+
+    pub(crate) async fn get_last_by_system(
+        database_pool: &DbPool,
+        system_symbol: &str,
+    ) -> sqlx::Result<Vec<MarketTradeGood>> {
+        let row = sqlx::query_as!(
+            MarketTradeGood,
+            r#"
+        SELECT DISTINCT ON (waypoint_symbol)
+            market_trade_good.created_at,
+            market_trade_good.created,
+            market_trade_good.waypoint_symbol,
+            market_trade_good.symbol as "symbol: models::TradeSymbol",
+            market_trade_good."type" as "type: models::market_trade_good::Type",
+            market_trade_good.trade_volume,
+            market_trade_good.supply as "supply: models::SupplyLevel",
+            market_trade_good.activity as "activity: models::ActivityLevel",
+            market_trade_good.purchase_price,
+            market_trade_good.sell_price
+        FROM public.market_trade_good left join public.waypoint ON waypoint.symbol = market_trade_good.waypoint_symbol
+        WHERE waypoint.system_symbol = $1
+        ORDER BY waypoint_symbol, created DESC
+        "#,
+            system_symbol
+        )
+        .fetch_all(&database_pool.database_pool)
+        .await?;
+
+        Ok(row)
+    }
 }

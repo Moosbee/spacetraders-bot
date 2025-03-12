@@ -10,3 +10,4 @@ pub use scrapping_manager::ScrappingManager;
 pub use scrapping_manager::ScrappingManagerMessanger;
 pub use shipyard_scrapper::update_shipyard;
 pub use system_scrapper::update_all_systems;
+pub use system_scrapper::update_system;

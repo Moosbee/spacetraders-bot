@@ -35,6 +35,13 @@ pub(crate) fn build_api_routes(
         .and(with_context(context.clone()))
         .and_then(handlers::handle_navigate_ship);
 
+    let ship_jump = warp::path!("ship" / String / "jump")
+        .and(warp::path::end())
+        .and(warp::post())
+        .and(warp::body::json())
+        .and(with_context(context.clone()))
+        .and_then(handlers::handle_jump_ship);
+
     let ship_toggle_orbit = warp::path!("ship" / String / "toggleOrbit")
         .and(warp::path::end())
         .and(warp::post())
@@ -164,6 +171,7 @@ pub(crate) fn build_api_routes(
     let routes = ships
         .or(ship_buy)
         .or(ship_navigation)
+        .or(ship_jump)
         .or(ship_toggle_orbit)
         .or(ship_purchase_cargo)
         .or(ship_toggle_activation)

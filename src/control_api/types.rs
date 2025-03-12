@@ -36,6 +36,43 @@ pub enum ServerError {
     APIError { status: u16, message: String },
 }
 
+impl From<crate::error::Error> for ServerError {
+    fn from(value: crate::error::Error) -> Self {
+        match value {
+            crate::error::Error::Database(error) => ServerError::Database(error),
+            crate::error::Error::Reqwest(error) => ServerError::APIError {
+                status: error.status().map(|s| s.as_u16()).unwrap_or(500),
+                message: error.to_string(),
+            },
+            crate::error::Error::ReqwestMiddleware(error) => ServerError::APIError {
+                status: error.status().map(|s| s.as_u16()).unwrap_or(500),
+                message: error.to_string(),
+            },
+            crate::error::Error::Serde(error) => ServerError::Server(error.to_string()),
+            crate::error::Error::Io(error) => ServerError::Server(error.to_string()),
+            crate::error::Error::APIError {
+                status,
+                msg,
+                code,
+                message,
+            } => ServerError::APIError {
+                status: status.as_u16(),
+                message: msg
+                    + &code.map_or(String::new(), |c| format!(" ({c})"))
+                    + &message.map_or(String::new(), |m| format!(": {m}")),
+            },
+            crate::error::Error::NotEnoughFunds {
+                remaining_funds,
+                required_funds,
+            } => ServerError::Server(format!(
+                "Not enough funds: {} {}",
+                remaining_funds, required_funds
+            )),
+            crate::error::Error::General(_) => ServerError::Server(value.to_string()),
+        }
+    }
+}
+
 impl<T: Clone> From<space_traders_client::apis::Error<T>> for ServerError {
     fn from(value: space_traders_client::apis::Error<T>) -> Self {
         match value {

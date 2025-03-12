@@ -1,29 +1,34 @@
 use std::time::Duration;
 
 use chrono::NaiveDateTime;
-use log::{debug, info};
+use log::{debug, info, warn};
 use space_traders_client::models;
 use tokio::time::sleep;
 
 use crate::{
     config::CONFIG,
-    sql::DatabaseConnector,
+    sql::{self, DatabaseConnector},
     types::{ConductorContext, WaypointCan},
 };
 
-pub struct ShipyardScrapper {
+use super::ScrappingManager;
+
+pub struct ShipyardScrapper<'a> {
     cancel_token: tokio_util::sync::CancellationToken,
     context: ConductorContext,
+    scrapping_manager: &'a ScrappingManager,
 }
 
-impl ShipyardScrapper {
+impl<'a> ShipyardScrapper<'a> {
     pub fn new(
         cancel_token: tokio_util::sync::CancellationToken,
         context: ConductorContext,
+        scrapping_manager: &'a ScrappingManager,
     ) -> Self {
         Self {
             cancel_token,
             context,
+            scrapping_manager,
         }
     }
     pub async fn run_scrapping_worker(&self) -> crate::error::Result<()> {
@@ -51,8 +56,7 @@ impl ShipyardScrapper {
             let shipyards = self.get_all_shipyards().await?;
 
             info!("shipyards: {:?}", shipyards.len());
-            self.update_shipyards(&self.context.database_pool, shipyards)
-                .await?;
+            self.update_shipyards(shipyards).await?;
         }
 
         info!("shipyard scrapping workers done");
@@ -61,29 +65,53 @@ impl ShipyardScrapper {
     }
 
     async fn get_all_shipyards(&self) -> crate::error::Result<Vec<models::Shipyard>> {
-        let future_shipyards = self
-            .context
-            .all_waypoints
-            .iter()
-            .flat_map(|f| f.clone().into_iter())
-            .map(|w| w.1.clone())
-            .filter(|w| w.is_shipyard())
-            .map(|w| {
+        let systems = self.scrapping_manager.get_system().await;
+        let mut shipyard_handles = tokio::task::JoinSet::new();
+
+        for system in systems {
+            let waypoints =
+                sql::Waypoint::get_by_system(&self.context.database_pool, &system).await?;
+            for waypoint in waypoints.iter().filter(|w| w.is_shipyard()) {
                 let api = self.context.api.clone();
-                let w = w.clone();
-                tokio::spawn(async move {
-                    debug!("shipyard: {}", w.symbol);
-                    api.get_shipyard(&w.system_symbol, &w.symbol).await.unwrap()
-                })
-            })
-            .collect::<Vec<_>>();
+                let waypoint = waypoint.clone();
+                shipyard_handles.spawn(async move {
+                    debug!("Shipyard: {}", waypoint.symbol);
+                    loop {
+                        let shipyard = api
+                            .get_shipyard(&waypoint.system_symbol, &waypoint.symbol)
+                            .await;
+                        match shipyard {
+                            Ok(shipyard) => {
+                                break *shipyard.data;
+                            }
+                            Err(e) => {
+                                warn!("Shipyard: {} Error: {}", waypoint.symbol, e);
+                                sleep(Duration::from_millis(500)).await;
+                            }
+                        }
+                    }
+                });
+            }
+        }
 
         let mut shipyards = Vec::new();
-
-        for shipyard in future_shipyards {
-            let shipyard_data = shipyard.await.unwrap().data;
-            debug!("shipyard: {:?}", shipyard_data.symbol);
-            shipyards.push(*shipyard_data);
+        while let Some(shipyard_data) = shipyard_handles.join_next().await {
+            debug!(
+                "Shipyard: {} {}",
+                shipyard_data.is_ok(),
+                shipyard_data
+                    .as_ref()
+                    .map(|m| m.symbol.clone())
+                    .unwrap_or("Error".to_string())
+            );
+            match shipyard_data {
+                Ok(shipyard) => {
+                    shipyards.push(shipyard);
+                }
+                Err(e) => {
+                    warn!("Shipyard: Error: {}", e);
+                }
+            }
         }
 
         Ok(shipyards)
@@ -91,7 +119,6 @@ impl ShipyardScrapper {
 
     async fn update_shipyards(
         &self,
-        database_pool: &crate::sql::DbPool,
         shipyards: Vec<models::Shipyard>,
     ) -> Result<(), crate::error::Error> {
         for shipyard in shipyards {

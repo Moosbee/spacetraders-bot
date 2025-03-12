@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use log::{debug, info};
+use log::{debug, info, warn};
 use space_traders_client::models;
 use tokio::time::sleep;
 
@@ -10,19 +10,24 @@ use crate::{
     types::{ConductorContext, WaypointCan},
 };
 
-pub struct MarketScrapper {
+use super::ScrappingManager;
+
+pub struct MarketScrapper<'a> {
     cancel_token: tokio_util::sync::CancellationToken,
     context: ConductorContext,
+    scrapping_manager: &'a ScrappingManager,
 }
 
-impl MarketScrapper {
+impl<'a> MarketScrapper<'a> {
     pub fn new(
         cancel_token: tokio_util::sync::CancellationToken,
         context: ConductorContext,
+        scrapping_manager: &'a ScrappingManager,
     ) -> Self {
         Self {
             cancel_token,
             context,
+            scrapping_manager,
         }
     }
     pub async fn run_scrapping_worker(&self) -> crate::error::Result<()> {
@@ -59,29 +64,61 @@ impl MarketScrapper {
     }
 
     async fn get_all_markets(&self) -> crate::error::Result<Vec<models::Market>> {
-        let future_markets = self
-            .context
-            .all_waypoints
-            .iter()
-            .flat_map(|f| f.clone().into_iter())
-            .map(|w| w.1.clone())
-            .filter(|w| w.is_marketplace())
-            .map(|w| {
+        let systems = self.scrapping_manager.get_system().await;
+
+        debug!("Scrapping Systems: {}", systems.len());
+
+        let mut market_handles = tokio::task::JoinSet::new();
+
+        for system in systems {
+            let waypoints =
+                sql::Waypoint::get_by_system(&self.context.database_pool, &system).await?;
+
+            for waypoint in waypoints.iter().filter(|w| w.is_marketplace()) {
                 let api = self.context.api.clone();
-                let w = w.clone();
-                tokio::spawn(async move {
-                    debug!("Market: {}", w.symbol);
-                    api.get_market(&w.system_symbol, &w.symbol).await.unwrap()
-                })
-            })
-            .collect::<Vec<_>>();
+                let waypoint = waypoint.clone();
+                market_handles.spawn(async move {
+                    debug!("Market: {}", waypoint.symbol);
+
+                    loop {
+                        let market = api
+                            .get_market(&waypoint.system_symbol, &waypoint.symbol)
+                            .await;
+
+                        match market {
+                            Ok(market) => {
+                                break *market.data;
+                            }
+                            Err(e) => {
+                                warn!("Market: {} Error: {}", waypoint.symbol, e);
+                                sleep(Duration::from_millis(500)).await;
+                            }
+                        }
+                    }
+                });
+            }
+        }
 
         let mut markets = Vec::new();
 
-        for market in future_markets {
-            let market_data = market.await.unwrap().data;
-            debug!("Market: {:?}", market_data.symbol);
-            markets.push(*market_data);
+        while let Some(market_data) = market_handles.join_next().await {
+            debug!(
+                "Market: {} {}",
+                market_data.is_ok(),
+                market_data
+                    .as_ref()
+                    .map(|m| m.symbol.clone())
+                    .unwrap_or("Error".to_string())
+            );
+
+            match market_data {
+                Ok(market) => {
+                    markets.push(market);
+                }
+                Err(e) => {
+                    warn!("Market: Error: {}", e);
+                }
+            }
         }
 
         Ok(markets)

@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{collections::HashSet, time::Duration};
 
 use log::{error, info};
 
@@ -51,11 +51,13 @@ impl ScrappingManager {
         let market_scrapper = market_scrapper::MarketScrapper::new(
             self.cancel_token.child_token(),
             self.context.clone(),
+            &self,
         );
 
         let shipyard_scrapper = super::shipyard_scrapper::ShipyardScrapper::new(
             self.cancel_token.child_token(),
             self.context.clone(),
+            &self,
         );
 
         let (erg1, erg2, erg3) = tokio::join!(
@@ -78,6 +80,18 @@ impl ScrappingManager {
         info!("ScrappingManager done");
 
         Ok(())
+    }
+
+    pub async fn get_system(&self) -> Vec<String> {
+        let systems = self
+            .context
+            .ship_manager
+            .get_all_clone()
+            .await
+            .iter()
+            .map(|s| s.1.nav.system_symbol.clone())
+            .collect::<HashSet<_>>();
+        systems.into_iter().collect()
     }
 }
 

@@ -1,6 +1,7 @@
 import {
   Button,
   Descriptions,
+  Input,
   InputNumber,
   Select,
   Space,
@@ -20,7 +21,11 @@ function ShipControl({ ship }: { ship: RustShip }) {
 
   const setShip = useMyStore((state) => state.setShip);
 
-  const [waypointSymbol, setWaypointSymbol] = useState<string>(
+  const [navWaypointSymbol, setNavWaypointSymbol] = useState<string>(
+    ship.nav.waypoint_symbol
+  );
+
+  const [jumpWaypointSymbol, setJumpWaypointSymbol] = useState<string>(
     ship.nav.waypoint_symbol
   );
 
@@ -129,8 +134,8 @@ function ShipControl({ ship }: { ship: RustShip }) {
             <Space>
               <Select
                 disabled={!(ship.role == "Manuel")}
-                value={waypointSymbol}
-                onChange={setWaypointSymbol}
+                value={navWaypointSymbol}
+                onChange={setNavWaypointSymbol}
                 style={{ minWidth: "8rem" }}
                 options={(waypoints || []).map((w) => ({
                   label: w.symbol,
@@ -142,21 +147,63 @@ function ShipControl({ ship }: { ship: RustShip }) {
                 disabled={
                   !(
                     ship.role == "Manuel" &&
-                    waypointSymbol !== "" &&
-                    waypointSymbol !== ship.nav.waypoint_symbol
+                    navWaypointSymbol !== "" &&
+                    navWaypointSymbol !== ship.nav.waypoint_symbol
                   )
                 }
                 onClick={() => {
                   fetch(`http://${backendUrl}/ship/${ship.symbol}/navigate`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ waypointSymbol: waypointSymbol }),
+                    body: JSON.stringify({ waypointSymbol: navWaypointSymbol }),
                   })
                     .then((response) => response.json())
                     .then((data) => {
                       console.log("denden", data);
                       message.success(
-                        `Started navigation to ${waypointSymbol}`
+                        `Started navigation to ${navWaypointSymbol}`
+                      );
+                    });
+                }}
+              >
+                Navigate
+              </Button>
+            </Space>
+          ),
+        },
+        {
+          label: "Jump",
+          key: "Jump",
+          span: 2,
+          children: (
+            <Space>
+              <Input
+                disabled={!(ship.role == "Manuel")}
+                value={jumpWaypointSymbol}
+                onChange={(e) => setJumpWaypointSymbol(e.target.value)}
+                style={{ minWidth: "8rem" }}
+              />
+              <Button
+                disabled={
+                  !(
+                    ship.role == "Manuel" &&
+                    jumpWaypointSymbol !== "" &&
+                    jumpWaypointSymbol !== ship.nav.waypoint_symbol
+                  )
+                }
+                onClick={() => {
+                  fetch(`http://${backendUrl}/ship/${ship.symbol}/jump`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      waypointSymbol: jumpWaypointSymbol,
+                    }),
+                  })
+                    .then((response) => response.json())
+                    .then((data) => {
+                      console.log("denden", data);
+                      message.success(
+                        `Started jumped to ${jumpWaypointSymbol}`
                       );
                     });
                 }}

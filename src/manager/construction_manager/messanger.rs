@@ -30,9 +30,12 @@ impl ConstructionManagerMessanger {
             .await
             .map_err(|e| crate::error::Error::General(format!("Failed to send message: {}", e)))?;
 
-        let resp = callback
-            .await
-            .map_err(|e| crate::error::Error::General(format!("Failed to get message: {}", e)))??;
+        let resp = callback.await.map_err(|e| {
+            crate::error::Error::General(format!(
+                "Failed to get construction next_shipment message: {}",
+                e
+            ))
+        })??;
 
         Ok(resp)
     }
@@ -54,9 +57,12 @@ impl ConstructionManagerMessanger {
             .await
             .map_err(|e| crate::error::Error::General(format!("Failed to send message: {}", e)))?;
 
-        let resp = callback
-            .await
-            .map_err(|e| crate::error::Error::General(format!("Failed to get message: {}", e)))?;
+        let resp = callback.await.map_err(|e| {
+            crate::error::Error::General(format!(
+                "Failed to get construction fail_shipment message: {}",
+                e
+            ))
+        })?;
 
         Ok(resp)
     }

@@ -29,6 +29,7 @@ import { MarketTrade, MarketTradeGood } from "../models/Market";
 import { ShipTransaction, ShipyardShipType } from "../models/Shipyard";
 import { WaypointResponse } from "../models/SQLWaypoint";
 import useMyStore, { backendUrl } from "../store";
+import { message } from "../utils/antdMessage";
 
 function Waypoint() {
   const { systemID } = useParams();
@@ -539,9 +540,28 @@ function Waypoint() {
               }),
             })
               .then((response) => response.json())
-              .then((data) => {
-                console.log("Brought Ship", data);
-              })
+              .then(
+                (data: {
+                  shipSymbol: string;
+                  success: boolean;
+                  transaction: {
+                    agent_symbol: string;
+                    price: number;
+                    ship_type: ShipType;
+                    timestamp: string;
+                    waypoint_symbol: string;
+                  };
+                }) => {
+                  console.log("Brought Ship", data);
+                  message.success(
+                    "Brought a " +
+                      data.shipSymbol +
+                      " for " +
+                      data.transaction.price +
+                      "$"
+                  );
+                }
+              )
               .then(() => fetch(`http://${backendUrl}/waypoints/${waypointID}`))
               .then((response) => response.json())
               .then((data) => {

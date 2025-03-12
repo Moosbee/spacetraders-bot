@@ -17,26 +17,42 @@ pub async fn update_all_systems(
     .await?;
 
     for system in &all_systems {
-        let waypoints = loop {
-            debug!("Getting waypoints for system {}", system.symbol);
-            let waypoints = api.get_all_waypoints(&system.symbol, 20).await;
-            match waypoints {
-                Ok(waypoints) => break waypoints,
-                Err(e) => {
-                    log::error!("Error getting waypoints: {}", e);
-                    std::thread::sleep(std::time::Duration::from_millis(1000));
-                }
-            }
-        };
-        sql::Waypoint::insert_bulk(
-            &database_pool,
-            &waypoints
-                .iter()
-                .map(sql::Waypoint::from)
-                .collect::<Vec<_>>(),
-        )
-        .await?;
+        update_system(database_pool, api, &system.symbol, false).await?;
     }
+
+    Ok(())
+}
+
+pub async fn update_system(
+    database_pool: &sql::DbPool,
+    api: &Api,
+    system_symbol: &str,
+    also_system: bool,
+) -> crate::error::Result<()> {
+    if also_system {
+        let system = api.get_system(system_symbol).await?;
+        sql::System::insert(&database_pool, &sql::System::from(&*system.data)).await?;
+    }
+
+    let waypoints = loop {
+        debug!("Getting waypoints for system {}", system_symbol);
+        let waypoints = api.get_all_waypoints(&system_symbol, 20).await;
+        match waypoints {
+            Ok(waypoints) => break waypoints,
+            Err(e) => {
+                log::error!("Error getting waypoints: {}", e);
+                std::thread::sleep(std::time::Duration::from_millis(1000));
+            }
+        }
+    };
+    sql::Waypoint::insert_bulk(
+        &database_pool,
+        &waypoints
+            .iter()
+            .map(sql::Waypoint::from)
+            .collect::<Vec<_>>(),
+    )
+    .await?;
 
     Ok(())
 }

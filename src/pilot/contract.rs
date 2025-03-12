@@ -127,9 +127,9 @@ impl ContractPilot {
             .await
             .map_err(|e| Error::General(format!("Failed to send message: {}", e)))?;
 
-        let resp = receiver
-            .await
-            .map_err(|e| Error::General(format!("Failed to get message: {}", e)))?;
+        let resp = receiver.await.map_err(|e| {
+            Error::General(format!("Failed to get contract request message: {}", e))
+        })?;
 
         debug!("Got response: {:?}", resp);
 
@@ -154,7 +154,7 @@ impl ContractPilot {
 
         let resp = receiver
             .await
-            .map_err(|e| Error::General(format!("Failed to get message: {}", e)))?;
+            .map_err(|e| Error::General(format!("Failed to get contract fail message: {}", e)))?;
 
         debug!("Got response: {:?}", resp);
 

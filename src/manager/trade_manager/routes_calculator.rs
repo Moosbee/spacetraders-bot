@@ -7,7 +7,7 @@ use crate::{
     config::CONFIG,
     error::Error,
     ship::{self, nav_models::Cache},
-    sql::{self, DatabaseConnector},
+    sql,
     types::ConductorContext,
 };
 
@@ -43,7 +43,7 @@ impl RouteCalculator {
         running_routes: &RoutesTracker,
     ) -> Result<sql::TradeRoute, Error> {
         debug!("Getting new best route");
-        let (trade_goods, market_trade) = self.fetch_market_data().await?;
+        let (trade_goods, market_trade) = self.fetch_market_data(&ship.nav.system_symbol).await?;
 
         let possible_trades = self.gen_all_possible_trades(&trade_goods, &market_trade);
 
@@ -74,9 +74,14 @@ impl RouteCalculator {
 
     async fn fetch_market_data(
         &self,
+        system_symbol: &str,
     ) -> Result<(Vec<sql::MarketTradeGood>, Vec<sql::MarketTrade>), Error> {
-        let trade_goods = sql::MarketTradeGood::get_last(&self.context.database_pool).await?;
-        let market_trade = sql::MarketTrade::get_last(&self.context.database_pool).await?;
+        let trade_goods =
+            sql::MarketTradeGood::get_last_by_system(&self.context.database_pool, system_symbol)
+                .await?;
+        let market_trade =
+            sql::MarketTrade::get_last_by_system(&self.context.database_pool, system_symbol)
+                .await?;
         Ok((trade_goods, market_trade))
     }
 

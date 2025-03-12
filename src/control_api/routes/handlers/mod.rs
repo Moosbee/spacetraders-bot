@@ -17,6 +17,7 @@ pub use database::handle_get_waypoints;
 pub use ship::handle_buy_ship;
 pub use ship::handle_change_role;
 pub use ship::handle_get_ships;
+pub use ship::handle_jump_ship;
 pub use ship::handle_navigate_ship;
 pub use ship::handle_purchase_cargo_ship;
 pub use ship::handle_toggle_activation;

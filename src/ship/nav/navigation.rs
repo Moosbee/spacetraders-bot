@@ -1,4 +1,7 @@
-use crate::error::{self, Result};
+use crate::{
+    error::{self, Result},
+    sql,
+};
 use chrono::{DateTime, TimeDelta, Utc};
 use log::{debug, warn};
 use space_traders_client::{apis, models};
@@ -261,6 +264,42 @@ impl MyShip {
         self.notify().await;
 
         core::result::Result::Ok(nav_data)
+    }
+
+    pub async fn jump(
+        &mut self,
+        api: &api::Api,
+        waypoint_symbol: &str,
+        database_pool: &sql::DbPool,
+        reason: sql::TransactionReason,
+    ) -> error::Result<models::JumpShip200Response> {
+        self.mutate();
+        let jump_data = api
+            .jump_ship(
+                &self.symbol,
+                Some(models::JumpShipRequest {
+                    waypoint_symbol: waypoint_symbol.to_string(),
+                }),
+            )
+            .await?;
+
+        self.nav.update(&jump_data.data.nav);
+        self.update_cooldown(&jump_data.data.cooldown);
+
+        sql::Agent::insert(
+            database_pool,
+            &sql::Agent::from((*jump_data.data.agent).clone()),
+        )
+        .await?;
+
+        let transaction =
+            sql::MarketTransaction::try_from(jump_data.data.transaction.as_ref().clone())?
+                .with(reason.clone());
+        sql::MarketTransaction::insert(database_pool, &transaction).await?;
+
+        self.notify().await;
+
+        Ok(jump_data)
     }
 
     async fn dock(
