@@ -99,29 +99,38 @@ impl DatabaseConnector<Contract> for Contract {
 
     async fn insert_bulk(database_pool: &DbPool, items: &Vec<Contract>) -> sqlx::Result<()> {
         let (
-            ((id_and_contract_type, faction_symbol), (accepted, fulfilled)),
-            ((deadline_to_accept, deadline), (on_accepted, on_fulfilled)),
+            ids,
+            contract_types,
+            faction_symbols,
+            accepteds,
+            fulfilleds,
+            deadlines_to_accept,
+            deadlines,
+            on_accepteds,
+            on_fulfilleds,
         ): (
-            ((Vec<_>, Vec<_>), (Vec<_>, Vec<_>)),
-            ((Vec<_>, Vec<_>), (Vec<_>, Vec<_>)),
-        ) = items
-            .iter()
-            .map(|c| {
-                (
-                    (
-                        ((c.id.clone(), c.contract_type), c.faction_symbol.clone()),
-                        (c.accepted, c.fulfilled),
-                    ),
-                    (
-                        (c.deadline_to_accept.clone(), c.deadline.clone()),
-                        (c.on_accepted, c.on_fulfilled),
-                    ),
-                )
-            })
-            .unzip();
-
-        let (id, contract_type): (Vec<String>, Vec<models::contract::Type>) =
-            id_and_contract_type.into_iter().unzip();
+            Vec<_>,
+            Vec<_>,
+            Vec<_>,
+            Vec<_>,
+            Vec<_>,
+            Vec<_>,
+            Vec<_>,
+            Vec<_>,
+            Vec<_>,
+        ) = itertools::multiunzip(items.iter().map(|c| {
+            (
+                c.id.clone(),
+                c.contract_type,
+                c.faction_symbol.clone(),
+                c.accepted,
+                c.fulfilled,
+                c.deadline_to_accept.clone(),
+                c.deadline.clone(),
+                c.on_accepted,
+                c.on_fulfilled,
+            )
+        }));
 
         let _insert = sqlx::query!(
             r#"
@@ -158,15 +167,15 @@ impl DatabaseConnector<Contract> for Contract {
               deadline = EXCLUDED.deadline,
               updated_at = EXCLUDED.updated_at
         "#,
-            &id as &[String],
-            &contract_type as &[models::contract::Type],
-            &faction_symbol as &[String],
-            &accepted as &[bool],
-            &fulfilled as &[bool],
-            &deadline_to_accept as &[Option<String>],
-            &on_accepted as &[i32],
-            &on_fulfilled as &[i32],
-            &deadline as &[String]
+            &ids as &[String],
+            &contract_types as &[models::contract::Type],
+            &faction_symbols as &[String],
+            &accepteds as &[bool],
+            &fulfilleds as &[bool],
+            &deadlines_to_accept as &[Option<String>],
+            &on_accepteds as &[i32],
+            &on_fulfilleds as &[i32],
+            &deadlines as &[String]
         )
         .execute(&database_pool.database_pool)
         .await;

@@ -23,8 +23,8 @@ impl RoutesTracker {
         let start: RouteLock = (route.symbol, route.purchase_wp_symbol.clone(), false);
         let end: RouteLock = (route.symbol, route.purchase_wp_symbol.clone(), true);
 
-        let start_val = self.routes.get(&start).unwrap_or(&false).clone();
-        let end_val = self.routes.get(&end).unwrap_or(&false).clone();
+        let start_val = *self.routes.get(&start).unwrap_or(&false);
+        let end_val = *self.routes.get(&end).unwrap_or(&false);
 
         if !start_val && !end_val {
             self.routes.insert(start, true);
@@ -53,11 +53,11 @@ impl RoutesTracker {
 
     fn is_start_locked(&self, route: &MinTradeRoute) -> bool {
         let start: RouteLock = (route.symbol, route.purchase_wp_symbol.clone(), false);
-        self.routes.get(&start).unwrap_or(&false).clone()
+        *self.routes.get(&start).unwrap_or(&false)
     }
 
     fn is_end_locked(&self, route: &MinTradeRoute) -> bool {
         let end: RouteLock = (route.symbol, route.purchase_wp_symbol.clone(), true);
-        self.routes.get(&end).unwrap_or(&false).clone()
+        *self.routes.get(&end).unwrap_or(&false)
     }
 }

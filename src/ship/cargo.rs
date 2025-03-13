@@ -1,7 +1,4 @@
-use std::{
-    i32,
-    ops::{AddAssign, SubAssign},
-};
+use std::ops::{AddAssign, SubAssign};
 
 use log::debug;
 use space_traders_client::models::JettisonRequest;
@@ -104,7 +101,9 @@ impl MyShip {
             .iter()
             .find(|m| m.symbol == *good)
             .map(|m| m.trade_volume)
-            .ok_or_else(|| error::Error::General(format!("Could not find good in market info")))?;
+            .ok_or_else(|| {
+                error::Error::General("Could not find good in market info".to_string())
+            })?;
 
         let mut volumes = Vec::new();
         let mut remaining = quantity;
@@ -134,7 +133,7 @@ impl MyShip {
                     .sell_cargo(
                         &self.symbol,
                         Some(space_traders_client::models::SellCargoRequest {
-                            symbol: good.clone(),
+                            symbol: *good,
                             units: volume,
                         }),
                     )
@@ -147,7 +146,7 @@ impl MyShip {
                     .purchase_cargo(
                         &self.symbol,
                         Some(space_traders_client::models::PurchaseCargoRequest {
-                            symbol: good.clone(),
+                            symbol: *good,
                             units: volume,
                         }),
                     )
@@ -375,7 +374,7 @@ impl super::ship_models::CargoState {
     ) -> Result<(), crate::error::Error> {
         debug!("Handling cargo update: {:?} {:?}", units, trade_symbol);
         let current_count = self.inventory.iter().map(|f| f.1).sum::<i32>();
-        if !((current_count + units) > self.units) {
+        if (current_count + units) <= self.units {
             return Err("Not enough cargo".into());
         };
 

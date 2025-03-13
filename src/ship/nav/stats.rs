@@ -146,9 +146,7 @@ fn calculate_travel_time(
     frame_condition: f64,
     reactor_condition: f64,
 ) -> f64 {
-    let result = // TODO! Tis does not take conditions into the calculation, please check
-        ((distance.max(1.0).round()) * (multiplier / (engine_speed as f64)) + 15.0).round();
-    result
+    ((distance.max(1.0).round()) * (multiplier / (engine_speed as f64)) + 15.0).round()
 }
 
 /// Generates a set of route instructions based on a route of ConnectionDetails.

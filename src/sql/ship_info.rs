@@ -1,3 +1,5 @@
+use itertools::Itertools;
+
 use crate::pilot::MiningShipAssignment;
 
 use super::DatabaseConnector;
@@ -156,18 +158,16 @@ impl DatabaseConnector<ShipInfo> for ShipInfo {
     }
 
     async fn insert_bulk(database_pool: &super::DbPool, items: &Vec<ShipInfo>) -> sqlx::Result<()> {
-        let ((symbol_s, display_name_s), (role_s, active_s)): (
-            (Vec<String>, Vec<String>),
-            (Vec<ShipInfoRole>, Vec<bool>),
+        let (symbol_s, display_name_s, role_s, active_s): (
+            Vec<String>,
+            Vec<String>,
+            Vec<ShipInfoRole>,
+            Vec<bool>,
         ) = items
             .iter()
-            .map(|s| {
-                (
-                    (s.symbol.clone(), s.display_name.clone()),
-                    (s.role.clone(), s.active),
-                )
-            })
-            .unzip();
+            .cloned()
+            .map(|s| (s.symbol.clone(), s.display_name.clone(), s.role, s.active))
+            .multiunzip();
 
         sqlx::query!(
             r#"

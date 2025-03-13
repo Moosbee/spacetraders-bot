@@ -73,25 +73,18 @@ impl DatabaseConnector<ReactorInfo> for ReactorInfo {
             power_requireds,
             crew_requireds,
             slots_requireds,
-        ): (
-            Vec<models::ship_reactor::Symbol>,
-            Vec<String>,
-            Vec<String>,
-            Vec<i32>,
-            Vec<Option<i32>>,
-            Vec<Option<i32>>,
-            Vec<Option<i32>>,
-        ) = itertools::multiunzip(items.iter().map(|r| {
-            (
-                r.symbol,
-                r.name.clone(),
-                r.description.clone(),
-                r.power_output,
-                r.power_required,
-                r.crew_required,
-                r.slots_required,
-            )
-        }));
+        ): (Vec<_>, Vec<_>, Vec<_>, Vec<_>, Vec<_>, Vec<_>, Vec<_>) =
+            itertools::multiunzip(items.iter().map(|r| {
+                (
+                    r.symbol,
+                    r.name.clone(),
+                    r.description.clone(),
+                    r.power_output,
+                    r.power_required,
+                    r.crew_required,
+                    r.slots_required,
+                )
+            }));
 
         sqlx::query!(
             r#"

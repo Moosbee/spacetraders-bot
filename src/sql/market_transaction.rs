@@ -310,6 +310,7 @@ impl DatabaseConnector<MarketTransaction> for MarketTransaction {
         database_pool: &DbPool,
         items: &Vec<MarketTransaction>,
     ) -> sqlx::Result<()> {
+        #[allow(clippy::type_complexity)]
         let (
             t_waypoint_symbol,
             t_ship_symbol,
@@ -324,32 +325,32 @@ impl DatabaseConnector<MarketTransaction> for MarketTransaction {
             t_mining,
             t_construction,
         ): (
-            Vec<String>,
-            Vec<String>,
-            Vec<models::TradeSymbol>,
-            Vec<models::market_transaction::Type>,
-            Vec<i32>,
-            Vec<i32>,
-            Vec<i32>,
-            Vec<NaiveDateTime>,
-            Vec<Option<String>>,
-            Vec<Option<i32>>,
-            Vec<Option<String>>,
-            Vec<Option<i64>>,
+            Vec<_>,
+            Vec<_>,
+            Vec<_>,
+            Vec<_>,
+            Vec<_>,
+            Vec<_>,
+            Vec<_>,
+            Vec<_>,
+            Vec<_>,
+            Vec<_>,
+            Vec<_>,
+            Vec<_>,
         ) = itertools::multiunzip(items.iter().map(|item| {
             (
                 item.waypoint_symbol.clone(),
                 item.ship_symbol.clone(),
-                item.trade_symbol.clone(),
-                item.r#type.clone(),
+                item.trade_symbol,
+                item.r#type,
                 item.units,
                 item.price_per_unit,
                 item.total_price,
-                item.timestamp.clone(),
+                item.timestamp,
                 item.contract.clone(),
-                item.trade_route.clone(),
+                item.trade_route,
                 item.mining.clone(),
-                item.construction.clone(),
+                item.construction,
             )
         }));
 

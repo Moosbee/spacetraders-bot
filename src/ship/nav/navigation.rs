@@ -206,7 +206,7 @@ impl MyShip {
 
         let end_id = self.snapshot(database_pool).await?;
 
-        if nav_data.data.events.len() > 0 {
+        if !nav_data.data.events.is_empty() {
             debug!("Nav Events: {:#?} ", nav_data.data.events);
         }
 
@@ -410,7 +410,7 @@ impl MyShip {
 
             let erg = self.patch_ship_nav(api, flight_mode).await?;
 
-            if erg.data.events.len() > 0 {
+            if !erg.data.events.is_empty() {
                 debug!("Patch Nav Events: {:#?}", erg.data.events);
             }
 
@@ -465,7 +465,7 @@ impl NavigationState {
         }
     }
 
-    pub(crate) fn refresh_nav(&mut self) -> () {
+    pub(crate) fn refresh_nav(&mut self) {
         if !self.is_in_transit() && self.status == models::ShipNavStatus::InTransit {
             self.status = models::ShipNavStatus::InOrbit;
         }

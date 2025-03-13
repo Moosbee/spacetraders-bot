@@ -33,7 +33,7 @@ impl ConstructionMaterial {
         ConstructionMaterial {
             id: 0,
             waypoint_symbol: waypoint_symbol.to_string(),
-            trade_symbol: value.trade_symbol.clone(),
+            trade_symbol: value.trade_symbol,
             required: value.required,
             fulfilled: value.fulfilled,
             created_at: Utc::now().naive_utc(),
@@ -161,10 +161,10 @@ impl DatabaseConnector<ConstructionMaterial> for ConstructionMaterial {
         items: &Vec<ConstructionMaterial>,
     ) -> sqlx::Result<()> {
         let (waypoint_symbols, trade_symbols, requireds, fulfilleds): (
-            Vec<String>,
-            Vec<models::TradeSymbol>,
-            Vec<i32>,
-            Vec<i32>,
+            Vec<_>,
+            Vec<_>,
+            Vec<_>,
+            Vec<_>,
         ) = itertools::multiunzip(items.iter().map(|cm| {
             (
                 cm.waypoint_symbol.clone(),

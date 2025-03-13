@@ -182,14 +182,14 @@ impl MiningManager {
                     "Extraction complete for ship: {:?} at waypoint: {:?}",
                     ship, waypoint
                 );
-                let _erg = self.process_possible_transfers(&waypoint).await?;
+                self.process_possible_transfers(&waypoint).await?;
             }
             ExtractionNotification::TransportArrived { ship, waypoint } => {
                 debug!(
                     "Transport arrived for ship: {:?} at waypoint: {:?}",
                     ship, waypoint
                 );
-                let _erg = self.process_possible_transfers(&waypoint).await?;
+                self.process_possible_transfers(&waypoint).await?;
             }
         }
         Ok(())
@@ -258,7 +258,7 @@ impl MiningManager {
                     symbol
                 }
             };
-            current_trade_symbol = Some(trade_symbol.clone());
+            current_trade_symbol = Some(trade_symbol);
 
             debug!("Executing transfer with trade symbol: {:?}", trade_symbol);
             let transfer_result = self
@@ -273,7 +273,7 @@ impl MiningManager {
                 self.waypoint_manager.up_date(waypoint_symbol);
             } else {
                 debug!("Transfer failed, resetting trade symbol");
-                count = count - 1;
+                count -= 1;
                 current_trade_symbol = None;
             }
         }
@@ -301,10 +301,9 @@ impl MiningManager {
         ships: Vec<ship::MyShip>,
     ) -> (Vec<ship::MyShip>, Vec<ship::MyShip>) {
         debug!("Partitioning ships by role");
-        ships.into_iter().partition(|f| {
-            let action = ActionType::get_action(&f).is_some();
-            action
-        })
+        ships
+            .into_iter()
+            .partition(|f| ActionType::get_action(f).is_some())
     }
 
     /// Filters the provided list of ships, returning only those that have cargo units on board.

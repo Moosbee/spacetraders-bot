@@ -6,7 +6,7 @@ use crate::types::WaypointCan;
 
 use super::{DatabaseConnector, DbPool};
 
-#[derive(Clone, Debug, PartialEq, serde::Serialize)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct Waypoint {
     pub symbol: String,
     pub system_symbol: String,
@@ -46,16 +46,8 @@ impl From<&models::Waypoint> for Waypoint {
                     mm
                 })
                 .unwrap_or_default(),
-            charted_by: value
-                .chart
-                .as_ref()
-                .map(|c| c.submitted_by.clone())
-                .flatten(),
-            charted_on: value
-                .chart
-                .as_ref()
-                .map(|c| c.submitted_on.clone())
-                .flatten(),
+            charted_by: value.chart.as_ref().and_then(|c| c.submitted_by.clone()),
+            charted_on: value.chart.as_ref().and_then(|c| c.submitted_on.clone()),
             ..Default::default()
         }
     }
@@ -82,13 +74,12 @@ impl From<&Waypoint> for models::Waypoint {
             _ => None,
         };
 
-        let chart = chart.map(|c| Box::new(c));
+        let chart = chart.map(Box::new);
 
         let faction = value
             .faction
             .as_ref()
-            .map(|f| models::FactionSymbol::from_str(f).ok())
-            .flatten()
+            .and_then(|f| models::FactionSymbol::from_str(f).ok())
             .map(|f| Box::new(models::WaypointFaction::new(f)));
 
         let erg = Self {
@@ -100,7 +91,7 @@ impl From<&Waypoint> for models::Waypoint {
             traits: value
                 .traits
                 .iter()
-                .map(|t| models::WaypointTrait::new(t.clone(), "".to_string(), "".to_string()))
+                .map(|t| models::WaypointTrait::new(*t, "".to_string(), "".to_string()))
                 .collect(),
             is_under_construction: value.is_under_construction,
             orbitals: value
@@ -114,9 +105,7 @@ impl From<&Waypoint> for models::Waypoint {
                 value
                     .modifiers
                     .iter()
-                    .map(|m| {
-                        models::WaypointModifier::new(m.clone(), "".to_string(), "".to_string())
-                    })
+                    .map(|m| models::WaypointModifier::new(*m, "".to_string(), "".to_string()))
                     .collect::<Vec<_>>(),
             ),
             chart,
@@ -144,28 +133,6 @@ impl WaypointCan for Waypoint {
 
     fn is_shipyard(&self) -> bool {
         self.traits.contains(&models::WaypointTraitSymbol::Shipyard)
-    }
-}
-
-impl Default for Waypoint {
-    fn default() -> Self {
-        Self {
-            symbol: Default::default(),
-            system_symbol: Default::default(),
-            created_at: Default::default(),
-            x: Default::default(),
-            y: Default::default(),
-            waypoint_type: Default::default(),
-            traits: Default::default(),
-            is_under_construction: Default::default(),
-            orbitals: Default::default(),
-            orbits: Default::default(),
-            faction: Default::default(),
-            modifiers: Default::default(),
-            charted_by: Default::default(),
-            charted_on: Default::default(),
-            unstable_since: Default::default(),
-        }
     }
 }
 

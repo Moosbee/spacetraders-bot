@@ -23,7 +23,7 @@ use super::ShipManager;
 
 impl Default for MyShip {
     fn default() -> Self {
-        let me = Self {
+        Self {
             active: false,
             is_clone: false,
             pubsub: crate::types::Publisher::new(),
@@ -44,8 +44,7 @@ impl Default for MyShip {
             reactor: Default::default(),
             frame: Default::default(),
             conditions: Default::default(),
-        };
-        me
+        }
     }
 }
 
@@ -54,13 +53,13 @@ impl Clone for MyShip {
         Self {
             status: self.status.clone(),
             role: self.role.clone(),
-            registration_role: self.registration_role.clone(),
+            registration_role: self.registration_role,
             display_name: self.display_name.clone(),
             symbol: self.symbol.clone(),
             active: self.active,
             is_clone: true,
-            engine_speed: self.engine_speed.clone(),
-            cooldown_expiration: self.cooldown_expiration.clone(),
+            engine_speed: self.engine_speed,
+            cooldown_expiration: self.cooldown_expiration,
             modules: self.modules.clone(),
             nav: self.nav.clone(),
             cargo: self.cargo.clone(),
@@ -70,9 +69,9 @@ impl Clone for MyShip {
             broadcaster: self.broadcaster.clone(),
             // mpsc: None,
             pubsub: crate::types::Publisher::new(),
-            engine: self.engine.clone(),
-            reactor: self.reactor.clone(),
-            frame: self.frame.clone(),
+            engine: self.engine,
+            reactor: self.reactor,
+            frame: self.frame,
         }
     }
 }
@@ -282,8 +281,8 @@ impl MyShip {
         self.mounts.update(&ship.mounts);
         self.modules.update(&ship.modules);
 
-        ship.frame.module_slots;
-        ship.frame.mounting_points;
+        // ship.frame.module_slots;
+        // ship.frame.mounting_points;
         // ship.frame.requirements.;
 
         self.conditions.engine.condition = ship.engine.condition;
@@ -330,7 +329,6 @@ impl MyShip {
                 break;
             }
         }
-        ()
     }
 
     async fn handle_update(&mut self, data: MyShipUpdate, api: &api::Api) {
@@ -376,7 +374,7 @@ impl MyShip {
         let sleep_future = tokio::time::sleep(duration).then(|_| {
             cancel.cancel();
 
-            async move { () }
+            async move {}
         });
         let _erg = futures::future::join(update_future, sleep_future)
             .send() // https://github.com/rust-lang/rust/issues/96865
@@ -405,7 +403,7 @@ impl MyShip {
                 let ship_info = crate::sql::ShipInfo {
                     symbol: self.symbol.clone(),
                     display_name,
-                    role: self.role.clone().into(),
+                    role: self.role.clone(),
                     active: self.active,
                 };
                 crate::sql::ShipInfo::insert(&database_pool, &ship_info).await?;
@@ -443,7 +441,7 @@ impl MyShip {
             &ship
                 .modules
                 .into_iter()
-                .map(|m| sql::ModuleInfo::from(m))
+                .map(sql::ModuleInfo::from)
                 .collect::<HashSet<_>>()
                 .into_iter()
                 .collect::<Vec<_>>(),
@@ -454,7 +452,7 @@ impl MyShip {
             &ship
                 .mounts
                 .into_iter()
-                .map(|m| sql::MountInfo::from(m))
+                .map(sql::MountInfo::from)
                 .collect::<HashSet<_>>()
                 .into_iter()
                 .collect::<Vec<_>>(),
@@ -476,7 +474,7 @@ impl MyShip {
             &ship
                 .modules
                 .into_iter()
-                .map(|m| sql::ModuleInfo::from(m))
+                .map(sql::ModuleInfo::from)
                 .collect::<HashSet<_>>()
                 .into_iter()
                 .collect::<Vec<_>>(),
@@ -487,7 +485,7 @@ impl MyShip {
             &ship
                 .mounts
                 .into_iter()
-                .map(|m| sql::MountInfo::from(m))
+                .map(sql::MountInfo::from)
                 .collect::<HashSet<_>>()
                 .into_iter()
                 .collect::<Vec<_>>(),

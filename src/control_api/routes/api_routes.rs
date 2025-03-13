@@ -168,7 +168,7 @@ pub(crate) fn build_api_routes(
             warp::reply()
         });
 
-    let routes = ships
+    ships
         .or(ship_buy)
         .or(ship_navigation)
         .or(ship_jump)
@@ -189,7 +189,5 @@ pub(crate) fn build_api_routes(
         .or(agent_history)
         .or(agent)
         .or(agents)
-        .or(shutdown);
-
-    routes
+        .or(shutdown)
 }

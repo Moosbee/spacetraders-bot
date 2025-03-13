@@ -137,7 +137,7 @@ where
 {
     let result = map.try_lock(key.clone(), SyncLimit::no_limit()).unwrap();
 
-    let erg = if result.is_none() {
+    if result.is_none() {
         log::warn!(
             "safely_get_lock_mut_map access locked key: {:?}, retrying line: {}",
             key,
@@ -148,9 +148,7 @@ where
         result.unwrap()
     } else {
         result.unwrap()
-    };
-
-    erg
+    }
 }
 
 pub trait WaypointCan {

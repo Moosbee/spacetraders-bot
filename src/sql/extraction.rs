@@ -70,25 +70,18 @@ impl DatabaseConnector<Extraction> for Extraction {
             siphons,
             yield_symbols,
             yield_units,
-        ): (
-            Vec<String>,
-            Vec<String>,
-            Vec<i64>,
-            Vec<i64>,
-            Vec<bool>,
-            Vec<models::TradeSymbol>,
-            Vec<i32>,
-        ) = itertools::multiunzip(items.iter().map(|e| {
-            (
-                e.ship_symbol.clone(),
-                e.waypoint_symbol.clone(),
-                e.ship_info_before,
-                e.ship_info_after,
-                e.siphon,
-                e.yield_symbol,
-                e.yield_units,
-            )
-        }));
+        ): (Vec<_>, Vec<_>, Vec<_>, Vec<_>, Vec<_>, Vec<_>, Vec<_>) =
+            itertools::multiunzip(items.iter().map(|e| {
+                (
+                    e.ship_symbol.clone(),
+                    e.waypoint_symbol.clone(),
+                    e.ship_info_before,
+                    e.ship_info_after,
+                    e.siphon,
+                    e.yield_symbol,
+                    e.yield_units,
+                )
+            }));
 
         sqlx::query!(
             r#"

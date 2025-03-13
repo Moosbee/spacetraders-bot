@@ -62,11 +62,10 @@ fn build_main_routes(
     context: &ConductorContext,
 ) -> impl warp::Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
     let _ = context;
-    let index = warp::get()
-        .and(warp::path::end())
-        .and(warp::fs::file("./index.html"));
 
-    index
+    warp::get()
+        .and(warp::path::end())
+        .and(warp::fs::file("./index.html"))
 }
 
 // Helper function to pass context to handlers

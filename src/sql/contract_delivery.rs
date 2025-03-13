@@ -74,27 +74,21 @@ impl DatabaseConnector<ContractDelivery> for ContractDelivery {
         database_pool: &DbPool,
         items: &Vec<ContractDelivery>,
     ) -> sqlx::Result<()> {
-        let (
-            ((contract_ids, trade_symbols), (units_fulfilled, units_required)),
-            ((destination_symbols, _), (_, _)),
-        ): (
+        let (contract_ids, trade_symbols, units_fulfilled, units_required, destination_symbols): (
+            Vec<_>,
+            Vec<_>,
+            Vec<_>,
+            Vec<_>,
+            Vec<_>,
+        ) = itertools::multiunzip(items.iter().map(|c| {
             (
-                (Vec<String>, Vec<models::TradeSymbol>),
-                (Vec<i32>, Vec<i32>),
-            ),
-            ((Vec<String>, Vec<()>), (Vec<()>, Vec<()>)),
-        ) = items
-            .iter()
-            .map(|c| {
-                (
-                    (
-                        (c.contract_id.clone(), c.trade_symbol),
-                        (c.units_fulfilled, c.units_required),
-                    ),
-                    ((c.destination_symbol.clone(), ()), ((), ())),
-                )
-            })
-            .unzip();
+                c.contract_id.clone(),
+                c.trade_symbol,
+                c.units_fulfilled,
+                c.units_required,
+                c.destination_symbol.clone(),
+            )
+        }));
 
         sqlx::query!(
             r#"

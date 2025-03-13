@@ -32,18 +32,19 @@ impl Observer<MyShip> for ShipManager {
         {
             let map = self.copy.try_write();
 
-            let mut map = if map.is_err() {
-                log::warn!("Failed to update get ship: {} waiting", symbol);
-                let start = Instant::now();
-                let map = self.copy.write().await;
-                log::warn!(
-                    "Got update ship: {} waiting took {:?}",
-                    symbol,
-                    start.elapsed()
-                );
-                map
-            } else {
-                map.unwrap()
+            let mut map = match map {
+                Ok(m) => m,
+                Err(_e) => {
+                    log::warn!("Failed to update get ship: {} waiting", symbol);
+                    let start = Instant::now();
+                    let map = self.copy.write().await;
+                    log::warn!(
+                        "Got update ship: {} waiting took {:?}",
+                        symbol,
+                        start.elapsed()
+                    );
+                    map
+                }
             };
 
             map.insert(symbol, clone);
@@ -88,17 +89,18 @@ impl ShipManager {
 
     pub fn get_clone(&self, symbol: &str) -> Option<MyShip> {
         let map = self.copy.try_read().unwrap();
-        map.get(symbol).map(|s| s.clone())
+        map.get(symbol).cloned()
     }
 
     pub async fn get_all_clone(&self) -> HashMap<String, MyShip> {
         let erg = {
             let map = self.copy.try_read();
-            let map = if map.is_err() {
-                log::warn!("Failed to get all ships waiting");
-                self.copy.read().await
-            } else {
-                map.unwrap()
+            let map = match map {
+                Ok(m) => m,
+                Err(_) => {
+                    log::warn!("Failed to get all ships waiting");
+                    self.copy.read().await
+                }
             };
             map.iter().map(|f| f.1.clone()).collect::<Vec<_>>()
         };
@@ -110,9 +112,8 @@ impl ShipManager {
     ///
     /// This function is async because it might wait for other tasks that have locked the ship.
     pub async fn get_mut(&self, symbol: &str) -> ShipGuard<'_> {
-        let erg = safely_get_lock_mut_map(&self.locked_ships, symbol.to_owned()).await;
         // self.locked_ships.get(symbol)
-        erg
+        safely_get_lock_mut_map(&self.locked_ships, symbol.to_owned()).await
     }
 
     pub async fn try_get_mut(&self, symbol: &str) -> Option<ShipGuard<'_>> {

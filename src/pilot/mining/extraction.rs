@@ -66,7 +66,7 @@ impl ExtractionPilot {
         let waypoint_symbol = self
             .context
             .mining_manager
-            .get_waypoint(&ship, is_syphon)
+            .get_waypoint(ship, is_syphon)
             .await?;
 
         debug!("Mining Waypoint: {}", waypoint_symbol);
@@ -236,7 +236,7 @@ impl ExtractionPilot {
             .clone();
 
         ship.nav_to(
-            &waypoint_symbol,
+            waypoint_symbol,
             true,
             &waypoints,
             &self.context.api,
@@ -328,7 +328,7 @@ impl ExtractionPilot {
                             ship_info_before: state_id,
                             ship_info_after: after_state_id,
                             siphon: false,
-                            yield_symbol: erg.data.extraction.r#yield.symbol.clone(),
+                            yield_symbol: erg.data.extraction.r#yield.symbol,
                             yield_units: erg.data.extraction.r#yield.units,
                             created_at: chrono::Utc::now().naive_local(),
                         };
@@ -389,7 +389,7 @@ impl ExtractionPilot {
                     ship_info_before: state_id,
                     ship_info_after: after_state_id,
                     siphon: true,
-                    yield_symbol: erg.data.siphon.r#yield.symbol.clone(),
+                    yield_symbol: erg.data.siphon.r#yield.symbol,
                     yield_units: erg.data.siphon.r#yield.units,
                     created_at: chrono::Utc::now().naive_local(),
                 };
@@ -420,7 +420,7 @@ impl ExtractionPilot {
         debug!("Ejecting blacklist on ship: {}", ship.symbol);
         let cargo = ship.cargo.inventory.clone();
         for item in cargo.iter() {
-            if CONFIG.mining.blacklist.contains(&item.0) {
+            if CONFIG.mining.blacklist.contains(item.0) {
                 debug!("Ejecting: {:?}", item);
                 ship.jettison(&self.context.api, *item.0, *item.1).await?;
             }

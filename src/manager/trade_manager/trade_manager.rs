@@ -134,7 +134,7 @@ impl TradeManager {
         if !done {
             return Err("Failed to lock route".into());
         }
-        return Ok(next_route);
+        Ok(next_route)
     }
 
     async fn complete_trade_route(

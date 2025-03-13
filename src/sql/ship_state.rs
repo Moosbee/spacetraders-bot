@@ -104,9 +104,9 @@ impl From<&ship::MyShip> for ShipState {
             cargo_inventory: sqlx::types::Json(value.cargo.inventory.clone()),
             mounts: value.mounts.mounts.clone(),
             modules: value.modules.modules.clone(),
-            reactor_symbol: value.reactor.clone(),
-            frame_symbol: value.frame.clone(),
-            engine_symbol: value.engine.clone(),
+            reactor_symbol: value.reactor,
+            frame_symbol: value.frame,
+            engine_symbol: value.engine,
             cooldown_expiration: value.cooldown_expiration.as_ref().map(|t| t.naive_utc()),
             flight_mode: value.nav.flight_mode.to_string(),
             nav_status: value.nav.status.to_string(),
@@ -154,8 +154,6 @@ impl From<&ship::MyShip> for ShipState {
 
 impl ShipState {
     pub async fn insert_get_id(database_pool: &DbPool, item: &ShipState) -> sqlx::Result<i64> {
-        item.reactor_symbol;
-
         let id = sqlx::query!(
             r#"
                 INSERT INTO ship_state (

@@ -42,7 +42,7 @@ impl TradingPilot {
         ship.notify().await;
 
         debug!("Starting trade route for ship {}: {:?}", ship.symbol, route);
-        let _route_erg = self.execute_trade(ship, &route, pilot).await?;
+        self.execute_trade(ship, &route, pilot).await?;
         let _completed_route = self.complete_trade(route).await?;
         ship.status = ship::ShipStatus::Trader {
             shipment_id: None,

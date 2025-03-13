@@ -17,13 +17,13 @@ pub struct ShipyardTransaction {
 #[derive(Debug, thiserror::Error)]
 pub enum ParseError {
     #[error("Invalid ship type: {0}")]
-    InvalidShipType(String),
+    ShipType(String),
 
     #[error("Invalid trade symbol: {0}")]
-    InvalidTradeSymbol(String),
+    TradeSymbol(String),
 
     #[error("Invalid timestamp: {0}")]
-    InvalidTimestamp(String),
+    Timestamp(String),
 }
 
 impl TryFrom<models::ShipyardTransaction> for ShipyardTransaction {
@@ -31,9 +31,9 @@ impl TryFrom<models::ShipyardTransaction> for ShipyardTransaction {
 
     fn try_from(item: models::ShipyardTransaction) -> Result<Self, Self::Error> {
         let ship_type = models::ShipType::from_str(&item.ship_type)
-            .map_err(|_| ParseError::InvalidShipType(item.ship_type))?;
+            .map_err(|_| ParseError::ShipType(item.ship_type))?;
         let timestamp = DateTime::<chrono::Utc>::from_str(&item.timestamp)
-            .map_err(|_| ParseError::InvalidTimestamp(item.timestamp))?
+            .map_err(|_| ParseError::Timestamp(item.timestamp))?
             .naive_utc();
 
         Ok(Self {
@@ -100,11 +100,11 @@ impl DatabaseConnector<ShipyardTransaction> for ShipyardTransaction {
         items: &Vec<ShipyardTransaction>,
     ) -> sqlx::Result<()> {
         let (waypoint_symbols, ship_types, prices, agent_symbols, timestamps): (
-            Vec<String>,
-            Vec<models::ShipType>,
-            Vec<i32>,
-            Vec<String>,
-            Vec<NaiveDateTime>,
+            Vec<_>,
+            Vec<_>,
+            Vec<_>,
+            Vec<_>,
+            Vec<_>,
         ) = itertools::multiunzip(items.iter().map(|t| {
             (
                 t.waypoint_symbol.clone(),

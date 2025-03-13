@@ -100,8 +100,7 @@ impl ConstructionPilot {
 
         debug!("Completing shipment");
 
-        let _complete_erg = self
-            .context
+        self.context
             .construction_manager
             .complete_shipment(shipment, contract)
             .await?;
@@ -197,15 +196,14 @@ impl ConstructionPilot {
             units_needed, current_price, budget
         );
 
-        let _erg = ship
-            .purchase_cargo(
-                &self.context.api,
-                &shipment.trade_symbol,
-                units_needed,
-                &self.context.database_pool,
-                sql::TransactionReason::Construction(shipment.id),
-            )
-            .await?;
+        ship.purchase_cargo(
+            &self.context.api,
+            &shipment.trade_symbol,
+            units_needed,
+            &self.context.database_pool,
+            sql::TransactionReason::Construction(shipment.id),
+        )
+        .await?;
 
         Ok(())
     }

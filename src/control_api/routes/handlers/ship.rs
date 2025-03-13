@@ -261,7 +261,7 @@ pub async fn handle_jump_ship(
 
     let waypoint = sql::Waypoint::get_by_symbol(&context.database_pool, &waypoint_symbol)
         .await
-        .map_err(|err| ServerError::Database(err))?;
+        .map_err(ServerError::Database)?;
 
     if waypoint.is_none() {
         let system_symbol = get_system_symbol(&waypoint_symbol);
@@ -340,12 +340,12 @@ async fn navigate_ship(
     let mut ship_guard = context.ship_manager.get_mut(symbol).await;
     let ship = ship_guard
         .value_mut()
-        .ok_or_else(|| error::Error::General(format!("Ship not found")))?;
+        .ok_or_else(|| error::Error::General("Ship not found".to_string()))?;
 
     let waypoints = context
         .all_waypoints
         .get(&ship.nav.system_symbol)
-        .ok_or_else(|| error::Error::General(format!("Waypoints not found")))?
+        .ok_or_else(|| error::Error::General("Waypoints not found".to_string()))?
         .clone();
 
     ship.nav_to(

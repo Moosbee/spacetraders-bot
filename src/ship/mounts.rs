@@ -3,8 +3,8 @@ use space_traders_client::models;
 use super::ship_models::MountState;
 
 impl MountState {
-    pub fn update(&mut self, mounts: &Vec<models::ShipMount>) {
-        self.mounts = mounts.iter().map(|m| m.symbol.clone()).collect();
+    pub fn update(&mut self, mounts: &[models::ShipMount]) {
+        self.mounts = mounts.iter().map(|m| m.symbol).collect();
     }
 
     pub fn can_extract(&self) -> bool {

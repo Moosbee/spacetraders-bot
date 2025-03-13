@@ -242,8 +242,7 @@ async fn setup_context(
 async fn check_time() {
     let client = AsyncSntpClient::new();
     let result = client.synchronize("pool.ntp.org").await.unwrap();
-    let local_time: DateTime<Utc> =
-        DateTime::from(result.datetime().into_chrono_datetime().unwrap());
+    let local_time: DateTime<Utc> = result.datetime().into_chrono_datetime().unwrap();
     let time_diff = (local_time - Utc::now()).abs();
 
     info!(

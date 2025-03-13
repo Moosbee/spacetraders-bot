@@ -11,7 +11,7 @@ pub enum Error {
     #[error(transparent)]
     Io(#[from] std::io::Error),
     #[error("API error {status}: {msg} {code:?} {message:?}")]
-    APIError {
+    Api {
         status: reqwest::StatusCode,
         msg: String,
         code: Option<u32>,
@@ -54,7 +54,7 @@ impl<T: Clone> From<space_traders_client::apis::Error<T>> for Error {
                     .entity
                     .map(|entity| (entity.error.code, entity.error.message))
                     .unzip();
-                Error::APIError {
+                Error::Api {
                     status,
                     msg,
                     code,

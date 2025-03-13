@@ -16,7 +16,7 @@ impl TryFrom<models::ScrapTransaction> for ScrapTransaction {
 
     fn try_from(item: models::ScrapTransaction) -> Result<Self, Self::Error> {
         let timestamp = DateTime::<chrono::Utc>::from_str(&item.timestamp)
-            .map_err(|_| Self::Error::InvalidTimestamp(item.timestamp))?
+            .map_err(|_| Self::Error::Timestamp(item.timestamp))?
             .naive_utc();
         Ok(Self {
             waypoint_symbol: item.waypoint_symbol,

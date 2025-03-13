@@ -73,25 +73,18 @@ impl DatabaseConnector<EngineInfo> for EngineInfo {
             power_requireds,
             crew_requireds,
             slots_requireds,
-        ): (
-            Vec<models::ship_engine::Symbol>,
-            Vec<String>,
-            Vec<String>,
-            Vec<i32>,
-            Vec<Option<i32>>,
-            Vec<Option<i32>>,
-            Vec<Option<i32>>,
-        ) = itertools::multiunzip(items.iter().map(|e| {
-            (
-                e.symbol,
-                e.name.clone(),
-                e.description.clone(),
-                e.speed,
-                e.power_required,
-                e.crew_required,
-                e.slots_required,
-            )
-        }));
+        ): (Vec<_>, Vec<_>, Vec<_>, Vec<_>, Vec<_>, Vec<_>, Vec<_>) =
+            itertools::multiunzip(items.iter().map(|e| {
+                (
+                    e.symbol,
+                    e.name.clone(),
+                    e.description.clone(),
+                    e.speed,
+                    e.power_required,
+                    e.crew_required,
+                    e.slots_required,
+                )
+            }));
 
         sqlx::query!(
             r#"

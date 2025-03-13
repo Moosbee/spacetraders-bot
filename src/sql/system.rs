@@ -87,11 +87,11 @@ impl DatabaseConnector<System> for System {
 
     async fn insert_bulk(database_pool: &super::DbPool, items: &Vec<System>) -> sqlx::Result<()> {
         let (symbols, sector_symbols, system_types, xs, ys): (
-            Vec<String>,
-            Vec<String>,
-            Vec<models::SystemType>,
-            Vec<i32>,
-            Vec<i32>,
+            Vec<_>,
+            Vec<_>,
+            Vec<_>,
+            Vec<_>,
+            Vec<_>,
         ) = itertools::multiunzip(items.iter().map(|s| {
             (
                 s.symbol.clone(),

@@ -68,15 +68,13 @@ impl WaypointManager {
                             .unwrap_or(true)
                 })
                 .unwrap_or(false)
-            {
-                if self.places.try_assign_on_way(
+                && self.places.try_assign_on_way(
                     &ship.symbol,
                     &waypoint_symbol,
                     action == ActionType::Siphon,
                 ) != 0
-                {
-                    return Ok(waypoint_symbol.to_string());
-                }
+            {
+                return Ok(waypoint_symbol.to_string());
             }
         }
 
@@ -138,9 +136,9 @@ impl WaypointManager {
         );
 
         if wp {
-            return Ok(waypoint_symbol);
+            Ok(waypoint_symbol)
         } else {
-            return Err("Could not activate craft".into());
+            Err("Could not activate craft".into())
         }
     }
 
@@ -155,9 +153,9 @@ impl WaypointManager {
             .try_assign_inactive(&ship_clone.symbol, &waypoint_symbol);
 
         if wp {
-            return Ok(waypoint_symbol);
+            Ok(waypoint_symbol)
         } else {
-            return Err("Could not deactivate craft".into());
+            Err("Could not deactivate craft".into())
         }
     }
 
@@ -172,9 +170,9 @@ impl WaypointManager {
             .try_unassign(&ship_clone.symbol, &waypoint_symbol);
 
         if wp {
-            return Ok(waypoint_symbol);
+            Ok(waypoint_symbol)
         } else {
-            return Err("Could not deactivate craft".into());
+            Err("Could not deactivate craft".into())
         }
     }
 

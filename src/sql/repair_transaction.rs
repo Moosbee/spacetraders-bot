@@ -17,7 +17,7 @@ impl TryFrom<models::RepairTransaction> for RepairTransaction {
 
     fn try_from(item: models::RepairTransaction) -> Result<Self, Self::Error> {
         let timestamp = DateTime::<chrono::Utc>::from_str(&item.timestamp)
-            .map_err(|_| Self::Error::InvalidTimestamp(item.timestamp))?
+            .map_err(|_| Self::Error::Timestamp(item.timestamp))?
             .naive_utc();
         Ok(Self {
             waypoint_symbol: item.waypoint_symbol,

@@ -267,8 +267,7 @@ impl TransportPilot {
             return Ok(());
         };
 
-        let _erg = ship
-            .cargo
+        ship.cargo
             .handle_cago_update(transfer.units, transfer.trade_symbol)?;
 
         ship.notify().await;
@@ -300,11 +299,11 @@ impl TransportPilot {
             };
             ship.notify().await;
             let (next_waypoint, trade_symbols) =
-                self.get_next_best_sell_waypoint(&ship).await.unwrap();
+                self.get_next_best_sell_waypoint(ship).await.unwrap();
             ship.nav_to(
                 &next_waypoint,
                 true,
-                &waypoints,
+                waypoints,
                 &self.context.api,
                 self.context.database_pool.clone(),
                 TransactionReason::MiningWaypoint(mining_waypoint.clone()),
@@ -356,9 +355,7 @@ impl TransportPilot {
         let mut waypoints: HashMap<String, Vec<(sql::MarketTradeGood, i32, i32)>> = HashMap::new();
 
         for (amount, trade) in filtered_trades {
-            let wp = waypoints
-                .entry(trade.waypoint_symbol.clone())
-                .or_insert(Vec::new());
+            let wp = waypoints.entry(trade.waypoint_symbol.clone()).or_default();
             let price = trade.sell_price;
             wp.push((trade, amount, amount * price));
         }
@@ -377,9 +374,7 @@ impl TransportPilot {
         way_p.map(|w| {
             (
                 w.0.clone(),
-                w.3.iter()
-                    .map(|(t, _, _)| t.symbol.clone())
-                    .collect::<Vec<_>>(),
+                w.3.iter().map(|(t, _, _)| t.symbol).collect::<Vec<_>>(),
             )
         })
     }
@@ -397,7 +392,7 @@ impl TransportPilot {
         ship.ensure_docked(api).await?;
 
         for trade in trade_symbols {
-            if possible_trades.iter().find(|t| t.symbol == trade).is_none() {
+            if !possible_trades.iter().any(|t| t.symbol == trade) {
                 warn!(
                     "Trade symbol {} not found in market: {}",
                     trade, ship.nav.waypoint_symbol

@@ -51,13 +51,13 @@ impl ScrappingManager {
         let market_scrapper = market_scrapper::MarketScrapper::new(
             self.cancel_token.child_token(),
             self.context.clone(),
-            &self,
+            self,
         );
 
         let shipyard_scrapper = super::shipyard_scrapper::ShipyardScrapper::new(
             self.cancel_token.child_token(),
             self.context.clone(),
-            &self,
+            self,
         );
 
         let (erg1, erg2, erg3) = tokio::join!(

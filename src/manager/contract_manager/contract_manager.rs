@@ -147,12 +147,12 @@ impl ContractManager {
                 error,
                 callback,
             } => {
-                let _fail = self.failed_shipment(shipment, &error).await?;
+                self.failed_shipment(shipment, &error).await?;
 
-                let _sed = callback.send(Ok(error)).unwrap();
+                callback.send(Ok(error)).unwrap();
             }
             ContractMessage::FinishedShipment { contract, shipment } => {
-                let _complete = self.finished_shipment(contract, shipment).await?;
+                self.finished_shipment(contract, shipment).await?;
             }
         }
 
@@ -168,7 +168,7 @@ impl ContractManager {
 
         debug!("Current shipments {}", self.running_shipments.len());
 
-        if self.running_shipments.len() == 0
+        if self.running_shipments.is_empty()
             && self.current_contract.is_some()
             && self
                 .current_contract
@@ -260,7 +260,7 @@ impl ContractManager {
         let all_procurment = contract.terms.deliver.as_ref().unwrap();
 
         let all_procurment = all_procurment
-            .into_iter()
+            .iter()
             .map(|p| {
                 let running = self
                     .running_shipments
@@ -292,7 +292,7 @@ impl ContractManager {
             .map_err(|err| Error::General(err.to_string()))?;
 
         let (purchase_volume, remaining) =
-            self.calculate_purchase_volume(&ship_clone, &next_procurment, &trade_symbol);
+            self.calculate_purchase_volume(&ship_clone, next_procurment, &trade_symbol);
         debug!("Calculated purchase volume: {}", purchase_volume);
 
         let purchase_symbol = self.get_purchase_waypoint(&trade_symbol).await?;
@@ -315,7 +315,7 @@ impl ContractManager {
 
         let mut next_shipment = sql::ContractShipment {
             contract_id: contract.id.clone(),
-            trade_symbol: trade_symbol.clone(),
+            trade_symbol,
             destination_symbol: next_procurment.destination_symbol.to_string(),
             units: purchase_volume,
             id: 0,
@@ -336,7 +336,7 @@ impl ContractManager {
 
         self.running_shipments.push(next_shipment.clone());
 
-        return Ok(NextShipmentResp::Shipment(next_shipment));
+        Ok(NextShipmentResp::Shipment(next_shipment))
     }
 
     fn calculate_purchase_volume(
@@ -502,7 +502,7 @@ impl ContractManager {
     /// available.
     async fn get_new_contract(&mut self, ship_clone: &ship::MyShip) -> Result<bool> {
         debug!("Negotiating new contract for ship: {:?}", ship_clone.symbol);
-        if self.current_contract.is_some() || self.running_shipments.len() > 0 {
+        if self.current_contract.is_some() || !self.running_shipments.is_empty() {
             panic!("Already running a contract");
         }
 

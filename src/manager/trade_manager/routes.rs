@@ -51,25 +51,13 @@ pub struct RouteData {
     pub profit: i32,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct PossibleTradeRoute {
     pub symbol: space_traders_client::models::TradeSymbol,
     pub purchase_good: Option<sql::MarketTradeGood>,
     pub sell_good: Option<sql::MarketTradeGood>,
     pub purchase: sql::MarketTrade,
     pub sell: sql::MarketTrade,
-}
-
-impl Default for PossibleTradeRoute {
-    fn default() -> Self {
-        PossibleTradeRoute {
-            symbol: space_traders_client::models::TradeSymbol::default(),
-            purchase_good: None,
-            sell_good: None,
-            purchase: sql::MarketTrade::default(),
-            sell: sql::MarketTrade::default(),
-        }
-    }
 }
 
 impl Ord for PossibleTradeRoute {

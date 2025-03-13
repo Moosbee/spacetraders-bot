@@ -81,14 +81,14 @@ impl DatabaseConnector<ModuleInfo> for ModuleInfo {
             crew_requireds,
             slots_requireds,
         ): (
-            Vec<models::ship_module::Symbol>,
-            Vec<String>,
-            Vec<String>,
-            Vec<Option<i32>>,
-            Vec<Option<i32>>,
-            Vec<Option<i32>>,
-            Vec<Option<i32>>,
-            Vec<Option<i32>>,
+            Vec<_>,
+            Vec<_>,
+            Vec<_>,
+            Vec<_>,
+            Vec<_>,
+            Vec<_>,
+            Vec<_>,
+            Vec<_>,
         ) = itertools::multiunzip(items.iter().map(|m| {
             (
                 m.symbol,

@@ -104,7 +104,7 @@ impl ConcreteRouteCalculator {
         sell_wp_symbol: &str,
         purchase_wp_symbol: &str,
     ) -> Result<Vec<ship::nav_models::RouteConnection>, crate::error::Error> {
-        let route = ship.find_route_cached(
+        ship.find_route_cached(
             waypoints,
             sell_wp_symbol.to_string(),
             purchase_wp_symbol.to_string(),
@@ -112,8 +112,7 @@ impl ConcreteRouteCalculator {
             true,
             ship.fuel.capacity,
             &mut self.cache,
-        );
-        route
+        )
     }
 
     fn calculate_reoccurring_trip_stats(
@@ -199,7 +198,7 @@ impl ConcreteRouteCalculator {
         route: &[ship::nav_models::RouteConnection],
     ) -> RouteStats {
         let (_, total_distance, total_fuel_cost, total_travel_time) = ship::stats::calc_route_stats(
-            &waypoints,
+            waypoints,
             route,
             ship.engine_speed,
             ship.conditions.engine.condition,
@@ -208,7 +207,7 @@ impl ConcreteRouteCalculator {
         );
 
         RouteStats {
-            fuel_cost: total_fuel_cost as i32,
+            fuel_cost: total_fuel_cost,
             travel_time: total_travel_time,
             distance: total_distance,
         }

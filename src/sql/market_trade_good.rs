@@ -79,25 +79,35 @@ impl DatabaseConnector<MarketTradeGood> for MarketTradeGood {
 
     async fn insert_bulk(database_pool: &DbPool, items: &Vec<MarketTradeGood>) -> sqlx::Result<()> {
         let (
-            ((m_symbol, f_symbol), (f_type, f_trade_volume)),
-            ((f_supply, f_activity), (f_purchase_price, f_sell_price)),
+            m_symbol,
+            f_symbol,
+            f_type,
+            f_trade_volume,
+            f_supply,
+            f_activity,
+            f_purchase_price,
+            f_sell_price,
         ): (
-            ((Vec<_>, Vec<_>), (Vec<_>, Vec<_>)),
-            ((Vec<_>, Vec<_>), (Vec<_>, Vec<_>)),
-        ) = items
-            .iter()
-            .map(|m| {
-                {
-                    (
-                        (
-                            (m.waypoint_symbol.clone(), m.symbol),
-                            (m.r#type, m.trade_volume),
-                        ),
-                        ((m.supply, m.activity), (m.purchase_price, m.sell_price)),
-                    )
-                }
-            })
-            .unzip();
+            Vec<_>,
+            Vec<_>,
+            Vec<_>,
+            Vec<_>,
+            Vec<_>,
+            Vec<_>,
+            Vec<_>,
+            Vec<_>,
+        ) = itertools::multiunzip(items.iter().map(|m| {
+            (
+                m.waypoint_symbol.clone(),
+                m.symbol,
+                m.r#type,
+                m.trade_volume,
+                m.supply,
+                m.activity,
+                m.purchase_price,
+                m.sell_price,
+            )
+        }));
 
         let insert = sqlx::query!(
             r#"

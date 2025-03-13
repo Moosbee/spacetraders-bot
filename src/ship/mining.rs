@@ -43,7 +43,7 @@ impl MyShip {
                 return tokio::time::sleep(time_until_cooldown.to_std().unwrap());
             }
         }
-        return tokio::time::sleep(std::time::Duration::ZERO);
+        tokio::time::sleep(std::time::Duration::ZERO)
     }
 
     pub async fn extract(
@@ -121,7 +121,7 @@ impl MyShip {
     pub fn update_cooldown(&mut self, cooldown: &models::Cooldown) {
         self.mutate();
         let cool_text = cooldown.expiration.as_ref().map_or("", |v| v);
-        self.cooldown_expiration = DateTime::parse_from_rfc3339(&cool_text)
+        self.cooldown_expiration = DateTime::parse_from_rfc3339(cool_text)
             .map(|op| op.to_utc())
             .ok();
     }

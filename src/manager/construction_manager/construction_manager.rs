@@ -132,15 +132,15 @@ impl ConstructionManager {
                 error,
                 callback,
             } => {
-                let _fail = self.fail_shipment(shipment, &error).await?;
+                self.fail_shipment(shipment, &error).await?;
 
-                let _sed = callback.send(error).unwrap();
+                callback.send(error).unwrap();
             }
             ConstructionMessage::FinishedShipment {
                 construction,
                 shipment,
             } => {
-                let _complete = self.finish_shipment(construction, shipment).await?;
+                self.finish_shipment(construction, shipment).await?;
             }
         }
 
@@ -198,10 +198,10 @@ impl ConstructionManager {
             .min_by_key(|c| ((c.fulfilled as f64 / c.required as f64) * 10000.0) as i64)
             .unwrap();
 
-        let trade_symbol = next_material.trade_symbol.clone();
+        let trade_symbol = next_material.trade_symbol;
 
         let (purchase_volume, remaining) =
-            self.calculate_purchase_volume(&ship_clone, &next_material, &trade_symbol);
+            self.calculate_purchase_volume(&ship_clone, next_material, &trade_symbol);
         debug!("Calculated purchase volume: {}", purchase_volume);
 
         let purchase_symbol = self
@@ -249,7 +249,7 @@ impl ConstructionManager {
 
         self.running_shipments.push(sql_shipment.clone());
 
-        return Ok(super::NextShipmentResp::Shipment(sql_shipment));
+        Ok(super::NextShipmentResp::Shipment(sql_shipment))
     }
 
     async fn fail_shipment(

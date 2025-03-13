@@ -18,9 +18,9 @@ impl TryFrom<models::ShipModificationTransaction> for ShipModificationTransactio
 
     fn try_from(item: models::ShipModificationTransaction) -> Result<Self, Self::Error> {
         let trade_symbol = models::TradeSymbol::from_str(&item.trade_symbol)
-            .map_err(|_| Self::Error::InvalidTradeSymbol(item.trade_symbol))?;
+            .map_err(|_| Self::Error::TradeSymbol(item.trade_symbol))?;
         let timestamp = DateTime::<chrono::Utc>::from_str(&item.timestamp)
-            .map_err(|_| Self::Error::InvalidTimestamp(item.timestamp))?
+            .map_err(|_| Self::Error::Timestamp(item.timestamp))?
             .naive_utc();
         Ok(Self {
             waypoint_symbol: item.waypoint_symbol,
@@ -65,11 +65,11 @@ impl DatabaseConnector<ShipModificationTransaction> for ShipModificationTransact
         items: &Vec<ShipModificationTransaction>,
     ) -> sqlx::Result<()> {
         let (waypoint_symbols, ship_symbols, trade_symbols, total_prices, timestamps): (
-            Vec<String>,
-            Vec<String>,
-            Vec<models::TradeSymbol>,
-            Vec<i32>,
-            Vec<NaiveDateTime>,
+            Vec<_>,
+            Vec<_>,
+            Vec<_>,
+            Vec<_>,
+            Vec<_>,
         ) = itertools::multiunzip(items.iter().map(|t| {
             (
                 t.waypoint_symbol.clone(),

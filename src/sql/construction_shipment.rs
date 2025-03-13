@@ -225,14 +225,14 @@ impl DatabaseConnector<ConstructionShipment> for ConstructionShipment {
             purchase_waypoints,
             statuses,
         ): (
-            Vec<i64>,
-            Vec<i64>,
-            Vec<String>,
-            Vec<String>,
-            Vec<models::TradeSymbol>,
-            Vec<i32>,
-            Vec<String>,
-            Vec<ShipmentStatus>,
+            Vec<_>,
+            Vec<_>,
+            Vec<_>,
+            Vec<_>,
+            Vec<_>,
+            Vec<_>,
+            Vec<_>,
+            Vec<_>,
         ) = itertools::multiunzip(items.iter().map(|cs| {
             (
                 cs.id,

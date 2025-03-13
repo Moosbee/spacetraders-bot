@@ -14,7 +14,7 @@ impl Cache {
             .get(&(
                 start_symbol.clone(),
                 end_symbol.clone(),
-                nav_mode.clone(),
+                *nav_mode,
                 only_markets,
                 range,
                 start_range,
@@ -36,7 +36,7 @@ impl Cache {
         let key: (String, String, NavMode, bool, i32, i32) = (
             start_symbol.clone(),
             end_symbol.clone(),
-            nav_mode.clone(),
+            *nav_mode,
             only_markets,
             start_range,
             range,

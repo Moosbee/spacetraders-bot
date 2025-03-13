@@ -50,7 +50,7 @@ impl From<crate::error::Error> for ServerError {
             },
             crate::error::Error::Serde(error) => ServerError::Server(error.to_string()),
             crate::error::Error::Io(error) => ServerError::Server(error.to_string()),
-            crate::error::Error::APIError {
+            crate::error::Error::Api {
                 status,
                 msg,
                 code,

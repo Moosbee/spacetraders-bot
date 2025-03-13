@@ -67,7 +67,7 @@ impl RouteCalculator {
             .into_iter()
             .filter(|route| !running_routes.is_locked(&(*route).clone().into()))
             .max_by(|a, b| a.partial_cmp(b).unwrap())
-            .ok_or_else(|| Error::General(format!("No routes main found")));
+            .ok_or_else(|| Error::General("No routes main found".to_string()));
 
         route.map(|route| route.into())
     }
@@ -92,7 +92,7 @@ impl RouteCalculator {
     ) -> Vec<PossibleTradeRoute> {
         let trade_goods_map = trade_goods
             .iter()
-            .map(|t| ((t.symbol.clone(), t.waypoint_symbol.clone()), t.clone()))
+            .map(|t| ((t.symbol, t.waypoint_symbol.clone()), t.clone()))
             .collect::<HashMap<(models::TradeSymbol, String), sql::MarketTradeGood>>();
 
         let possible_trades = market_trade
@@ -100,11 +100,9 @@ impl RouteCalculator {
             .flat_map(|t| market_trade.iter().map(move |t2| (t, t2)))
             .filter(|t| t.0.symbol == t.1.symbol)
             .map(|(t1, t2)| {
-                let trade_good_1 =
-                    trade_goods_map.get(&(t1.symbol.clone(), t1.waypoint_symbol.clone()));
+                let trade_good_1 = trade_goods_map.get(&(t1.symbol, t1.waypoint_symbol.clone()));
 
-                let trade_good_2 =
-                    trade_goods_map.get(&(t2.symbol.clone(), t2.waypoint_symbol.clone()));
+                let trade_good_2 = trade_goods_map.get(&(t2.symbol, t2.waypoint_symbol.clone()));
 
                 assert!(
                     t1.symbol == t2.symbol
@@ -112,14 +110,13 @@ impl RouteCalculator {
                             == trade_good_2.map(|t| t.symbol).unwrap_or(t2.symbol)
                 );
 
-                let trade = PossibleTradeRoute {
-                    symbol: t1.symbol.clone(),
+                PossibleTradeRoute {
+                    symbol: t1.symbol,
                     purchase_good: trade_good_1.cloned(),
                     sell_good: trade_good_2.cloned(),
                     purchase: t1.clone(),
                     sell: t2.clone(),
-                };
-                trade
+                }
             })
             .collect::<Vec<_>>();
 

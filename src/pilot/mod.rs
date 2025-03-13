@@ -38,7 +38,8 @@ impl Pilot {
         cancellation_token: CancellationToken,
     ) -> Self {
         debug!("Creating pilot for ship {}", ship_symbol);
-        let pilot = Self {
+
+        Self {
             context: context.clone(),
             ship_symbol: ship_symbol.clone(),
             cancellation_token,
@@ -47,9 +48,7 @@ impl Pilot {
             scraper_pilot: ScraperPilot::new(),
             contract_pilot: ContractPilot::new(context.clone(), ship_symbol.clone()),
             mining_pilot: MiningPilot::new(context.clone(), ship_symbol.clone()),
-        };
-
-        pilot
+        }
     }
 
     pub fn get_cancel_token(&self) -> CancellationToken {
@@ -88,7 +87,7 @@ impl Pilot {
             if ship_info.active {
                 break;
             }
-            let _ = tokio::select! {
+            tokio::select! {
                         _ = self.cancellation_token.cancelled() => {
                             return Ok(());
                         },
@@ -109,7 +108,7 @@ impl Pilot {
                 break;
             }
 
-            let _ = tokio::select! {
+            tokio::select! {
                         _ = self.cancellation_token.cancelled() => {
                             return Ok(());
                         },
@@ -138,16 +137,16 @@ impl Pilot {
 
         debug!("Starting pilot circle for ship {}", self.ship_symbol);
 
-        let _erg = match role {
+        match role {
             sql::ShipInfoRole::Construction => {
-                self.construction_pilot.execute_pilot_circle(&self).await
+                self.construction_pilot.execute_pilot_circle(self).await
             }
-            sql::ShipInfoRole::Trader => self.trading_pilot.execute_pilot_circle(&self).await,
-            sql::ShipInfoRole::Contract => self.contract_pilot.execute_pilot_circle(&self).await,
-            sql::ShipInfoRole::Scraper => self.scraper_pilot.execute_pilot_circle(&self).await,
-            sql::ShipInfoRole::Mining => self.mining_pilot.execute_pilot_circle(&self).await,
+            sql::ShipInfoRole::Trader => self.trading_pilot.execute_pilot_circle(self).await,
+            sql::ShipInfoRole::Contract => self.contract_pilot.execute_pilot_circle(self).await,
+            sql::ShipInfoRole::Scraper => self.scraper_pilot.execute_pilot_circle(self).await,
+            sql::ShipInfoRole::Mining => self.mining_pilot.execute_pilot_circle(self).await,
             sql::ShipInfoRole::Manuel => self.wait_for_new_role().await,
-            sql::ShipInfoRole::TempTrader => self.trading_pilot.execute_pilot_circle(&self).await,
+            sql::ShipInfoRole::TempTrader => self.trading_pilot.execute_pilot_circle(self).await,
         }?;
 
         Ok(())

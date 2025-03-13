@@ -89,7 +89,7 @@ impl ContractPilot {
 
         debug!("Completing shipment");
 
-        let _complete_erg = self.complete_shipment(shipment, contract).await?;
+        self.complete_shipment(shipment, contract).await?;
 
         ship.status = ship::ShipStatus::Contract {
             contract_id: None,
@@ -119,8 +119,7 @@ impl ContractPilot {
             callback: sender,
             can_start_new_contract: true,
         };
-        let _erg = self
-            .context
+        self.context
             .contract_manager
             .sender
             .send(message)
@@ -144,8 +143,7 @@ impl ContractPilot {
             error,
             callback: sender,
         };
-        let _erg = self
-            .context
+        self.context
             .contract_manager
             .sender
             .send(message)
@@ -166,15 +164,11 @@ impl ContractPilot {
         shipment: sql::ContractShipment,
         contract: space_traders_client::models::Contract,
     ) -> Result<()> {
-        let message = ContractMessage::FinishedShipment {
-            contract: contract,
-            shipment: shipment,
-        };
+        let message = ContractMessage::FinishedShipment { contract, shipment };
 
         debug!("Sending message: {:?}", message);
 
-        let _erg = self
-            .context
+        self.context
             .contract_manager
             .sender
             .send(message)
@@ -257,15 +251,14 @@ impl ContractPilot {
             units_needed, current_price, budget
         );
 
-        let _erg = ship
-            .purchase_cargo(
-                &self.context.api,
-                &shipment.trade_symbol,
-                units_needed,
-                &self.context.database_pool,
-                sql::TransactionReason::Contract(shipment.contract_id.clone()),
-            )
-            .await?;
+        ship.purchase_cargo(
+            &self.context.api,
+            &shipment.trade_symbol,
+            units_needed,
+            &self.context.database_pool,
+            sql::TransactionReason::Contract(shipment.contract_id.clone()),
+        )
+        .await?;
 
         Ok(())
     }

@@ -31,12 +31,12 @@ pub async fn update_system(
 ) -> crate::error::Result<()> {
     if also_system {
         let system = api.get_system(system_symbol).await?;
-        sql::System::insert(&database_pool, &sql::System::from(&*system.data)).await?;
+        sql::System::insert(database_pool, &sql::System::from(&*system.data)).await?;
     }
 
     let waypoints = loop {
         debug!("Getting waypoints for system {}", system_symbol);
-        let waypoints = api.get_all_waypoints(&system_symbol, 20).await;
+        let waypoints = api.get_all_waypoints(system_symbol, 20).await;
         match waypoints {
             Ok(waypoints) => break waypoints,
             Err(e) => {
@@ -46,7 +46,7 @@ pub async fn update_system(
         }
     };
     sql::Waypoint::insert_bulk(
-        &database_pool,
+        database_pool,
         &waypoints
             .iter()
             .map(sql::Waypoint::from)

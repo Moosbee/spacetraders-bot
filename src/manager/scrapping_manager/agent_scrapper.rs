@@ -60,7 +60,7 @@ impl AgentScrapper {
         let all_agents = agents.into_iter().map(sql::Agent::from).collect::<Vec<_>>();
 
         for agent in &all_agents {
-            sql::Agent::insert(&self.context.database_pool, &agent).await?;
+            sql::Agent::insert(&self.context.database_pool, agent).await?;
         }
 
         Ok(())

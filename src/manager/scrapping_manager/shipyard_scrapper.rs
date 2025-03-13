@@ -155,10 +155,7 @@ pub async fn update_shipyard(
 
         let shipyard_ships = ships
             .into_iter()
-            .map(|s| {
-                let ship = crate::sql::ShipyardShip::with_waypoint(s, &shipyard.symbol);
-                ship
-            })
+            .map(|s| crate::sql::ShipyardShip::with_waypoint(s, &shipyard.symbol))
             .collect::<Vec<_>>();
 
         crate::sql::ShipyardShip::insert_bulk(database_pool, &shipyard_ships).await?;

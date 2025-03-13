@@ -101,14 +101,14 @@ impl DatabaseConnector<ContractShipment> for ContractShipment {
             purchase_symbols,
             statuses,
         ): (
-            Vec<i32>,
-            Vec<String>,
-            Vec<String>,
-            Vec<models::TradeSymbol>,
-            Vec<i32>,
-            Vec<String>,
-            Vec<String>,
-            Vec<ShipmentStatus>,
+            Vec<_>,
+            Vec<_>,
+            Vec<_>,
+            Vec<_>,
+            Vec<_>,
+            Vec<_>,
+            Vec<_>,
+            Vec<_>,
         ) = itertools::multiunzip(items.iter().map(|c| {
             (
                 c.id,
