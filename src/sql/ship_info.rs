@@ -61,17 +61,20 @@ impl From<ShipInfoRole> for crate::ship::ShipStatus {
                 cycle: None,
                 shipment_id: None,
                 shipping_status: None,
+                waiting_for_manager: false,
             },
             ShipInfoRole::Trader => Self::Trader {
                 cycle: None,
                 shipment_id: None,
                 shipping_status: None,
+                waiting_for_manager: false,
             },
             ShipInfoRole::Contract => Self::Contract {
                 contract_id: None,
                 run_id: None,
                 cycle: None,
                 shipping_status: None,
+                waiting_for_manager: false,
             },
             ShipInfoRole::Scraper => Self::Scraper,
             ShipInfoRole::Mining => Self::Mining {
@@ -82,6 +85,7 @@ impl From<ShipInfoRole> for crate::ship::ShipStatus {
                 cycle: None,
                 shipment_id: None,
                 shipping_status: None,
+                waiting_for_manager: false,
             },
         }
     }

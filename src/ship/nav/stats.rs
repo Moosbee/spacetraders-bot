@@ -1,4 +1,4 @@
-use crate::types::WaypointCan;
+use crate::{sql, types::WaypointCan};
 
 use super::{
     nav_models::{ConnectionDetails, RouteConnection, RouteInstruction},
@@ -25,7 +25,7 @@ use std::collections::HashMap;
 /// connections in the route, and adding 1 to each travel time to account for the
 /// time it takes to transition between connections.
 pub fn calc_route_stats(
-    waypoints: &HashMap<String, models::Waypoint>,
+    waypoints: &HashMap<String, sql::Waypoint>,
     route: &[RouteConnection],
     engine_speed: i32,
     engine_condition: f64,
@@ -63,7 +63,7 @@ pub fn calc_route_stats(
 }
 
 fn calculate_connection_details(
-    waypoints: &HashMap<String, models::Waypoint>,
+    waypoints: &HashMap<String, sql::Waypoint>,
     conn: &RouteConnection,
     engine_speed: i32,
     engine_condition: f64,

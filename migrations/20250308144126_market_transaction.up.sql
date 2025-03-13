@@ -23,7 +23,6 @@ CREATE TABLE IF NOT EXISTS public.market_transaction (
     "timestamp"
   ),
   CONSTRAINT market_transaction_relation_0 FOREIGN KEY (waypoint_symbol) REFERENCES public.waypoint (symbol) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
-  CONSTRAINT market_transaction_relation_1 FOREIGN KEY (ship_symbol) REFERENCES public.ship_info (symbol) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
   CONSTRAINT market_transaction_relation_2 FOREIGN KEY (mining) REFERENCES public.waypoint (symbol) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
   CONSTRAINT market_transaction_relation_3 FOREIGN KEY (contract) REFERENCES public.contract (id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
   CONSTRAINT market_transaction_relation_4 FOREIGN KEY (trade_route) REFERENCES public.trade_route (id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,

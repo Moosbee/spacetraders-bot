@@ -1,4 +1,7 @@
-use std::sync::{atomic::AtomicI32, Arc};
+use std::{
+    collections::HashMap,
+    sync::{atomic::AtomicI32, Arc},
+};
 
 use log::debug;
 
@@ -30,6 +33,16 @@ impl TradingPilot {
             .value_mut()
             .ok_or(Error::General("Ship not found".to_string()))?;
         debug!("Starting trading cycle for ship {}", ship.symbol);
+
+        ship.status = ship::ShipStatus::Trader {
+            shipment_id: None,
+            cycle: None,
+            shipping_status: None,
+            waiting_for_manager: true,
+        };
+
+        ship.notify().await;
+
         let route = self.get_route(ship).await?;
         self.count.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
 
@@ -37,6 +50,7 @@ impl TradingPilot {
             shipment_id: Some(route.id),
             cycle: Some(self.count.load(std::sync::atomic::Ordering::SeqCst)),
             shipping_status: Some(ship::ShippingStatus::InTransitToPurchase),
+            waiting_for_manager: false,
         };
 
         ship.notify().await;
@@ -48,6 +62,7 @@ impl TradingPilot {
             shipment_id: None,
             cycle: None,
             shipping_status: None,
+            waiting_for_manager: false,
         };
         if ship.role == sql::ShipInfoRole::TempTrader {
             ship.role = sql::ShipInfoRole::Manuel;
@@ -145,17 +160,18 @@ impl TradingPilot {
             shipment_id: Some(route.id),
             cycle: Some(self.count.load(std::sync::atomic::Ordering::SeqCst)),
             shipping_status: Some(ship::ShippingStatus::InTransitToPurchase),
+            waiting_for_manager: false,
         };
 
         ship.notify().await;
 
         if !ship.cargo.has(&route.symbol) {
-            let waypoints = self
-                .context
-                .all_waypoints
-                .get(&ship.nav.system_symbol)
-                .unwrap()
-                .clone();
+            let waypoints =
+                sql::Waypoint::get_by_system(&self.context.database_pool, &ship.nav.system_symbol)
+                    .await?
+                    .into_iter()
+                    .map(|w| (w.symbol.clone(), w))
+                    .collect::<HashMap<_, _>>();
 
             debug!(
                 "Navigating to purchase waypoint: {}",
@@ -175,6 +191,7 @@ impl TradingPilot {
                 shipment_id: Some(route.id),
                 cycle: Some(self.count.load(std::sync::atomic::Ordering::SeqCst)),
                 shipping_status: Some(ship::ShippingStatus::Purchasing),
+                waiting_for_manager: false,
             };
 
             ship.notify().await;
@@ -195,15 +212,16 @@ impl TradingPilot {
                 .purchase_price;
 
             let budget = pilot.get_budget().await?;
-            let trade_volume = if budget < (purchase_price * route.trade_volume).into() {
+            let max_buy_volume = (ship.cargo.capacity - ship.cargo.units).min(route.trade_volume);
+            let trade_volume = if budget < (purchase_price * max_buy_volume).into() {
                 let trade_volume = (budget as f64 / purchase_price as f64).floor() as i32;
                 debug!(
                     "Purchasing {} units of {} for {} due to budget constraint",
-                    trade_volume, route.trade_volume, route.symbol
+                    trade_volume, max_buy_volume, route.symbol
                 );
-                trade_volume
+                trade_volume.min(max_buy_volume)
             } else {
-                route.trade_volume
+                max_buy_volume
             };
 
             debug!(
@@ -236,16 +254,17 @@ impl TradingPilot {
             shipment_id: Some(route.id),
             cycle: Some(self.count.load(std::sync::atomic::Ordering::SeqCst)),
             shipping_status: Some(ship::ShippingStatus::InTransitToDelivery),
+            waiting_for_manager: false,
         };
 
         ship.notify().await;
 
-        let waypoints = self
-            .context
-            .all_waypoints
-            .get(&ship.nav.system_symbol)
-            .unwrap()
-            .clone();
+        let waypoints =
+            sql::Waypoint::get_by_system(&self.context.database_pool, &ship.nav.system_symbol)
+                .await?
+                .into_iter()
+                .map(|w| (w.symbol.clone(), w))
+                .collect::<HashMap<_, _>>();
 
         debug!("Navigating to sell waypoint: {}", route.sell_waypoint);
         ship.nav_to(
@@ -262,6 +281,7 @@ impl TradingPilot {
             shipment_id: Some(route.id),
             cycle: Some(self.count.load(std::sync::atomic::Ordering::SeqCst)),
             shipping_status: Some(ship::ShippingStatus::Delivering),
+            waiting_for_manager: false,
         };
 
         ship.notify().await;

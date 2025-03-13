@@ -93,17 +93,20 @@ pub enum ShipStatus {
         cycle: Option<i32>,
         shipment_id: Option<i64>,
         shipping_status: Option<ShippingStatus>,
+        waiting_for_manager: bool,
     },
     Trader {
         shipment_id: Option<i32>,
         cycle: Option<i32>,
         shipping_status: Option<ShippingStatus>,
+        waiting_for_manager: bool,
     },
     Contract {
         contract_id: Option<String>,
         run_id: Option<i32>,
         cycle: Option<i32>,
         shipping_status: Option<ShippingStatus>,
+        waiting_for_manager: bool,
     },
     Scraper,
     Mining {

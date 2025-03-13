@@ -4,13 +4,16 @@ mod tests {
 
     use space_traders_client::models;
 
-    use crate::ship::{
-        nav::{
-            nav_models::{NavMode, RouteConnection},
-            stats::get_travel_stats,
-            utils::get_route,
+    use crate::{
+        ship::{
+            nav::{
+                nav_models::{NavMode, RouteConnection},
+                stats::get_travel_stats,
+                utils::get_route,
+            },
+            ship_models::MyShip,
         },
-        ship_models::MyShip,
+        sql,
     };
 
     #[test]
@@ -90,10 +93,10 @@ mod tests {
         )
         .unwrap();
 
-        let wayps: HashMap<String, models::Waypoint> = waypoints
+        let wayps: HashMap<String, sql::Waypoint> = waypoints
             .clone()
             .iter()
-            .map(|w| (w.symbol.clone(), w.clone()))
+            .map(|w| (w.symbol.clone(), (w).into()))
             .collect();
 
         let mut routes = super::path_finding_tests::get_full_dijkstra(
@@ -155,10 +158,10 @@ mod tests {
     #[test]
     fn test_get_routes() {
         let waypoints = crate::tests::tests::get_waypoints();
-        let wayps: HashMap<String, models::Waypoint> = waypoints
+        let wayps: HashMap<String, sql::Waypoint> = waypoints
             .clone()
             .iter()
-            .map(|w| (w.symbol.clone(), w.clone()))
+            .map(|w| (w.symbol.clone(), (w).into()))
             .collect();
         println!("start;end;dj;star;ship;");
         for _i in 0..200 {
@@ -262,7 +265,7 @@ mod tests {
     }
 
     pub fn are_equal_routes(
-        waypoints: &HashMap<String, models::Waypoint>,
+        waypoints: &HashMap<String, sql::Waypoint>,
         a: Vec<RouteConnection>,
         b: Vec<RouteConnection>,
     ) -> bool {
@@ -278,7 +281,7 @@ mod tests {
     }
 
     pub fn is_equal_route(
-        waypoints: &HashMap<String, models::Waypoint>,
+        waypoints: &HashMap<String, sql::Waypoint>,
         a: &RouteConnection,
         b: &RouteConnection,
     ) -> bool {
@@ -316,11 +319,12 @@ mod path_finding_tests {
             nav_models::{NavMode, RouteConnection},
             utils::{distance_between_waypoints, get_nearby_waypoints, get_route},
         },
+        sql,
         types::WaypointCan,
     };
 
     pub fn get_route_a_star(
-        waypoints: &HashMap<String, models::Waypoint>,
+        waypoints: &HashMap<String, sql::Waypoint>,
         start_symbol: String,
         end_symbol: String,
         max_fuel: i32,
@@ -399,13 +403,13 @@ mod path_finding_tests {
 
     #[cfg(test)]
     pub fn get_full_dijkstra(
-        waypoints: &HashMap<String, models::Waypoint>,
+        waypoints: &HashMap<String, sql::Waypoint>,
         start_symbol: String,
         max_fuel: i32,
         nav_mode: NavMode,
         only_markets: bool,
     ) -> Result<HashMap<String, RouteConnection>, anyhow::Error> {
-        let mut unvisited: HashMap<String, models::Waypoint> = waypoints.clone();
+        let mut unvisited: HashMap<String, sql::Waypoint> = waypoints.clone();
         // .clone()
         // .iter()
         // .map(|w| (w.symbol.clone(), w.clone()))

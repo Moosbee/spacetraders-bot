@@ -190,9 +190,6 @@ pub struct ConductorContext {
     pub api: crate::api::Api,
     pub database_pool: DbPool,
     pub ship_manager: Arc<ShipManager>,
-    #[deprecated]
-    pub all_waypoints:
-        Arc<DashMap<String, HashMap<String, space_traders_client::models::Waypoint>>>,
     pub ship_tasks: ShipTaskMessanger,
     pub construction_manager: ConstructionManagerMessanger,
     pub contract_manager: ContractManagerMessanger,

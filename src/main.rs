@@ -14,16 +14,10 @@ mod rate_limiter;
 mod types;
 mod utils;
 
-use std::{
-    collections::{HashMap, HashSet},
-    env,
-    error::Error,
-    sync::Arc,
-};
+use std::{collections::HashSet, env, error::Error, sync::Arc};
 
 use chrono::{DateTime, Utc};
 use config::CONFIG;
-use dashmap::DashMap;
 use env_logger::{Env, Target};
 use manager::{
     construction_manager::ConstructionManager,
@@ -36,9 +30,9 @@ use manager::{
 };
 use rsntp::AsyncSntpClient;
 use ship::ShipManager;
-use space_traders_client::models::waypoint;
 use sql::DatabaseConnector;
 use tokio::sync::broadcast;
+use tokio_stream::StreamExt;
 use tokio_util::sync::CancellationToken;
 use types::ConductorContext;
 
@@ -111,9 +105,6 @@ async fn setup_context(
 
     debug!("Systems: {}", system_symbols.len());
 
-    let all_waypoints: Arc<dashmap::DashMap<String, HashMap<String, waypoint::Waypoint>>> =
-        Arc::new(DashMap::new());
-
     for system_symbol in system_symbols {
         let db_system = sql::System::get_by_id(&database_pool, &system_symbol).await?;
         let waypoints = sql::Waypoint::get_by_system(&database_pool, &system_symbol).await?;
@@ -122,20 +113,7 @@ async fn setup_context(
             // some systems have no waypoints, but we likely won't have ships there
             update_system(&database_pool, &api, &system_symbol, true).await?;
         }
-        let waypoints = sql::Waypoint::get_by_system(&database_pool, &system_symbol).await?;
-
-        {
-            let mut a_wps = all_waypoints.entry(system_symbol).or_default();
-            for wp in waypoints.iter() {
-                a_wps.insert(
-                    wp.symbol.clone(),
-                    Into::<waypoint::Waypoint>::into(wp).clone(),
-                );
-            }
-        }
     }
-
-    debug!("Waypoints: {}", all_waypoints.len());
 
     let (sender, receiver) = broadcast::channel(1024);
 
@@ -166,7 +144,6 @@ async fn setup_context(
         database_pool,
         ship_manager,
         ship_tasks: ship_task_handler.1,
-        all_waypoints: all_waypoints.clone(),
         construction_manager: construction_manager_data.1,
         contract_manager: contract_manager_data.1,
         mining_manager: mining_manager_data.1,
@@ -348,24 +325,33 @@ async fn wait_managers(
         CancellationToken,
     )>,
 ) -> Result<(), crate::error::Error> {
+    let mut manager_futures = futures::stream::FuturesUnordered::new();
+
     for handle in managers_handles {
         let manager_name = handle.1;
         let manager_handle = handle.0;
-        let erg = manager_handle.await;
-        info!("{:?}: {:?}", manager_name, erg);
-        if let Err(errror) = erg {
-            log::error!("{:?} manager error: {} {:?}", manager_name, errror, errror);
-        } else if let Ok(r_erg) = erg {
-            if let Err(errror) = r_erg {
-                log::error!(
-                    "{:?} manager error: {} {:?}",
-                    manager_name,
-                    errror,
-                    errror.source(),
-                );
-            } else if let Ok(_res) = r_erg {
+        manager_futures.push(async move {
+            let erg = manager_handle.await;
+            info!("{:?}: {:?}", manager_name, erg);
+            if let Err(errror) = erg {
+                log::error!("{:?} manager error: {} {:?}", manager_name, errror, errror);
+            } else if let Ok(r_erg) = erg {
+                if let Err(errror) = r_erg {
+                    log::error!(
+                        "{:?} manager error: {} {:?}",
+                        manager_name,
+                        errror,
+                        errror.source(),
+                    );
+                } else if let Ok(_res) = r_erg {
+                }
             }
-        }
+            manager_name
+        });
+    }
+
+    while let Some(result) = manager_futures.next().await {
+        info!("Manager finished: {}", result);
     }
     Ok(())
 }

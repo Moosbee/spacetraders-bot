@@ -1,4 +1,4 @@
-use std::str::FromStr;
+use std::{collections::HashMap, str::FromStr};
 
 use log::debug;
 use warp::reply::Reply;
@@ -342,11 +342,11 @@ async fn navigate_ship(
         .value_mut()
         .ok_or_else(|| error::Error::General("Ship not found".to_string()))?;
 
-    let waypoints = context
-        .all_waypoints
-        .get(&ship.nav.system_symbol)
-        .ok_or_else(|| error::Error::General("Waypoints not found".to_string()))?
-        .clone();
+    let waypoints = sql::Waypoint::get_by_system(&context.database_pool, &ship.nav.system_symbol)
+        .await?
+        .into_iter()
+        .map(|w| (w.symbol.clone(), w))
+        .collect::<HashMap<_, _>>();
 
     ship.nav_to(
         waypoint_id,

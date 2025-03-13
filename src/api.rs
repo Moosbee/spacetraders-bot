@@ -52,6 +52,14 @@ impl Api {
         }
     }
 
+    pub fn get_configuration(&self) -> Arc<Configuration> {
+        self.configuration.clone()
+    }
+
+    pub fn get_limiter(&self) -> Arc<PriorityRateLimiter> {
+        self.limiter.clone()
+    }
+
     /// Return the status of the game server. This also includes a few global elements, such as announcements, server reset dates and leaderboards.
     pub async fn get_status(&self) -> Result<models::GetStatus200Response, Error<GetStatusError>> {
         self.limiter.until_ready(50, "").await;

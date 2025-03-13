@@ -1,10 +1,13 @@
-use std::sync::{atomic::AtomicI32, Arc};
+use std::{
+    collections::HashMap,
+    sync::{atomic::AtomicI32, Arc},
+};
 
 use log::debug;
 
 use crate::{
     error::{Error, Result},
-    manager::contract_manager::{ContractMessage, NextShipmentResp},
+    manager::contract_manager::{ContractShipmentMessage, NextShipmentResp},
     ship, sql,
     types::ConductorContext,
 };
@@ -51,6 +54,7 @@ impl ContractPilot {
             run_id: Some(shipment.id),
             cycle: Some(self.count.load(std::sync::atomic::Ordering::SeqCst)),
             shipping_status: Some(ship::ShippingStatus::Unknown),
+            waiting_for_manager: false,
         };
 
         ship.notify().await;
@@ -96,6 +100,7 @@ impl ContractPilot {
             run_id: None,
             cycle: None,
             shipping_status: None,
+            waiting_for_manager: false,
         };
 
         ship.notify().await;
@@ -114,7 +119,7 @@ impl ContractPilot {
 
     async fn request_next_shipment(&self, ship: &ship::MyShip) -> Result<NextShipmentResp> {
         let (sender, receiver) = tokio::sync::oneshot::channel();
-        let message = ContractMessage::RequestNextShipment {
+        let message = ContractShipmentMessage::RequestNext {
             ship_clone: ship.clone(),
             callback: sender,
             can_start_new_contract: true,
@@ -138,7 +143,7 @@ impl ContractPilot {
     async fn fail_shipment(&self, shipment: sql::ContractShipment, error: Error) -> Result<Error> {
         let (sender, receiver) = tokio::sync::oneshot::channel();
 
-        let message = ContractMessage::FailedShipment {
+        let message = ContractShipmentMessage::Failed {
             shipment,
             error,
             callback: sender,
@@ -164,7 +169,7 @@ impl ContractPilot {
         shipment: sql::ContractShipment,
         contract: space_traders_client::models::Contract,
     ) -> Result<()> {
-        let message = ContractMessage::FinishedShipment { contract, shipment };
+        let message = ContractShipmentMessage::Finished { contract, shipment };
 
         debug!("Sending message: {:?}", message);
 
@@ -189,16 +194,17 @@ impl ContractPilot {
             run_id: Some(shipment.id),
             cycle: Some(self.count.load(std::sync::atomic::Ordering::SeqCst)),
             shipping_status: Some(ship::ShippingStatus::InTransitToPurchase),
+            waiting_for_manager: false,
         };
 
         ship.notify().await;
 
-        let waypoints = self
-            .context
-            .all_waypoints
-            .get(&ship.nav.system_symbol)
-            .map(|w| w.clone())
-            .ok_or(Error::General("System not found".to_string()))?;
+        let waypoints =
+            sql::Waypoint::get_by_system(&self.context.database_pool, &ship.nav.system_symbol)
+                .await?
+                .into_iter()
+                .map(|w| (w.symbol.clone(), w))
+                .collect::<HashMap<_, _>>();
 
         ship.nav_to(
             &shipment.purchase_symbol,
@@ -215,6 +221,7 @@ impl ContractPilot {
             run_id: Some(shipment.id),
             cycle: Some(self.count.load(std::sync::atomic::Ordering::SeqCst)),
             shipping_status: Some(ship::ShippingStatus::Purchasing),
+            waiting_for_manager: false,
         };
 
         ship.notify().await;
@@ -276,16 +283,17 @@ impl ContractPilot {
             run_id: Some(shipment.id),
             cycle: Some(self.count.load(std::sync::atomic::Ordering::SeqCst)),
             shipping_status: Some(ship::ShippingStatus::InTransitToDelivery),
+            waiting_for_manager: false,
         };
 
         ship.notify().await;
 
-        let waypoints = self
-            .context
-            .all_waypoints
-            .get(&ship.nav.system_symbol)
-            .map(|w| w.clone())
-            .ok_or(Error::General("System not found".to_string()))?;
+        let waypoints =
+            sql::Waypoint::get_by_system(&self.context.database_pool, &ship.nav.system_symbol)
+                .await?
+                .into_iter()
+                .map(|w| (w.symbol.clone(), w))
+                .collect::<HashMap<_, _>>();
 
         ship.nav_to(
             &shipment.destination_symbol,
@@ -302,6 +310,7 @@ impl ContractPilot {
             run_id: Some(shipment.id),
             cycle: Some(self.count.load(std::sync::atomic::Ordering::SeqCst)),
             shipping_status: Some(ship::ShippingStatus::Delivering),
+            waiting_for_manager: false,
         };
 
         ship.notify().await;

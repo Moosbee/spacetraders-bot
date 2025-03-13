@@ -203,7 +203,7 @@ impl WaypointManager {
         let (units_sum, capacity_sum) = wp
             .ship_iter()
             .filter(|s| s.1 == &AssignLevel::Active)
-            .map(|s| ships.get(s.0).unwrap())
+            .filter_map(|s| ships.get(s.0))
             .filter(|sh| sh.nav.waypoint_symbol == wp.waypoint_symbol && !sh.nav.is_in_transit())
             .map(|sh| (sh.cargo.units, sh.cargo.capacity))
             .fold((0, 0), |(units_sum, capacity_sum), (units, capacity)| {

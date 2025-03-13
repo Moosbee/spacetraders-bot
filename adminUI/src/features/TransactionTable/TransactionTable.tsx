@@ -182,7 +182,7 @@ function TransactionTable({
       pagination={{
         showSizeChanger: true,
         pageSizeOptions: ["10", "20", "50", "100", "200", "500", "1000"],
-        defaultPageSize: 100,
+        defaultPageSize: 10,
         showTotal: (total, range) => `${range[0]}-${range[1]} of ${total}`,
       }}
     />

@@ -129,12 +129,14 @@ interface ConstructionData {
   cycle?: number;
   shipment_id?: number;
   shipping_status?: ShippingStatus;
+  waiting_for_manager: boolean;
 }
 
 interface TraderData {
   shipment_id?: number;
   cycle?: number;
   shipping_status?: ShippingStatus;
+  waiting_for_manager: boolean;
 }
 
 interface ContractData {
@@ -142,6 +144,7 @@ interface ContractData {
   run_id?: number;
   cycle?: number;
   shipping_status?: ShippingStatus;
+  waiting_for_manager: boolean;
 }
 
 interface MiningData {

@@ -2,9 +2,9 @@ use super::{
     nav_models::{NavMode, RouteConnection},
     utils::distance_between_waypoints,
 };
-use crate::error::Result;
 use crate::ship::ship_models::MyShip;
 use crate::types::WaypointCan;
+use crate::{error::Result, sql};
 use priority_queue::PriorityQueue;
 use space_traders_client::models;
 use std::collections::HashMap;
@@ -29,11 +29,11 @@ impl MyShip {
     /// # Returns
     ///
     /// * `Result<Vec<RouteConnection>>` - A result containing a vector of `RouteConnection` objects
-    /// representing the found route, or an error if the route could not be found.
+    ///   representing the found route, or an error if the route could not be found.
 
     pub fn find_route(
         &mut self,
-        waypoints: &HashMap<String, models::Waypoint>,
+        waypoints: &HashMap<String, sql::Waypoint>,
         start_symbol: String,
         end_symbol: String,
         nav_mode: &NavMode,
@@ -79,7 +79,7 @@ impl MyShip {
     /// representing the found route, or an error if the route could not be found.
     pub fn find_route_cached(
         &self,
-        waypoints: &HashMap<String, models::Waypoint>,
+        waypoints: &HashMap<String, sql::Waypoint>,
         start_symbol: String,
         end_symbol: String,
         nav_mode: &NavMode,
@@ -159,9 +159,9 @@ impl MyShip {
 
     fn get_waypoint<'a>(
         &self,
-        waypoints: &'a HashMap<String, models::Waypoint>,
+        waypoints: &'a HashMap<String, sql::Waypoint>,
         symbol: &str,
-    ) -> Result<&'a models::Waypoint> {
+    ) -> Result<&'a sql::Waypoint> {
         waypoints.get(symbol).ok_or_else(|| {
             crate::error::Error::General(format!("Could not find waypoint: {}", symbol))
         })
@@ -172,8 +172,8 @@ impl MyShip {
         current_route: &RouteConnection,
         to_visit: &mut PriorityQueue<RouteConnection, std::cmp::Reverse<i64>>,
         visited: &mut HashMap<String, RouteConnection>,
-        unvisited: &mut HashMap<String, models::Waypoint>,
-        end_waypoint: &models::Waypoint,
+        unvisited: &mut HashMap<String, sql::Waypoint>,
+        end_waypoint: &sql::Waypoint,
         end_symbol: &str,
         only_markets: bool,
         nav_modes: &Vec<super::nav_models::Mode>,
@@ -217,11 +217,11 @@ impl MyShip {
 
     fn explore_neighbors(
         &self,
-        current: &models::Waypoint,
+        current: &sql::Waypoint,
         current_route: &RouteConnection,
-        unvisited: &HashMap<String, models::Waypoint>,
+        unvisited: &HashMap<String, sql::Waypoint>,
         to_visit: &mut PriorityQueue<RouteConnection, std::cmp::Reverse<i64>>,
-        end_waypoint: &models::Waypoint,
+        end_waypoint: &sql::Waypoint,
         nav_modes: &Vec<super::nav_models::Mode>,
     ) {
         for mode in nav_modes {
@@ -239,11 +239,11 @@ impl MyShip {
 
     fn calculate_next_route(
         &self,
-        current: &models::Waypoint,
-        next: &models::Waypoint,
+        current: &sql::Waypoint,
+        next: &sql::Waypoint,
         current_route: &RouteConnection,
         mode: &super::nav_models::Mode,
-        end_waypoint: &models::Waypoint,
+        end_waypoint: &sql::Waypoint,
     ) -> RouteConnection {
         let distance = distance_between_waypoints((current.x, current.y), (next.x, next.y));
         let heuristic_cost =

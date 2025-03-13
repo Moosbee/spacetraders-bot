@@ -37,12 +37,12 @@ impl TransportPilot {
         self.count
             .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
 
-        let waypoints = self
-            .context
-            .all_waypoints
-            .get(&ship.nav.system_symbol)
-            .unwrap()
-            .clone();
+        let waypoints =
+            sql::Waypoint::get_by_system(&self.context.database_pool, &ship.nav.system_symbol)
+                .await?
+                .into_iter()
+                .map(|w| (w.symbol.clone(), w))
+                .collect::<HashMap<_, _>>();
 
         let mut last_waypoint = ship.nav.waypoint_symbol.clone();
 
@@ -281,7 +281,7 @@ impl TransportPilot {
         &self,
         pilot: &crate::pilot::Pilot,
         ship: &mut ship::MyShip,
-        waypoints: &std::collections::HashMap<String, space_traders_client::models::Waypoint>,
+        waypoints: &std::collections::HashMap<String, sql::Waypoint>,
         mining_waypoint: String,
     ) -> Result<()> {
         while ship.cargo.get_units_no_fuel() > 0 {
@@ -338,9 +338,12 @@ impl TransportPilot {
     ) -> Option<(String, Vec<models::TradeSymbol>)> {
         let cargo_data = &ship.cargo;
 
-        let all_trades = sql::MarketTradeGood::get_last(&self.context.database_pool)
-            .await
-            .unwrap();
+        let all_trades = sql::MarketTradeGood::get_last_by_system(
+            &self.context.database_pool,
+            &ship.nav.system_symbol,
+        )
+        .await
+        .unwrap();
 
         let filtered_trades = all_trades
             .into_iter()

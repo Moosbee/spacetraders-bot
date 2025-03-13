@@ -421,15 +421,23 @@ impl MiningManager {
         debug!("Calculated routes: {:?}", routes);
         // let routes = routes.into_iter().filter(|r| r.1 > 0).collect::<Vec<_>>();
 
-        if routes.is_empty() {
-            info!("No routes found for {}", ship_clone.symbol);
-            return Err("No routes found".into());
+        let routes = routes
+            .into_iter()
+            .filter(|r| r.0.starts_with(&ship_clone.nav.system_symbol))
+            .collect::<Vec<_>>();
+
+        let route = routes.last();
+        match route {
+            Some(route) => {
+                debug!("Selected route: {:?}", route);
+
+                Ok(route.0.clone())
+            }
+            None => {
+                info!("No routes found for {}", ship_clone.symbol);
+                Err("No routes found".into())
+            }
         }
-
-        let route = routes.last().unwrap();
-        debug!("Selected route: {:?}", route);
-
-        Ok(route.0.clone())
     }
 }
 

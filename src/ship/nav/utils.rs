@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 
-use crate::error::Result;
-use space_traders_client::models;
+use crate::{error::Result, sql};
 
 use super::nav_models::RouteConnection;
 
@@ -49,10 +48,10 @@ pub fn distance_between_waypoints(start: (i32, i32), end: (i32, i32)) -> f64 {
 }
 
 pub fn get_nearby_waypoints(
-    waypoints: &HashMap<String, models::Waypoint>,
+    waypoints: &HashMap<String, sql::Waypoint>,
     start_waypoint: (i32, i32),
     radius: f64,
-) -> Vec<&models::Waypoint> {
+) -> Vec<&sql::Waypoint> {
     waypoints
         .values()
         .filter(|w| distance_between_waypoints(start_waypoint, (w.x, w.y)) <= radius)

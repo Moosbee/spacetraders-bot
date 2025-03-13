@@ -156,6 +156,13 @@ pub(crate) fn build_api_routes(
         .and(with_context(context.clone()))
         .and_then(handlers::handle_get_agent_history);
 
+    // API Counter
+    let api_counter = warp::path("apiCounter")
+        .and(warp::path::end())
+        .and(warp::get())
+        .and(with_context(context.clone()))
+        .and_then(handlers::handle_get_api_counter);
+
     // Shutdown route
     let shutdown = warp::path("shutdown")
         .and(warp::path::end())
@@ -189,5 +196,6 @@ pub(crate) fn build_api_routes(
         .or(agent_history)
         .or(agent)
         .or(agents)
+        .or(api_counter)
         .or(shutdown)
 }

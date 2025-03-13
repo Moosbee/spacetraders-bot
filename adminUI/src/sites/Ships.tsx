@@ -17,6 +17,9 @@ import { ShipNavFlightMode, ShipNavStatus, ShipRole } from "../models/api";
 import RustShip, { SystemShipRoles } from "../models/ship";
 import useMyStore, { backendUrl } from "../store";
 
+type TableRowSelection<T extends object = object> =
+  TableProps<T>["rowSelection"];
+
 function Ships() {
   const ships = useMyStore((state) => state.ships);
   const setShips = useMyStore((state) => state.setShips);
@@ -36,9 +39,10 @@ function Ships() {
       dataIndex: "symbol",
       key: "symbol",
       defaultSortOrder: "ascend",
-      render: (symbol) => (
+      render: (symbol, record) => (
         <>
-          <Link to={`/ships/${symbol}`}>{symbol}</Link> ({})
+          <Link to={`/ships/${symbol}`}>{symbol}</Link> (
+          {record.active ? "A" : "I"})
         </>
       ),
       sorter: (a, b) =>
@@ -322,6 +326,37 @@ function Ships() {
       : []),
   ];
 
+  const [showSelection, setShowSelection] = useState<boolean>(false);
+
+  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+
+  const onSelectChange = (newSelectedRowKeys: React.Key[]) => {
+    console.log("selectedRowKeys changed: ", newSelectedRowKeys);
+    setSelectedRowKeys(newSelectedRowKeys);
+  };
+
+  const rowSelection: TableRowSelection<RustShip> = {
+    selectedRowKeys,
+    onChange: onSelectChange,
+    // selections: [
+    //   Table.SELECTION_ALL,
+    //   Table.SELECTION_INVERT,
+    //   Table.SELECTION_NONE,
+    //   {
+    //     key: "Manuel",
+    //     text: "Select Manuel Ships",
+    //     onSelect: (changeableRowKeys) => {
+    //       let newSelectedRowKeys = [];
+    //       newSelectedRowKeys = changeableRowKeys.filter((shipKey) => {
+    //         const ship = ships[shipKey as string];
+    //         return ship.role !== "Manuel";
+    //       });
+    //       setSelectedRowKeys(newSelectedRowKeys);
+    //     },
+    //   },
+    // ],
+  };
+
   return (
     <div style={{ padding: "24px 24px" }}>
       <PageTitle title="All Ships" />
@@ -347,11 +382,21 @@ function Ships() {
           onChange={(checked) => setShowCondition(checked)}
         />
         Show Condition
+        <Switch
+          checked={showSelection}
+          onChange={(checked) => {
+            setShowSelection(checked);
+            setSelectedRowKeys([]);
+          }}
+        />
+        Show Selection
       </Space>
       <Table
+        size="small"
         dataSource={Object.values(ships)}
         columns={columns}
         rowKey={(ship) => ship.symbol}
+        rowSelection={showSelection ? rowSelection : undefined}
         pagination={{
           showSizeChanger: true,
           pageSizeOptions: ["10", "20", "50", "100", "200", "500", "1000"],

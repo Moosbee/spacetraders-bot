@@ -1,4 +1,7 @@
-use std::sync::{atomic::AtomicI32, Arc};
+use std::{
+    collections::HashMap,
+    sync::{atomic::AtomicI32, Arc},
+};
 
 use log::debug;
 use space_traders_client::models;
@@ -54,6 +57,7 @@ impl ConstructionPilot {
             cycle: Some(self.count.load(std::sync::atomic::Ordering::SeqCst)),
             shipment_id: Some(shipment.id),
             shipping_status: Some(ship::ShippingStatus::Unknown),
+            waiting_for_manager: false,
         };
 
         ship.notify().await;
@@ -109,6 +113,7 @@ impl ConstructionPilot {
             cycle: None,
             shipment_id: None,
             shipping_status: None,
+            waiting_for_manager: false,
         };
 
         ship.notify().await;
@@ -135,16 +140,17 @@ impl ConstructionPilot {
             cycle: Some(self.count.load(std::sync::atomic::Ordering::SeqCst)),
             shipment_id: Some(shipment.id),
             shipping_status: Some(ship::ShippingStatus::InTransitToPurchase),
+            waiting_for_manager: false,
         };
 
         ship.notify().await;
 
-        let waypoints = self
-            .context
-            .all_waypoints
-            .get(&ship.nav.system_symbol)
-            .map(|w| w.clone())
-            .ok_or(Error::General("System not found".to_string()))?;
+        let waypoints =
+            sql::Waypoint::get_by_system(&self.context.database_pool, &ship.nav.system_symbol)
+                .await?
+                .into_iter()
+                .map(|w| (w.symbol.clone(), w))
+                .collect::<HashMap<_, _>>();
 
         ship.nav_to(
             &shipment.purchase_waypoint,
@@ -160,6 +166,7 @@ impl ConstructionPilot {
             cycle: Some(self.count.load(std::sync::atomic::Ordering::SeqCst)),
             shipment_id: Some(shipment.id),
             shipping_status: Some(ship::ShippingStatus::Purchasing),
+            waiting_for_manager: false,
         };
 
         ship.notify().await;
@@ -217,16 +224,17 @@ impl ConstructionPilot {
             cycle: Some(self.count.load(std::sync::atomic::Ordering::SeqCst)),
             shipment_id: Some(shipment.id),
             shipping_status: Some(ship::ShippingStatus::InTransitToDelivery),
+            waiting_for_manager: false,
         };
 
         ship.notify().await;
 
-        let waypoints = self
-            .context
-            .all_waypoints
-            .get(&ship.nav.system_symbol)
-            .map(|w| w.clone())
-            .ok_or(Error::General("System not found".to_string()))?;
+        let waypoints =
+            sql::Waypoint::get_by_system(&self.context.database_pool, &ship.nav.system_symbol)
+                .await?
+                .into_iter()
+                .map(|w| (w.symbol.clone(), w))
+                .collect::<HashMap<_, _>>();
 
         ship.nav_to(
             &shipment.construction_site_waypoint,
@@ -242,6 +250,7 @@ impl ConstructionPilot {
             cycle: Some(self.count.load(std::sync::atomic::Ordering::SeqCst)),
             shipment_id: Some(shipment.id),
             shipping_status: Some(ship::ShippingStatus::Delivering),
+            waiting_for_manager: false,
         };
 
         ship.notify().await;

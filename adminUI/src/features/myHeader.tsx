@@ -11,9 +11,10 @@ import {
   theme,
   Tooltip,
 } from "antd";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import type { AntHeaderHeader } from "../MyApp";
-import useMyStore from "../store";
+import useMyStore, { backendUrl } from "../store";
 import FaIcon from "./FontAwsome/FaIcon";
 import MoneyDisplay from "./MonyDisplay";
 
@@ -28,6 +29,8 @@ function MyHeader({ Header }: { Header: typeof AntHeaderHeader }) {
   const systemSymbol = useMyStore((state) => state.selectedSystemSymbol);
 
   const websocketConnected = useMyStore((state) => state.websocketConnected);
+
+  const [apiCount, setApiCount] = useState(0);
 
   const {
     token: { colorBgContainer, colorTextDescription },
@@ -95,12 +98,6 @@ function MyHeader({ Header }: { Header: typeof AntHeaderHeader }) {
               <Col span={12} style={{ textAlign: "center" }}>
                 <MoneyDisplay amount={myAgent.credits} />
               </Col>
-
-              <br />
-
-              <br />
-
-              <br />
             </Row>
           }
         >
@@ -157,11 +154,22 @@ function MyHeader({ Header }: { Header: typeof AntHeaderHeader }) {
             </span>
           )}
         </div>
-        <Dropdown trigger={["click"]} menu={{ items: settingsItems }}>
-          <Button>
-            <FaIcon type="solid" icon="fa-gear" /> Settings
+        <Space>
+          <Button
+            onClick={() => {
+              fetch(`http://${backendUrl}/apiCounter`)
+                .then((response) => response.json())
+                .then((data) => setApiCount(data.counter));
+            }}
+          >
+            API Count: {apiCount}
           </Button>
-        </Dropdown>
+          <Dropdown trigger={["click"]} menu={{ items: settingsItems }}>
+            <Button>
+              <FaIcon type="solid" icon="fa-gear" /> Settings
+            </Button>
+          </Dropdown>
+        </Space>
       </Flex>
     </Header>
   );

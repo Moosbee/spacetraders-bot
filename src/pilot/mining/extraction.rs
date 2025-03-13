@@ -1,4 +1,7 @@
-use std::sync::{atomic::AtomicI32, Arc};
+use std::{
+    collections::HashMap,
+    sync::{atomic::AtomicI32, Arc},
+};
 
 use futures::FutureExt;
 use log::{debug, info};
@@ -11,7 +14,7 @@ use crate::{
     pilot::{mining::ExtractorState, MiningShipAssignment},
     ship,
     sql::{self, DatabaseConnector, TransactionReason},
-    types::{safely_get_map, ConductorContext},
+    types::ConductorContext,
 };
 
 pub struct ExtractionPilot {
@@ -231,9 +234,12 @@ impl ExtractionPilot {
             return Err("Waypoint is not in ship's system".into());
         }
 
-        let waypoints = safely_get_map(&self.context.all_waypoints, &system_symbol)
-            .unwrap()
-            .clone();
+        let waypoints =
+            sql::Waypoint::get_by_system(&self.context.database_pool, &ship.nav.system_symbol)
+                .await?
+                .into_iter()
+                .map(|w| (w.symbol.clone(), w))
+                .collect::<HashMap<_, _>>();
 
         ship.nav_to(
             waypoint_symbol,

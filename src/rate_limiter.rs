@@ -1,4 +1,4 @@
-use std::{num::NonZeroU32, time::Duration};
+use std::{num::NonZeroU32, sync::atomic::AtomicI64, time::Duration};
 
 #[derive(Debug)]
 pub struct PriorityRateLimiter {
@@ -8,6 +8,7 @@ pub struct PriorityRateLimiter {
         governor::clock::QuantaClock,
         governor::middleware::NoOpMiddleware<governor::clock::QuantaInstant>,
     >,
+    pub counter: AtomicI64,
 }
 
 impl PriorityRateLimiter {
@@ -19,10 +20,21 @@ impl PriorityRateLimiter {
 
         // let store = DashMapStateStore::new();
         let limiter = governor::RateLimiter::direct(quota);
-        Self { limiter }
+        Self {
+            limiter,
+            counter: AtomicI64::new(0),
+        }
     }
 
     pub async fn until_ready(&self, priority: u32, message: &str) {
+        self.counter
+            .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
         self.limiter.until_ready().await;
+        self.counter
+            .fetch_sub(1, std::sync::atomic::Ordering::SeqCst);
+    }
+
+    pub fn get_counter(&self) -> i64 {
+        self.counter.load(std::sync::atomic::Ordering::SeqCst)
     }
 }

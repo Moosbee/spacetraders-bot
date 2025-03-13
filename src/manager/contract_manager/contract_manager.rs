@@ -14,18 +14,18 @@ use crate::{
 };
 
 #[derive(Debug)]
-pub enum ContractMessage {
-    RequestNextShipment {
+pub enum ContractShipmentMessage {
+    RequestNext {
         ship_clone: ship::MyShip,
         can_start_new_contract: bool,
         callback: tokio::sync::oneshot::Sender<Result<NextShipmentResp>>,
     },
-    FailedShipment {
+    Failed {
         shipment: sql::ContractShipment,
         error: crate::error::Error,
         callback: tokio::sync::oneshot::Sender<Result<crate::error::Error>>,
     },
-    FinishedShipment {
+    Finished {
         contract: models::Contract,
         shipment: sql::ContractShipment,
     },
@@ -37,7 +37,7 @@ pub enum NextShipmentResp {
     ComeBackLater,
 }
 
-type ContractManagerMessage = ContractMessage;
+type ContractManagerMessage = ContractShipmentMessage;
 
 #[derive(Debug)]
 pub struct ContractManager {
@@ -129,7 +129,7 @@ impl ContractManager {
     async fn handle_contract_message(&mut self, message: ContractManagerMessage) -> Result<()> {
         debug!("Handling contract message: {:?}", message);
         match message {
-            ContractMessage::RequestNextShipment {
+            ContractShipmentMessage::RequestNext {
                 ship_clone,
                 can_start_new_contract,
                 callback,
@@ -142,7 +142,7 @@ impl ContractManager {
 
                 let _send = callback.send(next_shipment);
             }
-            ContractMessage::FailedShipment {
+            ContractShipmentMessage::Failed {
                 shipment,
                 error,
                 callback,
@@ -151,7 +151,7 @@ impl ContractManager {
 
                 callback.send(Ok(error)).unwrap();
             }
-            ContractMessage::FinishedShipment { contract, shipment } => {
+            ContractShipmentMessage::Finished { contract, shipment } => {
                 self.finished_shipment(contract, shipment).await?;
             }
         }
@@ -277,6 +277,11 @@ impl ContractManager {
                 let units_fullfiled = p.units_fulfilled + running;
                 p.units_fulfilled = units_fullfiled.min(p.units_required);
                 p
+            })
+            .filter(|c| {
+                c.destination_symbol
+                    .starts_with(&ship_clone.nav.system_symbol)
+                    && c.units_fulfilled >= c.units_required
             })
             .collect::<Vec<_>>();
 

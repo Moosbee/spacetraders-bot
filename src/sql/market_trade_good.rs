@@ -288,7 +288,7 @@ impl MarketTradeGood {
         let row = sqlx::query_as!(
             MarketTradeGood,
             r#"
-        SELECT DISTINCT ON (waypoint_symbol)
+        SELECT DISTINCT ON (waypoint_symbol, market_trade_good.symbol)
             market_trade_good.created_at,
             market_trade_good.created,
             market_trade_good.waypoint_symbol,
@@ -301,7 +301,7 @@ impl MarketTradeGood {
             market_trade_good.sell_price
         FROM public.market_trade_good left join public.waypoint ON waypoint.symbol = market_trade_good.waypoint_symbol
         WHERE waypoint.system_symbol = $1
-        ORDER BY waypoint_symbol, created DESC
+        ORDER BY waypoint_symbol, market_trade_good.symbol, created DESC
         "#,
             system_symbol
         )

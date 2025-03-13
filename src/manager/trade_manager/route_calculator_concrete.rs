@@ -63,7 +63,7 @@ impl ConcreteRouteCalculator {
     ) -> (RouteStats, RouteStats) {
         let waypoints = waypoints
             .iter()
-            .map(|w| (w.symbol.clone(), w.into()))
+            .map(|w| (w.symbol.clone(), w.clone()))
             .collect::<HashMap<_, _>>();
         let route = self.find_route(
             ship,
@@ -100,7 +100,7 @@ impl ConcreteRouteCalculator {
     fn find_route(
         &mut self,
         ship: &ship::MyShip,
-        waypoints: &std::collections::HashMap<String, space_traders_client::models::Waypoint>,
+        waypoints: &std::collections::HashMap<String, sql::Waypoint>,
         sell_wp_symbol: &str,
         purchase_wp_symbol: &str,
     ) -> Result<Vec<ship::nav_models::RouteConnection>, crate::error::Error> {
@@ -194,7 +194,7 @@ impl ConcreteRouteCalculator {
     fn calculate_single_route_stats(
         &self,
         ship: &ship::MyShip,
-        waypoints: &std::collections::HashMap<String, space_traders_client::models::Waypoint>,
+        waypoints: &std::collections::HashMap<String, sql::Waypoint>,
         route: &[ship::nav_models::RouteConnection],
     ) -> RouteStats {
         let (_, total_distance, total_fuel_cost, total_travel_time) = ship::stats::calc_route_stats(

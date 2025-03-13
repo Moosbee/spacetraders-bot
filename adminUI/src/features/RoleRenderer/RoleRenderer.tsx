@@ -18,8 +18,8 @@ const RoleRenderer = ({
             <span>{firstPart}</span>
             <span>...</span>
             <span>{lastPart}</span>
-          </Link>{" "}
-          ({status.data.cycle})
+          </Link>
+          {status.data.waiting_for_manager ? "*" : ""} ({status.data.cycle})
           <br />
           <span>
             Shipment {status.data.run_id} - {status.data.shipping_status}
@@ -35,7 +35,8 @@ const RoleRenderer = ({
       return (
         <span>
           <span>
-            {status.data.shipment_id} ({status.data.cycle})
+            {status.data.shipment_id}
+            {status.data.waiting_for_manager ? "*" : ""} ({status.data.cycle})
           </span>
           <br />
           <span>{status.data.shipping_status}</span>
@@ -85,7 +86,8 @@ const RoleRenderer = ({
     if (status.type === "Construction" && status.data !== null) {
       return (
         <span>
-          {status.data.shipment_id} ({status.data.cycle})
+          {status.data.shipment_id}
+          {status.data.waiting_for_manager ? "*" : ""} ({status.data.cycle})
           <br />
           {status.data.shipping_status}
         </span>

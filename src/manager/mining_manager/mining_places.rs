@@ -139,7 +139,7 @@ impl MiningPlaces {
             Some(waypoint) => {
                 let count = waypoint.get_count_active_on_way();
 
-                let ship = waypoint.assigned_ships.get_mut(&ship_symbol.to_string());
+                let ship = waypoint.assigned_ships.get_mut(ship_symbol);
 
                 match ship {
                     Some(ship) => match *ship {
@@ -174,7 +174,7 @@ impl MiningPlaces {
 
         match wp {
             Some(waypoint) => {
-                let ship = waypoint.assigned_ships.get_mut(&ship_symbol.to_string());
+                let ship = waypoint.assigned_ships.get_mut(ship_symbol);
 
                 match ship {
                     Some(ship) => {
@@ -197,10 +197,7 @@ impl MiningPlaces {
         let wp = self.mining_places.get_mut(waypoint);
 
         match wp {
-            Some(waypoint) => waypoint
-                .assigned_ships
-                .remove(&ship_symbol.to_string())
-                .is_some(),
+            Some(waypoint) => waypoint.assigned_ships.remove(ship_symbol).is_some(),
             None => false,
         }
     }

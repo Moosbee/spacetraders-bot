@@ -20,7 +20,7 @@ impl MyShip {
         &mut self,
         waypoint: &str,
         update_market: bool,
-        waypoints: &HashMap<String, models::Waypoint>,
+        waypoints: &HashMap<String, sql::Waypoint>,
         api: &api::Api,
         database_pool: crate::sql::DbPool,
         reason: TransactionReason,
@@ -42,7 +42,7 @@ impl MyShip {
         &mut self,
         waypoint: &str,
         update_market: bool,
-        waypoints: &HashMap<String, models::Waypoint>,
+        waypoints: &HashMap<String, sql::Waypoint>,
         api: &api::Api,
         database_pool: crate::sql::DbPool,
         reason: TransactionReason,
@@ -126,7 +126,7 @@ impl MyShip {
     ///
     pub fn calculate_route(
         &mut self,
-        waypoints: &HashMap<String, models::Waypoint>,
+        waypoints: &HashMap<String, sql::Waypoint>,
         waypoint: &str,
     ) -> Result<Vec<super::nav_models::RouteConnection>> {
         let start_range: i32 = self.fuel.capacity.min(

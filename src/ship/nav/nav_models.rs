@@ -4,6 +4,8 @@ use chrono::{DateTime, Utc};
 use serde_with::serde_as;
 use space_traders_client::models;
 
+use crate::sql;
+
 #[derive(Default, serde::Serialize, Clone)]
 pub struct NavigationState {
     pub flight_mode: models::ShipNavFlightMode,
@@ -76,8 +78,8 @@ pub struct RouteInstruction {
 #[serde_as]
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct ConnectionDetails {
-    pub start: models::Waypoint,
-    pub end: models::Waypoint,
+    pub start: sql::Waypoint,
+    pub end: sql::Waypoint,
     pub flight_mode: models::ShipNavFlightMode,
     pub distance: f64,
     pub fuel_cost: i32,
