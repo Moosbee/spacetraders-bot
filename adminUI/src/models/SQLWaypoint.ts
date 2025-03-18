@@ -39,6 +39,7 @@ export interface SQLWaypoint {
 }
 
 export interface WaypointResponse {
+  jump_gate_connections?: JumpGateConnection[];
   market_trade_goods?: MarketTradeGood[];
   market_trades?: MarketTrade[];
   transactions?: Transaction[];
@@ -49,4 +50,12 @@ export interface WaypointResponse {
   ships?: ShipyardShip[];
   shipyard?: Shipyard;
   waypoint: SQLWaypoint;
+}
+
+export interface JumpGateConnection {
+  created_at: string;
+  from: string;
+  id: number;
+  to: string;
+  updated_at: string;
 }

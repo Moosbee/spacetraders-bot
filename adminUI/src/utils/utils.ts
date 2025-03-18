@@ -13,7 +13,7 @@ function scaleNum(
   inMin: number,
   inMax: number,
   outMin: number,
-  outMax: number,
+  outMax: number
 ): number {
   return ((number - inMin) * (outMax - outMin)) / (inMax - inMin) + outMin;
 }
@@ -37,7 +37,7 @@ const cyrb53 = (str: string, seed = 0) => {
 function interpolatePosition(
   pos1: [number, number],
   pos2: [number, number],
-  percentage: number,
+  percentage: number
 ): [number, number] {
   const x = pos1[0] + (pos2[0] - pos1[0]) * percentage;
   const y = pos1[1] + (pos2[1] - pos1[1]) * percentage;
@@ -72,7 +72,45 @@ function enhancedRandom(seed: number): number {
   return seed / 233280;
 }
 
-export { scaleNum, cyrb53, seedShuffle, interpolatePosition };
+function is(x: unknown, y: unknown) {
+  if (x === y) {
+    return x !== 0 || y !== 0 || 1 / x === 1 / y;
+  } else {
+    return x !== x && y !== y;
+  }
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function shallowEqual(objA: any, objB: any) {
+  if (is(objA, objB)) return true;
+
+  if (
+    typeof objA !== "object" ||
+    objA === null ||
+    typeof objB !== "object" ||
+    objB === null
+  ) {
+    return false;
+  }
+
+  const keysA = Object.keys(objA);
+  const keysB = Object.keys(objB);
+
+  if (keysA.length !== keysB.length) return false;
+
+  for (let i = 0; i < keysA.length; i++) {
+    if (
+      !Object.prototype.hasOwnProperty.call(objB, keysA[i]) ||
+      !is(objA[keysA[i]], objB[keysA[i]])
+    ) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+export { cyrb53, interpolatePosition, scaleNum, seedShuffle, shallowEqual };
 
 type Prettify<T> = {
   [K in keyof T]: T[K];

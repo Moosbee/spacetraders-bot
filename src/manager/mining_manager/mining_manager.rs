@@ -98,6 +98,10 @@ impl MiningManager {
             MiningMessage::ExtractionNotification(message) => {
                 self.handle_extraction_notification(message).await?;
             }
+            MiningMessage::GetPlaces { callback } => {
+                let places = self.waypoint_manager.get_all_places();
+                callback.send(Ok(places)).unwrap();
+            }
         }
         Ok(())
     }

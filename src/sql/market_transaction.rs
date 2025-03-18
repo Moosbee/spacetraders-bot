@@ -308,7 +308,7 @@ impl DatabaseConnector<MarketTransaction> for MarketTransaction {
 
     async fn insert_bulk(
         database_pool: &DbPool,
-        items: &Vec<MarketTransaction>,
+        items: &[MarketTransaction],
     ) -> sqlx::Result<()> {
         #[allow(clippy::type_complexity)]
         let (

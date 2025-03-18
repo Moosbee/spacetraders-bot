@@ -157,7 +157,7 @@ function MyHeader({ Header }: { Header: typeof AntHeaderHeader }) {
         <Space>
           <Button
             onClick={() => {
-              fetch(`http://${backendUrl}/apiCounter`)
+              fetch(`http://${backendUrl}/insights/apiCounter`)
                 .then((response) => response.json())
                 .then((data) => setApiCount(data.counter));
             }}

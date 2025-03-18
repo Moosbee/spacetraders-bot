@@ -73,7 +73,7 @@ impl DatabaseConnector<FrameInfo> for FrameInfo {
 
     async fn insert_bulk(
         database_pool: &super::DbPool,
-        items: &Vec<FrameInfo>,
+        items: &[FrameInfo],
     ) -> sqlx::Result<()> {
         let (
             symbols,

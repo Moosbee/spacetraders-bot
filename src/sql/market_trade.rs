@@ -38,7 +38,7 @@ impl DatabaseConnector<MarketTrade> for MarketTrade {
         Ok(())
     }
 
-    async fn insert_bulk(database_pool: &DbPool, items: &Vec<MarketTrade>) -> sqlx::Result<()> {
+    async fn insert_bulk(database_pool: &DbPool, items: &[MarketTrade]) -> sqlx::Result<()> {
         let waypoint_symbols = items
             .iter()
             .map(|m| m.waypoint_symbol.clone())

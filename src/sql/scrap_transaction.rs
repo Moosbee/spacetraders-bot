@@ -52,7 +52,7 @@ impl DatabaseConnector<ScrapTransaction> for ScrapTransaction {
 
     async fn insert_bulk(
         database_pool: &super::DbPool,
-        items: &Vec<ScrapTransaction>,
+        items: &[ScrapTransaction],
     ) -> sqlx::Result<()> {
         let (waypoint_symbols, ship_symbols, total_prices, timestamps): (
             Vec<String>,

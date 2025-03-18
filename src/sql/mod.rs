@@ -29,6 +29,7 @@ mod mount_info;
 mod reactor_info;
 
 mod extraction;
+mod jump_gate_connection;
 mod ship_state;
 
 pub use agent::Agent;
@@ -41,6 +42,7 @@ pub use contract_shipment::ShipmentStatus;
 pub use engine_info::EngineInfo;
 pub use extraction::Extraction;
 pub use frame_info::FrameInfo;
+pub use jump_gate_connection::JumpGateConnection;
 pub use market_trade::MarketTrade;
 pub use market_trade_good::MarketTradeGood;
 pub use market_transaction::MarketTransaction;
@@ -96,7 +98,7 @@ pub trait DatabaseConnector<T> {
     /// Insert a new item into the database, or update it if it already exists.
     async fn insert(database_pool: &DbPool, item: &T) -> sqlx::Result<()>;
     /// Insert multiple items into the database, or update them if they already exist.
-    async fn insert_bulk(database_pool: &DbPool, items: &Vec<T>) -> sqlx::Result<()>;
+    async fn insert_bulk(database_pool: &DbPool, items: &[T]) -> sqlx::Result<()>;
     #[allow(dead_code)]
     /// Get all items from the database.
     async fn get_all(database_pool: &DbPool) -> sqlx::Result<Vec<T>>;

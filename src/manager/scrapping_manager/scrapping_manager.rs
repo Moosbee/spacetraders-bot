@@ -60,10 +60,17 @@ impl ScrappingManager {
             self,
         );
 
-        let (erg1, erg2, erg3) = tokio::join!(
+        let jump_gate_scrapper = super::jump_gate_scrapper::JumpGateScrapper::new(
+            self.cancel_token.child_token(),
+            self.context.clone(),
+            self,
+        );
+
+        let (erg1, erg2, erg3, erg4) = tokio::join!(
             agent_scrapper.run_scrapping_worker(),
             market_scrapper.run_scrapping_worker(),
-            shipyard_scrapper.run_scrapping_worker()
+            shipyard_scrapper.run_scrapping_worker(),
+            jump_gate_scrapper.run_scrapping_worker(),
         );
 
         if let Err(err) = erg1 {
@@ -75,6 +82,9 @@ impl ScrappingManager {
         }
         if let Err(err) = erg3 {
             error!("Shipyard scrapper error: {}", err);
+        }
+        if let Err(err) = erg4 {
+            error!("JumpGate scrapper error: {}", err);
         }
 
         info!("ScrappingManager done");

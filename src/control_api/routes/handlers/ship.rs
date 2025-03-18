@@ -8,7 +8,7 @@ use crate::{
     error,
     manager::scrapping_manager::update_system,
     sql::{self, DatabaseConnector},
-    types::ConductorContext,
+    types::{ConductorContext, WaypointCan},
     utils::get_system_symbol,
 };
 
@@ -288,6 +288,48 @@ pub async fn handle_jump_ship(
         "shipSymbol": symbol,
         "waypointSymbol": waypoint_symbol,
     })))
+}
+
+pub async fn handle_chart_waypoint(
+    symbol: String,
+    context: ConductorContext,
+) -> crate::control_api::types::Result<impl Reply> {
+    let erg = context
+        .api
+        .create_chart(&symbol)
+        .await
+        .map_err(|err| ServerError::Server(err.to_string()))?;
+
+    let sql_waypoint = (&*erg.data.waypoint).into();
+
+    sql::Waypoint::insert(&context.database_pool, &sql_waypoint)
+        .await
+        .map_err(|err| ServerError::Server(err.to_string()))?;
+
+    if sql_waypoint.is_marketplace() {
+        let market = context
+            .api
+            .get_market(&sql_waypoint.system_symbol, &sql_waypoint.symbol)
+            .await
+            .map_err(|err| ServerError::Server(err.to_string()))?;
+
+        crate::manager::scrapping_manager::update_market(*market.data, &context.database_pool)
+            .await;
+    }
+
+    if sql_waypoint.is_shipyard() {
+        let shipyard = context
+            .api
+            .get_shipyard(&sql_waypoint.system_symbol, &sql_waypoint.symbol)
+            .await
+            .map_err(|err| ServerError::Server(err.to_string()))?;
+
+        crate::manager::scrapping_manager::update_shipyard(&context.database_pool, *shipyard.data)
+            .await
+            .map_err(|err| ServerError::Server(err.to_string()))?;
+    }
+
+    Ok(warp::reply::json(&serde_json::json!({"chart": erg})))
 }
 
 pub async fn handle_navigate_ship(

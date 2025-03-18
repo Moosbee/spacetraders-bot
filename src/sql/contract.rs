@@ -97,7 +97,7 @@ impl DatabaseConnector<Contract> for Contract {
         Ok(())
     }
 
-    async fn insert_bulk(database_pool: &DbPool, items: &Vec<Contract>) -> sqlx::Result<()> {
+    async fn insert_bulk(database_pool: &DbPool, items: &[Contract]) -> sqlx::Result<()> {
         let (
             ids,
             contract_types,

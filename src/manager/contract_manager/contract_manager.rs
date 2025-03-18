@@ -29,6 +29,9 @@ pub enum ContractShipmentMessage {
         contract: models::Contract,
         shipment: sql::ContractShipment,
     },
+    GetRunning {
+        callback: tokio::sync::oneshot::Sender<Result<Vec<sql::ContractShipment>>>,
+    },
 }
 
 #[derive(Debug, Clone)]
@@ -101,6 +104,8 @@ impl ContractManager {
             }
         }
 
+        debug!("Starting contract worker loop");
+
         while !self.cancel_token.is_cancelled() {
             let message = tokio::select! {
                 message = self.receiver.recv() => message,
@@ -153,6 +158,9 @@ impl ContractManager {
             }
             ContractShipmentMessage::Finished { contract, shipment } => {
                 self.finished_shipment(contract, shipment).await?;
+            }
+            ContractShipmentMessage::GetRunning { callback } => {
+                callback.send(Ok(self.running_shipments.clone())).unwrap();
             }
         }
 
@@ -245,14 +253,18 @@ impl ContractManager {
         .filter(|s| s.status == sql::ShipmentStatus::InTransit)
         .collect::<Vec<_>>();
 
-        if shipments.len() == 1 {
-            let shipment = shipments[0].clone();
-            debug!("Ship already has {:?} in transit", shipment);
-            self.running_shipments.push(shipment.clone());
-            return Ok(NextShipmentResp::Shipment(shipment));
-        } else if shipments.len() > 1 {
-            log::error!("Ship already has {} shipments in transit", shipments.len());
-            panic!("Ship already has {} shipments in transit", shipments.len());
+        match shipments.len() {
+            1 => {
+                let shipment = shipments[0].clone();
+                debug!("Ship already has {:?} in transit", shipment);
+                self.running_shipments.push(shipment.clone());
+                return Ok(NextShipmentResp::Shipment(shipment));
+            }
+            _ if shipments.len() > 1 => {
+                log::error!("Ship already has {} shipments in transit", shipments.len());
+                panic!("Ship already has {} shipments in transit", shipments.len());
+            }
+            _ => {} // This arm is not necessary in this case, but it's good practice to include it
         }
 
         let contract = self.current_contract.as_ref().unwrap();
@@ -274,8 +286,10 @@ impl ContractManager {
                     .sum::<i32>();
 
                 let mut p = p.clone();
-                let units_fullfiled = p.units_fulfilled + running;
-                p.units_fulfilled = units_fullfiled.min(p.units_required);
+                let units_fulfilled = p.units_fulfilled + running;
+                p.units_fulfilled = units_fulfilled.min(p.units_required);
+
+                debug!("Calculated units fulfilled: {}", units_fulfilled);
                 p
             })
             .filter(|c| {
@@ -300,7 +314,9 @@ impl ContractManager {
             self.calculate_purchase_volume(&ship_clone, next_procurment, &trade_symbol);
         debug!("Calculated purchase volume: {}", purchase_volume);
 
-        let purchase_symbol = self.get_purchase_waypoint(&trade_symbol).await?;
+        let purchase_symbol = self
+            .get_purchase_waypoint(&trade_symbol, &ship_clone.nav.system_symbol)
+            .await?;
         debug!("Obtained purchase waypoint: {:?}", purchase_symbol);
 
         if let Some(purchase_price) = purchase_symbol.1 {
@@ -536,17 +552,23 @@ impl ContractManager {
     async fn get_purchase_waypoint(
         &self,
         trade_symbol: &models::TradeSymbol,
+        system_symbol: &str,
     ) -> Result<(String, Option<i32>)> {
         debug!(
             "Getting purchase waypoint for trade symbol: {:?}",
             trade_symbol
         );
         let market_trades =
-            sql::MarketTrade::get_last_by_symbol(&self.context.database_pool, trade_symbol).await?;
+            sql::MarketTrade::get_last_by_symbol(&self.context.database_pool, trade_symbol)
+                .await?
+                .into_iter()
+                .filter(|t| t.waypoint_symbol.starts_with(system_symbol))
+                .collect::<Vec<_>>();
         let market_trade_goods: HashMap<(models::TradeSymbol, String), sql::MarketTradeGood> =
             sql::MarketTradeGood::get_last_by_symbol(&self.context.database_pool, trade_symbol)
                 .await?
                 .into_iter()
+                .filter(|t| t.waypoint_symbol.starts_with(system_symbol))
                 .map(|t| ((t.symbol, t.waypoint_symbol.clone()), t))
                 .collect::<HashMap<_, _>>();
 

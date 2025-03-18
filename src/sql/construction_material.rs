@@ -158,7 +158,7 @@ impl DatabaseConnector<ConstructionMaterial> for ConstructionMaterial {
 
     async fn insert_bulk(
         database_pool: &DbPool,
-        items: &Vec<ConstructionMaterial>,
+        items: &[ConstructionMaterial],
     ) -> sqlx::Result<()> {
         let (waypoint_symbols, trade_symbols, requireds, fulfilleds): (
             Vec<_>,

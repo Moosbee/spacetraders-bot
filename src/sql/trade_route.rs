@@ -119,7 +119,7 @@ impl DatabaseConnector<TradeRoute> for TradeRoute {
         Ok(())
     }
 
-    async fn insert_bulk(database_pool: &DbPool, items: &Vec<TradeRoute>) -> sqlx::Result<()> {
+    async fn insert_bulk(database_pool: &DbPool, items: &[sql::trade_route::TradeRoute]) -> sqlx::Result<()> {
         let (
             id_s,
             symbol_s,

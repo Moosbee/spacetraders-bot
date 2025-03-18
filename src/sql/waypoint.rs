@@ -134,6 +134,10 @@ impl WaypointCan for Waypoint {
     fn is_shipyard(&self) -> bool {
         self.traits.contains(&models::WaypointTraitSymbol::Shipyard)
     }
+
+    fn is_jump_gate(&self) -> bool {
+        self.waypoint_type == models::WaypointType::JumpGate
+    }
 }
 
 impl Waypoint {
@@ -289,7 +293,7 @@ impl DatabaseConnector<Waypoint> for Waypoint {
         Ok(())
     }
 
-    async fn insert_bulk(database_pool: &DbPool, items: &Vec<Waypoint>) -> sqlx::Result<()> {
+    async fn insert_bulk(database_pool: &DbPool, items: &[Waypoint]) -> sqlx::Result<()> {
         for item in items {
             Self::insert(database_pool, item).await?;
         }

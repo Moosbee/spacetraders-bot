@@ -4,6 +4,10 @@ use crate::error::Result;
 pub enum MiningMessage {
     AssignWaypoint(AssignWaypointMessage),
     ExtractionNotification(ExtractionNotification),
+    GetPlaces {
+        callback:
+            tokio::sync::oneshot::Sender<Result<Vec<(String, super::mining_places::WaypointInfo)>>>,
+    },
 }
 
 impl std::fmt::Display for MiningMessage {
@@ -11,6 +15,7 @@ impl std::fmt::Display for MiningMessage {
         match self {
             Self::AssignWaypoint(inner) => write!(f, "AssignWaypoint: {}", inner),
             Self::ExtractionNotification(inner) => write!(f, "ExtractionNotification: {}", inner),
+            Self::GetPlaces { callback } => write!(f, "GetPlaces: {:?}", callback),
         }
     }
 }

@@ -5,9 +5,11 @@ import {
   Flex,
   Popover,
   Space,
+  Spin,
   Table,
   TableProps,
 } from "antd";
+import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import PageTitle from "../features/PageTitle";
 import WaypointLink from "../features/WaypointLink";
@@ -21,6 +23,7 @@ import {
 import { SQLSystem, SystemResp } from "../models/SQLSystem";
 import { SQLWaypoint } from "../models/SQLWaypoint";
 import useMyStore, { backendUrl } from "../store";
+import { message } from "../utils/antdMessage";
 
 function System() {
   const { systemID } = useParams();
@@ -31,6 +34,8 @@ function System() {
       }
     | undefined = useMyStore((state) => state.systems[systemID || ""]);
   const setWaypoints = useMyStore((state) => state.setSystem);
+
+  const [loading, setLoading] = useState(false);
 
   const Waypoints = System?.waypoints || [];
 
@@ -101,8 +106,46 @@ function System() {
     },
 
     {
-      key: "placeholder",
-      children: "",
+      key: "request",
+      children: (
+        <>
+          <Button
+            onClick={() => {
+              setLoading(true);
+              fetch(`http://${backendUrl}/systems/${systemID}/request`, {
+                method: "POST",
+              })
+                .then((response) => response.json())
+                .then((data: SystemResp) => {
+                  const system = data.system;
+                  const waypoints_date = data.waypoints;
+                  const elapsed = (data as unknown as { took: number }).took;
+
+                  setLoading(false);
+
+                  message.success(`Request completed in ${elapsed} ms`);
+
+                  const waypoints = waypoints_date.map((waypoint) => {
+                    const sql_wp = waypoint.waypoint;
+
+                    sql_wp.trade_goods = waypoint.trade_goods.map((good) => {
+                      return {
+                        symbol: good.symbol,
+                        type: good.type,
+                      };
+                    });
+
+                    return sql_wp;
+                  });
+                  setWaypoints(system, waypoints);
+                });
+            }}
+          >
+            Request
+          </Button>
+          <Spin spinning={loading} />
+        </>
+      ),
     },
   ];
 

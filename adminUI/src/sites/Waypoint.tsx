@@ -422,14 +422,35 @@ function Waypoint() {
           layout="vertical"
           size="small"
         />
-        {waypoint?.market_trades && waypoint.market_trades.length > 0 && (
-          <Table
-            columns={marketTradeColumns}
-            dataSource={waypoint?.market_trades}
-            rowKey={(symbol) => symbol.symbol + symbol.waypoint_symbol}
-            size="small"
-          />
-        )}
+        <Flex vertical gap={24}>
+          {waypoint?.market_trades && waypoint.market_trades.length > 0 && (
+            <Table
+              columns={marketTradeColumns}
+              dataSource={waypoint?.market_trades}
+              rowKey={(symbol) => symbol.symbol + symbol.waypoint_symbol}
+              size="small"
+            />
+          )}
+          {waypoint?.jump_gate_connections &&
+            waypoint.jump_gate_connections.length > 0 && (
+              <Table
+                columns={[
+                  {
+                    title: "Symbol",
+                    dataIndex: "to",
+                    key: "to",
+                    sorter: (a, b) => a.to.localeCompare(b.to),
+                    render: (symbol: string) => (
+                      <WaypointLink waypoint={symbol}>{symbol}</WaypointLink>
+                    ),
+                  },
+                ]}
+                dataSource={waypoint?.jump_gate_connections}
+                rowKey={(symbol) => symbol.id}
+                size="small"
+              />
+            )}
+        </Flex>
         <Flex vertical gap={24}>
           {waypoint?.market_trade_goods &&
             waypoint.market_trade_goods.length > 0 && (

@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct WaypointInfo {
     pub waypoint_symbol: String,
     assigned_ships: HashMap<String, AssignLevel>, // ship_symbol -> level,
@@ -59,7 +59,7 @@ pub struct MiningPlaces {
     max_miners_per_waypoint: u32,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
 pub enum AssignLevel {
     /// Ship is at the waypoint but not active
     Inactive,

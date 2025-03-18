@@ -1,11 +1,19 @@
 // routes.rs
 
 use tokio_util::sync::CancellationToken;
-use warp::Filter;
+use warp::{reply::Reply, Filter};
 
 use crate::types::ConductorContext;
 
 use super::{handlers, with_context};
+
+async fn handle_not_found() -> crate::control_api::types::Result<impl Reply> {
+    let _errr: () = Err(crate::control_api::types::ServerError::NotFound)?;
+    Ok(warp::reply::with_status(
+        warp::reply::reply(),
+        warp::http::StatusCode::NOT_FOUND,
+    ))
+}
 
 pub(crate) fn build_api_routes(
     context: &ConductorContext,
@@ -13,6 +21,8 @@ pub(crate) fn build_api_routes(
 ) -> impl warp::Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
     let context = context.clone();
 
+    // let not_found_routes = warp::any().and(Err(&crate::control_api::types::ServerError::NotFound));
+    let not_found_routes = warp::any().and_then(handle_not_found);
     // Ships routes
     let ships = warp::path("ships")
         .and(warp::path::end())
@@ -61,12 +71,18 @@ pub(crate) fn build_api_routes(
         .and(with_context(context.clone()))
         .and_then(handlers::handle_toggle_activation);
 
-    let ship_cargo = warp::path!("ship" / String / "role")
+    let ship_role = warp::path!("ship" / String / "role")
         .and(warp::path::end())
         .and(warp::post())
         .and(warp::body::json())
         .and(with_context(context.clone()))
         .and_then(handlers::handle_change_role);
+
+    let ship_chart = warp::path!("ship" / String / "chart")
+        .and(warp::path::end())
+        .and(warp::post())
+        .and(with_context(context.clone()))
+        .and_then(handlers::handle_chart_waypoint);
 
     // Trade routes
     let trade_routes = warp::path("tradeRoutes")
@@ -135,6 +151,12 @@ pub(crate) fn build_api_routes(
         .and(with_context(context.clone()))
         .and_then(handlers::handle_get_system);
 
+    let request_system = warp::path!("systems" / String / "request")
+        .and(warp::path::end())
+        .and(warp::post())
+        .and(with_context(context.clone()))
+        .and_then(handlers::handle_request_system);
+
     // agents routes
     let agents = warp::path!("agents")
         .and(warp::path::end())
@@ -156,12 +178,32 @@ pub(crate) fn build_api_routes(
         .and(with_context(context.clone()))
         .and_then(handlers::handle_get_agent_history);
 
+    // insights routes
+
     // API Counter
-    let api_counter = warp::path("apiCounter")
+    let api_counter = warp::path!("insights" / "apiCounter")
         .and(warp::path::end())
         .and(warp::get())
         .and(with_context(context.clone()))
         .and_then(handlers::handle_get_api_counter);
+
+    let running_contract_shipments = warp::path!("insights" / "contract" / "shipments")
+        .and(warp::path::end())
+        .and(warp::get())
+        .and(with_context(context.clone()))
+        .and_then(handlers::handle_get_running_contract_shipments);
+
+    let running_construction_shipments = warp::path!("insights" / "construction" / "shipments")
+        .and(warp::path::end())
+        .and(warp::get())
+        .and(with_context(context.clone()))
+        .and_then(handlers::handle_get_running_construction_shipments);
+
+    let running_mining_assignments = warp::path!("insights" / "mining" / "assignments")
+        .and(warp::path::end())
+        .and(warp::get())
+        .and(with_context(context.clone()))
+        .and_then(handlers::handle_get_mining_assignments);
 
     // Shutdown route
     let shutdown = warp::path("shutdown")
@@ -182,7 +224,8 @@ pub(crate) fn build_api_routes(
         .or(ship_toggle_orbit)
         .or(ship_purchase_cargo)
         .or(ship_toggle_activation)
-        .or(ship_cargo)
+        .or(ship_role)
+        .or(ship_chart)
         .or(trade_routes)
         .or(contract)
         .or(contracts)
@@ -197,5 +240,10 @@ pub(crate) fn build_api_routes(
         .or(agent)
         .or(agents)
         .or(api_counter)
+        .or(running_contract_shipments)
+        .or(running_construction_shipments)
+        .or(running_mining_assignments)
+        .or(request_system)
         .or(shutdown)
+        .or(not_found_routes)
 }

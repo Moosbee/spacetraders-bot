@@ -7,6 +7,7 @@ import {
   Space,
   Spin,
   Switch,
+  Tooltip,
 } from "antd";
 import { useState } from "react";
 import { TradeSymbol } from "../../models/api";
@@ -138,7 +139,7 @@ function ShipControl({ ship }: { ship: RustShip }) {
                 onChange={setNavWaypointSymbol}
                 style={{ minWidth: "8rem" }}
                 options={(waypoints || []).map((w) => ({
-                  label: w.symbol,
+                  label: <Tooltip title={w.waypoint_type}>{w.symbol}</Tooltip>,
                   value: w.symbol,
                 }))}
                 showSearch
@@ -262,6 +263,29 @@ function ShipControl({ ship }: { ship: RustShip }) {
                 Purchase
               </Button>
             </Space>
+          ),
+        },
+        {
+          label: "Chart",
+          key: "chart",
+          span: 2,
+          children: (
+            <Button
+              disabled={!(ship.role == "Manuel")}
+              onClick={() => {
+                fetch(`http://${backendUrl}/ship/${ship.symbol}/chart`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                })
+                  .then((response) => response.json())
+                  .then((data) => {
+                    console.log("denden", data);
+                    message.success(`Charted ${ship.symbol}`);
+                  });
+              }}
+            >
+              Create Chart
+            </Button>
           ),
         },
       ]}

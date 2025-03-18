@@ -78,6 +78,31 @@ impl WaypointManager {
             }
         }
 
+        let waypoint_symbol = ship.nav.waypoint_symbol.clone();
+
+        let waypoint =
+            sql::Waypoint::get_by_symbol(&self.context.database_pool, &waypoint_symbol).await?;
+        if waypoint
+            .map(|waypoint| {
+                waypoint.is_minable()
+                    && waypoint.waypoint_type != models::WaypointType::EngineeredAsteroid
+                    && waypoint
+                        .unstable_since
+                        .map(|last| {
+                            last + chrono::Duration::hours(20) < chrono::Utc::now().naive_local()
+                        })
+                        .unwrap_or(true)
+            })
+            .unwrap_or(false)
+            && self.places.try_assign_on_way(
+                &ship.symbol,
+                &waypoint_symbol,
+                action == ActionType::Siphon,
+            ) != 0
+        {
+            return Ok(waypoint_symbol.to_string());
+        }
+
         let waypoints: Vec<place_finder::FoundWaypointInfo> = self
             .finder
             .find(
@@ -178,6 +203,13 @@ impl WaypointManager {
 
     pub fn up_date(&mut self, waypoint: &str) {
         self.places.up_date(waypoint);
+    }
+
+    pub fn get_all_places(&self) -> Vec<(String, super::mining_places::WaypointInfo)> {
+        self.places
+            .iter()
+            .map(|wp| (wp.0.clone(), wp.1.clone()))
+            .collect::<Vec<_>>()
     }
 
     pub fn calculate_waypoint_urgencys(

@@ -83,4 +83,25 @@ impl ConstructionManagerMessanger {
 
         Ok(())
     }
+
+    pub async fn get_running_shipments(
+        &self,
+    ) -> Result<Vec<sql::ConstructionShipment>, crate::error::Error> {
+        let (sender, callback) = tokio::sync::oneshot::channel();
+
+        let message = message::ConstructionManagerMessage::GetRunning { callback: sender };
+        self.sender
+            .send(message)
+            .await
+            .map_err(|e| crate::error::Error::General(format!("Failed to send message: {}", e)))?;
+
+        let resp = callback.await.map_err(|e| {
+            crate::error::Error::General(format!(
+                "Failed to get construction get_running_shipments message: {}",
+                e
+            ))
+        })??;
+
+        Ok(resp)
+    }
 }

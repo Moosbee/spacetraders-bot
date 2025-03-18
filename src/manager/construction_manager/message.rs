@@ -17,6 +17,11 @@ pub enum ConstructionMessage {
         construction: models::Construction,
         shipment: sql::ConstructionShipment,
     },
+    GetRunning {
+        callback: tokio::sync::oneshot::Sender<
+            Result<Vec<sql::ConstructionShipment>, crate::error::Error>,
+        >,
+    },
 }
 
 #[derive(Debug, Clone)]

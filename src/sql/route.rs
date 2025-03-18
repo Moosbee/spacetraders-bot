@@ -61,7 +61,7 @@ impl DatabaseConnector<Route> for Route {
         Ok(())
     }
 
-    async fn insert_bulk(database_pool: &super::DbPool, items: &Vec<Route>) -> sqlx::Result<()> {
+    async fn insert_bulk(database_pool: &super::DbPool, items: &[Route]) -> sqlx::Result<()> {
         for item in items {
             Self::insert(database_pool, item).await?;
         }

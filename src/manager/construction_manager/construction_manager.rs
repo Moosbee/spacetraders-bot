@@ -142,6 +142,9 @@ impl ConstructionManager {
             } => {
                 self.finish_shipment(construction, shipment).await?;
             }
+            ConstructionMessage::GetRunning { callback } => {
+                callback.send(Ok(self.running_shipments.clone())).unwrap();
+            }
         }
 
         Ok(())

@@ -62,7 +62,7 @@ impl DatabaseConnector<ShipModificationTransaction> for ShipModificationTransact
 
     async fn insert_bulk(
         database_pool: &super::DbPool,
-        items: &Vec<ShipModificationTransaction>,
+        items: &[ShipModificationTransaction],
     ) -> sqlx::Result<()> {
         let (waypoint_symbols, ship_symbols, trade_symbols, total_prices, timestamps): (
             Vec<_>,

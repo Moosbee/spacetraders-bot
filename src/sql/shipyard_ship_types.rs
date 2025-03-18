@@ -59,7 +59,7 @@ impl DatabaseConnector<ShipyardShipTypes> for ShipyardShipTypes {
 
     async fn insert_bulk(
         database_pool: &super::DbPool,
-        items: &Vec<ShipyardShipTypes>,
+        items: &[ShipyardShipTypes],
     ) -> sqlx::Result<()> {
         let (shipyard_ids, ship_types): (Vec<i64>, Vec<models::ShipType>) =
             itertools::multiunzip(items.iter().map(|s| (s.shipyard_id, s.ship_type)));

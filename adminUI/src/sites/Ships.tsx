@@ -16,6 +16,7 @@ import Timer from "../features/Timer/Timer";
 import { ShipNavFlightMode, ShipNavStatus, ShipRole } from "../models/api";
 import RustShip, { SystemShipRoles } from "../models/ship";
 import useMyStore, { backendUrl } from "../store";
+import { shallowEqual } from "../utils/utils";
 
 type TableRowSelection<T extends object = object> =
   TableProps<T>["rowSelection"];
@@ -48,6 +49,9 @@ function Ships() {
       sorter: (a, b) =>
         Number.parseInt(a.symbol.split("-")[1], 16) -
         Number.parseInt(b.symbol.split("-")[1], 16),
+      // https://github.com/ant-design/ant-design/issues/23763
+      shouldCellUpdate: (record, prevRecord) =>
+        !shallowEqual(record, prevRecord),
     },
     {
       title: "Role",
@@ -97,6 +101,9 @@ function Ships() {
         }
         return num;
       },
+      // https://github.com/ant-design/ant-design/issues/23763
+      shouldCellUpdate: (record, prevRecord) =>
+        !shallowEqual(record, prevRecord),
     },
     {
       title: "Registration Role",
@@ -108,12 +115,18 @@ function Ships() {
       })),
       onFilter: (value, record) => record.registration_role === value,
       sorter: (a, b) => a.registration_role.localeCompare(b.registration_role),
+      // https://github.com/ant-design/ant-design/issues/23763
+      shouldCellUpdate: (record, prevRecord) =>
+        !shallowEqual(record, prevRecord),
     },
 
     {
       title: "Current Waypoint",
       dataIndex: ["nav", "waypoint_symbol"],
       key: "current_waypoint",
+      // https://github.com/ant-design/ant-design/issues/23763
+      shouldCellUpdate: (record, prevRecord) =>
+        !shallowEqual(record, prevRecord),
       sorter: (a, b) =>
         a.nav.waypoint_symbol.localeCompare(b.nav.waypoint_symbol),
       render: (value: string, record) => (
@@ -131,6 +144,9 @@ function Ships() {
       title: "Flight Mode",
       dataIndex: ["nav", "flight_mode"],
       key: "flight_mode",
+      // https://github.com/ant-design/ant-design/issues/23763
+      shouldCellUpdate: (record, prevRecord) =>
+        !shallowEqual(record, prevRecord),
       filters: Object.values(ShipNavFlightMode).map((role) => ({
         text: role,
         value: role,
@@ -142,6 +158,9 @@ function Ships() {
       title: "Navigation Status",
       dataIndex: ["nav", "status"],
       key: "nav_status",
+      // https://github.com/ant-design/ant-design/issues/23763
+      shouldCellUpdate: (record, prevRecord) =>
+        !shallowEqual(record, prevRecord),
       render: (value: ShipNavStatus, record) => (
         <span>
           {value}
@@ -193,6 +212,9 @@ function Ships() {
     {
       title: "Autopilot",
       key: "autopilot",
+      // https://github.com/ant-design/ant-design/issues/23763
+      shouldCellUpdate: (record, prevRecord) =>
+        !shallowEqual(record, prevRecord),
       align: "center",
       render: (_value, record) => (
         <>
@@ -224,6 +246,9 @@ function Ships() {
       title: "Engine Speed",
       dataIndex: "engine_speed",
       key: "engine_speed",
+      // https://github.com/ant-design/ant-design/issues/23763
+      shouldCellUpdate: (record, prevRecord) =>
+        !shallowEqual(record, prevRecord),
       sorter: (a, b) => a.engine_speed - b.engine_speed,
       align: "right",
     },
@@ -231,6 +256,9 @@ function Ships() {
       title: "Cargo",
       dataIndex: ["cargo", "units"],
       key: "cargo_units",
+      // https://github.com/ant-design/ant-design/issues/23763
+      shouldCellUpdate: (record, prevRecord) =>
+        !shallowEqual(record, prevRecord),
       render: (value: number, record) => (
         <Popover
           content={
@@ -257,12 +285,16 @@ function Ships() {
       render: (value: number, record) => `${value} / ${record.fuel.capacity}`,
       align: "right",
       sorter: (a, b) => a.fuel.capacity - b.fuel.capacity,
+      // https://github.com/ant-design/ant-design/issues/23763
+      shouldCellUpdate: (record, prevRecord) =>
+        !shallowEqual(record, prevRecord),
     },
     ...(showCondition
       ? [
           {
             title: "Conditions",
             key: "conditions",
+
             render: (_value: unknown, record: RustShip) => (
               <Space>
                 <Progress
@@ -299,6 +331,9 @@ function Ships() {
                 />
               </Space>
             ),
+            // https://github.com/ant-design/ant-design/issues/23763
+            shouldCellUpdate: (record: RustShip, prevRecord: RustShip) =>
+              !shallowEqual(record, prevRecord),
             // align: "right",
           },
         ]
@@ -321,6 +356,9 @@ function Ships() {
                   <Timer time={value} />
                 </span>
               ),
+            // https://github.com/ant-design/ant-design/issues/23763
+            shouldCellUpdate: (record: RustShip, prevRecord: RustShip) =>
+              !shallowEqual(record, prevRecord),
           },
         ]
       : []),
@@ -403,6 +441,8 @@ function Ships() {
           defaultPageSize: 100,
           showTotal: (total, range) => `${range[0]}-${range[1]} of ${total}`,
         }}
+
+        // virtual
       />
     </div>
   );

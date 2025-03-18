@@ -61,6 +61,64 @@ pub async fn handle_get_transactions(context: ConductorContext) -> Result<impl R
     Ok(warp::reply::json(&transactions))
 }
 
+pub async fn handle_request_system(
+    symbol: String,
+    context: ConductorContext,
+) -> Result<impl Reply> {
+    let now = tokio::time::Instant::now();
+
+    let waypoints = sql::System::get_by_id(&context.database_pool, &symbol)
+        .await
+        .map_err(ServerError::Database)?;
+    if let Some(waypoints) = waypoints {
+        return Ok(warp::reply::json(&waypoints));
+    }
+
+    let system = context
+        .api
+        .get_system(&symbol)
+        .await
+        // .map_err(crate::error::Error::from)
+        .map_err(ServerError::from)?;
+    sql::System::insert(&context.database_pool, &(&(*system.data)).into())
+        .await
+        .map_err(ServerError::from)?;
+
+    crate::manager::scrapping_manager::update_system(
+        &context.database_pool,
+        &context.api,
+        &symbol,
+        true,
+    )
+    .await
+    .map_err(ServerError::from)?;
+
+    let sql_waypoints = sql::Waypoint::get_by_system(&context.database_pool, &symbol)
+        .await
+        .map_err(ServerError::from)?;
+
+    let markets = crate::manager::scrapping_manager::get_all_markets(
+        &context.api,
+        &sql_waypoints
+            .iter()
+            .filter(|w| w.is_marketplace())
+            .map(|w| (w.system_symbol.clone(), w.symbol.clone()))
+            .collect::<Vec<_>>(),
+    )
+    .await
+    .map_err(ServerError::from)?;
+
+    crate::manager::scrapping_manager::update_markets(markets, context.database_pool.clone())
+        .await
+        .map_err(ServerError::from)?;
+
+    let elapsed = now.elapsed();
+
+    Ok(warp::reply::json(
+        &serde_json::json!({ "system": std::convert::Into::<sql::System>::into(&(*system.data)), "waypoints": sql_waypoints,"took":elapsed.as_millis() }),
+    ))
+}
+
 pub async fn handle_get_waypoints(context: ConductorContext) -> Result<impl Reply> {
     debug!("Getting all waypoints");
     let waypoints = sql::Waypoint::get_all(&context.database_pool)
@@ -184,6 +242,16 @@ pub async fn handle_get_waypoint(symbol: String, context: ConductorContext) -> R
         (None, None, None, None)
     };
 
+    let jump_gate_connections = if waypoint.is_jump_gate() {
+        Some(
+            sql::JumpGateConnection::get_all_from(&context.database_pool, &symbol)
+                .await
+                .map_err(ServerError::Database)?,
+        )
+    } else {
+        None
+    };
+
     Ok(warp::reply::json(&serde_json::json!({
         "waypoint":waypoint,
         "constructions":constructions,
@@ -194,7 +262,8 @@ pub async fn handle_get_waypoint(symbol: String, context: ConductorContext) -> R
         "shipyard":shipyard,
         "ship_types":ship_types,
         "ships":ships,
-        "ship_transactions":ship_transactions
+        "ship_transactions":ship_transactions,
+        "jump_gate_connections":jump_gate_connections
     })))
 }
 

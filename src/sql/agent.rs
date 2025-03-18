@@ -99,7 +99,7 @@ impl DatabaseConnector<Agent> for Agent {
         Ok(())
     }
 
-    async fn insert_bulk(database_pool: &DbPool, items: &Vec<Agent>) -> sqlx::Result<()> {
+    async fn insert_bulk(database_pool: &DbPool, items: &[Agent]) -> sqlx::Result<()> {
         let (
             ((account_ids, symbols), (creditss, ship_counts)),
             ((headquarterss, starting_factions), (_, _)),

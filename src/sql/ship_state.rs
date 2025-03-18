@@ -299,7 +299,7 @@ impl DatabaseConnector<ShipState> for ShipState {
         Ok(())
     }
 
-    async fn insert_bulk(database_pool: &DbPool, items: &Vec<ShipState>) -> sqlx::Result<()> {
+    async fn insert_bulk(database_pool: &DbPool, items: &[ShipState]) -> sqlx::Result<()> {
         for item in items {
             Self::insert(database_pool, item).await?;
         }

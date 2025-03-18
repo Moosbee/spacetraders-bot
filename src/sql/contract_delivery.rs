@@ -72,7 +72,7 @@ impl DatabaseConnector<ContractDelivery> for ContractDelivery {
 
     async fn insert_bulk(
         database_pool: &DbPool,
-        items: &Vec<ContractDelivery>,
+        items: &[ContractDelivery],
     ) -> sqlx::Result<()> {
         let (contract_ids, trade_symbols, units_fulfilled, units_required, destination_symbols): (
             Vec<_>,

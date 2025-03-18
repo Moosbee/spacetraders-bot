@@ -72,7 +72,7 @@ impl DatabaseConnector<MountInfo> for MountInfo {
 
     async fn insert_bulk(
         database_pool: &super::DbPool,
-        items: &Vec<MountInfo>,
+        items: &[MountInfo],
     ) -> sqlx::Result<()> {
         for item in items {
             Self::insert(database_pool, item).await?;

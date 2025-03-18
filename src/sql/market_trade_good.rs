@@ -77,7 +77,7 @@ impl DatabaseConnector<MarketTradeGood> for MarketTradeGood {
         Ok(())
     }
 
-    async fn insert_bulk(database_pool: &DbPool, items: &Vec<MarketTradeGood>) -> sqlx::Result<()> {
+    async fn insert_bulk(database_pool: &DbPool, items: &[MarketTradeGood]) -> sqlx::Result<()> {
         let (
             m_symbol,
             f_symbol,

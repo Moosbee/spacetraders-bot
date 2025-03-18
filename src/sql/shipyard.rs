@@ -91,7 +91,10 @@ impl DatabaseConnector<Shipyard> for Shipyard {
         Ok(())
     }
 
-    async fn insert_bulk(database_pool: &super::DbPool, items: &Vec<Shipyard>) -> sqlx::Result<()> {
+    async fn insert_bulk(
+        database_pool: &super::DbPool,
+        items: &[Shipyard],
+    ) -> sqlx::Result<()> {
         let (waypoint_symbols, modifications_fees): (Vec<String>, Vec<i32>) = itertools::multiunzip(
             items
                 .iter()

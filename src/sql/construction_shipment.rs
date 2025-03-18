@@ -213,7 +213,7 @@ impl DatabaseConnector<ConstructionShipment> for ConstructionShipment {
 
     async fn insert_bulk(
         database_pool: &DbPool,
-        items: &Vec<ConstructionShipment>,
+        items: &[ConstructionShipment],
     ) -> sqlx::Result<()> {
         let (
             ids,

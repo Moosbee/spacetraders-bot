@@ -188,4 +188,19 @@ impl MiningManagerMessanger {
         debug!("Transport contact established for symbol: {}", symbol);
         Ok(receiver)
     }
+
+    pub async fn get_assignments(
+        &self,
+    ) -> Result<Vec<(String, super::mining_places::WaypointInfo)>> {
+        let (sender, callback) = tokio::sync::oneshot::channel();
+
+        let message = MiningMessage::GetPlaces { callback: sender };
+        self.sender.send(message).await.map_err(|e| {
+            crate::error::Error::General(format!("Failed to send GetAssignments message: {}", e))
+        })?;
+
+        callback.await.map_err(|e| {
+            crate::error::Error::General(format!("Failed to get GetAssignments message: {}", e))
+        })?
+    }
 }

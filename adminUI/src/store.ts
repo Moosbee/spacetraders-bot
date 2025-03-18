@@ -1,6 +1,6 @@
 import { shared } from "use-broadcast-ts";
 import { create } from "zustand";
-import { createJSONStorage, devtools, persist } from "zustand/middleware";
+import { createJSONStorage, devtools } from "zustand/middleware";
 import { Agent } from "./models/api";
 import RustShip from "./models/ship";
 import { SQLSystem } from "./models/SQLSystem";
@@ -99,42 +99,42 @@ const initialState: State = {
 
 const useMyStore = create<RootState>()(
   devtools(
-    persist(
-      shared((set) => ({
-        ...initialState,
-        reset: () => set(initialState),
-        setDarkMode: (darkMode) => set({ darkMode }),
-        setShips: (ships) => set({ ships: ships }),
-        setShip: (ship) =>
-          set((state) => ({ ships: { ...state.ships, [ship.symbol]: ship } })),
-        setSliderCollapsed: (collapsed) => set({ sliderCollapsed: collapsed }),
-        setSelectedShipSymbol: (symbol) => set({ selectedShipSymbol: symbol }),
-        setSelectedWaypointSymbol: (waypoint) =>
-          set({
-            selectedWaypointSymbol: waypoint,
-          }),
-        setSelectedSystemSymbol: (systemSymbol) =>
-          set({ selectedSystemSymbol: systemSymbol }),
-        setSystems: (systems) => set({ systems: systems }),
-        setSystem: (system, waypoints) =>
-          set((state) => ({
-            systems: {
-              ...state.systems,
-              [system.symbol]: { system: system, waypoints: waypoints },
-            },
-          })),
-        setWebsocketConnected: (websocketConnected) =>
-          set({ websocketConnected }),
-        setAgent: (agent) => set({ myAgent: agent }),
-      })),
-      {
-        name: "root-channel",
-        storage: storage,
-      }
-    ),
+    // persist(
+    shared((set) => ({
+      ...initialState,
+      reset: () => set(initialState),
+      setDarkMode: (darkMode) => set({ darkMode }),
+      setShips: (ships) => set({ ships: ships }),
+      setShip: (ship) =>
+        set((state) => ({ ships: { ...state.ships, [ship.symbol]: ship } })),
+      setSliderCollapsed: (collapsed) => set({ sliderCollapsed: collapsed }),
+      setSelectedShipSymbol: (symbol) => set({ selectedShipSymbol: symbol }),
+      setSelectedWaypointSymbol: (waypoint) =>
+        set({
+          selectedWaypointSymbol: waypoint,
+        }),
+      setSelectedSystemSymbol: (systemSymbol) =>
+        set({ selectedSystemSymbol: systemSymbol }),
+      setSystems: (systems) => set({ systems: systems }),
+      setSystem: (system, waypoints) =>
+        set((state) => ({
+          systems: {
+            ...state.systems,
+            [system.symbol]: { system: system, waypoints: waypoints },
+          },
+        })),
+      setWebsocketConnected: (websocketConnected) =>
+        set({ websocketConnected }),
+      setAgent: (agent) => set({ myAgent: agent }),
+    })),
     {
-      name: "root-state",
+      name: "root-channel",
+      storage: storage,
     }
+    // ),
+    // {
+    //   name: "root-state",
+    // }
   )
 );
 

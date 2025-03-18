@@ -89,7 +89,7 @@ impl DatabaseConnector<ContractShipment> for ContractShipment {
 
     async fn insert_bulk(
         database_pool: &super::DbPool,
-        items: &Vec<ContractShipment>,
+        items: &[ContractShipment],
     ) -> sqlx::Result<()> {
         let (
             ids,

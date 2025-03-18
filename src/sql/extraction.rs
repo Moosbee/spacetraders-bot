@@ -61,7 +61,7 @@ impl DatabaseConnector<Extraction> for Extraction {
         Ok(())
     }
 
-    async fn insert_bulk(database_pool: &DbPool, items: &Vec<Extraction>) -> sqlx::Result<()> {
+    async fn insert_bulk(database_pool: &DbPool, items: &[Extraction]) -> sqlx::Result<()> {
         let (
             ship_symbols,
             waypoint_symbols,

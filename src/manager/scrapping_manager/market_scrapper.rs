@@ -52,10 +52,12 @@ impl<'a> MarketScrapper<'a> {
                 }
             }
 
-            let markets = self.get_all_markets().await?;
+            let markets_to_scrap = self.get_all_market_waypoints().await?;
+
+            let markets = get_all_markets(&self.context.api, &markets_to_scrap).await?;
 
             info!("Markets: {:?}", markets.len());
-            update_markets(markets, self.context.database_pool.clone()).await;
+            update_markets(markets, self.context.database_pool.clone()).await?;
         }
 
         info!("Market scrapping workers done");
@@ -63,69 +65,86 @@ impl<'a> MarketScrapper<'a> {
         Ok(())
     }
 
-    async fn get_all_markets(&self) -> crate::error::Result<Vec<models::Market>> {
+    async fn get_all_market_waypoints(&self) -> crate::error::Result<Vec<(String, String)>> {
         let systems = self.scrapping_manager.get_system().await;
 
+        let mut all_waypoints = vec![];
         debug!("Scrapping Systems: {}", systems.len());
-
-        let mut market_handles = tokio::task::JoinSet::new();
 
         for system in systems {
             let waypoints =
                 sql::Waypoint::get_by_system(&self.context.database_pool, &system).await?;
 
-            for waypoint in waypoints.iter().filter(|w| w.is_marketplace()) {
-                let api = self.context.api.clone();
-                let waypoint = waypoint.clone();
-                market_handles.spawn(async move {
-                    debug!("Market: {}", waypoint.symbol);
+            let mut system_markets = waypoints
+                .iter()
+                .filter(|w| w.is_marketplace())
+                .map(|w| (w.system_symbol.clone(), w.symbol.clone()))
+                .collect::<Vec<_>>();
 
-                    loop {
-                        let market = api
-                            .get_market(&waypoint.system_symbol, &waypoint.symbol)
-                            .await;
-
-                        match market {
-                            Ok(market) => {
-                                break *market.data;
-                            }
-                            Err(e) => {
-                                warn!("Market: {} Error: {}", waypoint.symbol, e);
-                                sleep(Duration::from_millis(500)).await;
-                            }
-                        }
-                    }
-                });
-            }
+            all_waypoints.append(&mut system_markets);
         }
 
-        let mut markets = Vec::new();
-
-        while let Some(market_data) = market_handles.join_next().await {
-            debug!(
-                "Market: {} {}",
-                market_data.is_ok(),
-                market_data
-                    .as_ref()
-                    .map(|m| m.symbol.clone())
-                    .unwrap_or("Error".to_string())
-            );
-
-            match market_data {
-                Ok(market) => {
-                    markets.push(market);
-                }
-                Err(e) => {
-                    warn!("Market: Error: {}", e);
-                }
-            }
-        }
-
-        Ok(markets)
+        Ok(all_waypoints)
     }
 }
 
-pub async fn update_markets(markets: Vec<models::Market>, database_pool: sql::DbPool) {
+pub async fn get_all_markets(
+    api: &crate::api::Api,
+    waypoints: &[(String, String)],
+) -> crate::error::Result<Vec<models::Market>> {
+    let mut market_handles = tokio::task::JoinSet::new();
+
+    for waypoint in waypoints {
+        let api = api.clone();
+        let waypoint = waypoint.clone();
+        market_handles.spawn(async move {
+            debug!("Market: {}", waypoint.1);
+
+            loop {
+                let market = api.get_market(&waypoint.0, &waypoint.1).await;
+
+                match market {
+                    Ok(market) => {
+                        break *market.data;
+                    }
+                    Err(e) => {
+                        warn!("Market: {} Error: {}", waypoint.1, e);
+                        sleep(Duration::from_millis(500)).await;
+                    }
+                }
+            }
+        });
+    }
+
+    let mut markets = Vec::new();
+
+    while let Some(market_data) = market_handles.join_next().await {
+        debug!(
+            "Market: {} {}",
+            market_data.is_ok(),
+            market_data
+                .as_ref()
+                .map(|m| m.symbol.clone())
+                .unwrap_or("Error".to_string())
+        );
+
+        match market_data {
+            Ok(market) => {
+                markets.push(market);
+            }
+            Err(e) => {
+                warn!("Market: Error: {}", e);
+            }
+        }
+    }
+
+    Ok(markets)
+}
+
+pub async fn update_markets(
+    markets: Vec<models::Market>,
+    database_pool: sql::DbPool,
+) -> crate::error::Result<()> {
     let market_goods = markets
         .iter()
         .filter(|m| m.trade_goods.is_some())
@@ -181,15 +200,11 @@ pub async fn update_markets(markets: Vec<models::Market>, database_pool: sql::Db
         })
         .flatten()
         .collect();
-    sql::MarketTrade::insert_bulk(&database_pool, &market_trades)
-        .await
-        .unwrap();
-    sql::MarketTradeGood::insert_bulk(&database_pool, &market_goods)
-        .await
-        .unwrap();
-    sql::MarketTransaction::insert_bulk(&database_pool, &market_transactions)
-        .await
-        .unwrap();
+    sql::MarketTrade::insert_bulk(&database_pool, &market_trades).await?;
+    sql::MarketTradeGood::insert_bulk(&database_pool, &market_goods).await?;
+    sql::MarketTransaction::insert_bulk(&database_pool, &market_transactions).await?;
+
+    Ok(())
 }
 
 pub async fn update_market(market: models::Market, database_pool: &sql::DbPool) {
@@ -251,7 +266,7 @@ pub async fn update_market(market: models::Market, database_pool: &sql::DbPool) 
     .iter()
     .flatten()
     .cloned()
-    .collect();
+    .collect::<Vec<_>>();
     sql::MarketTrade::insert_bulk(database_pool, &market_trades)
         .await
         .unwrap();

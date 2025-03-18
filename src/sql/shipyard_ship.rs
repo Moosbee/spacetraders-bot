@@ -154,7 +154,7 @@ impl DatabaseConnector<ShipyardShip> for ShipyardShip {
 
     async fn insert_bulk(
         database_pool: &super::DbPool,
-        items: &Vec<ShipyardShip>,
+        items: &[ShipyardShip],
     ) -> sqlx::Result<()> {
         for item in items {
             Self::insert(database_pool, item).await?;

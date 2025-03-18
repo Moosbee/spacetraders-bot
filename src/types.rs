@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::sync::Weak;
 use std::{fmt::Debug, sync::Arc};
 
@@ -156,6 +155,7 @@ pub trait WaypointCan {
     fn is_minable(&self) -> bool;
     fn is_sipherable(&self) -> bool;
     fn is_shipyard(&self) -> bool;
+    fn is_jump_gate(&self) -> bool;
 }
 
 impl WaypointCan for space_traders_client::models::Waypoint {
@@ -182,6 +182,10 @@ impl WaypointCan for space_traders_client::models::Waypoint {
         self.traits
             .iter()
             .any(|t| t.symbol == space_traders_client::models::WaypointTraitSymbol::Shipyard)
+    }
+
+    fn is_jump_gate(&self) -> bool {
+        self.r#type == space_traders_client::models::WaypointType::JumpGate
     }
 }
 
