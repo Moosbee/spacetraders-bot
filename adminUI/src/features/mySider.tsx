@@ -58,6 +58,11 @@ const items: MenuItem[] = [
     icon: <GlobalOutlined />,
   },
   {
+    label: <Link to="/systems/map">Systems Map</Link>,
+    key: "systems/maps",
+    icon: <FaIcon type="solid" icon="fa-map-location-dot" />,
+  },
+  {
     label: <Link to="/agents">Agents</Link>,
     key: "agents",
     icon: <ContactsOutlined />,

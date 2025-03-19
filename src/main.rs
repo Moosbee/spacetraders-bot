@@ -20,6 +20,7 @@ use chrono::{DateTime, Utc};
 use config::CONFIG;
 use env_logger::{Env, Target};
 use manager::{
+    chart_manager::ChartManager,
     construction_manager::ConstructionManager,
     contract_manager::ContractManager,
     mining_manager::MiningManager,
@@ -30,6 +31,7 @@ use manager::{
 };
 use rsntp::AsyncSntpClient;
 use ship::ShipManager;
+use space_traders_client::models::chart;
 use sql::DatabaseConnector;
 use tokio::sync::broadcast;
 use tokio_stream::StreamExt;
@@ -137,6 +139,7 @@ async fn setup_context(
     let mining_manager_data = MiningManager::create();
     let scrapping_manager_data = ScrappingManager::create();
     let trade_manager_data = TradeManager::create();
+    let chart_manager = ChartManager::create();
     let ship_task_handler = ShipTaskHandler::create();
 
     let context = ConductorContext {
@@ -149,6 +152,7 @@ async fn setup_context(
         mining_manager: mining_manager_data.1,
         scrapping_manager: scrapping_manager_data.1,
         trade_manager: trade_manager_data.1,
+        chart_manager: chart_manager.1,
     };
 
     debug!("Context created");
@@ -184,6 +188,12 @@ async fn setup_context(
         trade_manager_data.0,
     );
 
+    let chart_manager = ChartManager::new(
+        manager_cancel_token.child_token(),
+        context.clone(),
+        chart_manager.0,
+    );
+
     let ship_task_handler = ShipTaskHandler::new(
         ship_cancel_token.clone(),
         manager_cancel_token.clone(),
@@ -210,6 +220,7 @@ async fn setup_context(
             Box::new(mining_manager),
             Box::new(scrapping_manager),
             Box::new(trade_manager),
+            Box::new(chart_manager),
             Box::new(ship_task_handler),
             Box::new(control_api),
         ],

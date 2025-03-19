@@ -55,6 +55,14 @@ impl MyShip {
 
     fn calculate_refuel_requirements(&self, instruction: &RouteInstruction) -> RefuelRequirements {
         debug!("Calculating refuel requirements: {:?}", instruction);
+
+        if self.fuel.capacity == 0 {
+            return RefuelRequirements {
+                refuel_amount: 0,
+                restock_amount: 0,
+            };
+        }
+
         let current_fuel_stock = self
             .cargo
             .get_amount(&space_traders_client::models::TradeSymbol::Fuel);

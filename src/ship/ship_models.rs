@@ -112,6 +112,11 @@ pub enum ShipStatus {
     Mining {
         assignment: MiningShipAssignment,
     },
+    Charting {
+        cycle: Option<i32>,
+        waiting_for_manager: bool,
+        waypoint_symbol: Option<String>,
+    },
     #[default]
     Manuel,
 }

@@ -1,9 +1,11 @@
+mod chart_pilot;
 mod construction;
 mod contract;
 mod mining;
 mod scraper;
 mod trading;
 
+use chart_pilot::ChartPilot;
 use construction::ConstructionPilot;
 use contract::ContractPilot;
 use log::debug;
@@ -29,6 +31,7 @@ pub struct Pilot {
     scraper_pilot: ScraperPilot,
     contract_pilot: ContractPilot,
     mining_pilot: MiningPilot,
+    chart_pilot: ChartPilot,
 }
 
 impl Pilot {
@@ -48,6 +51,7 @@ impl Pilot {
             scraper_pilot: ScraperPilot::new(),
             contract_pilot: ContractPilot::new(context.clone(), ship_symbol.clone()),
             mining_pilot: MiningPilot::new(context.clone(), ship_symbol.clone()),
+            chart_pilot: ChartPilot::new(context.clone(), ship_symbol.clone()),
         }
     }
 
@@ -147,6 +151,7 @@ impl Pilot {
             sql::ShipInfoRole::Mining => self.mining_pilot.execute_pilot_circle(self).await,
             sql::ShipInfoRole::Manuel => self.wait_for_new_role().await,
             sql::ShipInfoRole::TempTrader => self.trading_pilot.execute_pilot_circle(self).await,
+            sql::ShipInfoRole::Charter => self.chart_pilot.execute_pilot_circle(self).await,
         }?;
 
         Ok(())

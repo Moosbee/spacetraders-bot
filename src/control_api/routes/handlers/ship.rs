@@ -240,6 +240,8 @@ pub async fn handle_jump_ship(
     body: serde_json::Value,
     context: ConductorContext,
 ) -> crate::control_api::types::Result<impl Reply> {
+    debug!("Jumping ship {}", symbol);
+
     let mut ship_guard = context
         .ship_manager
         .try_get_mut(&symbol)

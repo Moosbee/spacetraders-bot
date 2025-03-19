@@ -70,6 +70,7 @@ function Ships() {
         "TempTrader",
         "Contract",
         "Mining",
+        "Charting",
         "Manuel",
       ],
       onFilter: (value, record) => record.role === value,

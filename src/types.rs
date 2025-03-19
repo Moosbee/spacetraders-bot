@@ -4,6 +4,7 @@ use std::{fmt::Debug, sync::Arc};
 use dashmap::DashMap;
 use lockable::{AsyncLimit, Lockable, LockableHashMap, SyncLimit};
 
+use crate::manager::chart_manager::ChartManagerMessanger;
 use crate::manager::construction_manager::ConstructionManagerMessanger;
 use crate::manager::contract_manager::ContractManagerMessanger;
 use crate::manager::mining_manager::MiningManagerMessanger;
@@ -156,6 +157,7 @@ pub trait WaypointCan {
     fn is_sipherable(&self) -> bool;
     fn is_shipyard(&self) -> bool;
     fn is_jump_gate(&self) -> bool;
+    fn is_charted(&self) -> bool;
 }
 
 impl WaypointCan for space_traders_client::models::Waypoint {
@@ -187,6 +189,10 @@ impl WaypointCan for space_traders_client::models::Waypoint {
     fn is_jump_gate(&self) -> bool {
         self.r#type == space_traders_client::models::WaypointType::JumpGate
     }
+
+    fn is_charted(&self) -> bool {
+        self.chart.is_some()
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -200,6 +206,7 @@ pub struct ConductorContext {
     pub mining_manager: MiningManagerMessanger,
     pub scrapping_manager: ScrappingManagerMessanger,
     pub trade_manager: TradeManagerMessanger,
+    pub chart_manager: ChartManagerMessanger,
 }
 
 pub trait SendFuture: core::future::Future {

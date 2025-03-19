@@ -1,6 +1,7 @@
 use crate::error::Result;
 use tokio_util::sync::CancellationToken;
 
+pub mod chart_manager;
 pub mod construction_manager;
 pub mod contract_manager;
 pub mod mining_manager;

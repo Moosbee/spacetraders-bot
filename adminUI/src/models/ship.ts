@@ -114,6 +114,7 @@ export const SystemShipRoles = {
   Contract: "Contract",
   Scraper: "Scraper",
   Mining: "Mining",
+  Charter: "Charter",
   Manuel: "Manuel",
 } as const;
 
@@ -123,7 +124,8 @@ export type SystemShipRole =
   | { type: "Contract"; data: ContractData }
   | { type: "Scraper"; data: null }
   | { type: "Mining"; data: MiningData }
-  | { type: "Manuel"; data: null }; // Default role
+  | { type: "Manuel"; data: null } // Default role
+  | { type: "Charting"; data: ChartingData };
 
 interface ConstructionData {
   cycle?: number;
@@ -137,6 +139,13 @@ interface TraderData {
   cycle?: number;
   shipping_status?: ShippingStatus;
   waiting_for_manager: boolean;
+}
+
+interface ChartingData {
+  cycle?: number;
+  // shipping_status?: ShippingStatus;
+  waiting_for_manager: boolean;
+  waypoint_symbol?: string;
 }
 
 interface ContractData {

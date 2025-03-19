@@ -19,6 +19,7 @@ pub enum ShipInfoRole {
     Contract,
     Scraper,
     Mining,
+    Charter,
     #[default]
     Manuel,
 }
@@ -33,6 +34,7 @@ impl TryFrom<&str> for ShipInfoRole {
             "Contract" => Ok(ShipInfoRole::Contract),
             "Scraper" => Ok(ShipInfoRole::Scraper),
             "Mining" => Ok(ShipInfoRole::Mining),
+            "Charter" => Ok(ShipInfoRole::Charter),
             "Manuel" => Ok(ShipInfoRole::Manuel),
             _ => Err(()),
         }
@@ -48,6 +50,11 @@ impl From<crate::ship::ShipStatus> for ShipInfoRole {
             crate::ship::ShipStatus::Scraper => Self::Scraper,
             crate::ship::ShipStatus::Mining { .. } => Self::Mining,
             crate::ship::ShipStatus::Manuel => Self::Manuel,
+            crate::ship::ShipStatus::Charting {
+                cycle,
+                waiting_for_manager,
+                waypoint_symbol,
+            } => Self::Charter,
         }
     }
 }
@@ -85,6 +92,7 @@ impl From<ShipInfoRole> for crate::ship::ShipStatus {
                 shipping_status: None,
                 waiting_for_manager: false,
             },
+            ShipInfoRole::Charter => todo!(),
         }
     }
 }

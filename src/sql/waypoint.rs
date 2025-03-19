@@ -138,6 +138,10 @@ impl WaypointCan for Waypoint {
     fn is_jump_gate(&self) -> bool {
         self.waypoint_type == models::WaypointType::JumpGate
     }
+
+    fn is_charted(&self) -> bool {
+        self.charted_by.is_some() || self.charted_on.is_some()
+    }
 }
 
 impl Waypoint {

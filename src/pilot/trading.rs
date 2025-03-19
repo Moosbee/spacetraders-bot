@@ -3,7 +3,7 @@ use std::{
     sync::{atomic::AtomicI32, Arc},
 };
 
-use log::debug;
+use log::{debug, info};
 
 use crate::{
     error::{Error, Result},
@@ -55,7 +55,7 @@ impl TradingPilot {
 
         ship.notify().await;
 
-        debug!("Starting trade route for ship {}: {:?}", ship.symbol, route);
+        info!("Starting trade route for ship {}: {}", ship.symbol, route);
         self.execute_trade(ship, &route, pilot).await?;
         let _completed_route = self.complete_trade(route).await?;
         ship.status = ship::ShipStatus::Trader {

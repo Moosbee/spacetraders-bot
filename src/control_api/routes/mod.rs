@@ -2,6 +2,7 @@ mod api_routes;
 mod handlers;
 mod websocket;
 
+use log::warn;
 use tokio_util::sync::CancellationToken;
 use warp::{reply::Reply, Filter};
 
@@ -40,6 +41,7 @@ pub fn build_routes(
 }
 
 async fn handle_rejection(err: warp::Rejection) -> crate::control_api::types::Result<impl Reply> {
+    warn!("Rejection: {:?}", err);
     if let Some(e) = err.find::<ServerError>() {
         let code = match e {
             ServerError::BadRequest(_) => warp::http::StatusCode::BAD_REQUEST,

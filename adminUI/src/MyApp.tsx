@@ -15,6 +15,7 @@ import MarketTransactions from "./sites/MarketTransactions";
 import Ship from "./sites/Ship";
 import Ships from "./sites/Ships";
 import System from "./sites/System";
+import SysMap from "./sites/SystemMap";
 import Systems from "./sites/Systems";
 import TradeRoutes from "./sites/TradeRoutes";
 import Waypoint from "./sites/Waypoint";
@@ -65,6 +66,7 @@ function MyApp() {
                     <Route path="/" element={<Main></Main>} />
                     <Route path="/ships" element={<Ships />} />
                     <Route path="/systems" element={<Systems />} />
+                    <Route path="/systems/map" element={<SysMap></SysMap>} />
 
                     <Route path="/system/:systemID" element={<System />} />
                     <Route
