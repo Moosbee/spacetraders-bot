@@ -1,53 +1,8 @@
-import { ReactElement, useEffect, useRef, useState } from "react";
-import { SystemType } from "../../models/api";
+import { useEffect, useRef, useState } from "react";
 import { SQLSystem } from "../../models/SQLSystem";
-import FaIcon from "../FontAwsome/FaIcon";
-import NounIcon from "../FontAwsome/NounIcon";
 
+import { systemIcons } from "../../utils/waypointColors";
 import classes from "./SystemMapSystem.module.css";
-
-const systemIcons: Record<SystemType, { icon: ReactElement; color: string }> = {
-  NEUTRON_STAR: {
-    icon: <FaIcon type="solid" icon="fa-star-christmas" />,
-    color: "currentColor",
-  },
-  RED_STAR: {
-    icon: <FaIcon type="solid" icon="fa-sparkle" />,
-    color: "red",
-  },
-  ORANGE_STAR: {
-    icon: <FaIcon type="solid" icon="fa-star" />,
-    color: "orange",
-  },
-  BLUE_STAR: {
-    icon: <FaIcon type="solid" icon="fa-star-christmas" />,
-    color: "blue",
-  },
-  YOUNG_STAR: {
-    icon: <FaIcon type="solid" icon="fa-star-of-life" />,
-    color: "lightgreen",
-  },
-  WHITE_DWARF: {
-    icon: <FaIcon type="solid" icon="fa-period" />,
-    color: "currentColor",
-  },
-  BLACK_HOLE: {
-    icon: <FaIcon type="solid" icon="fa-atom" />,
-    color: "currentColor",
-  },
-  HYPERGIANT: {
-    icon: <FaIcon type="solid" icon="fa-certificate" />,
-    color: "lightblue",
-  },
-  NEBULA: {
-    icon: <NounIcon name="nebula" />,
-    color: "currentColor",
-  },
-  UNSTABLE: {
-    icon: <FaIcon type="solid" icon="fa-star-exclamation" />,
-    color: "darkred",
-  },
-};
 
 function SystemMapSystem({
   system,

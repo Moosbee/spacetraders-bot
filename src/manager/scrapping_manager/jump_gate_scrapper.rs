@@ -5,6 +5,7 @@ use space_traders_client::models;
 use tokio::time::sleep;
 
 use crate::{
+    api,
     config::CONFIG,
     sql::{self, DatabaseConnector},
     types::{ConductorContext, WaypointCan},
@@ -52,10 +53,12 @@ impl<'a> JumpGateScrapper<'a> {
                 }
             }
 
-            let jump_gates = self.get_all_jump_gates().await?;
+            let gates = self.get_jump_gates().await?;
+
+            let jump_gates = self::get_all_jump_gates(&self.context.api, gates).await?;
 
             info!("JumpGates: {:?}", jump_gates);
-            let erg = self.update_jump_gates(jump_gates).await;
+            let erg = self::update_jump_gates(&self.context.database_pool, jump_gates).await;
             if erg.is_err() {
                 warn!("JumpGate scrapping error: {}", erg.unwrap_err());
             }
@@ -66,69 +69,88 @@ impl<'a> JumpGateScrapper<'a> {
         Ok(())
     }
 
-    async fn get_all_jump_gates(&self) -> crate::error::Result<Vec<models::JumpGate>> {
+    async fn get_jump_gates(&self) -> crate::error::Result<Vec<(String, String)>> {
         let systems = self.scrapping_manager.get_system().await;
-        let mut jump_gate_handles = tokio::task::JoinSet::new();
-
+        let mut gates = vec![];
         for system in systems {
             let waypoints =
                 sql::Waypoint::get_by_system(&self.context.database_pool, &system).await?;
             for waypoint in waypoints.iter().filter(|w| w.is_jump_gate()) {
-                let api = self.context.api.clone();
-                let waypoint = waypoint.clone();
-                jump_gate_handles.spawn(async move {
-                    debug!("JumpGate: {}", waypoint.symbol);
-                    loop {
-                        let jump_gate = api
-                            .get_jump_gate(&waypoint.system_symbol, &waypoint.symbol)
-                            .await;
-                        match jump_gate {
-                            Ok(jump_gate) => {
-                                break *jump_gate.data;
-                            }
-                            Err(e) => {
-                                warn!("JumpGate: {} Error: {}", waypoint.symbol, e);
-                                sleep(Duration::from_millis(500)).await;
-                            }
-                        }
-                    }
-                });
+                gates.push((waypoint.system_symbol.clone(), waypoint.symbol.clone()));
             }
         }
+        Ok(gates)
+    }
+}
 
-        let mut jump_gates = Vec::new();
-        while let Some(jump_gate_data) = jump_gate_handles.join_next().await {
-            debug!(
-                "JumpGate: {} {}",
-                jump_gate_data.is_ok(),
-                jump_gate_data
+pub async fn get_all_jump_gates(
+    api: &api::Api,
+    gates: Vec<(String, String)>,
+) -> crate::error::Result<Vec<models::JumpGate>> {
+    let mut jump_gate_handles = tokio::task::JoinSet::new();
+
+    for waypoint in gates {
+        let api = api.clone();
+        let waypoint = waypoint.clone();
+        jump_gate_handles.spawn(async move {
+            debug!("JumpGate: {}", waypoint.1);
+            let mut err_count = 2;
+            loop {
+                let jump_gate = api.get_jump_gate(&waypoint.0, &waypoint.1).await;
+                match jump_gate {
+                    Ok(jump_gate) => {
+                        break Some(*jump_gate.data);
+                    }
+                    Err(e) => {
+                        err_count -= 1;
+                        warn!("JumpGate: {} Error: {} {:?}", waypoint.1, e, e);
+                        if err_count <= 0 {
+                            break None;
+                        }
+                        sleep(Duration::from_millis(1000)).await;
+                    }
+                }
+            }
+        });
+    }
+
+    let mut jump_gates = Vec::new();
+    while let Some(jump_gate_data) = jump_gate_handles.join_next().await {
+        debug!(
+            "JumpGate: {} {}",
+            jump_gate_data.is_ok(),
+            jump_gate_data
+                .as_ref()
+                .map(|m| m
                     .as_ref()
-                    .map(|m| m.symbol.clone())
-                    .unwrap_or("Error".to_string())
-            );
-            match jump_gate_data {
-                Ok(jump_gate) => {
+                    .map(|j| j.symbol.clone())
+                    .unwrap_or("Errorr".to_string()))
+                .unwrap_or("Error".to_string())
+        );
+        match jump_gate_data {
+            Ok(jump_gate) => {
+                if let Some(jump_gate) = jump_gate {
                     jump_gates.push(jump_gate);
                 }
-                Err(e) => {
-                    warn!("JumpGate: Error: {}", e);
-                }
+            }
+            Err(e) => {
+                warn!("JumpGate: Error: {}, {:?}", e, e);
             }
         }
-
-        Ok(jump_gates)
     }
 
-    async fn update_jump_gates(
-        &self,
-        jump_gates: Vec<models::JumpGate>,
-    ) -> Result<(), crate::error::Error> {
-        for jump_gate in jump_gates {
-            update_jump_gate(&self.context.database_pool, jump_gate).await?;
-        }
+    Ok(jump_gates)
+}
 
-        Ok(())
+pub async fn update_jump_gates(
+    database_pool: &crate::sql::DbPool,
+    jump_gates: Vec<models::JumpGate>,
+) -> Result<(), crate::error::Error> {
+    for jump_gate in jump_gates {
+        update_jump_gate(&database_pool, jump_gate).await?;
     }
+
+    Ok(())
 }
 
 pub async fn update_jump_gate(

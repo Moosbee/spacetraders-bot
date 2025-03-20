@@ -84,6 +84,13 @@ pub(crate) fn build_api_routes(
         .and(with_context(context.clone()))
         .and_then(handlers::handle_chart_waypoint);
 
+    let ship_warp = warp::path!("ship" / String / "warp")
+        .and(warp::path::end())
+        .and(warp::post())
+        .and(warp::body::json())
+        .and(with_context(context.clone()))
+        .and_then(handlers::handle_warp_ship);
+
     // Trade routes
     let trade_routes = warp::path("tradeRoutes")
         .and(warp::path::end())
@@ -178,6 +185,12 @@ pub(crate) fn build_api_routes(
         .and(with_context(context.clone()))
         .and_then(handlers::handle_get_agent_history);
 
+    let jump_gates = warp::path!("jumpGates")
+        .and(warp::path::end())
+        .and(warp::get())
+        .and(with_context(context.clone()))
+        .and_then(handlers::handle_get_jump_gates);
+
     // insights routes
 
     // API Counter
@@ -226,6 +239,7 @@ pub(crate) fn build_api_routes(
         .or(ship_toggle_activation)
         .or(ship_role)
         .or(ship_chart)
+        .or(ship_warp)
         .or(trade_routes)
         .or(contract)
         .or(contracts)
@@ -239,6 +253,7 @@ pub(crate) fn build_api_routes(
         .or(agent_history)
         .or(agent)
         .or(agents)
+        .or(jump_gates)
         .or(api_counter)
         .or(running_contract_shipments)
         .or(running_construction_shipments)

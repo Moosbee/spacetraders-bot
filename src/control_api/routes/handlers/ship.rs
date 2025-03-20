@@ -292,6 +292,49 @@ pub async fn handle_jump_ship(
     })))
 }
 
+pub async fn handle_warp_ship(
+    symbol: String,
+    body: serde_json::Value,
+    context: ConductorContext,
+) -> crate::control_api::types::Result<impl Reply> {
+    debug!("Warping ship {}", symbol);
+
+    let mut ship_guard = context
+        .ship_manager
+        .try_get_mut(&symbol)
+        .await
+        .ok_or_else(|| ServerError::BadRequest("Ship was locked".into()))?;
+
+    let ship = ship_guard
+        .value_mut()
+        .ok_or_else(|| ServerError::BadRequest("Ship not found".into()))?;
+
+    if ship.role != sql::ShipInfoRole::Manuel {
+        return Err(ServerError::BadRequest("Ship not in Manuel mode".into()).into());
+    }
+
+    let waypoint_symbol = body["waypointSymbol"]
+        .as_str()
+        .map(|s| s.to_string())
+        .ok_or(ServerError::BadRequest("Missing waypointSymbol".into()))?;
+
+    ship.ensure_undocked(&context.api)
+        .await
+        .map_err(ServerError::from)?;
+
+    let erg = ship
+        .warp(&context.api, &waypoint_symbol)
+        .await
+        .map_err(ServerError::from)?;
+
+    Ok(warp::reply::json(&serde_json::json!({
+        "success": true,
+        "shipSymbol": symbol,
+        "waypointSymbol": waypoint_symbol,
+        "warp_data": erg
+    })))
+}
+
 pub async fn handle_chart_waypoint(
     symbol: String,
     context: ConductorContext,

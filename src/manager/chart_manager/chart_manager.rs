@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 
 use log::debug;
+use space_traders_client::models;
 
 use crate::{
     error::{Error, Result},
@@ -114,6 +115,15 @@ impl ChartManager {
         }
 
         system.sort_by(|a, b| {
+            if a.waypoint_type == models::WaypointType::Asteroid
+                && b.waypoint_type != models::WaypointType::Asteroid
+            {
+                return std::cmp::Ordering::Greater;
+            } else if a.waypoint_type != models::WaypointType::Asteroid
+                && b.waypoint_type == models::WaypointType::Asteroid
+            {
+                return std::cmp::Ordering::Less;
+            }
             let distance_a =
                 distance_between_waypoints((a.x, a.y), (ship_waypoint.x, ship_waypoint.y));
             let distance_b =

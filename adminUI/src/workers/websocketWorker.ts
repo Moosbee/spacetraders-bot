@@ -42,7 +42,7 @@ const work = () => {
     websocket.onmessage = (event) => {
       // console.log(event.data);
       const wsObject: WsObject = JSON.parse(event.data);
-      console.log("WS OBJECT", Date.now(), wsObject);
+      // console.log("WS OBJECT", Date.now(), wsObject);
       switch (wsObject.data.type) {
         case "RustShip":
           setShip(wsObject.data.data);

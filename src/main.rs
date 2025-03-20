@@ -1,3 +1,4 @@
+#![recursion_limit = "256"]
 mod api;
 mod ship;
 
@@ -31,15 +32,15 @@ use manager::{
 };
 use rsntp::AsyncSntpClient;
 use ship::ShipManager;
-use space_traders_client::models::chart;
+use space_traders_client::models::{self, chart};
 use sql::DatabaseConnector;
 use tokio::sync::broadcast;
 use tokio_stream::StreamExt;
 use tokio_util::sync::CancellationToken;
-use types::ConductorContext;
+use types::{ConductorContext, WaypointCan};
 
 use crate::api::Api;
-use log::{debug, error, info};
+use log::{debug, error, info, warn};
 
 use std::num::NonZeroU32;
 
@@ -131,6 +132,28 @@ async fn setup_context(
     }
 
     // manager::scrapping_manager::update_all_systems(&database_pool, &api).await?;
+
+    // let all_gates = sql::Waypoint::get_all(&database_pool)
+    //     .await?
+    //     .into_iter()
+    //     .filter(|w| w.is_jump_gate())
+    //     .filter(|w| {
+    //         !w.traits
+    //             .iter()
+    //             .any(|t| *t == models::WaypointTraitSymbol::Uncharted)
+    //     })
+    //     .map(|w| (w.system_symbol, w.symbol))
+    //     .collect::<Vec<_>>();
+
+    // info!("All gates: {}", all_gates.len());
+
+    // let jump_gates = manager::scrapping_manager::get_all_jump_gates(&api, all_gates).await?;
+
+    // info!("JumpGates: {:?}", jump_gates);
+    // let erg = manager::scrapping_manager::update_jump_gates(&database_pool, jump_gates).await;
+    // if erg.is_err() {
+    //     warn!("JumpGate scrapping error: {}", erg.unwrap_err());
+    // }
 
     // panic!();
 

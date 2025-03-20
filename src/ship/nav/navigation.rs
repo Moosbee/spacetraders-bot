@@ -302,6 +302,28 @@ impl MyShip {
         Ok(jump_data)
     }
 
+    pub async fn warp(
+        &mut self,
+        api: &api::Api,
+        waypoint_symbol: &str,
+    ) -> error::Result<models::WarpShip200Response> {
+        self.mutate();
+        let warp_data = api
+            .warp_ship(
+                &self.symbol,
+                Some(models::NavigateShipRequest {
+                    waypoint_symbol: waypoint_symbol.to_string(),
+                }),
+            )
+            .await?;
+
+        self.nav.update(&warp_data.data.nav);
+        self.fuel.update(&warp_data.data.fuel);
+        self.notify().await;
+
+        core::result::Result::Ok(warp_data)
+    }
+
     async fn dock(
         &mut self,
         api: &api::Api,

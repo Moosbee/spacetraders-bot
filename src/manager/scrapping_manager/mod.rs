@@ -5,6 +5,8 @@ mod scrapping_manager;
 mod shipyard_scrapper;
 mod system_scrapper;
 
+pub use jump_gate_scrapper::get_all_jump_gates;
+pub use jump_gate_scrapper::update_jump_gates;
 pub use market_scrapper::get_all_markets;
 pub use market_scrapper::update_market;
 pub use market_scrapper::update_markets;

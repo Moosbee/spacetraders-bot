@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use log::debug;
 use warp::reply::Reply;
 
@@ -360,4 +362,68 @@ pub async fn handle_get_agent_history(
     debug!("Got {} agents", agents.len());
 
     Ok(warp::reply::json(&agents))
+}
+
+#[derive(Debug, serde::Serialize)]
+pub struct GateConn {
+    under_construction_a: bool,
+    under_construction_b: bool,
+    point_a: String,
+    point_b: String,
+    from_a: bool,
+    from_b: bool,
+}
+
+pub async fn handle_get_jump_gates(context: ConductorContext) -> Result<impl Reply> {
+    debug!("Getting jump gates");
+    let connections = sql::JumpGateConnection::get_all(&context.database_pool)
+        .await
+        .map_err(ServerError::Database)?;
+
+    let mut connection_map: HashMap<(String, String), GateConn> = HashMap::new();
+
+    for connection in connections {
+        let mut pair = [connection.from.clone(), connection.to.clone()];
+        pair.sort(); // Ensure the pair is always in a consistent order
+        let entry = connection_map.entry((pair[0].clone(), pair[1].clone()));
+
+        let entry = entry.or_insert_with(|| GateConn {
+            point_a: pair[0].clone(),
+            point_b: pair[1].clone(),
+            under_construction_a: false,
+            under_construction_b: false,
+            from_a: false,
+            from_b: false,
+        });
+        let is_from_a = connection.from == pair[0];
+        let is_from_b = connection.from == pair[1];
+        if is_from_a {
+            entry.from_a = true;
+        } else if is_from_b {
+            entry.from_b = true;
+        }
+    }
+
+    let gate_waypoints = sql::Waypoint::get_all(&context.database_pool)
+        .await
+        .map_err(ServerError::Database)?
+        .into_iter()
+        .filter(|w| w.is_jump_gate())
+        .map(|w| (w.symbol.clone(), w))
+        .collect::<HashMap<_, _>>();
+
+    for connection in connection_map.values_mut() {
+        connection.under_construction_a = gate_waypoints
+            .get(&connection.point_a)
+            .map(|w| w.is_under_construction)
+            .unwrap_or(false);
+        connection.under_construction_b = gate_waypoints
+            .get(&connection.point_b)
+            .map(|w| w.is_under_construction)
+            .unwrap_or(false);
+    }
+
+    Ok(warp::reply::json(
+        &connection_map.into_values().collect::<Vec<_>>(),
+    ))
 }
