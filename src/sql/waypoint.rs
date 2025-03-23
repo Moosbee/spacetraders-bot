@@ -23,6 +23,8 @@ pub struct Waypoint {
     pub charted_by: Option<String>,
     pub charted_on: Option<String>,
     pub unstable_since: Option<sqlx::types::chrono::NaiveDateTime>,
+    pub has_shipyard: bool,
+    pub has_marketplace: bool,
 }
 
 impl From<&models::Waypoint> for Waypoint {
@@ -48,6 +50,14 @@ impl From<&models::Waypoint> for Waypoint {
                 .unwrap_or_default(),
             charted_by: value.chart.as_ref().and_then(|c| c.submitted_by.clone()),
             charted_on: value.chart.as_ref().and_then(|c| c.submitted_on.clone()),
+            has_marketplace: value
+                .traits
+                .iter()
+                .any(|t| t.symbol == models::WaypointTraitSymbol::Marketplace),
+            has_shipyard: value
+                .traits
+                .iter()
+                .any(|t| t.symbol == models::WaypointTraitSymbol::Shipyard),
             ..Default::default()
         }
     }
@@ -119,6 +129,7 @@ impl WaypointCan for Waypoint {
     fn is_marketplace(&self) -> bool {
         self.traits
             .contains(&models::WaypointTraitSymbol::Marketplace)
+            || self.has_marketplace
     }
 
     fn is_minable(&self) -> bool {
@@ -132,7 +143,7 @@ impl WaypointCan for Waypoint {
     }
 
     fn is_shipyard(&self) -> bool {
-        self.traits.contains(&models::WaypointTraitSymbol::Shipyard)
+        self.traits.contains(&models::WaypointTraitSymbol::Shipyard) || self.has_shipyard
     }
 
     fn is_jump_gate(&self) -> bool {
@@ -182,7 +193,9 @@ impl Waypoint {
                   modifiers as "modifiers: Vec<models::WaypointModifierSymbol>",
                   charted_by,
                   charted_on,
-                  unstable_since
+                  unstable_since,
+                  has_shipyard,
+                  has_marketplace
                 FROM waypoint
                 WHERE system_symbol = $1
             "#,
@@ -214,7 +227,9 @@ impl Waypoint {
                   modifiers as "modifiers: Vec<models::WaypointModifierSymbol>",
                   charted_by,
                   charted_on,
-                  unstable_since
+                  unstable_since,
+                  has_shipyard,
+                  has_marketplace
                 FROM waypoint
                 WHERE symbol = $1
                 LIMIT 1
@@ -244,7 +259,9 @@ impl DatabaseConnector<Waypoint> for Waypoint {
                   modifiers,
                   charted_by,
                   charted_on,
-                  unstable_since
+                  unstable_since,
+                  has_shipyard,
+                  has_marketplace
                 )
                 VALUES ($1,
                         $2,
@@ -259,7 +276,9 @@ impl DatabaseConnector<Waypoint> for Waypoint {
                         $11::waypoint_modifier_symbol[],
                         $12,
                         $13,
-                        $14
+                        $14,
+                        $15,
+                        $16
                         )
                 ON CONFLICT (symbol) DO UPDATE SET 
                 system_symbol = EXCLUDED.system_symbol,
@@ -274,7 +293,9 @@ impl DatabaseConnector<Waypoint> for Waypoint {
                 modifiers = EXCLUDED.modifiers,
                 charted_by = EXCLUDED.charted_by,
                 charted_on = EXCLUDED.charted_on,
-                unstable_since = EXCLUDED.unstable_since;
+                unstable_since = EXCLUDED.unstable_since,
+                has_shipyard = EXCLUDED.has_shipyard,
+                has_marketplace = EXCLUDED.has_marketplace;
             "#,
             &item.symbol,
             &item.system_symbol,
@@ -290,6 +311,8 @@ impl DatabaseConnector<Waypoint> for Waypoint {
             &item.charted_by as &Option<String>,
             &item.charted_on as &Option<String>,
             &item.unstable_since as &Option<sqlx::types::chrono::NaiveDateTime>,
+            &item.has_shipyard,
+            &item.has_marketplace
         )
         .execute(&database_pool.database_pool)
         .await?;
@@ -324,7 +347,9 @@ impl DatabaseConnector<Waypoint> for Waypoint {
                   modifiers as "modifiers: Vec<models::WaypointModifierSymbol>",
                   charted_by,
                   charted_on,
-                  unstable_since
+                  unstable_since,
+                  has_shipyard,
+                  has_marketplace
                 FROM waypoint
             "#
         )

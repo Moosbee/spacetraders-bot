@@ -1,4 +1,7 @@
+use std::collections::HashMap;
+
 use log::debug;
+use space_traders_client::models;
 
 use crate::{
     api::Api,
@@ -48,11 +51,59 @@ pub async fn update_system(
             }
         }
     };
+
+    let mut sql_waypoints = waypoints
+        .iter()
+        .map(sql::Waypoint::from)
+        .map(|w| (w.symbol.clone(), w))
+        .collect::<HashMap<_, _>>();
+
+    if waypoints.iter().any(|w| {
+        w.traits
+            .iter()
+            .any(|t| t.symbol == models::WaypointTraitSymbol::Uncharted)
+    }) {
+        debug!("System {} has uncharted waypoints", system_symbol);
+        let shipyards = api
+            .get_all_waypoints_with_traits(
+                system_symbol,
+                Some(
+                    models::GetSystemWaypointsTraitsParameter::WaypointTraitSymbol(
+                        models::WaypointTraitSymbol::Shipyard,
+                    ),
+                ),
+                20,
+            )
+            .await?;
+
+        for sh in shipyards.into_iter() {
+            let wp = sql_waypoints.get_mut(&sh.symbol).unwrap();
+            wp.has_shipyard = true;
+        }
+
+        let markets = api
+            .get_all_waypoints_with_traits(
+                system_symbol,
+                Some(
+                    models::GetSystemWaypointsTraitsParameter::WaypointTraitSymbol(
+                        models::WaypointTraitSymbol::Marketplace,
+                    ),
+                ),
+                20,
+            )
+            .await?;
+
+        for mk in markets.into_iter() {
+            let wp = sql_waypoints.get_mut(&mk.symbol).unwrap();
+            wp.has_marketplace = true;
+        }
+    }
+
     sql::Waypoint::insert_bulk(
         database_pool,
-        &waypoints
-            .iter()
-            .map(sql::Waypoint::from)
+        &sql_waypoints
+            .into_iter()
+            .map(|(_, w)| w)
             .collect::<Vec<_>>(),
     )
     .await?;

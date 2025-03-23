@@ -27,6 +27,7 @@ pub async fn handle_get_running_contract_shipments(
         .await
         .map_err(|e| ServerError::Server(format!("Failed to receive message: {}", e)))?
         .map_err(|e| ServerError::Server(e.to_string()))?;
+
     Ok(warp::reply::json(&serde_json::json!({"shipments": erg})))
 }
 

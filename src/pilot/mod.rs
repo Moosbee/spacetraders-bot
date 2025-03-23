@@ -1,11 +1,11 @@
-mod chart_pilot;
+mod charting;
 mod construction;
 mod contract;
 mod mining;
 mod scraper;
 mod trading;
 
-use chart_pilot::ChartPilot;
+use charting::ChartPilot;
 use construction::ConstructionPilot;
 use contract::ContractPilot;
 use log::debug;

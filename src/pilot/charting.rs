@@ -136,9 +136,36 @@ impl ChartPilot {
     ) -> std::result::Result<(), Error> {
         let symbol = ship.symbol.clone();
 
-        let erg = self.context.api.create_chart(&symbol).await?;
+        let erg = self.context.api.create_chart(&symbol).await;
 
-        let sql_waypoint = (&*erg.data.waypoint).into();
+        let waypoint = match erg {
+            Ok(data) => *data.data.waypoint,
+            Err(space_traders_client::apis::Error::ResponseError(error)) => {
+                if error
+                    .entity
+                    .as_ref()
+                    .map(|e| {
+                        e.error.code
+                            == space_traders_client::models::error_codes::WAYPOINT_CHARTED_ERROR
+                    })
+                    .unwrap_or(false)
+                {
+                    *self
+                        .context
+                        .api
+                        .get_waypoint(&ship.nav.system_symbol, &ship.nav.waypoint_symbol)
+                        .await?
+                        .data
+                } else {
+                    return Err(space_traders_client::apis::Error::ResponseError(error).into());
+                }
+            }
+            Err(err) => {
+                return Err(err.into());
+            }
+        };
+
+        let sql_waypoint = (&waypoint).into();
 
         sql::Waypoint::insert(&self.context.database_pool, &sql_waypoint).await?;
 

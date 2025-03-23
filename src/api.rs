@@ -1191,6 +1191,17 @@ impl Api {
         system_symbol: &str,
         limit: i32,
     ) -> Result<Vec<models::Waypoint>, Error<GetSystemWaypointsError>> {
+        self.get_all_waypoints_with_traits(system_symbol, None, limit)
+            .await
+    }
+
+    /// Returns ALL waypoints for a given system and with the given traits.  If a waypoint is uncharted, it will return the `Uncharted` trait instead of its actual traits, but still only the waypoints that have that trait.
+    pub async fn get_all_waypoints_with_traits(
+        &self,
+        system_symbol: &str,
+        traits: Option<models::GetSystemWaypointsTraitsParameter>,
+        limit: i32,
+    ) -> Result<Vec<models::Waypoint>, Error<GetSystemWaypointsError>> {
         if !(1..=20).contains(&limit) {
             panic!("Invalid limit must be between 1 and 20");
         }
@@ -1200,7 +1211,13 @@ impl Api {
 
         loop {
             let page = self
-                .get_system_waypoints(system_symbol, Some(current_page), Some(limit), None, None)
+                .get_system_waypoints(
+                    system_symbol,
+                    Some(current_page),
+                    Some(limit),
+                    None,
+                    traits.clone(),
+                )
                 .await?;
             waypoints.extend(page.data);
             let total = page.meta.total;
