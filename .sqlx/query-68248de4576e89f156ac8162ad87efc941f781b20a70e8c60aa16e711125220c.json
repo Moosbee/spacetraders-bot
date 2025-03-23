@@ -20,11 +20,12 @@
               "Enum": [
                 "Construction",
                 "Trader",
+                "TempTrader",
+                "Charter",
                 "Contract",
                 "Scraper",
                 "Mining",
-                "Manuel",
-                "TempTrader"
+                "Manuel"
               ]
             }
           }
@@ -143,7 +144,8 @@
                 "FRAME_TRANSPORT",
                 "FRAME_DESTROYER",
                 "FRAME_CRUISER",
-                "FRAME_CARRIER"
+                "FRAME_CARRIER",
+                "FRAME_BULK_FREIGHTER"
               ]
             }
           }

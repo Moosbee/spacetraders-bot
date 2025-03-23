@@ -11,7 +11,7 @@
 use crate::models;
 use serde::{Deserialize, Serialize};
 
-/// Market :
+/// Market : Market details.
 #[derive(Clone, Default, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Market {
     /// The symbol of the market. The symbol is the same as the waypoint where the market is located.
@@ -35,7 +35,7 @@ pub struct Market {
 }
 
 impl Market {
-    ///
+    /// Market details.
     pub fn new(
         symbol: String,
         exports: Vec<models::TradeGood>,

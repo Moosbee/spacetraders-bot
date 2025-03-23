@@ -91,6 +91,7 @@
 | FrameDestroyer | FRAME_DESTROYER |
 | FrameCruiser | FRAME_CRUISER |
 | FrameCarrier | FRAME_CARRIER |
+| FrameBulkFreighter | FRAME_BULK_FREIGHTER |
 | ReactorSolarI | REACTOR_SOLAR_I |
 | ReactorFusionI | REACTOR_FUSION_I |
 | ReactorFissionI | REACTOR_FISSION_I |
@@ -147,6 +148,7 @@
 | ShipOreHound | SHIP_ORE_HOUND |
 | ShipRefiningFreighter | SHIP_REFINING_FREIGHTER |
 | ShipSurveyor | SHIP_SURVEYOR |
+| ShipBulkFreighter | SHIP_BULK_FREIGHTER |
 
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)

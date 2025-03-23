@@ -16,6 +16,7 @@
 | OreHound | SHIP_ORE_HOUND |
 | RefiningFreighter | SHIP_REFINING_FREIGHTER |
 | Surveyor | SHIP_SURVEYOR |
+| BulkFreighter | SHIP_BULK_FREIGHTER |
 
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)

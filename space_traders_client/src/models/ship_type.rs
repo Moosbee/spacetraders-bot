@@ -78,6 +78,9 @@ pub enum ShipType {
     #[strum(serialize = "SHIP_SURVEYOR")]
     #[sqlx(rename = "SHIP_SURVEYOR")]
     Surveyor,
+    #[serde(rename = "SHIP_BULK_FREIGHTER")]
+    #[sqlx(rename = "SHIP_BULK_FREIGHTER")]
+    BulkFreighter,
 }
 
 impl std::fmt::Display for ShipType {
@@ -95,6 +98,7 @@ impl std::fmt::Display for ShipType {
             Self::OreHound => write!(f, "SHIP_ORE_HOUND"),
             Self::RefiningFreighter => write!(f, "SHIP_REFINING_FREIGHTER"),
             Self::Surveyor => write!(f, "SHIP_SURVEYOR"),
+            Self::BulkFreighter => write!(f, "SHIP_BULK_FREIGHTER"),
         }
     }
 }

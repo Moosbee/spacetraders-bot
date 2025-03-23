@@ -22,7 +22,8 @@
                 "SHIP_LIGHT_SHUTTLE",
                 "SHIP_ORE_HOUND",
                 "SHIP_REFINING_FREIGHTER",
-                "SHIP_SURVEYOR"
+                "SHIP_SURVEYOR",
+                "SHIP_BULK_FREIGHTER"
               ]
             }
           }

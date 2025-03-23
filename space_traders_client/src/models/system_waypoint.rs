@@ -11,6 +11,7 @@
 use crate::models;
 use serde::{Deserialize, Serialize};
 
+/// SystemWaypoint : Waypoint details.
 #[derive(Clone, Default, Debug, PartialEq, Serialize, Deserialize)]
 pub struct SystemWaypoint {
     /// The symbol of the waypoint.
@@ -33,6 +34,7 @@ pub struct SystemWaypoint {
 }
 
 impl SystemWaypoint {
+    /// Waypoint details.
     pub fn new(
         symbol: String,
         r#type: models::WaypointType,

@@ -378,6 +378,10 @@ pub enum TradeSymbol {
     #[sqlx(rename = "FRAME_CARRIER")]
     #[strum(serialize = "FRAME_CARRIER")]
     FrameCarrier,
+    #[serde(rename = "FRAME_BULK_FREIGHTER")]
+    #[sqlx(rename = "FRAME_BULK_FREIGHTER")]
+    #[strum(serialize = "FRAME_BULK_FREIGHTER")]
+    FrameBulkFreighter,
     #[serde(rename = "REACTOR_SOLAR_I")]
     #[sqlx(rename = "REACTOR_SOLAR_I")]
     #[strum(serialize = "REACTOR_SOLAR_I")]
@@ -602,6 +606,10 @@ pub enum TradeSymbol {
     #[sqlx(rename = "SHIP_SURVEYOR")]
     #[strum(serialize = "SHIP_SURVEYOR")]
     ShipSurveyor,
+    #[serde(rename = "SHIP_BULK_FREIGHTER")]
+    #[sqlx(rename = "SHIP_BULK_FREIGHTER")]
+    #[strum(serialize = "SHIP_BULK_FREIGHTER")]
+    ShipBulkFreighter,
 }
 
 impl From<models::ship_mount::Deposits> for TradeSymbol {
@@ -715,6 +723,7 @@ impl std::fmt::Display for TradeSymbol {
             Self::FrameDestroyer => write!(f, "FRAME_DESTROYER"),
             Self::FrameCruiser => write!(f, "FRAME_CRUISER"),
             Self::FrameCarrier => write!(f, "FRAME_CARRIER"),
+            Self::FrameBulkFreighter => write!(f, "FRAME_BULK_FREIGHTER"),
             Self::ReactorSolarI => write!(f, "REACTOR_SOLAR_I"),
             Self::ReactorFusionI => write!(f, "REACTOR_FUSION_I"),
             Self::ReactorFissionI => write!(f, "REACTOR_FISSION_I"),
@@ -771,6 +780,7 @@ impl std::fmt::Display for TradeSymbol {
             Self::ShipOreHound => write!(f, "SHIP_ORE_HOUND"),
             Self::ShipRefiningFreighter => write!(f, "SHIP_REFINING_FREIGHTER"),
             Self::ShipSurveyor => write!(f, "SHIP_SURVEYOR"),
+            Self::ShipBulkFreighter => write!(f, "SHIP_BULK_FREIGHTER"),
         }
     }
 }

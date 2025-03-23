@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n                SELECT \n                  symbol,\n                  system_symbol,\n                  created_at,\n                  x,\n                  y,\n                  type as \"waypoint_type: models::WaypointType\",\n                  traits as \"traits: Vec<models::WaypointTraitSymbol>\",\n                  is_under_construction,\n                  orbitals,\n                  orbits,\n                  faction,\n                  modifiers as \"modifiers: Vec<models::WaypointModifierSymbol>\",\n                  charted_by,\n                  charted_on,\n                  unstable_since\n                FROM waypoint\n            ",
+  "query": "\n                SELECT \n                  symbol,\n                  system_symbol,\n                  created_at,\n                  x,\n                  y,\n                  type as \"waypoint_type: models::WaypointType\",\n                  traits as \"traits: Vec<models::WaypointTraitSymbol>\",\n                  is_under_construction,\n                  orbitals,\n                  orbits,\n                  faction,\n                  modifiers as \"modifiers: Vec<models::WaypointModifierSymbol>\",\n                  charted_by,\n                  charted_on,\n                  unstable_since,\n                  has_shipyard,\n                  has_marketplace\n                FROM waypoint\n            ",
   "describe": {
     "columns": [
       {
@@ -203,6 +203,16 @@
         "ordinal": 14,
         "name": "unstable_since",
         "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 15,
+        "name": "has_shipyard",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 16,
+        "name": "has_marketplace",
+        "type_info": "Bool"
       }
     ],
     "parameters": {
@@ -223,8 +233,10 @@
       false,
       true,
       true,
-      true
+      true,
+      false,
+      false
     ]
   },
-  "hash": "eadbff1f527a9eae8b04f574fb135eac07fb0d1b0be7889566f401d306ce4049"
+  "hash": "1fe4ef112a8a3292446de8f66e1daa60f36f9ae638c2d1b895efe3793ff549b8"
 }

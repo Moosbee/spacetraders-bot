@@ -67,10 +67,7 @@ impl DatabaseConnector<ModuleInfo> for ModuleInfo {
         Ok(())
     }
 
-    async fn insert_bulk(
-        database_pool: &super::DbPool,
-        items: &[ModuleInfo],
-    ) -> sqlx::Result<()> {
+    async fn insert_bulk(database_pool: &super::DbPool, items: &[ModuleInfo]) -> sqlx::Result<()> {
         let (
             symbols,
             names,

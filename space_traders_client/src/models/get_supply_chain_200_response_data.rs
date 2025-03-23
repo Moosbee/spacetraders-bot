@@ -13,14 +13,16 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Default, Debug, PartialEq, Serialize, Deserialize)]
 pub struct GetSupplyChain200ResponseData {
-    #[serde(rename = "exportToImportMap", skip_serializing_if = "Option::is_none")]
-    pub export_to_import_map: Option<Box<models::GetSupplyChain200ResponseDataExportToImportMap>>,
+    #[serde(rename = "exportToImportMap")]
+    pub export_to_import_map: Box<models::GetSupplyChain200ResponseDataExportToImportMap>,
 }
 
 impl GetSupplyChain200ResponseData {
-    pub fn new() -> GetSupplyChain200ResponseData {
+    pub fn new(
+        export_to_import_map: models::GetSupplyChain200ResponseDataExportToImportMap,
+    ) -> GetSupplyChain200ResponseData {
         GetSupplyChain200ResponseData {
-            export_to_import_map: None,
+            export_to_import_map: Box::new(export_to_import_map),
         }
     }
 }

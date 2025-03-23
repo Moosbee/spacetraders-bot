@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n                SELECT \n                  symbol,\n                  system_symbol,\n                  created_at,\n                  x,\n                  y,\n                  type as \"waypoint_type: models::WaypointType\",\n                  traits as \"traits: Vec<models::WaypointTraitSymbol>\",\n                  is_under_construction,\n                  orbitals,\n                  orbits,\n                  faction,\n                  modifiers as \"modifiers: Vec<models::WaypointModifierSymbol>\",\n                  charted_by,\n                  charted_on,\n                  unstable_since\n                FROM waypoint\n                WHERE symbol = $1\n                LIMIT 1\n            ",
+  "query": "\n                SELECT \n                  symbol,\n                  system_symbol,\n                  created_at,\n                  x,\n                  y,\n                  type as \"waypoint_type: models::WaypointType\",\n                  traits as \"traits: Vec<models::WaypointTraitSymbol>\",\n                  is_under_construction,\n                  orbitals,\n                  orbits,\n                  faction,\n                  modifiers as \"modifiers: Vec<models::WaypointModifierSymbol>\",\n                  charted_by,\n                  charted_on,\n                  unstable_since,\n                  has_shipyard,\n                  has_marketplace\n                FROM waypoint\n                WHERE system_symbol = $1\n            ",
   "describe": {
     "columns": [
       {
@@ -203,6 +203,16 @@
         "ordinal": 14,
         "name": "unstable_since",
         "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 15,
+        "name": "has_shipyard",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 16,
+        "name": "has_marketplace",
+        "type_info": "Bool"
       }
     ],
     "parameters": {
@@ -225,8 +235,10 @@
       false,
       true,
       true,
-      true
+      true,
+      false,
+      false
     ]
   },
-  "hash": "7d7b2f0426c5903e691cfb33ac439625e632fb1f2b77a8f333b88aa73269eba1"
+  "hash": "5ee1655e22d7b842d1047841dfc9a7612261a85ca24136fde91ed7d0106d186e"
 }

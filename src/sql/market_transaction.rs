@@ -306,10 +306,7 @@ impl DatabaseConnector<MarketTransaction> for MarketTransaction {
         Ok(())
     }
 
-    async fn insert_bulk(
-        database_pool: &DbPool,
-        items: &[MarketTransaction],
-    ) -> sqlx::Result<()> {
+    async fn insert_bulk(database_pool: &DbPool, items: &[MarketTransaction]) -> sqlx::Result<()> {
         #[allow(clippy::type_complexity)]
         let (
             t_waypoint_symbol,

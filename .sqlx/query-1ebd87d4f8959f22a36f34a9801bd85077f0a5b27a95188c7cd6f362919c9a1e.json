@@ -1,15 +1,37 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n                INSERT INTO waypoint (\n\t                symbol,\n                  system_symbol,\n                  x,\n                  y,\n                  type,\n                  traits,\n                  is_under_construction,\n                  orbitals,\n                  orbits,\n                  faction,\n                  modifiers,\n                  charted_by,\n                  charted_on,\n                  unstable_since\n                )\n                VALUES ($1,\n                        $2,\n                        $3,\n                        $4,\n                        $5::waypoint_type,\n                        $6::waypoint_trait_symbol[],\n                        $7,\n                        $8,\n                        $9,\n                        $10,\n                        $11::waypoint_modifier_symbol[],\n                        $12,\n                        $13,\n                        $14\n                        )\n                ON CONFLICT (symbol) DO UPDATE SET \n                system_symbol = EXCLUDED.system_symbol,\n                x = EXCLUDED.x,\n                y = EXCLUDED.y,\n                type = EXCLUDED.type,\n                traits = EXCLUDED.traits,\n                is_under_construction = EXCLUDED.is_under_construction,\n                orbitals = EXCLUDED.orbitals,\n                orbits = EXCLUDED.orbits,\n                faction = EXCLUDED.faction,\n                modifiers = EXCLUDED.modifiers,\n                charted_by = EXCLUDED.charted_by,\n                charted_on = EXCLUDED.charted_on,\n                unstable_since = EXCLUDED.unstable_since;\n            ",
+  "query": "\n                SELECT \n                  symbol,\n                  system_symbol,\n                  created_at,\n                  x,\n                  y,\n                  type as \"waypoint_type: models::WaypointType\",\n                  traits as \"traits: Vec<models::WaypointTraitSymbol>\",\n                  is_under_construction,\n                  orbitals,\n                  orbits,\n                  faction,\n                  modifiers as \"modifiers: Vec<models::WaypointModifierSymbol>\",\n                  charted_by,\n                  charted_on,\n                  unstable_since,\n                  has_shipyard,\n                  has_marketplace\n                FROM waypoint\n                WHERE symbol = $1\n                LIMIT 1\n            ",
   "describe": {
-    "columns": [],
-    "parameters": {
-      "Left": [
-        "Varchar",
-        "Varchar",
-        "Int4",
-        "Int4",
-        {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "symbol",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "system_symbol",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "created_at",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 3,
+        "name": "x",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "y",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 5,
+        "name": "waypoint_type: models::WaypointType",
+        "type_info": {
           "Custom": {
             "name": "waypoint_type",
             "kind": {
@@ -31,8 +53,12 @@
               ]
             }
           }
-        },
-        {
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "traits: Vec<models::WaypointTraitSymbol>",
+        "type_info": {
           "Custom": {
             "name": "waypoint_trait_symbol[]",
             "kind": {
@@ -116,12 +142,32 @@
               }
             }
           }
-        },
-        "Bool",
-        "VarcharArray",
-        "Varchar",
-        "Varchar",
-        {
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "is_under_construction",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 8,
+        "name": "orbitals",
+        "type_info": "VarcharArray"
+      },
+      {
+        "ordinal": 9,
+        "name": "orbits",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 10,
+        "name": "faction",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 11,
+        "name": "modifiers: Vec<models::WaypointModifierSymbol>",
+        "type_info": {
           "Custom": {
             "name": "waypoint_modifier_symbol[]",
             "kind": {
@@ -141,13 +187,58 @@
               }
             }
           }
-        },
-        "Varchar",
-        "Varchar",
-        "Timestamp"
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "charted_by",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 13,
+        "name": "charted_on",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 14,
+        "name": "unstable_since",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 15,
+        "name": "has_shipyard",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 16,
+        "name": "has_marketplace",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
       ]
     },
-    "nullable": []
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      true,
+      true,
+      true,
+      false,
+      false
+    ]
   },
-  "hash": "12857447078eb229f8e208bdd38d4824b4547da47dcccb1e679b8a36e91f0f3b"
+  "hash": "1ebd87d4f8959f22a36f34a9801bd85077f0a5b27a95188c7cd6f362919c9a1e"
 }

@@ -50,7 +50,7 @@ Class | Method | HTTP request | Description
 *ContractsApi* | [**fulfill_contract**](docs/ContractsApi.md#fulfill_contract) | **POST** /my/contracts/{contractId}/fulfill | Fulfill Contract
 *ContractsApi* | [**get_contract**](docs/ContractsApi.md#get_contract) | **GET** /my/contracts/{contractId} | Get Contract
 *ContractsApi* | [**get_contracts**](docs/ContractsApi.md#get_contracts) | **GET** /my/contracts | List Contracts
-*DefaultApi* | [**get_supply_chain**](docs/DefaultApi.md#get_supply_chain) | **GET** /market/supply-chain | Get Supply Chain
+*DataApi* | [**get_supply_chain**](docs/DataApi.md#get_supply_chain) | **GET** /market/supply-chain | Get Supply Chain
 *FactionsApi* | [**get_faction**](docs/FactionsApi.md#get_faction) | **GET** /factions/{factionSymbol} | Get Faction
 *FactionsApi* | [**get_factions**](docs/FactionsApi.md#get_factions) | **GET** /factions | List Factions
 *FleetApi* | [**create_chart**](docs/FleetApi.md#create_chart) | **POST** /my/ships/{shipSymbol}/chart | Create Chart
@@ -217,6 +217,7 @@ Class | Method | HTTP request | Description
  - [Register201Response](docs/Register201Response.md)
  - [Register201ResponseData](docs/Register201ResponseData.md)
  - [RegisterRequest](docs/RegisterRequest.md)
+ - [RemoveModule201Response](docs/RemoveModule201Response.md)
  - [RemoveMount201Response](docs/RemoveMount201Response.md)
  - [RemoveMount201ResponseData](docs/RemoveMount201ResponseData.md)
  - [RemoveMountRequest](docs/RemoveMountRequest.md)

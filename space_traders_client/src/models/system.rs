@@ -11,6 +11,7 @@
 use crate::models;
 use serde::{Deserialize, Serialize};
 
+/// System : System details.
 #[derive(Clone, Default, Debug, PartialEq, Serialize, Deserialize)]
 pub struct System {
     /// The symbol of the system.
@@ -19,6 +20,12 @@ pub struct System {
     /// The symbol of the sector.
     #[serde(rename = "sectorSymbol")]
     pub sector_symbol: String,
+    /// The constellation that the system is part of.
+    #[serde(rename = "constellation", skip_serializing_if = "Option::is_none")]
+    pub constellation: Option<String>,
+    /// The name of the system.
+    #[serde(rename = "name", skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
     #[serde(rename = "type")]
     pub r#type: models::SystemType,
     /// Relative position of the system in the sector in the x axis.
@@ -36,6 +43,7 @@ pub struct System {
 }
 
 impl System {
+    /// System details.
     pub fn new(
         symbol: String,
         sector_symbol: String,
@@ -48,6 +56,8 @@ impl System {
         System {
             symbol,
             sector_symbol,
+            constellation: None,
+            name: None,
             r#type,
             x,
             y,

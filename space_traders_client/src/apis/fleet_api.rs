@@ -1096,7 +1096,7 @@ pub async fn install_mount(
     }
 }
 
-/// Install a module on a ship. The module must be in your cargo.
+/// Install a module on a ship.  In order to install a module, the ship must be docked and located in a waypoint that has a `Shipyard` trait. The ship also must have the module to install in its cargo hold.  An installation fee will be deduced by the Shipyard for installing the module on the ship.
 pub async fn install_ship_module(
     configuration: &configuration::Configuration,
     ship_symbol: &str,
@@ -1607,12 +1607,12 @@ pub async fn remove_mount(
     }
 }
 
-/// Remove a module from a ship. The module will be placed in cargo.
+/// Remove a module from a ship.  The ship must be docked in a waypoint that has the `Shipyard` trait, and must have the module to remove installed.  A removal fee will be deduced from the agent by the Shipyard.
 pub async fn remove_ship_module(
     configuration: &configuration::Configuration,
     ship_symbol: &str,
     remove_ship_module_request: Option<models::RemoveShipModuleRequest>,
-) -> Result<models::InstallShipModule201Response, Error<RemoveShipModuleError>> {
+) -> Result<models::RemoveModule201Response, Error<RemoveShipModuleError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;

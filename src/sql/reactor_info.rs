@@ -61,10 +61,7 @@ impl DatabaseConnector<ReactorInfo> for ReactorInfo {
         Ok(())
     }
 
-    async fn insert_bulk(
-        database_pool: &super::DbPool,
-        items: &[ReactorInfo],
-    ) -> sqlx::Result<()> {
+    async fn insert_bulk(database_pool: &super::DbPool, items: &[ReactorInfo]) -> sqlx::Result<()> {
         let (
             symbols,
             names,

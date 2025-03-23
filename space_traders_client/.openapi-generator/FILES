@@ -27,7 +27,7 @@ docs/CreateShipWaypointScan201Response.md
 docs/CreateShipWaypointScan201ResponseData.md
 docs/CreateSurvey201Response.md
 docs/CreateSurvey201ResponseData.md
-docs/DefaultApi.md
+docs/DataApi.md
 docs/DeliverContract200Response.md
 docs/DeliverContract200ResponseData.md
 docs/DeliverContractRequest.md
@@ -121,6 +121,7 @@ docs/RefuelShipRequest.md
 docs/Register201Response.md
 docs/Register201ResponseData.md
 docs/RegisterRequest.md
+docs/RemoveModule201Response.md
 docs/RemoveMount201Response.md
 docs/RemoveMount201ResponseData.md
 docs/RemoveMountRequest.md
@@ -205,7 +206,7 @@ git_push.sh
 src/apis/agents_api.rs
 src/apis/configuration.rs
 src/apis/contracts_api.rs
-src/apis/default_api.rs
+src/apis/data_api.rs
 src/apis/factions_api.rs
 src/apis/fleet_api.rs
 src/apis/global_api.rs
@@ -325,6 +326,7 @@ src/models/refuel_ship_request.rs
 src/models/register_201_response.rs
 src/models/register_201_response_data.rs
 src/models/register_request.rs
+src/models/remove_module_201_response.rs
 src/models/remove_mount_201_response.rs
 src/models/remove_mount_201_response_data.rs
 src/models/remove_mount_request.rs

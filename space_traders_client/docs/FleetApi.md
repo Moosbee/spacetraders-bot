@@ -562,7 +562,7 @@ Name | Type | Description  | Required | Notes
 > models::InstallMount201Response install_mount(ship_symbol, install_mount_request)
 Install Mount
 
-Install a mount on a ship.  In order to install a mount, the ship must be docked and located in a waypoint that has a `Shipyard` trait. The ship also must have the mount to install in its cargo hold.  An installation fee will be deduced by the Shipyard for installing the mount on the ship. 
+Install a mount on a ship.  In order to install a mount, the ship must be docked and located in a waypoint that has a `Shipyard` trait. The ship also must have the mount to install in its cargo hold.  An installation fee will be deduced by the Shipyard for installing the mount on the ship.
 
 ### Parameters
 
@@ -593,7 +593,7 @@ Name | Type | Description  | Required | Notes
 > models::InstallShipModule201Response install_ship_module(ship_symbol, install_ship_module_request)
 Install Ship Module
 
-Install a module on a ship. The module must be in your cargo.
+Install a module on a ship.  In order to install a module, the ship must be docked and located in a waypoint that has a `Shipyard` trait. The ship also must have the module to install in its cargo hold.  An installation fee will be deduced by the Shipyard for installing the module on the ship.
 
 ### Parameters
 
@@ -928,10 +928,10 @@ Name | Type | Description  | Required | Notes
 
 ## remove_ship_module
 
-> models::InstallShipModule201Response remove_ship_module(ship_symbol, remove_ship_module_request)
+> models::RemoveModule201Response remove_ship_module(ship_symbol, remove_ship_module_request)
 Remove Ship Module
 
-Remove a module from a ship. The module will be placed in cargo.
+Remove a module from a ship.  The ship must be docked in a waypoint that has the `Shipyard` trait, and must have the module to remove installed.  A removal fee will be deduced from the agent by the Shipyard.
 
 ### Parameters
 
@@ -943,7 +943,7 @@ Name | Type | Description  | Required | Notes
 
 ### Return type
 
-[**models::InstallShipModule201Response**](install_ship_module_201_response.md)
+[**models::RemoveModule201Response**](Remove_Module_201_Response.md)
 
 ### Authorization
 

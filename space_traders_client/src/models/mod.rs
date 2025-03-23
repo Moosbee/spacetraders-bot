@@ -223,6 +223,8 @@ pub mod register_201_response_data;
 pub use self::register_201_response_data::Register201ResponseData;
 pub mod register_request;
 pub use self::register_request::RegisterRequest;
+pub mod remove_module_201_response;
+pub use self::remove_module_201_response::RemoveModule201Response;
 pub mod remove_mount_201_response;
 pub use self::remove_mount_201_response::RemoveMount201Response;
 pub mod remove_mount_201_response_data;

@@ -23,11 +23,12 @@
               "Enum": [
                 "Construction",
                 "Trader",
+                "TempTrader",
+                "Charter",
                 "Contract",
                 "Scraper",
                 "Mining",
-                "Manuel",
-                "TempTrader"
+                "Manuel"
               ]
             }
           }
@@ -48,11 +49,12 @@
               "Enum": [
                 "Construction",
                 "Trader",
+                "TempTrader",
+                "Charter",
                 "Contract",
                 "Scraper",
                 "Mining",
-                "Manuel",
-                "TempTrader"
+                "Manuel"
               ]
             }
           }

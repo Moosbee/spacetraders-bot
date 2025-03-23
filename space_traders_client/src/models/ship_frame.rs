@@ -124,6 +124,9 @@ pub enum Symbol {
     #[serde(rename = "FRAME_CARRIER")]
     #[sqlx(rename = "FRAME_CARRIER")]
     Carrier,
+    #[serde(rename = "FRAME_BULK_FREIGHTER")]
+    #[sqlx(rename = "FRAME_BULK_FREIGHTER")]
+    BulkFreighter,
 }
 
 impl Default for Symbol {

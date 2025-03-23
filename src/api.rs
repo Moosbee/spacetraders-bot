@@ -936,7 +936,7 @@ impl Api {
         &self,
         ship_symbol: &str,
         remove_ship_module_request: Option<models::RemoveShipModuleRequest>,
-    ) -> Result<models::InstallShipModule201Response, Error<RemoveShipModuleError>> {
+    ) -> Result<models::RemoveModule201Response, Error<RemoveShipModuleError>> {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
