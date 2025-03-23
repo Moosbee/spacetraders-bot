@@ -66,11 +66,15 @@ impl ScrappingManager {
             self,
         );
 
-        let (erg1, erg2, erg3, erg4) = tokio::join!(
+        let (erg1, erg2, erg3, erg4, erg5) = tokio::join!(
             agent_scrapper.run_scrapping_worker(),
             market_scrapper.run_scrapping_worker(),
             shipyard_scrapper.run_scrapping_worker(),
             jump_gate_scrapper.run_scrapping_worker(),
+            crate::manager::scrapping_manager::update_all_systems(
+                &self.context.database_pool,
+                &self.context.api,
+            )
         );
 
         if let Err(err) = erg1 {
@@ -85,6 +89,10 @@ impl ScrappingManager {
         }
         if let Err(err) = erg4 {
             error!("JumpGate scrapper error: {}", err);
+        }
+
+        if let Err(err) = erg5 {
+            error!("System scrapper error: {}", err);
         }
 
         info!("ScrappingManager done");

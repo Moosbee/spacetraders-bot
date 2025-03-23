@@ -118,35 +118,6 @@ function TradeRoutes() {
           b.predicted_purchase_price * b.trade_volume),
     },
     {
-      title: "Expenses",
-      dataIndex: "expenses",
-      key: "expenses",
-      render: (value) => <MoneyDisplay amount={value} />,
-      align: "right",
-      sorter: (a, b) => a.expenses - b.expenses,
-    },
-    {
-      title: "Income",
-      dataIndex: "income",
-      key: "income",
-      render: (value) => <MoneyDisplay amount={value} />,
-      align: "right",
-      sorter: (a, b) => a.income - b.income,
-    },
-    {
-      title: "Profit",
-      dataIndex: "profit",
-      key: "profit",
-      render: (value) => (
-        <MoneyDisplay
-          amount={value}
-          style={{ color: value < 0 ? "red" : "currentColor" }}
-        />
-      ),
-      align: "right",
-      sorter: (a, b) => a.profit - b.profit,
-    },
-    {
       title: "Delta",
       dataIndex: "",
       key: "delta",
@@ -193,6 +164,35 @@ function TradeRoutes() {
 
         return a_delta - b_delta;
       },
+    },
+    {
+      title: "Expenses",
+      dataIndex: "expenses",
+      key: "expenses",
+      render: (value) => <MoneyDisplay amount={value} />,
+      align: "right",
+      sorter: (a, b) => a.expenses - b.expenses,
+    },
+    {
+      title: "Income",
+      dataIndex: "income",
+      key: "income",
+      render: (value) => <MoneyDisplay amount={value} />,
+      align: "right",
+      sorter: (a, b) => a.income - b.income,
+    },
+    {
+      title: "Profit",
+      dataIndex: "profit",
+      key: "profit",
+      render: (value) => (
+        <MoneyDisplay
+          amount={value}
+          style={{ color: value < 0 ? "red" : "currentColor" }}
+        />
+      ),
+      align: "right",
+      sorter: (a, b) => a.profit - b.profit,
     },
   ];
 

@@ -15,7 +15,7 @@ mod rate_limiter;
 mod types;
 mod utils;
 
-use std::{collections::HashSet, env, error::Error, sync::Arc};
+use std::{collections::HashSet, env, error::Error, sync::Arc, vec};
 
 use chrono::{DateTime, Utc};
 use config::CONFIG;

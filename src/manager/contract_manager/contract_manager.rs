@@ -295,7 +295,7 @@ impl ContractManager {
             .filter(|c| {
                 c.destination_symbol
                     .starts_with(&ship_clone.nav.system_symbol)
-                    && c.units_fulfilled >= c.units_required
+                    && c.units_fulfilled < c.units_required
             })
             .collect::<Vec<_>>();
 

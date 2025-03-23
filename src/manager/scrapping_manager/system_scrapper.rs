@@ -22,8 +22,13 @@ pub async fn update_all_systems(
     )
     .await?;
 
+    debug!("Updating {} systems", all_systems.len());
+
     for system in &all_systems {
-        update_system(database_pool, api, &system.symbol, false).await?;
+        let erg = update_system(database_pool, api, &system.symbol, false).await;
+        if let Err(e) = erg {
+            log::error!("Error updating system {}: {}", system.symbol, e);
+        }
     }
 
     Ok(())
@@ -101,10 +106,7 @@ pub async fn update_system(
 
     sql::Waypoint::insert_bulk(
         database_pool,
-        &sql_waypoints
-            .into_iter()
-            .map(|(_, w)| w)
-            .collect::<Vec<_>>(),
+        &sql_waypoints.into_values().collect::<Vec<_>>(),
     )
     .await?;
 
