@@ -18,4 +18,6 @@ export interface SQLSystem {
   x: number;
   y: number;
   waypoints: number | undefined;
+  shipyards: number | undefined;
+  marketplaces: number | undefined;
 }

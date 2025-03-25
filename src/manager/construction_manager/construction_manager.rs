@@ -5,7 +5,7 @@ use std::{
 
 use chrono::Utc;
 use log::{debug, info};
-use space_traders_client::models;
+use space_traders_client::models::{self, waypoint};
 
 use crate::{
     config::CONFIG,
@@ -14,6 +14,7 @@ use crate::{
     ship,
     sql::{self, DatabaseConnector},
     types::ConductorContext,
+    utils::get_system_symbol,
 };
 
 use super::{message::ConstructionManagerMessage, messanger::ConstructionManagerMessanger};
@@ -302,6 +303,22 @@ impl ConstructionManager {
         shipment.status = sql::ShipmentStatus::Delivered;
 
         sql::ConstructionShipment::insert(&self.context.database_pool, &shipment).await?;
+
+        let waypoint = shipment.construction_site_waypoint.clone();
+
+        if materials
+            .iter()
+            .filter(|c| c.waypoint_symbol == waypoint)
+            .all(|c| c.fulfilled == c.required)
+        {
+            let system_waypoint = get_system_symbol(&waypoint);
+            let wp = self
+                .context
+                .api
+                .get_waypoint(&system_waypoint, &waypoint)
+                .await?;
+            sql::Waypoint::insert(&self.context.database_pool, &((&(*wp.data)).into())).await?;
+        }
 
         Ok(())
     }

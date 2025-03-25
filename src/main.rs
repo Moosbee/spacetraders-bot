@@ -32,7 +32,7 @@ use manager::{
 };
 use rsntp::AsyncSntpClient;
 use ship::ShipManager;
-use space_traders_client::models::{self, chart};
+use space_traders_client::models;
 use sql::DatabaseConnector;
 use tokio::sync::broadcast;
 use tokio_stream::StreamExt;

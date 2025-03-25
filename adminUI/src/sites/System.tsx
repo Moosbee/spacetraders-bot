@@ -365,6 +365,31 @@ function System() {
       ],
       onFilter: (value, record) => record.is_under_construction === value,
     },
+    {
+      title: "Has Shipyard",
+      dataIndex: "has_shipyard",
+      key: "has_shipyard",
+      render: (value) => (value ? "Yes" : "No"), // Render boolean as "Yes" or "No"
+      sorter: (a, b) => (a.has_shipyard ? 1 : 0) - (b.has_shipyard ? 1 : 0),
+      filters: [
+        { text: "Yes", value: true },
+        { text: "No", value: false },
+      ],
+      onFilter: (value, record) => record.has_shipyard === value,
+    },
+    {
+      title: "Has Market",
+      dataIndex: "has_marketplace",
+      key: "has_marketplace",
+      render: (value) => (value ? "Yes" : "No"), // Render boolean as "Yes" or "No"
+      sorter: (a, b) =>
+        (a.has_marketplace ? 1 : 0) - (b.has_marketplace ? 1 : 0),
+      filters: [
+        { text: "Yes", value: true },
+        { text: "No", value: false },
+      ],
+      onFilter: (value, record) => record.has_marketplace === value,
+    },
   ];
 
   return (

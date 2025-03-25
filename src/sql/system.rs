@@ -20,6 +20,8 @@ pub struct RespSystem {
     pub x: i32,
     pub y: i32,
     pub waypoints: Option<i32>,
+    pub marketplaces: Option<i32>,
+    pub shipyards: Option<i32>,
 }
 
 impl From<&models::System> for System {
@@ -45,7 +47,9 @@ impl RespSystem {
                 system.system_type as "system_type: models::SystemType",
                 system.x,
                 system.y,
-            		count(waypoint.symbol) as "waypoints: i32"
+            		count(waypoint.symbol) as "waypoints: i32",
+				      	sum(CASE when waypoint.has_shipyard THEN 1 ELSE 0 END) as "shipyards: i32",
+			      		sum(CASE when waypoint.has_marketplace THEN 1 ELSE 0 END) as "marketplaces: i32"
             FROM system left join waypoint on system.symbol = waypoint.system_symbol
 			group by system.symbol
             "#

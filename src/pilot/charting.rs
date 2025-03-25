@@ -197,6 +197,20 @@ impl ChartPilot {
             .await?
         }
 
+        if sql_waypoint.is_jump_gate() {
+            let jump_gate = self
+                .context
+                .api
+                .get_jump_gate(&sql_waypoint.system_symbol, &sql_waypoint.symbol)
+                .await?;
+
+            crate::manager::scrapping_manager::update_jump_gate(
+                &self.context.database_pool,
+                *jump_gate.data,
+            )
+            .await?
+        }
+
         Ok(())
     }
 }

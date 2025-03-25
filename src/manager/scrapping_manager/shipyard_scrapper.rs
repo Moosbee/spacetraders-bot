@@ -71,7 +71,10 @@ impl<'a> ShipyardScrapper<'a> {
         for system in systems {
             let waypoints =
                 sql::Waypoint::get_by_system(&self.context.database_pool, &system).await?;
-            for waypoint in waypoints.iter().filter(|w| w.is_shipyard()) {
+            for waypoint in waypoints
+                .iter()
+                .filter(|w| w.is_shipyard() && w.is_charted())
+            {
                 let api = self.context.api.clone();
                 let waypoint = waypoint.clone();
                 shipyard_handles.spawn(async move {

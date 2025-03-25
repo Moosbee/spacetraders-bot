@@ -22,7 +22,7 @@ export const systemIcons: Record<
   },
   BLUE_STAR: {
     icon: <FaIcon type="solid" icon="fa-star-christmas" />,
-    color: "rgb(0, 0, 255)",
+    color: "rgb(0, 102, 255)",
   },
   YOUNG_STAR: {
     icon: <FaIcon type="solid" icon="fa-star-of-life" />,

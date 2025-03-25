@@ -62,8 +62,9 @@ impl WaypointManager {
                         && waypoint
                             .unstable_since
                             .map(|last| {
-                                last + chrono::Duration::hours(20)
-                                    < chrono::Utc::now().naive_local()
+                                // last + chrono::Duration::hours(20)
+                                //     < chrono::Utc::now().naive_local()
+                                false
                             })
                             .unwrap_or(true)
                 })
@@ -89,7 +90,8 @@ impl WaypointManager {
                     && waypoint
                         .unstable_since
                         .map(|last| {
-                            last + chrono::Duration::hours(20) < chrono::Utc::now().naive_local()
+                            // last + chrono::Duration::hours(20) < chrono::Utc::now().naive_local()
+                            false
                         })
                         .unwrap_or(true)
             })
@@ -114,8 +116,9 @@ impl WaypointManager {
                             && waypoint
                                 .unstable_since
                                 .map(|last| {
-                                    last + chrono::Duration::hours(20)
-                                        < chrono::Utc::now().naive_local()
+                                    // last + chrono::Duration::hours(20)
+                                    //     < chrono::Utc::now().naive_local()
+                                    false
                                 })
                                 .unwrap_or(true)
                     },

@@ -36,6 +36,8 @@ export interface SQLWaypoint {
     symbol: TradeSymbol;
     type: MarketTradeGoodTypeEnum;
   }[];
+  has_shipyard: boolean;
+  has_marketplace: boolean;
 }
 
 export interface WaypointResponse {

@@ -73,7 +73,9 @@ function drawSystems(
       system_b?.yOne * zoom * maxRatio + top
     );
     if (under_construction_a || under_construction_b) {
-      context.strokeStyle = "#ff00000f";
+      // context.strokeStyle = "#ff00000f";
+      // context.strokeStyle = "#ff0000ff";
+      context.strokeStyle = "#ff00003f";
     } else {
       context.strokeStyle = "#008000";
     }
@@ -153,6 +155,8 @@ function SystemsMap({
     > = {};
 
     for (const system of systems) {
+      if ((system.waypoints || 0) <= 1) continue;
+      // if ((system.shipyards || 0) <= 1) continue;
       wp[system.symbol] = {
         system: system,
         xOne: (system.x - wpMinX) / (wpMaxX - wpMinX),
@@ -167,9 +171,6 @@ function SystemsMap({
   const [top, setTop] = useState(0);
   const [left, setLeft] = useState(0);
 
-  const [zoomTop, setZoomTop] = useState(0);
-  const [zoomLeft, setZoomLeft] = useState(0);
-
   const ref = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -178,34 +179,20 @@ function SystemsMap({
       if (!ref.current) return;
 
       resizeCanvas(ref.current);
-      drawSystems(
-        ref.current,
-        calcSystems,
-        jumpGates,
-        zoom,
-        top - zoomTop,
-        left - zoomLeft
-      );
+      drawSystems(ref.current, calcSystems, jumpGates, zoom, top, left);
     });
     observe.observe(ref.current);
 
     return () => {
       observe.disconnect();
     };
-  }, [calcSystems, jumpGates, left, top, zoom, zoomLeft, zoomTop]);
+  }, [calcSystems, jumpGates, left, top, zoom]);
 
   useEffect(() => {
     const canvas = ref.current;
     if (!canvas) return;
-    drawSystems(
-      canvas,
-      calcSystems,
-      jumpGates,
-      zoom,
-      top - zoomTop,
-      left - zoomLeft
-    );
-  }, [calcSystems, jumpGates, left, top, zoom, zoomLeft, zoomTop]);
+    drawSystems(canvas, calcSystems, jumpGates, zoom, top, left);
+  }, [calcSystems, jumpGates, left, top, zoom]);
 
   const onWheel = useCallback(
     (e: WheelEvent) => {
@@ -251,8 +238,8 @@ function SystemsMap({
       const cursorPosY = height * mausPercentPosY;
       const cursorPosX = width * mausPercentPosX;
 
-      const mapPosY = (cursorPosY - (top - zoomTop)) / zoom / maxRatio; // between 0 and 1
-      const mapPosX = (cursorPosX - (left - zoomLeft)) / zoom / maxRatio;
+      const mapPosY = (cursorPosY - top) / zoom / maxRatio; // between 0 and 1
+      const mapPosX = (cursorPosX - left) / zoom / maxRatio;
 
       // this is the ammount to move the frame up or down to compensate the change in zoom
       const topDiff =
@@ -269,25 +256,23 @@ function SystemsMap({
         topDiff,
         leftDiff,
         top,
-        left,
-        zoomTop,
-        zoomLeft
+        left
       );
 
-      // const newTop = top - topDiff;
-      // const newLeft = left - leftDiff;
+      const newTop = top - topDiff;
+      const newLeft = left - leftDiff;
 
-      const newZoomTop = zoomTop + topDiff;
-      const newZoomLeft = zoomLeft + leftDiff;
+      // const newZoomTop = zoomTop + topDiff;
+      // const newZoomLeft = zoomLeft + leftDiff;
 
-      setZoomTop(newZoomTop);
-      setZoomLeft(newZoomLeft);
+      // setZoomTop(newZoomTop);
+      // setZoomLeft(newZoomLeft);
 
       setZoom(newZoom);
-      // setTop(Number.isFinite(newTop) ? newTop : 0);
-      // setLeft(Number.isFinite(newLeft) ? newLeft : 0);
+      setTop(Number.isFinite(newTop) ? newTop : 0);
+      setLeft(Number.isFinite(newLeft) ? newLeft : 0);
     },
-    [left, top, zoom, zoomLeft, zoomMax, zoomMin, zoomTop]
+    [left, top, zoom, zoomMax, zoomMin]
   );
 
   useEffect(() => {
@@ -352,10 +337,9 @@ function SystemsMap({
           setLeft(0);
           setTop(0);
           setLeft(0);
-          setZoomTop(0);
-          setZoomLeft(0);
         } else if (e.key === "g") {
-          const toGoNav = "X1-TH31";
+          const toGoNav = "X1-XR50";
+          // const toGoNav = "X1-V11";
           // const toGoNav = "X1-FS42";
           // const toGoNav = "X1-DH96";
           const system = calcSystems[toGoNav];
@@ -365,13 +349,16 @@ function SystemsMap({
 
             // const minRatio = Math.min(width, height);
             const maxRatio = Math.max(width, height);
-            const x = system.xOne * zoom * maxRatio;
-            const y = system.yOne * zoom * maxRatio;
+            const left = system.xOne * maxRatio * zoom - width / 2;
+            const top = system.yOne * maxRatio * zoom - height / 2;
+
+            // const x = system.xOne * zoom * maxRatio - width / 2;
+            // const y = system.yOne * zoom * maxRatio - height / 2;
             // setLeft(-x + width / 2);
             // setTop(-y + height / 2);
 
-            setLeft(-x);
-            setTop(-y);
+            setLeft(-left);
+            setTop(-top);
           }
         }
       }}
@@ -396,8 +383,8 @@ function SystemsMap({
         // this is the position of the mouse relative to the frame 0 left of the frame 1 right of the frame
         const mausPosX = e.clientX - bounding.x;
 
-        const mapPosX = (mausPosX - (left - zoomLeft)) / (zoom * maxRatio); // between 0 and 1
-        const mapPosY = (mausPosY - (top - zoomTop)) / (zoom * maxRatio);
+        const mapPosX = (mausPosX - left) / (zoom * maxRatio); // between 0 and 1
+        const mapPosY = (mausPosY - top) / (zoom * maxRatio);
 
         const closestSystem = Object.values(calcSystems).reduce(
           (prev, curr) => {

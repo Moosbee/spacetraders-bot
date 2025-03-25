@@ -313,14 +313,19 @@ pub async fn handle_get_system(symbol: String, context: ConductorContext) -> Res
     let mut waypoints_data = vec![];
 
     for waypoint in &waypoints {
-        let trade_goods =
+        let market_trade_goods =
             sql::MarketTradeGood::get_last_by_waypoint(&context.database_pool, &waypoint.symbol)
+                .await
+                .map_err(ServerError::Database)?;
+        let trade_goods =
+            sql::MarketTrade::get_last_by_waypoint(&context.database_pool, &waypoint.symbol)
                 .await
                 .map_err(ServerError::Database)?;
 
         waypoints_data.push(serde_json::json!({
             "waypoint": waypoint,
             "trade_goods": trade_goods,
+            "market_trade_goods": market_trade_goods,
         }));
     }
 

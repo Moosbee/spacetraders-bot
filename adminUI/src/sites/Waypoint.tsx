@@ -150,6 +150,16 @@ function Waypoint() {
         ></List>
       ),
     },
+    {
+      key: "has_shipyard",
+      label: "Has Shipyard",
+      children: <p>{waypoint?.waypoint.has_shipyard ? "Yes" : "No"}</p>,
+    },
+    {
+      key: "has_marketplace",
+      label: "Has Marketplace",
+      children: <p>{waypoint?.waypoint.has_marketplace ? "Yes" : "No"}</p>,
+    },
   ];
 
   if (waypoint?.waypoint.is_under_construction) {

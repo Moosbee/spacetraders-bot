@@ -148,11 +148,13 @@ function calculateWaypointMapPoints(
 
   return waypointsArr
     .sort((a, b) => a.symbol.localeCompare(b.symbol))
+    .sort((a, b) => (a.x ^ 2) + (a.y ^ 2) - ((b.x ^ 2) + (b.y ^ 2)))
     .map((w) => {
       let [xOne, yOne] = calculateInitialCoordinates(w, wbCalcX, wbCalcY);
       let [xOneOrbitCenter, yOneOrbitCenter] = [50, 50];
 
       if (w.orbits) {
+        orbitals++;
         [xOne, yOne, xOneOrbitCenter, yOneOrbitCenter] =
           calculateOrbitalCoordinates(
             w,
@@ -162,7 +164,6 @@ function calculateWaypointMapPoints(
             xOne,
             yOne
           );
-        orbitals++;
       }
 
       return { waypoint: w, xOne, yOne, xOneOrbitCenter, yOneOrbitCenter };
