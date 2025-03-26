@@ -1,92 +1,10 @@
 use std::time::Duration;
 
-use log::{debug, info, warn};
+use log::{debug, warn};
 use space_traders_client::models;
 use tokio::time::sleep;
 
-use crate::{
-    config::CONFIG,
-    sql::{self, DatabaseConnector},
-    types::{ConductorContext, WaypointCan},
-};
-
-use super::ScrappingManager;
-
-pub struct MarketScrapper<'a> {
-    cancel_token: tokio_util::sync::CancellationToken,
-    context: ConductorContext,
-    scrapping_manager: &'a ScrappingManager,
-}
-
-impl<'a> MarketScrapper<'a> {
-    pub fn new(
-        cancel_token: tokio_util::sync::CancellationToken,
-        context: ConductorContext,
-        scrapping_manager: &'a ScrappingManager,
-    ) -> Self {
-        Self {
-            cancel_token,
-            context,
-            scrapping_manager,
-        }
-    }
-    pub async fn run_scrapping_worker(&self) -> crate::error::Result<()> {
-        info!("Starting market scrapping workers");
-
-        if !CONFIG.market.active {
-            info!("Market scrapping not active, exiting");
-
-            return Ok(());
-        }
-
-        for i in 0..CONFIG.market.max_scraps {
-            if i != 0 {
-                let erg = tokio::select! {
-                _ = self.cancel_token.cancelled() => {
-                  info!("Market scrapping cancelled");
-                  0},
-                _ =  sleep(Duration::from_millis(CONFIG.market.scrap_interval)) => {1},
-                };
-                if erg == 0 {
-                    break;
-                }
-            }
-
-            let markets_to_scrap = self.get_all_market_waypoints().await?;
-
-            let markets = get_all_markets(&self.context.api, &markets_to_scrap).await?;
-
-            info!("Markets: {:?}", markets.len());
-            update_markets(markets, self.context.database_pool.clone()).await?;
-        }
-
-        info!("Market scrapping workers done");
-
-        Ok(())
-    }
-
-    async fn get_all_market_waypoints(&self) -> crate::error::Result<Vec<(String, String)>> {
-        let systems = self.scrapping_manager.get_system().await;
-
-        let mut all_waypoints = vec![];
-        debug!("Scrapping Systems: {}", systems.len());
-
-        for system in systems {
-            let waypoints =
-                sql::Waypoint::get_by_system(&self.context.database_pool, &system).await?;
-
-            let mut system_markets = waypoints
-                .iter()
-                .filter(|w| w.is_marketplace())
-                .map(|w| (w.system_symbol.clone(), w.symbol.clone()))
-                .collect::<Vec<_>>();
-
-            all_waypoints.append(&mut system_markets);
-        }
-
-        Ok(all_waypoints)
-    }
-}
+use crate::sql::{self, DatabaseConnector};
 
 pub async fn get_all_markets(
     api: &crate::api::Api,
@@ -108,7 +26,7 @@ pub async fn get_all_markets(
                         break *market.data;
                     }
                     Err(e) => {
-                        warn!("Market: {} Error: {}", waypoint.1, e);
+                        warn!("Market: {} Error: {} {:?}", waypoint.1, e, e);
                         sleep(Duration::from_millis(500)).await;
                     }
                 }
@@ -133,7 +51,7 @@ pub async fn get_all_markets(
                 markets.push(market);
             }
             Err(e) => {
-                warn!("Market: Error: {}", e);
+                warn!("Market: Error: {} {:?}", e, e);
             }
         }
     }

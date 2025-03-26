@@ -176,7 +176,7 @@ impl ChartPilot {
                 .get_market(&sql_waypoint.system_symbol, &sql_waypoint.symbol)
                 .await?;
 
-            crate::manager::scrapping_manager::update_market(
+            crate::manager::scrapping_manager::utils::update_market(
                 *market.data,
                 &self.context.database_pool,
             )
@@ -190,7 +190,7 @@ impl ChartPilot {
                 .get_shipyard(&sql_waypoint.system_symbol, &sql_waypoint.symbol)
                 .await?;
 
-            crate::manager::scrapping_manager::update_shipyard(
+            crate::manager::scrapping_manager::utils::update_shipyard(
                 &self.context.database_pool,
                 *shipyard.data,
             )
@@ -204,7 +204,7 @@ impl ChartPilot {
                 .get_jump_gate(&sql_waypoint.system_symbol, &sql_waypoint.symbol)
                 .await?;
 
-            crate::manager::scrapping_manager::update_jump_gate(
+            crate::manager::scrapping_manager::utils::update_jump_gate(
                 &self.context.database_pool,
                 *jump_gate.data,
             )

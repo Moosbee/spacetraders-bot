@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { SystemShipRole, SystemShipRoles } from "../../models/ship";
+import Timer from "../Timer/Timer";
 
 const RoleRenderer = ({
   role,
@@ -96,13 +97,28 @@ const RoleRenderer = ({
     return null;
   };
 
+  const renderScraper = () => {
+    if (status.type === "Scraper" && status.data !== null) {
+      return (
+        <span>
+          {status.data.waiting_for_manager ? "*" : ""} ({status.data.cycle})
+          <br />
+          {status.data.waypoint_symbol}{" "}
+          {status.data.scrap_date && <Timer time={status.data.scrap_date} />}
+        </span>
+      );
+    }
+    return null;
+  };
+
   return (
     <div>
       <span>{role}</span>{" "}
       {renderContract() ||
         renderTrader() ||
         renderMining() ||
-        renderConstruction()}
+        renderConstruction() ||
+        renderScraper()}
     </div>
   );
 };

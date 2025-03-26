@@ -27,6 +27,17 @@ pub struct Waypoint {
     pub has_marketplace: bool,
 }
 
+impl From<Waypoint> for (i32, i32) {
+    fn from(value: Waypoint) -> Self {
+        (value.x, value.y)
+    }
+}
+impl From<&Waypoint> for (i32, i32) {
+    fn from(value: &Waypoint) -> Self {
+        (value.x, value.y)
+    }
+}
+
 impl From<&models::Waypoint> for Waypoint {
     fn from(value: &models::Waypoint) -> Self {
         Self {

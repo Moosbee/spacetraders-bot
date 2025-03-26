@@ -122,10 +122,17 @@ export type SystemShipRole =
   | { type: "Construction"; data: ConstructionData }
   | { type: "Trader"; data: TraderData }
   | { type: "Contract"; data: ContractData }
-  | { type: "Scraper"; data: null }
+  | { type: "Scraper"; data: ScraperData }
   | { type: "Mining"; data: MiningData }
   | { type: "Manuel"; data: null } // Default role
   | { type: "Charting"; data: ChartingData };
+
+interface ScraperData {
+  cycle?: number;
+  waiting_for_manager: boolean;
+  waypoint_symbol?: string;
+  scrap_date?: string;
+}
 
 interface ConstructionData {
   cycle?: number;

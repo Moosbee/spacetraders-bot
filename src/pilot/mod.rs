@@ -48,7 +48,7 @@ impl Pilot {
             cancellation_token,
             construction_pilot: ConstructionPilot::new(context.clone(), ship_symbol.clone()),
             trading_pilot: TradingPilot::new(context.clone(), ship_symbol.clone()),
-            scraper_pilot: ScraperPilot::new(),
+            scraper_pilot: ScraperPilot::new(context.clone(), ship_symbol.clone()),
             contract_pilot: ContractPilot::new(context.clone(), ship_symbol.clone()),
             mining_pilot: MiningPilot::new(context.clone(), ship_symbol.clone()),
             chart_pilot: ChartPilot::new(context.clone(), ship_symbol.clone()),

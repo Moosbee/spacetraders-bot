@@ -108,7 +108,12 @@ pub enum ShipStatus {
         shipping_status: Option<ShippingStatus>,
         waiting_for_manager: bool,
     },
-    Scraper,
+    Scraper {
+        cycle: Option<i32>,
+        waiting_for_manager: bool,
+        waypoint_symbol: Option<String>,
+        scrap_date: Option<chrono::DateTime<Utc>>,
+    },
     Mining {
         assignment: MiningShipAssignment,
     },

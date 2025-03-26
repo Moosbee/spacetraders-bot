@@ -6,7 +6,6 @@ use warp::reply::Reply;
 use crate::{
     control_api::types::{Result, ServerError},
     error,
-    manager::scrapping_manager::update_system,
     sql::{self, DatabaseConnector},
     types::{ConductorContext, WaypointCan},
     utils::get_system_symbol,
@@ -168,9 +167,12 @@ pub async fn handle_buy_ship(
         ship.notify().await;
     }
 
-    crate::manager::scrapping_manager::update_shipyard(&context.database_pool, *shipyard.data)
-        .await
-        .map_err(|err| ServerError::Server(err.to_string()))?;
+    crate::manager::scrapping_manager::utils::update_shipyard(
+        &context.database_pool,
+        *shipyard.data,
+    )
+    .await
+    .map_err(|err| ServerError::Server(err.to_string()))?;
 
     context.ship_tasks.start_ship(ship_info.clone()).await;
 
@@ -267,9 +269,14 @@ pub async fn handle_jump_ship(
 
     if waypoint.is_none() {
         let system_symbol = get_system_symbol(&waypoint_symbol);
-        update_system(&context.database_pool, &context.api, &system_symbol, true)
-            .await
-            .map_err(|err| ServerError::Server(err.to_string()))?;
+        crate::manager::scrapping_manager::utils::update_system(
+            &context.database_pool,
+            &context.api,
+            &system_symbol,
+            true,
+        )
+        .await
+        .map_err(|err| ServerError::Server(err.to_string()))?;
     }
 
     ship.ensure_undocked(&context.api)
@@ -358,8 +365,11 @@ pub async fn handle_chart_waypoint(
             .await
             .map_err(|err| ServerError::Server(err.to_string()))?;
 
-        crate::manager::scrapping_manager::update_market(*market.data, &context.database_pool)
-            .await;
+        crate::manager::scrapping_manager::utils::update_market(
+            *market.data,
+            &context.database_pool,
+        )
+        .await;
     }
 
     if sql_waypoint.is_shipyard() {
@@ -369,9 +379,12 @@ pub async fn handle_chart_waypoint(
             .await
             .map_err(|err| ServerError::Server(err.to_string()))?;
 
-        crate::manager::scrapping_manager::update_shipyard(&context.database_pool, *shipyard.data)
-            .await
-            .map_err(|err| ServerError::Server(err.to_string()))?;
+        crate::manager::scrapping_manager::utils::update_shipyard(
+            &context.database_pool,
+            *shipyard.data,
+        )
+        .await
+        .map_err(|err| ServerError::Server(err.to_string()))?;
     }
 
     Ok(warp::reply::json(&serde_json::json!({"chart": erg})))

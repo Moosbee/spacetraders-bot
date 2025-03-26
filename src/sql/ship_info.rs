@@ -47,14 +47,10 @@ impl From<crate::ship::ShipStatus> for ShipInfoRole {
             crate::ship::ShipStatus::Construction { .. } => Self::Construction,
             crate::ship::ShipStatus::Trader { .. } => Self::Trader,
             crate::ship::ShipStatus::Contract { .. } => Self::Contract,
-            crate::ship::ShipStatus::Scraper => Self::Scraper,
+            crate::ship::ShipStatus::Scraper { .. } => Self::Scraper,
             crate::ship::ShipStatus::Mining { .. } => Self::Mining,
             crate::ship::ShipStatus::Manuel => Self::Manuel,
-            crate::ship::ShipStatus::Charting {
-                cycle,
-                waiting_for_manager,
-                waypoint_symbol,
-            } => Self::Charter,
+            crate::ship::ShipStatus::Charting { .. } => Self::Charter,
         }
     }
 }
@@ -81,7 +77,12 @@ impl From<ShipInfoRole> for crate::ship::ShipStatus {
                 shipping_status: None,
                 waiting_for_manager: false,
             },
-            ShipInfoRole::Scraper => Self::Scraper,
+            ShipInfoRole::Scraper => Self::Scraper {
+                cycle: None,
+                waiting_for_manager: false,
+                waypoint_symbol: None,
+                scrap_date: None,
+            },
             ShipInfoRole::Mining => Self::Mining {
                 assignment: MiningShipAssignment::Idle,
             },

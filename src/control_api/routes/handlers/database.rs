@@ -86,7 +86,7 @@ pub async fn handle_request_system(
         .await
         .map_err(ServerError::from)?;
 
-    crate::manager::scrapping_manager::update_system(
+    crate::manager::scrapping_manager::utils::update_system(
         &context.database_pool,
         &context.api,
         &symbol,
@@ -99,7 +99,7 @@ pub async fn handle_request_system(
         .await
         .map_err(ServerError::from)?;
 
-    let markets = crate::manager::scrapping_manager::get_all_markets(
+    let markets = crate::manager::scrapping_manager::utils::get_all_markets(
         &context.api,
         &sql_waypoints
             .iter()
@@ -110,9 +110,12 @@ pub async fn handle_request_system(
     .await
     .map_err(ServerError::from)?;
 
-    crate::manager::scrapping_manager::update_markets(markets, context.database_pool.clone())
-        .await
-        .map_err(ServerError::from)?;
+    crate::manager::scrapping_manager::utils::update_markets(
+        markets,
+        context.database_pool.clone(),
+    )
+    .await
+    .map_err(ServerError::from)?;
 
     let elapsed = now.elapsed();
 

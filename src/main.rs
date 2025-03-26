@@ -17,7 +17,7 @@ mod utils;
 
 use std::{collections::HashSet, env, error::Error, sync::Arc, vec};
 
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, NaiveDateTime, Utc};
 use config::CONFIG;
 use env_logger::{Env, Target};
 use manager::{
@@ -25,7 +25,7 @@ use manager::{
     construction_manager::ConstructionManager,
     contract_manager::ContractManager,
     mining_manager::MiningManager,
-    scrapping_manager::{update_system, ScrappingManager},
+    scrapping_manager::{self, ScrappingManager},
     ship_task::ShipTaskHandler,
     trade_manager::TradeManager,
     Manager,
@@ -114,7 +114,8 @@ async fn setup_context(
 
         if db_system.is_none() || waypoints.is_empty() {
             // some systems have no waypoints, but we likely won't have ships there
-            update_system(&database_pool, &api, &system_symbol, true).await?;
+            scrapping_manager::utils::update_system(&database_pool, &api, &system_symbol, true)
+                .await?;
         }
     }
 

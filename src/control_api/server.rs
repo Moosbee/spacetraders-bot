@@ -29,19 +29,6 @@ impl ControlApiServer {
         }
     }
 
-    pub fn new_box(
-        context: ConductorContext,
-        ship_rx: tokio::sync::broadcast::Receiver<ship::MyShip>,
-        _cancellation_tokens: Vec<(String, bool, CancellationToken)>,
-    ) -> Box<Self> {
-        Box::new(Self::new(
-            context,
-            ship_rx,
-            CancellationToken::new(),
-            CancellationToken::new(),
-        ))
-    }
-
     fn setup_broadcast_channels(
         &mut self,
     ) -> anyhow::Result<(MyReceiver<ship::MyShip>, MyReceiver<sql::Agent>)> {

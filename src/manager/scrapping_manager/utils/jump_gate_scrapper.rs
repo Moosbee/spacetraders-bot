@@ -1,91 +1,17 @@
 use std::time::Duration;
 
-use log::{debug, info, warn};
+use log::{debug, warn};
 use space_traders_client::models;
 use tokio::time::sleep;
 
 use crate::{
     api,
-    config::CONFIG,
     sql::{self, DatabaseConnector},
-    types::{ConductorContext, WaypointCan},
 };
-
-use super::ScrappingManager;
-
-pub struct JumpGateScrapper<'a> {
-    cancel_token: tokio_util::sync::CancellationToken,
-    context: ConductorContext,
-    scrapping_manager: &'a ScrappingManager,
-}
-
-impl<'a> JumpGateScrapper<'a> {
-    pub fn new(
-        cancel_token: tokio_util::sync::CancellationToken,
-        context: ConductorContext,
-        scrapping_manager: &'a ScrappingManager,
-    ) -> Self {
-        Self {
-            cancel_token,
-            context,
-            scrapping_manager,
-        }
-    }
-    pub async fn run_scrapping_worker(&self) -> crate::error::Result<()> {
-        info!("Starting JumpGate scrapping workers");
-
-        if !CONFIG.market.active {
-            info!("JumpGate scrapping not active, exiting");
-
-            return Ok(());
-        }
-
-        for i in 0..CONFIG.market.max_scraps {
-            if i != 0 {
-                let erg = tokio::select! {
-                _ = self.cancel_token.cancelled() => {
-                  info!("JumpGate scrapping cancelled");
-                  0},
-                _ =  sleep(Duration::from_millis(CONFIG.market.scrap_interval)) => {1},
-                };
-                if erg == 0 {
-                    break;
-                }
-            }
-
-            let gates = self.get_jump_gates().await?;
-
-            let jump_gates = self::get_all_jump_gates(&self.context.api, gates).await?;
-
-            info!("JumpGates: {:?}", jump_gates);
-            let erg = self::update_jump_gates(&self.context.database_pool, jump_gates).await;
-            if erg.is_err() {
-                warn!("JumpGate scrapping error: {}", erg.unwrap_err());
-            }
-        }
-
-        info!("JumpGate scrapping workers done");
-
-        Ok(())
-    }
-
-    async fn get_jump_gates(&self) -> crate::error::Result<Vec<(String, String)>> {
-        let systems = self.scrapping_manager.get_system().await;
-        let mut gates = vec![];
-        for system in systems {
-            let waypoints =
-                sql::Waypoint::get_by_system(&self.context.database_pool, &system).await?;
-            for waypoint in waypoints.iter().filter(|w| w.is_jump_gate()) {
-                gates.push((waypoint.system_symbol.clone(), waypoint.symbol.clone()));
-            }
-        }
-        Ok(gates)
-    }
-}
 
 pub async fn get_all_jump_gates(
     api: &api::Api,
-    gates: Vec<(String, String)>,
+    gates: Vec<(String, String, bool)>,
 ) -> crate::error::Result<Vec<models::JumpGate>> {
     let mut jump_gate_handles = tokio::task::JoinSet::new();
 
@@ -100,6 +26,26 @@ pub async fn get_all_jump_gates(
                 match jump_gate {
                     Ok(jump_gate) => {
                         break Some(*jump_gate.data);
+                    }
+                    Err(space_traders_client::apis::Error::ResponseError(e)) => {
+                        if
+                            e.entity
+                                .as_ref()
+                                .map(
+                                    |f|
+                                        f.error.code ==
+                                        space_traders_client::models::error_codes::WAYPOINT_NO_ACCESS_ERROR
+                                )
+                                .unwrap_or(false)
+                        {
+                            break None;
+                        }
+                        err_count -= 1;
+                        warn!("JumpGate: {} Error: {:?}", waypoint.1, e);
+                        if err_count <= 0 {
+                            break None;
+                        }
+                        sleep(Duration::from_millis(1000)).await;
                     }
                     Err(e) => {
                         err_count -= 1;
@@ -147,7 +93,7 @@ pub async fn update_jump_gates(
     jump_gates: Vec<models::JumpGate>,
 ) -> Result<(), crate::error::Error> {
     for jump_gate in jump_gates {
-        update_jump_gate(&database_pool, jump_gate).await?;
+        update_jump_gate(database_pool, jump_gate).await?;
     }
 
     Ok(())

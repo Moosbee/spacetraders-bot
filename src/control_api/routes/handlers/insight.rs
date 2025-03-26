@@ -54,3 +54,19 @@ pub async fn handle_get_mining_assignments(context: ConductorContext) -> Result<
         &serde_json::json!({"assignments": assignments}),
     ))
 }
+
+pub async fn handle_get_scrapping_info(
+    symbol: String,
+    context: ConductorContext,
+) -> Result<impl Reply> {
+    let ship_clone = context
+        .ship_manager
+        .get_clone(&symbol)
+        .ok_or(ServerError::NotFound)?;
+    let info = context
+        .scrapping_manager
+        .get_info(ship_clone)
+        .await
+        .map_err(|e| ServerError::Server(e.to_string()))?;
+    Ok(warp::reply::json(&serde_json::json!({"info": info})))
+}

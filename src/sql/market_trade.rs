@@ -1,6 +1,6 @@
 use space_traders_client::models;
 
-use super::{DatabaseConnector, DbPool};
+use super::{DatabaseConnector, DbPool, MarketTradeGood};
 
 #[derive(Debug, Clone, sqlx::FromRow, PartialEq, Eq, serde::Serialize)]
 pub struct MarketTrade {
@@ -17,6 +17,17 @@ impl Default for MarketTrade {
             symbol: models::TradeSymbol::PreciousStones,
             created_at: sqlx::types::chrono::NaiveDateTime::MIN,
             r#type: models::market_trade_good::Type::Exchange,
+        }
+    }
+}
+
+impl From<MarketTradeGood> for MarketTrade {
+    fn from(value: MarketTradeGood) -> MarketTrade {
+        MarketTrade {
+            waypoint_symbol: value.waypoint_symbol,
+            symbol: value.symbol,
+            created_at: value.created_at,
+            r#type: value.r#type,
         }
     }
 }
