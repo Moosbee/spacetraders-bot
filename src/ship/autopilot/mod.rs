@@ -1,6 +1,7 @@
 use chrono::{DateTime, Utc};
 use futures::{future::BoxFuture, FutureExt};
-use pathfinding::Pathfinder;
+use pathfinder::Pathfinder;
+use simple_pathfinding::SimplePathfinder;
 
 use crate::{
     api,
@@ -17,7 +18,8 @@ mod connection;
 mod instructor;
 mod nav_mode;
 mod navigator;
-mod pathfinding;
+mod pathfinder;
+mod simple_pathfinding;
 mod stats;
 mod utils;
 
@@ -54,21 +56,58 @@ impl MyShip {
 
         let route = self.assemble_route(&found_route).await?;
 
-        let wp_action = async |shipi: &mut MyShip, start_waypoint: String, end_waypoint: String| {
-            let context2 = context.clone();
-            let start =
-                sql::Waypoint::get_by_symbol(&context2.database_pool, &start_waypoint).await?;
+        let context2 = context.clone();
+        let route2 = route.clone();
+        let wp_action =
+            async move |shipi: &mut MyShip, start_waypoint: String, end_waypoint: String| {
+                let start =
+                    sql::Waypoint::get_by_symbol(&context2.database_pool, &start_waypoint).await?;
 
-            if let Some(start) = start {
-                if update_market && start.is_marketplace() {
-                    shipi
-                        .update_market(&context2.api, &context2.database_pool)
-                        .await?;
+                if let Some(start) = start {
+                    if update_market && start.is_marketplace() {
+                        shipi
+                            .update_market(&context2.api, &context2.database_pool)
+                            .await?;
+                    }
+                    if prepare && !start.is_marketplace() {
+                        let mut is_last_marketplace = true;
+
+                        for connection in route2.connections.iter().rev() {
+                            match connection {
+                                connection::ConcreteConnection::JumpGate(jump_connection) => {
+                                    is_last_marketplace = false;
+                                    break;
+                                }
+                                connection::ConcreteConnection::Warp(warp_connection) => {
+                                    if warp_connection.start_symbol == start_waypoint {
+                                        break;
+                                    }
+                                    if warp_connection.end_is_marketplace
+                                        || warp_connection.start_is_marketplace
+                                    {
+                                        is_last_marketplace = false;
+                                    }
+                                }
+                                connection::ConcreteConnection::Navigate(navigate_connection) => {
+                                    if navigate_connection.start_symbol == start_waypoint {
+                                        break;
+                                    }
+                                    if navigate_connection.end_is_marketplace
+                                        || navigate_connection.start_is_marketplace
+                                    {
+                                        is_last_marketplace = false;
+                                    }
+                                }
+                            }
+                        }
+                        if is_last_marketplace {
+                            shipi.ensure_docked(&context2.api).await?;
+                        }
+                    }
                 }
-            }
 
-            Ok(())
-        };
+                Ok(())
+            };
 
         self.fly_route(
             route,

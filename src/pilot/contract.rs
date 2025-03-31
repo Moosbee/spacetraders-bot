@@ -1,7 +1,4 @@
-use std::{
-    collections::HashMap,
-    sync::{atomic::AtomicI32, Arc},
-};
+use std::sync::{atomic::AtomicI32, Arc};
 
 use log::debug;
 
@@ -199,13 +196,6 @@ impl ContractPilot {
 
         ship.notify().await;
 
-        let waypoints =
-            sql::Waypoint::get_by_system(&self.context.database_pool, &ship.nav.system_symbol)
-                .await?
-                .into_iter()
-                .map(|w| (w.symbol.clone(), w))
-                .collect::<HashMap<_, _>>();
-
         ship.nav_to(
             &shipment.purchase_symbol,
             true,
@@ -285,13 +275,6 @@ impl ContractPilot {
         };
 
         ship.notify().await;
-
-        let waypoints =
-            sql::Waypoint::get_by_system(&self.context.database_pool, &ship.nav.system_symbol)
-                .await?
-                .into_iter()
-                .map(|w| (w.symbol.clone(), w))
-                .collect::<HashMap<_, _>>();
 
         ship.nav_to(
             &shipment.destination_symbol,

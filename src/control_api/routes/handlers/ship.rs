@@ -1,4 +1,4 @@
-use std::{collections::HashMap, str::FromStr};
+use std::str::FromStr;
 
 use log::debug;
 use warp::reply::Reply;
@@ -7,7 +7,7 @@ use crate::{
     control_api::types::{Result, ServerError},
     error,
     sql::{self, DatabaseConnector},
-    types::{ConductorContext, WaypointCan},
+    types::{ConductorContext, SendFuture, WaypointCan},
 };
 
 pub async fn handle_get_ships(context: ConductorContext) -> Result<impl Reply> {
@@ -435,6 +435,8 @@ async fn navigate_ship(
         .value_mut()
         .ok_or_else(|| error::Error::General("Ship not found".to_string()))?;
 
-    ship.nav_to(waypoint_id, true, sql::TransactionReason::None, &context)
-        .await
+    ship.nav_to(waypoint_id, true, sql::TransactionReason::None, context)
+        .await?;
+
+    Ok(())
 }

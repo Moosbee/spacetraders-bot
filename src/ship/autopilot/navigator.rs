@@ -8,6 +8,7 @@ use crate::{
     api,
     ship::MyShip,
     sql::{self, DatabaseConnector},
+    types::SendFuture,
 };
 
 use super::connection::{
@@ -21,11 +22,11 @@ impl MyShip {
         reason: sql::TransactionReason,
         database_pool: &sql::DbPool,
         api: &api::Api,
-        wp_action: impl AsyncFn(&mut MyShip, String, String) -> crate::error::Result<()>,
+        wp_action: impl AsyncFn(&mut MyShip, String, String) -> crate::error::Result<()> + Clone,
     ) -> crate::error::Result<()> {
         for connection in route.connections {
-            // self.execute_connection(connection, &reason, database_pool, api, &wp_action)
-            //     .await?;
+            self.execute_connection(connection, &reason, database_pool, api, wp_action.clone())
+                .await?;
         }
         Ok(())
     }
@@ -36,20 +37,28 @@ impl MyShip {
         reason: &sql::TransactionReason,
         database_pool: &sql::DbPool,
         api: &api::Api,
-        wp_action: impl Fn(
-            &mut MyShip,
-            String,
-            String,
-        ) -> Pin<Box<dyn Future<Output = crate::error::Result<()>>>>,
+        wp_action: impl AsyncFn(&mut MyShip, String, String) -> crate::error::Result<()>,
     ) -> crate::error::Result<()> {
         match connection {
             ConcreteConnection::JumpGate(jump_connection) => {
-                self.execute_jump_connection(jump_connection, reason, database_pool, api, wp_action)
-                    .await
+                self.execute_jump_connection(
+                    jump_connection,
+                    reason,
+                    database_pool,
+                    api,
+                    wp_action,
+                )
+                .await?;
             }
             ConcreteConnection::Warp(warp_connection) => {
-                self.execute_warp_connection(warp_connection, reason, database_pool, api, wp_action)
-                    .await
+                self.execute_warp_connection(
+                    warp_connection,
+                    reason,
+                    database_pool,
+                    api,
+                    wp_action,
+                )
+                .await?;
             }
             ConcreteConnection::Navigate(navigate_connection) => {
                 self.execute_navigate_connection(
@@ -59,9 +68,11 @@ impl MyShip {
                     api,
                     wp_action,
                 )
-                .await
+                .await?;
             }
         }
+
+        Ok(())
     }
 
     async fn execute_jump_connection(
@@ -70,11 +81,7 @@ impl MyShip {
         reason: &sql::TransactionReason,
         database_pool: &sql::DbPool,
         api: &api::Api,
-        wp_action: impl Fn(
-            &mut MyShip,
-            String,
-            String,
-        ) -> Pin<Box<dyn Future<Output = crate::error::Result<()>>>>,
+        wp_action: impl (AsyncFn(&mut MyShip, String, String) -> crate::error::Result<()>),
     ) -> crate::error::Result<()> {
         if self.nav.waypoint_symbol != connection.start_symbol {
             return Err("Not on waypoint".into());
@@ -122,11 +129,7 @@ impl MyShip {
         reason: &sql::TransactionReason,
         database_pool: &sql::DbPool,
         api: &api::Api,
-        wp_action: impl Fn(
-            &mut MyShip,
-            String,
-            String,
-        ) -> Pin<Box<dyn Future<Output = crate::error::Result<()>>>>,
+        wp_action: impl AsyncFn(&mut MyShip, String, String) -> crate::error::Result<()>,
     ) -> crate::error::Result<()> {
         if self.nav.waypoint_symbol != connection.start_symbol {
             return Err("Not on waypoint".into());
@@ -170,8 +173,8 @@ impl MyShip {
             nav_mode: self.nav.flight_mode.to_string(),
             distance: connection.distance,
             fuel_cost: nav_data.data.fuel.consumed.map(|f| f.amount).unwrap_or(0),
-            travel_time: (self.nav.route.arrival - self.nav.route.departure_time).num_milliseconds()
-                as f64
+            travel_time: ((self.nav.route.arrival - self.nav.route.departure_time)
+                .num_milliseconds() as f64)
                 / 1000.0,
             ship_info_before: Some(start_id),
             ship_info_after: Some(end_id),
@@ -189,11 +192,7 @@ impl MyShip {
         reason: &sql::TransactionReason,
         database_pool: &sql::DbPool,
         api: &api::Api,
-        wp_action: impl Fn(
-            &mut MyShip,
-            String,
-            String,
-        ) -> Pin<Box<dyn Future<Output = crate::error::Result<()>>>>,
+        wp_action: impl AsyncFn(&mut MyShip, String, String) -> crate::error::Result<()>,
     ) -> crate::error::Result<()> {
         if self.nav.waypoint_symbol != connection.start_symbol {
             return Err("Not on waypoint".into());
@@ -241,8 +240,8 @@ impl MyShip {
             nav_mode: self.nav.flight_mode.to_string(),
             distance: connection.distance,
             fuel_cost: nav_data.data.fuel.consumed.map(|f| f.amount).unwrap_or(0),
-            travel_time: (self.nav.route.arrival - self.nav.route.departure_time).num_milliseconds()
-                as f64
+            travel_time: ((self.nav.route.arrival - self.nav.route.departure_time)
+                .num_milliseconds() as f64)
                 / 1000.0,
             ship_info_before: Some(start_id),
             ship_info_after: Some(end_id),
@@ -277,10 +276,10 @@ impl MyShip {
 
         if is_marketplace {
             self.marketplace_refuel(requirements, api, reason, database_pool)
-                .await?
+                .await?;
         } else {
             self.space_refuel(requirements, api, reason, database_pool)
-                .await?
+                .await?;
         }
         Ok(())
     }
@@ -306,8 +305,9 @@ impl MyShip {
         let min_refuel_to = refuel.fuel_needed;
 
         let refuel_to_min =
-            ((min_refuel_to - current_fuel).max(0) as f64 / 100.0).ceil() as i32 * 100;
-        let extra_fuel = ((refuel_to_min - max_fuel).max(0) as f64 / 100.0).floor() as i32 * 100;
+            ((((min_refuel_to - current_fuel).max(0) as f64) / 100.0).ceil() as i32) * 100;
+        let extra_fuel =
+            ((((refuel_to_min - max_fuel).max(0) as f64) / 100.0).floor() as i32) * 100;
         let refuel_to = (refuel_to_min + extra_fuel).min(max_fuel);
 
         let cargo_fuel = self.cargo.get_amount(&models::TradeSymbol::Fuel);

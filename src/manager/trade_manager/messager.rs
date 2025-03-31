@@ -2,7 +2,7 @@ use log::debug;
 
 use crate::{error::Error, manager::fleet_manager::message::RequiredShips, ship, sql};
 
-use super::TradeManagerMessage;
+use super::{routes::PossibleTradeRoute, TradeManagerMessage};
 
 #[derive(Debug, Clone)]
 pub struct TradeManagerMessanger {
@@ -67,6 +67,17 @@ impl TradeManagerMessanger {
         let (tx, rx) = tokio::sync::oneshot::channel();
         self.sender
             .send(TradeManagerMessage::GetShips { callback: tx })
+            .await
+            .map_err(|e| crate::error::Error::General(format!("Failed to send message: {}", e)))
+            .unwrap();
+        rx.await
+            .map_err(|e| crate::error::Error::General(format!("Failed to receive message: {}", e)))
+    }
+
+    pub(crate) async fn get_trades(&self) -> Result<Vec<PossibleTradeRoute>, crate::error::Error> {
+        let (tx, rx) = tokio::sync::oneshot::channel();
+        self.sender
+            .send(TradeManagerMessage::GetPossibleTrades { callback: tx })
             .await
             .map_err(|e| crate::error::Error::General(format!("Failed to send message: {}", e)))
             .unwrap();

@@ -1,3 +1,5 @@
+use itertools::Itertools;
+
 use super::{DatabaseConnector, DbPool};
 
 #[derive(Debug, Clone, serde::Serialize)]
@@ -100,30 +102,26 @@ impl DatabaseConnector<Agent> for Agent {
     }
 
     async fn insert_bulk(database_pool: &DbPool, items: &[Agent]) -> sqlx::Result<()> {
-        let (
-            ((account_ids, symbols), (creditss, ship_counts)),
-            ((headquarterss, starting_factions), (_, _)),
-        ): (
-            (
-                (Vec<_>, Vec<_>),
-                (Vec<Result<i32, std::num::TryFromIntError>>, Vec<_>),
-            ),
-            ((Vec<_>, Vec<_>), (Vec<_>, Vec<_>)),
+        let (account_ids, symbols, creditss, ship_counts, headquarterss, starting_factions): (
+            Vec<_>,
+            Vec<_>,
+            Vec<_>,
+            Vec<_>,
+            Vec<_>,
+            Vec<_>,
         ) = items
             .iter()
             .map(|a| {
                 (
-                    (
-                        (a.account_id.clone(), a.symbol.clone()),
-                        (a.credits.try_into(), a.ship_count),
-                    ),
-                    (
-                        (a.headquarters.clone(), a.starting_faction.clone()),
-                        ((), ()),
-                    ),
+                    a.account_id.clone(),
+                    a.symbol.clone(),
+                    a.credits.try_into(),
+                    a.ship_count,
+                    a.headquarters.clone(),
+                    a.starting_faction.clone(),
                 )
             })
-            .unzip();
+            .multiunzip();
 
         let creditss = creditss
             .into_iter()

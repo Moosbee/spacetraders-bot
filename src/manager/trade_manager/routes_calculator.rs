@@ -86,7 +86,7 @@ impl RouteCalculator {
         Ok((trade_goods, market_trade))
     }
 
-    fn gen_all_possible_trades<'a>(
+    pub fn gen_all_possible_trades<'a>(
         &self,
         trade_goods: &'a [sql::MarketTradeGood],
         market_trade: &'a [sql::MarketTrade],

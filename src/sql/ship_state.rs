@@ -107,7 +107,7 @@ impl From<&ship::MyShip> for ShipState {
             reactor_symbol: value.reactor,
             frame_symbol: value.frame,
             engine_symbol: value.engine,
-            cooldown_expiration: value.cooldown_expiration.as_ref().map(|t| t).cloned(),
+            cooldown_expiration: value.cooldown_expiration,
             flight_mode: value.nav.flight_mode.to_string(),
             nav_status: value.nav.status.to_string(),
             system_symbol: value.nav.system_symbol.clone(),

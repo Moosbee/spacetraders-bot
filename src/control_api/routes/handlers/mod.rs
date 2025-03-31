@@ -19,6 +19,7 @@ pub use database::handle_get_waypoints;
 pub use database::handle_request_system;
 pub use insight::handle_get_api_counter;
 pub use insight::handle_get_mining_assignments;
+pub use insight::handle_get_possible_trades;
 pub use insight::handle_get_running_construction_shipments;
 pub use insight::handle_get_running_contract_shipments;
 pub use insight::handle_get_scrapping_info;

@@ -38,21 +38,21 @@ pub enum ConnectionType {
     Navigate { nav_mode: models::ShipNavFlightMode },
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum ConcreteConnection {
     JumpGate(JumpConnection),
     Warp(WarpConnection),
     Navigate(NavigateConnection),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct JumpConnection {
     pub start_symbol: String,
     pub end_symbol: String,
     pub distance: f64,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct WarpConnection {
     pub start_symbol: String,
     pub end_symbol: String,
@@ -60,9 +60,11 @@ pub struct WarpConnection {
     pub distance: f64,
     pub travel_time: f64,
     pub refuel: Refuel,
+    pub start_is_marketplace: bool,
+    pub end_is_marketplace: bool,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct NavigateConnection {
     pub start_symbol: String,
     pub end_symbol: String,
@@ -70,9 +72,11 @@ pub struct NavigateConnection {
     pub distance: f64,
     pub travel_time: f64,
     pub refuel: Refuel,
+    pub start_is_marketplace: bool,
+    pub end_is_marketplace: bool,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Refuel {
     /// The amount of fuel in fuel units that needs to be in the Tanks to do the Current jump
     pub fuel_needed: i32,
@@ -81,6 +85,7 @@ pub struct Refuel {
     pub start_is_marketplace: bool,
 }
 
+#[derive(Debug, Clone)]
 pub struct Route {
     pub connections: Vec<ConcreteConnection>,
     pub total_distance: f64,

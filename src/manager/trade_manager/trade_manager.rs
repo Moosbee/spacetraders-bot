@@ -100,6 +100,18 @@ impl TradeManager {
                     crate::error::Error::General(format!("Failed to send message: {:?}", e))
                 })?
             }
+            TradeMessage::GetPossibleTrades { callback } => {
+                let trade_goods =
+                    sql::MarketTradeGood::get_last(&self.context.database_pool).await?;
+                let market_trade = sql::MarketTrade::get_last(&self.context.database_pool).await?;
+
+                let possible_trades = self
+                    .calculator
+                    .gen_all_possible_trades(&trade_goods, &market_trade);
+                callback.send(possible_trades).map_err(|e| {
+                    crate::error::Error::General(format!("Failed to send message: {:?}", e))
+                })?
+            }
         }
         Ok(())
     }

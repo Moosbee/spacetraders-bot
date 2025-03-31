@@ -3,56 +3,34 @@ use std::collections::HashMap;
 use priority_queue::PriorityQueue;
 use space_traders_client::models;
 
-use crate::{
-    sql,
-    types::{ConductorContext, WaypointCan},
-    utils::{distance_between_waypoints, get_system_symbol},
-};
+use crate::{sql, types::WaypointCan, utils::distance_between_waypoints};
 
 use super::{
-    connection::{ConcreteConnection, SimpleConnection},
+    connection::SimpleConnection,
     nav_mode::{Mode, NavMode},
 };
 
-pub struct Pathfinder {
+/// Simple Pathfinding, only navigates in one system
+pub struct SimplePathfinder {
     pub range: u32,
     pub nav_mode: NavMode,
-    pub context: ConductorContext,
+    pub system: HashMap<String, sql::Waypoint>,
     pub start_range: u32,
     pub only_markets: bool,
 }
 
-impl Pathfinder {
-    pub async fn get_route(
-        &self,
-        start_symbol: &str,
-        end_symbol: &str,
-    ) -> crate::error::Result<Vec<SimpleConnection>> {
-        let start_system = get_system_symbol(start_symbol);
-        let end_system = get_system_symbol(end_symbol);
-        if start_system == end_system {
-            let system = sql::Waypoint::get_by_system(&self.context.database_pool, &start_system)
-                .await?
-                .into_iter()
-                .map(|w| (w.symbol.clone(), w))
-                .collect::<HashMap<_, _>>();
-            return self.find_route_system(&system, start_symbol, end_symbol);
-        }
-        todo!()
-    }
-
+impl SimplePathfinder {
     pub fn find_route_system(
         &self,
-        system: &HashMap<String, sql::Waypoint>,
         start_symbol: &str,
         end_symbol: &str,
     ) -> crate::error::Result<Vec<SimpleConnection>> {
-        let mut unvisited = system.clone();
+        let mut unvisited = self.system.clone();
         let mut visited = HashMap::new();
         let mut to_visit = PriorityQueue::new();
 
-        let start_waypoint = self.get_waypoint(&unvisited, &start_symbol)?.clone();
-        let end_waypoint = self.get_waypoint(&unvisited, &end_symbol)?.clone();
+        let start_waypoint = self.get_waypoint(&unvisited, start_symbol)?.clone();
+        let end_waypoint = self.get_waypoint(&unvisited, end_symbol)?.clone();
 
         to_visit.push(
             SimpleConnection {
@@ -82,7 +60,7 @@ impl Pathfinder {
                 &mut visited,
                 &mut unvisited,
                 &end_waypoint,
-                &end_symbol,
+                end_symbol,
                 &nav_modes,
                 first,
                 &start_range_mode,

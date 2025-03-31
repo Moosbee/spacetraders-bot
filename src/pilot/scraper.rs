@@ -1,7 +1,4 @@
-use std::{
-    collections::HashMap,
-    sync::{atomic::AtomicI32, Arc},
-};
+use std::sync::{atomic::AtomicI32, Arc};
 
 use chrono::Utc;
 use log::debug;
@@ -91,13 +88,6 @@ impl ScraperPilot {
         ship.notify().await;
 
         if waypoint_symbol != ship.nav.waypoint_symbol {
-            let waypoints =
-                sql::Waypoint::get_by_system(&self.context.database_pool, &ship.nav.system_symbol)
-                    .await?
-                    .into_iter()
-                    .map(|w| (w.symbol.clone(), w))
-                    .collect::<HashMap<_, _>>();
-
             ship.nav_to(
                 &waypoint_symbol,
                 true,

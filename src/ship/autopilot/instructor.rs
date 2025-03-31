@@ -25,14 +25,12 @@ impl MyShip {
                 ConcreteConnection::Warp(warp_connection) => {
                     big_stats.0 += warp_connection.distance;
                     big_stats.1 += warp_connection.travel_time;
-                    big_stats.2 +=
-                        (warp_connection.refuel.fuel_needed as f64 / 100.0).ceil() as f64;
+                    big_stats.2 += (warp_connection.refuel.fuel_needed as f64 / 100.0).ceil();
                 }
                 ConcreteConnection::Navigate(navigate_connection) => {
                     big_stats.0 += navigate_connection.distance;
                     big_stats.1 += navigate_connection.travel_time;
-                    big_stats.2 +=
-                        (navigate_connection.refuel.fuel_needed as f64 / 100.0).ceil() as f64;
+                    big_stats.2 += (navigate_connection.refuel.fuel_needed as f64 / 100.0).ceil();
                 }
             }
         }
@@ -61,14 +59,14 @@ impl MyShip {
                 ConcreteConnection::Warp(warp_connection) => {
                     big_stats.0 += warp_connection.distance;
                     big_stats.1 += warp_connection.travel_time;
-                    big_stats.2 +=
-                        (warp_connection.refuel.fuel_needed as f64 / 100.0).ceil() as f64;
+                    big_stats.2 += (warp_connection.refuel.fuel_needed as f64 / 100.0).ceil()
+                        * (fuel_price as f64);
                 }
                 ConcreteConnection::Navigate(navigate_connection) => {
                     big_stats.0 += navigate_connection.distance;
                     big_stats.1 += navigate_connection.travel_time;
-                    big_stats.2 +=
-                        (navigate_connection.refuel.fuel_needed as f64 / 100.0).ceil() as f64;
+                    big_stats.2 += (navigate_connection.refuel.fuel_needed as f64 / 100.0).ceil()
+                        * (fuel_price as f64);
                 }
             }
         }
@@ -84,7 +82,7 @@ impl MyShip {
     pub fn to_connection(&self, connections: &[SimpleConnection]) -> Vec<ConcreteConnection> {
         let mut real_route = vec![];
 
-        let mut needed_fuel = 0;
+        let mut needed_fuel = 0; // items of fuel in the cargo hold
 
         for c in connections.iter().rev() {
             match c.connection_type {
@@ -121,6 +119,8 @@ impl MyShip {
                         distance: stats.distance,
                         travel_time: stats.travel_time,
                         refuel,
+                        start_is_marketplace: c.start_is_marketplace,
+                        end_is_marketplace: c.end_is_marketplace,
                     }))
                 }
                 ConnectionType::Navigate { nav_mode } => {
@@ -149,6 +149,8 @@ impl MyShip {
                         distance: stats.distance,
                         travel_time: stats.travel_time,
                         refuel,
+                        start_is_marketplace: c.start_is_marketplace,
+                        end_is_marketplace: c.end_is_marketplace,
                     }))
                 }
             }

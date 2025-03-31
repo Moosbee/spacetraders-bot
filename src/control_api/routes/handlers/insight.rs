@@ -96,3 +96,12 @@ pub async fn handle_get_ships_to_purchase(context: ConductorContext) -> Result<i
       "mining":mining_ships
     })))
 }
+
+pub async fn handle_get_possible_trades(context: ConductorContext) -> Result<impl Reply> {
+    let trades = context
+        .trade_manager
+        .get_trades()
+        .await
+        .map_err(|e| ServerError::Server(e.to_string()))?;
+    Ok(warp::reply::json(&serde_json::json!({"trades": trades})))
+}

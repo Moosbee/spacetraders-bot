@@ -1,7 +1,4 @@
-use std::{
-    collections::HashMap,
-    sync::{atomic::AtomicI32, Arc},
-};
+use std::sync::{atomic::AtomicI32, Arc};
 
 use log::{debug, info};
 
@@ -115,13 +112,6 @@ impl TradingPilot {
         ship.notify().await;
 
         if !ship.cargo.has(&route.symbol) {
-            let waypoints =
-                sql::Waypoint::get_by_system(&self.context.database_pool, &ship.nav.system_symbol)
-                    .await?
-                    .into_iter()
-                    .map(|w| (w.symbol.clone(), w))
-                    .collect::<HashMap<_, _>>();
-
             debug!(
                 "Navigating to purchase waypoint: {}",
                 route.purchase_waypoint
@@ -205,13 +195,6 @@ impl TradingPilot {
         };
 
         ship.notify().await;
-
-        let waypoints =
-            sql::Waypoint::get_by_system(&self.context.database_pool, &ship.nav.system_symbol)
-                .await?
-                .into_iter()
-                .map(|w| (w.symbol.clone(), w))
-                .collect::<HashMap<_, _>>();
 
         debug!("Navigating to sell waypoint: {}", route.sell_waypoint);
         ship.nav_to(

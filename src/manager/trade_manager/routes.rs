@@ -51,7 +51,7 @@ pub struct RouteData {
     pub profit: i32,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, Default, serde::Serialize)]
 pub struct PossibleTradeRoute {
     pub symbol: space_traders_client::models::TradeSymbol,
     pub purchase_good: Option<sql::MarketTradeGood>,

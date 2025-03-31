@@ -81,8 +81,8 @@ impl ConcreteRouteCalculator {
         );
 
         (
-            self.calculate_single_route_stats(ship, &waypoints, &route.unwrap()),
-            self.calculate_single_route_stats(ship, &waypoints, &route_to.unwrap()),
+            self.calculate_single_route_stats(ship, &route.unwrap()),
+            self.calculate_single_route_stats(ship, &route_to.unwrap()),
         )
     }
 
@@ -107,8 +107,9 @@ impl ConcreteRouteCalculator {
     ) -> Result<Vec<ship::autopilot::SimpleConnection>, crate::error::Error> {
         let pilot = ship
             .get_pathfinder(&self.context)
-            .ok_or(crate::error::Error::General("NoAutopilot".to_string()))?;
-        pilot.find_route_system(waypoints, sell_wp_symbol, purchase_wp_symbol)
+            .ok_or(crate::error::Error::General("NoAutopilot".to_string()))?
+            .get_simple(waypoints.clone());
+        pilot.find_route_system(sell_wp_symbol, purchase_wp_symbol)
     }
 
     fn calculate_reoccurring_trip_stats(
@@ -190,7 +191,6 @@ impl ConcreteRouteCalculator {
     fn calculate_single_route_stats(
         &self,
         ship: &ship::MyShip,
-        waypoints: &std::collections::HashMap<String, sql::Waypoint>,
         route: &[ship::autopilot::SimpleConnection],
     ) -> RouteStats {
         let route = ship
