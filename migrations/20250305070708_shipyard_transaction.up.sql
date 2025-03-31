@@ -18,7 +18,7 @@ CREATE TABLE public.shipyard_transaction (
   ship_type character varying NOT NULL,
   price integer NOT NULL,
   agent_symbol character varying NOT NULL,
-  "timestamp" timestamp without time zone NOT NULL,
+  "timestamp" timestamp with time zone NOT NULL,
   PRIMARY KEY (
     waypoint_symbol,
     ship_type,

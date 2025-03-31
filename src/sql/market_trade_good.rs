@@ -12,8 +12,8 @@ pub struct MarketTradeGood {
     pub activity: Option<models::ActivityLevel>,
     pub purchase_price: i32,
     pub sell_price: i32,
-    pub created: sqlx::types::chrono::NaiveDateTime,
-    pub created_at: sqlx::types::chrono::NaiveDateTime,
+    pub created: sqlx::types::chrono::DateTime<chrono::Utc>,
+    pub created_at: sqlx::types::chrono::DateTime<chrono::Utc>,
 }
 
 impl From<MarketTradeGood> for models::MarketTradeGood {
@@ -41,8 +41,8 @@ impl MarketTradeGood {
             trade_volume: value.trade_volume,
             r#type: value.r#type,
             waypoint_symbol: waypoint_symbol.to_string(),
-            created: sqlx::types::chrono::NaiveDateTime::MIN, // will be ignored for inserts
-            created_at: sqlx::types::chrono::NaiveDateTime::MIN, // will be ignored for inserts
+            created: sqlx::types::chrono::DateTime::<chrono::Utc>::MIN_UTC, // will be ignored for inserts
+            created_at: sqlx::types::chrono::DateTime::<chrono::Utc>::MIN_UTC, // will be ignored for inserts
         }
     }
 }

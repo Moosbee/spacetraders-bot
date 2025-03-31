@@ -1,9 +1,8 @@
 use std::{future::Future, pin::Pin};
 
 use chrono::Utc;
-use futures::future::BoxFuture;
 use log::{debug, warn};
-use space_traders_client::models::{self, ship};
+use space_traders_client::models::{self};
 
 use crate::{
     api,
@@ -176,7 +175,7 @@ impl MyShip {
                 / 1000.0,
             ship_info_before: Some(start_id),
             ship_info_after: Some(end_id),
-            created_at: Utc::now().naive_utc(),
+            created_at: Utc::now(),
         };
 
         crate::sql::Route::insert(database_pool, &rote).await?;
@@ -247,7 +246,7 @@ impl MyShip {
                 / 1000.0,
             ship_info_before: Some(start_id),
             ship_info_after: Some(end_id),
-            created_at: Utc::now().naive_utc(),
+            created_at: Utc::now(),
         };
 
         crate::sql::Route::insert(database_pool, &rote).await?;

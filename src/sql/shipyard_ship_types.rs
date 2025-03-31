@@ -1,4 +1,4 @@
-use chrono::NaiveDateTime;
+use chrono::{DateTime, Utc};
 use space_traders_client::models;
 
 use super::DatabaseConnector;
@@ -10,7 +10,7 @@ pub struct ShipyardShipTypes {
     pub shipyard_id: i64,
     pub ship_type: models::ShipType,
     #[allow(dead_code)]
-    pub created_at: NaiveDateTime,
+    pub created_at: DateTime<Utc>,
 }
 
 impl ShipyardShipTypes {

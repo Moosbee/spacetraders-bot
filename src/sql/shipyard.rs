@@ -1,6 +1,5 @@
-use chrono::NaiveDateTime;
-
 use super::DatabaseConnector;
+use chrono::{DateTime, Utc};
 use space_traders_client::models;
 
 #[derive(Clone, Debug, PartialEq, serde::Serialize)]
@@ -10,7 +9,7 @@ pub struct Shipyard {
     pub waypoint_symbol: String,
     pub modifications_fee: i32,
     #[allow(dead_code)]
-    pub created_at: NaiveDateTime,
+    pub created_at: DateTime<Utc>,
 }
 
 impl From<&models::Shipyard> for Shipyard {
@@ -19,7 +18,7 @@ impl From<&models::Shipyard> for Shipyard {
             id: 0,
             waypoint_symbol: item.symbol.clone(),
             modifications_fee: item.modifications_fee,
-            created_at: sqlx::types::chrono::NaiveDateTime::MIN,
+            created_at: sqlx::types::chrono::DateTime::<Utc>::MIN_UTC,
         }
     }
 }

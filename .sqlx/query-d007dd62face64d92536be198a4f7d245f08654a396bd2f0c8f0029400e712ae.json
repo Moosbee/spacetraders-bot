@@ -246,7 +246,7 @@
       {
         "ordinal": 22,
         "name": "cooldown_expiration",
-        "type_info": "Timestamp"
+        "type_info": "Timestamptz"
       },
       {
         "ordinal": 23,
@@ -271,12 +271,12 @@
       {
         "ordinal": 27,
         "name": "route_arrival",
-        "type_info": "Timestamp"
+        "type_info": "Timestamptz"
       },
       {
         "ordinal": 28,
         "name": "route_departure",
-        "type_info": "Timestamp"
+        "type_info": "Timestamptz"
       },
       {
         "ordinal": 29,
@@ -301,12 +301,12 @@
       {
         "ordinal": 33,
         "name": "auto_pilot_arrival",
-        "type_info": "Timestamp"
+        "type_info": "Timestamptz"
       },
       {
         "ordinal": 34,
         "name": "auto_pilot_departure_time",
-        "type_info": "Timestamp"
+        "type_info": "Timestamptz"
       },
       {
         "ordinal": 35,
@@ -346,7 +346,7 @@
       {
         "ordinal": 42,
         "name": "created_at",
-        "type_info": "Timestamp"
+        "type_info": "Timestamptz"
       }
     ],
     "parameters": {

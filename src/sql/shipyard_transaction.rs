@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use chrono::{DateTime, NaiveDateTime};
+use chrono::{DateTime, Utc};
 use space_traders_client::models;
 
 use super::DatabaseConnector;
@@ -11,7 +11,7 @@ pub struct ShipyardTransaction {
     pub ship_type: models::ShipType,
     pub price: i32,
     pub agent_symbol: String,
-    pub timestamp: NaiveDateTime,
+    pub timestamp: DateTime<Utc>,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -33,8 +33,7 @@ impl TryFrom<models::ShipyardTransaction> for ShipyardTransaction {
         let ship_type = models::ShipType::from_str(&item.ship_type)
             .map_err(|_| ParseError::ShipType(item.ship_type))?;
         let timestamp = DateTime::<chrono::Utc>::from_str(&item.timestamp)
-            .map_err(|_| ParseError::Timestamp(item.timestamp))?
-            .naive_utc();
+            .map_err(|_| ParseError::Timestamp(item.timestamp))?;
 
         Ok(Self {
             waypoint_symbol: item.waypoint_symbol,
@@ -137,7 +136,7 @@ impl DatabaseConnector<ShipyardTransaction> for ShipyardTransaction {
             &ship_types as &[models::ShipType],
             &prices,
             &agent_symbols,
-            &timestamps
+            &timestamps as &[chrono::DateTime<chrono::Utc>],
         )
         .execute(&database_pool.database_pool)
         .await?;

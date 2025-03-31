@@ -8,7 +8,7 @@ exports should be somewhat linear, the more exports their are the better
 less valuable=longer time until next scrap
      */
 
-use chrono::NaiveDateTime;
+use chrono::DateTime;
 use space_traders_client::models;
 
 use crate::sql;
@@ -47,7 +47,7 @@ pub fn get_waypoint_time_with_weights(
         .iter()
         .max_by(|a, b| a.created_at.cmp(&b.created_at))
         .map(|f| f.created_at)
-        .unwrap_or(NaiveDateTime::MIN);
+        .unwrap_or(DateTime::<chrono::Utc>::MIN_UTC);
 
     let num_exports = market_trade
         .iter()
@@ -84,7 +84,7 @@ pub fn get_waypoint_time_with_weights(
     let interval_duration =
         chrono::Duration::seconds((interval_percent * max_update_interval as f64) as i64);
 
-    let nextscrap = last_date.and_utc() + interval_duration;
+    let nextscrap = last_date + interval_duration;
 
     Ok(nextscrap)
 }

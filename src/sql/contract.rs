@@ -1,4 +1,4 @@
-use chrono::{NaiveDateTime, Utc};
+use chrono::{DateTime, Utc};
 use space_traders_client::models;
 
 use super::{ContractDelivery, DatabaseConnector, DbPool};
@@ -14,8 +14,8 @@ pub struct Contract {
     pub on_accepted: i32,
     pub on_fulfilled: i32,
     pub deadline: String,
-    pub updated_at: NaiveDateTime,
-    pub created_at: NaiveDateTime,
+    pub updated_at: DateTime<Utc>,
+    pub created_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -32,8 +32,8 @@ pub struct ContractSummary {
     pub totalprofit: Option<i32>,
     pub total_expenses: Option<i32>,
     pub net_profit: Option<i32>,
-    pub updated_at: NaiveDateTime,
-    pub created_at: NaiveDateTime,
+    pub updated_at: DateTime<Utc>,
+    pub created_at: DateTime<Utc>,
 }
 
 impl From<models::Contract> for Contract {
@@ -48,8 +48,8 @@ impl From<models::Contract> for Contract {
             on_accepted: value.terms.payment.on_accepted,
             on_fulfilled: value.terms.payment.on_fulfilled,
             deadline: value.terms.deadline,
-            updated_at: Utc::now().naive_utc(),
-            created_at: Utc::now().naive_utc(),
+            updated_at: Utc::now(),
+            created_at: Utc::now(),
         }
     }
 }

@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS public.route (
   travel_time double precision NOT NULL,
   ship_info_before bigint NOT NULL,
   ship_info_after bigint NOT NULL,
-  created_at timestamp without time zone NOT NULL DEFAULT now(),
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
   CONSTRAINT route_relation_1 FOREIGN KEY ("from") REFERENCES public.waypoint (symbol) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
   CONSTRAINT route_relation_2 FOREIGN KEY ("to") REFERENCES public.waypoint (symbol) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
   CONSTRAINT route_relation_ship_info_before_fk FOREIGN KEY (ship_info_before) REFERENCES public.ship_state (id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,

@@ -144,7 +144,7 @@
         },
         "Varchar",
         "Varchar",
-        "Timestamp",
+        "Timestamptz",
         "Bool",
         "Bool"
       ]

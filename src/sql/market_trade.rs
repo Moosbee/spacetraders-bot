@@ -6,7 +6,7 @@ use super::{DatabaseConnector, DbPool, MarketTradeGood};
 pub struct MarketTrade {
     pub waypoint_symbol: String,
     pub symbol: models::TradeSymbol,
-    pub created_at: sqlx::types::chrono::NaiveDateTime,
+    pub created_at: sqlx::types::chrono::DateTime<chrono::Utc>,
     pub r#type: models::market_trade_good::Type,
 }
 
@@ -15,7 +15,7 @@ impl Default for MarketTrade {
         MarketTrade {
             waypoint_symbol: String::new(),
             symbol: models::TradeSymbol::PreciousStones,
-            created_at: sqlx::types::chrono::NaiveDateTime::MIN,
+            created_at: sqlx::types::chrono::DateTime::<chrono::Utc>::MIN_UTC,
             r#type: models::market_trade_good::Type::Exchange,
         }
     }

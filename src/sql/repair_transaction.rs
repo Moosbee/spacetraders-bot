@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use chrono::{DateTime, NaiveDateTime};
+use chrono::{DateTime, Utc};
 use space_traders_client::models;
 
 use super::DatabaseConnector;
@@ -9,7 +9,7 @@ pub struct RepairTransaction {
     pub waypoint_symbol: String,
     pub ship_symbol: String,
     pub total_price: i32,
-    pub timestamp: NaiveDateTime,
+    pub timestamp: DateTime<Utc>,
 }
 
 impl TryFrom<models::RepairTransaction> for RepairTransaction {
@@ -17,8 +17,7 @@ impl TryFrom<models::RepairTransaction> for RepairTransaction {
 
     fn try_from(item: models::RepairTransaction) -> Result<Self, Self::Error> {
         let timestamp = DateTime::<chrono::Utc>::from_str(&item.timestamp)
-            .map_err(|_| Self::Error::Timestamp(item.timestamp))?
-            .naive_utc();
+            .map_err(|_| Self::Error::Timestamp(item.timestamp))?;
         Ok(Self {
             waypoint_symbol: item.waypoint_symbol,
             ship_symbol: item.ship_symbol,
@@ -59,7 +58,7 @@ impl DatabaseConnector<RepairTransaction> for RepairTransaction {
             Vec<String>,
             Vec<String>,
             Vec<i32>,
-            Vec<NaiveDateTime>,
+            Vec<DateTime<Utc>>,
         ) = itertools::multiunzip(items.iter().map(|t| {
             (
                 t.waypoint_symbol.clone(),
@@ -88,7 +87,7 @@ impl DatabaseConnector<RepairTransaction> for RepairTransaction {
             &waypoint_symbols,
             &ship_symbols,
             &total_prices,
-            &timestamps
+            &timestamps as &[chrono::DateTime<Utc>],
         )
         .execute(&database_pool.database_pool)
         .await?;

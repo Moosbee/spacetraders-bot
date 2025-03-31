@@ -11,8 +11,8 @@ pub struct ConstructionShipment {
     pub trade_symbol: models::TradeSymbol,
     pub units: i32,
     pub purchase_waypoint: String,
-    pub created_at: sqlx::types::chrono::NaiveDateTime,
-    pub updated_at: sqlx::types::chrono::NaiveDateTime,
+    pub created_at: sqlx::types::chrono::DateTime<chrono::Utc>,
+    pub updated_at: sqlx::types::chrono::DateTime<chrono::Utc>,
     pub status: ShipmentStatus,
 }
 
@@ -25,8 +25,8 @@ pub struct ConstructionShipmentSummary {
     pub trade_symbol: models::TradeSymbol,
     pub units: i32,
     pub purchase_waypoint: String,
-    pub created_at: sqlx::types::chrono::NaiveDateTime,
-    pub updated_at: sqlx::types::chrono::NaiveDateTime,
+    pub created_at: sqlx::types::chrono::DateTime<chrono::Utc>,
+    pub updated_at: sqlx::types::chrono::DateTime<chrono::Utc>,
     pub status: ShipmentStatus,
     pub sum: Option<i32>,
     pub expenses: Option<i32>,

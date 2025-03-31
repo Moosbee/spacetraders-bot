@@ -110,7 +110,7 @@
             }
           }
         },
-        "Timestamp",
+        "Timestamptz",
         {
           "Custom": {
             "name": "ship_reactor_symbol",
@@ -167,14 +167,14 @@
         "Varchar",
         "Varchar",
         "Varchar",
-        "Timestamp",
-        "Timestamp",
+        "Timestamptz",
+        "Timestamptz",
         "Varchar",
         "Varchar",
         "Varchar",
         "Varchar",
-        "Timestamp",
-        "Timestamp",
+        "Timestamptz",
+        "Timestamptz",
         "Varchar",
         "Varchar",
         "Varchar",

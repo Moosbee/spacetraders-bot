@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use chrono::{DateTime, NaiveDateTime};
+use chrono::{DateTime, Utc};
 use space_traders_client::models;
 
 use super::DatabaseConnector;
@@ -9,15 +9,14 @@ pub struct ScrapTransaction {
     pub waypoint_symbol: String,
     pub ship_symbol: String,
     pub total_price: i32,
-    pub timestamp: NaiveDateTime,
+    pub timestamp: DateTime<Utc>,
 }
 impl TryFrom<models::ScrapTransaction> for ScrapTransaction {
     type Error = super::shipyard_transaction::ParseError;
 
     fn try_from(item: models::ScrapTransaction) -> Result<Self, Self::Error> {
         let timestamp = DateTime::<chrono::Utc>::from_str(&item.timestamp)
-            .map_err(|_| Self::Error::Timestamp(item.timestamp))?
-            .naive_utc();
+            .map_err(|_| Self::Error::Timestamp(item.timestamp))?;
         Ok(Self {
             waypoint_symbol: item.waypoint_symbol,
             ship_symbol: item.ship_symbol,
@@ -58,7 +57,7 @@ impl DatabaseConnector<ScrapTransaction> for ScrapTransaction {
             Vec<String>,
             Vec<String>,
             Vec<i32>,
-            Vec<NaiveDateTime>,
+            Vec<DateTime<Utc>>,
         ) = itertools::multiunzip(items.iter().map(|t| {
             (
                 t.waypoint_symbol.clone(),
@@ -87,7 +86,7 @@ impl DatabaseConnector<ScrapTransaction> for ScrapTransaction {
             &waypoint_symbols,
             &ship_symbols,
             &total_prices,
-            &timestamps
+            &timestamps as &[DateTime<Utc>],
         )
         .execute(&database_pool.database_pool)
         .await?;

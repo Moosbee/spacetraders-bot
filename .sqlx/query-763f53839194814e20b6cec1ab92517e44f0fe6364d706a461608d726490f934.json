@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT \n                system.symbol,\n                system.sector_symbol,\n                system.system_type as \"system_type: models::SystemType\",\n                system.x,\n                system.y,\n            \t\tcount(waypoint.symbol) as \"waypoints: i32\"\n            FROM system left join waypoint on system.symbol = waypoint.system_symbol\n\t\t\tgroup by system.symbol\n            ",
+  "query": "\n            SELECT \n                system.symbol,\n                system.sector_symbol,\n                system.system_type as \"system_type: models::SystemType\",\n                system.x,\n                system.y,\n            \t\tcount(waypoint.symbol) as \"waypoints: i32\",\n\t\t\t\t      \tsum(CASE when waypoint.has_shipyard THEN 1 ELSE 0 END) as \"shipyards: i32\",\n\t\t\t      \t\tsum(CASE when waypoint.has_marketplace THEN 1 ELSE 0 END) as \"marketplaces: i32\"\n            FROM system left join waypoint on system.symbol = waypoint.system_symbol\n\t\t\tgroup by system.symbol\n            ",
   "describe": {
     "columns": [
       {
@@ -50,6 +50,16 @@
         "ordinal": 5,
         "name": "waypoints: i32",
         "type_info": "Int8"
+      },
+      {
+        "ordinal": 6,
+        "name": "shipyards: i32",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 7,
+        "name": "marketplaces: i32",
+        "type_info": "Int8"
       }
     ],
     "parameters": {
@@ -61,8 +71,10 @@
       false,
       false,
       false,
+      null,
+      null,
       null
     ]
   },
-  "hash": "9e3b38270fa806991d44ee7c9137bfa3ebac0cb6af80909233fa3b41adba0a03"
+  "hash": "763f53839194814e20b6cec1ab92517e44f0fe6364d706a461608d726490f934"
 }

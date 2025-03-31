@@ -179,7 +179,7 @@
       {
         "ordinal": 4,
         "name": "timestamp",
-        "type_info": "Timestamp"
+        "type_info": "Timestamptz"
       }
     ],
     "parameters": {

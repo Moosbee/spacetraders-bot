@@ -1,4 +1,4 @@
-use chrono::NaiveDateTime;
+use chrono::{DateTime, Utc};
 use space_traders_client::models::{self};
 
 use super::{DatabaseConnector, DbPool};
@@ -14,7 +14,7 @@ pub struct Extraction {
     pub yield_symbol: models::TradeSymbol,
     pub yield_units: i32,
     #[allow(dead_code)]
-    pub created_at: NaiveDateTime,
+    pub created_at: DateTime<Utc>,
 }
 
 impl DatabaseConnector<Extraction> for Extraction {

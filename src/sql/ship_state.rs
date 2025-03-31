@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use chrono::{NaiveDateTime, Utc};
+use chrono::{DateTime, Utc};
 use space_traders_client::models;
 
 use crate::ship;
@@ -50,7 +50,7 @@ pub struct ShipState {
     pub engine_symbol: models::ship_engine::Symbol,
 
     // Cooldown
-    pub cooldown_expiration: Option<NaiveDateTime>,
+    pub cooldown_expiration: Option<DateTime<Utc>>,
 
     // Navigation
     pub flight_mode: String, //models::ShipNavFlightMode,
@@ -59,16 +59,16 @@ pub struct ShipState {
     pub waypoint_symbol: String,
 
     // Route
-    pub route_arrival: NaiveDateTime,
-    pub route_departure: NaiveDateTime,
+    pub route_arrival: DateTime<Utc>,
+    pub route_departure: DateTime<Utc>,
     pub route_destination_symbol: String,
     pub route_destination_system: String,
     pub route_origin_symbol: String,
     pub route_origin_system: String,
 
     // Auto Pilot
-    pub auto_pilot_arrival: Option<NaiveDateTime>,
-    pub auto_pilot_departure_time: Option<NaiveDateTime>,
+    pub auto_pilot_arrival: Option<DateTime<Utc>>,
+    pub auto_pilot_departure_time: Option<DateTime<Utc>>,
     pub auto_pilot_destination_symbol: Option<String>,
     pub auto_pilot_destination_system_symbol: Option<String>,
     pub auto_pilot_origin_symbol: Option<String>,
@@ -78,7 +78,7 @@ pub struct ShipState {
     pub auto_pilot_travel_time: Option<f64>,
 
     #[allow(dead_code)]
-    pub created_at: NaiveDateTime,
+    pub created_at: DateTime<Utc>,
 }
 
 impl From<&ship::MyShip> for ShipState {
@@ -107,23 +107,19 @@ impl From<&ship::MyShip> for ShipState {
             reactor_symbol: value.reactor,
             frame_symbol: value.frame,
             engine_symbol: value.engine,
-            cooldown_expiration: value.cooldown_expiration.as_ref().map(|t| t.naive_utc()),
+            cooldown_expiration: value.cooldown_expiration.as_ref().map(|t| t).cloned(),
             flight_mode: value.nav.flight_mode.to_string(),
             nav_status: value.nav.status.to_string(),
             system_symbol: value.nav.system_symbol.clone(),
             waypoint_symbol: value.nav.waypoint_symbol.clone(),
-            route_arrival: value.nav.route.arrival.naive_utc(),
-            route_departure: value.nav.route.departure_time.naive_utc(),
+            route_arrival: value.nav.route.arrival,
+            route_departure: value.nav.route.departure_time,
             route_destination_symbol: value.nav.route.destination_symbol.clone(),
             route_destination_system: value.nav.route.destination_system_symbol.clone(),
             route_origin_symbol: value.nav.route.origin_symbol.clone(),
             route_origin_system: value.nav.route.origin_system_symbol.clone(),
-            auto_pilot_arrival: value.nav.auto_pilot.as_ref().map(|t| t.arrival.naive_utc()),
-            auto_pilot_departure_time: value
-                .nav
-                .auto_pilot
-                .as_ref()
-                .map(|t| t.departure_time.naive_utc()),
+            auto_pilot_arrival: value.nav.auto_pilot.as_ref().map(|t| t.arrival),
+            auto_pilot_departure_time: value.nav.auto_pilot.as_ref().map(|t| t.departure_time),
             auto_pilot_destination_symbol: value
                 .nav
                 .auto_pilot
@@ -147,7 +143,7 @@ impl From<&ship::MyShip> for ShipState {
             auto_pilot_distance: value.nav.auto_pilot.as_ref().map(|t| t.distance),
             auto_pilot_fuel_cost: value.nav.auto_pilot.as_ref().map(|t| t.fuel_cost),
             auto_pilot_travel_time: value.nav.auto_pilot.as_ref().map(|t| t.travel_time),
-            created_at: Utc::now().naive_utc(),
+            created_at: Utc::now(),
         }
     }
 }
@@ -262,7 +258,7 @@ impl ShipState {
             &item.cargo_inventory as &sqlx::types::Json<HashMap<models::TradeSymbol, i32>>,
             &item.mounts as &[models::ship_mount::Symbol],
             &item.modules as &[models::ship_module::Symbol],
-            &item.cooldown_expiration as &Option<NaiveDateTime>,
+            &item.cooldown_expiration as &Option<DateTime<Utc>>,
             &item.reactor_symbol as &models::ship_reactor::Symbol,
             &item.frame_symbol as &models::ship_frame::Symbol,
             &item.engine_symbol as &models::ship_engine::Symbol,
@@ -276,8 +272,8 @@ impl ShipState {
             &item.route_destination_system,
             &item.route_origin_symbol,
             &item.route_origin_system,
-            &item.auto_pilot_arrival as &Option<NaiveDateTime>,
-            &item.auto_pilot_departure_time as &Option<NaiveDateTime>,
+            &item.auto_pilot_arrival as &Option<DateTime<Utc>>,
+            &item.auto_pilot_departure_time as &Option<DateTime<Utc>>,
             &item.auto_pilot_destination_symbol as &Option<String>,
             &item.auto_pilot_destination_system_symbol as &Option<String>,
             &item.auto_pilot_origin_symbol as &Option<String>,

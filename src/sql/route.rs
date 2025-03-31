@@ -1,4 +1,4 @@
-use chrono::NaiveDateTime;
+use chrono::{DateTime, Utc};
 
 use super::DatabaseConnector;
 
@@ -14,7 +14,7 @@ pub struct Route {
     pub travel_time: f64,
     pub ship_info_before: Option<i64>,
     pub ship_info_after: Option<i64>,
-    pub created_at: NaiveDateTime,
+    pub created_at: DateTime<Utc>,
 }
 
 impl DatabaseConnector<Route> for Route {

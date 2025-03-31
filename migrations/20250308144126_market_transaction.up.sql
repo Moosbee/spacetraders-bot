@@ -13,9 +13,9 @@ CREATE TABLE IF NOT EXISTS public.market_transaction (
   trade_route integer,
   mining character varying(255),
   construction bigint,
-  "timestamp" timestamp without time zone NOT NULL,
-  created_at timestamp without time zone NOT NULL DEFAULT now(),
-  updated_at timestamp without time zone NOT NULL DEFAULT now(),
+  "timestamp" timestamp with time zone NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
   CONSTRAINT market_transaction_pkey PRIMARY KEY (
     waypoint_symbol,
     ship_symbol,

@@ -1,5 +1,6 @@
 use std::time::Duration;
 
+use chrono::DateTime;
 use log::{debug, warn};
 use space_traders_client::models;
 use tokio::time::sleep;
@@ -110,8 +111,8 @@ pub async fn update_jump_gate(
             id: 0,
             from: jump_gate.symbol.clone(),
             to: c.clone(),
-            created_at: sqlx::types::chrono::NaiveDateTime::MIN,
-            updated_at: sqlx::types::chrono::NaiveDateTime::MIN,
+            created_at: DateTime::<chrono::Utc>::MIN_UTC,
+            updated_at: DateTime::<chrono::Utc>::MIN_UTC,
         })
         .collect::<Vec<sql::JumpGateConnection>>();
 

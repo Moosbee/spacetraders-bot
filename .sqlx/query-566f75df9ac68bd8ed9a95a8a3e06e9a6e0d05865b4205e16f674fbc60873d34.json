@@ -21,7 +21,7 @@
       {
         "ordinal": 3,
         "name": "timestamp",
-        "type_info": "Timestamp"
+        "type_info": "Timestamptz"
       }
     ],
     "parameters": {

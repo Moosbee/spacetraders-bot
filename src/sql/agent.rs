@@ -9,7 +9,7 @@ pub struct Agent {
     pub starting_faction: String,
     pub ship_count: i32,
     #[allow(dead_code)]
-    pub created_at: sqlx::types::chrono::NaiveDateTime,
+    pub created_at: sqlx::types::chrono::DateTime<chrono::Utc>,
 }
 
 impl From<space_traders_client::models::Agent> for Agent {
@@ -21,7 +21,7 @@ impl From<space_traders_client::models::Agent> for Agent {
             credits: item.credits,
             starting_faction: item.starting_faction,
             ship_count: item.ship_count,
-            created_at: sqlx::types::chrono::NaiveDateTime::MIN,
+            created_at: sqlx::types::chrono::DateTime::<chrono::Utc>::MIN_UTC,
         }
     }
 }

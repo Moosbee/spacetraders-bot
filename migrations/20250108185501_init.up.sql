@@ -194,7 +194,7 @@ CREATE TABLE IF NOT EXISTS public.agent (
   credits bigint NOT NULL,
   starting_faction character varying NOT NULL,
   ship_count integer NOT NULL,
-  created_at timestamp without time zone NOT NULL DEFAULT now ()
+  created_at timestamp with time zone NOT NULL DEFAULT now ()
 );
 CREATE TABLE system (
   symbol character varying PRIMARY KEY,
@@ -207,15 +207,15 @@ CREATE TABLE system (
 CREATE TABLE IF NOT EXISTS public.waypoint (
   symbol character varying(255) NOT NULL,
   system_symbol character varying(255) NOT NULL,
-  created_at timestamp without time zone NOT NULL DEFAULT now (),
+  created_at timestamp with time zone NOT NULL DEFAULT now (),
   CONSTRAINT waypoint_pkey PRIMARY KEY (symbol),
   CONSTRAINT waypoint_relation_1 FOREIGN KEY (system_symbol) REFERENCES public.system (symbol) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION
 );
 -- Table: public.market_trade_good
 -- DROP TABLE IF EXISTS public.market_trade_good;
 CREATE TABLE IF NOT EXISTS public.market_trade_good (
-  created_at timestamp without time zone NOT NULL DEFAULT now (),
-  created timestamp without time zone NOT NULL DEFAULT now (),
+  created_at timestamp with time zone NOT NULL DEFAULT now (),
+  created timestamp with time zone NOT NULL DEFAULT now (),
   waypoint_symbol character varying(255) NOT NULL,
   symbol trade_symbol NOT NULL,
   type market_trade_good_type NOT NULL,
@@ -231,7 +231,7 @@ CREATE TABLE public.market_trade (
   waypoint_symbol character varying(255) NOT NULL,
   symbol trade_symbol NOT NULL,
   type market_trade_good_type NOT NULL,
-  created_at timestamp without time zone NOT NULL DEFAULT now (),
+  created_at timestamp with time zone NOT NULL DEFAULT now (),
   PRIMARY KEY (created_at, symbol, waypoint_symbol),
   CONSTRAINT market_trade_relation_1 FOREIGN KEY (waypoint_symbol) REFERENCES public.waypoint (symbol) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION
 );
@@ -246,8 +246,8 @@ CREATE TABLE contract (
   on_accepted INTEGER NOT NULL,
   on_fulfilled INTEGER NOT NULL,
   deadline character varying(255) NOT NULL,
-  updated_at timestamp without time zone NOT NULL DEFAULT now (),
-  created_at timestamp without time zone NOT NULL DEFAULT now ()
+  updated_at timestamp with time zone NOT NULL DEFAULT now (),
+  created_at timestamp with time zone NOT NULL DEFAULT now ()
 );
 -- Table for contract delivery requirements
 CREATE TABLE contract_delivery (
@@ -256,8 +256,8 @@ CREATE TABLE contract_delivery (
   destination_symbol character varying(255) NOT NULL,
   units_required INTEGER NOT NULL,
   units_fulfilled INTEGER NOT NULL,
-  created_at timestamp without time zone NOT NULL DEFAULT now (),
-  updated_at timestamp without time zone NOT NULL DEFAULT now (),
+  created_at timestamp with time zone NOT NULL DEFAULT now (),
+  updated_at timestamp with time zone NOT NULL DEFAULT now (),
   PRIMARY KEY (contract_id, trade_symbol, destination_symbol),
   CONSTRAINT contract_delivery_relation_1 FOREIGN KEY (contract_id) REFERENCES public.contract (id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
   CONSTRAINT contract_delivery_relation_2 FOREIGN KEY (destination_symbol) REFERENCES public.waypoint (symbol) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION
@@ -274,7 +274,7 @@ CREATE TABLE IF NOT EXISTS public.trade_route (
   trade_volume integer NOT NULL DEFAULT 1,
   predicted_purchase_price integer NOT NULL,
   predicted_sell_price integer NOT NULL,
-  created_at timestamp without time zone NOT NULL DEFAULT now (),
+  created_at timestamp with time zone NOT NULL DEFAULT now (),
   CONSTRAINT trade_route_relation_1 FOREIGN KEY (purchase_waypoint) REFERENCES public.waypoint (symbol) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
   CONSTRAINT trade_route_relation_2 FOREIGN KEY (sell_waypoint) REFERENCES public.waypoint (symbol) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION
 );

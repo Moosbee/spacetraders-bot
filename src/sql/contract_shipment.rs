@@ -25,8 +25,8 @@ pub struct ContractShipment {
     pub units: i32,
     pub destination_symbol: String,
     pub purchase_symbol: String,
-    pub created_at: sqlx::types::chrono::NaiveDateTime,
-    pub updated_at: sqlx::types::chrono::NaiveDateTime,
+    pub created_at: sqlx::types::chrono::DateTime<chrono::Utc>,
+    pub updated_at: sqlx::types::chrono::DateTime<chrono::Utc>,
     pub status: ShipmentStatus,
 }
 
@@ -40,8 +40,8 @@ impl Default for ContractShipment {
             units: Default::default(),
             destination_symbol: Default::default(),
             purchase_symbol: Default::default(),
-            created_at: sqlx::types::chrono::NaiveDateTime::MIN,
-            updated_at: sqlx::types::chrono::NaiveDateTime::MIN,
+            created_at: sqlx::types::chrono::DateTime::<chrono::Utc>::MIN_UTC,
+            updated_at: sqlx::types::chrono::DateTime::<chrono::Utc>::MIN_UTC,
             status: Default::default(),
         }
     }

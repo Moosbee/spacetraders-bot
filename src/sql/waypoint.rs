@@ -10,7 +10,7 @@ use super::{DatabaseConnector, DbPool};
 pub struct Waypoint {
     pub symbol: String,
     pub system_symbol: String,
-    pub created_at: sqlx::types::chrono::NaiveDateTime,
+    pub created_at: sqlx::types::chrono::DateTime<chrono::Utc>,
     pub x: i32,
     pub y: i32,
     pub waypoint_type: models::WaypointType,
@@ -22,7 +22,7 @@ pub struct Waypoint {
     pub modifiers: Vec<models::WaypointModifierSymbol>,
     pub charted_by: Option<String>,
     pub charted_on: Option<String>,
-    pub unstable_since: Option<sqlx::types::chrono::NaiveDateTime>,
+    pub unstable_since: Option<sqlx::types::chrono::DateTime<chrono::Utc>>,
     pub has_shipyard: bool,
     pub has_marketplace: bool,
 }
@@ -321,7 +321,7 @@ impl DatabaseConnector<Waypoint> for Waypoint {
             &item.modifiers as &[models::WaypointModifierSymbol],
             &item.charted_by as &Option<String>,
             &item.charted_on as &Option<String>,
-            &item.unstable_since as &Option<sqlx::types::chrono::NaiveDateTime>,
+            &item.unstable_since as &Option<sqlx::types::chrono::DateTime<chrono::Utc>>,
             &item.has_shipyard,
             &item.has_marketplace
         )

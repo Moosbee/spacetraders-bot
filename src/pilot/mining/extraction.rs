@@ -1,7 +1,4 @@
-use std::{
-    collections::HashMap,
-    sync::{atomic::AtomicI32, Arc},
-};
+use std::sync::{atomic::AtomicI32, Arc};
 
 use futures::FutureExt;
 use log::{debug, info};
@@ -234,13 +231,6 @@ impl ExtractionPilot {
             return Err("Waypoint is not in ship's system".into());
         }
 
-        let waypoints =
-            sql::Waypoint::get_by_system(&self.context.database_pool, &ship.nav.system_symbol)
-                .await?
-                .into_iter()
-                .map(|w| (w.symbol.clone(), w))
-                .collect::<HashMap<_, _>>();
-
         ship.nav_to(
             waypoint_symbol,
             true,
@@ -315,7 +305,7 @@ impl ExtractionPilot {
                                     .await?;
                                 (&(*new_wp.data)).into()
                             };
-                            wp.unstable_since = Some(chrono::Utc::now().naive_local());
+                            wp.unstable_since = Some(chrono::Utc::now());
                             sql::Waypoint::insert(&self.context.database_pool, &wp).await?;
                         } else {
                             return Err(space_traders_client::apis::Error::ResponseError(e).into());
@@ -334,7 +324,7 @@ impl ExtractionPilot {
                             siphon: false,
                             yield_symbol: erg.data.extraction.r#yield.symbol,
                             yield_units: erg.data.extraction.r#yield.units,
-                            created_at: chrono::Utc::now().naive_local(),
+                            created_at: chrono::Utc::now(),
                         };
 
                         sql::Extraction::insert(&self.context.database_pool, &extraction).await?;
@@ -395,7 +385,7 @@ impl ExtractionPilot {
                     siphon: true,
                     yield_symbol: erg.data.siphon.r#yield.symbol,
                     yield_units: erg.data.siphon.r#yield.units,
-                    created_at: chrono::Utc::now().naive_local(),
+                    created_at: chrono::Utc::now(),
                 };
 
                 sql::Extraction::insert(&self.context.database_pool, &extraction).await?;

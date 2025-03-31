@@ -1,4 +1,4 @@
-use chrono::NaiveDateTime;
+use chrono::{DateTime, Utc};
 use space_traders_client::models;
 
 use super::DatabaseConnector;
@@ -24,7 +24,7 @@ pub struct ShipyardShip {
     pub crew_requirement: i32,
     pub crew_capacity: i32,
     #[allow(dead_code)]
-    pub created_at: NaiveDateTime,
+    pub created_at: DateTime<Utc>,
 }
 
 impl ShipyardShip {
@@ -47,7 +47,7 @@ impl ShipyardShip {
             mounts: value.mounts.iter().map(|m| m.symbol).collect::<Vec<_>>(),
             crew_requirement: value.crew.required,
             crew_capacity: value.crew.capacity,
-            created_at: NaiveDateTime::MIN,
+            created_at: DateTime::<Utc>::MIN_UTC,
         }
     }
 

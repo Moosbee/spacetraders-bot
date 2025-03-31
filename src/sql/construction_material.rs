@@ -1,4 +1,4 @@
-use chrono::{NaiveDateTime, Utc};
+use chrono::{DateTime, Utc};
 use space_traders_client::models;
 
 use super::{DatabaseConnector, DbPool};
@@ -10,8 +10,8 @@ pub struct ConstructionMaterial {
     pub trade_symbol: models::TradeSymbol,
     pub required: i32,
     pub fulfilled: i32,
-    pub created_at: NaiveDateTime,
-    pub updated_at: NaiveDateTime,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
@@ -21,8 +21,8 @@ pub struct ConstructionMaterialSummary {
     pub trade_symbol: models::TradeSymbol,
     pub required: i32,
     pub fulfilled: i32,
-    pub created_at: NaiveDateTime,
-    pub updated_at: NaiveDateTime,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
     pub sum: Option<i32>,
     pub expenses: Option<i32>,
     pub income: Option<i32>,
@@ -36,8 +36,8 @@ impl ConstructionMaterial {
             trade_symbol: value.trade_symbol,
             required: value.required,
             fulfilled: value.fulfilled,
-            created_at: Utc::now().naive_utc(),
-            updated_at: Utc::now().naive_utc(),
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
         }
     }
 

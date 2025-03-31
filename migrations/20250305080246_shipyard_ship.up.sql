@@ -86,7 +86,7 @@ CREATE TABLE public.shipyard_ship (
   mounts ship_mount_symbol [] NOT NULL,
   crew_requirement integer NOT NULL,
   crew_capacity integer NOT NULL,
-  created_at timestamp without time zone NOT NULL DEFAULT now(),
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
   PRIMARY KEY (id),
   CONSTRAINT waypoint_symbol_fk FOREIGN KEY (waypoint_symbol) REFERENCES public.waypoint (symbol) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION NOT VALID
 );

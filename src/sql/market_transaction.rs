@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use chrono::{DateTime, NaiveDateTime};
+use chrono::{DateTime, Utc};
 use space_traders_client::models::{self};
 
 use super::{DatabaseConnector, DbPool};
@@ -22,7 +22,7 @@ pub struct MarketTransaction {
     /// The total price of the transaction.
     pub total_price: i32,
     /// The timestamp of the transaction.
-    pub timestamp: NaiveDateTime,
+    pub timestamp: DateTime<Utc>,
     /// The reason for the transaction.
     /// pub reason: TransactionReason,
     pub contract: Option<String>,
@@ -255,8 +255,7 @@ impl TryFrom<models::MarketTransaction> for MarketTransaction {
         let tr_symbol = models::TradeSymbol::from_str(&value.trade_symbol)
             .map_err(|err| crate::error::Error::General(err.to_string() + "trade_symbol"))?;
         let timestamp = DateTime::<chrono::Utc>::from_str(&value.timestamp)
-            .map_err(|err| crate::error::Error::General(err.to_string() + "timestamp"))?
-            .naive_utc();
+            .map_err(|err| crate::error::Error::General(err.to_string() + "timestamp"))?;
 
         Ok(MarketTransaction {
             ship_symbol: value.ship_symbol,
@@ -380,7 +379,7 @@ impl DatabaseConnector<MarketTransaction> for MarketTransaction {
         &t_units,
         &t_price_per_unit,
         &t_total_price,
-        &t_timestamp,
+        &t_timestamp as &[DateTime<Utc>],
         &t_contract as &[Option<String>],
         &t_trade_route as &[Option<i32>],
         &t_mining as &[Option<String>],

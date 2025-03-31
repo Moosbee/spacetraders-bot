@@ -1,4 +1,4 @@
-use chrono::NaiveDateTime;
+use chrono::DateTime;
 use space_traders_client::models;
 
 use crate::sql::{self, DatabaseConnector};
@@ -16,7 +16,7 @@ pub async fn update_shipyard(
             id: 0,
             shipyard_id: id,
             ship_type: st.r#type,
-            created_at: NaiveDateTime::MIN,
+            created_at: DateTime::<chrono::Utc>::MIN_UTC,
         })
         .collect::<Vec<_>>();
 

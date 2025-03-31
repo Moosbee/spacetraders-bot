@@ -15,7 +15,7 @@ pub struct TradeRoute {
     pub trade_volume: i32,
     pub predicted_purchase_price: i32,
     pub predicted_sell_price: i32,
-    pub created_at: sqlx::types::chrono::NaiveDateTime,
+    pub created_at: sqlx::types::chrono::DateTime<chrono::Utc>,
 }
 
 #[derive(Debug, Clone, serde::Serialize)]
@@ -56,7 +56,7 @@ impl Default for TradeRoute {
             trade_volume: 0,
             predicted_purchase_price: 0,
             predicted_sell_price: 0,
-            created_at: sqlx::types::chrono::NaiveDateTime::MIN,
+            created_at: sqlx::types::chrono::DateTime::<chrono::Utc>::MIN_UTC,
         }
     }
 }

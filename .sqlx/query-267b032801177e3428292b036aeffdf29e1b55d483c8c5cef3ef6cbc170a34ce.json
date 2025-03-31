@@ -204,7 +204,7 @@
       {
         "ordinal": 7,
         "name": "timestamp",
-        "type_info": "Timestamp"
+        "type_info": "Timestamptz"
       },
       {
         "ordinal": 8,

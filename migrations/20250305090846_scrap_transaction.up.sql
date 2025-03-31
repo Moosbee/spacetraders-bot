@@ -3,7 +3,7 @@ CREATE TABLE public.scrap_transaction (
   waypoint_symbol character varying NOT NULL,
   ship_symbol character varying NOT NULL,
   total_price integer NOT NULL,
-  "timestamp" timestamp without time zone NOT NULL,
+  "timestamp" timestamp with time zone NOT NULL,
   PRIMARY KEY (
     waypoint_symbol,
     ship_symbol,

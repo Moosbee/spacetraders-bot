@@ -5,7 +5,7 @@ use std::{
 
 use chrono::Utc;
 use log::{debug, info};
-use space_traders_client::models::{self, waypoint};
+use space_traders_client::models::{self};
 
 use crate::{
     config::CONFIG,
@@ -236,8 +236,8 @@ impl ConstructionManager {
             trade_symbol,
             units: purchase_volume,
             purchase_waypoint: purchase_symbol.0,
-            created_at: Utc::now().naive_utc(),
-            updated_at: Utc::now().naive_utc(),
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
             status: sql::ShipmentStatus::InTransit,
         };
 

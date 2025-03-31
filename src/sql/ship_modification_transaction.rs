@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use chrono::{DateTime, NaiveDateTime};
+use chrono::{DateTime, Utc};
 use space_traders_client::models;
 
 use super::DatabaseConnector;
@@ -10,7 +10,7 @@ pub struct ShipModificationTransaction {
     pub ship_symbol: String,
     pub trade_symbol: models::TradeSymbol,
     pub total_price: i32,
-    pub timestamp: NaiveDateTime,
+    pub timestamp: DateTime<Utc>,
 }
 
 impl TryFrom<models::ShipModificationTransaction> for ShipModificationTransaction {
@@ -20,8 +20,7 @@ impl TryFrom<models::ShipModificationTransaction> for ShipModificationTransactio
         let trade_symbol = models::TradeSymbol::from_str(&item.trade_symbol)
             .map_err(|_| Self::Error::TradeSymbol(item.trade_symbol))?;
         let timestamp = DateTime::<chrono::Utc>::from_str(&item.timestamp)
-            .map_err(|_| Self::Error::Timestamp(item.timestamp))?
-            .naive_utc();
+            .map_err(|_| Self::Error::Timestamp(item.timestamp))?;
         Ok(Self {
             waypoint_symbol: item.waypoint_symbol,
             ship_symbol: item.ship_symbol,
@@ -102,7 +101,7 @@ impl DatabaseConnector<ShipModificationTransaction> for ShipModificationTransact
             &ship_symbols,
             &trade_symbols as &[models::TradeSymbol],
             &total_prices,
-            &timestamps
+            &timestamps as &[chrono::DateTime<chrono::Utc>],
         )
         .execute(&database_pool.database_pool)
         .await?;
