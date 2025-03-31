@@ -6,7 +6,7 @@ use space_traders_client::models;
 use crate::{
     config::CONFIG,
     error::Error,
-    ship::{self, nav_models::Cache},
+    ship::{self},
     sql,
     types::ConductorContext,
 };
@@ -24,10 +24,10 @@ pub struct RouteCalculator {
 }
 
 impl RouteCalculator {
-    pub fn new(context: ConductorContext, cache: Cache) -> Self {
+    pub fn new(context: ConductorContext) -> Self {
         Self {
             context: context.clone(),
-            concrete: ConcreteRouteCalculator::new(cache),
+            concrete: ConcreteRouteCalculator::new(context.clone()),
         }
     }
 

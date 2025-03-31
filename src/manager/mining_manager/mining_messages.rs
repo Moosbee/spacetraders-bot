@@ -1,4 +1,4 @@
-use crate::error::Result;
+use crate::{error::Result, manager::fleet_manager::message::RequiredShips};
 
 #[derive(Debug)]
 pub enum MiningMessage {
@@ -8,6 +8,9 @@ pub enum MiningMessage {
         callback:
             tokio::sync::oneshot::Sender<Result<Vec<(String, super::mining_places::WaypointInfo)>>>,
     },
+    GetShips {
+        callback: tokio::sync::oneshot::Sender<RequiredShips>,
+    },
 }
 
 impl std::fmt::Display for MiningMessage {
@@ -16,6 +19,7 @@ impl std::fmt::Display for MiningMessage {
             Self::AssignWaypoint(inner) => write!(f, "AssignWaypoint: {}", inner),
             Self::ExtractionNotification(inner) => write!(f, "ExtractionNotification: {}", inner),
             Self::GetPlaces { callback } => write!(f, "GetPlaces: {:?}", callback),
+            Self::GetShips { callback } => write!(f, "GetShips: {:?}", callback),
         }
     }
 }

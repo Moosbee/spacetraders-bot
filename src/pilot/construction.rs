@@ -155,10 +155,8 @@ impl ConstructionPilot {
         ship.nav_to(
             &shipment.purchase_waypoint,
             true,
-            &waypoints,
-            &self.context.api,
-            self.context.database_pool.clone(),
             sql::TransactionReason::Construction(shipment.id),
+            &self.context,
         )
         .await?;
 
@@ -239,10 +237,8 @@ impl ConstructionPilot {
         ship.nav_to(
             &shipment.construction_site_waypoint,
             true,
-            &waypoints,
-            &self.context.api,
-            self.context.database_pool.clone(),
             sql::TransactionReason::Construction(shipment.id),
+            &self.context,
         )
         .await?;
 

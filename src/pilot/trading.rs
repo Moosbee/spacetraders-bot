@@ -7,7 +7,6 @@ use log::{debug, info};
 
 use crate::{
     error::{Error, Result},
-    manager::trade_manager::TradeManagerMessage,
     ship,
     sql::{self},
     types::ConductorContext,
@@ -43,7 +42,7 @@ impl TradingPilot {
 
         ship.notify().await;
 
-        let route = self.get_route(ship).await?;
+        let route = self.context.trade_manager.get_route(ship).await?;
         self.count.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
 
         ship.status = ship::ShipStatus::Trader {
@@ -57,7 +56,7 @@ impl TradingPilot {
 
         info!("Starting trade route for ship {}: {}", ship.symbol, route);
         self.execute_trade(ship, &route, pilot).await?;
-        let _completed_route = self.complete_trade(route).await?;
+        let _completed_route = self.context.trade_manager.complete_trade(&route).await?;
         ship.status = ship::ShipStatus::Trader {
             shipment_id: None,
             cycle: None,
@@ -71,56 +70,6 @@ impl TradingPilot {
         ship.notify().await;
 
         Ok(())
-    }
-
-    async fn get_route(&self, ship: &mut ship::MyShip) -> Result<sql::TradeRoute> {
-        debug!("Requesting next trade route for ship {}", ship.symbol);
-        let (sender, receiver) = tokio::sync::oneshot::channel();
-
-        let message = TradeManagerMessage::RequestNextTradeRoute {
-            ship_clone: ship.clone(),
-            callback: sender,
-        };
-
-        self.context
-            .trade_manager
-            .sender
-            .send(message)
-            .await
-            .map_err(|e| Error::General(format!("Failed to send message: {}", e)))?;
-
-        debug!("Requested next trade route for ship {}", ship.symbol);
-
-        let resp = receiver
-            .await
-            .map_err(|e| Error::General(format!("Failed to get trade get message: {}", e)))?;
-
-        debug!("Received trade route for ship {}: {:?}", ship.symbol, resp);
-        resp
-    }
-
-    async fn complete_trade(&self, trade_route: sql::TradeRoute) -> Result<sql::TradeRoute> {
-        debug!("Completing trade route: {:?}", trade_route);
-        let (sender, receiver) = tokio::sync::oneshot::channel();
-
-        let message = TradeManagerMessage::CompleteTradeRoute {
-            trade_route: trade_route.clone(),
-            callback: sender,
-        };
-
-        self.context
-            .trade_manager
-            .sender
-            .send(message)
-            .await
-            .map_err(|e| Error::General(format!("Failed to send message: {}", e)))?;
-
-        let resp = receiver
-            .await
-            .map_err(|e| Error::General(format!("Failed to get trade complete message: {}", e)))?;
-
-        debug!("Completed trade route: {:?}", resp);
-        resp
     }
 
     async fn execute_trade(
@@ -180,10 +129,8 @@ impl TradingPilot {
             ship.nav_to(
                 &route.purchase_waypoint,
                 true,
-                &waypoints,
-                &self.context.api,
-                self.context.database_pool.clone(),
                 sql::TransactionReason::TradeRoute(route.id),
+                &self.context,
             )
             .await?;
 
@@ -270,10 +217,8 @@ impl TradingPilot {
         ship.nav_to(
             &route.sell_waypoint,
             true,
-            &waypoints,
-            &self.context.api,
-            self.context.database_pool.clone(),
             sql::TransactionReason::TradeRoute(route.id),
+            &self.context,
         )
         .await?;
 

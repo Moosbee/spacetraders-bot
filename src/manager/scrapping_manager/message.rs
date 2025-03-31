@@ -13,6 +13,8 @@ The ship will then go to the waypoint and wait until said date comes and scrap
 if there are ships to spare, shipyards(all or only requested) get a static scrapper directly
 */
 
+use crate::manager::fleet_manager::message::RequiredShips;
+
 #[derive(Debug)]
 pub enum ScrapResponse {
     Unassigned,
@@ -41,6 +43,9 @@ pub enum ScrapMessage {
         ship_clone: crate::ship::MyShip,
 
         callback: tokio::sync::oneshot::Sender<Vec<(String, chrono::DateTime<chrono::Utc>)>>,
+    },
+    GetShips {
+        callback: tokio::sync::oneshot::Sender<RequiredShips>,
     },
 }
 

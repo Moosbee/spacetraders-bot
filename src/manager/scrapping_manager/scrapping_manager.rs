@@ -9,7 +9,11 @@ use log::{debug, error, info};
 use crate::{
     config::CONFIG,
     error::{Error, Result},
-    manager::{scrapping_manager::priority_calculator, Manager},
+    manager::{
+        fleet_manager::message::{Budget, Priority, RequestedShipType, RequiredShips},
+        scrapping_manager::priority_calculator,
+        Manager,
+    },
     sql::{self, DbPool},
     types::{ConductorContext, WaypointCan},
     utils::distance_between_waypoints,
@@ -151,9 +155,63 @@ impl ScrappingManager {
                         crate::error::Error::General(format!("Failed to send message: {:?}", e))
                     })?
             }
+            super::message::ScrapMessage::GetShips { callback } => {
+                let ships = self.get_required_ships().await?;
+                callback.send(ships).map_err(|e| {
+                    crate::error::Error::General(format!("Failed to send message: {:?}", e))
+                })?
+            }
         }
 
         Ok(())
+    }
+
+    async fn get_required_ships(&self) -> Result<RequiredShips> {
+        let all_ships = self
+            .context
+            .ship_manager
+            .get_all_clone()
+            .await
+            .into_values()
+            .filter(|ship| ship.role == sql::ShipInfoRole::Scraper)
+            .map(|s| (s.nav.system_symbol.clone(), s.symbol))
+            .collect::<Vec<_>>();
+
+        let mut systems: HashMap<String, Vec<String>> = HashMap::new();
+
+        for s in all_ships {
+            let system = systems.get_mut(&s.0);
+            if let Some(system) = system {
+                system.push(s.1);
+            } else {
+                systems.insert(s.0, vec![s.1]);
+            }
+        }
+
+        let mut required_ships = RequiredShips::new();
+
+        for (system, ships) in systems {
+            let waypoints = sql::Waypoint::get_by_system(&self.context.database_pool, &system)
+                .await?
+                .into_iter()
+                .filter(|w| w.is_marketplace() || w.is_shipyard())
+                .count();
+            let diff = (waypoints as i64) - (ships.len() as i64);
+            if diff <= 0 {
+                continue;
+            };
+
+            let sys_ships = (0..(diff as usize))
+                .map(|_| (RequestedShipType::Scrapper, Priority::High, Budget::High))
+                .collect::<Vec<_>>();
+
+            let before = required_ships.ships.insert(system, sys_ships);
+            if before.is_some() {
+                log::warn!("Scrapping Ship contains ships");
+            }
+        }
+
+        Ok(required_ships)
     }
 
     async fn complete_scrapping(

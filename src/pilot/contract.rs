@@ -209,10 +209,8 @@ impl ContractPilot {
         ship.nav_to(
             &shipment.purchase_symbol,
             true,
-            &waypoints,
-            &self.context.api,
-            self.context.database_pool.clone(),
             sql::TransactionReason::Contract(shipment.contract_id.clone()),
+            &self.context,
         )
         .await?;
 
@@ -298,10 +296,8 @@ impl ContractPilot {
         ship.nav_to(
             &shipment.destination_symbol,
             true,
-            &waypoints,
-            &self.context.api,
-            self.context.database_pool.clone(),
             sql::TransactionReason::Contract(shipment.contract_id.clone()),
+            &self.context,
         )
         .await?;
 

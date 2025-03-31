@@ -96,11 +96,9 @@ impl TransportPilot {
             ship.nav_to_prepare(
                 &next_mining_waypoint,
                 true,
-                &waypoints,
-                &self.context.api,
-                self.context.database_pool.clone(),
                 TransactionReason::MiningWaypoint(next_mining_waypoint.clone()),
                 true,
+                &self.context,
             )
             .await?;
 
@@ -303,10 +301,8 @@ impl TransportPilot {
             ship.nav_to(
                 &next_waypoint,
                 true,
-                waypoints,
-                &self.context.api,
-                self.context.database_pool.clone(),
                 TransactionReason::MiningWaypoint(mining_waypoint.clone()),
+                &self.context,
             )
             .await?;
 

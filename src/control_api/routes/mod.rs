@@ -49,7 +49,9 @@ async fn handle_rejection(err: warp::Rejection) -> crate::control_api::types::Re
             _ => warp::http::StatusCode::INTERNAL_SERVER_ERROR,
         };
         Ok(warp::reply::with_status(
-            warp::reply::json(&serde_json::json!({ "error": e.to_string() })),
+            warp::reply::json(
+                &serde_json::json!({ "error": e.to_string(),"debug": format!("{:?}", e) }),
+            ),
             code,
         ))
     } else {

@@ -2,20 +2,21 @@ use std::collections::HashMap;
 
 use crate::{
     config::CONFIG,
-    ship::{self, nav_models::Cache},
+    ship::{self},
     sql,
+    types::ConductorContext,
 };
 
 use super::routes::{ConcreteTradeRoute, ExtrapolatedTradeRoute, TripStats};
 
 #[derive(Debug)]
 pub struct ConcreteRouteCalculator {
-    cache: Cache,
+    context: ConductorContext,
 }
 
 impl ConcreteRouteCalculator {
-    pub fn new(cache: Cache) -> Self {
-        Self { cache }
+    pub fn new(context: ConductorContext) -> Self {
+        Self { context }
     }
     pub fn calc(
         &mut self,
@@ -100,19 +101,14 @@ impl ConcreteRouteCalculator {
     fn find_route(
         &mut self,
         ship: &ship::MyShip,
-        waypoints: &std::collections::HashMap<String, sql::Waypoint>,
+        waypoints: &HashMap<String, sql::Waypoint>,
         sell_wp_symbol: &str,
         purchase_wp_symbol: &str,
-    ) -> Result<Vec<ship::nav_models::RouteConnection>, crate::error::Error> {
-        ship.find_route_cached(
-            waypoints,
-            sell_wp_symbol.to_string(),
-            purchase_wp_symbol.to_string(),
-            &ship::nav_models::NavMode::BurnAndCruiseAndDrift,
-            true,
-            ship.fuel.capacity,
-            &mut self.cache,
-        )
+    ) -> Result<Vec<ship::autopilot::SimpleConnection>, crate::error::Error> {
+        let pilot = ship
+            .get_pathfinder(&self.context)
+            .ok_or(crate::error::Error::General("NoAutopilot".to_string()))?;
+        pilot.find_route_system(waypoints, sell_wp_symbol, purchase_wp_symbol)
     }
 
     fn calculate_reoccurring_trip_stats(
@@ -195,21 +191,16 @@ impl ConcreteRouteCalculator {
         &self,
         ship: &ship::MyShip,
         waypoints: &std::collections::HashMap<String, sql::Waypoint>,
-        route: &[ship::nav_models::RouteConnection],
+        route: &[ship::autopilot::SimpleConnection],
     ) -> RouteStats {
-        let (_, total_distance, total_fuel_cost, total_travel_time) = ship::stats::calc_route_stats(
-            waypoints,
-            route,
-            ship.engine_speed,
-            ship.conditions.engine.condition,
-            ship.conditions.frame.condition,
-            ship.conditions.reactor.condition,
-        );
+        let route = ship
+            .assemble_simple_route(route, CONFIG.trading.fuel_cost)
+            .unwrap();
 
         RouteStats {
-            fuel_cost: total_fuel_cost,
-            travel_time: total_travel_time,
-            distance: total_distance,
+            fuel_cost: route.total_fuel_cost as i32,
+            travel_time: route.total_travel_time,
+            distance: route.total_distance,
         }
     }
 }

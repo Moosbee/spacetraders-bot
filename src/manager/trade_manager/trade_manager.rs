@@ -1,29 +1,23 @@
+use std::collections::HashMap;
+
 use log::debug;
 use tokio::select;
 
 use crate::{
     error::Result,
-    manager::Manager,
-    ship::nav_models::Cache,
+    manager::{
+        fleet_manager::message::{Budget, Priority, RequestedShipType, RequiredShips},
+        trade_manager::message::TradeMessage,
+        Manager,
+    },
     sql::{self, DatabaseConnector},
-    types::ConductorContext,
+    types::{ConductorContext, WaypointCan},
 };
 
-use super::{routes_calculator::RouteCalculator, routes_tracker::RoutesTracker};
-
-#[derive(Debug)]
-pub enum TradeMessage {
-    RequestNextTradeRoute {
-        ship_clone: crate::ship::MyShip,
-        callback: tokio::sync::oneshot::Sender<Result<sql::TradeRoute>>,
-    },
-    CompleteTradeRoute {
-        trade_route: sql::TradeRoute,
-        callback: tokio::sync::oneshot::Sender<Result<sql::TradeRoute>>,
-    },
-}
-
-pub type TradeManagerMessage = TradeMessage;
+use super::{
+    messager::TradeManagerMessanger, routes_calculator::RouteCalculator,
+    routes_tracker::RoutesTracker, TradeManagerMessage,
+};
 
 #[derive(Debug)]
 pub struct TradeManager {
@@ -34,11 +28,6 @@ pub struct TradeManager {
     calculator: RouteCalculator,
 }
 
-#[derive(Debug, Clone)]
-pub struct TradeManagerMessanger {
-    pub sender: tokio::sync::mpsc::Sender<TradeManagerMessage>,
-}
-
 impl TradeManager {
     pub fn create() -> (
         tokio::sync::mpsc::Receiver<TradeManagerMessage>,
@@ -46,7 +35,7 @@ impl TradeManager {
     ) {
         let (sender, receiver) = tokio::sync::mpsc::channel(1024);
         debug!("Created TradeManager channel");
-        (receiver, TradeManagerMessanger { sender })
+        (receiver, TradeManagerMessanger::new(sender))
     }
 
     pub fn new(
@@ -60,7 +49,7 @@ impl TradeManager {
             context: context.clone(),
             receiver,
             routes_tracker: RoutesTracker::default(),
-            calculator: RouteCalculator::new(context, Cache::default()),
+            calculator: RouteCalculator::new(context),
         }
     }
 
@@ -105,8 +94,77 @@ impl TradeManager {
                 debug!("Sending route: {:?}", route);
                 let _send = callback.send(route);
             }
+            TradeMessage::GetShips { callback } => {
+                let ships = self.get_required_ships().await?;
+                callback.send(ships).map_err(|e| {
+                    crate::error::Error::General(format!("Failed to send message: {:?}", e))
+                })?
+            }
         }
         Ok(())
+    }
+
+    async fn get_required_ships(&self) -> Result<RequiredShips> {
+        let all_ships = self
+            .context
+            .ship_manager
+            .get_all_clone()
+            .await
+            .into_values()
+            // .filter(|ship| ship.role == sql::ShipInfoRole::Trader)
+            .map(|s| (s.nav.system_symbol.clone(), s.symbol, s.role))
+            .collect::<Vec<_>>();
+
+        let mut systems: HashMap<String, Vec<String>> = HashMap::new();
+
+        for s in all_ships {
+            let system = systems.get_mut(&s.0);
+            if let Some(system) = system {
+                if s.2 == sql::ShipInfoRole::Trader {
+                    system.push(s.1);
+                }
+            } else if s.2 == sql::ShipInfoRole::Trader {
+                systems.insert(s.0, vec![s.1]);
+            } else {
+                systems.insert(s.0, vec![]);
+            }
+        }
+
+        let mut required_ships = RequiredShips::new();
+
+        for (system, ships) in systems {
+            let waypoints = sql::Waypoint::get_by_system(&self.context.database_pool, &system)
+                .await?
+                .into_iter()
+                .filter(|w| w.is_marketplace())
+                .count();
+            let diff = ((waypoints / 5) as i64) - (ships.len() as i64);
+            if diff <= 0 {
+                continue;
+            };
+
+            let mut sys_ships = (0..(diff as usize))
+                .map(|_| {
+                    (
+                        RequestedShipType::Transporter,
+                        Priority::Medium,
+                        Budget::High,
+                    )
+                })
+                .collect::<Vec<_>>();
+
+            if ships.is_empty() && waypoints > 0 {
+                sys_ships.pop();
+                sys_ships.push((RequestedShipType::Transporter, Priority::High, Budget::High));
+            }
+
+            let before = required_ships.ships.insert(system, sys_ships);
+            if before.is_some() {
+                log::warn!("Trading Ship contains ships");
+            }
+        }
+
+        Ok(required_ships)
     }
 
     async fn request_next_trade_route(

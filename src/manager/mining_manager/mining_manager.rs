@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 
 use log::{debug, info};
 use space_traders_client::models::{self};
@@ -6,9 +6,13 @@ use space_traders_client::models::{self};
 use crate::{
     config::CONFIG,
     error::Result,
-    manager::{mining_manager::mining_messages::MiningMessage, Manager},
-    ship,
-    types::ConductorContext,
+    manager::{
+        fleet_manager::message::{Budget, Priority, RequestedShipType, RequiredShips},
+        mining_manager::mining_messages::MiningMessage,
+        Manager,
+    },
+    ship, sql,
+    types::{ConductorContext, WaypointCan},
 };
 
 use super::{
@@ -102,8 +106,73 @@ impl MiningManager {
                 let places = self.waypoint_manager.get_all_places();
                 callback.send(Ok(places)).unwrap();
             }
+            MiningMessage::GetShips { callback } => {
+                let ships = self.get_required_ships().await?;
+                callback.send(ships).unwrap();
+            }
         }
         Ok(())
+    }
+
+    async fn get_required_ships(&self) -> Result<RequiredShips> {
+        let all_ships = self
+            .context
+            .ship_manager
+            .get_all_clone()
+            .await
+            .into_values()
+            .filter(|ship| ship.role == sql::ShipInfoRole::Mining)
+            .filter_map(|ship| match ship.status {
+                ship::ShipStatus::Mining { assignment } => Some((
+                    ship.nav.system_symbol.clone(),
+                    ship.symbol,
+                    ship.role,
+                    assignment,
+                )),
+                _ => None,
+            })
+            .collect::<Vec<_>>();
+
+        let mut systems: HashMap<
+            String,
+            Vec<(
+                String,
+                String,
+                sql::ShipInfoRole,
+                crate::pilot::MiningShipAssignment,
+            )>,
+        > = HashMap::new();
+
+        for s in all_ships {
+            let system = systems.get_mut(&s.0);
+
+            if let Some(system) = system {
+                system.push(s);
+            } else {
+                systems.insert(s.0.clone(), vec![s]);
+            }
+        }
+
+        let mut required_ships = RequiredShips::new();
+
+        for (system, ships) in systems {
+            let sys_ships = vec![
+                (
+                    RequestedShipType::Transporter,
+                    Priority::Medium,
+                    Budget::High,
+                ),
+                (RequestedShipType::Mining, Priority::Medium, Budget::High),
+                (RequestedShipType::Siphon, Priority::Medium, Budget::High),
+            ];
+
+            let before = required_ships.ships.insert(system, sys_ships);
+            if before.is_some() {
+                log::warn!("Trading Ship contains ships");
+            }
+        }
+
+        Ok(required_ships)
     }
 
     async fn handle_assign_waypoint_message(

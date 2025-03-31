@@ -101,15 +101,13 @@ impl ScraperPilot {
             ship.nav_to(
                 &waypoint_symbol,
                 true,
-                &waypoints,
-                &self.context.api,
-                self.context.database_pool.clone(),
                 sql::TransactionReason::None,
+                &self.context,
             )
             .await?;
         }
 
-        ship.wait_for_arrival(&self.context.api)
+        ship.wait_for_arrival_mut(&self.context.api)
             .await
             .map_err(|e| e.to_string())?;
 

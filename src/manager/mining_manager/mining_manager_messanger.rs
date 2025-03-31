@@ -9,7 +9,7 @@ use super::{
     transfer_manager::{ExtractorTransferRequest, TransferManager, TransportTransferRequest},
 };
 
-use crate::error::Result;
+use crate::{error::Result, manager::fleet_manager::message::RequiredShips};
 
 #[derive(Debug, Clone)]
 pub struct MiningManagerMessanger {
@@ -202,5 +202,16 @@ impl MiningManagerMessanger {
         callback.await.map_err(|e| {
             crate::error::Error::General(format!("Failed to get GetAssignments message: {}", e))
         })?
+    }
+
+    pub async fn get_ships(&self) -> Result<RequiredShips> {
+        let (tx, rx) = tokio::sync::oneshot::channel();
+        self.sender
+            .send(MiningMessage::GetShips { callback: tx })
+            .await
+            .map_err(|e| crate::error::Error::General(format!("Failed to send message: {}", e)))
+            .unwrap();
+        rx.await
+            .map_err(|e| crate::error::Error::General(format!("Failed to receive message: {}", e)))
     }
 }

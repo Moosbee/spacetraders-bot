@@ -220,7 +220,7 @@ impl ExtractionPilot {
         )
         .await;
 
-        ship.wait_for_arrival(&self.context.api)
+        ship.wait_for_arrival_mut(&self.context.api)
             .await
             .map_err(|e| e.to_string())?;
         if ship.nav.waypoint_symbol == waypoint_symbol {
@@ -244,10 +244,8 @@ impl ExtractionPilot {
         ship.nav_to(
             waypoint_symbol,
             true,
-            &waypoints,
-            &self.context.api,
-            self.context.database_pool.clone(),
             TransactionReason::MiningWaypoint(waypoint_symbol.to_string()),
+            &self.context,
         )
         .await?;
 

@@ -83,15 +83,8 @@ impl ChartPilot {
                 .map(|w| (w.symbol.clone(), w))
                 .collect::<HashMap<_, _>>();
 
-        ship.nav_to(
-            &chart,
-            true,
-            &waypoints,
-            &self.context.api,
-            self.context.database_pool.clone(),
-            sql::TransactionReason::None,
-        )
-        .await?;
+        ship.nav_to(&chart, true, sql::TransactionReason::None, &self.context)
+            .await?;
 
         self.chart_waypoint(ship).await?;
 

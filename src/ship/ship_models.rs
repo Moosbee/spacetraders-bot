@@ -137,7 +137,7 @@ pub struct MyShip {
     pub active: bool,
     pub cooldown_expiration: Option<DateTime<Utc>>,
     // Navigation state
-    pub nav: super::nav::nav_models::NavigationState,
+    pub nav: super::nav::NavigationState,
     // Cargo state
     pub cargo: CargoState,
     // Fuel state
@@ -513,5 +513,12 @@ impl MyShip {
         let id = sql::ShipState::insert_get_id(database_pool, &state).await?;
 
         Ok(id)
+    }
+}
+
+impl FuelState {
+    pub fn update(&mut self, data: &space_traders_client::models::ShipFuel) {
+        self.current = data.current;
+        self.capacity = data.capacity;
     }
 }

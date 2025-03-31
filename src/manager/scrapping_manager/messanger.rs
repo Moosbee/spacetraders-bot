@@ -1,8 +1,10 @@
+use crate::manager::fleet_manager::message::RequiredShips;
+
 use super::message::ScrappingManagerMessage;
 
 #[derive(Debug, Clone)]
 pub struct ScrappingManagerMessanger {
-    sender: tokio::sync::mpsc::Sender<ScrappingManagerMessage>,
+    pub sender: tokio::sync::mpsc::Sender<ScrappingManagerMessage>,
 }
 
 impl ScrappingManagerMessanger {
@@ -68,6 +70,17 @@ impl ScrappingManagerMessanger {
                 callback: tx,
                 ship_clone,
             })
+            .await
+            .map_err(|e| crate::error::Error::General(format!("Failed to send message: {}", e)))
+            .unwrap();
+        rx.await
+            .map_err(|e| crate::error::Error::General(format!("Failed to receive message: {}", e)))
+    }
+
+    pub async fn get_ships(&self) -> Result<RequiredShips, crate::error::Error> {
+        let (tx, rx) = tokio::sync::oneshot::channel();
+        self.sender
+            .send(ScrappingManagerMessage::GetShips { callback: tx })
             .await
             .map_err(|e| crate::error::Error::General(format!("Failed to send message: {}", e)))
             .unwrap();

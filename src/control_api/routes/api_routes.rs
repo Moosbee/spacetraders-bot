@@ -224,6 +224,12 @@ pub(crate) fn build_api_routes(
         .and(with_context(context.clone()))
         .and_then(handlers::handle_get_scrapping_info);
 
+    let ship_discrepancy = warp::path!("insights" / "ship" / "discrepancy")
+        .and(warp::path::end())
+        .and(warp::get())
+        .and(with_context(context.clone()))
+        .and_then(handlers::handle_get_ships_to_purchase);
+
     // Shutdown route
     let shutdown = warp::path("shutdown")
         .and(warp::path::end())
@@ -266,6 +272,7 @@ pub(crate) fn build_api_routes(
         .or(running_mining_assignments)
         .or(request_system)
         .or(scrapping_queue)
+        .or(ship_discrepancy)
         .or(shutdown)
         .or(not_found_routes)
 }

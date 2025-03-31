@@ -70,3 +70,29 @@ pub async fn handle_get_scrapping_info(
         .map_err(|e| ServerError::Server(e.to_string()))?;
     Ok(warp::reply::json(&serde_json::json!({"info": info})))
 }
+
+pub async fn handle_get_ships_to_purchase(context: ConductorContext) -> Result<impl Reply> {
+    let scrap_ships = context
+        .scrapping_manager
+        .get_ships()
+        .await
+        .map_err(|e| ServerError::Server(e.to_string()))?;
+
+    let trading_ships = context
+        .trade_manager
+        .get_ships()
+        .await
+        .map_err(|e| ServerError::Server(e.to_string()))?;
+
+    let mining_ships = context
+        .mining_manager
+        .get_ships()
+        .await
+        .map_err(|e| ServerError::Server(e.to_string()))?;
+
+    Ok(warp::reply::json(&serde_json::json!({
+      "scrap": scrap_ships,
+      "trading":trading_ships,
+      "mining":mining_ships
+    })))
+}

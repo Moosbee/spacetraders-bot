@@ -8,7 +8,6 @@ use crate::{
     error,
     sql::{self, DatabaseConnector},
     types::{ConductorContext, WaypointCan},
-    utils::get_system_symbol,
 };
 
 pub async fn handle_get_ships(context: ConductorContext) -> Result<impl Reply> {
@@ -263,34 +262,28 @@ pub async fn handle_jump_ship(
         .map(|s| s.to_string())
         .ok_or(ServerError::BadRequest("Missing waypointSymbol".into()))?;
 
-    let waypoint = sql::Waypoint::get_by_symbol(&context.database_pool, &waypoint_symbol)
-        .await
-        .map_err(ServerError::Database)?;
-
-    if waypoint.is_none() {
-        let system_symbol = get_system_symbol(&waypoint_symbol);
-        crate::manager::scrapping_manager::utils::update_system(
-            &context.database_pool,
-            &context.api,
-            &system_symbol,
-            true,
-        )
-        .await
-        .map_err(|err| ServerError::Server(err.to_string()))?;
-    }
-
     ship.ensure_undocked(&context.api)
         .await
         .map_err(ServerError::from)?;
 
-    ship.jump(
-        &context.api,
-        &waypoint_symbol,
+    let jump_data = ship
+        .jump(&context.api, &waypoint_symbol)
+        .await
+        .map_err(ServerError::from)?;
+
+    sql::Agent::insert(
         &context.database_pool,
-        sql::TransactionReason::None,
+        &sql::Agent::from((*jump_data.data.agent).clone()),
     )
     .await
     .map_err(ServerError::from)?;
+
+    let transaction = sql::MarketTransaction::try_from(jump_data.data.transaction.as_ref().clone())
+        .map_err(ServerError::from)?
+        .with(sql::TransactionReason::None);
+    sql::MarketTransaction::insert(&context.database_pool, &transaction)
+        .await
+        .map_err(ServerError::from)?;
 
     Ok(warp::reply::json(&serde_json::json!({
         "success": true,
@@ -442,19 +435,6 @@ async fn navigate_ship(
         .value_mut()
         .ok_or_else(|| error::Error::General("Ship not found".to_string()))?;
 
-    let waypoints = sql::Waypoint::get_by_system(&context.database_pool, &ship.nav.system_symbol)
-        .await?
-        .into_iter()
-        .map(|w| (w.symbol.clone(), w))
-        .collect::<HashMap<_, _>>();
-
-    ship.nav_to(
-        waypoint_id,
-        true,
-        &waypoints,
-        &context.api,
-        context.database_pool.clone(),
-        sql::TransactionReason::None,
-    )
-    .await
+    ship.nav_to(waypoint_id, true, sql::TransactionReason::None, &context)
+        .await
 }

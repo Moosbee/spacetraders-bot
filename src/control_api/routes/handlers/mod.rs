@@ -22,6 +22,7 @@ pub use insight::handle_get_mining_assignments;
 pub use insight::handle_get_running_construction_shipments;
 pub use insight::handle_get_running_contract_shipments;
 pub use insight::handle_get_scrapping_info;
+pub use insight::handle_get_ships_to_purchase;
 pub use ship::handle_buy_ship;
 pub use ship::handle_change_role;
 pub use ship::handle_chart_waypoint;
