@@ -1,6 +1,6 @@
 use space_traders_client::models;
 
-use crate::{ship, sql};
+use crate::{manager::fleet_manager::message::RequiredShips, ship, sql};
 
 #[derive(Debug)]
 pub enum ConstructionMessage {
@@ -21,6 +21,9 @@ pub enum ConstructionMessage {
         callback: tokio::sync::oneshot::Sender<
             Result<Vec<sql::ConstructionShipment>, crate::error::Error>,
         >,
+    },
+    GetShips {
+        callback: tokio::sync::oneshot::Sender<RequiredShips>,
     },
 }
 

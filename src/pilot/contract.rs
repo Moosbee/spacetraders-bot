@@ -4,7 +4,7 @@ use log::debug;
 
 use crate::{
     error::{Error, Result},
-    manager::contract_manager::{ContractShipmentMessage, NextShipmentResp},
+    manager::contract_manager::NextShipmentResp,
     ship, sql,
     types::ConductorContext,
 };
@@ -32,7 +32,11 @@ impl ContractPilot {
 
         debug!("Requesting next shipment for ship: {:?}", ship.symbol);
 
-        let shipment = self.request_next_shipment(ship).await?;
+        let shipment = self
+            .context
+            .contract_manager
+            .request_next_shipment(ship)
+            .await?;
 
         debug!("Next shipment: {:?}", shipment);
 
@@ -64,7 +68,11 @@ impl ContractPilot {
             debug!("Purchasing cargo");
             let er = self.purchase_cargo(ship, &shipment, pilot).await;
             if let Err(e) = er {
-                let erg = self.fail_shipment(shipment, e).await?;
+                let erg = self
+                    .context
+                    .contract_manager
+                    .fail_shipment(shipment, e)
+                    .await?;
                 if let Error::NotEnoughFunds { .. } = erg {
                     return Ok(());
                 }
@@ -78,7 +86,11 @@ impl ContractPilot {
         let del_erg = self.deliver_cargo(ship, shipment.clone()).await;
 
         if let Err(e) = del_erg {
-            let erg = self.fail_shipment(shipment, e).await?;
+            let erg = self
+                .context
+                .contract_manager
+                .fail_shipment(shipment, e)
+                .await?;
             if let Error::NotEnoughFunds { .. } = erg {
                 return Ok(());
             }
@@ -90,7 +102,10 @@ impl ContractPilot {
 
         debug!("Completing shipment");
 
-        self.complete_shipment(shipment, contract).await?;
+        self.context
+            .contract_manager
+            .complete_shipment(shipment, contract)
+            .await?;
 
         ship.status = ship::ShipStatus::Contract {
             contract_id: None,
@@ -110,72 +125,6 @@ impl ContractPilot {
         ship.role = sql::ShipInfoRole::TempTrader;
         debug!("Doing something else");
         ship.notify().await;
-
-        Ok(())
-    }
-
-    async fn request_next_shipment(&self, ship: &ship::MyShip) -> Result<NextShipmentResp> {
-        let (sender, receiver) = tokio::sync::oneshot::channel();
-        let message = ContractShipmentMessage::RequestNext {
-            ship_clone: ship.clone(),
-            callback: sender,
-            can_start_new_contract: true,
-        };
-        self.context
-            .contract_manager
-            .sender
-            .send(message)
-            .await
-            .map_err(|e| Error::General(format!("Failed to send message: {}", e)))?;
-
-        let resp = receiver.await.map_err(|e| {
-            Error::General(format!("Failed to get contract request message: {}", e))
-        })?;
-
-        debug!("Got response: {:?}", resp);
-
-        resp
-    }
-
-    async fn fail_shipment(&self, shipment: sql::ContractShipment, error: Error) -> Result<Error> {
-        let (sender, receiver) = tokio::sync::oneshot::channel();
-
-        let message = ContractShipmentMessage::Failed {
-            shipment,
-            error,
-            callback: sender,
-        };
-        self.context
-            .contract_manager
-            .sender
-            .send(message)
-            .await
-            .map_err(|e| Error::General(format!("Failed to send message: {}", e)))?;
-
-        let resp = receiver
-            .await
-            .map_err(|e| Error::General(format!("Failed to get contract fail message: {}", e)))?;
-
-        debug!("Got response: {:?}", resp);
-
-        resp
-    }
-
-    async fn complete_shipment(
-        &self,
-        shipment: sql::ContractShipment,
-        contract: space_traders_client::models::Contract,
-    ) -> Result<()> {
-        let message = ContractShipmentMessage::Finished { contract, shipment };
-
-        debug!("Sending message: {:?}", message);
-
-        self.context
-            .contract_manager
-            .sender
-            .send(message)
-            .await
-            .map_err(|e| Error::General(format!("Failed to send message: {}", e)))?;
 
         Ok(())
     }

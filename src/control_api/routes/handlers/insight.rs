@@ -90,10 +90,31 @@ pub async fn handle_get_ships_to_purchase(context: ConductorContext) -> Result<i
         .await
         .map_err(|e| ServerError::Server(e.to_string()))?;
 
+    let construction_ships = context
+        .construction_manager
+        .get_ships()
+        .await
+        .map_err(|e| ServerError::Server(e.to_string()))?;
+
+    let chart_ships = context
+        .chart_manager
+        .get_ships()
+        .await
+        .map_err(|e| ServerError::Server(e.to_string()))?;
+
+    let contract_ships = context
+        .contract_manager
+        .get_ships()
+        .await
+        .map_err(|e| ServerError::Server(e.to_string()))?;
+
     Ok(warp::reply::json(&serde_json::json!({
+      "chart":chart_ships,
+      "construction":construction_ships,
+      "contract":contract_ships,
+      "mining":mining_ships,
       "scrap": scrap_ships,
       "trading":trading_ships,
-      "mining":mining_ships
     })))
 }
 
@@ -104,4 +125,9 @@ pub async fn handle_get_possible_trades(context: ConductorContext) -> Result<imp
         .await
         .map_err(|e| ServerError::Server(e.to_string()))?;
     Ok(warp::reply::json(&serde_json::json!({"trades": trades})))
+}
+
+pub async fn handle_get_run_info(context: ConductorContext) -> Result<impl Reply> {
+    let info = { context.run_info.read().await.clone() };
+    Ok(warp::reply::json(&serde_json::json!(info)))
 }

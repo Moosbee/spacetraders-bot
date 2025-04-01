@@ -7,40 +7,17 @@ use space_traders_client::models::{self};
 use crate::{
     config::CONFIG,
     error::{self, Error, Result},
-    manager::Manager,
+    manager::{
+        contract_manager::ContractShipmentMessage, fleet_manager::message::RequiredShips, Manager,
+    },
     ship,
     sql::{self, DatabaseConnector},
     types::ConductorContext,
 };
 
-#[derive(Debug)]
-pub enum ContractShipmentMessage {
-    RequestNext {
-        ship_clone: ship::MyShip,
-        can_start_new_contract: bool,
-        callback: tokio::sync::oneshot::Sender<Result<NextShipmentResp>>,
-    },
-    Failed {
-        shipment: sql::ContractShipment,
-        error: crate::error::Error,
-        callback: tokio::sync::oneshot::Sender<Result<crate::error::Error>>,
-    },
-    Finished {
-        contract: models::Contract,
-        shipment: sql::ContractShipment,
-    },
-    GetRunning {
-        callback: tokio::sync::oneshot::Sender<Result<Vec<sql::ContractShipment>>>,
-    },
-}
-
-#[derive(Debug, Clone)]
-pub enum NextShipmentResp {
-    Shipment(sql::ContractShipment),
-    ComeBackLater,
-}
-
-type ContractManagerMessage = ContractShipmentMessage;
+use super::{
+    message::ContractManagerMessage, messanger::ContractManagerMessanger, NextShipmentResp,
+};
 
 #[derive(Debug)]
 pub struct ContractManager {
@@ -51,11 +28,6 @@ pub struct ContractManager {
     running_shipments: Vec<sql::ContractShipment>,
 }
 
-#[derive(Debug, Clone)]
-pub struct ContractManagerMessanger {
-    pub sender: tokio::sync::mpsc::Sender<ContractManagerMessage>,
-}
-
 impl ContractManager {
     pub fn create() -> (
         tokio::sync::mpsc::Receiver<ContractManagerMessage>,
@@ -64,7 +36,7 @@ impl ContractManager {
         let (sender, receiver) = tokio::sync::mpsc::channel(1024);
         debug!("Created ContractManager channel");
 
-        (receiver, ContractManagerMessanger { sender })
+        (receiver, ContractManagerMessanger::new(sender))
     }
 
     pub fn new(
@@ -125,7 +97,8 @@ impl ContractManager {
     }
 
     async fn get_budget(&self) -> Result<i64> {
-        let agent = sql::Agent::get_last_by_symbol(&self.context.database_pool, &CONFIG.symbol)
+        let agent_symbol = { self.context.run_info.read().await.agent_symbol.clone() };
+        let agent = sql::Agent::get_last_by_symbol(&self.context.database_pool, &agent_symbol)
             .await?
             .ok_or(Error::General("Agent not found".to_string()))?;
         Ok(agent.credits - 30_000)
@@ -162,9 +135,16 @@ impl ContractManager {
             ContractShipmentMessage::GetRunning { callback } => {
                 callback.send(Ok(self.running_shipments.clone())).unwrap();
             }
+            ContractShipmentMessage::GetShips { callback } => {
+                callback.send(self.get_required_ships().await?).unwrap();
+            }
         }
 
         Ok(())
+    }
+
+    async fn get_required_ships(&self) -> Result<RequiredShips> {
+        todo!()
     }
 
     async fn request_next_shipment(
@@ -501,7 +481,7 @@ impl ContractManager {
     }
 
     fn can_fulfill_trade(&self, contract: &models::Contract) -> bool {
-        contract.terms.deliver.as_ref().map_or(false, |deliveries| {
+        contract.terms.deliver.as_ref().is_some_and(|deliveries| {
             deliveries
                 .iter()
                 .all(|d| d.units_fulfilled >= d.units_required)

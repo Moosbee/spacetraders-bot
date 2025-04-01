@@ -15,9 +15,9 @@ mod rate_limiter;
 mod types;
 mod utils;
 
-use std::{collections::HashSet, env, error::Error, sync::Arc, vec};
+use std::{collections::HashSet, env, error::Error, str::FromStr, sync::Arc, vec};
 
-use chrono::{DateTime, NaiveDateTime, Utc};
+use chrono::{DateTime, Utc};
 use config::CONFIG;
 use env_logger::{Env, Target};
 use manager::{
@@ -34,13 +34,13 @@ use rsntp::AsyncSntpClient;
 use ship::ShipManager;
 use space_traders_client::models;
 use sql::DatabaseConnector;
-use tokio::sync::broadcast;
+use tokio::sync::{broadcast, RwLock};
 use tokio_stream::StreamExt;
 use tokio_util::sync::CancellationToken;
-use types::{ConductorContext, WaypointCan};
+use types::{ConductorContext, RunInfo};
 
 use crate::api::Api;
-use log::{debug, error, info, warn};
+use log::{debug, error, info};
 
 use std::num::NonZeroU32;
 
@@ -97,6 +97,17 @@ async fn setup_context(
 
     let my_agent = api.get_my_agent().await?;
     info!("My agent: {:?}", my_agent);
+    let status = api.get_status().await?;
+    info!("Status: {:?}", status);
+
+    let run_info = RunInfo {
+        agent_symbol: my_agent.data.symbol.clone(),
+        headquarters: my_agent.data.headquarters.clone(),
+        starting_faction: models::FactionSymbol::from_str(&my_agent.data.starting_faction)?,
+        reset_date: status.reset_date.clone().parse()?,
+        next_reset_date: status.server_resets.next.clone().parse()?,
+        version: status.version.clone(),
+    };
 
     let ships = api.get_all_my_ships(20).await?;
     info!("Ships: {:?}", ships.len());
@@ -177,6 +188,7 @@ async fn setup_context(
         scrapping_manager: scrapping_manager_data.1,
         trade_manager: trade_manager_data.1,
         chart_manager: chart_manager.1,
+        run_info: Arc::new(RwLock::new(run_info)),
     };
 
     debug!("Context created");

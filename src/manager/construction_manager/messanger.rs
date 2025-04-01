@@ -1,6 +1,6 @@
 use space_traders_client::models;
 
-use crate::{ship, sql};
+use crate::{manager::fleet_manager::message::RequiredShips, ship, sql};
 
 use super::message::{self, ConstructionManagerMessage};
 
@@ -103,5 +103,16 @@ impl ConstructionManagerMessanger {
         })??;
 
         Ok(resp)
+    }
+
+    pub async fn get_ships(&self) -> Result<RequiredShips, crate::error::Error> {
+        let (tx, rx) = tokio::sync::oneshot::channel();
+        self.sender
+            .send(message::ConstructionManagerMessage::GetShips { callback: tx })
+            .await
+            .map_err(|e| crate::error::Error::General(format!("Failed to send message: {}", e)))
+            .unwrap();
+        rx.await
+            .map_err(|e| crate::error::Error::General(format!("Failed to receive message: {}", e)))
     }
 }

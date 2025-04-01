@@ -3,6 +3,8 @@ use std::{fmt::Debug, sync::Arc};
 
 use dashmap::DashMap;
 use lockable::{AsyncLimit, Lockable, LockableHashMap, SyncLimit};
+use space_traders_client::models;
+use tokio::sync::RwLock;
 
 use crate::manager::chart_manager::ChartManagerMessanger;
 use crate::manager::construction_manager::ConstructionManagerMessanger;
@@ -207,6 +209,17 @@ pub struct ConductorContext {
     pub scrapping_manager: ScrappingManagerMessanger,
     pub trade_manager: TradeManagerMessanger,
     pub chart_manager: ChartManagerMessanger,
+    pub run_info: Arc<RwLock<RunInfo>>,
+}
+
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct RunInfo {
+    pub agent_symbol: String,
+    pub headquarters: String,
+    pub starting_faction: models::FactionSymbol,
+    pub reset_date: chrono::NaiveDate,
+    pub next_reset_date: chrono::DateTime<chrono::Utc>,
+    pub version: String,
 }
 
 pub trait SendFuture: core::future::Future {

@@ -93,7 +93,11 @@ impl From<ShipInfoRole> for crate::ship::ShipStatus {
                 shipping_status: None,
                 waiting_for_manager: false,
             },
-            ShipInfoRole::Charter => todo!(),
+            ShipInfoRole::Charter => Self::Charting {
+                cycle: None,
+                waiting_for_manager: false,
+                waypoint_symbol: None,
+            },
         }
     }
 }

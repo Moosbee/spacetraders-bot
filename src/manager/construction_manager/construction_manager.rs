@@ -10,7 +10,10 @@ use space_traders_client::models::{self};
 use crate::{
     config::CONFIG,
     error::{Error, Result},
-    manager::{construction_manager::message::ConstructionMessage, Manager},
+    manager::{
+        construction_manager::message::ConstructionMessage, fleet_manager::message::RequiredShips,
+        Manager,
+    },
     ship,
     sql::{self, DatabaseConnector},
     types::ConductorContext,
@@ -52,7 +55,9 @@ impl ConstructionManager {
     }
 
     async fn get_budget(&self) -> Result<i64> {
-        let agent = sql::Agent::get_last_by_symbol(&self.context.database_pool, &CONFIG.symbol)
+        let agent_symbol = { self.context.run_info.read().await.agent_symbol.clone() };
+
+        let agent = sql::Agent::get_last_by_symbol(&self.context.database_pool, &agent_symbol)
             .await?
             .ok_or(Error::General("Agent not found".to_string()))?;
         Ok(agent.credits - 1_000_000)
@@ -146,9 +151,16 @@ impl ConstructionManager {
             ConstructionMessage::GetRunning { callback } => {
                 callback.send(Ok(self.running_shipments.clone())).unwrap();
             }
+            ConstructionMessage::GetShips { callback } => {
+                callback.send(self.get_required_ships().await?).unwrap();
+            }
         }
 
         Ok(())
+    }
+
+    async fn get_required_ships(&self) -> Result<RequiredShips> {
+        todo!()
     }
 
     async fn request_next_shipment(

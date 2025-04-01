@@ -1,6 +1,8 @@
 mod contract_manager;
+mod message;
+mod messanger;
 
 pub use contract_manager::ContractManager;
-pub use contract_manager::ContractManagerMessanger;
-pub use contract_manager::ContractShipmentMessage;
-pub use contract_manager::NextShipmentResp;
+pub use message::ContractShipmentMessage;
+pub use message::NextShipmentResp;
+pub use messanger::ContractManagerMessanger;

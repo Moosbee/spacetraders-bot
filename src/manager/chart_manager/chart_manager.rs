@@ -5,7 +5,7 @@ use space_traders_client::models;
 
 use crate::{
     error::{Error, Result},
-    manager::Manager,
+    manager::{fleet_manager::message::RequiredShips, Manager},
     sql,
     types::{ConductorContext, WaypointCan},
     utils::distance_between_waypoints,
@@ -83,9 +83,19 @@ impl ChartManager {
             super::messages::ChartMessage::Success { waypoint_symbol } => {
                 self.success_chart(waypoint_symbol)
             }
+            super::messages::ChartMessage::GetShips { callback } => {
+                let resp = self.get_required_ships().await?;
+                callback
+                    .send(resp)
+                    .map_err(|e| Error::General(format!("Failed to send message: {:?}", e)))?
+            }
         }
 
         Ok(())
+    }
+
+    async fn get_required_ships(&self) -> Result<RequiredShips> {
+        todo!()
     }
 
     async fn get_next_chart(
