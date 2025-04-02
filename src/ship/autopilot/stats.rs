@@ -1,7 +1,5 @@
 use space_traders_client::models;
 
-use crate::utils::distance_between_waypoints;
-
 #[derive(Debug, Clone)]
 pub struct TravelStats {
     pub distance: f64,

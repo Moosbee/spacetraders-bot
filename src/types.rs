@@ -61,9 +61,9 @@ impl<T: Observer<K>, K: Clone> Subject<T, K> for Publisher<T, K> {
         // Remove the specific observer and clean up any expired weak references
         self.observers.retain(|weak_ref| {
             // Keep references that are either the target observer or still valid
-            weak_ref.upgrade().map_or(false, |strong_ref| {
-                !std::ptr::eq(strong_ref.as_ref(), observer)
-            })
+            weak_ref
+                .upgrade()
+                .is_some_and(|strong_ref| !std::ptr::eq(strong_ref.as_ref(), observer))
         });
     }
 
@@ -139,7 +139,9 @@ where
 {
     let result = map.try_lock(key.clone(), SyncLimit::no_limit()).unwrap();
 
-    if result.is_none() {
+    if let Some(guard) = result {
+        guard
+    } else {
         log::warn!(
             "safely_get_lock_mut_map access locked key: {:?}, retrying line: {}",
             key,
@@ -147,8 +149,6 @@ where
         );
         let result = map.async_lock(key.clone(), AsyncLimit::no_limit()).await;
         log::warn!("safely_get_lock_mut_map access {:?} unlocked", key);
-        result.unwrap()
-    } else {
         result.unwrap()
     }
 }

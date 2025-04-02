@@ -5,7 +5,6 @@ use log::{debug, info};
 use space_traders_client::models::{self};
 
 use crate::{
-    config::CONFIG,
     error::{self, Error, Result},
     manager::{
         contract_manager::ContractShipmentMessage, fleet_manager::message::RequiredShips, Manager,

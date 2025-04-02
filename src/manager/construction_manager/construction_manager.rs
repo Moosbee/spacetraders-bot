@@ -8,7 +8,6 @@ use log::{debug, info};
 use space_traders_client::models::{self};
 
 use crate::{
-    config::CONFIG,
     error::{Error, Result},
     manager::{
         construction_manager::message::ConstructionMessage, fleet_manager::message::RequiredShips,

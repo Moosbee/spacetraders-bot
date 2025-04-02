@@ -1,18 +1,15 @@
 use chrono::{DateTime, Utc};
-use futures::{future::BoxFuture, FutureExt};
 use pathfinder::Pathfinder;
-use simple_pathfinding::SimplePathfinder;
 
 use crate::{
-    api,
     error::Result,
     sql::{self, TransactionReason},
-    types::{ConductorContext, SendFuture, WaypointCan},
+    types::{ConductorContext, WaypointCan},
 };
 
 use super::MyShip;
 
-use std::{collections::HashMap, fmt::Debug, future::Future, pin::Pin};
+use std::fmt::Debug;
 
 mod connection;
 mod instructor;
@@ -38,7 +35,7 @@ impl MyShip {
             .await
     }
 
-    pub async fn nav_to_prepare<'a>(
+    pub async fn nav_to_prepare(
         &mut self,
         waypoint: &str,
         update_market: bool,
@@ -74,7 +71,7 @@ impl MyShip {
 
                         for connection in route2.connections.iter().rev() {
                             match connection {
-                                connection::ConcreteConnection::JumpGate(jump_connection) => {
+                                connection::ConcreteConnection::JumpGate(_jump_connection) => {
                                     is_last_marketplace = false;
                                     break;
                                 }

@@ -1,5 +1,3 @@
-use std::{future::Future, pin::Pin};
-
 use chrono::Utc;
 use log::{debug, warn};
 use space_traders_client::models::{self};
@@ -8,7 +6,6 @@ use crate::{
     api,
     ship::MyShip,
     sql::{self, DatabaseConnector},
-    types::SendFuture,
 };
 
 use super::connection::{
@@ -28,6 +25,9 @@ impl MyShip {
             self.execute_connection(connection, &reason, database_pool, api, wp_action.clone())
                 .await?;
         }
+        self.wait_for_arrival().await;
+        self.nav.refresh_nav();
+        self.notify().await;
         Ok(())
     }
 

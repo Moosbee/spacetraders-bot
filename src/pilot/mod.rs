@@ -14,7 +14,6 @@ use scraper::ScraperPilot;
 use tokio_util::sync::CancellationToken;
 use trading::TradingPilot;
 
-use crate::config::CONFIG;
 use crate::sql;
 
 use crate::error::{Error, Result};
