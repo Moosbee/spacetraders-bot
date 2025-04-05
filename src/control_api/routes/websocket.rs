@@ -60,4 +60,5 @@ async fn handle_ws_connection(
     });
 
     forward_future.await;
+    log::info!("Websocket connection closed");
 }

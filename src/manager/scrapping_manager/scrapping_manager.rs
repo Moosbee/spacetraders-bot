@@ -14,7 +14,7 @@ use crate::{
         scrapping_manager::priority_calculator,
         Manager,
     },
-    sql::{self, DbPool},
+    sql::{self, DatabaseConnector, DbPool},
     types::{ConductorContext, WaypointCan},
     utils::distance_between_waypoints,
 };
@@ -50,9 +50,9 @@ impl ScrappingManager {
             context,
             receiver,
             scrap_waypoints: HashMap::new(),
-            // max_update_interval: 60 * 10,
+            max_update_interval: 60 * 10,
             // max_update_interval: 60 * 25,
-            max_update_interval: 60 * 20,
+            // max_update_interval: 60 * 20,
         }
     }
 
@@ -66,6 +66,32 @@ impl ScrappingManager {
             let interval = 1000 * 60 * 60;
             tokio::spawn(async move {
                 Self::run_agent_worker(&api, &database_pool, cancel_token, interval).await
+            })
+        } else {
+            tokio::spawn(async move { Ok(()) })
+        };
+
+        let system_join_handle: tokio::task::JoinHandle<
+            std::result::Result<(), crate::error::Error>,
+        > = if false {
+            let api = self.context.api.clone();
+            let database_pool = self.context.database_pool.clone();
+
+            tokio::spawn(async move {
+                crate::manager::scrapping_manager::utils::update_all_systems(&database_pool, &api)
+                    .await?;
+                let gates = sql::Waypoint::get_all(&database_pool)
+                    .await?
+                    .into_iter()
+                    .filter(|w| w.is_jump_gate())
+                    .filter(|w| !w.is_charted())
+                    .map(|w| {
+                        let chart = w.is_charted();
+                        (w.system_symbol, w.symbol, chart)
+                    })
+                    .collect::<Vec<_>>();
+                crate::manager::scrapping_manager::utils::get_all_jump_gates(&api, gates).await?;
+                Ok(())
             })
         } else {
             tokio::spawn(async move { Ok(()) })
@@ -87,11 +113,18 @@ impl ScrappingManager {
         }
 
         let agent_errs = agent_join_handle.await;
+        let system_errs = system_join_handle.await;
 
         match agent_errs {
             Ok(Ok(_)) => {}
             Ok(Err(err)) => error!("Failed to update agents: {}", err),
             Err(err) => error!("JoinFailed to update agents: {}", err),
+        }
+
+        match system_errs {
+            Ok(Ok(_)) => {}
+            Ok(Err(err)) => error!("Failed to update systems: {}", err),
+            Err(err) => error!("JoinFailed to update systems: {}", err),
         }
 
         info!("ScrappingManager done");

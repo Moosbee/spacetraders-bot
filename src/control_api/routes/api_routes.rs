@@ -1,19 +1,19 @@
 // routes.rs
 
 use tokio_util::sync::CancellationToken;
-use warp::{reply::Reply, Filter};
+use warp::Filter;
 
 use crate::types::ConductorContext;
 
 use super::{handlers, with_context};
 
-async fn handle_not_found() -> crate::control_api::types::Result<impl Reply> {
-    let _errr: () = Err(crate::control_api::types::ServerError::NotFound)?;
-    Ok(warp::reply::with_status(
-        warp::reply::reply(),
-        warp::http::StatusCode::NOT_FOUND,
-    ))
-}
+// async fn handle_not_found() -> crate::control_api::types::Result<impl Reply> {
+//     let _errr: () = Err(crate::control_api::types::ServerError::NotFound)?;
+//     Ok(warp::reply::with_status(
+//         warp::reply::reply(),
+//         warp::http::StatusCode::NOT_FOUND,
+//     ))
+// }
 
 pub(crate) fn build_api_routes(
     context: &ConductorContext,
@@ -21,8 +21,7 @@ pub(crate) fn build_api_routes(
 ) -> impl warp::Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
     let context = context.clone();
 
-    // let not_found_routes = warp::any().and(Err(&crate::control_api::types::ServerError::NotFound));
-    let not_found_routes = warp::any().and_then(handle_not_found);
+    // let not_found_routes = warp::any().and_then(handle_not_found);
     // Ships routes
     let ships = warp::path("ships")
         .and(warp::path::end())
@@ -288,5 +287,5 @@ pub(crate) fn build_api_routes(
         .or(possible_trades)
         .or(run_info)
         .or(shutdown)
-        .or(not_found_routes)
+    // .or(not_found_routes)
 }

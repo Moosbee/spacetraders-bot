@@ -37,7 +37,7 @@ use sql::DatabaseConnector;
 use tokio::sync::{broadcast, RwLock};
 use tokio_stream::StreamExt;
 use tokio_util::sync::CancellationToken;
-use types::{ConductorContext, RunInfo};
+use types::{ConductorContext, RunInfo, WaypointCan};
 
 use crate::api::Api;
 use log::{debug, error, info};
@@ -109,6 +109,17 @@ async fn setup_context(
         version: status.version.clone(),
     };
 
+    // let ship_purchase = api
+    //     .purchase_ship(Some(models::PurchaseShipRequest {
+    //         ship_type: models::ShipType::Probe,
+    //         waypoint_symbol: "X1-NR44-A2".to_string(),
+    //     }))
+    //     .await;
+
+    // info!("ss {:?}", ship_purchase);
+
+    // panic!();
+
     let ships = api.get_all_my_ships(20).await?;
     info!("Ships: {:?}", ships.len());
 
@@ -127,6 +138,22 @@ async fn setup_context(
             // some systems have no waypoints, but we likely won't have ships there
             scrapping_manager::utils::update_system(&database_pool, &api, &system_symbol, true)
                 .await?;
+            let wps = sql::Waypoint::get_by_system(&database_pool, &system_symbol)
+                .await?
+                .into_iter()
+                .filter(|w| w.is_marketplace())
+                .map(|w| (w.system_symbol, w.symbol))
+                .collect::<Vec<_>>();
+
+            let markets = scrapping_manager::utils::get_all_markets(&api, &wps).await?;
+            let markets_len = markets.len();
+            scrapping_manager::utils::update_markets(markets, database_pool.clone()).await?;
+            debug!(
+                "Updated markets for system {} {} {}",
+                system_symbol,
+                wps.len(),
+                markets_len
+            );
         }
     }
 

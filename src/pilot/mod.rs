@@ -132,6 +132,8 @@ impl Pilot {
             ship.apply_from_db(self.context.database_pool.clone())
                 .await?;
 
+            ship.notify().await;
+
             if !ship.active {
                 return Ok(());
             }

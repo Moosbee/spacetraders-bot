@@ -10,7 +10,8 @@ use space_traders_client::models::{self};
 use crate::{
     error::{Error, Result},
     manager::{
-        construction_manager::message::ConstructionMessage, fleet_manager::message::RequiredShips,
+        construction_manager::message::ConstructionMessage,
+        fleet_manager::message::{Budget, Priority, RequestedShipType, RequiredShips},
         Manager,
     },
     ship,
@@ -159,7 +160,45 @@ impl ConstructionManager {
     }
 
     async fn get_required_ships(&self) -> Result<RequiredShips> {
-        todo!()
+        // we need one transporter(39+ cargo space) in our headquarters as long as their are unfinished constructions in the main system
+        let db_ships = sql::ShipInfo::get_by_role(
+            &self.context.database_pool,
+            &sql::ShipInfoRole::Construction,
+        )
+        .await?;
+        let all_ships = self
+            .context
+            .ship_manager
+            .get_all_clone()
+            .await
+            .into_values()
+            .filter(|ship| {
+                (ship.role == sql::ShipInfoRole::Construction
+                    || db_ships.iter().any(|db_ship| db_ship.symbol == ship.symbol))
+                    && ship.cargo.capacity >= 40
+            })
+            .collect::<Vec<_>>();
+
+        let headquarters = { self.context.run_info.read().await.headquarters.clone() };
+
+        let headquarter_constructions =
+            sql::Waypoint::get_by_system(&self.context.database_pool, &headquarters)
+                .await?
+                .into_iter()
+                .filter(|w| w.is_under_construction)
+                .collect::<Vec<_>>();
+        let ships = if !headquarter_constructions.is_empty() && all_ships.is_empty() {
+            HashMap::from_iter(
+                vec![(
+                    headquarters.clone(),
+                    vec![(RequestedShipType::Transporter, Priority::Low, Budget::High)],
+                )]
+                .into_iter(),
+            )
+        } else {
+            HashMap::new()
+        };
+        Ok(RequiredShips { ships })
     }
 
     async fn request_next_shipment(

@@ -2,7 +2,7 @@ mod api_routes;
 mod handlers;
 mod websocket;
 
-use log::warn;
+use log::{debug, warn};
 use tokio_util::sync::CancellationToken;
 use warp::{reply::Reply, Filter};
 
@@ -43,23 +43,30 @@ pub fn build_routes(
 async fn handle_rejection(err: warp::Rejection) -> crate::control_api::types::Result<impl Reply> {
     warn!("Rejection: {:?}", err);
     if let Some(e) = err.find::<ServerError>() {
+        debug!("Error: {}", e);
         let code = match e {
             ServerError::BadRequest(_) => warp::http::StatusCode::BAD_REQUEST,
             ServerError::NotFound => warp::http::StatusCode::NOT_FOUND,
             _ => warp::http::StatusCode::INTERNAL_SERVER_ERROR,
         };
-        Ok(warp::reply::with_status(
+        return Ok(warp::reply::with_status(
             warp::reply::json(
                 &serde_json::json!({ "error": e.to_string(),"debug": format!("{:?}", e) }),
             ),
             code,
-        ))
-    } else {
-        Ok(warp::reply::with_status(
-            warp::reply::json(&serde_json::json!({ "error": "Internal server error" })),
-            warp::http::StatusCode::INTERNAL_SERVER_ERROR,
-        ))
+        ));
+    } else if let Some(e) = err.find::<warp::Rejection>() {
+        if e.is_not_found() {
+            return Ok(warp::reply::with_status(
+                warp::reply::json(&serde_json::json!({ "error": "Not found" })),
+                warp::http::StatusCode::NOT_FOUND,
+            ));
+        }
     }
+    Ok(warp::reply::with_status(
+        warp::reply::json(&serde_json::json!({ "error": "Internal server error" })),
+        warp::http::StatusCode::INTERNAL_SERVER_ERROR,
+    ))
 }
 
 fn build_main_routes(

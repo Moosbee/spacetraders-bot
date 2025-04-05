@@ -1,11 +1,14 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use log::debug;
-use space_traders_client::models;
+use space_traders_client::models::{self};
 
 use crate::{
     error::{Error, Result},
-    manager::{fleet_manager::message::RequiredShips, Manager},
+    manager::{
+        fleet_manager::message::{Budget, Priority, RequestedShipType, RequiredShips},
+        Manager,
+    },
     sql,
     types::{ConductorContext, WaypointCan},
     utils::distance_between_waypoints,
@@ -95,7 +98,77 @@ impl ChartManager {
     }
 
     async fn get_required_ships(&self) -> Result<RequiredShips> {
-        todo!()
+        // we need a probe in every system, that has uncharted waypoints and to which we have a jump gate connection
+
+        let all_ships = self
+            .context
+            .ship_manager
+            .get_all_clone()
+            .await
+            .into_values()
+            .collect::<Vec<_>>();
+
+        let all_systems = all_ships
+            .iter()
+            .map(|ship| ship.nav.system_symbol.clone())
+            .collect::<HashSet<_>>();
+        let with_chart = all_ships
+            .iter()
+            .filter(|ship| ship.role == sql::ShipInfoRole::Charter)
+            .map(|ship| ship.nav.system_symbol.clone())
+            .collect::<HashSet<_>>();
+
+        let mut reachable_systems = HashSet::new();
+        let mut to_visit_systems = all_systems.iter().cloned().collect::<Vec<_>>();
+        while let Some(system) = to_visit_systems.pop() {
+            reachable_systems.insert(system.clone());
+            let waypoints = sql::Waypoint::get_by_system(&self.context.database_pool, &system)
+                .await?
+                .into_iter()
+                .filter(|w| w.is_jump_gate())
+                .collect::<Vec<_>>();
+
+            for waypoint in waypoints.iter() {
+                if waypoint.is_under_construction {
+                    continue;
+                }
+                let connections = sql::JumpGateConnection::get_all_from(
+                    &self.context.database_pool,
+                    &waypoint.symbol,
+                )
+                .await?;
+                for connection in connections.iter() {
+                    let wp =
+                        sql::Waypoint::get_by_symbol(&self.context.database_pool, &connection.to)
+                            .await?;
+                    if let Some(wp) = wp {
+                        if !reachable_systems.contains(&wp.system_symbol)
+                            && !to_visit_systems.contains(&wp.system_symbol)
+                            && !wp.is_under_construction
+                        {
+                            to_visit_systems.push(wp.system_symbol);
+                        }
+                    }
+                }
+            }
+        }
+
+        let mut needed_ships = HashMap::new();
+
+        for system in reachable_systems.iter() {
+            let waypoints =
+                sql::Waypoint::get_by_system(&self.context.database_pool, system).await?;
+            let has_uncharted = waypoints.iter().any(|w| !w.is_charted());
+            if has_uncharted && !with_chart.contains(system) {
+                needed_ships.insert(
+                    system.clone(),
+                    vec![(RequestedShipType::Probe, Priority::Low, Budget::High)],
+                );
+            }
+        }
+        Ok(RequiredShips {
+            ships: needed_ships,
+        })
     }
 
     async fn get_next_chart(
