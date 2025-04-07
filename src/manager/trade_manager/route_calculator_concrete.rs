@@ -3,8 +3,7 @@ use std::collections::HashMap;
 use crate::{
     config::CONFIG,
     ship::{self},
-    sql,
-    types::ConductorContext,
+    utils::ConductorContext,
 };
 
 use super::routes::{ConcreteTradeRoute, ExtrapolatedTradeRoute, TripStats};
@@ -22,7 +21,7 @@ impl ConcreteRouteCalculator {
         &mut self,
         ship: &ship::MyShip,
         mut trade_route: ExtrapolatedTradeRoute,
-        waypoints: &[sql::Waypoint],
+        waypoints: &[database::Waypoint],
     ) -> ConcreteTradeRoute {
         let max_transport = ship.cargo.capacity;
 
@@ -60,7 +59,7 @@ impl ConcreteRouteCalculator {
         &mut self,
         ship: &ship::MyShip,
         trade_route: &ExtrapolatedTradeRoute,
-        waypoints: &[sql::Waypoint],
+        waypoints: &[database::Waypoint],
     ) -> (RouteStats, RouteStats) {
         let waypoints = waypoints
             .iter()
@@ -101,7 +100,7 @@ impl ConcreteRouteCalculator {
     fn find_route(
         &mut self,
         ship: &ship::MyShip,
-        waypoints: &HashMap<String, sql::Waypoint>,
+        waypoints: &HashMap<String, database::Waypoint>,
         sell_wp_symbol: &str,
         purchase_wp_symbol: &str,
     ) -> Result<Vec<ship::autopilot::SimpleConnection>, crate::error::Error> {

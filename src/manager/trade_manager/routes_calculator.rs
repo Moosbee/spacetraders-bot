@@ -7,8 +7,7 @@ use crate::{
     config::CONFIG,
     error::Error,
     ship::{self},
-    sql,
-    types::ConductorContext,
+    utils::ConductorContext,
 };
 
 use super::{
@@ -41,14 +40,14 @@ impl RouteCalculator {
         &mut self,
         ship: &ship::MyShip,
         running_routes: &RoutesTracker,
-    ) -> Result<sql::TradeRoute, Error> {
+    ) -> Result<database::TradeRoute, Error> {
         debug!("Getting new best route");
         let (trade_goods, market_trade) = self.fetch_market_data(&ship.nav.system_symbol).await?;
 
         let possible_trades = self.gen_all_possible_trades(&trade_goods, &market_trade);
 
         let waypoints =
-            sql::Waypoint::get_by_system(&self.context.database_pool, &ship.nav.system_symbol)
+            database::Waypoint::get_by_system(&self.context.database_pool, &ship.nav.system_symbol)
                 .await?;
 
         let routes = possible_trades
@@ -76,25 +75,27 @@ impl RouteCalculator {
     async fn fetch_market_data(
         &self,
         system_symbol: &str,
-    ) -> Result<(Vec<sql::MarketTradeGood>, Vec<sql::MarketTrade>), Error> {
-        let trade_goods =
-            sql::MarketTradeGood::get_last_by_system(&self.context.database_pool, system_symbol)
-                .await?;
+    ) -> Result<(Vec<database::MarketTradeGood>, Vec<database::MarketTrade>), Error> {
+        let trade_goods = database::MarketTradeGood::get_last_by_system(
+            &self.context.database_pool,
+            system_symbol,
+        )
+        .await?;
         let market_trade =
-            sql::MarketTrade::get_last_by_system(&self.context.database_pool, system_symbol)
+            database::MarketTrade::get_last_by_system(&self.context.database_pool, system_symbol)
                 .await?;
         Ok((trade_goods, market_trade))
     }
 
     pub fn gen_all_possible_trades<'a>(
         &self,
-        trade_goods: &'a [sql::MarketTradeGood],
-        market_trade: &'a [sql::MarketTrade],
+        trade_goods: &'a [database::MarketTradeGood],
+        market_trade: &'a [database::MarketTrade],
     ) -> Vec<PossibleTradeRoute> {
         let trade_goods_map = trade_goods
             .iter()
             .map(|t| ((t.symbol, t.waypoint_symbol.clone()), t.clone()))
-            .collect::<HashMap<(models::TradeSymbol, String), sql::MarketTradeGood>>();
+            .collect::<HashMap<(models::TradeSymbol, String), database::MarketTradeGood>>();
 
         let possible_trades = market_trade
             .iter()

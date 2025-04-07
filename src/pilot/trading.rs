@@ -5,8 +5,7 @@ use log::{debug, info};
 use crate::{
     error::{Error, Result},
     ship,
-    sql::{self},
-    types::ConductorContext,
+    utils::ConductorContext,
 };
 
 pub struct TradingPilot {
@@ -60,8 +59,8 @@ impl TradingPilot {
             shipping_status: None,
             waiting_for_manager: false,
         };
-        if ship.role == sql::ShipInfoRole::TempTrader {
-            ship.role = sql::ShipInfoRole::Manuel;
+        if ship.role == database::ShipInfoRole::TempTrader {
+            ship.role = database::ShipInfoRole::Manuel;
         }
 
         ship.notify().await;
@@ -72,7 +71,7 @@ impl TradingPilot {
     async fn execute_trade(
         &self,
         ship: &mut ship::MyShip,
-        route: &sql::TradeRoute,
+        route: &database::TradeRoute,
         pilot: &crate::pilot::Pilot,
     ) -> Result<()> {
         debug!(
@@ -94,7 +93,7 @@ impl TradingPilot {
     async fn execute_purchase(
         &self,
         ship: &mut ship::MyShip,
-        route: &sql::TradeRoute,
+        route: &database::TradeRoute,
         pilot: &crate::pilot::Pilot,
     ) -> Result<()> {
         debug!(
@@ -119,7 +118,7 @@ impl TradingPilot {
             ship.nav_to(
                 &route.purchase_waypoint,
                 true,
-                sql::TransactionReason::TradeRoute(route.id),
+                database::TransactionReason::TradeRoute(route.id),
                 &self.context,
             )
             .await?;
@@ -170,7 +169,7 @@ impl TradingPilot {
                 &route.symbol,
                 trade_volume,
                 &self.context.database_pool,
-                sql::TransactionReason::TradeRoute(route.id),
+                database::TransactionReason::TradeRoute(route.id),
             )
             .await?;
         }
@@ -181,7 +180,11 @@ impl TradingPilot {
         Ok(())
     }
 
-    async fn execute_sale(&self, ship: &mut ship::MyShip, route: &sql::TradeRoute) -> Result<()> {
+    async fn execute_sale(
+        &self,
+        ship: &mut ship::MyShip,
+        route: &database::TradeRoute,
+    ) -> Result<()> {
         debug!(
             "Executing sale for ship {} on route {:?}",
             ship.symbol, route
@@ -200,7 +203,7 @@ impl TradingPilot {
         ship.nav_to(
             &route.sell_waypoint,
             true,
-            sql::TransactionReason::TradeRoute(route.id),
+            database::TransactionReason::TradeRoute(route.id),
             &self.context,
         )
         .await?;
@@ -223,7 +226,7 @@ impl TradingPilot {
             &route.symbol,
             cargo_volume,
             &self.context.database_pool,
-            sql::TransactionReason::TradeRoute(route.id),
+            database::TransactionReason::TradeRoute(route.id),
         )
         .await?;
 

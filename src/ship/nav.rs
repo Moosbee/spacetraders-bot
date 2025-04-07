@@ -2,7 +2,7 @@ use chrono::{DateTime, Utc};
 use log::{debug, warn};
 use space_traders_client::{apis, models};
 
-use crate::{api, error};
+use crate::error;
 
 use super::{autopilot::AutopilotState, MyShip};
 
@@ -54,7 +54,7 @@ pub struct RouteState {
 impl MyShip {
     pub async fn navigate(
         &mut self,
-        api: &api::Api,
+        api: &space_traders_client::Api,
         waypoint_symbol: &str,
     ) -> error::Result<models::NavigateShip200Response> {
         self.mutate();
@@ -77,7 +77,7 @@ impl MyShip {
 
     pub async fn jump(
         &mut self,
-        api: &api::Api,
+        api: &space_traders_client::Api,
         waypoint_symbol: &str,
     ) -> error::Result<models::JumpShip200Response> {
         self.mutate();
@@ -100,7 +100,7 @@ impl MyShip {
 
     pub async fn warp(
         &mut self,
-        api: &api::Api,
+        api: &space_traders_client::Api,
         waypoint_symbol: &str,
     ) -> error::Result<models::WarpShip200Response> {
         self.mutate();
@@ -122,7 +122,7 @@ impl MyShip {
 
     async fn dock(
         &mut self,
-        api: &api::Api,
+        api: &space_traders_client::Api,
     ) -> core::result::Result<
         models::DockShip200Response,
         apis::Error<apis::fleet_api::DockShipError>,
@@ -137,7 +137,7 @@ impl MyShip {
 
     async fn undock(
         &mut self,
-        api: &api::Api,
+        api: &space_traders_client::Api,
     ) -> core::result::Result<
         models::OrbitShip200Response,
         apis::Error<apis::fleet_api::OrbitShipError>,
@@ -152,7 +152,7 @@ impl MyShip {
 
     pub async fn ensure_docked(
         &mut self,
-        api: &api::Api,
+        api: &space_traders_client::Api,
     ) -> core::result::Result<(), apis::Error<apis::fleet_api::DockShipError>> {
         self.mutate();
         if self.nav.get_status() != models::ShipNavStatus::Docked {
@@ -163,7 +163,7 @@ impl MyShip {
 
     pub async fn ensure_undocked(
         &mut self,
-        api: &api::Api,
+        api: &space_traders_client::Api,
     ) -> core::result::Result<(), apis::Error<apis::fleet_api::OrbitShipError>> {
         self.mutate();
         if self.nav.get_status() == models::ShipNavStatus::Docked {
@@ -174,7 +174,7 @@ impl MyShip {
 
     // async fn patch_ship_nav(
     //     &mut self,
-    //     api: &api::Api,
+    //     api: &space_traders_client::Api,
     //     flight_mode: models::ShipNavFlightMode,
     // ) -> core::result::Result<
     //     models::PatchShipNav200Response,
@@ -197,7 +197,7 @@ impl MyShip {
 
     async fn patch_ship_nav(
         &mut self,
-        api: &api::Api,
+        api: &space_traders_client::Api,
         flight_mode: models::ShipNavFlightMode,
     ) -> core::result::Result<
         models::PatchShipNav200Response,
@@ -240,7 +240,7 @@ impl MyShip {
 
     pub async fn update_flight_mode(
         &mut self,
-        api: &api::Api,
+        api: &space_traders_client::Api,
         flight_mode: models::ShipNavFlightMode,
     ) -> core::result::Result<(), apis::Error<apis::fleet_api::PatchShipNavError>> {
         self.mutate();
@@ -267,7 +267,7 @@ impl MyShip {
 
     pub async fn refuel_ship(
         &mut self,
-        api: &api::Api,
+        api: &space_traders_client::Api,
         units: i32, // fuel units, not cargo units, 1 cargo unit = 100 fuel
         from_cargo: bool,
     ) -> error::Result<models::RefuelShip200Response> {
@@ -299,7 +299,10 @@ impl MyShip {
         Ok(refuel_data)
     }
 
-    pub async fn wait_for_arrival_mut(&mut self, _api: &api::Api) -> anyhow::Result<()> {
+    pub async fn wait_for_arrival_mut(
+        &mut self,
+        _api: &space_traders_client::Api,
+    ) -> anyhow::Result<()> {
         let t = self.nav.route.arrival - Utc::now();
         let t = t.num_milliseconds();
         if t < 0 {

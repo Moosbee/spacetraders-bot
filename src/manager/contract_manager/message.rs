@@ -1,7 +1,7 @@
 use space_traders_client::models;
 
 use crate::manager::fleet_manager::message::RequiredShips;
-use crate::{ship, sql};
+use crate::ship;
 
 use crate::error::Result;
 
@@ -13,16 +13,16 @@ pub enum ContractShipmentMessage {
         callback: tokio::sync::oneshot::Sender<Result<NextShipmentResp>>,
     },
     Failed {
-        shipment: sql::ContractShipment,
+        shipment: database::ContractShipment,
         error: crate::error::Error,
         callback: tokio::sync::oneshot::Sender<Result<crate::error::Error>>,
     },
     Finished {
         contract: models::Contract,
-        shipment: sql::ContractShipment,
+        shipment: database::ContractShipment,
     },
     GetRunning {
-        callback: tokio::sync::oneshot::Sender<Result<Vec<sql::ContractShipment>>>,
+        callback: tokio::sync::oneshot::Sender<Result<Vec<database::ContractShipment>>>,
     },
     GetShips {
         callback: tokio::sync::oneshot::Sender<RequiredShips>,
@@ -31,7 +31,7 @@ pub enum ContractShipmentMessage {
 
 #[derive(Debug, Clone)]
 pub enum NextShipmentResp {
-    Shipment(sql::ContractShipment),
+    Shipment(database::ContractShipment),
     ComeBackLater,
 }
 

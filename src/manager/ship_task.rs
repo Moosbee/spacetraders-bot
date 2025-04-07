@@ -1,11 +1,11 @@
 use tokio::{select, task::JoinSet};
 
-use crate::{sql, types::ConductorContext};
+use crate::utils::ConductorContext;
 
 use super::Manager;
 
 pub struct ShipTaskHandler {
-    receiver: tokio::sync::mpsc::Receiver<sql::ShipInfo>,
+    receiver: tokio::sync::mpsc::Receiver<database::ShipInfo>,
     ship_cancel_token: tokio_util::sync::CancellationToken,
     manager_cancel_token: tokio_util::sync::CancellationToken,
     cancel_token: tokio_util::sync::CancellationToken,
@@ -16,11 +16,11 @@ type ShipFuture = ();
 
 #[derive(Debug, Clone)]
 pub struct ShipTaskMessanger {
-    sender: tokio::sync::mpsc::Sender<sql::ShipInfo>,
+    sender: tokio::sync::mpsc::Sender<database::ShipInfo>,
 }
 
 impl ShipTaskMessanger {
-    pub async fn start_ship(&self, ship_names: sql::ShipInfo) {
+    pub async fn start_ship(&self, ship_names: database::ShipInfo) {
         log::debug!("start_ship: {:?}", ship_names);
         let _erg = self.sender.send(ship_names).await;
     }
@@ -28,7 +28,7 @@ impl ShipTaskMessanger {
 
 impl ShipTaskHandler {
     pub fn create() -> (
-        tokio::sync::mpsc::Receiver<sql::ShipInfo>,
+        tokio::sync::mpsc::Receiver<database::ShipInfo>,
         ShipTaskMessanger,
     ) {
         let (sender, receiver) = tokio::sync::mpsc::channel(1024);
@@ -39,7 +39,7 @@ impl ShipTaskHandler {
         manager_cancel_token: tokio_util::sync::CancellationToken,
         cancel_token: tokio_util::sync::CancellationToken,
         context: ConductorContext,
-        receiver: tokio::sync::mpsc::Receiver<sql::ShipInfo>,
+        receiver: tokio::sync::mpsc::Receiver<database::ShipInfo>,
     ) -> Self {
         log::debug!("ShipTaskHandler::new");
         Self {

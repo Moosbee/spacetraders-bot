@@ -3,7 +3,7 @@ use std::time::Duration;
 use futures::FutureExt;
 use tokio_util::sync::CancellationToken;
 
-use crate::{config::CONFIG, manager::Manager, ship, sql, types::ConductorContext};
+use crate::{config::CONFIG, manager::Manager, ship, utils::ConductorContext};
 
 use super::types::MyReceiver;
 
@@ -31,7 +31,7 @@ impl ControlApiServer {
 
     fn setup_broadcast_channels(
         &mut self,
-    ) -> anyhow::Result<(MyReceiver<ship::MyShip>, MyReceiver<sql::Agent>)> {
+    ) -> anyhow::Result<(MyReceiver<ship::MyShip>, MyReceiver<database::Agent>)> {
         let (ship_tx, ship_rx) = tokio::sync::broadcast::channel(16);
 
         if let Some(mut incoming_ship_rx) = self.ship_rx.take() {

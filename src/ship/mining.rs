@@ -4,8 +4,6 @@ use space_traders_client::{
     models::{self},
 };
 
-use crate::api;
-
 use super::MyShip;
 
 impl MyShip {
@@ -20,7 +18,10 @@ impl MyShip {
         }
     }
 
-    pub async fn wait_for_cooldown_mut(&mut self, api: &api::Api) -> crate::error::Result<()> {
+    pub async fn wait_for_cooldown_mut(
+        &mut self,
+        api: &space_traders_client::Api,
+    ) -> crate::error::Result<()> {
         self.mutate();
         if self.cooldown_expiration.is_none() {
             return Ok(());
@@ -48,7 +49,7 @@ impl MyShip {
 
     pub async fn extract(
         &mut self,
-        api: &api::Api,
+        api: &space_traders_client::Api,
     ) -> Result<
         models::ExtractResources201Response,
         space_traders_client::apis::Error<ExtractResourcesError>,
@@ -67,7 +68,7 @@ impl MyShip {
 
     pub async fn extract_with_survey(
         &mut self,
-        api: &api::Api,
+        api: &space_traders_client::Api,
         survey: &models::Survey,
     ) -> Result<
         models::ExtractResources201Response,
@@ -89,7 +90,7 @@ impl MyShip {
 
     pub async fn siphon(
         &mut self,
-        api: &api::Api,
+        api: &space_traders_client::Api,
     ) -> Result<
         models::SiphonResources201Response,
         space_traders_client::apis::Error<SiphonResourcesError>,
@@ -106,7 +107,7 @@ impl MyShip {
 
     pub async fn survey(
         &mut self,
-        api: &api::Api,
+        api: &space_traders_client::Api,
     ) -> Result<models::CreateSurvey201Response, space_traders_client::apis::Error<CreateSurveyError>>
     {
         self.mutate();

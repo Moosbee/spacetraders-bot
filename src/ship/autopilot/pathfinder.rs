@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 
-use crate::{sql, types::ConductorContext, utils::get_system_symbol};
+use utils::get_system_symbol;
+
+use crate::utils::ConductorContext;
 
 use super::{nav_mode::NavMode, simple_pathfinding::SimplePathfinder, SimpleConnection};
 
@@ -21,18 +23,19 @@ impl Pathfinder {
         let start_system = get_system_symbol(start_symbol);
         let end_system = get_system_symbol(end_symbol);
         if start_system == end_system {
-            let system = sql::Waypoint::get_by_system(&self.context.database_pool, &start_system)
-                .await?
-                .into_iter()
-                .map(|w| (w.symbol.clone(), w))
-                .collect::<HashMap<_, _>>();
+            let system =
+                database::Waypoint::get_by_system(&self.context.database_pool, &start_system)
+                    .await?
+                    .into_iter()
+                    .map(|w| (w.symbol.clone(), w))
+                    .collect::<HashMap<_, _>>();
             let simple = self.get_simple(system);
             return simple.find_route_system(start_symbol, end_symbol);
         }
         todo!()
     }
 
-    pub fn get_simple(&self, waypoints: HashMap<String, sql::Waypoint>) -> SimplePathfinder {
+    pub fn get_simple(&self, waypoints: HashMap<String, database::Waypoint>) -> SimplePathfinder {
         SimplePathfinder {
             range: self.range,
             nav_mode: self.nav_mode,

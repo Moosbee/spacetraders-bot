@@ -1,12 +1,13 @@
 use std::sync::{atomic::AtomicI32, Arc};
 
 use chrono::Utc;
+use database::DatabaseConnector;
 use log::debug;
+use utils::WaypointCan;
 
 use crate::{
     error::{Error, Result},
-    sql::{self, DatabaseConnector},
-    types::{ConductorContext, WaypointCan},
+    utils::ConductorContext,
 };
 
 pub struct ScraperPilot {
@@ -91,7 +92,7 @@ impl ScraperPilot {
             ship.nav_to(
                 &waypoint_symbol,
                 true,
-                sql::TransactionReason::None,
+                database::TransactionReason::None,
                 &self.context,
             )
             .await?;
@@ -112,9 +113,10 @@ impl ScraperPilot {
             return Ok(());
         }
 
-        let waypoint = sql::Waypoint::get_by_symbol(&self.context.database_pool, &waypoint_symbol)
-            .await?
-            .ok_or(Error::General("Waypoint not found".to_owned()))?;
+        let waypoint =
+            database::Waypoint::get_by_symbol(&self.context.database_pool, &waypoint_symbol)
+                .await?
+                .ok_or(Error::General("Waypoint not found".to_owned()))?;
 
         if waypoint.is_marketplace() {
             let market_resp = self
@@ -161,10 +163,10 @@ impl ScraperPilot {
         ship.status = crate::ship::ShipStatus::Manuel;
 
         let sql_ship =
-            sql::ShipInfo::get_by_symbol(&self.context.database_pool, &ship.symbol).await?;
+            database::ShipInfo::get_by_symbol(&self.context.database_pool, &ship.symbol).await?;
         if let Some(mut sql_ship) = sql_ship {
-            sql_ship.role = crate::sql::ShipInfoRole::Manuel;
-            sql::ShipInfo::insert(&self.context.database_pool, &sql_ship).await?;
+            sql_ship.role = database::ShipInfoRole::Manuel;
+            database::ShipInfo::insert(&self.context.database_pool, &sql_ship).await?;
         }
 
         ship.apply_from_db(self.context.database_pool.clone())

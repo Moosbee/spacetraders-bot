@@ -1,12 +1,10 @@
 use std::ops::{AddAssign, SubAssign};
 
+use database::DatabaseConnector;
 use log::debug;
 use space_traders_client::models::JettisonRequest;
 
-use crate::{
-    api, error,
-    sql::{self, DatabaseConnector},
-};
+use crate::error;
 
 use super::ship_models::MyShip;
 
@@ -18,11 +16,11 @@ enum Mode {
 impl MyShip {
     pub async fn purchase_cargo(
         &mut self,
-        api: &api::Api,
+        api: &space_traders_client::Api,
         symbol: &space_traders_client::models::TradeSymbol,
         units: i32,
-        database_pool: &sql::DbPool,
-        reason: sql::TransactionReason,
+        database_pool: &database::DbPool,
+        reason: database::TransactionReason,
     ) -> error::Result<()> {
         self.mutate();
         let market_info = self.get_market_info(api, database_pool).await?;
@@ -45,11 +43,11 @@ impl MyShip {
 
     pub async fn sell_cargo(
         &mut self,
-        api: &api::Api,
+        api: &space_traders_client::Api,
         symbol: &space_traders_client::models::TradeSymbol,
         units: i32,
-        database_pool: &sql::DbPool,
-        reason: sql::TransactionReason,
+        database_pool: &database::DbPool,
+        reason: database::TransactionReason,
     ) -> error::Result<()> {
         self.mutate();
         let market_info = self.get_market_info(api, database_pool).await?;
@@ -72,18 +70,23 @@ impl MyShip {
 
     pub async fn get_market_info(
         &self,
-        api: &api::Api,
-        database_pool: &sql::DbPool,
-    ) -> error::Result<Vec<sql::MarketTradeGood>> {
-        let market_info =
-            sql::MarketTradeGood::get_last_by_waypoint(database_pool, &self.nav.waypoint_symbol)
-                .await?;
+        api: &space_traders_client::Api,
+        database_pool: &database::DbPool,
+    ) -> error::Result<Vec<database::MarketTradeGood>> {
+        let market_info = database::MarketTradeGood::get_last_by_waypoint(
+            database_pool,
+            &self.nav.waypoint_symbol,
+        )
+        .await?;
         let market_info = if market_info.is_empty() {
             tokio::time::sleep(std::time::Duration::from_secs(1)).await;
             self.update_market(api, database_pool).await?;
             tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-            sql::MarketTradeGood::get_last_by_waypoint(database_pool, &self.nav.waypoint_symbol)
-                .await
+            database::MarketTradeGood::get_last_by_waypoint(
+                database_pool,
+                &self.nav.waypoint_symbol,
+            )
+            .await
         } else {
             sqlx::Result::Ok(market_info)
         };
@@ -94,7 +97,7 @@ impl MyShip {
     fn calculate_volumes(
         &self,
         quantity: i32,
-        market_info: &[sql::MarketTradeGood],
+        market_info: &[database::MarketTradeGood],
         good: &space_traders_client::models::TradeSymbol,
     ) -> error::Result<Vec<i32>> {
         let max_purchase_volume = market_info
@@ -119,12 +122,12 @@ impl MyShip {
 
     async fn execute_trade(
         &mut self,
-        api: &api::Api,
+        api: &space_traders_client::Api,
         good: &space_traders_client::models::TradeSymbol,
         volume: i32,
         r_type: Mode,
-        database_pool: &sql::DbPool,
-        reason: sql::TransactionReason,
+        database_pool: &database::DbPool,
+        reason: database::TransactionReason,
     ) -> error::Result<()> {
         self.mutate();
         let trade_data = match r_type {
@@ -159,11 +162,12 @@ impl MyShip {
         self.cargo.update(&trade_data.cargo);
         self.notify().await;
 
-        sql::Agent::insert(database_pool, &sql::Agent::from(*trade_data.agent)).await?;
+        database::Agent::insert(database_pool, &database::Agent::from(*trade_data.agent)).await?;
 
         let transaction =
-            sql::MarketTransaction::try_from(trade_data.transaction.as_ref().clone())?.with(reason);
-        sql::MarketTransaction::insert(database_pool, &transaction).await?;
+            database::MarketTransaction::try_from(trade_data.transaction.as_ref().clone())?
+                .with(reason);
+        database::MarketTransaction::insert(database_pool, &transaction).await?;
 
         Ok(())
     }
@@ -173,7 +177,7 @@ impl MyShip {
         contract_id: &str,
         trade_symbol: space_traders_client::models::TradeSymbol,
         units: i32,
-        api: &api::Api,
+        api: &space_traders_client::Api,
     ) -> Result<space_traders_client::models::DeliverContract200Response, error::Error> {
         self.mutate();
         let delivery_result: space_traders_client::models::DeliverContract200Response = api
@@ -197,7 +201,7 @@ impl MyShip {
         &mut self,
         trade_symbol: space_traders_client::models::TradeSymbol,
         units: i32,
-        api: &api::Api,
+        api: &space_traders_client::Api,
     ) -> Result<space_traders_client::models::SupplyConstruction201Response, error::Error> {
         self.mutate();
         let delivery_result: space_traders_client::models::SupplyConstruction201Response = api
@@ -222,7 +226,7 @@ impl MyShip {
         &mut self,
         trade_symbol: space_traders_client::models::TradeSymbol,
         units: i32,
-        api: &api::Api,
+        api: &space_traders_client::Api,
         target_ship: &str,
     ) -> crate::error::Result<space_traders_client::models::TransferCargo200Response> {
         self.mutate();
@@ -251,7 +255,7 @@ impl MyShip {
         &mut self,
         trade_symbol: space_traders_client::models::TradeSymbol,
         units: i32,
-        api: &api::Api,
+        api: &space_traders_client::Api,
         target_ship: &str,
     ) -> crate::error::Result<space_traders_client::models::TransferCargo200Response> {
         self.mutate();
@@ -280,7 +284,7 @@ impl MyShip {
 
     pub async fn jettison(
         &mut self,
-        api: &api::Api,
+        api: &space_traders_client::Api,
         trade_symbol: space_traders_client::models::TradeSymbol,
         units: i32,
     ) -> error::Result<()> {
@@ -302,8 +306,8 @@ impl MyShip {
 
     pub async fn update_market(
         &self,
-        api: &api::Api,
-        database_pool: &sql::DbPool,
+        api: &space_traders_client::Api,
+        database_pool: &database::DbPool,
     ) -> error::Result<()> {
         let market_data = api
             .get_market(&self.nav.system_symbol, &self.nav.waypoint_symbol)

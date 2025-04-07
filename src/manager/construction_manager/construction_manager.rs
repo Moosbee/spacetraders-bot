@@ -4,8 +4,10 @@ use std::{
 };
 
 use chrono::Utc;
+use database::DatabaseConnector;
 use log::{debug, info};
 use space_traders_client::models::{self};
+use utils::get_system_symbol;
 
 use crate::{
     error::{Error, Result},
@@ -15,9 +17,7 @@ use crate::{
         Manager,
     },
     ship,
-    sql::{self, DatabaseConnector},
-    types::ConductorContext,
-    utils::get_system_symbol,
+    utils::ConductorContext,
 };
 
 use super::{message::ConstructionManagerMessage, messanger::ConstructionManagerMessanger};
@@ -27,7 +27,7 @@ pub struct ConstructionManager {
     cancel_token: tokio_util::sync::CancellationToken,
     context: ConductorContext,
     receiver: tokio::sync::mpsc::Receiver<ConstructionManagerMessage>,
-    running_shipments: Vec<sql::ConstructionShipment>,
+    running_shipments: Vec<database::ConstructionShipment>,
 }
 
 impl ConstructionManager {
@@ -57,7 +57,7 @@ impl ConstructionManager {
     async fn get_budget(&self) -> Result<i64> {
         let agent_symbol = { self.context.run_info.read().await.agent_symbol.clone() };
 
-        let agent = sql::Agent::get_last_by_symbol(&self.context.database_pool, &agent_symbol)
+        let agent = database::Agent::get_last_by_symbol(&self.context.database_pool, &agent_symbol)
             .await?
             .ok_or(Error::General("Agent not found".to_string()))?;
         Ok(agent.credits - 1_000_000)
@@ -74,7 +74,7 @@ impl ConstructionManager {
             .collect::<HashSet<_>>();
 
         for system in systems_to_search_for_construction.iter() {
-            let waypoints = sql::Waypoint::get_by_system(&self.context.database_pool, system)
+            let waypoints = database::Waypoint::get_by_system(&self.context.database_pool, system)
                 .await?
                 .into_iter()
                 .filter(|w| w.is_under_construction)
@@ -92,11 +92,14 @@ impl ConstructionManager {
                     .data
                     .materials
                     .iter()
-                    .map(|m| sql::ConstructionMaterial::from(m, &waypoint.symbol))
+                    .map(|m| database::ConstructionMaterial::from(m, &waypoint.symbol))
                     .collect::<Vec<_>>();
 
-                sql::ConstructionMaterial::insert_bulk(&self.context.database_pool, &materials)
-                    .await?;
+                database::ConstructionMaterial::insert_bulk(
+                    &self.context.database_pool,
+                    &materials,
+                )
+                .await?;
             }
         }
 
@@ -161,9 +164,9 @@ impl ConstructionManager {
 
     async fn get_required_ships(&self) -> Result<RequiredShips> {
         // we need one transporter(39+ cargo space) in our headquarters as long as their are unfinished constructions in the main system
-        let db_ships = sql::ShipInfo::get_by_role(
+        let db_ships = database::ShipInfo::get_by_role(
             &self.context.database_pool,
-            &sql::ShipInfoRole::Construction,
+            &database::ShipInfoRole::Construction,
         )
         .await?;
         let all_ships = self
@@ -173,7 +176,7 @@ impl ConstructionManager {
             .await
             .into_values()
             .filter(|ship| {
-                (ship.role == sql::ShipInfoRole::Construction
+                (ship.role == database::ShipInfoRole::Construction
                     || db_ships.iter().any(|db_ship| db_ship.symbol == ship.symbol))
                     && ship.cargo.capacity >= 40
             })
@@ -182,7 +185,7 @@ impl ConstructionManager {
         let headquarters = { self.context.run_info.read().await.headquarters.clone() };
 
         let headquarter_constructions =
-            sql::Waypoint::get_by_system(&self.context.database_pool, &headquarters)
+            database::Waypoint::get_by_system(&self.context.database_pool, &headquarters)
                 .await?
                 .into_iter()
                 .filter(|w| w.is_under_construction)
@@ -206,10 +209,10 @@ impl ConstructionManager {
         ship_clone: crate::ship::MyShip,
     ) -> std::result::Result<super::NextShipmentResp, crate::error::Error> {
         let shipments =
-            sql::ConstructionShipment::get_all_in_transit(&self.context.database_pool).await?;
+            database::ConstructionShipment::get_all_in_transit(&self.context.database_pool).await?;
         let running_shipments = shipments
             .iter()
-            .filter(|s| s.status == sql::ShipmentStatus::InTransit)
+            .filter(|s| s.status == database::ShipmentStatus::InTransit)
             .filter(|s| s.ship_symbol == ship_clone.symbol)
             .collect::<Vec<_>>();
 
@@ -222,7 +225,7 @@ impl ConstructionManager {
         }
 
         let construction_materials =
-            sql::ConstructionMaterial::get_unfulfilled(&self.context.database_pool).await?;
+            database::ConstructionMaterial::get_unfulfilled(&self.context.database_pool).await?;
 
         let construction_materials = construction_materials
             .into_iter()
@@ -247,7 +250,7 @@ impl ConstructionManager {
             return Ok(super::NextShipmentResp::ComeBackLater);
         }
 
-        let next_material: &sql::ConstructionMaterial = construction_materials
+        let next_material: &database::ConstructionMaterial = construction_materials
             .iter()
             .min_by_key(|c| ((c.fulfilled as f64 / c.required as f64) * 10000.0) as i64)
             .unwrap();
@@ -278,7 +281,7 @@ impl ConstructionManager {
             }
         }
 
-        let next_shipment = sql::ConstructionShipment {
+        let next_shipment = database::ConstructionShipment {
             id: 0,
             material_id: next_material.id,
             construction_site_waypoint: next_material.waypoint_symbol.clone(),
@@ -288,18 +291,20 @@ impl ConstructionManager {
             purchase_waypoint: purchase_symbol.0,
             created_at: Utc::now(),
             updated_at: Utc::now(),
-            status: sql::ShipmentStatus::InTransit,
+            status: database::ShipmentStatus::InTransit,
         };
 
-        let id = sql::ConstructionShipment::insert_new(&self.context.database_pool, &next_shipment)
-            .await?;
+        let id =
+            database::ConstructionShipment::insert_new(&self.context.database_pool, &next_shipment)
+                .await?;
 
-        let sql_shipment = sql::ConstructionShipment::get_by_id(&self.context.database_pool, id)
-            .await?
-            .ok_or(crate::error::Error::General(format!(
-                "Failed to get shipment by id: {}",
-                id
-            )))?;
+        let sql_shipment =
+            database::ConstructionShipment::get_by_id(&self.context.database_pool, id)
+                .await?
+                .ok_or(crate::error::Error::General(format!(
+                    "Failed to get shipment by id: {}",
+                    id
+                )))?;
 
         self.running_shipments.push(sql_shipment.clone());
 
@@ -308,7 +313,7 @@ impl ConstructionManager {
 
     async fn fail_shipment(
         &mut self,
-        mut shipment: crate::sql::ConstructionShipment,
+        mut shipment: database::ConstructionShipment,
         _error: &crate::error::Error,
     ) -> Result<()> {
         debug!("Handling failed shipment: {:?}", shipment);
@@ -321,9 +326,9 @@ impl ConstructionManager {
             self.running_shipments.remove(pos);
         }
 
-        shipment.status = sql::ShipmentStatus::Failed;
+        shipment.status = database::ShipmentStatus::Failed;
 
-        sql::ConstructionShipment::insert(&self.context.database_pool, &shipment).await?;
+        database::ConstructionShipment::insert(&self.context.database_pool, &shipment).await?;
 
         Ok(())
     }
@@ -331,15 +336,16 @@ impl ConstructionManager {
     async fn finish_shipment(
         &mut self,
         construction: space_traders_client::models::Construction,
-        mut shipment: crate::sql::ConstructionShipment,
+        mut shipment: database::ConstructionShipment,
     ) -> Result<()> {
         let materials = construction
             .materials
             .iter()
-            .map(|m| sql::ConstructionMaterial::from(m, &construction.symbol))
+            .map(|m| database::ConstructionMaterial::from(m, &construction.symbol))
             .collect::<Vec<_>>();
 
-        sql::ConstructionMaterial::insert_bulk(&self.context.database_pool, &materials).await?;
+        database::ConstructionMaterial::insert_bulk(&self.context.database_pool, &materials)
+            .await?;
 
         let pos = self
             .running_shipments
@@ -350,9 +356,9 @@ impl ConstructionManager {
             self.running_shipments.remove(pos);
         }
 
-        shipment.status = sql::ShipmentStatus::Delivered;
+        shipment.status = database::ShipmentStatus::Delivered;
 
-        sql::ConstructionShipment::insert(&self.context.database_pool, &shipment).await?;
+        database::ConstructionShipment::insert(&self.context.database_pool, &shipment).await?;
 
         let waypoint = shipment.construction_site_waypoint.clone();
 
@@ -367,7 +373,8 @@ impl ConstructionManager {
                 .api
                 .get_waypoint(&system_waypoint, &waypoint)
                 .await?;
-            sql::Waypoint::insert(&self.context.database_pool, &((&(*wp.data)).into())).await?;
+            database::Waypoint::insert(&self.context.database_pool, &((&(*wp.data)).into()))
+                .await?;
         }
 
         Ok(())
@@ -376,7 +383,7 @@ impl ConstructionManager {
     fn calculate_purchase_volume(
         &self,
         ship: &ship::MyShip,
-        shipment: &sql::ConstructionMaterial,
+        shipment: &database::ConstructionMaterial,
         trade_symbol: &models::TradeSymbol,
     ) -> (i32, i32) {
         let remaining_required = shipment.required - shipment.fulfilled;
@@ -397,13 +404,13 @@ impl ConstructionManager {
             trade_symbol
         );
         let market_trades =
-            sql::MarketTrade::get_last_by_symbol(&self.context.database_pool, trade_symbol)
+            database::MarketTrade::get_last_by_symbol(&self.context.database_pool, trade_symbol)
                 .await?
                 .into_iter()
                 .filter(|t| t.waypoint_symbol.starts_with(system_symbol))
                 .collect::<Vec<_>>();
-        let market_trade_goods: HashMap<(models::TradeSymbol, String), sql::MarketTradeGood> =
-            sql::MarketTradeGood::get_last_by_symbol(&self.context.database_pool, trade_symbol)
+        let market_trade_goods: HashMap<(models::TradeSymbol, String), database::MarketTradeGood> =
+            database::MarketTradeGood::get_last_by_symbol(&self.context.database_pool, trade_symbol)
                 .await?
                 .into_iter()
                 .filter(|t| t.waypoint_symbol.starts_with(system_symbol))

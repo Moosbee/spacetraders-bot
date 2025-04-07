@@ -2,8 +2,7 @@ use dashmap::DashMap;
 use log::debug;
 use space_traders_client::models;
 use tokio::sync::mpsc;
-
-use crate::types::safely_get_map;
+use utils::safely_get_map;
 
 #[derive(Debug)]
 pub struct TransportTransferRequest {

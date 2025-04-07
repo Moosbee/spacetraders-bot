@@ -1,13 +1,10 @@
 use chrono::Utc;
+use database::DatabaseConnector;
 use log::{debug, warn};
 use space_traders_client::models::{self};
+use utils::get_system_symbol;
 
-use crate::{
-    api,
-    ship::MyShip,
-    sql::{self, DatabaseConnector},
-    utils::get_system_symbol,
-};
+use crate::ship::MyShip;
 
 use super::connection::{
     ConcreteConnection, JumpConnection, NavigateConnection, Refuel, Route, WarpConnection,
@@ -17,9 +14,9 @@ impl MyShip {
     pub async fn fly_route(
         &mut self,
         route: Route,
-        reason: sql::TransactionReason,
-        database_pool: &sql::DbPool,
-        api: &api::Api,
+        reason: database::TransactionReason,
+        database_pool: &database::DbPool,
+        api: &space_traders_client::Api,
         wp_action: impl AsyncFn(&mut MyShip, String, String) -> crate::error::Result<()> + Clone,
     ) -> crate::error::Result<()> {
         self.set_auto_pilot(route.clone()).await?;
@@ -37,9 +34,9 @@ impl MyShip {
     async fn execute_connection(
         &mut self,
         connection: ConcreteConnection,
-        reason: &sql::TransactionReason,
-        database_pool: &sql::DbPool,
-        api: &api::Api,
+        reason: &database::TransactionReason,
+        database_pool: &database::DbPool,
+        api: &space_traders_client::Api,
         wp_action: impl AsyncFn(&mut MyShip, String, String) -> crate::error::Result<()>,
     ) -> crate::error::Result<()> {
         match connection {
@@ -81,9 +78,9 @@ impl MyShip {
     async fn execute_jump_connection(
         &mut self,
         connection: JumpConnection,
-        reason: &sql::TransactionReason,
-        database_pool: &sql::DbPool,
-        api: &api::Api,
+        reason: &database::TransactionReason,
+        database_pool: &database::DbPool,
+        api: &space_traders_client::Api,
         wp_action: impl (AsyncFn(&mut MyShip, String, String) -> crate::error::Result<()>),
     ) -> crate::error::Result<()> {
         if self.nav.waypoint_symbol != connection.start_symbol {
@@ -101,7 +98,8 @@ impl MyShip {
         .await?;
 
         let jump_conn =
-            sql::JumpGateConnection::get_all_from(database_pool, &connection.start_symbol).await?;
+            database::JumpGateConnection::get_all_from(database_pool, &connection.start_symbol)
+                .await?;
 
         if !jump_conn.iter().any(|jg| jg.to == connection.end_symbol) {
             return Err("No connection".into());
@@ -112,16 +110,16 @@ impl MyShip {
 
         let jump_data = self.jump(api, &connection.end_symbol).await?;
 
-        sql::Agent::insert(
+        database::Agent::insert(
             database_pool,
-            &sql::Agent::from((*jump_data.data.agent).clone()),
+            &database::Agent::from((*jump_data.data.agent).clone()),
         )
         .await?;
 
         let transaction =
-            sql::MarketTransaction::try_from(jump_data.data.transaction.as_ref().clone())?
+            database::MarketTransaction::try_from(jump_data.data.transaction.as_ref().clone())?
                 .with(reason.clone());
-        sql::MarketTransaction::insert(database_pool, &transaction).await?;
+        database::MarketTransaction::insert(database_pool, &transaction).await?;
 
         Ok(())
     }
@@ -129,9 +127,9 @@ impl MyShip {
     async fn execute_warp_connection(
         &mut self,
         connection: WarpConnection,
-        reason: &sql::TransactionReason,
-        database_pool: &sql::DbPool,
-        api: &api::Api,
+        reason: &database::TransactionReason,
+        database_pool: &database::DbPool,
+        api: &space_traders_client::Api,
         wp_action: impl AsyncFn(&mut MyShip, String, String) -> crate::error::Result<()>,
     ) -> crate::error::Result<()> {
         if self.nav.waypoint_symbol != connection.start_symbol {
@@ -168,7 +166,7 @@ impl MyShip {
 
         let end_id = self.snapshot(database_pool).await?;
 
-        let rote = crate::sql::Route {
+        let rote = database::Route {
             id: 0,
             ship_symbol: self.symbol.clone(),
             from: self.nav.waypoint_symbol.clone(),
@@ -184,7 +182,7 @@ impl MyShip {
             created_at: Utc::now(),
         };
 
-        crate::sql::Route::insert(database_pool, &rote).await?;
+        database::Route::insert(database_pool, &rote).await?;
 
         Ok(())
     }
@@ -192,9 +190,9 @@ impl MyShip {
     async fn execute_navigate_connection(
         &mut self,
         connection: NavigateConnection,
-        reason: &sql::TransactionReason,
-        database_pool: &sql::DbPool,
-        api: &api::Api,
+        reason: &database::TransactionReason,
+        database_pool: &database::DbPool,
+        api: &space_traders_client::Api,
         wp_action: impl AsyncFn(&mut MyShip, String, String) -> crate::error::Result<()>,
     ) -> crate::error::Result<()> {
         if self.nav.waypoint_symbol != connection.start_symbol {
@@ -235,7 +233,7 @@ impl MyShip {
             debug!("Nav Events: {:#?} ", nav_data.data.events);
         }
 
-        let rote = crate::sql::Route {
+        let rote = database::Route {
             id: 0,
             ship_symbol: self.symbol.clone(),
             from: self.nav.waypoint_symbol.clone(),
@@ -251,7 +249,7 @@ impl MyShip {
             created_at: Utc::now(),
         };
 
-        crate::sql::Route::insert(database_pool, &rote).await?;
+        database::Route::insert(database_pool, &rote).await?;
 
         Ok(())
     }
@@ -259,9 +257,9 @@ impl MyShip {
     async fn handle_refuel(
         &mut self,
         refuel: Refuel,
-        reason: &sql::TransactionReason,
-        database_pool: &sql::DbPool,
-        api: &api::Api,
+        reason: &database::TransactionReason,
+        database_pool: &database::DbPool,
+        api: &space_traders_client::Api,
     ) -> crate::error::Result<()> {
         // the system should refuel at least to such a level, that we can navigate.
         // the system should refuel as much as would fit in the fuel tanks. But not waste fuel by overfilling the tanks. Except overfilling is required for navigation.
@@ -325,9 +323,9 @@ impl MyShip {
     async fn marketplace_refuel(
         &mut self,
         refuel: RefuelRequirements,
-        api: &api::Api,
-        reason: &sql::TransactionReason,
-        database_pool: &sql::DbPool,
+        api: &space_traders_client::Api,
+        reason: &database::TransactionReason,
+        database_pool: &database::DbPool,
     ) -> crate::error::Result<()> {
         // we need to refuel/restock something
 
@@ -336,12 +334,17 @@ impl MyShip {
         if refuel.refuel_amount > 0 {
             let refuel_data = self.refuel_ship(api, refuel.refuel_amount, false).await?;
 
-            sql::Agent::insert(database_pool, &sql::Agent::from(*refuel_data.data.agent)).await?;
+            database::Agent::insert(
+                database_pool,
+                &database::Agent::from(*refuel_data.data.agent),
+            )
+            .await?;
 
-            let transaction =
-                sql::MarketTransaction::try_from(refuel_data.data.transaction.as_ref().clone())?
-                    .with(reason.clone());
-            sql::MarketTransaction::insert(database_pool, &transaction).await?;
+            let transaction = database::MarketTransaction::try_from(
+                refuel_data.data.transaction.as_ref().clone(),
+            )?
+            .with(reason.clone());
+            database::MarketTransaction::insert(database_pool, &transaction).await?;
         }
 
         if refuel.restock_amount > 0 {
@@ -361,19 +364,24 @@ impl MyShip {
     async fn space_refuel(
         &mut self,
         refuel: RefuelRequirements,
-        api: &api::Api,
-        reason: &sql::TransactionReason,
-        database_pool: &sql::DbPool,
+        api: &space_traders_client::Api,
+        reason: &database::TransactionReason,
+        database_pool: &database::DbPool,
     ) -> crate::error::Result<()> {
         if refuel.refuel_amount > 0 {
             let refuel_data = self.refuel_ship(api, refuel.refuel_amount, true).await?;
 
-            sql::Agent::insert(database_pool, &sql::Agent::from(*refuel_data.data.agent)).await?;
+            database::Agent::insert(
+                database_pool,
+                &database::Agent::from(*refuel_data.data.agent),
+            )
+            .await?;
 
-            let transaction =
-                sql::MarketTransaction::try_from(refuel_data.data.transaction.as_ref().clone())?
-                    .with(reason.clone());
-            sql::MarketTransaction::insert(database_pool, &transaction).await?;
+            let transaction = database::MarketTransaction::try_from(
+                refuel_data.data.transaction.as_ref().clone(),
+            )?
+            .with(reason.clone());
+            database::MarketTransaction::insert(database_pool, &transaction).await?;
         }
 
         if refuel.restock_amount > 0 {

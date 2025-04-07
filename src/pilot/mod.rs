@@ -14,10 +14,10 @@ use scraper::ScraperPilot;
 use tokio_util::sync::CancellationToken;
 use trading::TradingPilot;
 
-use crate::sql;
-
-use crate::error::{Error, Result};
-use crate::types::ConductorContext;
+use crate::{
+    error::{Error, Result},
+    utils::ConductorContext,
+};
 
 pub use mining::MiningShipAssignment;
 
@@ -66,7 +66,8 @@ impl Pilot {
         .await;
         while !self.cancellation_token.is_cancelled() {
             let ship_info_res =
-                sql::ShipInfo::get_by_symbol(&self.context.database_pool, &self.ship_symbol).await;
+                database::ShipInfo::get_by_symbol(&self.context.database_pool, &self.ship_symbol)
+                    .await;
 
             let ship_info = ship_info_res?.ok_or(Error::General("Ship not found".to_string()))?;
 
@@ -83,7 +84,7 @@ impl Pilot {
         debug!("Waiting for activation");
         while !self.cancellation_token.is_cancelled() {
             let ship_info =
-                sql::ShipInfo::get_by_symbol(&self.context.database_pool, &self.ship_symbol)
+                database::ShipInfo::get_by_symbol(&self.context.database_pool, &self.ship_symbol)
                     .await?
                     .ok_or(Error::General("Ship not found".to_string()))?;
 
@@ -103,11 +104,11 @@ impl Pilot {
     async fn wait_for_new_role(&self) -> Result<()> {
         while !self.cancellation_token.is_cancelled() {
             let ship_info =
-                sql::ShipInfo::get_by_symbol(&self.context.database_pool, &self.ship_symbol)
+                database::ShipInfo::get_by_symbol(&self.context.database_pool, &self.ship_symbol)
                     .await?
                     .ok_or(Error::General("Ship not found".to_string()))?;
 
-            if ship_info.role != sql::ShipInfoRole::Manuel {
+            if ship_info.role != database::ShipInfoRole::Manuel {
                 break;
             }
 
@@ -143,16 +144,20 @@ impl Pilot {
         debug!("Starting pilot circle for ship {}", self.ship_symbol);
 
         match role {
-            sql::ShipInfoRole::Construction => {
+            database::ShipInfoRole::Construction => {
                 self.construction_pilot.execute_pilot_circle(self).await
             }
-            sql::ShipInfoRole::Trader => self.trading_pilot.execute_pilot_circle(self).await,
-            sql::ShipInfoRole::Contract => self.contract_pilot.execute_pilot_circle(self).await,
-            sql::ShipInfoRole::Scraper => self.scraper_pilot.execute_pilot_circle(self).await,
-            sql::ShipInfoRole::Mining => self.mining_pilot.execute_pilot_circle(self).await,
-            sql::ShipInfoRole::Manuel => self.wait_for_new_role().await,
-            sql::ShipInfoRole::TempTrader => self.trading_pilot.execute_pilot_circle(self).await,
-            sql::ShipInfoRole::Charter => self.chart_pilot.execute_pilot_circle(self).await,
+            database::ShipInfoRole::Trader => self.trading_pilot.execute_pilot_circle(self).await,
+            database::ShipInfoRole::Contract => {
+                self.contract_pilot.execute_pilot_circle(self).await
+            }
+            database::ShipInfoRole::Scraper => self.scraper_pilot.execute_pilot_circle(self).await,
+            database::ShipInfoRole::Mining => self.mining_pilot.execute_pilot_circle(self).await,
+            database::ShipInfoRole::Manuel => self.wait_for_new_role().await,
+            database::ShipInfoRole::TempTrader => {
+                self.trading_pilot.execute_pilot_circle(self).await
+            }
+            database::ShipInfoRole::Charter => self.chart_pilot.execute_pilot_circle(self).await,
         }?;
 
         Ok(())
@@ -161,7 +166,7 @@ impl Pilot {
     async fn get_budget(&self) -> Result<i64> {
         let agent_symbol = { self.context.run_info.read().await.agent_symbol.clone() };
 
-        let agent = sql::Agent::get_last_by_symbol(&self.context.database_pool, &agent_symbol)
+        let agent = database::Agent::get_last_by_symbol(&self.context.database_pool, &agent_symbol)
             .await?
             .ok_or(Error::General("Agent not found".to_string()))?;
         Ok(agent.credits - 30_000)

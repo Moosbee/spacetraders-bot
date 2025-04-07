@@ -3,7 +3,7 @@ use log::debug;
 use crate::{
     error::{Error, Result},
     manager::{contract_manager::ContractShipmentMessage, fleet_manager::message::RequiredShips},
-    ship, sql,
+    ship,
 };
 
 use super::{message::ContractManagerMessage, NextShipmentResp};
@@ -41,7 +41,7 @@ impl ContractManagerMessanger {
 
     pub async fn fail_shipment(
         &self,
-        shipment: sql::ContractShipment,
+        shipment: database::ContractShipment,
         error: Error,
     ) -> Result<Error> {
         let (sender, receiver) = tokio::sync::oneshot::channel();
@@ -67,7 +67,7 @@ impl ContractManagerMessanger {
 
     pub async fn complete_shipment(
         &self,
-        shipment: sql::ContractShipment,
+        shipment: database::ContractShipment,
         contract: space_traders_client::models::Contract,
     ) -> Result<()> {
         let message = ContractShipmentMessage::Finished { contract, shipment };

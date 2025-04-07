@@ -1,8 +1,5 @@
 #![recursion_limit = "256"]
-mod api;
-mod ship;
-
-mod sql;
+pub mod ship;
 
 mod config;
 mod tests;
@@ -11,7 +8,6 @@ mod control_api;
 mod error;
 mod manager;
 mod pilot;
-mod rate_limiter;
 mod types;
 mod utils;
 
@@ -19,6 +15,7 @@ use std::{collections::HashSet, env, error::Error, str::FromStr, sync::Arc, vec}
 
 use chrono::{DateTime, Utc};
 use config::CONFIG;
+use database::DatabaseConnector;
 use env_logger::{Env, Target};
 use manager::{
     chart_manager::ChartManager,
@@ -33,14 +30,13 @@ use manager::{
 use rsntp::AsyncSntpClient;
 use ship::ShipManager;
 use space_traders_client::models;
-use sql::DatabaseConnector;
 use tokio::sync::{broadcast, RwLock};
 use tokio_stream::StreamExt;
 use tokio_util::sync::CancellationToken;
-use types::{ConductorContext, RunInfo, WaypointCan};
 
-use crate::api::Api;
-use log::{debug, error, info, warn};
+use ::utils::{RunInfo, WaypointCan};
+use log::{debug, error, info};
+use utils::ConductorContext;
 
 use std::num::NonZeroU32;
 
@@ -61,7 +57,7 @@ async fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
-async fn setup_unauthed() -> Result<(Api, sql::DbPool), anyhow::Error> {
+async fn setup_unauthed() -> Result<(space_traders_client::Api, database::DbPool), anyhow::Error> {
     dotenvy::dotenv()?;
 
     let env = Env::default()
@@ -79,9 +75,10 @@ async fn setup_unauthed() -> Result<(Api, sql::DbPool), anyhow::Error> {
 
     info!("{:?}", CONFIG.clone());
 
-    let api: Api = Api::new(access_token, 550, NonZeroU32::new(2).unwrap());
+    let api: space_traders_client::Api =
+        space_traders_client::Api::new(access_token, 550, NonZeroU32::new(2).unwrap());
 
-    let database_pool = sql::DbPool::new(
+    let database_pool = database::DbPool::new(
         PgPoolOptions::new()
             .max_connections(5)
             .connect(&database_url)
@@ -131,14 +128,14 @@ async fn setup_context(
     debug!("Systems: {}", system_symbols.len());
 
     for system_symbol in system_symbols {
-        let db_system = sql::System::get_by_id(&database_pool, &system_symbol).await?;
-        let waypoints = sql::Waypoint::get_by_system(&database_pool, &system_symbol).await?;
+        let db_system = database::System::get_by_id(&database_pool, &system_symbol).await?;
+        let waypoints = database::Waypoint::get_by_system(&database_pool, &system_symbol).await?;
 
         if db_system.is_none() || waypoints.is_empty() {
             // some systems have no waypoints, but we likely won't have ships there
             scrapping_manager::utils::update_system(&database_pool, &api, &system_symbol, true)
                 .await?;
-            let wps = sql::Waypoint::get_by_system(&database_pool, &system_symbol)
+            let wps = database::Waypoint::get_by_system(&database_pool, &system_symbol)
                 .await?
                 .into_iter()
                 .filter(|w| w.is_marketplace())
@@ -170,7 +167,7 @@ async fn setup_context(
         ShipManager::add_ship(&ship_manager, ship_i).await;
     }
 
-    // let gates = sql::Waypoint::get_all(&database_pool)
+    // let gates = database::Waypoint::get_all(&database_pool)
     //     .await?
     //     .into_iter()
     //     .filter(|w| w.is_jump_gate())
@@ -377,7 +374,8 @@ async fn start_managers(
 }
 
 async fn start_ships(context: &ConductorContext) -> Result<(), crate::error::Error> {
-    let ship_names: Vec<sql::ShipInfo> = sql::ShipInfo::get_all(&context.database_pool).await?;
+    let ship_names: Vec<database::ShipInfo> =
+        database::ShipInfo::get_all(&context.database_pool).await?;
 
     let len = ship_names.len();
     debug!("Starting {} ships", len);

@@ -1,9 +1,7 @@
 use space_traders_client::models;
+use utils::WaypointCan;
 
-use crate::{
-    ship, sql,
-    types::{ConductorContext, WaypointCan},
-};
+use crate::{ship, utils::ConductorContext};
 
 use super::{
     mining_places::{AssignLevel, MiningPlaces},
@@ -54,7 +52,8 @@ impl WaypointManager {
     ) -> Result<String> {
         if let Some((waypoint_symbol, _)) = self.places.get_ship(&ship.symbol) {
             let waypoint =
-                sql::Waypoint::get_by_symbol(&self.context.database_pool, &waypoint_symbol).await?;
+                database::Waypoint::get_by_symbol(&self.context.database_pool, &waypoint_symbol)
+                    .await?;
             if waypoint
                 .map(|waypoint| {
                     waypoint.is_minable()
@@ -82,7 +81,8 @@ impl WaypointManager {
         let waypoint_symbol = ship.nav.waypoint_symbol.clone();
 
         let waypoint =
-            sql::Waypoint::get_by_symbol(&self.context.database_pool, &waypoint_symbol).await?;
+            database::Waypoint::get_by_symbol(&self.context.database_pool, &waypoint_symbol)
+                .await?;
         if waypoint
             .map(|waypoint| {
                 waypoint.is_minable()
@@ -122,7 +122,7 @@ impl WaypointManager {
                                 })
                                 .unwrap_or(true)
                     },
-                    ActionType::Siphon => sql::Waypoint::is_sipherable,
+                    ActionType::Siphon => database::Waypoint::is_sipherable,
                 },
                 &self.places,
             )

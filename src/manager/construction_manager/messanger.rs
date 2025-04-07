@@ -1,6 +1,6 @@
 use space_traders_client::models;
 
-use crate::{manager::fleet_manager::message::RequiredShips, ship, sql};
+use crate::{manager::fleet_manager::message::RequiredShips, ship};
 
 use super::message::{self, ConstructionManagerMessage};
 
@@ -42,7 +42,7 @@ impl ConstructionManagerMessanger {
 
     pub async fn fail_shipment(
         &self,
-        shipment: sql::ConstructionShipment,
+        shipment: database::ConstructionShipment,
         error: crate::error::Error,
     ) -> Result<crate::error::Error, crate::error::Error> {
         let (sender, callback) = tokio::sync::oneshot::channel();
@@ -69,7 +69,7 @@ impl ConstructionManagerMessanger {
 
     pub async fn complete_shipment(
         &self,
-        shipment: sql::ConstructionShipment,
+        shipment: database::ConstructionShipment,
         construction: models::Construction,
     ) -> Result<(), crate::error::Error> {
         let message = message::ConstructionManagerMessage::FinishedShipment {
@@ -86,7 +86,7 @@ impl ConstructionManagerMessanger {
 
     pub async fn get_running_shipments(
         &self,
-    ) -> Result<Vec<sql::ConstructionShipment>, crate::error::Error> {
+    ) -> Result<Vec<database::ConstructionShipment>, crate::error::Error> {
         let (sender, callback) = tokio::sync::oneshot::channel();
 
         let message = message::ConstructionManagerMessage::GetRunning { callback: sender };

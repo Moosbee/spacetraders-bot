@@ -1,38 +1,39 @@
 use std::collections::HashMap;
 
+use database::DatabaseConnector;
 use log::debug;
+use utils::WaypointCan;
 use warp::reply::Reply;
 
 use crate::{
     control_api::types::{Result, ServerError},
-    sql::{self, DatabaseConnector},
-    types::{ConductorContext, WaypointCan},
+    utils::ConductorContext,
 };
 
 pub async fn handle_get_trade_routes(context: ConductorContext) -> Result<impl Reply> {
-    let trade_routes = sql::TradeRoute::get_summarys(&context.database_pool)
+    let trade_routes = database::TradeRoute::get_summarys(&context.database_pool)
         .await
         .map_err(ServerError::Database)?;
     Ok(warp::reply::json(&trade_routes))
 }
 
 pub async fn handle_get_contract(id: String, context: ConductorContext) -> Result<impl Reply> {
-    let contract = sql::Contract::get_by_id(&context.database_pool, &id)
+    let contract = database::Contract::get_by_id(&context.database_pool, &id)
         .await
         .map_err(ServerError::Database)?;
 
-    let deliveries = sql::ContractDelivery::get_by_contract_id(&context.database_pool, &id)
+    let deliveries = database::ContractDelivery::get_by_contract_id(&context.database_pool, &id)
         .await
         .map_err(ServerError::Database)?;
 
-    let transactions = sql::MarketTransaction::get_by_reason(
+    let transactions = database::MarketTransaction::get_by_reason(
         &context.database_pool,
-        sql::TransactionReason::Contract(id.clone()),
+        database::TransactionReason::Contract(id.clone()),
     )
     .await
     .map_err(ServerError::Database)?;
 
-    let shipments = sql::ContractShipment::get_by_contract_id(&context.database_pool, &id)
+    let shipments = database::ContractShipment::get_by_contract_id(&context.database_pool, &id)
         .await
         .map_err(ServerError::Database)?;
 
@@ -47,7 +48,7 @@ pub async fn handle_get_contract(id: String, context: ConductorContext) -> Resul
 
 pub async fn handle_get_contracts(context: ConductorContext) -> Result<impl Reply> {
     debug!("Getting contracts");
-    let contracts = sql::Contract::get_all_sm(&context.database_pool)
+    let contracts = database::Contract::get_all_sm(&context.database_pool)
         .await
         .map_err(ServerError::Database)?;
     debug!("Got {} contracts", contracts.len());
@@ -56,7 +57,7 @@ pub async fn handle_get_contracts(context: ConductorContext) -> Result<impl Repl
 
 pub async fn handle_get_transactions(context: ConductorContext) -> Result<impl Reply> {
     debug!("Getting transactions");
-    let transactions = sql::MarketTransaction::get_all(&context.database_pool)
+    let transactions = database::MarketTransaction::get_all(&context.database_pool)
         .await
         .map_err(ServerError::Database)?;
     debug!("Got {} transactions", transactions.len());
@@ -69,7 +70,7 @@ pub async fn handle_request_system(
 ) -> Result<impl Reply> {
     let now = tokio::time::Instant::now();
 
-    let waypoints = sql::System::get_by_id(&context.database_pool, &symbol)
+    let waypoints = database::System::get_by_id(&context.database_pool, &symbol)
         .await
         .map_err(ServerError::Database)?;
     if let Some(waypoints) = waypoints {
@@ -82,7 +83,7 @@ pub async fn handle_request_system(
         .await
         // .map_err(crate::error::Error::from)
         .map_err(ServerError::from)?;
-    sql::System::insert(&context.database_pool, &(&(*system.data)).into())
+    database::System::insert(&context.database_pool, &(&(*system.data)).into())
         .await
         .map_err(ServerError::from)?;
 
@@ -95,7 +96,7 @@ pub async fn handle_request_system(
     .await
     .map_err(ServerError::from)?;
 
-    let sql_waypoints = sql::Waypoint::get_by_system(&context.database_pool, &symbol)
+    let sql_waypoints = database::Waypoint::get_by_system(&context.database_pool, &symbol)
         .await
         .map_err(ServerError::from)?;
 
@@ -120,13 +121,13 @@ pub async fn handle_request_system(
     let elapsed = now.elapsed();
 
     Ok(warp::reply::json(
-        &serde_json::json!({ "system": std::convert::Into::<sql::System>::into(&(*system.data)), "waypoints": sql_waypoints,"took":elapsed.as_millis() }),
+        &serde_json::json!({ "system": std::convert::Into::<database::System>::into(&(*system.data)), "waypoints": sql_waypoints,"took":elapsed.as_millis() }),
     ))
 }
 
 pub async fn handle_get_waypoints(context: ConductorContext) -> Result<impl Reply> {
     debug!("Getting all waypoints");
-    let waypoints = sql::Waypoint::get_all(&context.database_pool)
+    let waypoints = database::Waypoint::get_all(&context.database_pool)
         .await
         .map_err(ServerError::Database)?;
 
@@ -134,14 +135,16 @@ pub async fn handle_get_waypoints(context: ConductorContext) -> Result<impl Repl
 
     for waypoint in &waypoints {
         let trade_goods =
-            sql::MarketTrade::get_last_by_waypoint(&context.database_pool, &waypoint.symbol)
+            database::MarketTrade::get_last_by_waypoint(&context.database_pool, &waypoint.symbol)
                 .await
                 .map_err(ServerError::Database)?;
 
-        let market_trade_goods =
-            sql::MarketTradeGood::get_last_by_waypoint(&context.database_pool, &waypoint.symbol)
-                .await
-                .map_err(ServerError::Database)?;
+        let market_trade_goods = database::MarketTradeGood::get_last_by_waypoint(
+            &context.database_pool,
+            &waypoint.symbol,
+        )
+        .await
+        .map_err(ServerError::Database)?;
 
         waypoints_data.push(serde_json::json!({
             "waypoint": waypoint,
@@ -156,14 +159,14 @@ pub async fn handle_get_waypoints(context: ConductorContext) -> Result<impl Repl
 
 pub async fn handle_get_waypoint(symbol: String, context: ConductorContext) -> Result<impl Reply> {
     debug!("Getting {} waypoint", symbol);
-    let waypoint = sql::Waypoint::get_by_symbol(&context.database_pool, &symbol)
+    let waypoint = database::Waypoint::get_by_symbol(&context.database_pool, &symbol)
         .await
         .map_err(ServerError::Database)?
         .ok_or(ServerError::NotFound)?;
 
     let constructions = {
         let construction_material =
-            sql::ConstructionMaterial::get_by_waypoint(&context.database_pool, &symbol)
+            database::ConstructionMaterial::get_by_waypoint(&context.database_pool, &symbol)
                 .await
                 .map_err(ServerError::Database)?;
 
@@ -177,21 +180,23 @@ pub async fn handle_get_waypoint(symbol: String, context: ConductorContext) -> R
     let (market_trades, market_trade_goods, transactions, trade_good_history) = if waypoint
         .is_marketplace()
     {
-        let market_trades = sql::MarketTrade::get_last_by_waypoint(&context.database_pool, &symbol)
-            .await
-            .map_err(ServerError::Database)?;
-
-        let market_trade_goods =
-            sql::MarketTradeGood::get_last_by_waypoint(&context.database_pool, &symbol)
+        let market_trades =
+            database::MarketTrade::get_last_by_waypoint(&context.database_pool, &symbol)
                 .await
                 .map_err(ServerError::Database)?;
 
-        let transactions = sql::MarketTransaction::get_by_waypoint(&context.database_pool, &symbol)
-            .await
-            .map_err(ServerError::Database)?;
+        let market_trade_goods =
+            database::MarketTradeGood::get_last_by_waypoint(&context.database_pool, &symbol)
+                .await
+                .map_err(ServerError::Database)?;
+
+        let transactions =
+            database::MarketTransaction::get_by_waypoint(&context.database_pool, &symbol)
+                .await
+                .map_err(ServerError::Database)?;
 
         let trade_good_history =
-            sql::MarketTradeGood::get_by_waypoint(&context.database_pool, &symbol)
+            database::MarketTradeGood::get_by_waypoint(&context.database_pool, &symbol)
                 .await
                 .map_err(ServerError::Database)?;
 
@@ -214,18 +219,18 @@ pub async fn handle_get_waypoint(symbol: String, context: ConductorContext) -> R
     };
 
     let (shipyard, ship_types, ships, ship_transactions) = if waypoint.is_shipyard() {
-        let shipyard = sql::Shipyard::get_last_by_waypoint(&context.database_pool, &symbol)
+        let shipyard = database::Shipyard::get_last_by_waypoint(&context.database_pool, &symbol)
             .await
             .map_err(ServerError::Database)?;
         let ship_types =
-            sql::ShipyardShipTypes::get_last_by_waypoint(&context.database_pool, &symbol)
+            database::ShipyardShipTypes::get_last_by_waypoint(&context.database_pool, &symbol)
                 .await
                 .map_err(ServerError::Database)?;
-        let ships = sql::ShipyardShip::get_last_by_waypoint(&context.database_pool, &symbol)
+        let ships = database::ShipyardShip::get_last_by_waypoint(&context.database_pool, &symbol)
             .await
             .map_err(ServerError::Database)?;
         let ship_transactions =
-            sql::ShipyardTransaction::get_by_waypoint(&context.database_pool, &symbol)
+            database::ShipyardTransaction::get_by_waypoint(&context.database_pool, &symbol)
                 .await
                 .map_err(ServerError::Database)?;
 
@@ -249,7 +254,7 @@ pub async fn handle_get_waypoint(symbol: String, context: ConductorContext) -> R
 
     let jump_gate_connections = if waypoint.is_jump_gate() {
         Some(
-            sql::JumpGateConnection::get_all_from(&context.database_pool, &symbol)
+            database::JumpGateConnection::get_all_from(&context.database_pool, &symbol)
                 .await
                 .map_err(ServerError::Database)?,
         )
@@ -275,9 +280,10 @@ pub async fn handle_get_waypoint(symbol: String, context: ConductorContext) -> R
 pub async fn handle_get_construction_materials(context: ConductorContext) -> Result<impl Reply> {
     debug!("Getting all construction materials");
 
-    let construction_materials = sql::ConstructionMaterial::get_summary(&context.database_pool)
-        .await
-        .map_err(ServerError::Database)?;
+    let construction_materials =
+        database::ConstructionMaterial::get_summary(&context.database_pool)
+            .await
+            .map_err(ServerError::Database)?;
 
     Ok(warp::reply::json(&construction_materials))
 }
@@ -285,16 +291,17 @@ pub async fn handle_get_construction_materials(context: ConductorContext) -> Res
 pub async fn handle_get_construction_shipments(context: ConductorContext) -> Result<impl Reply> {
     debug!("Getting all construction shipments");
 
-    let construction_shipments = sql::ConstructionShipment::get_summary(&context.database_pool)
-        .await
-        .map_err(ServerError::Database)?;
+    let construction_shipments =
+        database::ConstructionShipment::get_summary(&context.database_pool)
+            .await
+            .map_err(ServerError::Database)?;
 
     Ok(warp::reply::json(&construction_shipments))
 }
 
 pub async fn handle_get_systems(context: ConductorContext) -> Result<impl Reply> {
     debug!("Getting all systems");
-    let systems = sql::RespSystem::get_all(&context.database_pool)
+    let systems = database::RespSystem::get_all(&context.database_pool)
         .await
         .map_err(ServerError::Database)?;
 
@@ -304,24 +311,26 @@ pub async fn handle_get_systems(context: ConductorContext) -> Result<impl Reply>
 
 pub async fn handle_get_system(symbol: String, context: ConductorContext) -> Result<impl Reply> {
     debug!("Getting all systems");
-    let system = sql::System::get_by_id(&context.database_pool, &symbol)
+    let system = database::System::get_by_id(&context.database_pool, &symbol)
         .await
         .map_err(ServerError::Database)?
         .ok_or(ServerError::NotFound)?;
 
-    let waypoints = sql::Waypoint::get_by_system(&context.database_pool, &symbol)
+    let waypoints = database::Waypoint::get_by_system(&context.database_pool, &symbol)
         .await
         .map_err(ServerError::Database)?;
 
     let mut waypoints_data = vec![];
 
     for waypoint in &waypoints {
-        let market_trade_goods =
-            sql::MarketTradeGood::get_last_by_waypoint(&context.database_pool, &waypoint.symbol)
-                .await
-                .map_err(ServerError::Database)?;
+        let market_trade_goods = database::MarketTradeGood::get_last_by_waypoint(
+            &context.database_pool,
+            &waypoint.symbol,
+        )
+        .await
+        .map_err(ServerError::Database)?;
         let trade_goods =
-            sql::MarketTrade::get_last_by_waypoint(&context.database_pool, &waypoint.symbol)
+            database::MarketTrade::get_last_by_waypoint(&context.database_pool, &waypoint.symbol)
                 .await
                 .map_err(ServerError::Database)?;
 
@@ -341,7 +350,7 @@ pub async fn handle_get_system(symbol: String, context: ConductorContext) -> Res
 
 pub async fn handle_get_agents(context: ConductorContext) -> Result<impl Reply> {
     debug!("Getting all agents");
-    let agents = sql::Agent::get_last(&context.database_pool)
+    let agents = database::Agent::get_last(&context.database_pool)
         .await
         .map_err(ServerError::Database)?;
 
@@ -351,7 +360,7 @@ pub async fn handle_get_agents(context: ConductorContext) -> Result<impl Reply> 
 
 pub async fn handle_get_agent(callsign: String, context: ConductorContext) -> Result<impl Reply> {
     debug!("Getting {} agent", callsign);
-    let agents = sql::Agent::get_last_by_symbol(&context.database_pool, &callsign)
+    let agents = database::Agent::get_last_by_symbol(&context.database_pool, &callsign)
         .await
         .map_err(ServerError::Database)?
         .ok_or(ServerError::NotFound)?;
@@ -364,7 +373,7 @@ pub async fn handle_get_agent_history(
     context: ConductorContext,
 ) -> Result<impl Reply> {
     debug!("Getting {} agent", callsign);
-    let agents = sql::Agent::get_by_symbol(&context.database_pool, &callsign)
+    let agents = database::Agent::get_by_symbol(&context.database_pool, &callsign)
         .await
         .map_err(ServerError::Database)?;
     debug!("Got {} agents", agents.len());
@@ -384,7 +393,7 @@ pub struct GateConn {
 
 pub async fn handle_get_jump_gates(context: ConductorContext) -> Result<impl Reply> {
     debug!("Getting jump gates");
-    let connections = sql::JumpGateConnection::get_all(&context.database_pool)
+    let connections = database::JumpGateConnection::get_all(&context.database_pool)
         .await
         .map_err(ServerError::Database)?;
 
@@ -412,7 +421,7 @@ pub async fn handle_get_jump_gates(context: ConductorContext) -> Result<impl Rep
         }
     }
 
-    let gate_waypoints = sql::Waypoint::get_all(&context.database_pool)
+    let gate_waypoints = database::Waypoint::get_all(&context.database_pool)
         .await
         .map_err(ServerError::Database)?
         .into_iter()

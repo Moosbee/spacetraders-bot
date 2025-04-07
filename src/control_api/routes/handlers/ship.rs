@@ -1,13 +1,14 @@
 use std::str::FromStr;
 
+use database::DatabaseConnector;
 use log::debug;
+use utils::WaypointCan;
 use warp::reply::Reply;
 
 use crate::{
     control_api::types::{Result, ServerError},
     error,
-    sql::{self, DatabaseConnector},
-    types::{ConductorContext, WaypointCan},
+    utils::ConductorContext,
 };
 
 pub async fn handle_get_ships(context: ConductorContext) -> Result<impl Reply> {
@@ -21,13 +22,13 @@ pub async fn handle_toggle_activation(
     symbol: String,
     context: ConductorContext,
 ) -> Result<impl Reply> {
-    let mut sql_ship = sql::ShipInfo::get_by_symbol(&context.database_pool, &symbol)
+    let mut sql_ship = database::ShipInfo::get_by_symbol(&context.database_pool, &symbol)
         .await
         .map_err(ServerError::Database)?
         .ok_or(ServerError::NotFound)?;
 
     sql_ship.active = !sql_ship.active;
-    sql::ShipInfo::insert(&context.database_pool, &sql_ship)
+    database::ShipInfo::insert(&context.database_pool, &sql_ship)
         .await
         .map_err(ServerError::Database)?;
 
@@ -39,7 +40,7 @@ pub async fn handle_change_role(
     body: serde_json::Value,
     context: ConductorContext,
 ) -> Result<impl Reply> {
-    let mut sql_ship = sql::ShipInfo::get_by_symbol(&context.database_pool, &symbol)
+    let mut sql_ship = database::ShipInfo::get_by_symbol(&context.database_pool, &symbol)
         .await
         .map_err(ServerError::Database)?
         .ok_or(ServerError::NotFound)?;
@@ -47,11 +48,11 @@ pub async fn handle_change_role(
     let trade_symbol_str = body["role"]
         .as_str()
         .ok_or(ServerError::BadRequest("Missing role".into()))?;
-    let trade_symbol = sql::ShipInfoRole::try_from(trade_symbol_str)
+    let trade_symbol = database::ShipInfoRole::try_from(trade_symbol_str)
         .map_err(|_| ServerError::BadRequest("Invalid Role".into()))?;
 
     sql_ship.role = trade_symbol;
-    sql::ShipInfo::insert(&context.database_pool, &sql_ship)
+    database::ShipInfo::insert(&context.database_pool, &sql_ship)
         .await
         .map_err(ServerError::Database)?;
 
@@ -69,7 +70,7 @@ pub async fn handle_toggle_orbit(symbol: String, context: ConductorContext) -> R
         .value_mut()
         .ok_or_else(|| ServerError::BadRequest("Ship not found".into()))?;
 
-    if ship.role != sql::ShipInfoRole::Manuel {
+    if ship.role != database::ShipInfoRole::Manuel {
         return Err(ServerError::BadRequest("Ship not in Manuel mode".into()).into());
     }
 
@@ -125,14 +126,17 @@ pub async fn handle_buy_ship(
         .map_err(crate::error::Error::from)
         .map_err(ServerError::from)?;
 
-    sql::Agent::insert(&context.database_pool, &sql::Agent::from(*resp.data.agent))
-        .await
+    database::Agent::insert(
+        &context.database_pool,
+        &database::Agent::from(*resp.data.agent),
+    )
+    .await
+    .map_err(|err| ServerError::Server(err.to_string()))?;
+
+    let transaction = database::ShipyardTransaction::try_from(*resp.data.transaction)
         .map_err(|err| ServerError::Server(err.to_string()))?;
 
-    let transaction = sql::ShipyardTransaction::try_from(*resp.data.transaction)
-        .map_err(|err| ServerError::Server(err.to_string()))?;
-
-    sql::ShipyardTransaction::insert(&context.database_pool, &transaction)
+    database::ShipyardTransaction::insert(&context.database_pool, &transaction)
         .await
         .map_err(|err| ServerError::Server(err.to_string()))?;
 
@@ -198,7 +202,7 @@ pub async fn handle_purchase_cargo_ship(
         .value_mut()
         .ok_or_else(|| ServerError::BadRequest("Ship not found".into()))?;
 
-    if ship.role != sql::ShipInfoRole::Manuel {
+    if ship.role != database::ShipInfoRole::Manuel {
         return Err(ServerError::BadRequest("Ship not in Manuel mode".into()).into());
     }
 
@@ -224,7 +228,7 @@ pub async fn handle_purchase_cargo_ship(
         &trade_symbol,
         units,
         &context.database_pool,
-        sql::TransactionReason::None,
+        database::TransactionReason::None,
     )
     .await
     .map_err(|err| ServerError::Server(err.to_string()))?;
@@ -254,7 +258,7 @@ pub async fn handle_jump_ship(
         .value_mut()
         .ok_or_else(|| ServerError::BadRequest("Ship not found".into()))?;
 
-    if ship.role != sql::ShipInfoRole::Manuel {
+    if ship.role != database::ShipInfoRole::Manuel {
         return Err(ServerError::BadRequest("Ship not in Manuel mode".into()).into());
     }
 
@@ -272,17 +276,18 @@ pub async fn handle_jump_ship(
         .await
         .map_err(ServerError::from)?;
 
-    sql::Agent::insert(
+    database::Agent::insert(
         &context.database_pool,
-        &sql::Agent::from((*jump_data.data.agent).clone()),
+        &database::Agent::from((*jump_data.data.agent).clone()),
     )
     .await
     .map_err(ServerError::from)?;
 
-    let transaction = sql::MarketTransaction::try_from(jump_data.data.transaction.as_ref().clone())
-        .map_err(ServerError::from)?
-        .with(sql::TransactionReason::None);
-    sql::MarketTransaction::insert(&context.database_pool, &transaction)
+    let transaction =
+        database::MarketTransaction::try_from(jump_data.data.transaction.as_ref().clone())
+            .map_err(ServerError::from)?
+            .with(database::TransactionReason::None);
+    database::MarketTransaction::insert(&context.database_pool, &transaction)
         .await
         .map_err(ServerError::from)?;
 
@@ -310,7 +315,7 @@ pub async fn handle_warp_ship(
         .value_mut()
         .ok_or_else(|| ServerError::BadRequest("Ship not found".into()))?;
 
-    if ship.role != sql::ShipInfoRole::Manuel {
+    if ship.role != database::ShipInfoRole::Manuel {
         return Err(ServerError::BadRequest("Ship not in Manuel mode".into()).into());
     }
 
@@ -348,7 +353,7 @@ pub async fn handle_chart_waypoint(
 
     let sql_waypoint = (&*erg.data.waypoint).into();
 
-    sql::Waypoint::insert(&context.database_pool, &sql_waypoint)
+    database::Waypoint::insert(&context.database_pool, &sql_waypoint)
         .await
         .map_err(|err| ServerError::Server(err.to_string()))?;
 
@@ -399,7 +404,7 @@ pub async fn handle_navigate_ship(
         .value_mut()
         .ok_or_else(|| ServerError::BadRequest("Ship not found".into()))?;
 
-    if ship.role != sql::ShipInfoRole::Manuel {
+    if ship.role != database::ShipInfoRole::Manuel {
         return Err(ServerError::BadRequest("Ship not in Manuel mode".into()).into());
     }
 
@@ -436,8 +441,13 @@ async fn navigate_ship(
         .value_mut()
         .ok_or_else(|| error::Error::General("Ship not found".to_string()))?;
 
-    ship.nav_to(waypoint_id, true, sql::TransactionReason::None, context)
-        .await?;
+    ship.nav_to(
+        waypoint_id,
+        true,
+        database::TransactionReason::None,
+        context,
+    )
+    .await?;
 
     Ok(())
 }

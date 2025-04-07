@@ -8,14 +8,14 @@ use warp::{reply::Reply, Filter};
 
 use crate::{
     control_api::types::{MyReceiver, ServerError},
-    ship, sql,
-    types::ConductorContext,
+    ship,
+    utils::ConductorContext,
 };
 
 pub fn build_routes(
     context: ConductorContext,
     ship_rx: MyReceiver<ship::MyShip>,
-    agent_rx: MyReceiver<sql::Agent>,
+    agent_rx: MyReceiver<database::Agent>,
     ship_cancellation_token: CancellationToken,
 ) -> impl Filter<Extract = impl Reply> + Clone {
     let cors = warp::cors()

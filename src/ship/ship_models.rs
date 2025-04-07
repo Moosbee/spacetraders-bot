@@ -4,20 +4,15 @@ use std::{
 };
 
 use chrono::{DateTime, Utc};
+use database::DatabaseConnector;
 use futures::FutureExt;
 use log::debug;
 use my_ship_update::{InterShipBroadcaster, MyShipUpdate, ShipUpdate};
 use space_traders_client::models::{self, ShipRole, TradeSymbol};
 use tokio::select;
+use utils::{Publisher, SendFuture, Subject};
 
-use crate::{
-    api,
-    pilot::MiningShipAssignment,
-    sql::{self, DatabaseConnector},
-    types::{SendFuture, Subject},
-};
-
-use crate::error::Result;
+use crate::{error::Result, pilot::MiningShipAssignment};
 
 use super::ShipManager;
 
@@ -26,7 +21,7 @@ impl Default for MyShip {
         Self {
             active: false,
             is_clone: false,
-            pubsub: crate::types::Publisher::new(),
+            pubsub: Publisher::new(),
             broadcaster: Default::default(),
             role: Default::default(),
             status: Default::default(),
@@ -68,7 +63,7 @@ impl Clone for MyShip {
             conditions: self.conditions.clone(),
             broadcaster: self.broadcaster.clone(),
             // mpsc: None,
-            pubsub: crate::types::Publisher::new(),
+            pubsub: Publisher::new(),
             engine: self.engine,
             reactor: self.reactor,
             frame: self.frame,
@@ -128,7 +123,7 @@ pub enum ShipStatus {
 
 #[derive(serde::Serialize)]
 pub struct MyShip {
-    pub role: crate::sql::ShipInfoRole,
+    pub role: database::ShipInfoRole,
     pub status: ShipStatus,
     pub registration_role: ShipRole,
     pub symbol: String,
@@ -156,7 +151,7 @@ pub struct MyShip {
     #[serde(skip)]
     pub broadcaster: InterShipBroadcaster,
     #[serde(skip)]
-    pub pubsub: crate::types::Publisher<ShipManager, MyShip>,
+    pub pubsub: Publisher<ShipManager, MyShip>,
 }
 
 impl Debug for MyShip {
@@ -318,7 +313,7 @@ impl MyShip {
     pub async fn notify(&self) {
         self.pubsub.notify_observers(self.clone()).await;
     }
-    pub async fn try_recive_update(&mut self, api: &api::Api) {
+    pub async fn try_recive_update(&mut self, api: &space_traders_client::Api) {
         self.mutate();
         while let Ok(data) = self.broadcaster.receiver.try_recv() {
             self.handle_update(data, api).await;
@@ -328,7 +323,7 @@ impl MyShip {
     async fn receive_update_loop(
         &mut self,
         cancel: &tokio_util::sync::CancellationToken,
-        api: &api::Api,
+        api: &space_traders_client::Api,
     ) {
         loop {
             let data = select! {
@@ -344,7 +339,7 @@ impl MyShip {
         }
     }
 
-    async fn handle_update(&mut self, data: MyShipUpdate, api: &api::Api) {
+    async fn handle_update(&mut self, data: MyShipUpdate, api: &space_traders_client::Api) {
         if data.symbol != self.symbol {
             return;
         }
@@ -379,7 +374,7 @@ impl MyShip {
     }
 
     #[deprecated]
-    pub async fn sleep(&mut self, duration: std::time::Duration, api: &api::Api) {
+    pub async fn sleep(&mut self, duration: std::time::Duration, api: &space_traders_client::Api) {
         self.mutate();
         let cancel = tokio_util::sync::CancellationToken::new();
 
@@ -396,14 +391,14 @@ impl MyShip {
 
     pub async fn apply_from_db(
         &mut self,
-        database_pool: crate::sql::DbPool,
-    ) -> Result<crate::sql::ShipInfo> {
+        database_pool: database::DbPool,
+    ) -> Result<database::ShipInfo> {
         self.mutate();
-        let db_ship = crate::sql::ShipInfo::get_by_symbol(&database_pool, &self.symbol).await?;
+        let db_ship = database::ShipInfo::get_by_symbol(&database_pool, &self.symbol).await?;
         let ship_info = match db_ship {
             Some(db_ship) => db_ship,
             None => {
-                if self.role == sql::ShipInfoRole::TempTrader {
+                if self.role == database::ShipInfoRole::TempTrader {
                     return Err(crate::error::Error::General(
                         "Ship was a temp trader".to_string(),
                     ));
@@ -413,13 +408,13 @@ impl MyShip {
                 } else {
                     self.display_name.clone()
                 };
-                let ship_info = crate::sql::ShipInfo {
+                let ship_info = database::ShipInfo {
                     symbol: self.symbol.clone(),
                     display_name,
                     role: self.role.clone(),
                     active: self.active,
                 };
-                crate::sql::ShipInfo::insert(&database_pool, &ship_info).await?;
+                database::ShipInfo::insert(&database_pool, &ship_info).await?;
                 ship_info
             }
         };
@@ -431,41 +426,43 @@ impl MyShip {
         Ok(ship_info)
     }
 
-    fn update_ship_info(&mut self, ship_info: crate::sql::ShipInfo) {
+    fn update_ship_info(&mut self, ship_info: database::ShipInfo) {
         self.mutate();
         self.active = ship_info.active;
         self.display_name = ship_info.display_name;
         self.symbol = ship_info.symbol;
-        if self.role != sql::ShipInfoRole::TempTrader {
+        if self.role != database::ShipInfoRole::TempTrader {
             self.role = ship_info.role;
         }
     }
 
     pub async fn update_info_db_shipyard(
         ship: models::ShipyardShip,
-        database_pool: &crate::sql::DbPool,
+        database_pool: &database::DbPool,
     ) -> Result<()> {
-        sql::EngineInfo::insert(database_pool, &sql::EngineInfo::from(*ship.engine)).await?;
-        sql::FrameInfo::insert(database_pool, &sql::FrameInfo::from(*ship.frame)).await?;
-        sql::ReactorInfo::insert(database_pool, &sql::ReactorInfo::from(*ship.reactor)).await?;
+        database::EngineInfo::insert(database_pool, &database::EngineInfo::from(*ship.engine))
+            .await?;
+        database::FrameInfo::insert(database_pool, &database::FrameInfo::from(*ship.frame)).await?;
+        database::ReactorInfo::insert(database_pool, &database::ReactorInfo::from(*ship.reactor))
+            .await?;
 
-        sql::ModuleInfo::insert_bulk(
+        database::ModuleInfo::insert_bulk(
             database_pool,
             &ship
                 .modules
                 .into_iter()
-                .map(sql::ModuleInfo::from)
+                .map(database::ModuleInfo::from)
                 .collect::<HashSet<_>>()
                 .into_iter()
                 .collect::<Vec<_>>(),
         )
         .await?;
-        sql::MountInfo::insert_bulk(
+        database::MountInfo::insert_bulk(
             database_pool,
             &ship
                 .mounts
                 .into_iter()
-                .map(sql::MountInfo::from)
+                .map(database::MountInfo::from)
                 .collect::<HashSet<_>>()
                 .into_iter()
                 .collect::<Vec<_>>(),
@@ -476,29 +473,31 @@ impl MyShip {
 
     pub async fn update_info_db(
         ship: models::Ship,
-        database_pool: &crate::sql::DbPool,
+        database_pool: &database::DbPool,
     ) -> Result<()> {
-        sql::EngineInfo::insert(database_pool, &sql::EngineInfo::from(*ship.engine)).await?;
-        sql::FrameInfo::insert(database_pool, &sql::FrameInfo::from(*ship.frame)).await?;
-        sql::ReactorInfo::insert(database_pool, &sql::ReactorInfo::from(*ship.reactor)).await?;
+        database::EngineInfo::insert(database_pool, &database::EngineInfo::from(*ship.engine))
+            .await?;
+        database::FrameInfo::insert(database_pool, &database::FrameInfo::from(*ship.frame)).await?;
+        database::ReactorInfo::insert(database_pool, &database::ReactorInfo::from(*ship.reactor))
+            .await?;
 
-        sql::ModuleInfo::insert_bulk(
+        database::ModuleInfo::insert_bulk(
             database_pool,
             &ship
                 .modules
                 .into_iter()
-                .map(sql::ModuleInfo::from)
+                .map(database::ModuleInfo::from)
                 .collect::<HashSet<_>>()
                 .into_iter()
                 .collect::<Vec<_>>(),
         )
         .await?;
-        sql::MountInfo::insert_bulk(
+        database::MountInfo::insert_bulk(
             database_pool,
             &ship
                 .mounts
                 .into_iter()
-                .map(sql::MountInfo::from)
+                .map(database::MountInfo::from)
                 .collect::<HashSet<_>>()
                 .into_iter()
                 .collect::<Vec<_>>(),
@@ -507,10 +506,10 @@ impl MyShip {
         Ok(())
     }
 
-    pub async fn snapshot(&self, database_pool: &crate::sql::DbPool) -> Result<i64> {
-        let state = sql::ShipState::from(self);
+    pub async fn snapshot(&self, database_pool: &database::DbPool) -> Result<i64> {
+        let state = database::ShipState::from(self);
 
-        let id = sql::ShipState::insert_get_id(database_pool, &state).await?;
+        let id = database::ShipState::insert_get_id(database_pool, &state).await?;
 
         Ok(id)
     }
@@ -520,5 +519,72 @@ impl FuelState {
     pub fn update(&mut self, data: &space_traders_client::models::ShipFuel) {
         self.current = data.current;
         self.capacity = data.capacity;
+    }
+}
+
+impl From<&MyShip> for database::ShipState {
+    fn from(value: &MyShip) -> Self {
+        Self {
+            id: 0,
+            symbol: value.symbol.clone(),
+            display_name: value.display_name.clone(),
+            role: value.role.clone(),
+            active: value.active,
+            engine_speed: value.engine_speed,
+
+            engine_condition: value.conditions.engine.condition,
+            engine_integrity: value.conditions.engine.integrity,
+            frame_condition: value.conditions.frame.condition,
+            frame_integrity: value.conditions.frame.integrity,
+            reactor_condition: value.conditions.reactor.condition,
+            reactor_integrity: value.conditions.reactor.integrity,
+            fuel_capacity: value.fuel.capacity,
+            fuel_current: value.fuel.current,
+            cargo_capacity: value.cargo.capacity,
+            cargo_units: value.cargo.units,
+            cargo_inventory: sqlx::types::Json(value.cargo.inventory.clone()),
+            mounts: value.mounts.mounts.clone(),
+            modules: value.modules.modules.clone(),
+            reactor_symbol: value.reactor,
+            frame_symbol: value.frame,
+            engine_symbol: value.engine,
+            cooldown_expiration: value.cooldown_expiration,
+            flight_mode: value.nav.flight_mode.to_string(),
+            nav_status: value.nav.status.to_string(),
+            system_symbol: value.nav.system_symbol.clone(),
+            waypoint_symbol: value.nav.waypoint_symbol.clone(),
+            route_arrival: value.nav.route.arrival,
+            route_departure: value.nav.route.departure_time,
+            route_destination_symbol: value.nav.route.destination_symbol.clone(),
+            route_destination_system: value.nav.route.destination_system_symbol.clone(),
+            route_origin_symbol: value.nav.route.origin_symbol.clone(),
+            route_origin_system: value.nav.route.origin_system_symbol.clone(),
+            auto_pilot_arrival: value.nav.auto_pilot.as_ref().map(|t| t.arrival),
+            auto_pilot_departure_time: value.nav.auto_pilot.as_ref().map(|t| t.departure_time),
+            auto_pilot_destination_symbol: value
+                .nav
+                .auto_pilot
+                .as_ref()
+                .map(|t| t.destination_symbol.clone()),
+            auto_pilot_destination_system_symbol: value
+                .nav
+                .auto_pilot
+                .as_ref()
+                .map(|t| t.destination_system_symbol.clone()),
+            auto_pilot_origin_symbol: value
+                .nav
+                .auto_pilot
+                .as_ref()
+                .map(|t| t.origin_symbol.clone()),
+            auto_pilot_origin_system_symbol: value
+                .nav
+                .auto_pilot
+                .as_ref()
+                .map(|t| t.origin_system_symbol.clone()),
+            auto_pilot_distance: value.nav.auto_pilot.as_ref().map(|t| t.distance),
+            auto_pilot_fuel_cost: value.nav.auto_pilot.as_ref().map(|t| t.fuel_cost),
+            auto_pilot_travel_time: value.nav.auto_pilot.as_ref().map(|t| t.travel_time),
+            created_at: Utc::now(),
+        }
     }
 }

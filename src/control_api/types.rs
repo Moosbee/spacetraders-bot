@@ -1,4 +1,6 @@
-use crate::{ship::MyShip, sql::Agent};
+use database::Agent;
+
+use crate::ship::MyShip;
 
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct WsObject {
@@ -25,7 +27,7 @@ pub type Result<T> = std::result::Result<T, warp::Rejection>;
 #[derive(thiserror::Error, Debug)]
 pub enum ServerError {
     #[error("Database error: {0}")]
-    Database(#[from] sqlx::Error),
+    Database(#[from] database::Error),
     #[error("Not found")]
     NotFound,
     #[error("Server error: {0}")]

@@ -2,6 +2,7 @@ use std::{collections::HashMap, sync::Arc};
 
 use log::{debug, info};
 use space_traders_client::models::{self};
+use utils::WaypointCan;
 
 use crate::{
     config::CONFIG,
@@ -11,8 +12,8 @@ use crate::{
         mining_manager::mining_messages::MiningMessage,
         Manager,
     },
-    ship, sql,
-    types::{ConductorContext, WaypointCan},
+    ship,
+    utils::ConductorContext,
 };
 
 use super::{
@@ -121,7 +122,7 @@ impl MiningManager {
             .get_all_clone()
             .await
             .into_values()
-            .filter(|ship| ship.role == sql::ShipInfoRole::Mining)
+            .filter(|ship| ship.role == database::ShipInfoRole::Mining)
             .filter_map(|ship| match ship.status {
                 ship::ShipStatus::Mining { assignment } => Some((
                     ship.nav.system_symbol.clone(),
@@ -137,7 +138,7 @@ impl MiningManager {
         type MiningShip = (
             String,
             String,
-            sql::ShipInfoRole,
+            database::ShipInfoRole,
             crate::pilot::MiningShipAssignment,
             i32,
         );
@@ -164,7 +165,7 @@ impl MiningManager {
 
         for (system, ships) in systems {
             let system_waypoints =
-                sql::Waypoint::get_by_system(&self.context.database_pool, &system).await?;
+                database::Waypoint::get_by_system(&self.context.database_pool, &system).await?;
 
             let gas_count = system_waypoints
                 .iter()
@@ -435,7 +436,7 @@ impl MiningManager {
             .into_iter()
             .filter(|f| f.1.nav.waypoint_symbol == waypoint_symbol)
             .filter(|f| !f.1.nav.is_in_transit())
-            .filter(|f| f.1.role == crate::sql::ShipInfoRole::Mining)
+            .filter(|f| f.1.role == database::ShipInfoRole::Mining)
             .map(|f| f.1)
             .collect())
     }

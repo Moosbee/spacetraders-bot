@@ -1,6 +1,6 @@
 use log::debug;
 
-use crate::{error::Error, manager::fleet_manager::message::RequiredShips, ship, sql};
+use crate::{error::Error, manager::fleet_manager::message::RequiredShips, ship};
 
 use super::{routes::PossibleTradeRoute, TradeManagerMessage};
 
@@ -14,7 +14,7 @@ impl TradeManagerMessanger {
         Self { sender }
     }
 
-    pub async fn get_route(&self, ship: &ship::MyShip) -> Result<sql::TradeRoute, Error> {
+    pub async fn get_route(&self, ship: &ship::MyShip) -> Result<database::TradeRoute, Error> {
         debug!("Requesting next trade route for ship {}", ship.symbol);
         let (sender, receiver) = tokio::sync::oneshot::channel();
 
@@ -40,8 +40,8 @@ impl TradeManagerMessanger {
 
     pub async fn complete_trade(
         &self,
-        trade_route: &sql::TradeRoute,
-    ) -> Result<sql::TradeRoute, Error> {
+        trade_route: &database::TradeRoute,
+    ) -> Result<database::TradeRoute, Error> {
         debug!("Completing trade route: {:?}", trade_route);
         let (sender, receiver) = tokio::sync::oneshot::channel();
 

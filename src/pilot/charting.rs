@@ -1,12 +1,13 @@
 use std::sync::{atomic::AtomicI32, Arc};
 
+use database::DatabaseConnector;
 use log::debug;
+use utils::WaypointCan;
 
 use crate::{
     error::{Error, Result},
     manager::chart_manager::NextChartResp,
-    sql::{self, DatabaseConnector},
-    types::{ConductorContext, WaypointCan},
+    utils::ConductorContext,
 };
 pub struct ChartPilot {
     context: ConductorContext,
@@ -73,8 +74,13 @@ impl ChartPilot {
         };
         ship.notify().await;
 
-        ship.nav_to(&chart, true, sql::TransactionReason::None, &self.context)
-            .await?;
+        ship.nav_to(
+            &chart,
+            true,
+            database::TransactionReason::None,
+            &self.context,
+        )
+        .await?;
 
         self.chart_waypoint(ship).await?;
 
@@ -93,16 +99,16 @@ impl ChartPilot {
     async fn do_elsewhere(&self, ship: &mut crate::ship::MyShip) -> std::result::Result<(), Error> {
         ship.status = crate::ship::ShipStatus::Manuel;
         let role = if ship.cargo.capacity == 0 {
-            crate::sql::ShipInfoRole::Scraper
+            database::ShipInfoRole::Scraper
         } else {
-            crate::sql::ShipInfoRole::Trader
+            database::ShipInfoRole::Trader
         };
 
         let sql_ship =
-            sql::ShipInfo::get_by_symbol(&self.context.database_pool, &ship.symbol).await?;
+            database::ShipInfo::get_by_symbol(&self.context.database_pool, &ship.symbol).await?;
         if let Some(mut sql_ship) = sql_ship {
             sql_ship.role = role;
-            sql::ShipInfo::insert(&self.context.database_pool, &sql_ship).await?;
+            database::ShipInfo::insert(&self.context.database_pool, &sql_ship).await?;
         }
 
         ship.apply_from_db(self.context.database_pool.clone())
@@ -150,7 +156,7 @@ impl ChartPilot {
 
         let sql_waypoint = (&waypoint).into();
 
-        sql::Waypoint::insert(&self.context.database_pool, &sql_waypoint).await?;
+        database::Waypoint::insert(&self.context.database_pool, &sql_waypoint).await?;
 
         if sql_waypoint.is_marketplace() {
             let market = self

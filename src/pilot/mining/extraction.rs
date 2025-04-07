@@ -1,5 +1,6 @@
 use std::sync::{atomic::AtomicI32, Arc};
 
+use database::DatabaseConnector;
 use futures::FutureExt;
 use log::{debug, info};
 use space_traders_client::models;
@@ -10,8 +11,7 @@ use crate::{
     manager::mining_manager::{ActionType, ExtractorTransferRequest, TransferResult},
     pilot::{mining::ExtractorState, MiningShipAssignment},
     ship,
-    sql::{self, DatabaseConnector, TransactionReason},
-    types::ConductorContext,
+    utils::ConductorContext,
 };
 
 pub struct ExtractionPilot {
@@ -234,7 +234,7 @@ impl ExtractionPilot {
         ship.nav_to(
             waypoint_symbol,
             true,
-            TransactionReason::MiningWaypoint(waypoint_symbol.to_string()),
+            database::TransactionReason::MiningWaypoint(waypoint_symbol.to_string()),
             &self.context,
         )
         .await?;
@@ -287,7 +287,7 @@ impl ExtractionPilot {
                                 ship.symbol
                             );
 
-                            let new_wp = sql::Waypoint::get_by_symbol(
+                            let new_wp = database::Waypoint::get_by_symbol(
                                 &self.context.database_pool,
                                 &ship.nav.waypoint_symbol,
                             )
@@ -306,7 +306,7 @@ impl ExtractionPilot {
                                 (&(*new_wp.data)).into()
                             };
                             wp.unstable_since = Some(chrono::Utc::now());
-                            sql::Waypoint::insert(&self.context.database_pool, &wp).await?;
+                            database::Waypoint::insert(&self.context.database_pool, &wp).await?;
                         } else {
                             return Err(space_traders_client::apis::Error::ResponseError(e).into());
                         }
@@ -315,7 +315,7 @@ impl ExtractionPilot {
                     Ok(erg) => {
                         let after_state_id = ship.snapshot(&self.context.database_pool).await?;
 
-                        let extraction = sql::Extraction {
+                        let extraction = database::Extraction {
                             id: 0,
                             ship_symbol: ship.symbol.clone(),
                             waypoint_symbol: ship.nav.waypoint_symbol.clone(),
@@ -327,7 +327,8 @@ impl ExtractionPilot {
                             created_at: chrono::Utc::now(),
                         };
 
-                        sql::Extraction::insert(&self.context.database_pool, &extraction).await?;
+                        database::Extraction::insert(&self.context.database_pool, &extraction)
+                            .await?;
 
                         info!(
                             "Extracted on ship: {} erg {:?} events: {:?}",
@@ -376,7 +377,7 @@ impl ExtractionPilot {
 
                 let after_state_id = ship.snapshot(&self.context.database_pool).await?;
 
-                let extraction = sql::Extraction {
+                let extraction = database::Extraction {
                     id: 0,
                     ship_symbol: ship.symbol.clone(),
                     waypoint_symbol: ship.nav.waypoint_symbol.clone(),
@@ -388,7 +389,7 @@ impl ExtractionPilot {
                     created_at: chrono::Utc::now(),
                 };
 
-                sql::Extraction::insert(&self.context.database_pool, &extraction).await?;
+                database::Extraction::insert(&self.context.database_pool, &extraction).await?;
 
                 info!(
                     "Siphoned on ship: {} erg {:?} events: {:?}",

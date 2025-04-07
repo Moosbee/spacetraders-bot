@@ -10,8 +10,7 @@ use crate::{
     error::Result,
     manager::mining_manager::{ExtractorTransferRequest, TransportTransferRequest},
     ship,
-    sql::{self, TransactionReason},
-    types::ConductorContext,
+    utils::ConductorContext,
 };
 
 use super::{MiningShipAssignment, TransporterState};
@@ -38,7 +37,7 @@ impl TransportPilot {
             .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
 
         let waypoints =
-            sql::Waypoint::get_by_system(&self.context.database_pool, &ship.nav.system_symbol)
+            database::Waypoint::get_by_system(&self.context.database_pool, &ship.nav.system_symbol)
                 .await?
                 .into_iter()
                 .map(|w| (w.symbol.clone(), w))
@@ -96,7 +95,7 @@ impl TransportPilot {
             ship.nav_to_prepare(
                 &next_mining_waypoint,
                 true,
-                TransactionReason::MiningWaypoint(next_mining_waypoint.clone()),
+                database::TransactionReason::MiningWaypoint(next_mining_waypoint.clone()),
                 true,
                 &self.context,
             )
@@ -279,7 +278,7 @@ impl TransportPilot {
         &self,
         pilot: &crate::pilot::Pilot,
         ship: &mut ship::MyShip,
-        waypoints: &std::collections::HashMap<String, sql::Waypoint>,
+        waypoints: &std::collections::HashMap<String, database::Waypoint>,
         mining_waypoint: String,
     ) -> Result<()> {
         while ship.cargo.get_units_no_fuel() > 0 {
@@ -301,7 +300,7 @@ impl TransportPilot {
             ship.nav_to(
                 &next_waypoint,
                 true,
-                TransactionReason::MiningWaypoint(mining_waypoint.clone()),
+                database::TransactionReason::MiningWaypoint(mining_waypoint.clone()),
                 &self.context,
             )
             .await?;
@@ -319,7 +318,7 @@ impl TransportPilot {
                 ship,
                 &self.context.api,
                 &self.context.database_pool,
-                TransactionReason::MiningWaypoint(mining_waypoint.clone()),
+                database::TransactionReason::MiningWaypoint(mining_waypoint.clone()),
                 trade_symbols,
             )
             .await?;
@@ -334,7 +333,7 @@ impl TransportPilot {
     ) -> Option<(String, Vec<models::TradeSymbol>)> {
         let cargo_data = &ship.cargo;
 
-        let all_trades = sql::MarketTradeGood::get_last_by_system(
+        let all_trades = database::MarketTradeGood::get_last_by_system(
             &self.context.database_pool,
             &ship.nav.system_symbol,
         )
@@ -351,7 +350,8 @@ impl TransportPilot {
             return None;
         }
 
-        let mut waypoints: HashMap<String, Vec<(sql::MarketTradeGood, i32, i32)>> = HashMap::new();
+        let mut waypoints: HashMap<String, Vec<(database::MarketTradeGood, i32, i32)>> =
+            HashMap::new();
 
         for (amount, trade) in filtered_trades {
             let wp = waypoints.entry(trade.waypoint_symbol.clone()).or_default();
@@ -381,9 +381,9 @@ impl TransportPilot {
     async fn handle_cargo_selling(
         &self,
         ship: &mut ship::MyShip,
-        api: &crate::api::Api,
-        database_pool: &sql::DbPool,
-        reason: sql::TransactionReason,
+        api: &space_traders_client::Api,
+        database_pool: &database::DbPool,
+        reason: database::TransactionReason,
         trade_symbols: Vec<models::TradeSymbol>,
     ) -> Result<()> {
         let possible_trades = ship.get_market_info(api, database_pool).await?;

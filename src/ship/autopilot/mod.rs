@@ -1,14 +1,8 @@
+use ::utils::WaypointCan;
 use chrono::{DateTime, Utc};
+use database::TransactionReason;
 use pathfinder::Pathfinder;
 use space_traders_client::models;
-
-use crate::{
-    error::Result,
-    sql::{self, TransactionReason},
-    types::{ConductorContext, WaypointCan},
-};
-
-use super::{modules, MyShip};
 
 use std::fmt::Debug;
 
@@ -22,6 +16,10 @@ mod stats;
 mod utils;
 
 pub use connection::SimpleConnection;
+
+use crate::{error::Result, utils::ConductorContext};
+
+use super::MyShip;
 
 impl MyShip {
     pub async fn nav_to(
@@ -57,65 +55,66 @@ impl MyShip {
         let context2 = context.clone();
         let route2 = route.clone();
         let reson2 = reason.clone();
-        let wp_action =
-            async move |shipi: &mut MyShip, start_waypoint: String, end_waypoint: String| {
-                let start =
-                    sql::Waypoint::get_by_symbol(&context2.database_pool, &start_waypoint).await?;
+        let wp_action = async move |shipi: &mut MyShip,
+                                    start_waypoint: String,
+                                    end_waypoint: String| {
+            let start =
+                database::Waypoint::get_by_symbol(&context2.database_pool, &start_waypoint).await?;
 
-                if let Some(start) = start {
-                    if update_market && start.is_marketplace() {
-                        shipi
-                            .update_market(&context2.api, &context2.database_pool)
-                            .await?;
-                    }
-                    if prepare && start.is_marketplace() {
-                        let mut is_last_marketplace = true;
+            if let Some(start) = start {
+                if update_market && start.is_marketplace() {
+                    shipi
+                        .update_market(&context2.api, &context2.database_pool)
+                        .await?;
+                }
+                if prepare && start.is_marketplace() {
+                    let mut is_last_marketplace = true;
 
-                        for connection in route2.connections.iter().rev() {
-                            match connection {
-                                connection::ConcreteConnection::JumpGate(_jump_connection) => {
-                                    is_last_marketplace = false;
+                    for connection in route2.connections.iter().rev() {
+                        match connection {
+                            connection::ConcreteConnection::JumpGate(_jump_connection) => {
+                                is_last_marketplace = false;
+                                break;
+                            }
+                            connection::ConcreteConnection::Warp(warp_connection) => {
+                                if warp_connection.start_symbol == start_waypoint {
                                     break;
                                 }
-                                connection::ConcreteConnection::Warp(warp_connection) => {
-                                    if warp_connection.start_symbol == start_waypoint {
-                                        break;
-                                    }
-                                    if warp_connection.end_is_marketplace
-                                        || warp_connection.start_is_marketplace
-                                    {
-                                        is_last_marketplace = false;
-                                    }
+                                if warp_connection.end_is_marketplace
+                                    || warp_connection.start_is_marketplace
+                                {
+                                    is_last_marketplace = false;
                                 }
-                                connection::ConcreteConnection::Navigate(navigate_connection) => {
-                                    if navigate_connection.start_symbol == start_waypoint {
-                                        break;
-                                    }
-                                    if navigate_connection.end_is_marketplace
-                                        || navigate_connection.start_is_marketplace
-                                    {
-                                        is_last_marketplace = false;
-                                    }
+                            }
+                            connection::ConcreteConnection::Navigate(navigate_connection) => {
+                                if navigate_connection.start_symbol == start_waypoint {
+                                    break;
+                                }
+                                if navigate_connection.end_is_marketplace
+                                    || navigate_connection.start_is_marketplace
+                                {
+                                    is_last_marketplace = false;
                                 }
                             }
                         }
-                        if is_last_marketplace {
-                            shipi.ensure_docked(&context2.api).await?;
-                            shipi
-                                .purchase_cargo(
-                                    &context2.api,
-                                    &models::TradeSymbol::Fuel,
-                                    1,
-                                    &context2.database_pool,
-                                    reson2.clone(),
-                                )
-                                .await?;
-                        }
+                    }
+                    if is_last_marketplace {
+                        shipi.ensure_docked(&context2.api).await?;
+                        shipi
+                            .purchase_cargo(
+                                &context2.api,
+                                &models::TradeSymbol::Fuel,
+                                1,
+                                &context2.database_pool,
+                                reson2.clone(),
+                            )
+                            .await?;
                     }
                 }
+            }
 
-                Ok(())
-            };
+            Ok(())
+        };
 
         self.fly_route(
             route,

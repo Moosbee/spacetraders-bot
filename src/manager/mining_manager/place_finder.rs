@@ -1,7 +1,6 @@
-use crate::{
-    sql,
-    types::{ConductorContext, WaypointCan},
-};
+use utils::WaypointCan;
+
+use crate::utils::ConductorContext;
 
 use super::mining_places::MiningPlaces;
 
@@ -30,7 +29,7 @@ impl ActionType {
 }
 
 pub struct FoundWaypointInfo {
-    pub waypoint: sql::Waypoint,
+    pub waypoint: database::Waypoint,
     pub distance: i32,
     #[allow(dead_code)]
     pub next: String,
@@ -49,10 +48,10 @@ impl PlaceFinder {
     pub async fn find(
         &self,
         ship_clone: crate::ship::MyShip,
-        filter_fn: fn(&sql::Waypoint) -> bool,
+        filter_fn: fn(&database::Waypoint) -> bool,
         mining_places: &MiningPlaces,
     ) -> Result<Vec<FoundWaypointInfo>, crate::error::Error> {
-        let sql_waypoints = sql::Waypoint::get_by_system(
+        let sql_waypoints = database::Waypoint::get_by_system(
             &self.context.database_pool,
             &ship_clone.nav.system_symbol,
         )
@@ -76,8 +75,8 @@ impl PlaceFinder {
 
     fn get_best_waypoints(
         &self,
-        system_waypoints: &[sql::Waypoint],
-        filter: fn(&sql::Waypoint) -> bool,
+        system_waypoints: &[database::Waypoint],
+        filter: fn(&database::Waypoint) -> bool,
     ) -> Vec<FoundWaypointInfo> {
         let points = system_waypoints
             .iter()
@@ -115,7 +114,7 @@ impl PlaceFinder {
         d_points
     }
 
-    fn distance_squared(&self, a: &sql::Waypoint, b: &sql::Waypoint) -> i32 {
+    fn distance_squared(&self, a: &database::Waypoint, b: &database::Waypoint) -> i32 {
         let dx = a.x - b.x;
         let dy = a.y - b.y;
         dx * dx + dy * dy

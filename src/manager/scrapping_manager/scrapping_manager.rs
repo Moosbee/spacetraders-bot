@@ -4,7 +4,9 @@ use std::{
     vec,
 };
 
+use database::{DatabaseConnector, DbPool};
 use log::{debug, error, info};
+use utils::{distance_between_waypoints, WaypointCan};
 
 use crate::{
     config::CONFIG,
@@ -14,9 +16,7 @@ use crate::{
         scrapping_manager::priority_calculator,
         Manager,
     },
-    sql::{self, DatabaseConnector, DbPool},
-    types::{ConductorContext, WaypointCan},
-    utils::distance_between_waypoints,
+    utils::ConductorContext,
 };
 
 use super::{message::ScrappingManagerMessage, messanger::ScrappingManagerMessanger};
@@ -73,18 +73,18 @@ impl ScrappingManager {
 
         let system_join_handle: tokio::task::JoinHandle<
             std::result::Result<(), crate::error::Error>,
-        > = if false {
+        > = if true {
             let api = self.context.api.clone();
             let database_pool = self.context.database_pool.clone();
 
             tokio::spawn(async move {
-                crate::manager::scrapping_manager::utils::update_all_systems(&database_pool, &api)
-                    .await?;
-                let gates = sql::Waypoint::get_all(&database_pool)
+                // crate::manager::scrapping_manager::utils::update_all_systems(&database_pool, &api)
+                //     .await?;
+                let gates = database::Waypoint::get_all(&database_pool)
                     .await?
                     .into_iter()
                     .filter(|w| w.is_jump_gate())
-                    .filter(|w| !w.is_charted())
+                    .filter(|w| w.is_charted())
                     .map(|w| {
                         let chart = w.is_charted();
                         (w.system_symbol, w.symbol, chart)
@@ -147,7 +147,7 @@ impl ScrappingManager {
     }
 
     async fn run_agent_worker(
-        api: &crate::api::Api,
+        api: &space_traders_client::Api,
         database_pool: &DbPool,
         cancel_token: tokio_util::sync::CancellationToken,
         interval: u64,
@@ -220,7 +220,7 @@ impl ScrappingManager {
             .get_all_clone()
             .await
             .into_values()
-            .filter(|ship| ship.role == sql::ShipInfoRole::Scraper)
+            .filter(|ship| ship.role == database::ShipInfoRole::Scraper)
             .map(|s| (s.nav.system_symbol.clone(), s.symbol))
             .collect::<Vec<_>>();
 
@@ -238,7 +238,7 @@ impl ScrappingManager {
         let mut required_ships = RequiredShips::new();
 
         for (system, ships) in systems {
-            let waypoints = sql::Waypoint::get_by_system(&self.context.database_pool, &system)
+            let waypoints = database::Waypoint::get_by_system(&self.context.database_pool, &system)
                 .await?
                 .into_iter()
                 .filter(|w| w.is_marketplace() || w.is_shipyard())
@@ -315,11 +315,11 @@ impl ScrappingManager {
     async fn get_all_sorted(
         &mut self,
         ship_clone: &crate::ship::MyShip,
-    ) -> Result<Vec<(sql::Waypoint, chrono::DateTime<chrono::Utc>)>> {
+    ) -> Result<Vec<(database::Waypoint, chrono::DateTime<chrono::Utc>)>> {
         let system_symbol = ship_clone.nav.system_symbol.clone();
 
         let system_wps =
-            sql::Waypoint::get_by_system(&self.context.database_pool, &system_symbol).await?;
+            database::Waypoint::get_by_system(&self.context.database_pool, &system_symbol).await?;
 
         let ship_wp = system_wps
             .iter()
@@ -333,12 +333,14 @@ impl ScrappingManager {
             .filter(|w| !self.scrap_waypoints.contains_key(&w.symbol))
             .collect::<Vec<_>>();
 
-        let mut waypoints: Vec<(sql::Waypoint, chrono::DateTime<chrono::Utc>)> = vec![];
+        let mut waypoints: Vec<(database::Waypoint, chrono::DateTime<chrono::Utc>)> = vec![];
 
         for wp in wps {
-            let market_trade_goods =
-                sql::MarketTradeGood::get_last_by_waypoint(&self.context.database_pool, &wp.symbol)
-                    .await?;
+            let market_trade_goods = database::MarketTradeGood::get_last_by_waypoint(
+                &self.context.database_pool,
+                &wp.symbol,
+            )
+            .await?;
 
             if !wp.is_charted() || market_trade_goods.is_empty() {
                 waypoints.push((wp, chrono::DateTime::<chrono::Utc>::MIN_UTC));

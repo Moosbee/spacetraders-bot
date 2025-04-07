@@ -201,7 +201,7 @@ function Agent() {
 
         const formattedData = (data as DbAgent[]).map((a) => ({
           ...a,
-          datetime: new Date(a.created_at + "Z"),
+          datetime: new Date(a.created_at),
         }));
 
         formattedData.sort(
@@ -235,7 +235,7 @@ function Agent() {
 
                   const formattedData = (data as DbAgent[]).map((a) => ({
                     ...a,
-                    datetime: new Date(a.created_at + "Z"),
+                    datetime: new Date(a.created_at),
                   }));
 
                   formattedData.sort(

@@ -6,7 +6,7 @@ use log::debug;
 use crate::{
     error::{Error, Result},
     ship::{self},
-    types::ConductorContext,
+    utils::ConductorContext,
 };
 
 pub struct MiningPilot {

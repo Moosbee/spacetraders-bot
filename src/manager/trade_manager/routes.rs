@@ -1,8 +1,6 @@
 use core::fmt;
 use std::cmp::Ordering;
 
-use crate::sql;
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MinTradeRoute {
     pub symbol: space_traders_client::models::TradeSymbol,
@@ -32,8 +30,8 @@ impl From<ConcreteTradeRoute> for MinTradeRoute {
     }
 }
 
-impl From<sql::TradeRoute> for MinTradeRoute {
-    fn from(value: sql::TradeRoute) -> Self {
+impl From<database::TradeRoute> for MinTradeRoute {
+    fn from(value: database::TradeRoute) -> Self {
         MinTradeRoute {
             symbol: value.symbol,
             purchase_wp_symbol: value.purchase_waypoint,
@@ -54,10 +52,10 @@ pub struct RouteData {
 #[derive(Debug, Clone, PartialEq, Eq, Default, serde::Serialize)]
 pub struct PossibleTradeRoute {
     pub symbol: space_traders_client::models::TradeSymbol,
-    pub purchase_good: Option<sql::MarketTradeGood>,
-    pub sell_good: Option<sql::MarketTradeGood>,
-    pub purchase: sql::MarketTrade,
-    pub sell: sql::MarketTrade,
+    pub purchase_good: Option<database::MarketTradeGood>,
+    pub sell_good: Option<database::MarketTradeGood>,
+    pub purchase: database::MarketTrade,
+    pub sell: database::MarketTrade,
 }
 
 impl Ord for PossibleTradeRoute {
@@ -147,11 +145,11 @@ pub struct ConcreteTradeRoute {
     pub trip: TripStats,
 }
 
-impl From<ConcreteTradeRoute> for sql::TradeRoute {
+impl From<ConcreteTradeRoute> for database::TradeRoute {
     fn from(value: ConcreteTradeRoute) -> Self {
-        sql::TradeRoute {
+        database::TradeRoute {
             symbol: value.route.symbol,
-            status: sql::ShipmentStatus::InTransit,
+            status: database::ShipmentStatus::InTransit,
             ship_symbol: value.trip.ship_symbol,
             predicted_purchase_price: value.data.purchase_price,
             predicted_sell_price: value.data.sell_price,

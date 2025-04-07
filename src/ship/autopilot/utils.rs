@@ -1,12 +1,12 @@
 use std::collections::HashMap;
 
-use crate::{sql, utils::distance_between_waypoints};
+use utils::distance_between_waypoints;
 
 pub fn get_nearby_waypoints(
-    waypoints: &HashMap<String, sql::Waypoint>,
+    waypoints: &HashMap<String, database::Waypoint>,
     start_waypoint: (i32, i32),
     radius: f64,
-) -> Vec<&sql::Waypoint> {
+) -> Vec<&database::Waypoint> {
     waypoints
         .values()
         .filter(|w| distance_between_waypoints(start_waypoint, (w.x, w.y)) <= radius)

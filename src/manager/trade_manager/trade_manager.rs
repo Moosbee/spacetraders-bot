@@ -1,7 +1,9 @@
 use std::collections::HashMap;
 
+use database::DatabaseConnector;
 use log::debug;
 use tokio::select;
+use utils::WaypointCan;
 
 use crate::{
     error::Result,
@@ -10,8 +12,7 @@ use crate::{
         trade_manager::message::TradeMessage,
         Manager,
     },
-    sql::{self, DatabaseConnector},
-    types::{ConductorContext, WaypointCan},
+    utils::ConductorContext,
 };
 
 use super::{
@@ -102,8 +103,9 @@ impl TradeManager {
             }
             TradeMessage::GetPossibleTrades { callback } => {
                 let trade_goods =
-                    sql::MarketTradeGood::get_last(&self.context.database_pool).await?;
-                let market_trade = sql::MarketTrade::get_last(&self.context.database_pool).await?;
+                    database::MarketTradeGood::get_last(&self.context.database_pool).await?;
+                let market_trade =
+                    database::MarketTrade::get_last(&self.context.database_pool).await?;
 
                 let possible_trades = self
                     .calculator
@@ -123,7 +125,7 @@ impl TradeManager {
             .get_all_clone()
             .await
             .into_values()
-            // .filter(|ship| ship.role == sql::ShipInfoRole::Trader)
+            // .filter(|ship| ship.role == database::ShipInfoRole::Trader)
             .map(|s| (s.nav.system_symbol.clone(), s.symbol, s.role))
             .collect::<Vec<_>>();
 
@@ -132,10 +134,10 @@ impl TradeManager {
         for s in all_ships {
             let system = systems.get_mut(&s.0);
             if let Some(system) = system {
-                if s.2 == sql::ShipInfoRole::Trader {
+                if s.2 == database::ShipInfoRole::Trader {
                     system.push(s.1);
                 }
-            } else if s.2 == sql::ShipInfoRole::Trader {
+            } else if s.2 == database::ShipInfoRole::Trader {
                 systems.insert(s.0, vec![s.1]);
             } else {
                 systems.insert(s.0, vec![]);
@@ -145,7 +147,7 @@ impl TradeManager {
         let mut required_ships = RequiredShips::new();
 
         for (system, ships) in systems {
-            let waypoints = sql::Waypoint::get_by_system(&self.context.database_pool, &system)
+            let waypoints = database::Waypoint::get_by_system(&self.context.database_pool, &system)
                 .await?
                 .into_iter()
                 .filter(|w| w.is_marketplace())
@@ -182,8 +184,9 @@ impl TradeManager {
     async fn request_next_trade_route(
         &mut self,
         ship_clone: crate::ship::MyShip,
-    ) -> Result<sql::TradeRoute> {
-        let unfinished_route = sql::TradeRoute::get_unfinished(&self.context.database_pool).await?;
+    ) -> Result<database::TradeRoute> {
+        let unfinished_route =
+            database::TradeRoute::get_unfinished(&self.context.database_pool).await?;
         let my_unfinished_routes = unfinished_route
             .iter()
             .filter(|r| r.ship_symbol == ship_clone.symbol)
@@ -209,29 +212,35 @@ impl TradeManager {
 
     async fn complete_trade_route(
         &mut self,
-        trade_route: sql::TradeRoute,
-    ) -> Result<sql::TradeRoute> {
+        trade_route: database::TradeRoute,
+    ) -> Result<database::TradeRoute> {
         let trade = self.complete_trade_record(trade_route).await?;
         self.routes_tracker.unlock(&trade.clone().into());
         Ok(trade)
     }
 
-    async fn record_trade_start(&self, route: &sql::TradeRoute) -> Result<sql::TradeRoute> {
+    async fn record_trade_start(
+        &self,
+        route: &database::TradeRoute,
+    ) -> Result<database::TradeRoute> {
         if route.id == 0 {
-            let id = sql::TradeRoute::insert_new(&self.context.database_pool, route).await?;
-            Ok(sql::TradeRoute {
+            let id = database::TradeRoute::insert_new(&self.context.database_pool, route).await?;
+            Ok(database::TradeRoute {
                 id,
                 ..route.clone()
             })
         } else {
-            sql::TradeRoute::insert(&self.context.database_pool, route).await?;
+            database::TradeRoute::insert(&self.context.database_pool, route).await?;
             Ok(route.clone())
         }
     }
 
-    async fn complete_trade_record(&self, trade_route: sql::TradeRoute) -> Result<sql::TradeRoute> {
+    async fn complete_trade_record(
+        &self,
+        trade_route: database::TradeRoute,
+    ) -> Result<database::TradeRoute> {
         let completed_route = trade_route.complete();
-        sql::TradeRoute::insert(&self.context.database_pool, &completed_route).await?;
+        database::TradeRoute::insert(&self.context.database_pool, &completed_route).await?;
         Ok(completed_route)
     }
 }

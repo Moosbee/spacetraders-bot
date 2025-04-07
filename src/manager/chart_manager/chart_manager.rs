@@ -2,6 +2,7 @@ use std::collections::{HashMap, HashSet};
 
 use log::debug;
 use space_traders_client::models::{self};
+use utils::{distance_between_waypoints, WaypointCan};
 
 use crate::{
     error::{Error, Result},
@@ -9,9 +10,7 @@ use crate::{
         fleet_manager::message::{Budget, Priority, RequestedShipType, RequiredShips},
         Manager,
     },
-    sql,
-    types::{ConductorContext, WaypointCan},
-    utils::distance_between_waypoints,
+    utils::ConductorContext,
 };
 
 use super::{
@@ -114,7 +113,7 @@ impl ChartManager {
             .collect::<HashSet<_>>();
         let with_chart = all_ships
             .iter()
-            .filter(|ship| ship.role == sql::ShipInfoRole::Charter)
+            .filter(|ship| ship.role == database::ShipInfoRole::Charter)
             .map(|ship| ship.nav.system_symbol.clone())
             .collect::<HashSet<_>>();
 
@@ -122,7 +121,7 @@ impl ChartManager {
         let mut to_visit_systems = all_systems.iter().cloned().collect::<Vec<_>>();
         while let Some(system) = to_visit_systems.pop() {
             reachable_systems.insert(system.clone());
-            let waypoints = sql::Waypoint::get_by_system(&self.context.database_pool, &system)
+            let waypoints = database::Waypoint::get_by_system(&self.context.database_pool, &system)
                 .await?
                 .into_iter()
                 .filter(|w| w.is_jump_gate())
@@ -132,15 +131,17 @@ impl ChartManager {
                 if waypoint.is_under_construction {
                     continue;
                 }
-                let connections = sql::JumpGateConnection::get_all_from(
+                let connections = database::JumpGateConnection::get_all_from(
                     &self.context.database_pool,
                     &waypoint.symbol,
                 )
                 .await?;
                 for connection in connections.iter() {
-                    let wp =
-                        sql::Waypoint::get_by_symbol(&self.context.database_pool, &connection.to)
-                            .await?;
+                    let wp = database::Waypoint::get_by_symbol(
+                        &self.context.database_pool,
+                        &connection.to,
+                    )
+                    .await?;
                     if let Some(wp) = wp {
                         if !reachable_systems.contains(&wp.system_symbol)
                             && !to_visit_systems.contains(&wp.system_symbol)
@@ -157,7 +158,7 @@ impl ChartManager {
 
         for system in reachable_systems.iter() {
             let waypoints =
-                sql::Waypoint::get_by_system(&self.context.database_pool, system).await?;
+                database::Waypoint::get_by_system(&self.context.database_pool, system).await?;
             let has_uncharted = waypoints.iter().any(|w| !w.is_charted());
             if has_uncharted && !with_chart.contains(system) {
                 needed_ships.insert(
@@ -175,14 +176,14 @@ impl ChartManager {
         &mut self,
         ship_clone: crate::ship::MyShip,
     ) -> std::result::Result<NextChartResp, Error> {
-        let ship_waypoint = sql::Waypoint::get_by_symbol(
+        let ship_waypoint = database::Waypoint::get_by_symbol(
             &self.context.database_pool,
             &ship_clone.nav.waypoint_symbol,
         )
         .await?
         .ok_or(Error::General("Waypoint not found".to_string()))?;
 
-        let waypoints = sql::Waypoint::get_by_system(
+        let waypoints = database::Waypoint::get_by_system(
             &self.context.database_pool,
             &ship_clone.nav.system_symbol,
         )

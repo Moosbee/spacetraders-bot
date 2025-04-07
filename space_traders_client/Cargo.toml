@@ -19,3 +19,5 @@ strum_macros = "0.27.1"
 reqwest-middleware = { version = "0.4.1", features = ["json", "multipart"] }
 async-trait = "0.1.88"
 hyper = "1.5"
+log = "0.4.22"
+governor = "0.7"

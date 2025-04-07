@@ -5,8 +5,10 @@ use std::{
 };
 
 use chrono::{DateTime, Utc};
+use database::DatabaseConnector;
 use log::{debug, info};
 use space_traders_client::models::{self};
+use utils::get_system_symbol;
 
 use crate::{
     error::{self, Error, Result},
@@ -16,9 +18,7 @@ use crate::{
         Manager,
     },
     ship,
-    sql::{self, DatabaseConnector},
-    types::ConductorContext,
-    utils::get_system_symbol,
+    utils::ConductorContext,
 };
 
 use super::{
@@ -31,7 +31,7 @@ pub struct ContractManager {
     context: ConductorContext,
     receiver: tokio::sync::mpsc::Receiver<ContractManagerMessage>,
     current_contract: Option<models::Contract>,
-    running_shipments: Vec<sql::ContractShipment>,
+    running_shipments: Vec<database::ContractShipment>,
 }
 
 impl ContractManager {
@@ -66,9 +66,10 @@ impl ContractManager {
 
         for contract in contracts.iter() {
             debug!("Contract found: {}", contract.id);
-            // let in_db=sql::Contract::get_by_id(&self.context.database_pool, &contract.id).await;
+            // let in_db=database::Contract::get_by_id(&self.context.database_pool, &contract.id).await;
 
-            sql::Contract::insert_contract(&self.context.database_pool, contract.clone()).await?;
+            database::Contract::insert_contract(&self.context.database_pool, contract.clone())
+                .await?;
         }
 
         match contracts.len() {
@@ -104,7 +105,7 @@ impl ContractManager {
 
     async fn get_budget(&self) -> Result<i64> {
         let agent_symbol = { self.context.run_info.read().await.agent_symbol.clone() };
-        let agent = sql::Agent::get_last_by_symbol(&self.context.database_pool, &agent_symbol)
+        let agent = database::Agent::get_last_by_symbol(&self.context.database_pool, &agent_symbol)
             .await?
             .ok_or(Error::General("Agent not found".to_string()))?;
         Ok(agent.credits - 30_000)
@@ -150,9 +151,11 @@ impl ContractManager {
     }
 
     async fn get_required_ships(&self) -> Result<RequiredShips> {
-        let db_ships =
-            sql::ShipInfo::get_by_role(&self.context.database_pool, &sql::ShipInfoRole::Contract)
-                .await?;
+        let db_ships = database::ShipInfo::get_by_role(
+            &self.context.database_pool,
+            &database::ShipInfoRole::Contract,
+        )
+        .await?;
         let all_ships = self
             .context
             .ship_manager
@@ -160,7 +163,7 @@ impl ContractManager {
             .await
             .into_values()
             .filter(|ship| {
-                (ship.role == sql::ShipInfoRole::Contract
+                (ship.role == database::ShipInfoRole::Contract
                     || db_ships.iter().any(|db_ship| db_ship.symbol == ship.symbol))
                     && ship.cargo.capacity >= 40
             })
@@ -235,15 +238,15 @@ impl ContractManager {
             );
             self.current_contract = None;
 
-            sql::Contract::insert_contract(
+            database::Contract::insert_contract(
                 &self.context.database_pool,
                 *fulfill_contract_data.data.contract,
             )
             .await?;
 
-            sql::Agent::insert(
+            database::Agent::insert(
                 &self.context.database_pool,
-                &sql::Agent::from(*fulfill_contract_data.data.agent),
+                &database::Agent::from(*fulfill_contract_data.data.agent),
             )
             .await?;
         }
@@ -270,24 +273,24 @@ impl ContractManager {
 
             self.current_contract = Some(*resp.data.contract.clone());
 
-            sql::Contract::insert_contract(&self.context.database_pool, *resp.data.contract)
+            database::Contract::insert_contract(&self.context.database_pool, *resp.data.contract)
                 .await?;
 
-            sql::Agent::insert(
+            database::Agent::insert(
                 &self.context.database_pool,
-                &sql::Agent::from(*resp.data.agent),
+                &database::Agent::from(*resp.data.agent),
             )
             .await?;
         }
 
-        let shipments = sql::ContractShipment::get_by_ship_symbol(
+        let shipments = database::ContractShipment::get_by_ship_symbol(
             &self.context.database_pool,
             &ship_clone.symbol,
         )
         .await?
         .into_iter()
         .filter(|s| s.contract_id == self.current_contract.as_ref().unwrap().id)
-        .filter(|s| s.status == sql::ShipmentStatus::InTransit)
+        .filter(|s| s.status == database::ShipmentStatus::InTransit)
         .collect::<Vec<_>>();
 
         match shipments.len() {
@@ -371,7 +374,7 @@ impl ContractManager {
             }
         }
 
-        let mut next_shipment = sql::ContractShipment {
+        let mut next_shipment = database::ContractShipment {
             contract_id: contract.id.clone(),
             trade_symbol,
             destination_symbol: next_procurment.destination_symbol.to_string(),
@@ -379,16 +382,17 @@ impl ContractManager {
             id: 0,
             ship_symbol: ship_clone.symbol.to_string(),
             purchase_symbol: purchase_symbol.0.to_owned(),
-            status: sql::ShipmentStatus::InTransit,
+            status: database::ShipmentStatus::InTransit,
             ..Default::default()
         };
 
         let id =
-            sql::ContractShipment::insert_new(&self.context.database_pool, &next_shipment).await?;
+            database::ContractShipment::insert_new(&self.context.database_pool, &next_shipment)
+                .await?;
         debug!("Inserted new shipment with id: {}", id);
 
         let sql_shipment =
-            sql::ContractShipment::get_by_id(&self.context.database_pool, id).await?;
+            database::ContractShipment::get_by_id(&self.context.database_pool, id).await?;
 
         next_shipment = sql_shipment;
 
@@ -413,7 +417,7 @@ impl ContractManager {
 
     async fn failed_shipment(
         &mut self,
-        mut shipment: sql::ContractShipment,
+        mut shipment: database::ContractShipment,
         _error: &error::Error,
     ) -> Result<()> {
         debug!("Handling failed shipment: {:?}", shipment);
@@ -426,9 +430,9 @@ impl ContractManager {
             self.running_shipments.remove(pos);
         }
 
-        shipment.status = sql::ShipmentStatus::Failed;
+        shipment.status = database::ShipmentStatus::Failed;
 
-        sql::ContractShipment::insert(&self.context.database_pool, &shipment).await?;
+        database::ContractShipment::insert(&self.context.database_pool, &shipment).await?;
 
         Ok(())
     }
@@ -436,10 +440,10 @@ impl ContractManager {
     async fn finished_shipment(
         &mut self,
         contract: models::Contract,
-        mut shipment: sql::ContractShipment,
+        mut shipment: database::ContractShipment,
     ) -> Result<()> {
         debug!("Handling finished shipment: {:?}", shipment);
-        sql::Contract::insert_contract(&self.context.database_pool, contract.clone()).await?;
+        database::Contract::insert_contract(&self.context.database_pool, contract.clone()).await?;
 
         let pos = self
             .running_shipments
@@ -450,9 +454,9 @@ impl ContractManager {
             self.running_shipments.remove(pos);
         }
 
-        shipment.status = sql::ShipmentStatus::Delivered;
+        shipment.status = database::ShipmentStatus::Delivered;
 
-        sql::ContractShipment::insert(&self.context.database_pool, &shipment).await?;
+        database::ContractShipment::insert(&self.context.database_pool, &shipment).await?;
 
         if self.can_fulfill_trade(&contract) {
             let fulfill_contract_data = self.context.api.fulfill_contract(&contract.id).await?;
@@ -463,15 +467,15 @@ impl ContractManager {
             );
             self.current_contract = None;
 
-            sql::Contract::insert_contract(
+            database::Contract::insert_contract(
                 &self.context.database_pool,
                 *fulfill_contract_data.data.contract,
             )
             .await?;
 
-            sql::Agent::insert(
+            database::Agent::insert(
                 &self.context.database_pool,
-                &sql::Agent::from(*fulfill_contract_data.data.agent),
+                &database::Agent::from(*fulfill_contract_data.data.agent),
             )
             .await?;
         } else {
@@ -511,7 +515,8 @@ impl ContractManager {
             "Checking procurement viability for deliveries: {:?}",
             deliveries
         );
-        let market_trade_goods = sql::MarketTrade::get_last(&self.context.database_pool).await?;
+        let market_trade_goods =
+            database::MarketTrade::get_last(&self.context.database_pool).await?;
 
         for delivery in deliveries {
             if delivery.units_required <= delivery.units_fulfilled {
@@ -577,7 +582,7 @@ impl ContractManager {
 
         let contract = *contract_resp.data.contract;
 
-        sql::Contract::insert_contract(&self.context.database_pool, contract.clone()).await?;
+        database::Contract::insert_contract(&self.context.database_pool, contract.clone()).await?;
 
         let viable = self.is_contract_viable(&contract).await?;
         self.current_contract = Some(contract);
@@ -596,13 +601,13 @@ impl ContractManager {
             trade_symbol
         );
         let market_trades =
-            sql::MarketTrade::get_last_by_symbol(&self.context.database_pool, trade_symbol)
+            database::MarketTrade::get_last_by_symbol(&self.context.database_pool, trade_symbol)
                 .await?
                 .into_iter()
                 .filter(|t| t.waypoint_symbol.starts_with(system_symbol))
                 .collect::<Vec<_>>();
-        let market_trade_goods: HashMap<(models::TradeSymbol, String), sql::MarketTradeGood> =
-            sql::MarketTradeGood::get_last_by_symbol(&self.context.database_pool, trade_symbol)
+        let market_trade_goods: HashMap<(models::TradeSymbol, String), database::MarketTradeGood> =
+            database::MarketTradeGood::get_last_by_symbol(&self.context.database_pool, trade_symbol)
                 .await?
                 .into_iter()
                 .filter(|t| t.waypoint_symbol.starts_with(system_symbol))

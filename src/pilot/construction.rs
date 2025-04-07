@@ -6,8 +6,8 @@ use space_traders_client::models;
 use crate::{
     error::{Error, Result},
     manager::construction_manager::NextShipmentResp,
-    ship, sql,
-    types::ConductorContext,
+    ship,
+    utils::ConductorContext,
 };
 
 pub struct ConstructionPilot {
@@ -120,7 +120,7 @@ impl ConstructionPilot {
 
     async fn do_elsewhere(&self, ship: &mut ship::MyShip) -> Result<()> {
         ship.status = ship::ShipStatus::Manuel;
-        ship.role = sql::ShipInfoRole::TempTrader;
+        ship.role = database::ShipInfoRole::TempTrader;
         debug!("Doing something else");
         ship.notify().await;
 
@@ -130,7 +130,7 @@ impl ConstructionPilot {
     async fn purchase_cargo(
         &self,
         ship: &mut ship::MyShip,
-        shipment: &sql::ConstructionShipment,
+        shipment: &database::ConstructionShipment,
         pilot: &crate::pilot::Pilot,
     ) -> Result<()> {
         ship.status = ship::ShipStatus::Construction {
@@ -145,7 +145,7 @@ impl ConstructionPilot {
         ship.nav_to(
             &shipment.purchase_waypoint,
             true,
-            sql::TransactionReason::Construction(shipment.id),
+            database::TransactionReason::Construction(shipment.id),
             &self.context,
         )
         .await?;
@@ -196,7 +196,7 @@ impl ConstructionPilot {
             &shipment.trade_symbol,
             units_needed,
             &self.context.database_pool,
-            sql::TransactionReason::Construction(shipment.id),
+            database::TransactionReason::Construction(shipment.id),
         )
         .await?;
 
@@ -206,8 +206,8 @@ impl ConstructionPilot {
     async fn deliver_cargo(
         &self,
         ship: &mut ship::MyShip,
-        shipment: sql::ConstructionShipment,
-    ) -> Result<(models::Construction, sql::ConstructionShipment)> {
+        shipment: database::ConstructionShipment,
+    ) -> Result<(models::Construction, database::ConstructionShipment)> {
         ship.status = ship::ShipStatus::Construction {
             cycle: Some(self.count.load(std::sync::atomic::Ordering::SeqCst)),
             shipment_id: Some(shipment.id),
@@ -220,7 +220,7 @@ impl ConstructionPilot {
         ship.nav_to(
             &shipment.construction_site_waypoint,
             true,
-            sql::TransactionReason::Construction(shipment.id),
+            database::TransactionReason::Construction(shipment.id),
             &self.context,
         )
         .await?;

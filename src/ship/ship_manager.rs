@@ -2,8 +2,7 @@ use std::{collections::HashMap, sync::Arc};
 
 use lockable::{AsyncLimit, Lockable, LockableHashMap, SyncLimit};
 use tokio::{sync::RwLock, time::Instant};
-
-use crate::types::{safely_get_lock_mut_map, Observer, Subject};
+use utils::{safely_get_lock_mut_map, Observer, Subject};
 
 use super::{my_ship_update, MyShip};
 

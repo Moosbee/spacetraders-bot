@@ -2,8 +2,7 @@ use std::collections::HashMap;
 
 use priority_queue::PriorityQueue;
 use space_traders_client::models;
-
-use crate::{sql, types::WaypointCan, utils::distance_between_waypoints};
+use utils::{distance_between_waypoints, WaypointCan};
 
 use super::{
     connection::SimpleConnection,
@@ -14,7 +13,7 @@ use super::{
 pub struct SimplePathfinder {
     pub range: u32,
     pub nav_mode: NavMode,
-    pub system: HashMap<String, sql::Waypoint>,
+    pub system: HashMap<String, database::Waypoint>,
     pub start_range: u32,
     pub only_markets: bool,
 }
@@ -78,9 +77,9 @@ impl SimplePathfinder {
 
     fn get_waypoint<'a>(
         &self,
-        waypoints: &'a HashMap<String, sql::Waypoint>,
+        waypoints: &'a HashMap<String, database::Waypoint>,
         symbol: &str,
-    ) -> crate::error::Result<&'a sql::Waypoint> {
+    ) -> crate::error::Result<&'a database::Waypoint> {
         waypoints.get(symbol).ok_or_else(|| {
             crate::error::Error::General(format!("Could not find waypoint: {}", symbol))
         })
@@ -91,8 +90,8 @@ impl SimplePathfinder {
         current_route: &SimpleConnection,
         to_visit: &mut PriorityQueue<SimpleConnection, std::cmp::Reverse<i64>>,
         visited: &mut HashMap<String, SimpleConnection>,
-        unvisited: &mut HashMap<String, sql::Waypoint>,
-        end_waypoint: &sql::Waypoint,
+        unvisited: &mut HashMap<String, database::Waypoint>,
+        end_waypoint: &database::Waypoint,
         end_symbol: &str,
         nav_modes: &Vec<Mode>,
         first: bool,
@@ -135,11 +134,11 @@ impl SimplePathfinder {
 
     fn explore_neighbors(
         &self,
-        current: &sql::Waypoint,
+        current: &database::Waypoint,
         current_route: &SimpleConnection,
-        unvisited: &HashMap<String, sql::Waypoint>,
+        unvisited: &HashMap<String, database::Waypoint>,
         to_visit: &mut PriorityQueue<SimpleConnection, std::cmp::Reverse<i64>>,
-        end_waypoint: &sql::Waypoint,
+        end_waypoint: &database::Waypoint,
         nav_modes: &Vec<Mode>,
     ) {
         for mode in nav_modes {
@@ -157,11 +156,11 @@ impl SimplePathfinder {
 
     fn calculate_next_route(
         &self,
-        current: &sql::Waypoint,
-        next: &sql::Waypoint,
+        current: &database::Waypoint,
+        next: &database::Waypoint,
         current_route: &SimpleConnection,
         mode: &Mode,
-        end_waypoint: &sql::Waypoint,
+        end_waypoint: &database::Waypoint,
     ) -> SimpleConnection {
         let distance = distance_between_waypoints(current.into(), next.into());
         let heuristic_cost = distance_between_waypoints(current.into(), end_waypoint.into()) * 0.4;

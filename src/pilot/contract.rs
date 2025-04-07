@@ -5,8 +5,8 @@ use log::debug;
 use crate::{
     error::{Error, Result},
     manager::contract_manager::NextShipmentResp,
-    ship, sql,
-    types::ConductorContext,
+    ship,
+    utils::ConductorContext,
 };
 
 pub struct ContractPilot {
@@ -122,7 +122,7 @@ impl ContractPilot {
 
     async fn do_elsewhere(&self, ship: &mut ship::MyShip) -> Result<()> {
         ship.status = ship::ShipStatus::Manuel;
-        ship.role = sql::ShipInfoRole::TempTrader;
+        ship.role = database::ShipInfoRole::TempTrader;
         debug!("Doing something else");
         ship.notify().await;
 
@@ -132,7 +132,7 @@ impl ContractPilot {
     async fn purchase_cargo(
         &self,
         ship: &mut ship::MyShip,
-        shipment: &sql::ContractShipment,
+        shipment: &database::ContractShipment,
         pilot: &crate::pilot::Pilot,
     ) -> Result<()> {
         ship.status = ship::ShipStatus::Contract {
@@ -148,7 +148,7 @@ impl ContractPilot {
         ship.nav_to(
             &shipment.purchase_symbol,
             true,
-            sql::TransactionReason::Contract(shipment.contract_id.clone()),
+            database::TransactionReason::Contract(shipment.contract_id.clone()),
             &self.context,
         )
         .await?;
@@ -200,7 +200,7 @@ impl ContractPilot {
             &shipment.trade_symbol,
             units_needed,
             &self.context.database_pool,
-            sql::TransactionReason::Contract(shipment.contract_id.clone()),
+            database::TransactionReason::Contract(shipment.contract_id.clone()),
         )
         .await?;
 
@@ -210,10 +210,10 @@ impl ContractPilot {
     async fn deliver_cargo(
         &self,
         ship: &mut ship::MyShip,
-        shipment: sql::ContractShipment,
+        shipment: database::ContractShipment,
     ) -> Result<(
         space_traders_client::models::Contract,
-        sql::ContractShipment,
+        database::ContractShipment,
     )> {
         ship.status = ship::ShipStatus::Contract {
             contract_id: Some(shipment.contract_id.clone()),
@@ -228,7 +228,7 @@ impl ContractPilot {
         ship.nav_to(
             &shipment.destination_symbol,
             true,
-            sql::TransactionReason::Contract(shipment.contract_id.clone()),
+            database::TransactionReason::Contract(shipment.contract_id.clone()),
             &self.context,
         )
         .await?;

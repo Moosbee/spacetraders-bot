@@ -1,6 +1,5 @@
 use crate::error::Result;
 use crate::manager::fleet_manager::message::RequiredShips;
-use crate::sql;
 
 use super::routes::PossibleTradeRoute;
 
@@ -8,11 +7,11 @@ use super::routes::PossibleTradeRoute;
 pub enum TradeMessage {
     RequestNextTradeRoute {
         ship_clone: crate::ship::MyShip,
-        callback: tokio::sync::oneshot::Sender<Result<sql::TradeRoute>>,
+        callback: tokio::sync::oneshot::Sender<Result<database::TradeRoute>>,
     },
     CompleteTradeRoute {
-        trade_route: sql::TradeRoute,
-        callback: tokio::sync::oneshot::Sender<Result<sql::TradeRoute>>,
+        trade_route: database::TradeRoute,
+        callback: tokio::sync::oneshot::Sender<Result<database::TradeRoute>>,
     },
     GetShips {
         callback: tokio::sync::oneshot::Sender<RequiredShips>,

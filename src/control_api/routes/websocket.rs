@@ -5,7 +5,7 @@ use tokio_stream::wrappers::BroadcastStream;
 
 pub fn build_ws_routes(
     ship_rx: MyReceiver<ship::MyShip>,
-    agent_rx: MyReceiver<sql::Agent>,
+    agent_rx: MyReceiver<database::Agent>,
 ) -> impl warp::Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
     warp::path("ws")
         .and(warp::path("all"))
@@ -15,7 +15,7 @@ pub fn build_ws_routes(
         .map(
             |ws: warp::ws::Ws,
              ship_rx: MyReceiver<ship::MyShip>,
-             agent_rx: MyReceiver<sql::Agent>| {
+             agent_rx: MyReceiver<database::Agent>| {
                 ws.on_upgrade(move |websocket| handle_ws_connection(websocket, ship_rx, agent_rx))
             },
         )
@@ -24,7 +24,7 @@ pub fn build_ws_routes(
 async fn handle_ws_connection(
     websocket: warp::ws::WebSocket,
     ship_rx: MyReceiver<ship::MyShip>,
-    agent_rx: MyReceiver<sql::Agent>,
+    agent_rx: MyReceiver<database::Agent>,
 ) {
     log::info!("New websocket connection");
     let (tx, _rx) = websocket.split();

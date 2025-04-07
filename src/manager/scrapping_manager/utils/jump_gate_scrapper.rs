@@ -1,17 +1,13 @@
 use std::time::Duration;
 
 use chrono::DateTime;
+use database::DatabaseConnector;
 use log::{debug, warn};
 use space_traders_client::models;
 use tokio::time::sleep;
 
-use crate::{
-    api,
-    sql::{self, DatabaseConnector},
-};
-
 pub async fn get_all_jump_gates(
-    api: &api::Api,
+    api: &space_traders_client::Api,
     gates: Vec<(String, String, bool)>,
 ) -> crate::error::Result<Vec<models::JumpGate>> {
     let mut jump_gate_handles = tokio::task::JoinSet::new();
@@ -90,7 +86,7 @@ pub async fn get_all_jump_gates(
 }
 
 pub async fn update_jump_gates(
-    database_pool: &crate::sql::DbPool,
+    database_pool: &database::DbPool,
     jump_gates: Vec<models::JumpGate>,
 ) -> Result<(), crate::error::Error> {
     for jump_gate in jump_gates {
@@ -101,22 +97,22 @@ pub async fn update_jump_gates(
 }
 
 pub async fn update_jump_gate(
-    database_pool: &crate::sql::DbPool,
+    database_pool: &database::DbPool,
     jump_gate: models::JumpGate,
 ) -> Result<(), crate::error::Error> {
     let connections = jump_gate
         .connections
         .iter()
-        .map(|c| sql::JumpGateConnection {
+        .map(|c| database::JumpGateConnection {
             id: 0,
             from: jump_gate.symbol.clone(),
             to: c.clone(),
             created_at: DateTime::<chrono::Utc>::MIN_UTC,
             updated_at: DateTime::<chrono::Utc>::MIN_UTC,
         })
-        .collect::<Vec<sql::JumpGateConnection>>();
+        .collect::<Vec<database::JumpGateConnection>>();
 
-    sql::JumpGateConnection::insert_bulk(database_pool, &connections).await?;
+    database::JumpGateConnection::insert_bulk(database_pool, &connections).await?;
 
     Ok(())
 }

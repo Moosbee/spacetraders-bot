@@ -11,8 +11,6 @@ less valuable=longer time until next scrap
 use chrono::DateTime;
 use space_traders_client::models;
 
-use crate::sql;
-
 use crate::error::Result;
 
 const EXPORT_WEIGHT: f64 = 0.15;
@@ -20,9 +18,9 @@ const IMPORT_WEIGHT: f64 = 0.15;
 const EXCHANGE_WEIGHT: f64 = 0.3;
 
 pub fn get_waypoint_time(
-    // waypoint: &sql::Waypoint,
-    market_trade: &[sql::MarketTrade],
-    // market_trade_goods: &[sql::MarketTradeGood],
+    // waypoint: &database::Waypoint,
+    market_trade: &[database::MarketTrade],
+    // market_trade_goods: &[database::MarketTradeGood],
     max_update_interval: i64, // in seconds
 ) -> Result<chrono::DateTime<chrono::Utc>> {
     get_waypoint_time_with_weights(
@@ -35,9 +33,9 @@ pub fn get_waypoint_time(
 }
 
 pub fn get_waypoint_time_with_weights(
-    // waypoint: &sql::Waypoint,
-    market_trade: &[sql::MarketTrade],
-    // market_trade_goods: &[sql::MarketTradeGood],
+    // waypoint: &database::Waypoint,
+    market_trade: &[database::MarketTrade],
+    // market_trade_goods: &[database::MarketTradeGood],
     max_update_interval: i64, // in seconds
     export_weight: f64,
     import_weight: f64,

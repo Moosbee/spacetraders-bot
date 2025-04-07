@@ -3,8 +3,13 @@ name = "spacetraders"
 version = "0.1.0"
 edition = "2021"
 
+[workspace]
+members = ["database", "space_traders_client", "utils"]
+
 [dependencies]
 space_traders_client = { path = "./space_traders_client" }
+utils = { path = "./utils" }
+database = { path = "./database" }
 reqwest = { version = "^0.12", features = ["json", "multipart"] }
 tokio = { version = "^1.41", features = ["full"] }
 dotenvy = "0.15.7"

@@ -2,7 +2,7 @@ use warp::reply::Reply;
 
 use crate::{
     control_api::types::{Result, ServerError},
-    types::ConductorContext,
+    utils::ConductorContext,
 };
 
 pub async fn handle_get_api_counter(context: ConductorContext) -> Result<impl Reply> {
@@ -23,7 +23,7 @@ pub async fn handle_get_running_contract_shipments(
         .await
         .map_err(|e| ServerError::Server(format!("Failed to send message: {}", e)))?;
 
-    let erg: Vec<crate::sql::ContractShipment> = rx
+    let erg: Vec<database::ContractShipment> = rx
         .await
         .map_err(|e| ServerError::Server(format!("Failed to receive message: {}", e)))?
         .map_err(|e| ServerError::Server(e.to_string()))?;

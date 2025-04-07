@@ -1,23 +1,19 @@
 use std::collections::HashMap;
 
+use database::DatabaseConnector;
 use log::debug;
-use space_traders_client::models;
-
-use crate::{
-    api::Api,
-    sql::{self, DatabaseConnector},
-};
+use space_traders_client::{models, Api};
 
 pub async fn update_all_systems(
-    database_pool: &sql::DbPool,
+    database_pool: &database::DbPool,
     api: &Api,
 ) -> crate::error::Result<()> {
     let all_systems = api.get_all_systems(20).await?;
-    sql::System::insert_bulk(
+    database::System::insert_bulk(
         database_pool,
         &all_systems
             .iter()
-            .map(sql::System::from)
+            .map(database::System::from)
             .collect::<Vec<_>>(),
     )
     .await?;
@@ -35,14 +31,14 @@ pub async fn update_all_systems(
 }
 
 pub async fn update_system(
-    database_pool: &sql::DbPool,
+    database_pool: &database::DbPool,
     api: &Api,
     system_symbol: &str,
     also_system: bool,
 ) -> crate::error::Result<()> {
     if also_system {
         let system = api.get_system(system_symbol).await?;
-        sql::System::insert(database_pool, &sql::System::from(&*system.data)).await?;
+        database::System::insert(database_pool, &database::System::from(&*system.data)).await?;
     }
 
     let waypoints = loop {
@@ -59,7 +55,7 @@ pub async fn update_system(
 
     let mut sql_waypoints = waypoints
         .iter()
-        .map(sql::Waypoint::from)
+        .map(database::Waypoint::from)
         .map(|w| (w.symbol.clone(), w))
         .collect::<HashMap<_, _>>();
 
@@ -104,7 +100,7 @@ pub async fn update_system(
         }
     }
 
-    sql::Waypoint::insert_bulk(
+    database::Waypoint::insert_bulk(
         database_pool,
         &sql_waypoints.into_values().collect::<Vec<_>>(),
     )

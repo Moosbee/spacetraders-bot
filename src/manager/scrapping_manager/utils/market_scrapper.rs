@@ -1,13 +1,12 @@
 use std::time::Duration;
 
+use database::DatabaseConnector;
 use log::{debug, warn};
 use space_traders_client::models;
 use tokio::time::sleep;
 
-use crate::sql::{self, DatabaseConnector};
-
 pub async fn get_all_markets(
-    api: &crate::api::Api,
+    api: &space_traders_client::Api,
     waypoints: &[(String, String)],
 ) -> crate::error::Result<Vec<models::Market>> {
     let mut market_handles = tokio::task::JoinSet::new();
@@ -61,7 +60,7 @@ pub async fn get_all_markets(
 
 pub async fn update_markets(
     markets: Vec<models::Market>,
-    database_pool: sql::DbPool,
+    database_pool: database::DbPool,
 ) -> crate::error::Result<()> {
     let market_goods = markets
         .iter()
@@ -71,7 +70,7 @@ pub async fn update_markets(
                 .clone()
                 .unwrap()
                 .iter()
-                .map(|f| sql::MarketTradeGood::from(f.clone(), &m.symbol))
+                .map(|f| database::MarketTradeGood::from(f.clone(), &m.symbol))
                 .collect::<Vec<_>>()
         })
         .collect::<Vec<_>>();
@@ -80,7 +79,7 @@ pub async fn update_markets(
         .iter()
         .filter_map(|m| m.transactions.clone())
         .flatten()
-        .map(|mt| sql::MarketTransaction::try_from(mt).unwrap())
+        .map(|mt| database::MarketTransaction::try_from(mt).unwrap())
         .collect::<Vec<_>>();
 
     let market_trades: Vec<_> = markets
@@ -89,7 +88,7 @@ pub async fn update_markets(
             vec![
                 m.exchange
                     .iter()
-                    .map(|e| sql::MarketTrade {
+                    .map(|e| database::MarketTrade {
                         waypoint_symbol: m.symbol.clone(),
                         symbol: e.symbol,
                         r#type: models::market_trade_good::Type::Exchange,
@@ -98,7 +97,7 @@ pub async fn update_markets(
                     .collect::<Vec<_>>(),
                 m.exports
                     .iter()
-                    .map(|e| sql::MarketTrade {
+                    .map(|e| database::MarketTrade {
                         waypoint_symbol: m.symbol.clone(),
                         symbol: e.symbol,
                         r#type: models::market_trade_good::Type::Export,
@@ -107,7 +106,7 @@ pub async fn update_markets(
                     .collect::<Vec<_>>(),
                 m.imports
                     .iter()
-                    .map(|e| sql::MarketTrade {
+                    .map(|e| database::MarketTrade {
                         waypoint_symbol: m.symbol.clone(),
                         symbol: e.symbol,
                         r#type: models::market_trade_good::Type::Import,
@@ -118,31 +117,31 @@ pub async fn update_markets(
         })
         .flatten()
         .collect();
-    sql::MarketTrade::insert_bulk(&database_pool, &market_trades).await?;
-    sql::MarketTradeGood::insert_bulk(&database_pool, &market_goods).await?;
-    sql::MarketTransaction::insert_bulk(&database_pool, &market_transactions).await?;
+    database::MarketTrade::insert_bulk(&database_pool, &market_trades).await?;
+    database::MarketTradeGood::insert_bulk(&database_pool, &market_goods).await?;
+    database::MarketTransaction::insert_bulk(&database_pool, &market_transactions).await?;
 
     Ok(())
 }
 
-pub async fn update_market(market: models::Market, database_pool: &sql::DbPool) {
+pub async fn update_market(market: models::Market, database_pool: &database::DbPool) {
     if let Some(trade_goods) = market.trade_goods {
-        sql::MarketTradeGood::insert_bulk(
+        database::MarketTradeGood::insert_bulk(
             database_pool,
             &trade_goods
                 .iter()
-                .map(|f| sql::MarketTradeGood::from(f.clone(), &market.symbol))
+                .map(|f| database::MarketTradeGood::from(f.clone(), &market.symbol))
                 .collect::<Vec<_>>(),
         )
         .await
         .unwrap();
     }
     if let Some(transactions) = market.transactions {
-        sql::MarketTransaction::insert_bulk(
+        database::MarketTransaction::insert_bulk(
             database_pool,
             &transactions
                 .iter()
-                .map(|f| sql::MarketTransaction::try_from(f.clone()).unwrap())
+                .map(|f| database::MarketTransaction::try_from(f.clone()).unwrap())
                 .collect::<Vec<_>>(),
         )
         .await
@@ -153,7 +152,7 @@ pub async fn update_market(market: models::Market, database_pool: &sql::DbPool) 
         market
             .exchange
             .iter()
-            .map(|e| sql::MarketTrade {
+            .map(|e| database::MarketTrade {
                 waypoint_symbol: market.symbol.clone(),
                 symbol: e.symbol,
                 r#type: models::market_trade_good::Type::Exchange,
@@ -163,7 +162,7 @@ pub async fn update_market(market: models::Market, database_pool: &sql::DbPool) 
         market
             .exports
             .iter()
-            .map(|e| sql::MarketTrade {
+            .map(|e| database::MarketTrade {
                 waypoint_symbol: market.symbol.clone(),
                 symbol: e.symbol,
                 r#type: models::market_trade_good::Type::Export,
@@ -173,7 +172,7 @@ pub async fn update_market(market: models::Market, database_pool: &sql::DbPool) 
         market
             .imports
             .iter()
-            .map(|e| sql::MarketTrade {
+            .map(|e| database::MarketTrade {
                 waypoint_symbol: market.symbol.clone(),
                 symbol: e.symbol,
                 r#type: models::market_trade_good::Type::Import,
@@ -185,7 +184,7 @@ pub async fn update_market(market: models::Market, database_pool: &sql::DbPool) 
     .flatten()
     .cloned()
     .collect::<Vec<_>>();
-    sql::MarketTrade::insert_bulk(database_pool, &market_trades)
+    database::MarketTrade::insert_bulk(database_pool, &market_trades)
         .await
         .unwrap();
 }
