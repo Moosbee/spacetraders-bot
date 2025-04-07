@@ -40,7 +40,7 @@ use tokio_util::sync::CancellationToken;
 use types::{ConductorContext, RunInfo, WaypointCan};
 
 use crate::api::Api;
-use log::{debug, error, info};
+use log::{debug, error, info, warn};
 
 use std::num::NonZeroU32;
 
@@ -170,28 +170,27 @@ async fn setup_context(
         ShipManager::add_ship(&ship_manager, ship_i).await;
     }
 
-    // manager::scrapping_manager::update_all_systems(&database_pool, &api).await?;
-
-    // let all_gates = sql::Waypoint::get_all(&database_pool)
+    // let gates = sql::Waypoint::get_all(&database_pool)
     //     .await?
     //     .into_iter()
     //     .filter(|w| w.is_jump_gate())
-    //     .filter(|w| {
-    //         !w.traits
-    //             .iter()
-    //             .any(|t| *t == models::WaypointTraitSymbol::Uncharted)
+    //     .filter(|w| !w.is_charted())
+    //     .map(|w| {
+    //         let chart = w.is_charted();
+    //         (w.system_symbol, w.symbol, chart)
     //     })
-    //     .map(|w| (w.system_symbol, w.symbol))
     //     .collect::<Vec<_>>();
 
-    // info!("All gates: {}", all_gates.len());
+    // info!("JumpGates: {}", gates.len());
 
-    // let jump_gates = manager::scrapping_manager::get_all_jump_gates(&api, all_gates).await?;
-
-    // info!("JumpGates: {:?}", jump_gates);
-    // let erg = manager::scrapping_manager::update_jump_gates(&database_pool, jump_gates).await;
+    // let erg = crate::manager::scrapping_manager::utils::get_all_jump_gates(&api, gates).await;
     // if erg.is_err() {
     //     warn!("JumpGate scrapping error: {}", erg.unwrap_err());
+    // } else {
+    //     let jump_gates = erg.unwrap();
+    //     let jump_gates_len = jump_gates.len();
+    //     scrapping_manager::utils::update_jump_gates(&database_pool, jump_gates).await?;
+    //     debug!("Updated jump gates {}", jump_gates_len);
     // }
 
     // panic!();

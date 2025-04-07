@@ -38,21 +38,21 @@ pub enum ConnectionType {
     Navigate { nav_mode: models::ShipNavFlightMode },
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize)]
 pub enum ConcreteConnection {
     JumpGate(JumpConnection),
     Warp(WarpConnection),
     Navigate(NavigateConnection),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct JumpConnection {
     pub start_symbol: String,
     pub end_symbol: String,
     pub distance: f64,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct WarpConnection {
     pub start_symbol: String,
     pub end_symbol: String,
@@ -64,7 +64,7 @@ pub struct WarpConnection {
     pub end_is_marketplace: bool,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct NavigateConnection {
     pub start_symbol: String,
     pub end_symbol: String,
@@ -76,7 +76,7 @@ pub struct NavigateConnection {
     pub end_is_marketplace: bool,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct Refuel {
     /// The amount of fuel in fuel units that needs to be in the Tanks to do the Current jump
     pub fuel_needed: i32,
@@ -85,7 +85,7 @@ pub struct Refuel {
     pub start_is_marketplace: bool,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Default, serde::Serialize, Debug)]
 pub struct Route {
     pub connections: Vec<ConcreteConnection>,
     pub total_distance: f64,

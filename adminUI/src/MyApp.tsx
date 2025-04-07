@@ -12,8 +12,11 @@ import Contract from "./sites/Contract";
 import Contracts from "./sites/Contracts";
 import ErrorPage from "./sites/ErrorPage";
 import MarketTransactions from "./sites/MarketTransactions";
+import MiningAssignments from "./sites/MiningAssignments";
+import PossibleTrades from "./sites/PossibleTrades";
 import Ship from "./sites/Ship";
 import Ships from "./sites/Ships";
+import ShipsToPurchase from "./sites/ShipsToPurchase";
 import System from "./sites/System";
 import SysMap from "./sites/SystemMap";
 import Systems from "./sites/Systems";
@@ -90,6 +93,10 @@ function MyApp() {
                     />
                     <Route path="/tradeRoutes" element={<TradeRoutes />} />
                     <Route
+                      path="/possibleTrades"
+                      element={<PossibleTrades />}
+                    />
+                    <Route
                       path="/transactions/market"
                       element={<MarketTransactions />}
                     />
@@ -103,6 +110,16 @@ function MyApp() {
                     <Route
                       path="/construction/shipments"
                       element={<ConstructionShipments />}
+                    />
+
+                    <Route
+                      path="/shipsToPurchase"
+                      element={<ShipsToPurchase />}
+                    />
+
+                    <Route
+                      path="/miningAssignments"
+                      element={<MiningAssignments />}
                     />
 
                     <Route path="*" element={<ErrorPage />} />

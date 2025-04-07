@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use log::{debug, info};
+use log::debug;
 use warp::reply::Reply;
 
 use crate::{
@@ -118,37 +118,23 @@ pub async fn handle_buy_ship(
         waypoint_symbol.to_string(),
     );
 
-    info!("Purchasing ship");
-
     let resp = context
         .api
         .purchase_ship(Some(purchase_ship_request.clone()))
-        .await;
-
-    info!("respss {:?}", resp);
-
-    let resp = resp
+        .await
         .map_err(crate::error::Error::from)
         .map_err(ServerError::from)?;
-
-    info!("Got response");
 
     sql::Agent::insert(&context.database_pool, &sql::Agent::from(*resp.data.agent))
         .await
         .map_err(|err| ServerError::Server(err.to_string()))?;
 
-    info!("Inserted agent");
-
     let transaction = sql::ShipyardTransaction::try_from(*resp.data.transaction)
         .map_err(|err| ServerError::Server(err.to_string()))?;
-
-    info!("Converted transaction");
 
     sql::ShipyardTransaction::insert(&context.database_pool, &transaction)
         .await
         .map_err(|err| ServerError::Server(err.to_string()))?;
-
-    info!("Purchased ship");
 
     crate::ship::MyShip::update_info_db((*resp.data.ship).clone(), &context.database_pool)
         .await

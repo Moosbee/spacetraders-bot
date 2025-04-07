@@ -172,6 +172,29 @@ impl MyShip {
         core::result::Result::Ok(())
     }
 
+    // async fn patch_ship_nav(
+    //     &mut self,
+    //     api: &api::Api,
+    //     flight_mode: models::ShipNavFlightMode,
+    // ) -> core::result::Result<
+    //     models::PatchShipNav200Response,
+    //     apis::Error<apis::fleet_api::PatchShipNavError>,
+    // > {
+    //     self.mutate();
+    //     let ship_patch_data = api
+    //         .patch_ship_nav(
+    //             &self.symbol,
+    //             Some(models::PatchShipNavRequest {
+    //                 flight_mode: Some(flight_mode),
+    //             }),
+    //         )
+    //         .await?;
+    //     self.nav.update(&ship_patch_data.data.nav);
+    //     self.fuel.update(&ship_patch_data.data.fuel);
+    //     self.notify().await;
+    //     core::result::Result::Ok(ship_patch_data)
+    // }
+
     async fn patch_ship_nav(
         &mut self,
         api: &api::Api,
@@ -181,14 +204,34 @@ impl MyShip {
         apis::Error<apis::fleet_api::PatchShipNavError>,
     > {
         self.mutate();
-        let ship_patch_data = api
-            .patch_ship_nav(
-                &self.symbol,
-                Some(models::PatchShipNavRequest {
-                    flight_mode: Some(flight_mode),
-                }),
-            )
-            .await?;
+        let mut count = 0;
+        let ship_patch_data = loop {
+            let ship_patch_data_result = api
+                .patch_ship_nav(
+                    &self.symbol,
+                    Some(models::PatchShipNavRequest {
+                        flight_mode: Some(flight_mode),
+                    }),
+                )
+                .await;
+
+            match ship_patch_data_result {
+                Ok(ship_patch_data) => break ship_patch_data,
+                Err(space_traders_client::apis::Error::ResponseError(e)) => {
+                    if count > 3 {
+                        return core::result::Result::Err(
+                            space_traders_client::apis::Error::ResponseError(e),
+                        );
+                    }
+                    if e.status == 400 && e.content == "You can't slow down while in transit." {
+                        log::error!("Slow down while in transit");
+                        count += 1;
+                        continue;
+                    }
+                }
+                Err(e) => return core::result::Result::Err(e),
+            }
+        };
         self.nav.update(&ship_patch_data.data.nav);
         self.fuel.update(&ship_patch_data.data.fuel);
         self.notify().await;

@@ -1,4 +1,12 @@
-import { Descriptions, Flex, Progress, Space, Table } from "antd";
+import {
+  Descriptions,
+  Flex,
+  List,
+  Progress,
+  Space,
+  Table,
+  Typography,
+} from "antd";
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import PageTitle from "../features/PageTitle";
@@ -208,8 +216,33 @@ function Ship() {
                               ""
                             )
                           : ship.nav.auto_pilot.destination_symbol}
+                        <br />
+                        <ShipNavProgress
+                          departure_time={ship.nav.auto_pilot.departure_time}
+                          arrival={ship.nav.auto_pilot.arrival}
+                        />
                         <br />(
                         <Timer time={ship.nav.auto_pilot.arrival} />)
+                        <br />
+                        <List
+                          size="small"
+                          bordered
+                          dataSource={ship.nav.auto_pilot.route.connections}
+                          renderItem={(item) => (
+                            <List.Item>
+                              <Typography.Text
+                                mark={
+                                  ship.nav.waypoint_symbol ===
+                                  item.Navigate.end_symbol
+                                }
+                              >
+                                {item.Navigate.start_symbol} -{">"}{" "}
+                                {item.Navigate.end_symbol} (
+                                {item.Navigate.travel_time}s)
+                              </Typography.Text>
+                            </List.Item>
+                          )}
+                        />
                       </span>
                     ),
                   },

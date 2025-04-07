@@ -90,7 +90,18 @@ impl ScrappingManager {
                         (w.system_symbol, w.symbol, chart)
                     })
                     .collect::<Vec<_>>();
-                crate::manager::scrapping_manager::utils::get_all_jump_gates(&api, gates).await?;
+                let jump_gates =
+                    crate::manager::scrapping_manager::utils::get_all_jump_gates(&api, gates)
+                        .await?;
+
+                let jump_gates_len = jump_gates.len();
+                crate::manager::scrapping_manager::utils::update_jump_gates(
+                    &database_pool,
+                    jump_gates,
+                )
+                .await?;
+                debug!("Updated jump gates {}", jump_gates_len);
+
                 Ok(())
             })
         } else {
@@ -102,7 +113,10 @@ impl ScrappingManager {
                 message = self.receiver.recv() => message,
                 _ = self.cancel_token.cancelled() => None
             };
-            debug!("Received scrappingManager message: {:?}", message);
+            debug!(
+                "Received scrappingManager message: {:?}",
+                message.as_ref().map(|m| m.to_string())
+            );
 
             match message {
                 Some(message) => {

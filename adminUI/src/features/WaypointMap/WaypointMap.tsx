@@ -462,21 +462,21 @@ function calculateRouteMapPoints(
     if (!(type === "auto_pilot" || selectedShipSymbol === s.ship.symbol))
       return [];
 
-    return s.ship.nav.auto_pilot.instructions.map((i) => {
+    return s.ship.nav.auto_pilot.route.connections.map((i) => {
       const startWaypoint = waypointsMp.find(
-        (w) => w.waypoint.symbol === i.start_symbol
+        (w) => w.waypoint.symbol === i.Navigate.start_symbol
       );
       const endWaypoint = waypointsMp.find(
-        (w) => w.waypoint.symbol === i.end_symbol
+        (w) => w.waypoint.symbol === i.Navigate.end_symbol
       );
       // const distance = Math.sqrt(
       //   Math.pow(startWaypoint?.xOne ?? 0 - (endWaypoint?.xOne ?? 0), 2) +
       //     Math.pow(startWaypoint?.yOne ?? 0 - (endWaypoint?.yOne ?? 0), 2)
       // );
       const route: RouteMapPoint = {
-        destination: i.end_symbol,
-        wpSymbol: i.start_symbol,
-        mode: i.flight_mode,
+        destination: i.Navigate.end_symbol,
+        wpSymbol: i.Navigate.start_symbol,
+        mode: i.Navigate.nav_mode,
         x1: startWaypoint?.xOne ?? 0,
         y1: startWaypoint?.yOne ?? 0,
         x2: endWaypoint?.xOne ?? 0,

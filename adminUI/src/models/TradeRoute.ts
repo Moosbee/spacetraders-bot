@@ -1,4 +1,5 @@
 import { TradeSymbol } from "./api";
+import { MarketTrade, MarketTradeGood } from "./Market";
 
 export interface TradeRoute {
   id: number;
@@ -14,4 +15,12 @@ export interface TradeRoute {
   expenses: number;
   income: number;
   profit: number;
+}
+
+export interface PossibleTrade {
+  purchase: MarketTrade;
+  purchase_good?: MarketTradeGood;
+  sell: MarketTrade;
+  sell_good?: MarketTradeGood;
+  symbol: TradeSymbol;
 }

@@ -1,5 +1,6 @@
 use chrono::{DateTime, Utc};
 use pathfinder::Pathfinder;
+use space_traders_client::models;
 
 use crate::{
     error::Result,
@@ -7,7 +8,7 @@ use crate::{
     types::{ConductorContext, WaypointCan},
 };
 
-use super::MyShip;
+use super::{modules, MyShip};
 
 use std::fmt::Debug;
 
@@ -55,6 +56,7 @@ impl MyShip {
 
         let context2 = context.clone();
         let route2 = route.clone();
+        let reson2 = reason.clone();
         let wp_action =
             async move |shipi: &mut MyShip, start_waypoint: String, end_waypoint: String| {
                 let start =
@@ -66,7 +68,7 @@ impl MyShip {
                             .update_market(&context2.api, &context2.database_pool)
                             .await?;
                     }
-                    if prepare && !start.is_marketplace() {
+                    if prepare && start.is_marketplace() {
                         let mut is_last_marketplace = true;
 
                         for connection in route2.connections.iter().rev() {
@@ -99,6 +101,15 @@ impl MyShip {
                         }
                         if is_last_marketplace {
                             shipi.ensure_docked(&context2.api).await?;
+                            shipi
+                                .purchase_cargo(
+                                    &context2.api,
+                                    &models::TradeSymbol::Fuel,
+                                    1,
+                                    &context2.database_pool,
+                                    reson2.clone(),
+                                )
+                                .await?;
                         }
                     }
                 }
@@ -123,8 +134,10 @@ impl MyShip {
             range: self.fuel.capacity as u32,
             context: context.clone(),
             nav_mode: nav_mode::NavMode::BurnAndCruiseAndDrift,
-            start_range: self.fuel.current as u32,
-            only_markets: false,
+            start_range: (self.fuel.current as u32
+                + self.cargo.get_amount(&models::TradeSymbol::Fuel) as u32)
+                .min(self.fuel.capacity as u32),
+            only_markets: true,
         })
     }
 }
@@ -139,9 +152,8 @@ pub struct AutopilotState {
     pub origin_system_symbol: String,
     pub distance: f64,
     pub fuel_cost: i32,
-    // pub instructions: Vec<RouteInstruction>,
-    // pub connections: Vec<super::nav_models::ConnectionDetails>,
     pub travel_time: f64,
+    pub route: connection::Route,
 }
 
 impl Debug for AutopilotState {

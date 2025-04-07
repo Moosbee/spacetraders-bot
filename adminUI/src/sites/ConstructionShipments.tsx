@@ -12,6 +12,9 @@ function ConstructionShipments() {
     ConstructionShipment[]
   >([]);
 
+  const [runningConstructionShipments, setRunningConstructionShipments] =
+    useState<ConstructionShipment[]>([]);
+
   useEffect(() => {
     fetch(`http://${backendUrl}/construction/shipments`)
       .then((response) => response.json())
@@ -19,6 +22,13 @@ function ConstructionShipments() {
         console.log("constructionShipments", data);
 
         setConstructionShipments(data);
+      });
+    fetch(`http://${backendUrl}/insights/construction/shipments`)
+      .then((response) => response.json())
+      .then((data) => {
+        console.log("runningConstructionShipments", data);
+
+        setRunningConstructionShipments(data.shipments);
       });
   }, []);
 
@@ -161,11 +171,29 @@ function ConstructionShipments() {
 
                 setConstructionShipments(data);
               });
+            fetch(`http://${backendUrl}/insights/construction/shipments`)
+              .then((response) => response.json())
+              .then((data) => {
+                console.log("runningConstructionShipments", data);
+
+                setRunningConstructionShipments(data.shipments);
+              });
           }}
         >
           Refresh
         </Button>
       </Space>
+      <Table
+        dataSource={runningConstructionShipments || []}
+        columns={columns}
+        rowKey="id"
+        pagination={{
+          showSizeChanger: true,
+          pageSizeOptions: ["10", "20", "50", "100", "200", "500", "1000"],
+          defaultPageSize: 100,
+          showTotal: (total, range) => `${range[0]}-${range[1]} of ${total}`,
+        }}
+      />
       <Table
         dataSource={constructionShipments || []}
         columns={columns}

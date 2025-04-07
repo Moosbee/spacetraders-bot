@@ -49,4 +49,32 @@ pub enum ScrapMessage {
     },
 }
 
+impl std::fmt::Display for ScrapMessage {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ScrapMessage::Next { ship_clone, .. } => {
+                write!(f, "ScrapMessage::Next {}", ship_clone.symbol)
+            }
+            ScrapMessage::Complete {
+                ship_clone,
+                waypoint_symbol,
+            } => write!(
+                f,
+                "ScrapMessage::Complete {} {}",
+                ship_clone.symbol, waypoint_symbol
+            ),
+            ScrapMessage::Fail {
+                ship_clone,
+                waypoint_symbol,
+            } => write!(
+                f,
+                "ScrapMessage::Fail {} {}",
+                ship_clone.symbol, waypoint_symbol
+            ),
+            ScrapMessage::GetAll { .. } => write!(f, "ScrapMessage::GetAll"),
+            ScrapMessage::GetShips { .. } => write!(f, "ScrapMessage::GetShips"),
+        }
+    }
+}
+
 pub type ScrappingManagerMessage = ScrapMessage;

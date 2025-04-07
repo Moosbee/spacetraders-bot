@@ -1,21 +1,33 @@
-import { Button, Space, Table, TableProps } from "antd";
+import { Button, Divider, Space, Table, TableProps } from "antd";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import MoneyDisplay from "../features/MonyDisplay";
 import PageTitle from "../features/PageTitle";
+import WaypointLink from "../features/WaypointLink";
 import { Contract } from "../models/Contract";
+import { ContractShipment } from "../models/SQLContract";
 import { backendUrl } from "../store";
 
 function Contracts() {
   const [contractResp, setContract] = useState<Contract[] | null>(null);
+  const [runningContractShipments, setRunningContractShipments] = useState<
+    ContractShipment[] | null
+  >(null);
 
   useEffect(() => {
     fetch(`http://${backendUrl}/contracts`)
       .then((response) => response.json())
       .then((data) => {
-        console.log("Contract", data);
+        console.log("setContract", data);
 
         setContract(data);
+      });
+    fetch(`http://${backendUrl}/insights/contract/shipments`)
+      .then((response) => response.json())
+      .then((data) => {
+        console.log("setRunningContractShipments", data);
+
+        setRunningContractShipments(data.shipments);
       });
   }, []);
 
@@ -144,12 +156,82 @@ function Contracts() {
 
                 setContract(data);
               });
+            fetch(`http://${backendUrl}/insights/contract/shipments`)
+              .then((response) => response.json())
+              .then((data) => {
+                console.log("setRunningContractShipments", data);
+
+                setRunningContractShipments(data.shipments);
+              });
           }}
         >
           Refresh
         </Button>
       </Space>
       <Table
+        title={() => "Running Contract Shipments"}
+        size="small"
+        rowKey={(id) => id.id}
+        columns={[
+          {
+            title: "ID",
+            dataIndex: "id",
+            key: "id",
+          },
+          {
+            title: "Ship Symbol",
+            dataIndex: "ship_symbol",
+            key: "ship_symbol",
+          },
+          {
+            title: "Trade Symbol",
+            dataIndex: "trade_symbol",
+            key: "trade_symbol",
+          },
+          {
+            title: "Units",
+            dataIndex: "units",
+            key: "units",
+          },
+          {
+            title: "Destination Symbol",
+            dataIndex: "destination_symbol",
+            key: "destination_symbol",
+            render: (symbol) => (
+              <WaypointLink waypoint={symbol}>{symbol}</WaypointLink>
+            ),
+          },
+          {
+            title: "Purchase Symbol",
+            dataIndex: "purchase_symbol",
+            key: "purchase_symbol",
+            render: (symbol) => (
+              <WaypointLink waypoint={symbol}>{symbol}</WaypointLink>
+            ),
+          },
+          {
+            title: "Created At",
+            dataIndex: "created_at",
+            key: "created_at",
+            render: (date) => new Date(date).toLocaleString(),
+          },
+          {
+            title: "Updated At",
+            dataIndex: "updated_at",
+            key: "updated_at",
+            render: (date) => new Date(date).toLocaleString(),
+          },
+          {
+            title: "Status",
+            dataIndex: "status",
+            key: "status",
+          },
+        ]}
+        dataSource={runningContractShipments || []}
+      ></Table>
+      <Divider />
+      <Table
+        title={() => "Contracts"}
         dataSource={contractResp || []}
         columns={columns}
         rowKey="id"

@@ -6,6 +6,7 @@ use crate::{
     api,
     ship::MyShip,
     sql::{self, DatabaseConnector},
+    utils::get_system_symbol,
 };
 
 use super::connection::{
@@ -21,12 +22,14 @@ impl MyShip {
         api: &api::Api,
         wp_action: impl AsyncFn(&mut MyShip, String, String) -> crate::error::Result<()> + Clone,
     ) -> crate::error::Result<()> {
+        self.set_auto_pilot(route.clone()).await?;
         for connection in route.connections {
             self.execute_connection(connection, &reason, database_pool, api, wp_action.clone())
                 .await?;
         }
         self.wait_for_arrival().await;
         self.nav.refresh_nav();
+        self.nav.auto_pilot = None;
         self.notify().await;
         Ok(())
     }
@@ -379,6 +382,38 @@ impl MyShip {
 
         Ok(())
     }
+
+    pub async fn set_auto_pilot(&mut self, route: Route) -> crate::error::Result<()> {
+        let start = route
+            .connections
+            .first()
+            .map(get_start_and_end)
+            .unwrap_or_default();
+        let end = route
+            .connections
+            .last()
+            .map(get_start_and_end)
+            .unwrap_or_default();
+        let destination_symbol = end.2.clone();
+        let destination_system_symbol = end.3.clone();
+        let origin_symbol = start.0.clone();
+        let origin_system_symbol = start.1.clone();
+
+        self.nav.auto_pilot = Some(super::AutopilotState {
+            arrival: Utc::now() + chrono::Duration::seconds(route.total_travel_time as i64),
+            departure_time: Utc::now(),
+            distance: route.total_distance,
+            fuel_cost: route.total_fuel_cost as i32,
+            travel_time: route.total_travel_time,
+            route: route.clone(),
+            destination_symbol,
+            destination_system_symbol,
+            origin_symbol,
+            origin_system_symbol,
+        });
+        self.notify().await;
+        Ok(())
+    }
 }
 
 #[derive(Debug)]
@@ -396,5 +431,28 @@ impl RefuelRequirements {
 
     fn needs_marketplace_action(&self) -> bool {
         self.refuel_amount > 0 || self.restock_amount > 0
+    }
+}
+
+fn get_start_and_end(connection: &ConcreteConnection) -> (String, String, String, String) {
+    match connection {
+        ConcreteConnection::JumpGate(jump_connection) => (
+            jump_connection.start_symbol.clone(),
+            get_system_symbol(&jump_connection.start_symbol),
+            jump_connection.end_symbol.clone(),
+            get_system_symbol(&jump_connection.end_symbol),
+        ),
+        ConcreteConnection::Warp(warp_connection) => (
+            warp_connection.start_symbol.clone(),
+            get_system_symbol(&warp_connection.start_symbol),
+            warp_connection.end_symbol.clone(),
+            get_system_symbol(&warp_connection.end_symbol),
+        ),
+        ConcreteConnection::Navigate(navigate_connection) => (
+            navigate_connection.start_symbol.clone(),
+            get_system_symbol(&navigate_connection.start_symbol),
+            navigate_connection.end_symbol.clone(),
+            get_system_symbol(&navigate_connection.end_symbol),
+        ),
     }
 }

@@ -21,35 +21,47 @@ interface Navigation {
     origin_symbol: string;
     origin_system_symbol: string;
   };
-  auto_pilot: {
-    // arrival and departure_time are in ISO 8601 format
-    arrival: string;
-    departure_time: string;
-    destination_symbol: string;
-    destination_system_symbol: string;
-    origin_symbol: string;
-    origin_system_symbol: string;
-    distance: number;
-    fuel_cost: number;
-    instructions: {
-      start_symbol: string;
-      end_symbol: string;
-      flight_mode: ShipNavFlightMode;
-      start_is_marketplace: boolean;
-      distance: number;
-      refuel_to: number;
-      fuel_in_cargo: number;
-    }[];
-    connections: {
-      start: unknown;
-      end: unknown;
-      flight_mode: string;
-      distance: number;
-      fuel_cost: number;
-      travel_time: number;
-    }[];
-    travel_time: number;
-  } | null;
+  auto_pilot: AutoPilot | null;
+}
+
+export interface AutoPilot {
+  // arrival and departure_time are in ISO 8601 format
+  arrival: string;
+  departure_time: string;
+  destination_symbol: string;
+  destination_system_symbol: string;
+  origin_symbol: string;
+  origin_system_symbol: string;
+  distance: number;
+  fuel_cost: number;
+  travel_time: number;
+  route: {
+    connections: Connection[];
+    total_distance: number;
+    total_fuel_cost: number;
+    total_travel_time: number;
+  };
+}
+
+export interface Connection {
+  Navigate: Navigate;
+}
+
+export interface Navigate {
+  start_symbol: string;
+  end_symbol: string;
+  nav_mode: ShipNavFlightMode;
+  distance: number;
+  travel_time: number;
+  refuel: Refuel;
+  start_is_marketplace: boolean;
+  end_is_marketplace: boolean;
+}
+
+export interface Refuel {
+  fuel_needed: number;
+  fuel_required: number;
+  start_is_marketplace: boolean;
 }
 
 interface Cargo {

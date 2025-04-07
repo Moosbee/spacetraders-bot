@@ -20,16 +20,16 @@ impl MyShip {
             match c {
                 ConcreteConnection::JumpGate(jump_connection) => {
                     big_stats.0 += jump_connection.distance;
-                    big_stats.2 += 14_000.0;
+                    big_stats.2 += 6_000.0;
                 }
                 ConcreteConnection::Warp(warp_connection) => {
                     big_stats.0 += warp_connection.distance;
-                    big_stats.1 += warp_connection.travel_time;
+                    big_stats.1 += warp_connection.travel_time + 1.0;
                     big_stats.2 += (warp_connection.refuel.fuel_needed as f64 / 100.0).ceil();
                 }
                 ConcreteConnection::Navigate(navigate_connection) => {
                     big_stats.0 += navigate_connection.distance;
-                    big_stats.1 += navigate_connection.travel_time;
+                    big_stats.1 += navigate_connection.travel_time + 1.0;
                     big_stats.2 += (navigate_connection.refuel.fuel_needed as f64 / 100.0).ceil();
                 }
             }
@@ -102,16 +102,16 @@ impl MyShip {
                         self.conditions.reactor.condition,
                         c.distance,
                     );
-                    let refuel = Refuel {
-                        fuel_needed: stats.fuel_cost,
-                        fuel_required: needed_fuel,
-                        start_is_marketplace: c.start_is_marketplace,
-                    };
                     if c.start_is_marketplace {
                         needed_fuel = 0;
                     } else {
                         needed_fuel += ((stats.fuel_cost as f64) / 100.0).ceil() as i32;
                     }
+                    let refuel = Refuel {
+                        fuel_needed: stats.fuel_cost,
+                        fuel_required: needed_fuel,
+                        start_is_marketplace: c.start_is_marketplace,
+                    };
                     real_route.push(ConcreteConnection::Warp(WarpConnection {
                         start_symbol: c.start_symbol.clone(),
                         end_symbol: c.end_symbol.clone(),
