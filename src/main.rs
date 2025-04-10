@@ -1,6 +1,4 @@
 #![recursion_limit = "256"]
-pub mod ship;
-
 mod config;
 mod tests;
 

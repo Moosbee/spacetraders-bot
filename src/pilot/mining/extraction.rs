@@ -3,14 +3,13 @@ use std::sync::{atomic::AtomicI32, Arc};
 use database::DatabaseConnector;
 use futures::FutureExt;
 use log::{debug, info};
+use ship::status::{ExtractorState, MiningShipAssignment};
 use space_traders_client::models;
 
 use crate::{
     config::CONFIG,
     error::Result,
     manager::mining_manager::{ActionType, ExtractorTransferRequest, TransferResult},
-    pilot::{mining::ExtractorState, MiningShipAssignment},
-    ship,
     utils::ConductorContext,
 };
 
@@ -235,7 +234,8 @@ impl ExtractionPilot {
             waypoint_symbol,
             true,
             database::TransactionReason::MiningWaypoint(waypoint_symbol.to_string()),
-            &self.context,
+            &self.context.database_pool,
+            &self.context.api,
         )
         .await?;
 
@@ -429,7 +429,7 @@ impl ExtractionPilot {
         pilot: &crate::pilot::Pilot,
         receiver: &mut tokio::sync::mpsc::Receiver<ExtractorTransferRequest>,
     ) -> Result<i32> {
-        let ship_future = ship.wait_for_cooldown();
+        let ship_future = { ship.wait_for_cooldown() };
         let ship_future_pined = std::pin::pin!(ship_future);
         let erg = self
             .wait_for(ship, pilot, receiver, ship_future_pined)

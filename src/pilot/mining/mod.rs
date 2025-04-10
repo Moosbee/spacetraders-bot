@@ -2,10 +2,10 @@ mod extraction;
 mod transport;
 
 use log::debug;
+use ship::status::MiningShipAssignment;
 
 use crate::{
     error::{Error, Result},
-    ship::{self},
     utils::ConductorContext,
 };
 
@@ -163,51 +163,4 @@ struct ShipCapabilities {
     can_siphon: bool,
     can_survey: bool,
     can_cargo: bool,
-}
-
-#[derive(Debug, Default, Clone, serde::Serialize, PartialEq, Eq)]
-#[serde(tag = "type", content = "data")]
-pub enum MiningShipAssignment {
-    Transporter {
-        state: TransporterState,
-        waypoint_symbol: Option<String>,
-        cycles: Option<i32>,
-    },
-    Extractor {
-        state: ExtractorState,
-        waypoint_symbol: Option<String>,
-        extractions: Option<i32>,
-    },
-    Siphoner {
-        state: SiphonerState,
-        waypoint_symbol: Option<String>,
-        extractions: Option<i32>,
-    },
-    Surveyor,
-    #[default]
-    Idle,
-    Useless,
-}
-
-#[derive(Debug, Default, Clone, Copy, serde::Serialize, PartialEq, Eq)]
-pub enum TransporterState {
-    InTransitToAsteroid,
-    LoadingCargo,
-    WaitingForCargo,
-    InTransitToMarket,
-    SellingCargo,
-    #[default]
-    Unknown,
-}
-
-pub type SiphonerState = ExtractorState;
-
-#[derive(Debug, Default, Clone, Copy, serde::Serialize, PartialEq, Eq)]
-pub enum ExtractorState {
-    InTransit,
-    Mining,
-    OnCooldown,
-    InvFull,
-    #[default]
-    Unknown,
 }

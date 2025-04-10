@@ -8,7 +8,6 @@ use warp::{reply::Reply, Filter};
 
 use crate::{
     control_api::types::{MyReceiver, ServerError},
-    ship,
     utils::ConductorContext,
 };
 

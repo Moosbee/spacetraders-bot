@@ -1,7 +1,5 @@
 use space_traders_client::models;
 
-use crate::ship;
-
 pub struct TransporterResult {
     pub ship_symbol: String,
     pub available_space: i32,

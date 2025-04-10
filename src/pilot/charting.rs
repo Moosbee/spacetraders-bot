@@ -31,7 +31,7 @@ impl ChartPilot {
 
         debug!("Requesting next chart for ship: {:?}", ship.symbol);
 
-        ship.status = crate::ship::ShipStatus::Charting {
+        ship.status = ship::ShipStatus::Charting {
             cycle: Some(self.count.load(std::sync::atomic::Ordering::SeqCst)),
             waiting_for_manager: true,
             waypoint_symbol: None,
@@ -62,12 +62,12 @@ impl ChartPilot {
 
     async fn start_chart(
         &self,
-        ship: &mut crate::ship::MyShip,
+        ship: &mut ship::MyShip,
         chart: String,
     ) -> std::result::Result<(), Error> {
         self.count.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
 
-        ship.status = crate::ship::ShipStatus::Charting {
+        ship.status = ship::ShipStatus::Charting {
             cycle: Some(self.count.load(std::sync::atomic::Ordering::SeqCst)),
             waiting_for_manager: false,
             waypoint_symbol: Some(chart.clone()),
@@ -78,7 +78,8 @@ impl ChartPilot {
             &chart,
             true,
             database::TransactionReason::None,
-            &self.context,
+            &self.context.database_pool,
+            &self.context.api,
         )
         .await?;
 
@@ -86,7 +87,7 @@ impl ChartPilot {
 
         self.context.chart_manager.complete_chart(chart).await?;
 
-        ship.status = crate::ship::ShipStatus::Charting {
+        ship.status = ship::ShipStatus::Charting {
             cycle: Some(self.count.load(std::sync::atomic::Ordering::SeqCst)),
             waiting_for_manager: false,
             waypoint_symbol: None,
@@ -96,8 +97,8 @@ impl ChartPilot {
         Ok(())
     }
 
-    async fn do_elsewhere(&self, ship: &mut crate::ship::MyShip) -> std::result::Result<(), Error> {
-        ship.status = crate::ship::ShipStatus::Manuel;
+    async fn do_elsewhere(&self, ship: &mut ship::MyShip) -> std::result::Result<(), Error> {
+        ship.status = ship::ShipStatus::Manuel;
         let role = if ship.cargo.capacity == 0 {
             database::ShipInfoRole::Scraper
         } else {
@@ -119,10 +120,7 @@ impl ChartPilot {
         Ok(())
     }
 
-    async fn chart_waypoint(
-        &self,
-        ship: &mut crate::ship::MyShip,
-    ) -> std::result::Result<(), Error> {
+    async fn chart_waypoint(&self, ship: &mut ship::MyShip) -> std::result::Result<(), Error> {
         let symbol = ship.symbol.clone();
 
         let erg = self.context.api.create_chart(&symbol).await;

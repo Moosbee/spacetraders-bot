@@ -1,6 +1,6 @@
 use space_traders_client::models;
 
-use crate::{manager::fleet_manager::message::RequiredShips, ship};
+use crate::manager::fleet_manager::message::RequiredShips;
 
 use super::message::{self, ConstructionManagerMessage};
 

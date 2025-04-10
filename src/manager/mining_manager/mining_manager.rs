@@ -12,7 +12,6 @@ use crate::{
         mining_manager::mining_messages::MiningMessage,
         Manager,
     },
-    ship,
     utils::ConductorContext,
 };
 
@@ -139,7 +138,7 @@ impl MiningManager {
             String,
             String,
             database::ShipInfoRole,
-            crate::pilot::MiningShipAssignment,
+            ship::status::MiningShipAssignment,
             i32,
         );
 
@@ -178,16 +177,16 @@ impl MiningManager {
 
             let (mining_count, siphon_count, surveying_count, transport_count, transport_capacity) =
                 ships.iter().fold((0, 0, 0, 0, 0), |acc, s| match s.3 {
-                    crate::pilot::MiningShipAssignment::Transporter { .. } => {
+                    ship::status::MiningShipAssignment::Transporter { .. } => {
                         (acc.0, acc.1, acc.2, acc.3 + 1, acc.4 + s.4)
                     }
-                    crate::pilot::MiningShipAssignment::Extractor { .. } => {
+                    ship::status::MiningShipAssignment::Extractor { .. } => {
                         (acc.0 + 1, acc.1, acc.2, acc.3, acc.4)
                     }
-                    crate::pilot::MiningShipAssignment::Siphoner { .. } => {
+                    ship::status::MiningShipAssignment::Siphoner { .. } => {
                         (acc.0, acc.1 + 1, acc.2, acc.3, acc.4)
                     }
-                    crate::pilot::MiningShipAssignment::Surveyor => {
+                    ship::status::MiningShipAssignment::Surveyor => {
                         (acc.0, acc.1, acc.2 + 1, acc.3, acc.4)
                     }
                     _ => acc,
@@ -556,7 +555,7 @@ impl MiningManager {
         }
     }
 
-    async fn get_next_waypoint(&self, ship_clone: crate::ship::MyShip) -> Result<String> {
+    async fn get_next_waypoint(&self, ship_clone: ship::MyShip) -> Result<String> {
         debug!("Getting next waypoint for ship: {}", ship_clone.symbol);
         let the_ships: std::collections::HashMap<String, ship::MyShip> =
             self.context.ship_manager.get_all_clone().await;

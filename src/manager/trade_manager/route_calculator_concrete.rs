@@ -1,10 +1,6 @@
 use std::collections::HashMap;
 
-use crate::{
-    config::CONFIG,
-    ship::{self},
-    utils::ConductorContext,
-};
+use crate::{config::CONFIG, utils::ConductorContext};
 
 use super::routes::{ConcreteTradeRoute, ExtrapolatedTradeRoute, TripStats};
 
@@ -105,10 +101,11 @@ impl ConcreteRouteCalculator {
         purchase_wp_symbol: &str,
     ) -> Result<Vec<ship::autopilot::SimpleConnection>, crate::error::Error> {
         let pilot = ship
-            .get_pathfinder(&self.context)
+            .get_pathfinder(&self.context.database_pool, &self.context.api)
             .ok_or(crate::error::Error::General("NoAutopilot".to_string()))?
             .get_simple(waypoints.clone());
-        pilot.find_route_system(sell_wp_symbol, purchase_wp_symbol)
+        let route = pilot.find_route_system(sell_wp_symbol, purchase_wp_symbol)?;
+        Ok(route)
     }
 
     fn calculate_reoccurring_trip_stats(

@@ -4,7 +4,7 @@ use log::{debug, warn};
 use space_traders_client::models::{self};
 use utils::get_system_symbol;
 
-use crate::ship::MyShip;
+use crate::MyShip;
 
 use super::connection::{
     ConcreteConnection, JumpConnection, NavigateConnection, Refuel, Route, WarpConnection,

@@ -3,7 +3,6 @@ use log::debug;
 use crate::{
     error::{Error, Result},
     manager::{contract_manager::ContractShipmentMessage, fleet_manager::message::RequiredShips},
-    ship,
 };
 
 use super::{message::ContractManagerMessage, NextShipmentResp};

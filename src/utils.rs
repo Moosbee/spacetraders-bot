@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use database::DbPool;
+use ship::ShipManager;
 use tokio::sync::RwLock;
 use utils::RunInfo;
 
@@ -11,7 +12,6 @@ use crate::manager::mining_manager::MiningManagerMessanger;
 use crate::manager::scrapping_manager::ScrappingManagerMessanger;
 use crate::manager::ship_task::ShipTaskMessanger;
 use crate::manager::trade_manager::TradeManagerMessanger;
-use crate::ship::ShipManager;
 #[derive(Debug, Clone)]
 pub struct ConductorContext {
     pub api: space_traders_client::Api,

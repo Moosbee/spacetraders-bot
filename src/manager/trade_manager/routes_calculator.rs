@@ -3,12 +3,7 @@ use std::collections::HashMap;
 use log::debug;
 use space_traders_client::models;
 
-use crate::{
-    config::CONFIG,
-    error::Error,
-    ship::{self},
-    utils::ConductorContext,
-};
+use crate::{config::CONFIG, error::Error, utils::ConductorContext};
 
 use super::{
     route_calculator_concrete::ConcreteRouteCalculator,

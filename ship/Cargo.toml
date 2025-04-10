@@ -1,16 +1,12 @@
 [package]
-name = "spacetraders"
+name = "ship"
 version = "0.1.0"
-edition = "2021"
-
-[workspace]
-members = ["database", "ship", "space_traders_client", "utils"]
+edition = "2024"
 
 [dependencies]
-space_traders_client = { path = "./space_traders_client" }
-utils = { path = "./utils" }
-database = { path = "./database" }
-ship = { path = "./ship" }
+space_traders_client = { path = "../space_traders_client" }
+utils = { path = "../utils" }
+database = { path = "../database" }
 reqwest = { version = "^0.12", features = ["json", "multipart"] }
 tokio = { version = "^1.41", features = ["full"] }
 dotenvy = "0.15.7"

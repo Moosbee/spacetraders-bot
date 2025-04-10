@@ -12,7 +12,7 @@ use space_traders_client::models::{self, ShipRole, TradeSymbol};
 use tokio::select;
 use utils::{Publisher, SendFuture, Subject};
 
-use crate::{error::Result, pilot::MiningShipAssignment};
+use crate::{error::Result, status::ShipStatus};
 
 use super::ShipManager;
 
@@ -69,56 +69,6 @@ impl Clone for MyShip {
             frame: self.frame,
         }
     }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Default, serde::Serialize)]
-pub enum ShippingStatus {
-    InTransitToPurchase,
-    Purchasing,
-    InTransitToDelivery,
-    Delivering,
-    #[default]
-    Unknown,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Default, serde::Serialize)]
-#[serde(tag = "type", content = "data")]
-pub enum ShipStatus {
-    Construction {
-        cycle: Option<i32>,
-        shipment_id: Option<i64>,
-        shipping_status: Option<ShippingStatus>,
-        waiting_for_manager: bool,
-    },
-    Trader {
-        shipment_id: Option<i32>,
-        cycle: Option<i32>,
-        shipping_status: Option<ShippingStatus>,
-        waiting_for_manager: bool,
-    },
-    Contract {
-        contract_id: Option<String>,
-        run_id: Option<i32>,
-        cycle: Option<i32>,
-        shipping_status: Option<ShippingStatus>,
-        waiting_for_manager: bool,
-    },
-    Scraper {
-        cycle: Option<i32>,
-        waiting_for_manager: bool,
-        waypoint_symbol: Option<String>,
-        scrap_date: Option<chrono::DateTime<Utc>>,
-    },
-    Mining {
-        assignment: MiningShipAssignment,
-    },
-    Charting {
-        cycle: Option<i32>,
-        waiting_for_manager: bool,
-        waypoint_symbol: Option<String>,
-    },
-    #[default]
-    Manuel,
 }
 
 #[derive(serde::Serialize)]

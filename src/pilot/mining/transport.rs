@@ -4,16 +4,14 @@ use std::{
 };
 
 use log::{debug, info, warn};
+use ship::status::{MiningShipAssignment, TransporterState};
 use space_traders_client::models;
 
 use crate::{
     error::Result,
     manager::mining_manager::{ExtractorTransferRequest, TransportTransferRequest},
-    ship,
     utils::ConductorContext,
 };
-
-use super::{MiningShipAssignment, TransporterState};
 
 pub struct TransportPilot {
     count: Arc<AtomicI32>,
@@ -97,7 +95,8 @@ impl TransportPilot {
                 true,
                 database::TransactionReason::MiningWaypoint(next_mining_waypoint.clone()),
                 true,
-                &self.context,
+                &self.context.database_pool,
+                &self.context.api,
             )
             .await?;
 
@@ -301,7 +300,8 @@ impl TransportPilot {
                 &next_waypoint,
                 true,
                 database::TransactionReason::MiningWaypoint(mining_waypoint.clone()),
-                &self.context,
+                &self.context.database_pool,
+                &self.context.api,
             )
             .await?;
 

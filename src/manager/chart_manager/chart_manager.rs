@@ -174,7 +174,7 @@ impl ChartManager {
 
     async fn get_next_chart(
         &mut self,
-        ship_clone: crate::ship::MyShip,
+        ship_clone: ship::MyShip,
     ) -> std::result::Result<NextChartResp, Error> {
         let ship_waypoint = database::Waypoint::get_by_symbol(
             &self.context.database_pool,

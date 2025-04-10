@@ -1,7 +1,7 @@
 use space_traders_client::models;
 use utils::WaypointCan;
 
-use crate::{ship, utils::ConductorContext};
+use crate::utils::ConductorContext;
 
 use super::{
     mining_places::{AssignLevel, MiningPlaces},
@@ -33,7 +33,7 @@ impl WaypointManager {
 
     pub async fn assign_waypoint_syphon(
         &mut self,
-        ship_clone: crate::ship::MyShip,
+        ship_clone: ship::MyShip,
         is_syphon: bool,
     ) -> Result<String> {
         // let action: ActionType = ActionType::get_action(&ship_clone).ok_or("Invalid ship role")?;
@@ -152,7 +152,7 @@ impl WaypointManager {
 
     pub async fn notify_waypoint(
         &mut self,
-        ship_clone: crate::ship::MyShip,
+        ship_clone: ship::MyShip,
         action: ActionType,
     ) -> std::result::Result<String, crate::error::Error> {
         let waypoint_symbol = ship_clone.nav.waypoint_symbol.clone();
@@ -172,7 +172,7 @@ impl WaypointManager {
 
     pub async fn unassign_waypoint(
         &mut self,
-        ship_clone: crate::ship::MyShip,
+        ship_clone: ship::MyShip,
     ) -> std::result::Result<String, crate::error::Error> {
         let waypoint_symbol = ship_clone.nav.waypoint_symbol.clone();
 
@@ -189,7 +189,7 @@ impl WaypointManager {
 
     pub async fn unassign_waypoint_complete(
         &mut self,
-        ship_clone: crate::ship::MyShip,
+        ship_clone: ship::MyShip,
     ) -> std::result::Result<String, crate::error::Error> {
         let waypoint_symbol = ship_clone.nav.waypoint_symbol.clone();
 
@@ -252,7 +252,7 @@ impl WaypointManager {
                 matches!(
                     s.status,
                     ship::ShipStatus::Mining {
-                        assignment: crate::pilot::MiningShipAssignment::Extractor { .. }
+                        assignment: ship::status::MiningShipAssignment::Extractor { .. }
                     }
                 )
             })

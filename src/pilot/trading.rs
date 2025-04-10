@@ -4,7 +4,6 @@ use log::{debug, info};
 
 use crate::{
     error::{Error, Result},
-    ship,
     utils::ConductorContext,
 };
 
@@ -119,7 +118,8 @@ impl TradingPilot {
                 &route.purchase_waypoint,
                 true,
                 database::TransactionReason::TradeRoute(route.id),
-                &self.context,
+                &self.context.database_pool,
+                &self.context.api,
             )
             .await?;
 
@@ -204,7 +204,8 @@ impl TradingPilot {
             &route.sell_waypoint,
             true,
             database::TransactionReason::TradeRoute(route.id),
-            &self.context,
+            &self.context.database_pool,
+            &self.context.api,
         )
         .await?;
 

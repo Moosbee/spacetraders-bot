@@ -19,8 +19,6 @@ use crate::{
     utils::ConductorContext,
 };
 
-pub use mining::MiningShipAssignment;
-
 pub struct Pilot {
     context: ConductorContext,
     ship_symbol: String,

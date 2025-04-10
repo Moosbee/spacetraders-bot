@@ -6,7 +6,7 @@ use super::routes::PossibleTradeRoute;
 #[derive(Debug)]
 pub enum TradeMessage {
     RequestNextTradeRoute {
-        ship_clone: crate::ship::MyShip,
+        ship_clone: ship::MyShip,
         callback: tokio::sync::oneshot::Sender<Result<database::TradeRoute>>,
     },
     CompleteTradeRoute {

@@ -6,7 +6,6 @@ use space_traders_client::models;
 use crate::{
     error::{Error, Result},
     manager::construction_manager::NextShipmentResp,
-    ship,
     utils::ConductorContext,
 };
 
@@ -146,7 +145,8 @@ impl ConstructionPilot {
             &shipment.purchase_waypoint,
             true,
             database::TransactionReason::Construction(shipment.id),
-            &self.context,
+            &self.context.database_pool,
+            &self.context.api,
         )
         .await?;
 
@@ -221,7 +221,8 @@ impl ConstructionPilot {
             &shipment.construction_site_waypoint,
             true,
             database::TransactionReason::Construction(shipment.id),
-            &self.context,
+            &self.context.database_pool,
+            &self.context.api,
         )
         .await?;
 

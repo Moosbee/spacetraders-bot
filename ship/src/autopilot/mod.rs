@@ -18,7 +18,7 @@ mod utils;
 
 pub use connection::SimpleConnection;
 
-use crate::{error::Result, utils::ConductorContext};
+use crate::error::Result;
 
 use super::MyShip;
 
@@ -28,10 +28,11 @@ impl MyShip {
         waypoint: &str,
         update_market: bool,
         reason: TransactionReason,
-        context: &ConductorContext,
+        database_pool: &database::DbPool,
+        api: &space_traders_client::Api,
     ) -> Result<()> {
         self.mutate();
-        self.nav_to_prepare(waypoint, update_market, reason, false, context)
+        self.nav_to_prepare(waypoint, update_market, reason, false, database_pool, api)
             .await
     }
 
@@ -41,10 +42,11 @@ impl MyShip {
         update_market: bool,
         reason: TransactionReason,
         prepare: bool, // prepare to have enough fuel to leave the waypoint without a marketplace
-        context: &ConductorContext,
+        database_pool: &database::DbPool,
+        api: &space_traders_client::Api,
     ) -> Result<()> {
         let pathfinder = self
-            .get_pathfinder(context)
+            .get_pathfinder(database_pool, api)
             .ok_or("Failed to get pathfinder")?;
 
         let found_route = pathfinder
@@ -53,20 +55,18 @@ impl MyShip {
 
         let route = self.assemble_route(&found_route).await?;
 
-        let context2 = context.clone();
+        let database_pool2 = database_pool.clone();
+        let api2 = api.clone();
         let route2 = route.clone();
         let reson2 = reason.clone();
         let wp_action = async move |shipi: &mut MyShip,
                                     start_waypoint: String,
                                     end_waypoint: String| {
-            let start =
-                database::Waypoint::get_by_symbol(&context2.database_pool, &start_waypoint).await?;
+            let start = database::Waypoint::get_by_symbol(&database_pool2, &start_waypoint).await?;
 
             if let Some(start) = start {
                 if update_market && start.is_marketplace() {
-                    shipi
-                        .update_market(&context2.api, &context2.database_pool)
-                        .await?;
+                    shipi.update_market(&api2, &database_pool2).await?;
                 }
                 if prepare && start.is_marketplace() {
                     let mut is_last_marketplace = true;
@@ -100,13 +100,13 @@ impl MyShip {
                         }
                     }
                     if is_last_marketplace {
-                        shipi.ensure_docked(&context2.api).await?;
+                        shipi.ensure_docked(&api2).await?;
                         shipi
                             .purchase_cargo(
-                                &context2.api,
+                                &api2,
                                 &models::TradeSymbol::Fuel,
                                 1,
-                                &context2.database_pool,
+                                &database_pool2,
                                 reson2.clone(),
                             )
                             .await?;
@@ -117,22 +117,20 @@ impl MyShip {
             Ok(())
         };
 
-        self.fly_route(
-            route,
-            reason,
-            &context.database_pool,
-            &context.api,
-            wp_action,
-        )
-        .await?;
+        self.fly_route(route, reason, database_pool, api, wp_action)
+            .await?;
 
         Ok(())
     }
 
-    pub fn get_pathfinder(&self, context: &ConductorContext) -> Option<Pathfinder> {
+    pub fn get_pathfinder(
+        &self,
+
+        database_pool: &database::DbPool,
+        api: &space_traders_client::Api,
+    ) -> Option<Pathfinder> {
         Some(Pathfinder {
             range: self.fuel.capacity as u32,
-            context: context.clone(),
             nav_mode: nav_mode::NavMode::BurnAndCruiseAndDrift,
             start_range: (self.fuel.current as u32
                 + self.cargo.get_amount(&models::TradeSymbol::Fuel) as u32)
@@ -143,6 +141,8 @@ impl MyShip {
                     || module == &models::ship_module::Symbol::WarpDriveIi
                     || module == &models::ship_module::Symbol::WarpDriveIii
             }),
+            database_pool: database_pool.clone(),
+            api: api.clone(),
         })
     }
 }

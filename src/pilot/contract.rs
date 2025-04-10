@@ -5,7 +5,6 @@ use log::debug;
 use crate::{
     error::{Error, Result},
     manager::contract_manager::NextShipmentResp,
-    ship,
     utils::ConductorContext,
 };
 
@@ -149,7 +148,8 @@ impl ContractPilot {
             &shipment.purchase_symbol,
             true,
             database::TransactionReason::Contract(shipment.contract_id.clone()),
-            &self.context,
+            &self.context.database_pool,
+            &self.context.api,
         )
         .await?;
 
@@ -229,7 +229,8 @@ impl ContractPilot {
             &shipment.destination_symbol,
             true,
             database::TransactionReason::Contract(shipment.contract_id.clone()),
-            &self.context,
+            &self.context.database_pool,
+            &self.context.api,
         )
         .await?;
 

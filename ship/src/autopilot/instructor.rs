@@ -1,14 +1,12 @@
-use crate::ship::MyShip;
-
 use super::{
+    SimpleConnection,
     connection::{
         ConcreteConnection, ConnectionType, JumpConnection, NavigateConnection, Refuel, Route,
         WarpConnection,
     },
     stats::get_travel_stats,
-    SimpleConnection,
 };
-use crate::error::Result;
+use crate::{MyShip, error::Result};
 
 impl MyShip {
     pub async fn assemble_route(&self, connections: &[SimpleConnection]) -> Result<Route> {
@@ -54,7 +52,7 @@ impl MyShip {
         for c in simple.iter() {
             match c {
                 ConcreteConnection::JumpGate(_jump_connection) => {
-                    return Err("Is sync not possible".into())
+                    return Err("Is sync not possible".into());
                 }
                 ConcreteConnection::Warp(warp_connection) => {
                     big_stats.0 += warp_connection.distance;

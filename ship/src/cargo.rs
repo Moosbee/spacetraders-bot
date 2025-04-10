@@ -312,8 +312,7 @@ impl MyShip {
         let market_data = api
             .get_market(&self.nav.system_symbol, &self.nav.waypoint_symbol)
             .await?;
-        crate::manager::scrapping_manager::utils::update_market(*market_data.data, database_pool)
-            .await;
+        crate::utils::update_market(*market_data.data, database_pool).await?;
 
         Ok(())
     }

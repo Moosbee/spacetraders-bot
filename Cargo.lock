@@ -2155,6 +2155,42 @@ dependencies = [
 ]
 
 [[package]]
+name = "ship"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-recursion",
+ "chrono",
+ "dashmap",
+ "database",
+ "dotenvy",
+ "env_logger",
+ "futures",
+ "governor",
+ "itertools 0.14.0",
+ "lazy_static",
+ "lockable",
+ "log",
+ "moka",
+ "priority-queue",
+ "rand",
+ "reqwest",
+ "reqwest-middleware",
+ "rsntp",
+ "serde",
+ "serde_json",
+ "serde_with",
+ "space_traders_client",
+ "sqlx",
+ "thiserror 2.0.6",
+ "tokio",
+ "tokio-stream",
+ "tokio-util",
+ "utils",
+ "warp",
+]
+
+[[package]]
 name = "shlex"
 version = "1.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2253,6 +2289,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_with",
+ "ship",
  "space_traders_client",
  "sqlx",
  "thiserror 2.0.6",

@@ -1,6 +1,5 @@
 use database::Agent;
-
-use crate::ship::MyShip;
+use ship::MyShip;
 
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct WsObject {
@@ -42,27 +41,6 @@ impl From<crate::error::Error> for ServerError {
     fn from(value: crate::error::Error) -> Self {
         match value {
             crate::error::Error::Database(error) => ServerError::Database(error),
-            crate::error::Error::Reqwest(error) => ServerError::APIError {
-                status: error.status().map(|s| s.as_u16()).unwrap_or(500),
-                message: error.to_string(),
-            },
-            crate::error::Error::ReqwestMiddleware(error) => ServerError::APIError {
-                status: error.status().map(|s| s.as_u16()).unwrap_or(500),
-                message: error.to_string(),
-            },
-            crate::error::Error::Serde(error) => ServerError::Server(error.to_string()),
-            crate::error::Error::Io(error) => ServerError::Server(error.to_string()),
-            crate::error::Error::Api {
-                status,
-                msg,
-                code,
-                message,
-            } => ServerError::APIError {
-                status: status.as_u16(),
-                message: msg
-                    + &code.map_or(String::new(), |c| format!(" ({c})"))
-                    + &message.map_or(String::new(), |m| format!(": {m}")),
-            },
             crate::error::Error::NotEnoughFunds {
                 remaining_funds,
                 required_funds,
@@ -71,6 +49,49 @@ impl From<crate::error::Error> for ServerError {
                 remaining_funds, required_funds
             )),
             crate::error::Error::General(_) => ServerError::Server(value.to_string()),
+            crate::error::Error::Api(api_error) => match api_error {
+                space_traders_client::apis::ApiError::ResponseError(response_content) => {
+                    ServerError::APIError {
+                        status: response_content.status.as_u16(),
+                        message: response_content.content
+                            + response_content
+                                .entity
+                                .as_ref()
+                                .map(|e| {
+                                    format!(
+                                        "\n{}: {}\n{:?}",
+                                        e.error.code, e.error.message, e.error.data
+                                    )
+                                })
+                                .unwrap_or("No Response".to_string())
+                                .as_str(),
+                    }
+                }
+
+                space_traders_client::apis::ApiError::Reqwest(error) => ServerError::APIError {
+                    status: error.status().map(|s| s.as_u16()).unwrap_or(500),
+                    message: error.to_string(),
+                },
+                space_traders_client::apis::ApiError::ReqwestMiddleware(error) => {
+                    ServerError::APIError {
+                        status: error.status().map(|s| s.as_u16()).unwrap_or(500),
+                        message: error.to_string(),
+                    }
+                }
+                space_traders_client::apis::ApiError::Serde(error) => {
+                    ServerError::Server(error.to_string())
+                }
+                space_traders_client::apis::ApiError::Io(error) => {
+                    ServerError::Server(error.to_string())
+                }
+            },
+            crate::error::Error::Ship(error) => match error {
+                ship::Error::Database(error) => ServerError::Database(error.into()),
+                ship::Error::Api(api_error) => {
+                    ServerError::from(Into::<crate::error::Error>::into(api_error))
+                }
+                ship::Error::General(message) => ServerError::Server(message),
+            },
         }
     }
 }

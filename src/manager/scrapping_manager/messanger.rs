@@ -14,7 +14,7 @@ impl ScrappingManagerMessanger {
 
     pub async fn get_next(
         &self,
-        ship_clone: crate::ship::MyShip,
+        ship_clone: ship::MyShip,
     ) -> Result<super::message::ScrapResponse, crate::error::Error> {
         let (tx, rx) = tokio::sync::oneshot::channel();
         self.sender
@@ -30,7 +30,7 @@ impl ScrappingManagerMessanger {
 
     pub async fn fail(
         &self,
-        ship_clone: crate::ship::MyShip,
+        ship_clone: ship::MyShip,
         waypoint_symbol: String,
     ) -> Result<(), crate::error::Error> {
         self.sender
@@ -46,7 +46,7 @@ impl ScrappingManagerMessanger {
 
     pub async fn complete(
         &self,
-        ship_clone: crate::ship::MyShip,
+        ship_clone: ship::MyShip,
         waypoint_symbol: String,
     ) -> Result<(), crate::error::Error> {
         self.sender
@@ -62,7 +62,7 @@ impl ScrappingManagerMessanger {
 
     pub(crate) async fn get_info(
         &self,
-        ship_clone: crate::ship::MyShip,
+        ship_clone: ship::MyShip,
     ) -> Result<Vec<(String, chrono::DateTime<chrono::Utc>)>, crate::error::Error> {
         let (tx, rx) = tokio::sync::oneshot::channel();
         self.sender

@@ -23,7 +23,7 @@ pub async fn update_shipyard(
 
     if let Some(ships) = shipyard.ships {
         for ship in ships.iter() {
-            crate::ship::MyShip::update_info_db_shipyard((ship).clone(), database_pool).await?;
+            ship::MyShip::update_info_db_shipyard((ship).clone(), database_pool).await?;
         }
 
         let shipyard_ships = ships

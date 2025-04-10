@@ -37,7 +37,7 @@ impl MyShip {
         Ok(())
     }
 
-    pub fn wait_for_cooldown(&self) -> impl std::future::Future<Output = ()> {
+    pub fn wait_for_cooldown<'a>(&self) -> impl std::future::Future<Output = ()> + use<'a> {
         if let Some(cooldown_expiration) = self.cooldown_expiration {
             let time_until_cooldown = cooldown_expiration.signed_duration_since(Utc::now());
             if time_until_cooldown.num_milliseconds() > 0 {

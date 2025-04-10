@@ -16,7 +16,6 @@ use crate::{
         fleet_manager::message::{Budget, Priority, RequestedShipType, RequiredShips},
         Manager,
     },
-    ship,
     utils::ConductorContext,
 };
 
@@ -206,7 +205,7 @@ impl ConstructionManager {
 
     async fn request_next_shipment(
         &mut self,
-        ship_clone: crate::ship::MyShip,
+        ship_clone: ship::MyShip,
     ) -> std::result::Result<super::NextShipmentResp, crate::error::Error> {
         let shipments =
             database::ConstructionShipment::get_all_in_transit(&self.context.database_pool).await?;

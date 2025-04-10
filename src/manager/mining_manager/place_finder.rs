@@ -11,17 +11,17 @@ pub enum ActionType {
 }
 
 impl ActionType {
-    pub fn get_action(ship_clone: &crate::ship::MyShip) -> Option<ActionType> {
+    pub fn get_action(ship_clone: &ship::MyShip) -> Option<ActionType> {
         match &ship_clone.status {
-            crate::ship::ShipStatus::Mining {
+            ship::ShipStatus::Mining {
                 assignment: mining_ship_assignment,
             } => match mining_ship_assignment {
-                crate::pilot::MiningShipAssignment::Transporter { .. } => None,
-                crate::pilot::MiningShipAssignment::Extractor { .. } => Some(ActionType::Extract),
-                crate::pilot::MiningShipAssignment::Siphoner { .. } => Some(ActionType::Siphon),
-                crate::pilot::MiningShipAssignment::Surveyor => None,
-                crate::pilot::MiningShipAssignment::Idle => None,
-                crate::pilot::MiningShipAssignment::Useless => None,
+                ship::status::MiningShipAssignment::Transporter { .. } => None,
+                ship::status::MiningShipAssignment::Extractor { .. } => Some(ActionType::Extract),
+                ship::status::MiningShipAssignment::Siphoner { .. } => Some(ActionType::Siphon),
+                ship::status::MiningShipAssignment::Surveyor => None,
+                ship::status::MiningShipAssignment::Idle => None,
+                ship::status::MiningShipAssignment::Useless => None,
             },
             _ => None,
         }
@@ -47,7 +47,7 @@ impl PlaceFinder {
 
     pub async fn find(
         &self,
-        ship_clone: crate::ship::MyShip,
+        ship_clone: ship::MyShip,
         filter_fn: fn(&database::Waypoint) -> bool,
         mining_places: &MiningPlaces,
     ) -> Result<Vec<FoundWaypointInfo>, crate::error::Error> {

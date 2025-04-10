@@ -263,7 +263,7 @@ impl ScrappingManager {
 
     async fn complete_scrapping(
         &mut self,
-        ship_clone: crate::ship::MyShip,
+        ship_clone: ship::MyShip,
         waypoint_symbol: String,
     ) -> Result<()> {
         let ship_symbol = self.scrap_waypoints.get(&waypoint_symbol);
@@ -279,7 +279,7 @@ impl ScrappingManager {
 
     async fn fail_scrapping(
         &mut self,
-        ship_clone: crate::ship::MyShip,
+        ship_clone: ship::MyShip,
         waypoint_symbol: String,
     ) -> Result<()> {
         let ship_symbol = self.scrap_waypoints.get(&waypoint_symbol);
@@ -295,7 +295,7 @@ impl ScrappingManager {
 
     async fn next_scrapping(
         &mut self,
-        ship_clone: crate::ship::MyShip,
+        ship_clone: ship::MyShip,
     ) -> Result<super::message::ScrapResponse> {
         let waypoints = self.get_all_sorted(&ship_clone).await?;
 
@@ -314,7 +314,7 @@ impl ScrappingManager {
 
     async fn get_all_sorted(
         &mut self,
-        ship_clone: &crate::ship::MyShip,
+        ship_clone: &ship::MyShip,
     ) -> Result<Vec<(database::Waypoint, chrono::DateTime<chrono::Utc>)>> {
         let system_symbol = ship_clone.nav.system_symbol.clone();
 

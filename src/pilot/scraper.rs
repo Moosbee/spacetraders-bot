@@ -31,7 +31,7 @@ impl ScraperPilot {
             .ok_or(Error::General("Ship not found".to_string()))?;
 
         debug!("Requesting next scrap for ship: {:?}", ship.symbol);
-        ship.status = crate::ship::ShipStatus::Scraper {
+        ship.status = ship::ShipStatus::Scraper {
             cycle: Some(self.count.load(std::sync::atomic::Ordering::Relaxed)),
             waiting_for_manager: true,
             waypoint_symbol: None,
@@ -72,14 +72,14 @@ impl ScraperPilot {
 
     async fn scrap(
         &self,
-        ship: &mut crate::ship::MyShip,
+        ship: &mut ship::MyShip,
         waypoint_symbol: String,
         date: chrono::DateTime<chrono::Utc>,
     ) -> Result<()> {
         self.count
             .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
 
-        ship.status = crate::ship::ShipStatus::Scraper {
+        ship.status = ship::ShipStatus::Scraper {
             cycle: Some(self.count.load(std::sync::atomic::Ordering::Relaxed)),
             waiting_for_manager: false,
             waypoint_symbol: Some(waypoint_symbol.clone()),
@@ -93,7 +93,8 @@ impl ScraperPilot {
                 &waypoint_symbol,
                 true,
                 database::TransactionReason::None,
-                &self.context,
+                &self.context.database_pool,
+                &self.context.api,
             )
             .await?;
         }
@@ -149,7 +150,7 @@ impl ScraperPilot {
             .complete(ship.clone(), waypoint_symbol)
             .await?;
 
-        ship.status = crate::ship::ShipStatus::Scraper {
+        ship.status = ship::ShipStatus::Scraper {
             cycle: Some(self.count.load(std::sync::atomic::Ordering::Relaxed)),
             waiting_for_manager: false,
             waypoint_symbol: None,
@@ -159,8 +160,8 @@ impl ScraperPilot {
         Ok(())
     }
 
-    async fn do_elsewhere(&self, ship: &mut crate::ship::MyShip) -> std::result::Result<(), Error> {
-        ship.status = crate::ship::ShipStatus::Manuel;
+    async fn do_elsewhere(&self, ship: &mut ship::MyShip) -> std::result::Result<(), Error> {
+        ship.status = ship::ShipStatus::Manuel;
 
         let sql_ship =
             database::ShipInfo::get_by_symbol(&self.context.database_pool, &ship.symbol).await?;
@@ -179,7 +180,7 @@ impl ScraperPilot {
 
     async fn wait_until(
         &self,
-        // ship: &mut crate::ship::MyShip, // at some point for activation and deactivation
+        // ship: &mut ship::MyShip, // at some point for activation and deactivation
         date: chrono::DateTime<chrono::Utc>,
     ) -> Result<u32> {
         let t = date - Utc::now();

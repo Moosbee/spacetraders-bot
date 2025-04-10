@@ -140,7 +140,7 @@ pub async fn handle_buy_ship(
         .await
         .map_err(|err| ServerError::Server(err.to_string()))?;
 
-    crate::ship::MyShip::update_info_db((*resp.data.ship).clone(), &context.database_pool)
+    ship::MyShip::update_info_db((*resp.data.ship).clone(), &context.database_pool)
         .await
         .map_err(|err| ServerError::Server(err.to_string()))?;
 
@@ -154,14 +154,14 @@ pub async fn handle_buy_ship(
         .map_err(|err| ServerError::Server(err.to_string()))?;
 
     let mut ship_i =
-        crate::ship::MyShip::from_ship(*resp.data.ship, context.ship_manager.get_broadcaster());
+        ship::MyShip::from_ship(*resp.data.ship, context.ship_manager.get_broadcaster());
 
     let ship_info = ship_i
         .apply_from_db(context.database_pool.clone())
         .await
         .map_err(|err| ServerError::Server(err.to_string()))?;
 
-    crate::ship::ShipManager::add_ship(&context.ship_manager, ship_i).await;
+    ship::ShipManager::add_ship(&context.ship_manager, ship_i).await;
 
     {
         let mut ship_g = context.ship_manager.get_mut(&ship_info.symbol).await;
@@ -274,6 +274,7 @@ pub async fn handle_jump_ship(
     let jump_data = ship
         .jump(&context.api, &waypoint_symbol)
         .await
+        .map_err(crate::error::Error::from)
         .map_err(ServerError::from)?;
 
     database::Agent::insert(
@@ -331,6 +332,7 @@ pub async fn handle_warp_ship(
     let erg = ship
         .warp(&context.api, &waypoint_symbol)
         .await
+        .map_err(crate::error::Error::from)
         .map_err(ServerError::from)?;
 
     Ok(warp::reply::json(&serde_json::json!({
@@ -445,7 +447,8 @@ async fn navigate_ship(
         waypoint_id,
         true,
         database::TransactionReason::None,
-        context,
+        &context.database_pool,
+        &context.api,
     )
     .await?;
 

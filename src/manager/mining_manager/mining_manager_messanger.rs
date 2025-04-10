@@ -28,11 +28,7 @@ impl MiningManagerMessanger {
         }
     }
 
-    pub async fn get_waypoint(
-        &self,
-        ship: &crate::ship::MyShip,
-        is_syphon: bool,
-    ) -> Result<String> {
+    pub async fn get_waypoint(&self, ship: &ship::MyShip, is_syphon: bool) -> Result<String> {
         let (sender, callback) = tokio::sync::oneshot::channel();
 
         let message = MiningMessage::AssignWaypoint(AssignWaypointMessage::AssignWaypoint {
@@ -53,11 +49,7 @@ impl MiningManagerMessanger {
         Ok(erg)
     }
 
-    pub async fn notify_waypoint(
-        &self,
-        ship: &crate::ship::MyShip,
-        is_syphon: bool,
-    ) -> Result<String> {
+    pub async fn notify_waypoint(&self, ship: &ship::MyShip, is_syphon: bool) -> Result<String> {
         let (sender, callback) = tokio::sync::oneshot::channel();
 
         let message = MiningMessage::AssignWaypoint(AssignWaypointMessage::NotifyWaypoint {
@@ -78,7 +70,7 @@ impl MiningManagerMessanger {
         Ok(erg)
     }
 
-    pub async fn unassign_waypoint(&self, ship: &crate::ship::MyShip) -> Result<String> {
+    pub async fn unassign_waypoint(&self, ship: &ship::MyShip) -> Result<String> {
         let (sender, callback) = tokio::sync::oneshot::channel();
 
         let message = MiningMessage::AssignWaypoint(AssignWaypointMessage::UnassignWaypoint {
@@ -98,7 +90,7 @@ impl MiningManagerMessanger {
         Ok(erg)
     }
 
-    pub async fn get_next_transport(&self, ship: &crate::ship::MyShip) -> Result<String> {
+    pub async fn get_next_transport(&self, ship: &ship::MyShip) -> Result<String> {
         let (sender, callback) = tokio::sync::oneshot::channel();
 
         let message =

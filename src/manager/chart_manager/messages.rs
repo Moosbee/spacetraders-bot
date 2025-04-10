@@ -3,7 +3,7 @@ use crate::manager::fleet_manager::message::RequiredShips;
 #[derive(Debug)]
 pub enum ChartMessage {
     Next {
-        ship_clone: crate::ship::MyShip,
+        ship_clone: ship::MyShip,
         callback: tokio::sync::oneshot::Sender<Result<NextChartResp, crate::error::Error>>,
     },
     Fail {

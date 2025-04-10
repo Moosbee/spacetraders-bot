@@ -1,6 +1,6 @@
 use log::debug;
 
-use crate::{error::Error, manager::fleet_manager::message::RequiredShips, ship};
+use crate::{error::Error, manager::fleet_manager::message::RequiredShips};
 
 use super::{routes::PossibleTradeRoute, TradeManagerMessage};
 

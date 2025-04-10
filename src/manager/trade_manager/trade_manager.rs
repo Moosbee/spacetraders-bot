@@ -183,7 +183,7 @@ impl TradeManager {
 
     async fn request_next_trade_route(
         &mut self,
-        ship_clone: crate::ship::MyShip,
+        ship_clone: ship::MyShip,
     ) -> Result<database::TradeRoute> {
         let unfinished_route =
             database::TradeRoute::get_unfinished(&self.context.database_pool).await?;
