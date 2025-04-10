@@ -338,7 +338,7 @@ function SystemsMap({
           setTop(0);
           setLeft(0);
         } else if (e.key === "g") {
-          const toGoNav = "X1-NR44";
+          const toGoNav = "X1-AA38";
           const system = calcSystems[toGoNav];
           if (system && ref.current) {
             const width = ref.current.width;

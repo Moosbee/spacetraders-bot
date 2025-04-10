@@ -81,7 +81,15 @@ impl SimplePathfinder {
         symbol: &str,
     ) -> crate::error::Result<&'a database::Waypoint> {
         waypoints.get(symbol).ok_or_else(|| {
-            crate::error::Error::General(format!("Could not find waypoint: {}", symbol))
+            crate::error::Error::General(format!(
+                "Could not find waypoint: {} {}",
+                symbol,
+                waypoints
+                    .iter()
+                    .next()
+                    .map(|f| f.0)
+                    .unwrap_or(&"empty".to_string())
+            ))
         })
     }
 

@@ -230,16 +230,36 @@ function Ship() {
                           dataSource={ship.nav.auto_pilot.route.connections}
                           renderItem={(item) => (
                             <List.Item>
-                              <Typography.Text
-                                mark={
-                                  ship.nav.waypoint_symbol ===
-                                  item.Navigate.end_symbol
-                                }
-                              >
-                                {item.Navigate.start_symbol} -{">"}{" "}
-                                {item.Navigate.end_symbol} (
-                                {item.Navigate.travel_time}s)
-                              </Typography.Text>
+                              <>
+                                {item.Navigate && (
+                                  <>
+                                    <Typography.Text
+                                      mark={
+                                        ship.nav.waypoint_symbol ===
+                                        item.Navigate.end_symbol
+                                      }
+                                    >
+                                      {item.Navigate.start_symbol} -{">"}{" "}
+                                      {item.Navigate.end_symbol} (
+                                      {item.Navigate.travel_time}s)
+                                    </Typography.Text>
+                                  </>
+                                )}
+                                {item.JumpGate && (
+                                  <>
+                                    <Typography.Text
+                                      mark={
+                                        ship.nav.waypoint_symbol ===
+                                        item.JumpGate.end_symbol
+                                      }
+                                    >
+                                      {item.JumpGate.start_symbol} -{">"}{" "}
+                                      {item.JumpGate.end_symbol} (
+                                      {item.JumpGate.distance})
+                                    </Typography.Text>
+                                  </>
+                                )}
+                              </>
                             </List.Item>
                           )}
                         />

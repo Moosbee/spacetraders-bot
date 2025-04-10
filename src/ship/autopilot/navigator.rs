@@ -90,6 +90,8 @@ impl MyShip {
             return Ok(());
         }
 
+        self.wait_for_arrival().await;
+
         wp_action(
             self,
             connection.start_symbol.clone(),

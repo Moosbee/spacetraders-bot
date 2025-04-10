@@ -2,7 +2,10 @@ use std::collections::HashMap;
 
 use utils::get_system_symbol;
 
-use crate::utils::ConductorContext;
+use crate::{
+    ship::autopilot::jump_gate_nav::{self, JumpPathfinder},
+    utils::ConductorContext,
+};
 
 use super::{nav_mode::NavMode, simple_pathfinding::SimplePathfinder, SimpleConnection};
 
@@ -11,6 +14,7 @@ pub struct Pathfinder {
     pub nav_mode: NavMode,
     pub start_range: u32,
     pub only_markets: bool,
+    pub can_warp: bool,
     pub context: ConductorContext,
 }
 
@@ -31,6 +35,54 @@ impl Pathfinder {
                     .collect::<HashMap<_, _>>();
             let simple = self.get_simple(system);
             return simple.find_route_system(start_symbol, end_symbol);
+        } else if !self.can_warp {
+            let connections =
+                jump_gate_nav::generate_all_connections(&self.context.database_pool).await?;
+            let jump_gate = JumpPathfinder::new(connections);
+            let conns = jump_gate.find_route(&start_system, &end_system);
+            if conns.is_empty() {
+                return Err(crate::error::Error::General("No Route found".to_string()));
+            }
+            let mut route = vec![];
+            let start = conns.first().unwrap();
+            let start_end = start.conn.get_other_system(&start.end_system).0;
+            let system =
+                database::Waypoint::get_by_system(&self.context.database_pool, &start.start_system)
+                    .await?
+                    .into_iter()
+                    .map(|w| (w.symbol.clone(), w))
+                    .collect::<HashMap<_, _>>();
+            let simple = self.get_simple(system);
+            route.append(&mut simple.find_route_system(start_symbol, &start_end)?);
+
+            for conn in conns.iter() {
+                let start_symbol = conn.conn.get_other_system(&conn.end_system);
+                let end_symbol = conn.conn.get_other_system(&conn.start_system);
+                let simple = SimpleConnection {
+                    start_symbol: start_symbol.0,
+                    end_symbol: end_symbol.0,
+                    connection_type: crate::ship::autopilot::connection::ConnectionType::JumpGate,
+                    start_is_marketplace: true,
+                    end_is_marketplace: true,
+                    cost: (conn.conn.distance * 1_000_000.0),
+                    re_cost: (conn.conn.distance * 1_000_000.0),
+                    distance: conn.conn.distance,
+                };
+                route.push(simple);
+            }
+
+            let end = conns.last().unwrap();
+            let end_end = end.conn.get_other_system(&end.start_system).0;
+            let system =
+                database::Waypoint::get_by_system(&self.context.database_pool, &end.end_system)
+                    .await?
+                    .into_iter()
+                    .map(|w| (w.symbol.clone(), w))
+                    .collect::<HashMap<_, _>>();
+            let simple = self.get_simple(system);
+            route.append(&mut simple.find_route_system(&end_end, end_symbol)?);
+
+            return Ok(route);
         }
         todo!()
     }

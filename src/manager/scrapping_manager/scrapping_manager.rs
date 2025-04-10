@@ -73,13 +73,13 @@ impl ScrappingManager {
 
         let system_join_handle: tokio::task::JoinHandle<
             std::result::Result<(), crate::error::Error>,
-        > = if true {
+        > = if false {
             let api = self.context.api.clone();
             let database_pool = self.context.database_pool.clone();
 
             tokio::spawn(async move {
-                // crate::manager::scrapping_manager::utils::update_all_systems(&database_pool, &api)
-                //     .await?;
+                crate::manager::scrapping_manager::utils::update_all_systems(&database_pool, &api)
+                    .await?;
                 let gates = database::Waypoint::get_all(&database_pool)
                     .await?
                     .into_iter()

@@ -50,6 +50,7 @@ pub struct JumpConnection {
     pub start_symbol: String,
     pub end_symbol: String,
     pub distance: f64,
+    // pub cooldown_time: f64,
 }
 
 #[derive(Debug, Clone, serde::Serialize)]

@@ -44,7 +44,14 @@ export interface AutoPilot {
 }
 
 export interface Connection {
-  Navigate: Navigate;
+  Navigate?: Navigate;
+  JumpGate?: JumpGate;
+}
+
+export interface JumpGate {
+  start_symbol: string;
+  end_symbol: string;
+  distance: number;
 }
 
 export interface Navigate {

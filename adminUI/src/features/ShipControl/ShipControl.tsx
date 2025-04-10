@@ -1,4 +1,5 @@
 import {
+  AutoComplete,
   Button,
   Descriptions,
   Input,
@@ -133,7 +134,7 @@ function ShipControl({ ship }: { ship: RustShip }) {
           span: 2,
           children: (
             <Space>
-              <Select
+              <AutoComplete
                 disabled={!(ship.role == "Manuel")}
                 value={navWaypointSymbol}
                 onChange={setNavWaypointSymbol}

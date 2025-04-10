@@ -8,6 +8,7 @@ use std::fmt::Debug;
 
 mod connection;
 mod instructor;
+mod jump_gate_nav;
 mod nav_mode;
 mod navigator;
 mod pathfinder;
@@ -137,6 +138,11 @@ impl MyShip {
                 + self.cargo.get_amount(&models::TradeSymbol::Fuel) as u32)
                 .min(self.fuel.capacity as u32),
             only_markets: true,
+            can_warp: self.modules.modules.iter().any(|module| {
+                module == &models::ship_module::Symbol::WarpDriveI
+                    || module == &models::ship_module::Symbol::WarpDriveIi
+                    || module == &models::ship_module::Symbol::WarpDriveIii
+            }),
         })
     }
 }

@@ -1,5 +1,5 @@
 {
-  "cSpell.words": ["sqlx"],
+  "cSpell.words": ["cooldown", "sqlx"],
   "sqltools.connections": [
     {
       "previewLimit": 50,

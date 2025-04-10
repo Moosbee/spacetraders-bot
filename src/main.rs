@@ -340,21 +340,16 @@ async fn start(
     Ok(())
 }
 
+type ManagersHandle = (
+    tokio::task::JoinHandle<Result<(), error::Error>>,
+    String,
+    CancellationToken,
+);
+
 async fn start_managers(
     managers: Vec<Box<dyn Manager>>,
-) -> Result<
-    Vec<(
-        tokio::task::JoinHandle<Result<(), error::Error>>,
-        String,
-        CancellationToken,
-    )>,
-    crate::error::Error,
-> {
-    let mut handles: Vec<(
-        tokio::task::JoinHandle<Result<(), error::Error>>,
-        String,
-        CancellationToken,
-    )> = Vec::new();
+) -> Result<Vec<ManagersHandle>, crate::error::Error> {
+    let mut handles: Vec<ManagersHandle> = Vec::new();
     for mut manager in managers {
         let name = manager.get_name().to_string();
         let cancel_token = manager.get_cancel_token().clone();
@@ -389,13 +384,7 @@ async fn start_ships(context: &ConductorContext) -> Result<(), crate::error::Err
     Ok(())
 }
 
-async fn wait_managers(
-    managers_handles: Vec<(
-        tokio::task::JoinHandle<Result<(), error::Error>>,
-        String,
-        CancellationToken,
-    )>,
-) -> Result<(), crate::error::Error> {
+async fn wait_managers(managers_handles: Vec<ManagersHandle>) -> Result<(), crate::error::Error> {
     let mut manager_futures = futures::stream::FuturesUnordered::new();
 
     for handle in managers_handles {

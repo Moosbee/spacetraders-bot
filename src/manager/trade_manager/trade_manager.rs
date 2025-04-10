@@ -125,7 +125,7 @@ impl TradeManager {
             .get_all_clone()
             .await
             .into_values()
-            // .filter(|ship| ship.role == database::ShipInfoRole::Trader)
+            // .filter(|ship| ship.role == database::ShipInfoRole::Scraper)
             .map(|s| (s.nav.system_symbol.clone(), s.symbol, s.role))
             .collect::<Vec<_>>();
 
@@ -139,7 +139,7 @@ impl TradeManager {
                 }
             } else if s.2 == database::ShipInfoRole::Trader {
                 systems.insert(s.0, vec![s.1]);
-            } else {
+            } else if s.2 == database::ShipInfoRole::Scraper {
                 systems.insert(s.0, vec![]);
             }
         }

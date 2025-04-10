@@ -1,4 +1,4 @@
-import { Card, List, Space } from "antd";
+import { Button, Card, List, Space } from "antd";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import PageTitle from "../features/PageTitle";
@@ -29,6 +29,18 @@ export default function MiningAssignments() {
             ?.map((a) => Object.keys(a[1].assigned_ships).length)
             .reduce((a, b) => a + b, 0)}
         </h1>
+        <Button
+          onClick={() => {
+            fetch(`http://${backendUrl}/insights/mining/assignments`)
+              .then((response) => response.json())
+              .then((data: MiningAssignmentsResponse) => {
+                console.log("/insights/mining/assignments", data);
+                setShipAssignments(data.assignments);
+              });
+          }}
+        >
+          Refresh
+        </Button>
       </Space>
       <List
         grid={{ gutter: 16, column: 4 }}

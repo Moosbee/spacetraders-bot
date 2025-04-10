@@ -173,32 +173,33 @@ impl MiningManager {
                 .count() as i32;
             let asteroid_count = system_waypoints.iter().filter(|w| w.is_minable()).count() as i32;
             let mining_ships_per_system =
-                asteroid_count.max(MINING_WAYPOINTS_PER_SYSTEM) * MINING_SHIPS_PER_WAYPOINT;
+                asteroid_count.min(MINING_WAYPOINTS_PER_SYSTEM) * MINING_SHIPS_PER_WAYPOINT;
             let gas_ships_per_system = gas_count * MINING_SHIPS_PER_WAYPOINT;
 
             let (mining_count, siphon_count, surveying_count, transport_count, transport_capacity) =
                 ships.iter().fold((0, 0, 0, 0, 0), |acc, s| match s.3 {
                     crate::pilot::MiningShipAssignment::Transporter { .. } => {
-                        (acc.0 + 1, acc.1, acc.2, acc.3, acc.4 + s.4)
+                        (acc.0, acc.1, acc.2, acc.3 + 1, acc.4 + s.4)
                     }
                     crate::pilot::MiningShipAssignment::Extractor { .. } => {
-                        (acc.0, acc.1 + 1, acc.2, acc.3, acc.4)
+                        (acc.0 + 1, acc.1, acc.2, acc.3, acc.4)
                     }
                     crate::pilot::MiningShipAssignment::Siphoner { .. } => {
-                        (acc.0, acc.1, acc.2 + 1, acc.3, acc.4)
+                        (acc.0, acc.1 + 1, acc.2, acc.3, acc.4)
                     }
                     crate::pilot::MiningShipAssignment::Surveyor => {
-                        (acc.0, acc.1, acc.2, acc.3 + 1, acc.4)
+                        (acc.0, acc.1, acc.2 + 1, acc.3, acc.4)
                     }
                     _ => acc,
                 });
 
-            let needed_mining_ships = (mining_ships_per_system - mining_count).min(0);
-            let needed_siphon_ships = (gas_ships_per_system - siphon_count).min(0);
-            let needed_surveying_ships = (needed_mining_ships - surveying_count).min(0);
+            let needed_mining_ships = (mining_ships_per_system - mining_count).max(0);
+            let needed_siphon_ships = (gas_ships_per_system - siphon_count).max(0);
+            let needed_surveying_ships =
+                (asteroid_count.min(MINING_WAYPOINTS_PER_SYSTEM) - surveying_count).max(0);
             let needed_transport_ships =
-                ((asteroid_count.max(MINING_WAYPOINTS_PER_SYSTEM) + gas_count) - transport_count)
-                    .min(0);
+                ((asteroid_count.min(MINING_WAYPOINTS_PER_SYSTEM) + gas_count) - transport_count)
+                    .max(0);
 
             let mut sys_ships = vec![
                 // (
