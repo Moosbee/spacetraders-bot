@@ -1,9 +1,11 @@
 pub mod autopilot;
 mod cargo;
 mod error;
+mod fuel;
 mod mining;
 mod modules;
 mod mounts;
+pub mod my_ship_update;
 mod nav;
 mod ship_manager;
 mod ship_models;
@@ -16,6 +18,5 @@ pub use error::Error;
 pub use error::Result;
 pub use ship_manager::ShipManager;
 pub use ship_models::MyShip;
-pub use ship_models::my_ship_update;
 pub use status::ShipStatus;
 pub use status::ShippingStatus;

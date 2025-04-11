@@ -1,6 +1,9 @@
 use space_traders_client::models;
 
-use super::ship_models::ModuleState;
+#[derive(Debug, Default, serde::Serialize, Clone)]
+pub struct ModuleState {
+    pub modules: Vec<models::ship_module::Symbol>,
+}
 
 impl ModuleState {
     pub fn update(&mut self, modules: &[models::ShipModule]) {

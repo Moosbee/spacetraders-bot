@@ -18,25 +18,6 @@ impl MyShip {
         }
     }
 
-    pub async fn wait_for_cooldown_mut(
-        &mut self,
-        api: &space_traders_client::Api,
-    ) -> crate::error::Result<()> {
-        self.mutate();
-        if self.cooldown_expiration.is_none() {
-            return Ok(());
-        }
-        let t = self.cooldown_expiration.unwrap();
-        let t = t - Utc::now();
-        let t = t.num_seconds().try_into();
-        if let Ok(t) = t {
-            self.sleep(std::time::Duration::from_secs(t), api).await;
-        } else {
-            self.try_recive_update(api).await;
-        }
-        Ok(())
-    }
-
     pub fn wait_for_cooldown<'a>(&self) -> impl std::future::Future<Output = ()> + use<'a> {
         if let Some(cooldown_expiration) = self.cooldown_expiration {
             let time_until_cooldown = cooldown_expiration.signed_duration_since(Utc::now());

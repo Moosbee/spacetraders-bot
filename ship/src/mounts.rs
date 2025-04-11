@@ -1,6 +1,9 @@
 use space_traders_client::models;
 
-use super::ship_models::MountState;
+#[derive(Debug, Default, serde::Serialize, Clone)]
+pub struct MountState {
+    pub mounts: Vec<models::ship_mount::Symbol>,
+}
 
 impl MountState {
     pub fn update(&mut self, mounts: &[models::ShipMount]) {

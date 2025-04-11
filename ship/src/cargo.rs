@@ -1,4 +1,7 @@
-use std::ops::{AddAssign, SubAssign};
+use std::{
+    collections::HashMap,
+    ops::{AddAssign, SubAssign},
+};
 
 use database::DatabaseConnector;
 use log::debug;
@@ -11,6 +14,13 @@ use super::ship_models::MyShip;
 enum Mode {
     Sell,
     Purchase,
+}
+
+#[derive(Debug, Default, serde::Serialize, Clone)]
+pub struct CargoState {
+    pub capacity: i32,
+    pub units: i32,
+    pub inventory: HashMap<space_traders_client::models::TradeSymbol, i32>,
 }
 
 impl MyShip {
@@ -251,37 +261,6 @@ impl MyShip {
         Ok(transfer_result)
     }
 
-    pub async fn transfer_cargo(
-        &mut self,
-        trade_symbol: space_traders_client::models::TradeSymbol,
-        units: i32,
-        api: &space_traders_client::Api,
-        target_ship: &str,
-    ) -> crate::error::Result<space_traders_client::models::TransferCargo200Response> {
-        self.mutate();
-
-        let transfer_result = self
-            .simple_transfer_cargo(trade_symbol, units, api, target_ship)
-            .await?;
-
-        let update_event = super::ship_models::my_ship_update::MyShipUpdate {
-            symbol: target_ship.to_string(),
-            update: super::ship_models::my_ship_update::ShipUpdate::CargoChange(
-                super::ship_models::my_ship_update::CargoChange {
-                    trade_symbol,
-                    units,
-                },
-            ),
-        };
-        debug!("Sending update event: {:#?}", update_event);
-        self.broadcaster
-            .sender
-            .send(update_event)
-            .map_err(|err| crate::error::Error::General(err.to_string()))?;
-
-        Ok(transfer_result)
-    }
-
     pub async fn jettison(
         &mut self,
         api: &space_traders_client::Api,
@@ -318,7 +297,7 @@ impl MyShip {
     }
 }
 
-impl super::ship_models::CargoState {
+impl CargoState {
     pub fn get_amount(&self, symbol: &space_traders_client::models::TradeSymbol) -> i32 {
         self.inventory
             .iter()
