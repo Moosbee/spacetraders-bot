@@ -19,6 +19,7 @@ use manager::{
     chart_manager::ChartManager,
     construction_manager::ConstructionManager,
     contract_manager::ContractManager,
+    fleet_manager::FleetManager,
     mining_manager::MiningManager,
     scrapping_manager::{self, ScrappingManager},
     ship_task::ShipTaskHandler,
@@ -196,6 +197,7 @@ async fn setup_context(
     let scrapping_manager_data = ScrappingManager::create();
     let trade_manager_data = TradeManager::create();
     let chart_manager = ChartManager::create();
+    let fleet_manager = FleetManager::create();
     let ship_task_handler = ShipTaskHandler::create();
 
     let context = ConductorContext {
@@ -208,6 +210,7 @@ async fn setup_context(
         mining_manager: mining_manager_data.1,
         scrapping_manager: scrapping_manager_data.1,
         trade_manager: trade_manager_data.1,
+        fleet_manager: fleet_manager.1,
         chart_manager: chart_manager.1,
         run_info: Arc::new(RwLock::new(run_info)),
     };
@@ -251,6 +254,12 @@ async fn setup_context(
         chart_manager.0,
     );
 
+    let fleet_manager = FleetManager::new(
+        manager_cancel_token.child_token(),
+        context.clone(),
+        fleet_manager.0,
+    );
+
     let ship_task_handler = ShipTaskHandler::new(
         ship_cancel_token.clone(),
         manager_cancel_token.clone(),
@@ -278,6 +287,7 @@ async fn setup_context(
             Box::new(scrapping_manager),
             Box::new(trade_manager),
             Box::new(chart_manager),
+            Box::new(fleet_manager),
             Box::new(ship_task_handler),
             Box::new(control_api),
         ],

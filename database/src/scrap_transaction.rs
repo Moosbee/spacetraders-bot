@@ -12,11 +12,11 @@ pub struct ScrapTransaction {
     pub timestamp: DateTime<Utc>,
 }
 impl TryFrom<models::ScrapTransaction> for ScrapTransaction {
-    type Error = super::shipyard_transaction::ParseError;
+    type Error = crate::Error;
 
     fn try_from(item: models::ScrapTransaction) -> Result<Self, Self::Error> {
         let timestamp = DateTime::<chrono::Utc>::from_str(&item.timestamp)
-            .map_err(|_| Self::Error::Timestamp(item.timestamp))?;
+            .map_err(|_| Self::Error::InvalidTimestamp(item.timestamp))?;
         Ok(Self {
             waypoint_symbol: item.waypoint_symbol,
             ship_symbol: item.ship_symbol,
@@ -94,7 +94,7 @@ impl DatabaseConnector<ScrapTransaction> for ScrapTransaction {
     }
 
     async fn get_all(database_pool: &super::DbPool) -> crate::Result<Vec<ScrapTransaction>> {
-       let erg= sqlx::query_as!(
+        let erg = sqlx::query_as!(
             ScrapTransaction,
             r#"
             SELECT

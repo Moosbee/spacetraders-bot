@@ -20,8 +20,8 @@
     "purchase_multiplier": 2,
     "trade_cycle": 100000,
     "blacklist": [
-      "ADVANCED_CIRCUITRY",
-      "FAB_MATS"
+      // "ADVANCED_CIRCUITRY",
+      // "FAB_MATS"
     ],
     "active": true,
     "default_purchase_price": 100,

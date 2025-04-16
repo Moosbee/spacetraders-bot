@@ -1,3 +1,4 @@
+use log::debug;
 use warp::reply::Reply;
 
 use crate::{
@@ -72,11 +73,14 @@ pub async fn handle_get_scrapping_info(
 }
 
 pub async fn handle_get_ships_to_purchase(context: ConductorContext) -> Result<impl Reply> {
+    debug!("Getting ships to purchase");
     let scrap_ships = context
         .scrapping_manager
         .get_ships()
         .await
         .map_err(|e| ServerError::Server(e.to_string()))?;
+
+    debug!("Got {} scrap ships", scrap_ships.len());
 
     let trading_ships = context
         .trade_manager
@@ -84,11 +88,15 @@ pub async fn handle_get_ships_to_purchase(context: ConductorContext) -> Result<i
         .await
         .map_err(|e| ServerError::Server(e.to_string()))?;
 
+    debug!("Got {} trading ships", trading_ships.len());
+
     let mining_ships = context
         .mining_manager
         .get_ships()
         .await
         .map_err(|e| ServerError::Server(e.to_string()))?;
+
+    debug!("Got {} mining ships", mining_ships.len());
 
     let construction_ships = context
         .construction_manager
@@ -96,17 +104,23 @@ pub async fn handle_get_ships_to_purchase(context: ConductorContext) -> Result<i
         .await
         .map_err(|e| ServerError::Server(e.to_string()))?;
 
+    debug!("Got {} construction ships", construction_ships.len());
+
     let chart_ships = context
         .chart_manager
         .get_ships()
         .await
         .map_err(|e| ServerError::Server(e.to_string()))?;
 
+    debug!("Got {} chart ships", chart_ships.len());
+
     let contract_ships = context
         .contract_manager
         .get_ships()
         .await
         .map_err(|e| ServerError::Server(e.to_string()))?;
+
+    debug!("Got {} contract ships", contract_ships.len());
 
     Ok(warp::reply::json(&serde_json::json!({
       "chart":chart_ships,

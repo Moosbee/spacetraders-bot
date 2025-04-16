@@ -13,6 +13,7 @@ import {
 } from "antd";
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { DbAgent } from "../models/Agent";
 import type { AntHeaderHeader } from "../MyApp";
 import useMyStore, { backendUrl } from "../store";
 import FaIcon from "./FontAwsome/FaIcon";
@@ -23,6 +24,7 @@ function MyHeader({ Header }: { Header: typeof AntHeaderHeader }) {
   const myAgent = useMyStore((state) => state.myAgent);
 
   const setDarkMode = useMyStore((state) => state.setDarkMode);
+  const setAgent = useMyStore((state) => state.setAgent);
 
   const shipSymbol = useMyStore((state) => state.selectedShipSymbol);
   const waypointSymbol = useMyStore((state) => state.selectedWaypointSymbol);
@@ -97,6 +99,24 @@ function MyHeader({ Header }: { Header: typeof AntHeaderHeader }) {
               </Col>
               <Col span={12} style={{ textAlign: "center" }}>
                 <MoneyDisplay amount={myAgent.credits} />
+              </Col>
+              <Col span={12} style={{ textAlign: "center" }}>
+                <Button
+                  onClick={() => {
+                    fetch(`http://${backendUrl}/agents`)
+                      .then((res) => res.json())
+                      .then((res) => {
+                        for (const agent of res as DbAgent[]) {
+                          if (agent.account_id) {
+                            setAgent(agent);
+                            break;
+                          }
+                        }
+                      });
+                  }}
+                >
+                  Refresh
+                </Button>
               </Col>
             </Row>
           }

@@ -249,7 +249,14 @@ impl ScrappingManager {
             };
 
             let sys_ships = (0..(diff as usize))
-                .map(|_| (RequestedShipType::Scrapper, Priority::High, Budget::High))
+                .map(|_| {
+                    (
+                        RequestedShipType::Scrapper,
+                        Priority::High,
+                        Budget::High,
+                        database::ShipInfoRole::Scraper,
+                    )
+                })
                 .collect::<Vec<_>>();
 
             let before = required_ships.ships.insert(system, sys_ships);

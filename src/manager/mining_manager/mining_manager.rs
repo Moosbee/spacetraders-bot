@@ -211,15 +211,30 @@ impl MiningManager {
             ];
 
             for _ in 0..needed_mining_ships {
-                sys_ships.push((RequestedShipType::Mining, Priority::Medium, Budget::Medium));
+                sys_ships.push((
+                    RequestedShipType::Mining,
+                    Priority::Medium,
+                    Budget::Medium,
+                    database::ShipInfoRole::Mining,
+                ));
             }
 
             for _ in 0..needed_siphon_ships {
-                sys_ships.push((RequestedShipType::Siphon, Priority::Medium, Budget::Medium));
+                sys_ships.push((
+                    RequestedShipType::Siphon,
+                    Priority::Medium,
+                    Budget::Medium,
+                    database::ShipInfoRole::Mining,
+                ));
             }
 
             for _ in 0..needed_surveying_ships {
-                sys_ships.push((RequestedShipType::Survey, Priority::Medium, Budget::Medium));
+                sys_ships.push((
+                    RequestedShipType::Survey,
+                    Priority::Medium,
+                    Budget::Medium,
+                    database::ShipInfoRole::Mining,
+                ));
             }
 
             for _ in 0..needed_transport_ships {
@@ -227,6 +242,7 @@ impl MiningManager {
                     RequestedShipType::Transporter,
                     Priority::High,
                     Budget::Medium,
+                    database::ShipInfoRole::Mining,
                 ));
             }
 
@@ -235,12 +251,13 @@ impl MiningManager {
                     RequestedShipType::Transporter,
                     Priority::Medium,
                     Budget::Medium,
+                    database::ShipInfoRole::Mining,
                 ));
             }
 
             let before = required_ships.ships.insert(system, sys_ships);
             if before.is_some() {
-                log::warn!("Trading Ship contains ships");
+                log::warn!("Mining Ship contains ships");
             }
         }
 

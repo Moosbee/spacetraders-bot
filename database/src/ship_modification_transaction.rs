@@ -14,13 +14,13 @@ pub struct ShipModificationTransaction {
 }
 
 impl TryFrom<models::ShipModificationTransaction> for ShipModificationTransaction {
-    type Error = super::shipyard_transaction::ParseError;
+    type Error = crate::Error;
 
     fn try_from(item: models::ShipModificationTransaction) -> Result<Self, Self::Error> {
         let trade_symbol = models::TradeSymbol::from_str(&item.trade_symbol)
-            .map_err(|_| Self::Error::TradeSymbol(item.trade_symbol))?;
+            .map_err(|_| Self::Error::InvalidTradeSymbol(item.trade_symbol))?;
         let timestamp = DateTime::<chrono::Utc>::from_str(&item.timestamp)
-            .map_err(|_| Self::Error::Timestamp(item.timestamp))?;
+            .map_err(|_| Self::Error::InvalidTimestamp(item.timestamp))?;
         Ok(Self {
             waypoint_symbol: item.waypoint_symbol,
             ship_symbol: item.ship_symbol,

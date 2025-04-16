@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { SQLSystem } from "../../models/SQLSystem";
-import { backendUrl } from "../../store";
+import useMyStore, { backendUrl } from "../../store";
 import { systemIcons } from "../../utils/waypointColors";
 import classes from "./SystemsMap.module.css";
 
@@ -142,6 +142,8 @@ function SystemsMap({
         setJumpGates(data);
       });
   }, []);
+
+  const selectedSystem = useMyStore((state) => state.selectedSystemSymbol);
 
   const calcSystems: Record<
     string,
@@ -338,7 +340,8 @@ function SystemsMap({
           setTop(0);
           setLeft(0);
         } else if (e.key === "g") {
-          const toGoNav = "X1-AA38";
+          if (!selectedSystem) return;
+          const toGoNav = selectedSystem;
           const system = calcSystems[toGoNav];
           if (system && ref.current) {
             const width = ref.current.width;

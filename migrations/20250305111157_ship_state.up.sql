@@ -23,6 +23,7 @@ CREATE TABLE public.ship_state (
   frame_symbol ship_frame_symbol NOT NULL,
   engine_symbol ship_engine_symbol NOT NULL,
   cooldown_expiration timestamp with time zone,
+  cooldown integer,
   flight_mode character varying NOT NULL,
   nav_status character varying NOT NULL,
   system_symbol character varying NOT NULL,

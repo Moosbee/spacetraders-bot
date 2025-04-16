@@ -239,6 +239,7 @@ function Ship() {
                                         item.Navigate.end_symbol
                                       }
                                     >
+                                      {item.Navigate.nav_mode}{" "}
                                       {item.Navigate.start_symbol} -{">"}{" "}
                                       {item.Navigate.end_symbol} (
                                       {item.Navigate.travel_time}s)

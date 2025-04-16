@@ -102,7 +102,7 @@ impl MiningPlaces {
             std::collections::hash_map::Entry::Occupied(mut occupied_entry) => {
                 match occupied_entry.get() {
                     AssignLevel::Inactive => {
-                        if size < self.max_miners_per_waypoint {
+                        if (size < self.max_miners_per_waypoint) || (no_limit) {
                             occupied_entry.insert(AssignLevel::OnTheWay);
                             1
                         } else {
@@ -115,7 +115,7 @@ impl MiningPlaces {
                 }
             }
             std::collections::hash_map::Entry::Vacant(vacant_entry) => {
-                if size < self.max_miners_per_waypoint {
+                if size < self.max_miners_per_waypoint || (no_limit) {
                     vacant_entry.insert(AssignLevel::OnTheWay);
                     1
                 } else {
@@ -149,7 +149,8 @@ impl MiningPlaces {
                         }
                         AssignLevel::Active => true,
                         AssignLevel::Inactive => {
-                            if count < self.max_miners_per_waypoint.try_into().unwrap() {
+                            if count < self.max_miners_per_waypoint.try_into().unwrap() || no_limit
+                            {
                                 *ship = AssignLevel::OnTheWay;
                                 true
                             } else {

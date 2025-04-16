@@ -35,6 +35,7 @@ pub struct MyShip {
     pub engine_speed: i32,
     pub active: bool,
     pub cooldown_expiration: Option<DateTime<Utc>>,
+    pub cooldown: Option<i32>,
     // Navigation state
     pub nav: super::nav::NavigationState,
     // Cargo state
@@ -63,6 +64,7 @@ impl Default for MyShip {
         Self {
             active: false,
             is_clone: false,
+            cooldown: Default::default(),
             pubsub: Publisher::new(),
             broadcaster: Default::default(),
             role: Default::default(),
@@ -97,6 +99,7 @@ impl Clone for MyShip {
             is_clone: true,
             engine_speed: self.engine_speed,
             cooldown_expiration: self.cooldown_expiration,
+            cooldown: self.cooldown,
             modules: self.modules.clone(),
             nav: self.nav.clone(),
             cargo: self.cargo.clone(),
@@ -163,6 +166,7 @@ impl From<&MyShip> for database::ShipState {
             frame_symbol: value.frame,
             engine_symbol: value.engine,
             cooldown_expiration: value.cooldown_expiration,
+            cooldown: value.cooldown,
             flight_mode: value.nav.flight_mode.to_string(),
             nav_status: value.nav.status.to_string(),
             system_symbol: value.nav.system_symbol.clone(),
@@ -266,7 +270,7 @@ impl MyShip {
                 let ship_info = database::ShipInfo {
                     symbol: self.symbol.clone(),
                     display_name,
-                    role: self.role.clone(),
+                    role: self.role,
                     active: self.active,
                 };
                 database::ShipInfo::insert(&database_pool, &ship_info).await?;

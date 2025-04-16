@@ -8,7 +8,7 @@ use std::fmt::Debug;
 
 mod connection;
 mod instructor;
-mod jump_gate_nav;
+pub mod jump_gate_nav;
 mod nav_mode;
 mod navigator;
 mod pathfinder;

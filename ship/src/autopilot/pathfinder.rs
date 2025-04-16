@@ -33,7 +33,11 @@ impl Pathfinder {
             let simple = self.get_simple(system);
             return simple.find_route_system(start_symbol, end_symbol);
         } else if !self.can_warp {
-            let connections = jump_gate_nav::generate_all_connections(&self.database_pool).await?;
+            let connections = jump_gate_nav::generate_all_connections(&self.database_pool)
+                .await?
+                .into_iter()
+                .filter(|c| !c.under_construction_a && !c.under_construction_b)
+                .collect::<Vec<_>>();
             let jump_gate = JumpPathfinder::new(connections);
             let conns = jump_gate.find_route(&start_system, &end_system);
             if conns.is_empty() {

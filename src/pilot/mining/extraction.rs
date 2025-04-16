@@ -272,6 +272,7 @@ impl ExtractionPilot {
         match action {
             ActionType::Extract => {
                 let erg = ship.extract(&self.context.api).await;
+                debug!("Extracted on ship: {} result: {:?}", ship.symbol, erg);
                 match erg {
                     Err(space_traders_client::apis::Error::ResponseError(e)) => {
                         if e.entity

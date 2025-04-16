@@ -196,6 +196,7 @@ impl ContractManager {
                         RequestedShipType::Transporter,
                         Priority::High,
                         Budget::Medium,
+                        database::ShipInfoRole::Contract,
                     )],
                 )]
                 .into_iter(),

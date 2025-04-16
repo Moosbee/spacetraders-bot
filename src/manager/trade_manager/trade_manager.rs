@@ -163,13 +163,19 @@ impl TradeManager {
                         RequestedShipType::Transporter,
                         Priority::Medium,
                         Budget::High,
+                        database::ShipInfoRole::Trader,
                     )
                 })
                 .collect::<Vec<_>>();
 
             if ships.is_empty() && waypoints > 0 {
                 sys_ships.pop();
-                sys_ships.push((RequestedShipType::Transporter, Priority::High, Budget::High));
+                sys_ships.push((
+                    RequestedShipType::Transporter,
+                    Priority::High,
+                    Budget::High,
+                    database::ShipInfoRole::Trader,
+                ));
             }
 
             let before = required_ships.ships.insert(system, sys_ships);

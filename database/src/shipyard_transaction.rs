@@ -14,26 +14,14 @@ pub struct ShipyardTransaction {
     pub timestamp: DateTime<Utc>,
 }
 
-#[derive(Debug, thiserror::Error)]
-pub enum ParseError {
-    #[error("Invalid ship type: {0}")]
-    ShipType(String),
-
-    #[error("Invalid trade symbol: {0}")]
-    TradeSymbol(String),
-
-    #[error("Invalid timestamp: {0}")]
-    Timestamp(String),
-}
-
 impl TryFrom<models::ShipyardTransaction> for ShipyardTransaction {
-    type Error = ParseError;
+    type Error = crate::Error;
 
     fn try_from(item: models::ShipyardTransaction) -> Result<Self, Self::Error> {
         let ship_type = models::ShipType::from_str(&item.ship_type)
-            .map_err(|_| ParseError::ShipType(item.ship_type))?;
+            .map_err(|_| Self::Error::InvalidShipType(item.ship_type))?;
         let timestamp = DateTime::<chrono::Utc>::from_str(&item.timestamp)
-            .map_err(|_| ParseError::Timestamp(item.timestamp))?;
+            .map_err(|_| Self::Error::InvalidTimestamp(item.timestamp))?;
 
         Ok(Self {
             waypoint_symbol: item.waypoint_symbol,
@@ -50,7 +38,7 @@ impl ShipyardTransaction {
         database_pool: &super::DbPool,
         waypoint_symbol: &str,
     ) -> crate::Result<Vec<ShipyardTransaction>> {
-       let erg= sqlx::query_as!(
+        let erg = sqlx::query_as!(
             ShipyardTransaction,
             r#"
             SELECT
@@ -148,7 +136,7 @@ impl DatabaseConnector<ShipyardTransaction> for ShipyardTransaction {
     }
 
     async fn get_all(database_pool: &super::DbPool) -> crate::Result<Vec<ShipyardTransaction>> {
-       let erg= sqlx::query_as!(
+        let erg = sqlx::query_as!(
             ShipyardTransaction,
             r#"
             SELECT

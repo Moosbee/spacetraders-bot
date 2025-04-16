@@ -55,7 +55,7 @@ impl ShipyardShip {
         database_pool: &super::DbPool,
         waypoint_symbol: &str,
     ) -> crate::Result<Vec<ShipyardShip>> {
-      let erg= sqlx::query_as!(
+        let erg = sqlx::query_as!(
             ShipyardShip,
             r#"
             SELECT DISTINCT ON (ship_type)
@@ -82,6 +82,38 @@ impl ShipyardShip {
             ORDER BY ship_type, created_at DESC
             "#,
             waypoint_symbol
+        )
+        .fetch_all(&database_pool.database_pool)
+        .await?;
+        Ok(erg)
+    }
+
+    pub async fn get_last(database_pool: &super::DbPool) -> crate::Result<Vec<ShipyardShip>> {
+        let erg = sqlx::query_as!(
+            ShipyardShip,
+            r#"
+            SELECT DISTINCT ON (waypoint_symbol, ship_type)
+                id,
+                waypoint_symbol,
+                ship_type as "ship_type: models::ShipType",
+                name,
+                supply as "supply: models::SupplyLevel",
+                activity as "activity: models::ActivityLevel",
+                purchase_price,
+                frame_type as "frame_type: models::ship_frame::Symbol",
+                frame_quality,
+                reactor_type as "reactor_type: models::ship_reactor::Symbol",
+                reactor_quality,
+                engine_type as "engine_type: models::ship_engine::Symbol",
+                engine_quality,
+                modules as "modules: Vec<models::ship_module::Symbol>",
+                mounts as "mounts: Vec<models::ship_mount::Symbol>",
+                crew_requirement,
+                crew_capacity,
+                created_at
+            FROM shipyard_ship
+            ORDER BY waypoint_symbol, ship_type, created_at DESC
+            "#
         )
         .fetch_all(&database_pool.database_pool)
         .await?;
@@ -165,7 +197,7 @@ impl DatabaseConnector<ShipyardShip> for ShipyardShip {
     }
 
     async fn get_all(database_pool: &super::DbPool) -> crate::Result<Vec<ShipyardShip>> {
-       let erg= sqlx::query_as!(
+        let erg = sqlx::query_as!(
             ShipyardShip,
             r#"
             SELECT

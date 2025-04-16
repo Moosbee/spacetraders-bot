@@ -5,7 +5,7 @@ use std::{
 };
 
 use database::DatabaseConnector;
-use log::debug;
+use log::{debug, info};
 use priority_queue::PriorityQueue;
 
 use crate::error::Result;
@@ -74,11 +74,30 @@ impl GateConnection {
     }
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub struct JumpConnection {
     pub start_system: String,
     pub end_system: String,
     pub conn: GateConnection,
+    pub cost: f64,
+}
+
+impl Eq for JumpConnection {}
+
+impl PartialEq for JumpConnection {
+    fn eq(&self, other: &Self) -> bool {
+        self.start_system == other.start_system
+            && self.end_system == other.end_system
+            && self.conn == other.conn
+    }
+}
+
+impl Hash for JumpConnection {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.start_system.hash(state);
+        self.end_system.hash(state);
+        self.conn.hash(state);
+    }
 }
 
 pub struct JumpPathfinder {
@@ -95,36 +114,36 @@ impl JumpPathfinder {
         let mut to_visit: PriorityQueue<JumpConnection, Reverse<i64>> = PriorityQueue::new();
         let mut visited: HashMap<String, JumpConnection> = HashMap::new();
 
+        // info!("Finding route from {} to {}", from_system, to_system);
+
         let start_conns = Self::get_connections(from_system, &mut unvisited);
         for conn in start_conns {
-            let next_cost = Reverse((conn.distance * 1_000_000.0) as i64);
-            to_visit.push(
-                JumpConnection {
-                    start_system: from_system.to_string(),
-                    end_system: conn.get_other_system(from_system).1,
-                    conn,
-                },
-                next_cost,
-            );
+            let gate = JumpConnection {
+                start_system: from_system.to_string(),
+                end_system: conn.get_other_system(from_system).1,
+                cost: conn.distance,
+                conn,
+            };
+            let next_cost = Reverse((gate.cost * 1_000_000.0) as i64);
+            to_visit.push(gate, next_cost);
         }
 
-        while let Some((conn, cost)) = to_visit.pop() {
+        while let Some((conn, _)) = to_visit.pop() {
             visited.insert(conn.end_system.clone(), conn.clone());
             if conn.end_system == to_system {
                 return Self::get_route(visited, from_system.to_string(), to_system.to_string());
             }
             let conns = Self::get_connections(&conn.end_system, &mut unvisited);
             for next_conn in conns {
-                let next_cost = Reverse(((next_conn.distance * 1_000_000.0) as i64) + cost.0);
+                let next_cost = conn.cost + next_conn.distance;
+                let next_conn = JumpConnection {
+                    start_system: conn.end_system.to_string(),
+                    end_system: next_conn.get_other_system(&conn.end_system).1,
+                    conn: next_conn,
+                    cost: next_cost,
+                };
 
-                to_visit.push(
-                    JumpConnection {
-                        start_system: conn.end_system.to_string(),
-                        end_system: next_conn.get_other_system(from_system).1,
-                        conn: next_conn,
-                    },
-                    next_cost,
-                );
+                to_visit.push(next_conn, Reverse((next_cost * 1_000_000.0) as i64));
             }
         }
 
@@ -137,15 +156,11 @@ impl JumpPathfinder {
     ) -> Vec<GateConnection> {
         let conns = unvisited
             .iter()
-            .filter(|conn| {
-                (conn.system_point_a == from_system || conn.system_point_b == from_system)
-                    && !(conn.under_construction_a || conn.under_construction_b)
-            })
+            .filter(|conn| conn.system_point_a == from_system || conn.system_point_b == from_system)
             .cloned()
             .collect::<Vec<_>>();
         unvisited.retain(|conn| {
-            !((conn.system_point_a == from_system || conn.system_point_b == from_system)
-                && !(conn.under_construction_a || conn.under_construction_b))
+            !(conn.system_point_a == from_system || conn.system_point_b == from_system)
         });
         conns
     }

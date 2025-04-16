@@ -99,9 +99,21 @@ impl ScraperPilot {
             .await?;
         }
 
-        ship.wait_for_arrival_mut(&self.context.api)
-            .await
-            .map_err(|e| e.to_string())?;
+        ship.wait_for_arrival().await;
+
+        tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
+
+        let waypoint =
+            database::Waypoint::get_by_symbol(&self.context.database_pool, &waypoint_symbol)
+                .await?
+                .ok_or(Error::General("Waypoint not found".to_owned()))?;
+
+        if waypoint.is_shipyard() {
+            self.context
+                .fleet_manager
+                .at_shipyard(ship.nav.waypoint_symbol.clone(), ship.symbol.clone())
+                .await?;
+        }
 
         let state = self.wait_until(date).await?;
 

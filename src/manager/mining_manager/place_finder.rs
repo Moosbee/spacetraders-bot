@@ -50,6 +50,7 @@ impl PlaceFinder {
         ship_clone: ship::MyShip,
         filter_fn: fn(&database::Waypoint) -> bool,
         mining_places: &MiningPlaces,
+        max_miners: usize,
     ) -> Result<Vec<FoundWaypointInfo>, crate::error::Error> {
         let sql_waypoints = database::Waypoint::get_by_system(
             &self.context.database_pool,
@@ -62,11 +63,7 @@ impl PlaceFinder {
             .into_iter()
             .filter(|wp| {
                 let count = mining_places.get_count(&wp.waypoint.symbol);
-                count
-                    < mining_places
-                        .get_max_miners_per_waypoint()
-                        .try_into()
-                        .unwrap()
+                count < max_miners
             })
             .collect::<Vec<_>>();
 

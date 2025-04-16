@@ -31,6 +31,7 @@ mod reactor_info;
 mod extraction;
 mod jump_gate_connection;
 mod ship_state;
+mod ship_transfer;
 
 pub use agent::Agent;
 pub use construction_material::ConstructionMaterial;
@@ -54,6 +55,7 @@ pub use route::Route;
 pub use ship_info::ShipInfo;
 pub use ship_info::ShipInfoRole;
 pub use ship_state::ShipState;
+pub use ship_transfer::ShipTransfer;
 pub use shipyard::Shipyard;
 pub use shipyard_ship::ShipyardShip;
 pub use shipyard_ship_types::ShipyardShipTypes;
@@ -76,6 +78,12 @@ pub enum Error {
 
     #[error(transparent)]
     Chrono(#[from] chrono::ParseError),
+
+    #[error("Invalid ship type: {0}")]
+    InvalidShipType(String),
+
+    #[error("Invalid timestamp: {0}")]
+    InvalidTimestamp(String),
 }
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;

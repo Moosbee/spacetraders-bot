@@ -111,10 +111,28 @@ impl ChartManager {
             .iter()
             .map(|ship| ship.nav.system_symbol.clone())
             .collect::<HashSet<_>>();
+
         let with_chart = all_ships
             .iter()
-            .filter(|ship| ship.role == database::ShipInfoRole::Charter)
-            .map(|ship| ship.nav.system_symbol.clone())
+            .filter(|ship| {
+                ship.role == database::ShipInfoRole::Charter
+                    || (ship.role == database::ShipInfoRole::Transfer
+                        && match &ship.status {
+                            ship::ShipStatus::Transfer { role, .. } => {
+                                role == &Some(database::ShipInfoRole::Charter)
+                            }
+                            _ => false,
+                        })
+            })
+            .map(|ship| match &ship.role {
+                database::ShipInfoRole::Transfer => match &ship.status {
+                    ship::ShipStatus::Transfer { system_symbol, .. } => {
+                        system_symbol.clone().unwrap_or_default()
+                    }
+                    _ => ship.nav.system_symbol.clone(),
+                },
+                _ => ship.nav.system_symbol.clone(),
+            })
             .collect::<HashSet<_>>();
 
         let mut reachable_systems = HashSet::new();
@@ -163,7 +181,12 @@ impl ChartManager {
             if has_uncharted && !with_chart.contains(system) {
                 needed_ships.insert(
                     system.clone(),
-                    vec![(RequestedShipType::Probe, Priority::Low, Budget::High)],
+                    vec![(
+                        RequestedShipType::Probe,
+                        Priority::Low,
+                        Budget::High,
+                        database::ShipInfoRole::Charter,
+                    )],
                 );
             }
         }

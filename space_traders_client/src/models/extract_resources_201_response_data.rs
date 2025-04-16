@@ -19,6 +19,8 @@ pub struct ExtractResources201ResponseData {
     pub extraction: Box<models::Extraction>,
     #[serde(rename = "cargo")]
     pub cargo: Box<models::ShipCargo>,
+    #[serde(rename = "modifiers")]
+    pub modifiers: Vec<models::WaypointModifier>,
     #[serde(rename = "events")]
     pub events: Vec<models::ShipConditionEvent>,
 }
@@ -28,12 +30,14 @@ impl ExtractResources201ResponseData {
         cooldown: models::Cooldown,
         extraction: models::Extraction,
         cargo: models::ShipCargo,
+        modifiers: Vec<models::WaypointModifier>,
         events: Vec<models::ShipConditionEvent>,
     ) -> ExtractResources201ResponseData {
         ExtractResources201ResponseData {
             cooldown: Box::new(cooldown),
             extraction: Box::new(extraction),
             cargo: Box::new(cargo),
+            modifiers,
             events,
         }
     }

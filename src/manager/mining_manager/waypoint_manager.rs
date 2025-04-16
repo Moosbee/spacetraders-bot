@@ -1,3 +1,4 @@
+use log::debug;
 use space_traders_client::models;
 use utils::WaypointCan;
 
@@ -105,6 +106,9 @@ impl WaypointManager {
             return Ok(waypoint_symbol.to_string());
         }
 
+        let counts = self.places.get_max_miners_per_waypoint()
+            + (((action == ActionType::Siphon) as u32) * 10000);
+
         let waypoints: Vec<place_finder::FoundWaypointInfo> = self
             .finder
             .find(
@@ -125,6 +129,7 @@ impl WaypointManager {
                     ActionType::Siphon => database::Waypoint::is_sipherable,
                 },
                 &self.places,
+                counts as usize,
             )
             .await?;
 
@@ -137,6 +142,12 @@ impl WaypointManager {
         waypoints: Vec<place_finder::FoundWaypointInfo>,
         action: ActionType,
     ) -> Result<String> {
+        debug!(
+            "Assigning to available waypoint {} waypoints {} {:?}",
+            waypoints.len(),
+            ship.symbol,
+            action
+        );
         for waypoint in waypoints {
             if self.places.try_assign_on_way(
                 &ship.symbol,

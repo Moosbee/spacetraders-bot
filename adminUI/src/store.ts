@@ -1,7 +1,7 @@
 import { shared } from "use-broadcast-ts";
 import { create } from "zustand";
 import { createJSONStorage, devtools } from "zustand/middleware";
-import { Agent } from "./models/api";
+import { DbAgent } from "./models/Agent";
 import RustShip from "./models/ship";
 import { SQLSystem } from "./models/SQLSystem";
 import { SQLWaypoint } from "./models/SQLWaypoint";
@@ -31,7 +31,7 @@ type State = {
   darkMode: boolean;
   ships: Record<string, RustShip>;
   sliderCollapsed: boolean;
-  myAgent: Agent;
+  myAgent: DbAgent;
   selectedShipSymbol: string | undefined;
   selectedWaypointSymbol:
     | { systemSymbol: string; waypointSymbol: string }
@@ -73,7 +73,7 @@ type Actions = {
   ) => void;
   setSystem: (system: SQLSystem, waypoints: SQLWaypoint[]) => void;
   setWebsocketConnected: (websocketConnected: boolean) => void;
-  setAgent: (agent: Agent) => void;
+  setAgent: (agent: DbAgent) => void;
   reset: () => void;
 };
 
@@ -86,9 +86,10 @@ const initialState: State = {
   myAgent: {
     credits: 0,
     headquarters: "",
-    shipCount: 0,
-    startingFaction: "",
+    ship_count: 0,
+    starting_faction: "",
     symbol: "",
+    created_at: "",
   },
   selectedShipSymbol: undefined,
   selectedWaypointSymbol: undefined,

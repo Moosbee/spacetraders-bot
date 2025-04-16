@@ -4,6 +4,7 @@ mod contract;
 mod mining;
 mod scraper;
 mod trading;
+mod transfer;
 
 use charting::ChartPilot;
 use construction::ConstructionPilot;
@@ -13,6 +14,7 @@ use mining::MiningPilot;
 use scraper::ScraperPilot;
 use tokio_util::sync::CancellationToken;
 use trading::TradingPilot;
+use transfer::TransferPilot;
 
 use crate::{
     error::{Error, Result},
@@ -29,6 +31,7 @@ pub struct Pilot {
     contract_pilot: ContractPilot,
     mining_pilot: MiningPilot,
     chart_pilot: ChartPilot,
+    transfer_pilot: TransferPilot,
 }
 
 impl Pilot {
@@ -49,6 +52,7 @@ impl Pilot {
             contract_pilot: ContractPilot::new(context.clone(), ship_symbol.clone()),
             mining_pilot: MiningPilot::new(context.clone(), ship_symbol.clone()),
             chart_pilot: ChartPilot::new(context.clone(), ship_symbol.clone()),
+            transfer_pilot: TransferPilot::new(context.clone(), ship_symbol.clone()),
         }
     }
 
@@ -136,7 +140,7 @@ impl Pilot {
             if !ship.active {
                 return Ok(());
             }
-            ship.role.clone()
+            ship.role
         };
 
         debug!("Starting pilot circle for ship {}", self.ship_symbol);
@@ -156,6 +160,9 @@ impl Pilot {
                 self.trading_pilot.execute_pilot_circle(self).await
             }
             database::ShipInfoRole::Charter => self.chart_pilot.execute_pilot_circle(self).await,
+            database::ShipInfoRole::Transfer => {
+                self.transfer_pilot.execute_pilot_circle(self).await
+            }
         }?;
 
         Ok(())

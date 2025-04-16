@@ -8,9 +8,10 @@ pub struct ShipInfo {
     pub active: bool,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Default, serde::Serialize, sqlx::Type)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, serde::Serialize, sqlx::Type)]
 #[sqlx(type_name = "ship_info_role")]
 pub enum ShipInfoRole {
+    Transfer,
     Construction,
     TempTrader,
     Trader,
@@ -34,6 +35,7 @@ impl TryFrom<&str> for ShipInfoRole {
             "Mining" => Ok(ShipInfoRole::Mining),
             "Charter" => Ok(ShipInfoRole::Charter),
             "Manuel" => Ok(ShipInfoRole::Manuel),
+            "Transfer" => Ok(ShipInfoRole::Transfer),
             _ => Err(crate::Error::InvalidShipInfoRole(value.to_string())),
         }
     }

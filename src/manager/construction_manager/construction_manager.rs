@@ -193,7 +193,12 @@ impl ConstructionManager {
             HashMap::from_iter(
                 vec![(
                     headquarters.clone(),
-                    vec![(RequestedShipType::Transporter, Priority::Low, Budget::High)],
+                    vec![(
+                        RequestedShipType::Transporter,
+                        Priority::Low,
+                        Budget::High,
+                        database::ShipInfoRole::Construction,
+                    )],
                 )]
                 .into_iter(),
             )

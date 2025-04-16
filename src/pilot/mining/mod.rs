@@ -152,6 +152,10 @@ impl MiningPilot {
         ship: &mut ship::MyShip,
         pilot: &super::Pilot,
     ) -> Result<()> {
+        ship.status = ship::ShipStatus::Mining {
+            assignment: MiningShipAssignment::Surveyor,
+        };
+        ship.notify().await;
         pilot.cancellation_token.cancelled().await;
         Ok(())
     }

@@ -49,6 +49,7 @@ pub struct ShipState {
 
     // Cooldown
     pub cooldown_expiration: Option<DateTime<Utc>>,
+    pub cooldown: Option<i32>,
 
     // Navigation
     pub flight_mode: String, //models::ShipNavFlightMode,
@@ -103,6 +104,7 @@ impl ShipState {
                   mounts,
                   modules,
                   cooldown_expiration,
+                  cooldown,
                   reactor_symbol,
                   frame_symbol,
                   engine_symbol,
@@ -146,10 +148,10 @@ impl ShipState {
                   $17::ship_mount_symbol[],
                   $18::ship_module_symbol[],
                   $19,
-                  $20::ship_reactor_symbol,
-                  $21::ship_frame_symbol,
-                  $22::ship_engine_symbol,
-                  $23,
+                  $20,
+                  $21::ship_reactor_symbol,
+                  $22::ship_frame_symbol,
+                  $23::ship_engine_symbol,
                   $24,
                   $25,
                   $26,
@@ -167,7 +169,8 @@ impl ShipState {
                   $38,
                   $39,
                   $40,
-                  $41
+                  $41,
+                  $42
                 )
                 RETURNING id;
             "#,
@@ -190,6 +193,7 @@ impl ShipState {
             &item.mounts as &[models::ship_mount::Symbol],
             &item.modules as &[models::ship_module::Symbol],
             &item.cooldown_expiration as &Option<DateTime<Utc>>,
+            &item.cooldown as &Option<i32>,
             &item.reactor_symbol as &models::ship_reactor::Symbol,
             &item.frame_symbol as &models::ship_frame::Symbol,
             &item.engine_symbol as &models::ship_engine::Symbol,
@@ -261,6 +265,7 @@ impl DatabaseConnector<ShipState> for ShipState {
                   frame_symbol as "frame_symbol: models::ship_frame::Symbol",
                   engine_symbol as "engine_symbol: models::ship_engine::Symbol",
                   cooldown_expiration,
+                  cooldown,
                   flight_mode,
                   nav_status,
                   system_symbol,

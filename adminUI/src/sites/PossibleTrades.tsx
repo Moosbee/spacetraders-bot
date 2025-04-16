@@ -77,6 +77,30 @@ export default function PossibleTrades() {
             ),
           },
           {
+            title: "Same System",
+            dataIndex: "",
+            key: "same_system",
+            render: (_: unknown, trade: PossibleTrade) =>
+              trade.purchase.waypoint_symbol.split("-")[1] ===
+              trade.sell.waypoint_symbol.split("-")[1]
+                ? "Yes"
+                : "No",
+            sorter: (a, b) => {
+              const a_system = a.purchase.waypoint_symbol.split("-")[1];
+              const b_system = b.purchase.waypoint_symbol.split("-")[1];
+
+              return a_system.localeCompare(b_system);
+            },
+            filters: [
+              { text: "Yes", value: "yes" },
+              { text: "No", value: "no" },
+            ],
+            onFilter: (value, record) =>
+              (record.purchase.waypoint_symbol.split("-")[1] ===
+                record.sell.waypoint_symbol.split("-")[1]) ===
+              (value === "yes"),
+          },
+          {
             title: "Profit",
             dataIndex: "",
             key: "profit",
