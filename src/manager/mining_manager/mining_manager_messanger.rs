@@ -7,6 +7,7 @@ use super::{
         AssignWaypointMessage, ExtractionNotification, MiningManagerMessage, MiningMessage,
     },
     transfer_manager::{ExtractorTransferRequest, TransferManager, TransportTransferRequest},
+    MiningManager,
 };
 
 use crate::{error::Result, manager::fleet_manager::message::RequiredShips};
@@ -196,14 +197,10 @@ impl MiningManagerMessanger {
         })?
     }
 
-    pub async fn get_ships(&self) -> Result<RequiredShips> {
-        let (tx, rx) = tokio::sync::oneshot::channel();
-        self.sender
-            .send(MiningMessage::GetShips { callback: tx })
-            .await
-            .map_err(|e| crate::error::Error::General(format!("Failed to send message: {}", e)))
-            .unwrap();
-        rx.await
-            .map_err(|e| crate::error::Error::General(format!("Failed to receive message: {}", e)))
+    pub async fn get_ships(
+        &self,
+        context: &crate::utils::ConductorContext,
+    ) -> Result<RequiredShips> {
+        MiningManager::get_required_ships(context).await
     }
 }

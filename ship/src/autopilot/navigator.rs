@@ -103,9 +103,12 @@ impl MyShip {
             database::JumpGateConnection::get_all_from(database_pool, &connection.start_symbol)
                 .await?;
 
-        if !jump_conn.iter().any(|jg| jg.to == connection.end_symbol) {
-            return Err("No connection".into());
-        }
+        // if !jump_conn.iter().any(|jg| jg.to == connection.end_symbol) {
+        //     return Err(crate::Error::General(format!(
+        //         "No jump gate connection from {} to {}",
+        //         connection.start_symbol, connection.end_symbol
+        //     )));
+        // }
         self.wait_for_cooldown().await;
 
         self.ensure_undocked(api).await?;

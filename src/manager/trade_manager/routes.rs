@@ -167,7 +167,7 @@ impl PartialOrd for ConcreteTradeRoute {
         if cmp != Ordering::Equal {
             Some(cmp)
         } else {
-            Some(self.trip.profit_per_hour.cmp(&other.trip.profit_per_hour))
+            Some(self.trip.total_profit.cmp(&other.trip.total_profit))
         }
     }
 }

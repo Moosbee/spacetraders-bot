@@ -35,7 +35,7 @@ impl RouteCalculator {
         &mut self,
         ship: &ship::MyShip,
         running_routes: &RoutesTracker,
-    ) -> Result<database::TradeRoute, Error> {
+    ) -> Result<Option<database::TradeRoute>, Error> {
         debug!("Getting new best route");
         let (trade_goods, market_trade) = self.fetch_market_data(&ship.nav.system_symbol).await?;
 
@@ -52,7 +52,7 @@ impl RouteCalculator {
             .collect::<Vec<_>>()
             .into_iter()
             .map(|route| self.concrete.calc(ship, route, &waypoints))
-            .filter(|route| route.data.profit > 0)
+            .filter(|route| route.trip.total_profit > 200)
             .collect::<Vec<_>>();
 
         debug!("Routes: {}", routes.len());
@@ -61,10 +61,9 @@ impl RouteCalculator {
         let route = routes
             .into_iter()
             .filter(|route| !running_routes.is_locked(&(*route).clone().into()))
-            .max_by(|a, b| a.partial_cmp(b).unwrap())
-            .ok_or_else(|| Error::General("No routes main found".to_string()));
+            .max_by(|a, b| a.partial_cmp(b).unwrap());
 
-        route.map(|route| route.into())
+        Ok(route.map(|route| route.into()))
     }
 
     async fn fetch_market_data(

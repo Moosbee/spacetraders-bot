@@ -22,6 +22,7 @@ pub enum ShipStatus {
         cycle: Option<i32>,
         shipping_status: Option<ShippingStatus>,
         waiting_for_manager: bool,
+        on_sleep: bool,
     },
     Contract {
         contract_id: Option<String>,

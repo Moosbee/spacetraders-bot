@@ -1,5 +1,3 @@
-use crate::manager::fleet_manager::message::RequiredShips;
-
 #[derive(Debug)]
 pub enum ChartMessage {
     Next {
@@ -11,9 +9,6 @@ pub enum ChartMessage {
     },
     Success {
         waypoint_symbol: String,
-    },
-    GetShips {
-        callback: tokio::sync::oneshot::Sender<RequiredShips>,
     },
 }
 

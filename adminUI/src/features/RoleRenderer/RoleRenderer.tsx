@@ -111,6 +111,22 @@ const RoleRenderer = ({
     return null;
   };
 
+  const renderTransfer = () => {
+    if (status.type === "Transfer" && status.data !== null) {
+      return (
+        <span>
+          ({status.data.id})
+          <br />
+          {status.data.role}{" "}
+          <Link to={`/system/${status.data.system_symbol}`}>
+            {status.data.system_symbol}
+          </Link>
+        </span>
+      );
+    }
+    return null;
+  };
+
   return (
     <div>
       <span>{role}</span>{" "}
@@ -118,7 +134,8 @@ const RoleRenderer = ({
         renderTrader() ||
         renderMining() ||
         renderConstruction() ||
-        renderScraper()}
+        renderScraper() ||
+        renderTransfer()}
     </div>
   );
 };

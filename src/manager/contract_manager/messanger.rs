@@ -81,7 +81,10 @@ impl ContractManagerMessanger {
         Ok(())
     }
 
-    pub async fn get_ships(&self) -> Result<RequiredShips> {
+    pub async fn get_ships(
+        &self,
+        context: &crate::utils::ConductorContext,
+    ) -> Result<RequiredShips> {
         let (tx, rx) = tokio::sync::oneshot::channel();
         self.sender
             .send(ContractShipmentMessage::GetShips { callback: tx })

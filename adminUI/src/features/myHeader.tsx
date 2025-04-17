@@ -77,16 +77,16 @@ function MyHeader({ Header }: { Header: typeof AntHeaderHeader }) {
           title={
             <Row gutter={[2, 2]}>
               <Col span={24} style={{ textAlign: "center" }}>
-                {myAgent.accountId}
+                {myAgent.account_id}
               </Col>
               <Col span={12} style={{ textAlign: "center" }}>
                 {myAgent.symbol}
               </Col>
               <Col span={12} style={{ textAlign: "center" }}>
-                {myAgent.shipCount} Ships
+                {myAgent.ship_count} Ships
               </Col>
               <Col span={12} style={{ textAlign: "center" }}>
-                {myAgent.startingFaction}
+                {myAgent.starting_faction}
               </Col>
               <Col span={12} style={{ textAlign: "center" }}>
                 {myAgent.headquarters}

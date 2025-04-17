@@ -26,13 +26,6 @@ impl TransferPilot {
 
         debug!("Requesting next transfer for ship: {:?}", ship.symbol);
 
-        ship.status = ship::ShipStatus::Transfer {
-            id: None,
-            system_symbol: None,
-            role: None,
-        };
-        ship.notify().await;
-
         let transfer = self
             .context
             .fleet_manager

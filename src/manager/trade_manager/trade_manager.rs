@@ -95,12 +95,6 @@ impl TradeManager {
                 debug!("Sending route: {:?}", route);
                 let _send = callback.send(route);
             }
-            TradeMessage::GetShips { callback } => {
-                let ships = self.get_required_ships().await?;
-                callback.send(ships).map_err(|e| {
-                    crate::error::Error::General(format!("Failed to send message: {:?}", e))
-                })?
-            }
             TradeMessage::GetPossibleTrades { callback } => {
                 let trade_goods =
                     database::MarketTradeGood::get_last(&self.context.database_pool).await?;
@@ -118,36 +112,63 @@ impl TradeManager {
         Ok(())
     }
 
-    async fn get_required_ships(&self) -> Result<RequiredShips> {
-        let all_ships = self
-            .context
+    pub async fn get_required_ships(context: &ConductorContext) -> Result<RequiredShips> {
+        let all_ships = context
             .ship_manager
             .get_all_clone()
             .await
             .into_values()
             // .filter(|ship| ship.role == database::ShipInfoRole::Scraper)
-            .map(|s| (s.nav.system_symbol.clone(), s.symbol, s.role))
+            // .map(|s| (s.nav.system_symbol.clone(), s.symbol, s.role))
             .collect::<Vec<_>>();
 
         let mut systems: HashMap<String, Vec<String>> = HashMap::new();
 
         for s in all_ships {
-            let system = systems.get_mut(&s.0);
+            let system_str = match &s.role {
+                database::ShipInfoRole::Transfer => match &s.status {
+                    ship::ShipStatus::Transfer { system_symbol, .. } => {
+                        system_symbol.clone().unwrap_or_default()
+                    }
+                    _ => s.nav.system_symbol.clone(),
+                },
+                _ => s.nav.system_symbol.clone(),
+            };
+
+            let is_scrapper = s.role == database::ShipInfoRole::Scraper
+                || (s.role == database::ShipInfoRole::Transfer
+                    && match &s.status {
+                        ship::ShipStatus::Transfer { role, .. } => {
+                            role == &Some(database::ShipInfoRole::Scraper)
+                        }
+                        _ => false,
+                    });
+
+            let is_trader = s.role == database::ShipInfoRole::Trader
+                || (s.role == database::ShipInfoRole::Transfer
+                    && match &s.status {
+                        ship::ShipStatus::Transfer { role, .. } => {
+                            role == &Some(database::ShipInfoRole::Trader)
+                        }
+                        _ => false,
+                    });
+
+            let system = systems.get_mut(&system_str);
             if let Some(system) = system {
-                if s.2 == database::ShipInfoRole::Trader {
-                    system.push(s.1);
+                if is_trader {
+                    system.push(s.symbol);
                 }
-            } else if s.2 == database::ShipInfoRole::Trader {
-                systems.insert(s.0, vec![s.1]);
-            } else if s.2 == database::ShipInfoRole::Scraper {
-                systems.insert(s.0, vec![]);
+            } else if is_trader {
+                systems.insert(system_str, vec![s.symbol]);
+            } else if is_scrapper {
+                systems.insert(system_str, vec![]);
             }
         }
 
         let mut required_ships = RequiredShips::new();
 
         for (system, ships) in systems {
-            let waypoints = database::Waypoint::get_by_system(&self.context.database_pool, &system)
+            let waypoints = database::Waypoint::get_by_system(&context.database_pool, &system)
                 .await?
                 .into_iter()
                 .filter(|w| w.is_marketplace())
@@ -190,7 +211,7 @@ impl TradeManager {
     async fn request_next_trade_route(
         &mut self,
         ship_clone: ship::MyShip,
-    ) -> Result<database::TradeRoute> {
+    ) -> Result<Option<database::TradeRoute>> {
         let unfinished_route =
             database::TradeRoute::get_unfinished(&self.context.database_pool).await?;
         let my_unfinished_routes = unfinished_route
@@ -199,12 +220,18 @@ impl TradeManager {
             .collect::<Vec<_>>();
 
         let next_route = if !my_unfinished_routes.is_empty() {
-            my_unfinished_routes[0].clone()
+            Some(my_unfinished_routes[0].clone())
         } else {
             self.calculator
                 .get_best_route(&ship_clone, &self.routes_tracker)
                 .await?
         };
+
+        if next_route.is_none() {
+            return Ok(None);
+        }
+
+        let next_route = next_route.unwrap();
 
         let next_route = self.record_trade_start(&next_route).await?;
 
@@ -213,7 +240,7 @@ impl TradeManager {
         if !done {
             return Err("Failed to lock route".into());
         }
-        Ok(next_route)
+        Ok(Some(next_route))
     }
 
     async fn complete_trade_route(

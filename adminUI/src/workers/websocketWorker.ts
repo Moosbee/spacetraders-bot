@@ -50,12 +50,13 @@ const work = () => {
         case "MyAgent":
           if (wsObject.data.data.account_id)
             setAgent({
-              accountId: wsObject.data.data.account_id,
+              account_id: wsObject.data.data.account_id,
               symbol: wsObject.data.data.symbol,
               headquarters: wsObject.data.data.headquarters,
               credits: wsObject.data.data.credits,
-              startingFaction: wsObject.data.data.starting_faction,
-              shipCount: wsObject.data.data.ship_count,
+              starting_faction: wsObject.data.data.starting_faction,
+              ship_count: wsObject.data.data.ship_count,
+              created_at: wsObject.data.data.created_at,
             });
           break;
         default:

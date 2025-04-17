@@ -2,7 +2,7 @@ use log::debug;
 
 use crate::{error::Error, manager::fleet_manager::message::RequiredShips};
 
-use super::{routes::PossibleTradeRoute, TradeManagerMessage};
+use super::{routes::PossibleTradeRoute, TradeManager, TradeManagerMessage};
 
 #[derive(Debug, Clone)]
 pub struct TradeManagerMessanger {
@@ -14,7 +14,10 @@ impl TradeManagerMessanger {
         Self { sender }
     }
 
-    pub async fn get_route(&self, ship: &ship::MyShip) -> Result<database::TradeRoute, Error> {
+    pub async fn get_route(
+        &self,
+        ship: &ship::MyShip,
+    ) -> Result<Option<database::TradeRoute>, Error> {
         debug!("Requesting next trade route for ship {}", ship.symbol);
         let (sender, receiver) = tokio::sync::oneshot::channel();
 
@@ -63,15 +66,11 @@ impl TradeManagerMessanger {
         resp
     }
 
-    pub async fn get_ships(&self) -> Result<RequiredShips, crate::error::Error> {
-        let (tx, rx) = tokio::sync::oneshot::channel();
-        self.sender
-            .send(TradeManagerMessage::GetShips { callback: tx })
-            .await
-            .map_err(|e| crate::error::Error::General(format!("Failed to send message: {}", e)))
-            .unwrap();
-        rx.await
-            .map_err(|e| crate::error::Error::General(format!("Failed to receive message: {}", e)))
+    pub async fn get_ships(
+        &self,
+        context: &crate::utils::ConductorContext,
+    ) -> Result<RequiredShips, crate::error::Error> {
+        TradeManager::get_required_ships(context).await
     }
 
     pub(crate) async fn get_trades(&self) -> Result<Vec<PossibleTradeRoute>, crate::error::Error> {

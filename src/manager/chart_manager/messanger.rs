@@ -1,6 +1,9 @@
 use crate::manager::fleet_manager::message::RequiredShips;
 
-use super::messages::{ChartManagerMessage, NextChartResp};
+use super::{
+    messages::{ChartManagerMessage, NextChartResp},
+    ChartManager,
+};
 
 #[derive(Debug, Clone)]
 pub struct ChartManagerMessanger {
@@ -52,14 +55,10 @@ impl ChartManagerMessanger {
         Ok(())
     }
 
-    pub async fn get_ships(&self) -> Result<RequiredShips, crate::error::Error> {
-        let (tx, rx) = tokio::sync::oneshot::channel();
-        self.sender
-            .send(ChartManagerMessage::GetShips { callback: tx })
-            .await
-            .map_err(|e| crate::error::Error::General(format!("Failed to send message: {}", e)))
-            .unwrap();
-        rx.await
-            .map_err(|e| crate::error::Error::General(format!("Failed to receive message: {}", e)))
+    pub async fn get_ships(
+        &self,
+        context: &crate::utils::ConductorContext,
+    ) -> Result<RequiredShips, crate::error::Error> {
+        ChartManager::get_required_ships(context).await
     }
 }

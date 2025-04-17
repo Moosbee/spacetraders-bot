@@ -153,23 +153,19 @@ impl ConstructionManager {
             ConstructionMessage::GetRunning { callback } => {
                 callback.send(Ok(self.running_shipments.clone())).unwrap();
             }
-            ConstructionMessage::GetShips { callback } => {
-                callback.send(self.get_required_ships().await?).unwrap();
-            }
         }
 
         Ok(())
     }
 
-    async fn get_required_ships(&self) -> Result<RequiredShips> {
+    pub async fn get_required_ships(context: &ConductorContext) -> Result<RequiredShips> {
         // we need one transporter(39+ cargo space) in our headquarters as long as their are unfinished constructions in the main system
         let db_ships = database::ShipInfo::get_by_role(
-            &self.context.database_pool,
+            &context.database_pool,
             &database::ShipInfoRole::Construction,
         )
         .await?;
-        let all_ships = self
-            .context
+        let all_ships = context
             .ship_manager
             .get_all_clone()
             .await
@@ -181,10 +177,10 @@ impl ConstructionManager {
             })
             .collect::<Vec<_>>();
 
-        let headquarters = { self.context.run_info.read().await.headquarters.clone() };
+        let headquarters = { context.run_info.read().await.headquarters.clone() };
 
         let headquarter_constructions =
-            database::Waypoint::get_by_system(&self.context.database_pool, &headquarters)
+            database::Waypoint::get_by_system(&context.database_pool, &headquarters)
                 .await?
                 .into_iter()
                 .filter(|w| w.is_under_construction)

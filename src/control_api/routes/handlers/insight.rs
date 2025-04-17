@@ -76,7 +76,7 @@ pub async fn handle_get_ships_to_purchase(context: ConductorContext) -> Result<i
     debug!("Getting ships to purchase");
     let scrap_ships = context
         .scrapping_manager
-        .get_ships()
+        .get_ships(&context)
         .await
         .map_err(|e| ServerError::Server(e.to_string()))?;
 
@@ -84,7 +84,7 @@ pub async fn handle_get_ships_to_purchase(context: ConductorContext) -> Result<i
 
     let trading_ships = context
         .trade_manager
-        .get_ships()
+        .get_ships(&context)
         .await
         .map_err(|e| ServerError::Server(e.to_string()))?;
 
@@ -92,7 +92,7 @@ pub async fn handle_get_ships_to_purchase(context: ConductorContext) -> Result<i
 
     let mining_ships = context
         .mining_manager
-        .get_ships()
+        .get_ships(&context)
         .await
         .map_err(|e| ServerError::Server(e.to_string()))?;
 
@@ -100,7 +100,7 @@ pub async fn handle_get_ships_to_purchase(context: ConductorContext) -> Result<i
 
     let construction_ships = context
         .construction_manager
-        .get_ships()
+        .get_ships(&context)
         .await
         .map_err(|e| ServerError::Server(e.to_string()))?;
 
@@ -108,7 +108,7 @@ pub async fn handle_get_ships_to_purchase(context: ConductorContext) -> Result<i
 
     let chart_ships = context
         .chart_manager
-        .get_ships()
+        .get_ships(&context)
         .await
         .map_err(|e| ServerError::Server(e.to_string()))?;
 
@@ -116,7 +116,7 @@ pub async fn handle_get_ships_to_purchase(context: ConductorContext) -> Result<i
 
     let contract_ships = context
         .contract_manager
-        .get_ships()
+        .get_ships(&context)
         .await
         .map_err(|e| ServerError::Server(e.to_string()))?;
 

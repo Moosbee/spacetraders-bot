@@ -1,4 +1,4 @@
-import { Button, Flex, List, Space } from "antd";
+import { Button, Flex, List, Space, Spin } from "antd";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import PageTitle from "../features/PageTitle";
@@ -9,12 +9,16 @@ export default function ShipsToPurchase() {
   const [requiredShips, setRequiredShips] =
     useState<ShipManagementResponse | null>();
 
+  const [loading, setLoading] = useState(false);
+
   useEffect(() => {
+    setLoading(true);
     fetch(`http://${backendUrl}/insights/ship/discrepancy`)
       .then((response) => response.json())
       .then((data) => {
         console.log("/insights/ship/discrepancy", data);
 
+        setLoading(false);
         setRequiredShips(data);
       });
   }, []);
@@ -45,17 +49,20 @@ export default function ShipsToPurchase() {
         </h1>
         <Button
           onClick={() => {
+            setLoading(true);
             fetch(`http://${backendUrl}/insights/ship/discrepancy`)
               .then((response) => response.json())
               .then((data) => {
                 console.log("/insights/ship/discrepancy", data);
 
+                setLoading(false);
                 setRequiredShips(data);
               });
           }}
         >
           Refresh
         </Button>
+        <Spin spinning={loading} />
       </Space>
       <Flex gap={24} align="center" justify="center">
         <List

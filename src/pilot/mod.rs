@@ -1,7 +1,7 @@
 mod charting;
 mod construction;
 mod contract;
-mod mining;
+pub mod mining;
 mod scraper;
 mod trading;
 mod transfer;

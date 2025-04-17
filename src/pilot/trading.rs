@@ -1,6 +1,7 @@
 use std::sync::{atomic::AtomicI32, Arc};
 
 use log::{debug, info};
+use tokio::select;
 
 use crate::{
     error::{Error, Result},
@@ -33,11 +34,20 @@ impl TradingPilot {
             cycle: None,
             shipping_status: None,
             waiting_for_manager: true,
+            on_sleep: false,
         };
 
         ship.notify().await;
 
         let route = self.context.trade_manager.get_route(ship).await?;
+
+        if route.is_none() {
+            self.wait(ship, pilot).await?;
+            return Ok(());
+        }
+
+        let route = route.unwrap();
+
         self.count.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
 
         ship.status = ship::ShipStatus::Trader {
@@ -45,6 +55,7 @@ impl TradingPilot {
             cycle: Some(self.count.load(std::sync::atomic::Ordering::SeqCst)),
             shipping_status: Some(ship::ShippingStatus::InTransitToPurchase),
             waiting_for_manager: false,
+            on_sleep: false,
         };
 
         ship.notify().await;
@@ -57,6 +68,7 @@ impl TradingPilot {
             cycle: None,
             shipping_status: None,
             waiting_for_manager: false,
+            on_sleep: false,
         };
         if ship.role == database::ShipInfoRole::TempTrader {
             ship.role = database::ShipInfoRole::Manuel;
@@ -64,6 +76,21 @@ impl TradingPilot {
 
         ship.notify().await;
 
+        Ok(())
+    }
+    async fn wait(&self, ship: &mut ship::MyShip, pilot: &crate::pilot::Pilot) -> Result<()> {
+        ship.status = ship::ShipStatus::Trader {
+            shipment_id: None,
+            cycle: None,
+            shipping_status: None,
+            waiting_for_manager: false,
+            on_sleep: true,
+        };
+        ship.notify().await;
+        select! {
+            _=pilot.cancellation_token.cancelled() => (),
+            _=tokio::time::sleep(std::time::Duration::from_millis(60_000+ rand::random::<u64>() % 1_000)) => (),
+        }
         Ok(())
     }
 
@@ -105,6 +132,7 @@ impl TradingPilot {
             cycle: Some(self.count.load(std::sync::atomic::Ordering::SeqCst)),
             shipping_status: Some(ship::ShippingStatus::InTransitToPurchase),
             waiting_for_manager: false,
+            on_sleep: false,
         };
 
         ship.notify().await;
@@ -128,6 +156,7 @@ impl TradingPilot {
                 cycle: Some(self.count.load(std::sync::atomic::Ordering::SeqCst)),
                 shipping_status: Some(ship::ShippingStatus::Purchasing),
                 waiting_for_manager: false,
+                on_sleep: false,
             };
 
             ship.notify().await;
@@ -195,6 +224,7 @@ impl TradingPilot {
             cycle: Some(self.count.load(std::sync::atomic::Ordering::SeqCst)),
             shipping_status: Some(ship::ShippingStatus::InTransitToDelivery),
             waiting_for_manager: false,
+            on_sleep: false,
         };
 
         ship.notify().await;
@@ -214,6 +244,7 @@ impl TradingPilot {
             cycle: Some(self.count.load(std::sync::atomic::Ordering::SeqCst)),
             shipping_status: Some(ship::ShippingStatus::Delivering),
             waiting_for_manager: false,
+            on_sleep: false,
         };
 
         ship.notify().await;

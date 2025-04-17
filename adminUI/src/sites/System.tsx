@@ -9,7 +9,7 @@ import {
   Table,
   TableProps,
 } from "antd";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import PageTitle from "../features/PageTitle";
 import WaypointLink from "../features/WaypointLink";
@@ -36,6 +36,28 @@ function System() {
   const setWaypoints = useMyStore((state) => state.setSystem);
 
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    fetch(`http://${backendUrl}/systems/${systemID}`)
+      .then((response) => response.json())
+      .then((data: SystemResp) => {
+        const system = data.system;
+        const waypoints_date = data.waypoints;
+        const waypoints = waypoints_date.map((waypoint) => {
+          const sql_wp = waypoint.waypoint;
+
+          sql_wp.trade_goods = waypoint.trade_goods.map((good) => {
+            return {
+              symbol: good.symbol,
+              type: good.type,
+            };
+          });
+
+          return sql_wp;
+        });
+        setWaypoints(system, waypoints);
+      });
+  }, [setWaypoints, systemID]);
 
   const Waypoints = System?.waypoints || [];
 

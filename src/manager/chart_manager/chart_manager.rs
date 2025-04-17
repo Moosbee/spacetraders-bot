@@ -85,22 +85,15 @@ impl ChartManager {
             super::messages::ChartMessage::Success { waypoint_symbol } => {
                 self.success_chart(waypoint_symbol)
             }
-            super::messages::ChartMessage::GetShips { callback } => {
-                let resp = self.get_required_ships().await?;
-                callback
-                    .send(resp)
-                    .map_err(|e| Error::General(format!("Failed to send message: {:?}", e)))?
-            }
         }
 
         Ok(())
     }
 
-    async fn get_required_ships(&self) -> Result<RequiredShips> {
+    pub async fn get_required_ships(context: &ConductorContext) -> Result<RequiredShips> {
         // we need a probe in every system, that has uncharted waypoints and to which we have a jump gate connection
 
-        let all_ships = self
-            .context
+        let all_ships = context
             .ship_manager
             .get_all_clone()
             .await
@@ -139,7 +132,7 @@ impl ChartManager {
         let mut to_visit_systems = all_systems.iter().cloned().collect::<Vec<_>>();
         while let Some(system) = to_visit_systems.pop() {
             reachable_systems.insert(system.clone());
-            let waypoints = database::Waypoint::get_by_system(&self.context.database_pool, &system)
+            let waypoints = database::Waypoint::get_by_system(&context.database_pool, &system)
                 .await?
                 .into_iter()
                 .filter(|w| w.is_jump_gate())
@@ -150,16 +143,14 @@ impl ChartManager {
                     continue;
                 }
                 let connections = database::JumpGateConnection::get_all_from(
-                    &self.context.database_pool,
+                    &context.database_pool,
                     &waypoint.symbol,
                 )
                 .await?;
                 for connection in connections.iter() {
-                    let wp = database::Waypoint::get_by_symbol(
-                        &self.context.database_pool,
-                        &connection.to,
-                    )
-                    .await?;
+                    let wp =
+                        database::Waypoint::get_by_symbol(&context.database_pool, &connection.to)
+                            .await?;
                     if let Some(wp) = wp {
                         if !reachable_systems.contains(&wp.system_symbol)
                             && !to_visit_systems.contains(&wp.system_symbol)
@@ -176,7 +167,7 @@ impl ChartManager {
 
         for system in reachable_systems.iter() {
             let waypoints =
-                database::Waypoint::get_by_system(&self.context.database_pool, system).await?;
+                database::Waypoint::get_by_system(&context.database_pool, system).await?;
             let has_uncharted = waypoints.iter().any(|w| !w.is_charted());
             if has_uncharted && !with_chart.contains(system) {
                 needed_ships.insert(

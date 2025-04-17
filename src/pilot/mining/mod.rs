@@ -57,19 +57,27 @@ impl MiningPilot {
     }
 
     async fn assign_ships(&self, ship: &mut ship::MyShip) {
-        let ship_capabilities = self.analyze_ship_capabilities(ship);
+        ship.status = ship::ShipStatus::Mining {
+            assignment: Self::get_ship_assignment(ship),
+        };
 
-        ship.status = match ship_capabilities {
+        debug!("Assigning role {:?} to ship {}", ship.role, ship.symbol);
+
+        // ship.notify().await;
+    }
+
+    pub fn get_ship_assignment(ship: &ship::MyShip) -> MiningShipAssignment {
+        let ship_capabilities = Self::analyze_ship_capabilities(ship);
+
+        match ship_capabilities {
             ShipCapabilities {
                 can_extract: true,
                 can_cargo: true,
                 ..
-            } => ship::ShipStatus::Mining {
-                assignment: MiningShipAssignment::Extractor {
-                    state: Default::default(),
-                    waypoint_symbol: None,
-                    extractions: None,
-                },
+            } => MiningShipAssignment::Extractor {
+                state: Default::default(),
+                waypoint_symbol: None,
+                extractions: None,
             },
 
             ShipCapabilities {
@@ -77,40 +85,29 @@ impl MiningPilot {
                 can_siphon: true,
                 can_cargo: true,
                 ..
-            } => ship::ShipStatus::Mining {
-                assignment: MiningShipAssignment::Siphoner {
-                    state: Default::default(),
-                    waypoint_symbol: None,
-                    extractions: None,
-                },
+            } => MiningShipAssignment::Siphoner {
+                state: Default::default(),
+                waypoint_symbol: None,
+                extractions: None,
             },
 
             ShipCapabilities {
                 can_survey: true, ..
-            } => ship::ShipStatus::Mining {
-                assignment: MiningShipAssignment::Surveyor,
-            },
+            } => MiningShipAssignment::Surveyor,
 
             ShipCapabilities {
                 can_cargo: true, ..
-            } => ship::ShipStatus::Mining {
-                assignment: MiningShipAssignment::Transporter {
-                    state: Default::default(),
-                    waypoint_symbol: None,
-                    cycles: None,
-                },
+            } => MiningShipAssignment::Transporter {
+                state: Default::default(),
+                waypoint_symbol: None,
+                cycles: None,
             },
 
-            _ => ship::ShipStatus::Mining {
-                assignment: MiningShipAssignment::Useless,
-            },
-        };
-
-        debug!("Assigning role {:?} to ship {}", ship.role, ship.symbol);
-
-        // ship.notify().await;
+            _ => MiningShipAssignment::Useless,
+        }
     }
-    fn analyze_ship_capabilities(&self, ship: &ship::MyShip) -> ShipCapabilities {
+
+    fn analyze_ship_capabilities(ship: &ship::MyShip) -> ShipCapabilities {
         ShipCapabilities {
             can_extract: ship.mounts.can_extract(),
             can_siphon: ship.mounts.can_siphon(),

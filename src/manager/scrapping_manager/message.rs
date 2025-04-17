@@ -44,9 +44,6 @@ pub enum ScrapMessage {
 
         callback: tokio::sync::oneshot::Sender<Vec<(String, chrono::DateTime<chrono::Utc>)>>,
     },
-    GetShips {
-        callback: tokio::sync::oneshot::Sender<RequiredShips>,
-    },
 }
 
 impl std::fmt::Display for ScrapMessage {
@@ -72,7 +69,6 @@ impl std::fmt::Display for ScrapMessage {
                 ship_clone.symbol, waypoint_symbol
             ),
             ScrapMessage::GetAll { .. } => write!(f, "ScrapMessage::GetAll"),
-            ScrapMessage::GetShips { .. } => write!(f, "ScrapMessage::GetShips"),
         }
     }
 }

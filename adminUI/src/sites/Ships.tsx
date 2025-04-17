@@ -99,6 +99,11 @@ function Ships() {
           if (a.status.type === "Trader" && b.status.type === "Trader") {
             return a.symbol.localeCompare(b.symbol);
           }
+          if (a.status.type === "Transfer" && b.status.type === "Transfer") {
+            const num1 = a.status.data.role ?? "Transfer";
+            const num2 = b.status.data.role ?? "Transfer";
+            return num1.localeCompare(num2);
+          }
         }
         return num;
       },

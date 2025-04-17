@@ -106,31 +106,43 @@ impl MiningManager {
                 let places = self.waypoint_manager.get_all_places();
                 callback.send(Ok(places)).unwrap();
             }
-            MiningMessage::GetShips { callback } => {
-                let ships = self.get_required_ships().await?;
-                callback.send(ships).unwrap();
-            }
         }
         Ok(())
     }
 
-    async fn get_required_ships(&self) -> Result<RequiredShips> {
-        let all_ships = self
-            .context
+    pub async fn get_required_ships(context: &ConductorContext) -> Result<RequiredShips> {
+        let all_ships = context
             .ship_manager
             .get_all_clone()
             .await
             .into_values()
-            .filter(|ship| ship.role == database::ShipInfoRole::Mining)
-            .filter_map(|ship| match ship.status {
-                ship::ShipStatus::Mining { assignment } => Some((
-                    ship.nav.system_symbol.clone(),
+            .filter(|ship| {
+                ship.role == database::ShipInfoRole::Mining
+                    || match &ship.status {
+                        ship::ShipStatus::Transfer { role, .. } => {
+                            role == &Some(database::ShipInfoRole::Mining)
+                        }
+                        _ => false,
+                    }
+            })
+            .map(|ship| {
+                let assignment = crate::pilot::mining::MiningPilot::get_ship_assignment(&ship);
+                let system = match &ship.role {
+                    database::ShipInfoRole::Transfer => match &ship.status {
+                        ship::ShipStatus::Transfer { system_symbol, .. } => {
+                            system_symbol.clone().unwrap_or_default()
+                        }
+                        _ => ship.nav.system_symbol.clone(),
+                    },
+                    _ => ship.nav.system_symbol.clone(),
+                };
+                (
+                    system,
                     ship.symbol,
                     ship.role,
                     assignment,
                     ship.cargo.capacity,
-                )),
-                _ => None,
+                )
             })
             .collect::<Vec<_>>();
 
@@ -164,7 +176,7 @@ impl MiningManager {
 
         for (system, ships) in systems {
             let system_waypoints =
-                database::Waypoint::get_by_system(&self.context.database_pool, &system).await?;
+                database::Waypoint::get_by_system(&context.database_pool, &system).await?;
 
             let gas_count = system_waypoints
                 .iter()

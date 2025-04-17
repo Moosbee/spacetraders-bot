@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use database::{DatabaseConnector, ShipInfo};
 use log::debug;
+use rand::seq::index;
 use space_traders_client::models;
 use utils::get_system_symbol;
 
@@ -128,9 +129,6 @@ impl FleetManager {
         _ship_symbol: &str,
     ) -> Result<()> {
         // return Ok(());
-        if self.needs_update() {
-            self.update_required_ships().await?
-        }
 
         let pathfinder = ship::autopilot::jump_gate_nav::JumpPathfinder::new(
             ship::autopilot::jump_gate_nav::generate_all_connections(&self.context.database_pool)
@@ -149,11 +147,15 @@ impl FleetManager {
         .map(|t| (t.waypoint_symbol.clone(), t.purchase_price))
         .collect();
 
-        let count = 1;
+        let count = 5;
 
         debug!("Buying ships at {}", waypoint_symbol);
 
         for _ in 0..count {
+            if self.needs_update() {
+                self.update_required_ships().await?
+            }
+
             let locations = self
                 .get_purchase_locations(&pathfinder, &antimatter_prices)
                 .await?;
@@ -181,12 +183,20 @@ impl FleetManager {
                     "Found ship to purchase at {} with price {} and priority {:?}: {:?} for system {}",
                     waypoint_symbol, predicted_price, priority, ship_type, system_symbol
                 );
+
                 let ship = self
                     .purchase_ship(
                         ship_type,
                         waypoint_symbol,
                         database::ShipInfoRole::Transfer,
                         true,
+                        |ship| {
+                            ship.status = ship::ShipStatus::Transfer {
+                                id: None,
+                                system_symbol: Some(system_symbol.clone()),
+                                role: Some(*ship_role),
+                            };
+                        },
                     )
                     .await?;
 
@@ -198,6 +208,7 @@ impl FleetManager {
                     finished: false,
                 };
                 database::ShipTransfer::insert_new(&self.context.database_pool, &transfer).await?;
+                self.is_dirty = true;
             }
         }
 
@@ -233,7 +244,7 @@ impl FleetManager {
 
         for system in required_ships {
             for ship in system.1.iter() {
-                let best_shipyard = self
+                let best_shipyards = self
                     .get_best_shipyard(
                         &system.0,
                         (ship.0, ship.1, ship.2, ship.3),
@@ -244,8 +255,10 @@ impl FleetManager {
                     )
                     .await?;
 
-                if let Some((shipyard_symbol, ship_type, budget, priority, ship_role)) =
-                    best_shipyard
+                let len = best_shipyards.len();
+
+                for (index, (shipyard_symbol, ship_type, budget, priority, ship_role)) in
+                    best_shipyards.into_iter().enumerate()
                 {
                     ships.push((
                         shipyard_symbol,
@@ -254,6 +267,8 @@ impl FleetManager {
                         priority,
                         ship_role,
                         system.0.clone(),
+                        index,
+                        len,
                     ));
                 }
             }
@@ -272,7 +287,13 @@ impl FleetManager {
             )>,
         > = HashMap::new();
 
-        for (shipyard_symbol, ship_type, budget, priority, ship_role, system_symbol) in ships {
+        for (shipyard_symbol, ship_type, budget, priority, ship_role, system_symbol, index, len) in
+            ships
+        {
+            if index > 3 {
+                continue;
+            }
+
             if !map.contains_key(&shipyard_symbol) {
                 map.insert(shipyard_symbol.clone(), Vec::new());
             }
@@ -302,7 +323,7 @@ impl FleetManager {
         pathfinder: &ship::autopilot::jump_gate_nav::JumpPathfinder,
         antimatter_prices: &HashMap<String, i32>,
     ) -> Result<
-        Option<(
+        Vec<(
             String,
             models::ShipType,
             i32,
@@ -365,15 +386,18 @@ impl FleetManager {
 
         ships.sort_by(|a, b| a.2.cmp(&b.2));
 
-        let first = ships.first().map(|f| {
-            (
-                f.0.waypoint_symbol.clone(),
-                f.0.ship_type,
-                f.2,
-                ship.1,
-                ship.3,
-            )
-        });
+        let first = ships
+            .into_iter()
+            .map(|f| {
+                (
+                    f.0.waypoint_symbol.clone(),
+                    f.0.ship_type,
+                    f.2,
+                    ship.1,
+                    ship.3,
+                )
+            })
+            .collect::<Vec<_>>();
 
         Ok(first)
     }
@@ -383,17 +407,29 @@ impl FleetManager {
     }
 
     async fn update_required_ships(&mut self) -> Result<()> {
-        let scrap_ships = self.context.scrapping_manager.get_ships().await?;
+        let scrap_ships = self
+            .context
+            .scrapping_manager
+            .get_ships(&self.context)
+            .await?;
 
-        let trading_ships = self.context.trade_manager.get_ships().await?;
+        let trading_ships = self.context.trade_manager.get_ships(&self.context).await?;
 
-        let mining_ships = self.context.mining_manager.get_ships().await?;
+        let mining_ships = self.context.mining_manager.get_ships(&self.context).await?;
 
-        let construction_ships = self.context.construction_manager.get_ships().await?;
+        let construction_ships = self
+            .context
+            .construction_manager
+            .get_ships(&self.context)
+            .await?;
 
-        let chart_ships = self.context.chart_manager.get_ships().await?;
+        let chart_ships = self.context.chart_manager.get_ships(&self.context).await?;
 
-        let contract_ships = self.context.contract_manager.get_ships().await?;
+        let contract_ships = self
+            .context
+            .contract_manager
+            .get_ships(&self.context)
+            .await?;
 
         self.required_ships = scrap_ships
             + trading_ships
@@ -442,6 +478,7 @@ impl FleetManager {
         waypoint_symbol: &str,
         role: database::ShipInfoRole,
         active: bool,
+        start_fn: impl Fn(&mut ship::MyShip),
     ) -> Result<(ShipInfo, database::ShipyardTransaction)> {
         let purchase_ship_request =
             models::PurchaseShipRequest::new(*ship_type, waypoint_symbol.to_string());
@@ -483,6 +520,10 @@ impl FleetManager {
         let ship_info = ship_i
             .apply_from_db(self.context.database_pool.clone())
             .await?;
+
+        start_fn(&mut ship_i);
+
+        ship_i.notify().await;
 
         ship::ShipManager::add_ship(&self.context.ship_manager, ship_i).await;
 

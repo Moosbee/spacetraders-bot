@@ -50,8 +50,8 @@ impl ScrappingManager {
             context,
             receiver,
             scrap_waypoints: HashMap::new(),
-            max_update_interval: 60 * 10,
-            // max_update_interval: 60 * 25,
+            // max_update_interval: 60 * 10,
+            max_update_interval: 60 * 25,
             // max_update_interval: 60 * 20,
         }
     }
@@ -202,43 +202,52 @@ impl ScrappingManager {
                         crate::error::Error::General(format!("Failed to send message: {:?}", e))
                     })?
             }
-            super::message::ScrapMessage::GetShips { callback } => {
-                let ships = self.get_required_ships().await?;
-                callback.send(ships).map_err(|e| {
-                    crate::error::Error::General(format!("Failed to send message: {:?}", e))
-                })?
-            }
         }
 
         Ok(())
     }
 
-    async fn get_required_ships(&self) -> Result<RequiredShips> {
-        let all_ships = self
-            .context
-            .ship_manager
-            .get_all_clone()
-            .await
-            .into_values()
-            .filter(|ship| ship.role == database::ShipInfoRole::Scraper)
-            .map(|s| (s.nav.system_symbol.clone(), s.symbol))
-            .collect::<Vec<_>>();
+    pub async fn get_required_ships(context: &ConductorContext) -> Result<RequiredShips> {
+        let all_ships = context.ship_manager.get_all_clone().await;
 
         let mut systems: HashMap<String, Vec<String>> = HashMap::new();
 
-        for s in all_ships {
-            let system = systems.get_mut(&s.0);
+        for s in all_ships.into_values() {
+            let is_scrapper = s.role == database::ShipInfoRole::Scraper
+                || (s.role == database::ShipInfoRole::Transfer
+                    && match &s.status {
+                        ship::ShipStatus::Transfer { role, .. } => {
+                            role == &Some(database::ShipInfoRole::Scraper)
+                        }
+                        _ => false,
+                    });
+
+            if !is_scrapper {
+                continue;
+            }
+
+            let system_str = match &s.role {
+                database::ShipInfoRole::Transfer => match &s.status {
+                    ship::ShipStatus::Transfer { system_symbol, .. } => {
+                        system_symbol.clone().unwrap_or_default()
+                    }
+                    _ => s.nav.system_symbol.clone(),
+                },
+                _ => s.nav.system_symbol.clone(),
+            };
+
+            let system = systems.get_mut(&system_str);
             if let Some(system) = system {
-                system.push(s.1);
+                system.push(s.symbol);
             } else {
-                systems.insert(s.0, vec![s.1]);
+                systems.insert(system_str, vec![s.symbol]);
             }
         }
 
         let mut required_ships = RequiredShips::new();
 
         for (system, ships) in systems {
-            let waypoints = database::Waypoint::get_by_system(&self.context.database_pool, &system)
+            let waypoints = database::Waypoint::get_by_system(&context.database_pool, &system)
                 .await?
                 .into_iter()
                 .filter(|w| w.is_marketplace() || w.is_shipyard())
