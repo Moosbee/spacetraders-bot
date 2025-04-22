@@ -2,7 +2,7 @@ use std::str::FromStr;
 
 use database::DatabaseConnector;
 use log::debug;
-use utils::WaypointCan;
+use utils::{distance_between_waypoints, WaypointCan};
 use warp::reply::Reply;
 
 use crate::{
@@ -271,10 +271,31 @@ pub async fn handle_jump_ship(
         .await
         .map_err(ServerError::from)?;
 
+    let start_system = database::System::get_by_id(&context.database_pool, &ship.nav.system_symbol)
+        .await
+        .map_err(ServerError::from)?;
+
+    let before = ship
+        .snapshot(&context.database_pool)
+        .await
+        .map_err(crate::error::Error::from)
+        .map_err(ServerError::from)?;
+    let from = ship.nav.waypoint_symbol.clone();
+
     let jump_data = ship
         .jump(&context.api, &waypoint_symbol)
         .await
         .map_err(crate::error::Error::from)
+        .map_err(ServerError::from)?;
+
+    let after = ship
+        .snapshot(&context.database_pool)
+        .await
+        .map_err(crate::error::Error::from)
+        .map_err(ServerError::from)?;
+
+    let end_system = database::System::get_by_id(&context.database_pool, &ship.nav.system_symbol)
+        .await
         .map_err(ServerError::from)?;
 
     database::Agent::insert(
@@ -289,6 +310,30 @@ pub async fn handle_jump_ship(
             .map_err(ServerError::from)?
             .with(database::TransactionReason::None);
     database::MarketTransaction::insert(&context.database_pool, &transaction)
+        .await
+        .map_err(ServerError::from)?;
+
+    let distance = if let Some(st_system) = start_system {
+        if let Some(en_system) = end_system {
+            distance_between_waypoints((&st_system).into(), (&en_system).into())
+        } else {
+            0.0
+        }
+    } else {
+        0.0
+    };
+
+    let ship_jump = database::ShipJump {
+        id: 0,
+        ship_symbol: ship.symbol.clone(),
+        from,
+        to: ship.nav.waypoint_symbol.clone(),
+        distance: distance as i64,
+        ship_before: before,
+        ship_after: after,
+    };
+
+    database::ShipJump::insert(&context.database_pool, &ship_jump)
         .await
         .map_err(ServerError::from)?;
 

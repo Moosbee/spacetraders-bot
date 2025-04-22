@@ -12,6 +12,17 @@ pub struct System {
     // pub factions: Vec<String>,
 }
 
+impl From<System> for (i32, i32) {
+    fn from(value: System) -> Self {
+        (value.x, value.y)
+    }
+}
+impl From<&System> for (i32, i32) {
+    fn from(value: &System) -> Self {
+        (value.x, value.y)
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, serde::Serialize)]
 pub struct RespSystem {
     pub symbol: String,

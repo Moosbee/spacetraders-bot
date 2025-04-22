@@ -113,7 +113,11 @@ impl MyShip {
 
         self.ensure_undocked(api).await?;
 
+        let before = self.snapshot(database_pool).await?;
+
         let jump_data = self.jump(api, &connection.end_symbol).await?;
+
+        let after = self.snapshot(database_pool).await?;
 
         database::Agent::insert(
             database_pool,
@@ -125,6 +129,18 @@ impl MyShip {
             database::MarketTransaction::try_from(jump_data.data.transaction.as_ref().clone())?
                 .with(reason.clone());
         database::MarketTransaction::insert(database_pool, &transaction).await?;
+
+        let ship_jump = database::ShipJump {
+            id: 0,
+            ship_symbol: self.symbol.clone(),
+            from: connection.start_symbol,
+            to: connection.end_symbol,
+            distance: connection.distance.round() as i64,
+            ship_before: before,
+            ship_after: after,
+        };
+
+        database::ShipJump::insert(database_pool, &ship_jump).await?;
 
         Ok(())
     }

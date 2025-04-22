@@ -30,6 +30,7 @@ mod reactor_info;
 
 mod extraction;
 mod jump_gate_connection;
+mod ship_jump;
 mod ship_state;
 mod ship_transfer;
 
@@ -54,6 +55,7 @@ pub use reactor_info::ReactorInfo;
 pub use route::Route;
 pub use ship_info::ShipInfo;
 pub use ship_info::ShipInfoRole;
+pub use ship_jump::ShipJump;
 pub use ship_state::ShipState;
 pub use ship_transfer::ShipTransfer;
 pub use shipyard::Shipyard;
