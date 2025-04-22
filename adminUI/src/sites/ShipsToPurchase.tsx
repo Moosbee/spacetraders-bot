@@ -22,6 +22,7 @@ export default function ShipsToPurchase() {
         setRequiredShips(data);
       });
   }, []);
+
   return (
     <div style={{ padding: "24px 24px" }}>
       <PageTitle title="Ships to Purchase" />
@@ -152,8 +153,8 @@ export default function ShipsToPurchase() {
           dataSource={Object.entries(requiredShips?.scrap.ships ?? {})}
           renderItem={(ship) => (
             <List.Item>
-              <Link to={`/system/${ship[0]}`}>{ship[0]}</Link>:
-              <List
+              <Link to={`/system/${ship[0]}`}>{ship[0]}</Link>: {ship[1].length}
+              {/* <List
                 size="small"
                 dataSource={ship[1]}
                 renderItem={(ship) => (
@@ -161,7 +162,7 @@ export default function ShipsToPurchase() {
                     {ship[0]} {ship[1]} {ship[2]}
                   </List.Item>
                 )}
-              />
+              /> */}
             </List.Item>
           )}
         />

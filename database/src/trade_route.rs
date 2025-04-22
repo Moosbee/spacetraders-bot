@@ -69,6 +69,7 @@ impl std::fmt::Display for TradeRoute {
             self.purchase_waypoint,
             self.sell_waypoint,
             self.trade_volume * self.predicted_sell_price
+                - self.predicted_purchase_price * self.trade_volume
         )
     }
 }

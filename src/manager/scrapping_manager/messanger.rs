@@ -76,11 +76,4 @@ impl ScrappingManagerMessanger {
         rx.await
             .map_err(|e| crate::error::Error::General(format!("Failed to receive message: {}", e)))
     }
-
-    pub async fn get_ships(
-        &self,
-        context: &crate::utils::ConductorContext,
-    ) -> Result<RequiredShips, crate::error::Error> {
-        ScrappingManager::get_required_ships(context).await
-    }
 }

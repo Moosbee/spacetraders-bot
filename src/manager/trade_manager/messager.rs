@@ -66,13 +66,6 @@ impl TradeManagerMessanger {
         resp
     }
 
-    pub async fn get_ships(
-        &self,
-        context: &crate::utils::ConductorContext,
-    ) -> Result<RequiredShips, crate::error::Error> {
-        TradeManager::get_required_ships(context).await
-    }
-
     pub(crate) async fn get_trades(&self) -> Result<Vec<PossibleTradeRoute>, crate::error::Error> {
         let (tx, rx) = tokio::sync::oneshot::channel();
         self.sender

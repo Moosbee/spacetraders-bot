@@ -112,15 +112,17 @@ impl TradeManager {
         Ok(())
     }
 
-    pub async fn get_required_ships(context: &ConductorContext) -> Result<RequiredShips> {
-        let all_ships = context
-            .ship_manager
-            .get_all_clone()
-            .await
-            .into_values()
-            // .filter(|ship| ship.role == database::ShipInfoRole::Scraper)
-            // .map(|s| (s.nav.system_symbol.clone(), s.symbol, s.role))
-            .collect::<Vec<_>>();
+    pub fn get_required_ships(
+        all_ships: &[ship::MyShip],
+        all_systems_hashmap: &HashMap<String, HashMap<String, database::Waypoint>>,
+    ) -> Result<RequiredShips> {
+        // let all_ships = context
+        //     .ship_manager
+        //     .get_all_clone()
+        //     .await
+        //     .into_values()
+        //     .collect::<Vec<_>>();
+        // let all_systems_hashmap: HashMap<String, HashMap<String, database::Waypoint>> = database::Waypoint::get_hash_map(&context.database_pool).await?;
 
         let mut systems: HashMap<String, Vec<String>> = HashMap::new();
 
@@ -156,24 +158,24 @@ impl TradeManager {
             let system = systems.get_mut(&system_str);
             if let Some(system) = system {
                 if is_trader {
-                    system.push(s.symbol);
+                    system.push(s.symbol.clone());
                 }
             } else if is_trader {
-                systems.insert(system_str, vec![s.symbol]);
+                systems.insert(system_str, vec![s.symbol.clone()]);
             } else if is_scrapper {
                 systems.insert(system_str, vec![]);
             }
         }
 
         let mut required_ships = RequiredShips::new();
+        const MARKETS_PER_SHIP: i64 = 5;
 
         for (system, ships) in systems {
-            let waypoints = database::Waypoint::get_by_system(&context.database_pool, &system)
-                .await?
-                .into_iter()
-                .filter(|w| w.is_marketplace())
-                .count();
-            let diff = ((waypoints / 5) as i64) - (ships.len() as i64);
+            let waypoints = all_systems_hashmap
+                .get(&system)
+                .map(|s| s.values().filter(|w| w.is_marketplace()).count())
+                .unwrap_or(0);
+            let diff = ((waypoints as i64) / MARKETS_PER_SHIP) - (ships.len() as i64);
             if diff <= 0 {
                 continue;
             };

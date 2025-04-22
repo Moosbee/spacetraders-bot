@@ -54,11 +54,4 @@ impl ChartManagerMessanger {
             .map_err(|e| crate::error::Error::General(format!("Failed to send message: {}", e)))?;
         Ok(())
     }
-
-    pub async fn get_ships(
-        &self,
-        context: &crate::utils::ConductorContext,
-    ) -> Result<RequiredShips, crate::error::Error> {
-        ChartManager::get_required_ships(context).await
-    }
 }

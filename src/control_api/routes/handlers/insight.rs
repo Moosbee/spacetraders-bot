@@ -1,3 +1,6 @@
+use std::collections::HashMap;
+
+use database::DatabaseConnector;
 use log::debug;
 use warp::reply::Reply;
 
@@ -74,21 +77,47 @@ pub async fn handle_get_scrapping_info(
 
 pub async fn handle_get_ships_to_purchase(context: ConductorContext) -> Result<impl Reply> {
     debug!("Getting ships to purchase");
-    let scrap_ships = context
-        .scrapping_manager
-        .get_ships(&context)
+    let all_ships = context
+        .ship_manager
+        .get_all_clone()
         .await
-        .map_err(|e| ServerError::Server(e.to_string()))?;
+        .into_values()
+        .collect::<Vec<_>>();
 
-    debug!("Got {} scrap ships", scrap_ships.len());
+    let all_systems_hashmap: HashMap<String, HashMap<String, database::Waypoint>> =
+        database::Waypoint::get_hash_map(&context.database_pool)
+            .await
+            .map_err(|e| ServerError::Server(e.to_string()))?;
+    let all_connections: Vec<database::JumpGateConnection> =
+        database::JumpGateConnection::get_all(&context.database_pool)
+            .await
+            .map_err(|e| ServerError::Server(e.to_string()))?;
 
-    let trading_ships = context
-        .trade_manager
-        .get_ships(&context)
-        .await
-        .map_err(|e| ServerError::Server(e.to_string()))?;
+    let mut connection_hash_map: HashMap<String, Vec<database::JumpGateConnection>> =
+        HashMap::new();
 
-    debug!("Got {} trading ships", trading_ships.len());
+    for connection in all_connections {
+        let entry = connection_hash_map
+            .entry(connection.from.clone())
+            .or_default();
+        entry.push(connection);
+    }
+    debug!("Preparation complete");
+    let scrap_ships = crate::manager::scrapping_manager::ScrappingManager::get_required_ships(
+        &all_ships,
+        &all_systems_hashmap,
+    )
+    .map_err(|e| ServerError::Server(e.to_string()))?;
+
+    debug!("Got Scrap ships: {}", scrap_ships.len());
+
+    let trading_ships = crate::manager::trade_manager::TradeManager::get_required_ships(
+        &all_ships,
+        &all_systems_hashmap,
+    )
+    .map_err(|e| ServerError::Server(e.to_string()))?;
+
+    debug!("Got Trading ships: {}", trading_ships.len());
 
     let mining_ships = context
         .mining_manager
@@ -96,7 +125,7 @@ pub async fn handle_get_ships_to_purchase(context: ConductorContext) -> Result<i
         .await
         .map_err(|e| ServerError::Server(e.to_string()))?;
 
-    debug!("Got {} mining ships", mining_ships.len());
+    debug!("Got Mining ships: {}", mining_ships.len());
 
     let construction_ships = context
         .construction_manager
@@ -104,15 +133,16 @@ pub async fn handle_get_ships_to_purchase(context: ConductorContext) -> Result<i
         .await
         .map_err(|e| ServerError::Server(e.to_string()))?;
 
-    debug!("Got {} construction ships", construction_ships.len());
+    debug!("Got Construction ships: {}", construction_ships.len());
 
-    let chart_ships = context
-        .chart_manager
-        .get_ships(&context)
-        .await
-        .map_err(|e| ServerError::Server(e.to_string()))?;
+    let chart_ships = crate::manager::chart_manager::ChartManager::get_required_ships(
+        &all_ships,
+        &all_systems_hashmap,
+        &connection_hash_map,
+    )
+    .map_err(|e| ServerError::Server(e.to_string()))?;
 
-    debug!("Got {} chart ships", chart_ships.len());
+    debug!("Got Chart ships: {}", chart_ships.len());
 
     let contract_ships = context
         .contract_manager
@@ -120,7 +150,7 @@ pub async fn handle_get_ships_to_purchase(context: ConductorContext) -> Result<i
         .await
         .map_err(|e| ServerError::Server(e.to_string()))?;
 
-    debug!("Got {} contract ships", contract_ships.len());
+    debug!("Got Contract ships: {}", contract_ships.len());
 
     Ok(warp::reply::json(&serde_json::json!({
       "chart":chart_ships,

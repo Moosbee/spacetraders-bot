@@ -79,6 +79,7 @@ pub enum ShipType {
     #[sqlx(rename = "SHIP_SURVEYOR")]
     Surveyor,
     #[serde(rename = "SHIP_BULK_FREIGHTER")]
+    #[strum(serialize = "SHIP_BULK_FREIGHTER")]
     #[sqlx(rename = "SHIP_BULK_FREIGHTER")]
     BulkFreighter,
 }

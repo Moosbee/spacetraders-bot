@@ -2,13 +2,15 @@ use std::collections::HashMap;
 
 use database::{DatabaseConnector, ShipInfo};
 use log::debug;
-use rand::seq::index;
 use space_traders_client::models;
 use utils::get_system_symbol;
 
 use crate::{
     error::{Error, Result},
-    manager::{fleet_manager::message::RequiredShips, Manager},
+    manager::{
+        chart_manager::ChartManager, fleet_manager::message::RequiredShips,
+        scrapping_manager::ScrappingManager, trade_manager::TradeManager, Manager,
+    },
     utils::ConductorContext,
 };
 
@@ -151,9 +153,33 @@ impl FleetManager {
 
         debug!("Buying ships at {}", waypoint_symbol);
 
+        let all_ships = self
+            .context
+            .ship_manager
+            .get_all_clone()
+            .await
+            .into_values()
+            .collect::<Vec<_>>();
+
+        let all_systems_hashmap: HashMap<String, HashMap<String, database::Waypoint>> =
+            database::Waypoint::get_hash_map(&self.context.database_pool).await?;
+        let all_connections: Vec<database::JumpGateConnection> =
+            database::JumpGateConnection::get_all(&self.context.database_pool).await?;
+
+        let mut connection_hash_map: HashMap<String, Vec<database::JumpGateConnection>> =
+            HashMap::new();
+
+        for connection in all_connections {
+            let entry = connection_hash_map
+                .entry(connection.from.clone())
+                .or_default();
+            entry.push(connection);
+        }
+
         for _ in 0..count {
             if self.needs_update() {
-                self.update_required_ships().await?
+                self.update_required_ships(&all_ships, &all_systems_hashmap, &connection_hash_map)
+                    .await?
             }
 
             let locations = self
@@ -257,18 +283,24 @@ impl FleetManager {
 
                 let len = best_shipyards.len();
 
-                for (index, (shipyard_symbol, ship_type, budget, priority, ship_role)) in
+                let mut min_price = i32::MAX;
+
+                for (index, (shipyard_symbol, ship_type, purchase_price, priority, ship_role)) in
                     best_shipyards.into_iter().enumerate()
                 {
+                    if purchase_price < min_price {
+                        min_price = purchase_price;
+                    }
                     ships.push((
                         shipyard_symbol,
                         ship_type,
-                        budget,
+                        purchase_price,
                         priority,
                         ship_role,
                         system.0.clone(),
                         index,
                         len,
+                        min_price,
                     ));
                 }
             }
@@ -287,10 +319,19 @@ impl FleetManager {
             )>,
         > = HashMap::new();
 
-        for (shipyard_symbol, ship_type, budget, priority, ship_role, system_symbol, index, len) in
-            ships
+        for (
+            shipyard_symbol,
+            ship_type,
+            purchase_price,
+            priority,
+            ship_role,
+            system_symbol,
+            index,
+            _len,
+            min_price,
+        ) in ships
         {
-            if index > 3 {
+            if (purchase_price as f32) > ((min_price as f32) * 1.5) {
                 continue;
             }
 
@@ -299,7 +340,7 @@ impl FleetManager {
             }
             map.get_mut(&shipyard_symbol).unwrap().push((
                 ship_type,
-                budget,
+                purchase_price,
                 priority,
                 ship_role,
                 system_symbol,
@@ -406,14 +447,15 @@ impl FleetManager {
         self.is_dirty || self.last_update.elapsed().as_secs() > 5 * 60
     }
 
-    async fn update_required_ships(&mut self) -> Result<()> {
-        let scrap_ships = self
-            .context
-            .scrapping_manager
-            .get_ships(&self.context)
-            .await?;
+    async fn update_required_ships(
+        &mut self,
+        all_ships: &[ship::MyShip],
+        all_systems_hashmap: &HashMap<String, HashMap<String, database::Waypoint>>,
+        connection_hash_map: &HashMap<String, Vec<database::JumpGateConnection>>,
+    ) -> Result<()> {
+        let scrap_ships = ScrappingManager::get_required_ships(all_ships, all_systems_hashmap)?;
 
-        let trading_ships = self.context.trade_manager.get_ships(&self.context).await?;
+        let trading_ships = TradeManager::get_required_ships(all_ships, all_systems_hashmap)?;
 
         let mining_ships = self.context.mining_manager.get_ships(&self.context).await?;
 
@@ -423,7 +465,8 @@ impl FleetManager {
             .get_ships(&self.context)
             .await?;
 
-        let chart_ships = self.context.chart_manager.get_ships(&self.context).await?;
+        let chart_ships =
+            ChartManager::get_required_ships(all_ships, all_systems_hashmap, connection_hash_map)?;
 
         let contract_ships = self
             .context

@@ -5,7 +5,7 @@ use crate::{
     manager::{contract_manager::ContractShipmentMessage, fleet_manager::message::RequiredShips},
 };
 
-use super::{message::ContractManagerMessage, NextShipmentResp};
+use super::{message::ContractManagerMessage, ContractManager, NextShipmentResp};
 
 #[derive(Debug, Clone)]
 pub struct ContractManagerMessanger {
@@ -85,13 +85,6 @@ impl ContractManagerMessanger {
         &self,
         context: &crate::utils::ConductorContext,
     ) -> Result<RequiredShips> {
-        let (tx, rx) = tokio::sync::oneshot::channel();
-        self.sender
-            .send(ContractShipmentMessage::GetShips { callback: tx })
-            .await
-            .map_err(|e| crate::error::Error::General(format!("Failed to send message: {}", e)))
-            .unwrap();
-        rx.await
-            .map_err(|e| crate::error::Error::General(format!("Failed to receive message: {}", e)))
+        ContractManager::get_required_ships(context).await
     }
 }

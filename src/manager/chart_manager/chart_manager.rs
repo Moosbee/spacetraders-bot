@@ -1,8 +1,9 @@
 use std::collections::{HashMap, HashSet};
 
+use database::{DatabaseConnector, JumpGateConnection};
 use log::debug;
 use space_traders_client::models::{self};
-use utils::{distance_between_waypoints, WaypointCan};
+use utils::{distance_between_waypoints, get_system_symbol, WaypointCan};
 
 use crate::{
     error::{Error, Result},
@@ -90,15 +91,34 @@ impl ChartManager {
         Ok(())
     }
 
-    pub async fn get_required_ships(context: &ConductorContext) -> Result<RequiredShips> {
+    pub fn get_required_ships(
+        all_ships: &[ship::MyShip],
+        all_systems_hashmap: &HashMap<String, HashMap<String, database::Waypoint>>,
+        connection_hash_map: &HashMap<String, Vec<database::JumpGateConnection>>,
+    ) -> Result<RequiredShips> {
         // we need a probe in every system, that has uncharted waypoints and to which we have a jump gate connection
 
-        let all_ships = context
-            .ship_manager
-            .get_all_clone()
-            .await
-            .into_values()
-            .collect::<Vec<_>>();
+        // let all_ships = context
+        //     .ship_manager
+        //     .get_all_clone()
+        //     .await
+        //     .into_values()
+        //     .collect::<Vec<_>>();
+
+        // let all_systems_hashmap: HashMap<String, HashMap<String, database::Waypoint>> =
+        //     database::Waypoint::get_hash_map(&context.database_pool).await?;
+        // let all_connections: Vec<database::JumpGateConnection> =
+        //     database::JumpGateConnection::get_all(&context.database_pool).await?;
+
+        // let mut connection_hash_map: HashMap<String, Vec<database::JumpGateConnection>> =
+        //     HashMap::new();
+
+        // for connection in all_connections {
+        //     let entry = connection_hash_map
+        //         .entry(connection.from.clone())
+        //         .or_default();
+        //     entry.push(connection);
+        // }
 
         let all_systems = all_ships
             .iter()
@@ -130,33 +150,37 @@ impl ChartManager {
 
         let mut reachable_systems = HashSet::new();
         let mut to_visit_systems = all_systems.iter().cloned().collect::<Vec<_>>();
+
         while let Some(system) = to_visit_systems.pop() {
             reachable_systems.insert(system.clone());
-            let waypoints = database::Waypoint::get_by_system(&context.database_pool, &system)
-                .await?
+            let waypoints = all_systems_hashmap.get(&system);
+            if waypoints.is_none() {
+                continue;
+            }
+            let waypoints = waypoints
+                .map(|w| w.values().collect::<Vec<_>>())
+                .unwrap_or_default()
                 .into_iter()
                 .filter(|w| w.is_jump_gate())
                 .collect::<Vec<_>>();
 
-            for waypoint in waypoints.iter() {
+            for waypoint in waypoints {
                 if waypoint.is_under_construction {
                     continue;
                 }
-                let connections = database::JumpGateConnection::get_all_from(
-                    &context.database_pool,
-                    &waypoint.symbol,
-                )
-                .await?;
-                for connection in connections.iter() {
-                    let wp =
-                        database::Waypoint::get_by_symbol(&context.database_pool, &connection.to)
-                            .await?;
-                    if let Some(wp) = wp {
-                        if !reachable_systems.contains(&wp.system_symbol)
-                            && !to_visit_systems.contains(&wp.system_symbol)
-                            && !wp.is_under_construction
-                        {
-                            to_visit_systems.push(wp.system_symbol);
+                if let Some(connections) = connection_hash_map.get(&waypoint.symbol) {
+                    for connection in connections {
+                        let system_symbol = get_system_symbol(&connection.to);
+                        let wp = all_systems_hashmap
+                            .get(&system_symbol)
+                            .and_then(|w| w.get(&connection.to).cloned());
+                        if let Some(wp) = wp {
+                            if !reachable_systems.contains(&wp.system_symbol)
+                                && !to_visit_systems.contains(&wp.system_symbol)
+                                && !wp.is_under_construction
+                            {
+                                to_visit_systems.push(wp.system_symbol);
+                            }
                         }
                     }
                 }
@@ -166,8 +190,11 @@ impl ChartManager {
         let mut needed_ships = HashMap::new();
 
         for system in reachable_systems.iter() {
-            let waypoints =
-                database::Waypoint::get_by_system(&context.database_pool, system).await?;
+            let waypoints = all_systems_hashmap
+                .get(system)
+                .unwrap()
+                .values()
+                .collect::<Vec<_>>();
             let has_uncharted = waypoints.iter().any(|w| !w.is_charted());
             if has_uncharted && !with_chart.contains(system) {
                 needed_ships.insert(

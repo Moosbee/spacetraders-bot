@@ -1,7 +1,5 @@
 use space_traders_client::models;
 
-use crate::manager::fleet_manager::message::RequiredShips;
-
 use crate::error::Result;
 
 #[derive(Debug)]
@@ -22,9 +20,6 @@ pub enum ContractShipmentMessage {
     },
     GetRunning {
         callback: tokio::sync::oneshot::Sender<Result<Vec<database::ContractShipment>>>,
-    },
-    GetShips {
-        callback: tokio::sync::oneshot::Sender<RequiredShips>,
     },
 }
 

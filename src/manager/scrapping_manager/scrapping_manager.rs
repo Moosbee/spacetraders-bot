@@ -51,8 +51,9 @@ impl ScrappingManager {
             receiver,
             scrap_waypoints: HashMap::new(),
             // max_update_interval: 60 * 10,
-            max_update_interval: 60 * 25,
             // max_update_interval: 60 * 20,
+            // max_update_interval: 60 * 25,
+            max_update_interval: 60 * 30,
         }
     }
 
@@ -207,12 +208,13 @@ impl ScrappingManager {
         Ok(())
     }
 
-    pub async fn get_required_ships(context: &ConductorContext) -> Result<RequiredShips> {
-        let all_ships = context.ship_manager.get_all_clone().await;
-
+    pub fn get_required_ships(
+        all_ships: &[ship::MyShip],
+        all_systems_hashmap: &HashMap<String, HashMap<String, database::Waypoint>>,
+    ) -> Result<RequiredShips> {
         let mut systems: HashMap<String, Vec<String>> = HashMap::new();
 
-        for s in all_ships.into_values() {
+        for s in all_ships {
             let is_scrapper = s.role == database::ShipInfoRole::Scraper
                 || (s.role == database::ShipInfoRole::Transfer
                     && match &s.status {
@@ -238,20 +240,23 @@ impl ScrappingManager {
 
             let system = systems.get_mut(&system_str);
             if let Some(system) = system {
-                system.push(s.symbol);
+                system.push(s.symbol.clone());
             } else {
-                systems.insert(system_str, vec![s.symbol]);
+                systems.insert(system_str, vec![s.symbol.clone()]);
             }
         }
 
         let mut required_ships = RequiredShips::new();
 
         for (system, ships) in systems {
-            let waypoints = database::Waypoint::get_by_system(&context.database_pool, &system)
-                .await?
-                .into_iter()
-                .filter(|w| w.is_marketplace() || w.is_shipyard())
-                .count();
+            let waypoints = all_systems_hashmap
+                .get(&system)
+                .map(|wps| {
+                    wps.values()
+                        .filter(|w| w.is_marketplace() || w.is_shipyard())
+                        .count()
+                })
+                .unwrap_or_default();
             let diff = (waypoints as i64) - (ships.len() as i64);
             if diff <= 0 {
                 continue;
