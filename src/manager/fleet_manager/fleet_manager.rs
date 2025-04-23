@@ -380,10 +380,20 @@ impl FleetManager {
                     f.ship_type == models::ShipType::Explorer
                 }
                 super::message::RequestedShipType::Probe => f.ship_type == models::ShipType::Probe,
-                super::message::RequestedShipType::Transporter => f.modules.iter().any(|f| {
-                    *f == models::ship_module::Symbol::CargoHoldIi
-                        || *f == models::ship_module::Symbol::CargoHoldIii
-                }),
+                super::message::RequestedShipType::Transporter => {
+                    let sum: i32 = f
+                        .modules
+                        .iter()
+                        .map(|f| match f {
+                            models::ship_module::Symbol::CargoHoldI => 15,
+                            models::ship_module::Symbol::CargoHoldIi => 40,
+                            models::ship_module::Symbol::CargoHoldIii => 75,
+                            _ => 0,
+                        })
+                        .sum();
+
+                    sum >= 80
+                }
                 super::message::RequestedShipType::Mining => {
                     f.mounts.iter().any(|f| {
                         *f == models::ship_mount::Symbol::MiningLaserI

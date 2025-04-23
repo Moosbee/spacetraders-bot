@@ -179,12 +179,20 @@ impl ConstructionManager {
 
         let headquarters = { context.run_info.read().await.headquarters.clone() };
 
+        let headquarters = get_system_symbol(&headquarters);
+
         let headquarter_constructions =
             database::Waypoint::get_by_system(&context.database_pool, &headquarters)
                 .await?
                 .into_iter()
                 .filter(|w| w.is_under_construction)
                 .collect::<Vec<_>>();
+        debug!(
+            "headquarters: {}, headquarter_constructions: {}, all_ships: {}",
+            headquarters,
+            headquarter_constructions.len(),
+            all_ships.len()
+        );
         let ships = if !headquarter_constructions.is_empty() && all_ships.is_empty() {
             HashMap::from_iter(
                 vec![(

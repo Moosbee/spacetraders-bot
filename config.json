@@ -19,7 +19,10 @@
     "fuel_cost": 72,
     "purchase_multiplier": 2,
     "trade_cycle": 100000,
-    "blacklist": [],
+    "blacklist": [
+      "ADVANCED_CIRCUITRY",
+      "FAB_MATS"
+    ],
     "active": true,
     "default_purchase_price": 100,
     "default_sell_price": 150,
