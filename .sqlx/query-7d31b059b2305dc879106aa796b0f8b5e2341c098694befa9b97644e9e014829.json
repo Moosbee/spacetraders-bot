@@ -28,7 +28,8 @@
                 "Contract",
                 "Scraper",
                 "Mining",
-                "Manuel"
+                "Manuel",
+                "Transfer"
               ]
             }
           }
@@ -54,7 +55,8 @@
                 "Contract",
                 "Scraper",
                 "Mining",
-                "Manuel"
+                "Manuel",
+                "Transfer"
               ]
             }
           }

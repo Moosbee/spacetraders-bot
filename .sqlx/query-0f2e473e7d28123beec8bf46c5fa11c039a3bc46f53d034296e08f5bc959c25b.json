@@ -1,0 +1,42 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                INSERT INTO ship_transfers (\n                  ship_symbol,\n                  system_symbol,\n                  role,\n                  finished\n                )\n                VALUES ($1, $2, $3::ship_info_role, $4)\n                  RETURNING id;\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Varchar",
+        "Varchar",
+        {
+          "Custom": {
+            "name": "ship_info_role",
+            "kind": {
+              "Enum": [
+                "Construction",
+                "Trader",
+                "TempTrader",
+                "Charter",
+                "Contract",
+                "Scraper",
+                "Mining",
+                "Manuel",
+                "Transfer"
+              ]
+            }
+          }
+        },
+        "Bool"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "0f2e473e7d28123beec8bf46c5fa11c039a3bc46f53d034296e08f5bc959c25b"
+}
