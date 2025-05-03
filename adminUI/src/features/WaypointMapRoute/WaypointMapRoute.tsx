@@ -1,5 +1,6 @@
 import { ShipNavFlightMode } from "../../models/api";
-import useMyStore from "../../store";
+import { useAppSelector } from "../../redux/hooks";
+import { selectDarkMode } from "../../redux/slices/configSlice";
 import classes from "./WaypointMapRoute.module.css";
 
 function WaypointMapRoute({
@@ -16,7 +17,7 @@ function WaypointMapRoute({
   size: number;
   mode: ShipNavFlightMode;
 }) {
-  const theme = useMyStore((state) => state.darkMode);
+  const theme = useAppSelector(selectDarkMode);
 
   return (
     <line

@@ -6,7 +6,7 @@ import PageTitle from "../features/PageTitle";
 import WaypointLink from "../features/WaypointLink";
 import { DbAgent } from "../models/Agent";
 import { FactionSymbol } from "../models/api";
-import { backendUrl } from "../store";
+import { backendUrl } from "../MyApp";
 
 function Agents() {
   const [agents, setAgents] = useState<DbAgent[] | null>(null);

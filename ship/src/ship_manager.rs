@@ -1,10 +1,10 @@
 use std::{collections::HashMap, sync::Arc};
 
 use lockable::{AsyncLimit, Lockable, LockableHashMap, SyncLimit};
-use tokio::{sync::RwLock, time::Instant};
-use utils::{safely_get_lock_mut_map, Observer, Subject};
+use tokio::sync::RwLock;
+use utils::{Observer, Subject, safely_get_lock_mut_map};
 
-use super::{my_ship_update, MyShip};
+use super::{MyShip, my_ship_update};
 
 #[derive(Debug)]
 pub struct ShipManager {
@@ -35,7 +35,7 @@ impl Observer<MyShip> for ShipManager {
                 Ok(m) => m,
                 Err(_e) => {
                     log::warn!("Failed to update get ship: {} waiting", symbol);
-                    let start = Instant::now();
+                    let start = std::time::Instant::now();
                     let map = self.copy.write().await;
                     log::warn!(
                         "Got update ship: {} waiting took {:?}",

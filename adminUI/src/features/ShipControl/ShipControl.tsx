@@ -11,17 +11,22 @@ import {
   Tooltip,
 } from "antd";
 import { useState } from "react";
+import { useDispatch } from "react-redux";
 import { TradeSymbol } from "../../models/api";
 import RustShip, { ShipInfo, SystemShipRoles } from "../../models/ship";
-import useMyStore, { backendUrl } from "../../store";
+import { backendUrl } from "../../MyApp";
+import { useAppSelector } from "../../redux/hooks";
+import { setShip } from "../../redux/slices/shipSlice";
+import { selectSystem } from "../../redux/slices/systemSlice";
 import { message } from "../../utils/antdMessage";
 
 function ShipControl({ ship }: { ship: RustShip }) {
-  const waypoints = useMyStore(
-    (state) => state.systems[ship.nav.system_symbol]?.waypoints
+  const system = useAppSelector((state) =>
+    selectSystem(state, ship.nav.system_symbol)
   );
+  const waypoints = system?.waypoints || [];
 
-  const setShip = useMyStore((state) => state.setShip);
+  const dispatch = useDispatch();
 
   const [navWaypointSymbol, setNavWaypointSymbol] = useState<string>(
     ship.nav.waypoint_symbol
@@ -119,7 +124,8 @@ function ShipControl({ ship }: { ship: RustShip }) {
                   .then((response) => response.json())
                   .then((data) => {
                     console.log("denden", data);
-                    setShip(data);
+                    dispatch(setShip(data));
+
                     message.success(`Orbit toggled for ${ship.symbol}`);
                   });
               }}

@@ -52,7 +52,7 @@ impl RouteCalculator {
             .collect::<Vec<_>>()
             .into_iter()
             .map(|route| self.concrete.calc(ship, route, &waypoints))
-            .filter(|route| route.trip.total_profit > 2000)
+            // .filter(|route| route.trip.total_profit > 2000)
             .collect::<Vec<_>>();
 
         debug!("Routes: {}", routes.len());

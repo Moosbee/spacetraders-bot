@@ -6,7 +6,7 @@ import PageTitle from "../features/PageTitle";
 import WaypointLink from "../features/WaypointLink";
 import { Contract } from "../models/Contract";
 import { ContractShipment } from "../models/SQLContract";
-import { backendUrl } from "../store";
+import { backendUrl } from "../MyApp";
 
 function Contracts() {
   const [contractResp, setContract] = useState<Contract[] | null>(null);

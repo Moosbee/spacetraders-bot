@@ -3,6 +3,8 @@ import { Route, Routes } from "react-router-dom";
 import "./MyApp.css";
 import MyHeader from "./features/myHeader";
 import MySider from "./features/mySider";
+import { useAppSelector } from "./redux/hooks";
+import { selectDarkMode } from "./redux/slices/configSlice";
 import Agent from "./sites/Agent";
 import Agents from "./sites/Agents";
 import BulkActions from "./sites/BulkActions";
@@ -25,12 +27,13 @@ import Waypoint from "./sites/Waypoint";
 import WpMap from "./sites/WaypointMap";
 import WaypointMarketHistory from "./sites/WaypointMarketHistory";
 import Main from "./sites/main";
-import useMyStore from "./store";
 import MessageAntD from "./utils/message";
 import WorkerLoader from "./workers/WorkerLoader";
 const { Header, Content, Sider } = Layout;
 
 export { Header as AntHeaderHeader, Sider as AntSiderSider };
+
+export const backendUrl = "127.0.0.1:8780";
 
 function MyApp() {
   const {
@@ -38,7 +41,7 @@ function MyApp() {
   } = theme.useToken();
 
   const { defaultAlgorithm, darkAlgorithm } = theme;
-  const isDarkMode = useMyStore((state) => state.darkMode);
+  const isDarkMode = useAppSelector(selectDarkMode);
 
   return (
     <>

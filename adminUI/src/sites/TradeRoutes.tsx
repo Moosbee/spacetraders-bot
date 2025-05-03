@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import MoneyDisplay from "../features/MonyDisplay";
 import PageTitle from "../features/PageTitle";
 import { TradeRoute } from "../models/TradeRoute";
-import { backendUrl } from "../store";
+import { backendUrl } from "../MyApp";
 
 function TradeRoutes() {
   const [tradeRoutes, setTradeRoutes] = useState<TradeRoute[] | null>(null);

@@ -28,7 +28,9 @@ import { ConstructionMaterial } from "../models/Construction";
 import { MarketTrade, MarketTradeGood } from "../models/Market";
 import { ShipTransaction, ShipyardShipType } from "../models/Shipyard";
 import { WaypointResponse } from "../models/SQLWaypoint";
-import useMyStore, { backendUrl } from "../store";
+import { backendUrl } from "../MyApp";
+import { useAppSelector } from "../redux/hooks";
+import { selectAllShipsArray } from "../redux/slices/shipSlice";
 import { message } from "../utils/antdMessage";
 
 function Waypoint() {
@@ -37,12 +39,10 @@ function Waypoint() {
 
   const [waypoint, setWaypoint] = useState<WaypointResponse | null>(null);
 
-  const ships = useMyStore((state) => state.ships);
+  const ships = useAppSelector(selectAllShipsArray);
 
   const onSystemsShips = useMemo(() => {
-    return Object.values(ships).filter(
-      (ship) => ship.nav.waypoint_symbol === waypointID
-    );
+    return ships.filter((ship) => ship.nav.waypoint_symbol === waypointID);
   }, [waypointID, ships]);
 
   useEffect(() => {

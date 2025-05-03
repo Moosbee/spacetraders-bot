@@ -4,7 +4,7 @@ import { useParams } from "react-router-dom";
 import MarketTradeHistory from "../features/MarketTradeHistory/MarketTradeHistory";
 import PageTitle from "../features/PageTitle";
 import { WaypointResponse } from "../models/SQLWaypoint";
-import { backendUrl } from "../store";
+import { backendUrl } from "../MyApp";
 
 function WaypointMarketHistory() {
   const { systemID } = useParams();

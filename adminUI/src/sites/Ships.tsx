@@ -15,18 +15,29 @@ import RoleRenderer from "../features/RoleRenderer/RoleRenderer";
 import Timer from "../features/Timer/Timer";
 import { ShipNavFlightMode, ShipNavStatus, ShipRole } from "../models/api";
 import RustShip, { SystemShipRoles } from "../models/ship";
-import useMyStore, { backendUrl } from "../store";
+import { backendUrl } from "../MyApp";
+import { useAppDispatch, useAppSelector } from "../redux/hooks";
+import {
+  resetShips,
+  selectAllShipsArray,
+  setShips,
+} from "../redux/slices/shipSlice";
 import { shallowEqual } from "../utils/utils";
 
 type TableRowSelection<T extends object = object> =
   TableProps<T>["rowSelection"];
 
 function Ships() {
-  const ships = useMyStore((state) => state.ships);
-  const setShips = useMyStore((state) => state.setShips);
-
   const [showCooldown, setShowCooldown] = useState(true);
   const [showCondition, setShowCondition] = useState(false);
+
+  const [showSelection, setShowSelection] = useState<boolean>(false);
+
+  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+
+  const ships = useAppSelector(selectAllShipsArray);
+
+  const dispatch = useAppDispatch();
 
   // useEffect(() => {
   //   fetch(`http://${backendUrl}/ships`)
@@ -370,10 +381,6 @@ function Ships() {
       : []),
   ];
 
-  const [showSelection, setShowSelection] = useState<boolean>(false);
-
-  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
-
   const onSelectChange = (newSelectedRowKeys: React.Key[]) => {
     console.log("selectedRowKeys changed: ", newSelectedRowKeys);
     setSelectedRowKeys(newSelectedRowKeys);
@@ -406,12 +413,14 @@ function Ships() {
       <PageTitle title="All Ships" />
       <Space>
         <h2>All Ships</h2>
-        <Button onClick={() => setShips({})}>Reset</Button>
+        <Button onClick={() => dispatch(resetShips())}>Reset</Button>
         <Button
           onClick={() => {
             fetch(`http://${backendUrl}/ships`)
               .then((response) => response.json())
-              .then(setShips);
+              .then((ships: Record<string, RustShip>) =>
+                dispatch(setShips(ships))
+              );
           }}
         >
           Refresh
@@ -437,7 +446,7 @@ function Ships() {
       </Space>
       <Table
         size="small"
-        dataSource={Object.values(ships)}
+        dataSource={ships}
         columns={columns}
         rowKey={(ship) => ship.symbol}
         rowSelection={showSelection ? rowSelection : undefined}

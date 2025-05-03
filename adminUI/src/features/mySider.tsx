@@ -16,7 +16,11 @@ import type { MenuProps } from "antd";
 import { Menu } from "antd";
 import { Link } from "react-router-dom";
 import type { AntSiderSider } from "../MyApp";
-import useMyStore from "../store";
+import { useAppDispatch, useAppSelector } from "../redux/hooks";
+import {
+  selectSliderCollapsed,
+  setSliderCollapsed,
+} from "../redux/slices/configSlice";
 import FaIcon from "./FontAwsome/FaIcon";
 
 type MenuItem = Required<MenuProps>["items"][number];
@@ -173,14 +177,14 @@ const items: MenuItem[] = [
 function MySider({ Slider }: { Slider: typeof AntSiderSider }) {
   // const [collapsed, setCollapsed] = useState(false);
 
-  const collapsed = useMyStore((state) => state.sliderCollapsed);
-  const setSiderCollapsed = useMyStore((state) => state.setSliderCollapsed);
+  const collapsed = useAppSelector(selectSliderCollapsed);
+  const dispatch = useAppDispatch();
 
   return (
     <Slider
       collapsible
       collapsed={collapsed}
-      onCollapse={(value) => setSiderCollapsed(value)}
+      onCollapse={(value) => dispatch(setSliderCollapsed(value))}
       theme="light"
       width={240}
     >

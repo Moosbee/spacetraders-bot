@@ -1,7 +1,11 @@
 import { theme } from "antd";
 import { useEffect, useRef, useState } from "react";
 import RustShip from "../../models/ship";
-import useMyStore from "../../store";
+import { useAppDispatch, useAppSelector } from "../../redux/hooks";
+import {
+  selectSelectedShipSymbol,
+  setSelectedShipSymbol,
+} from "../../redux/slices/mapSlice";
 import FaIcon from "../FontAwsome/FaIcon";
 import classes from "./WaypointMapShip.module.css";
 
@@ -16,8 +20,9 @@ function WaypointMapShip({
 }) {
   const [size, setSize] = useState(16);
   const textboxRef = useRef<HTMLDivElement>(null);
-  const selectedship = useMyStore((state) => state.selectedShipSymbol);
-  const setSelectedship = useMyStore((state) => state.setSelectedShipSymbol);
+  const selectedship = useAppSelector(selectSelectedShipSymbol);
+
+  const dispatch = useAppDispatch();
 
   useEffect(() => {
     if (!textboxRef.current) return;
@@ -65,10 +70,10 @@ function WaypointMapShip({
       onClick={() => {
         if (ship) {
           if (selectedship === ship.symbol) {
-            setSelectedship(undefined);
+            dispatch(setSelectedShipSymbol(undefined));
             return;
           }
-          setSelectedship(ship.symbol);
+          dispatch(setSelectedShipSymbol(ship.symbol));
         }
       }}
       onDoubleClick={() => {

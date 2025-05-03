@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import PageTitle from "../features/PageTitle";
 import TransactionTable from "../features/TransactionTable/TransactionTable";
 import { Transaction } from "../models/Transaction";
-import { backendUrl } from "../store";
+import { backendUrl } from "../MyApp";
 
 function MarketTransactions() {
   const [transactions, setTransactions] = useState<Transaction[] | null>(null);

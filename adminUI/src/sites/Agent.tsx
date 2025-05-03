@@ -24,7 +24,7 @@ import {
 import MoneyDisplay from "../features/MonyDisplay";
 import PageTitle from "../features/PageTitle";
 import { DbAgent } from "../models/Agent";
-import { backendUrl } from "../store";
+import { backendUrl } from "../MyApp";
 
 const { RangePicker } = DatePicker;
 

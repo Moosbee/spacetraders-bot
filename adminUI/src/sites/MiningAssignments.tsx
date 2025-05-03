@@ -6,7 +6,7 @@ import {
   Assignment,
   MiningAssignmentsResponse,
 } from "../models/MiningAssignments";
-import { backendUrl } from "../store";
+import { backendUrl } from "../MyApp";
 
 export default function MiningAssignments() {
   const [shipAssignments, setShipAssignments] = useState<Assignment[] | null>();

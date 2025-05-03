@@ -14,23 +14,37 @@ import {
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { DbAgent } from "../models/Agent";
-import type { AntHeaderHeader } from "../MyApp";
-import useMyStore, { backendUrl } from "../store";
+import { backendUrl, type AntHeaderHeader } from "../MyApp";
+import { useAppDispatch, useAppSelector } from "../redux/hooks";
+import { selectMyAgent, setMyAgent } from "../redux/slices/agentSlice";
+import {
+  selectConnectWebsocket,
+  selectDarkMode,
+  selectWebsocketConnected,
+  setConnectWebsocket,
+  setDarkMode,
+} from "../redux/slices/configSlice";
+import {
+  selectSelectedShipSymbol,
+  selectSelectedSystemSymbol,
+  selectSelectedWaypointSymbol,
+} from "../redux/slices/mapSlice";
 import FaIcon from "./FontAwsome/FaIcon";
 import MoneyDisplay from "./MonyDisplay";
 
 function MyHeader({ Header }: { Header: typeof AntHeaderHeader }) {
-  const isDarkMode = useMyStore((state) => state.darkMode);
-  const myAgent = useMyStore((state) => state.myAgent);
+  const isDarkMode = useAppSelector(selectDarkMode);
+  const myAgent = useAppSelector(selectMyAgent);
 
-  const setDarkMode = useMyStore((state) => state.setDarkMode);
-  const setAgent = useMyStore((state) => state.setAgent);
+  const shipSymbol = useAppSelector(selectSelectedShipSymbol);
+  const waypointSymbol = useAppSelector(selectSelectedWaypointSymbol);
+  const systemSymbol = useAppSelector(selectSelectedSystemSymbol);
 
-  const shipSymbol = useMyStore((state) => state.selectedShipSymbol);
-  const waypointSymbol = useMyStore((state) => state.selectedWaypointSymbol);
-  const systemSymbol = useMyStore((state) => state.selectedSystemSymbol);
+  const websocketConnected = useAppSelector(selectWebsocketConnected);
 
-  const websocketConnected = useMyStore((state) => state.websocketConnected);
+  const connectWebsocket = useAppSelector(selectConnectWebsocket);
+
+  const dispatch = useAppDispatch();
 
   const [apiCount, setApiCount] = useState(0);
 
@@ -44,7 +58,7 @@ function MyHeader({ Header }: { Header: typeof AntHeaderHeader }) {
       onClick: (e) => {
         e.domEvent.stopPropagation();
         e.domEvent.preventDefault();
-        setDarkMode(!isDarkMode);
+        dispatch(setDarkMode(!isDarkMode));
       },
       label: `${isDarkMode ? "Light" : "Dark"}-Mode`,
       icon: <FaIcon type="solid" icon={isDarkMode ? "fa-moon" : "fa-sun"} />,
@@ -58,6 +72,20 @@ function MyHeader({ Header }: { Header: typeof AntHeaderHeader }) {
       },
       label: "Pop Up",
       icon: <FaIcon type="solid" icon="fa-window-restore" />,
+    },
+    {
+      key: "websocket",
+      onClick: (e) => {
+        e.domEvent.preventDefault();
+        dispatch(setConnectWebsocket(!connectWebsocket));
+      },
+      label: (
+        <Space>
+          {connectWebsocket ? "Disconnect Websocket" : "Connect Websocket"}
+          <Badge status={websocketConnected ? "success" : "error"} />
+        </Space>
+      ),
+      icon: <FaIcon type="solid" icon="fa-right-from-bracket" />,
     },
   ];
 
@@ -108,7 +136,7 @@ function MyHeader({ Header }: { Header: typeof AntHeaderHeader }) {
                       .then((res) => {
                         for (const agent of res as DbAgent[]) {
                           if (agent.account_id) {
-                            setAgent(agent);
+                            dispatch(setMyAgent(agent));
                             break;
                           }
                         }

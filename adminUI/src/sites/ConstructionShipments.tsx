@@ -5,7 +5,7 @@ import MoneyDisplay from "../features/MonyDisplay";
 import PageTitle from "../features/PageTitle";
 import WaypointLink from "../features/WaypointLink";
 import { ConstructionShipment } from "../models/Construction";
-import { backendUrl } from "../store";
+import { backendUrl } from "../MyApp";
 
 function ConstructionShipments() {
   const [constructionShipments, setConstructionShipments] = useState<

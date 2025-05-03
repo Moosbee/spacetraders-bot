@@ -3,17 +3,16 @@ import {
   Descriptions,
   DescriptionsProps,
   Divider,
+  Popconfirm,
   Progress,
   Space,
 } from "antd";
 import { useEffect, useState } from "react";
 import PageTitle from "../features/PageTitle";
 import { Info } from "../models/MainInfo";
-import useMyStore, { backendUrl } from "../store";
+import { backendUrl } from "../MyApp";
 
 function Main() {
-  const reset = useMyStore((state) => state.reset);
-
   const [data, setData] = useState<Info>({
     agent_symbol: "",
     headquarters: "",
@@ -83,7 +82,25 @@ function Main() {
         >
           Shutdown
         </Button>
-        <Button onClick={reset}>Reset Client State</Button>
+        <Popconfirm
+          title="Do you want to Reset the App?"
+          description={
+            <span>
+              Please make sure all other tabs are closed!
+              <br /> So that this is the only open Tap here.
+              <br /> This will delete all data from IndexedDB and reload the
+              application.
+            </span>
+          }
+          onConfirm={() => {
+            indexedDB.deleteDatabase("myApp");
+            window.location.reload();
+          }}
+          okText="OK"
+          cancelText="No"
+        >
+          <Button danger>Clear Everything</Button>
+        </Popconfirm>
       </Space>
     </div>
   );

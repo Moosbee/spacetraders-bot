@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import MoneyDisplay from "../features/MonyDisplay";
 import PageTitle from "../features/PageTitle";
 import { PossibleTrade } from "../models/TradeRoute";
-import { backendUrl } from "../store";
+import { backendUrl } from "../MyApp";
 
 export default function PossibleTrades() {
   const [possibleTrades, setPossibleTrades] = useState<PossibleTrade[]>([]);

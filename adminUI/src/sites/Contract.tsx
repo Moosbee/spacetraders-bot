@@ -6,7 +6,7 @@ import PageTitle from "../features/PageTitle";
 import TransactionTable from "../features/TransactionTable/TransactionTable";
 import WaypointLink from "../features/WaypointLink";
 import { ContractDeliverable, ContractResponse } from "../models/SQLContract";
-import { backendUrl } from "../store";
+import { backendUrl } from "../MyApp";
 
 function Contract() {
   const { contractID } = useParams();

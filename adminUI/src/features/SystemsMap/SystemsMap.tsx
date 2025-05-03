@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { SQLSystem } from "../../models/SQLSystem";
-import useMyStore, { backendUrl } from "../../store";
+import { backendUrl } from "../../MyApp";
+import { useAppSelector } from "../../redux/hooks";
+import { selectSelectedSystemSymbol } from "../../redux/slices/mapSlice";
 import { systemIcons } from "../../utils/waypointColors";
 import classes from "./SystemsMap.module.css";
 
@@ -55,8 +57,6 @@ function drawSystems(
     under_construction_b,
     point_a,
     point_b,
-    from_a,
-    from_b,
   } of jumpGates) {
     const systemSymbolA = point_a.split("-", 2).join("-");
     const systemSymbolB = point_b.split("-", 2).join("-");
@@ -143,7 +143,7 @@ function SystemsMap({
       });
   }, []);
 
-  const selectedSystem = useMyStore((state) => state.selectedSystemSymbol);
+  const selectedSystem = useAppSelector(selectSelectedSystemSymbol);
 
   const calcSystems: Record<
     string,

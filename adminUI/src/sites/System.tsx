@@ -10,6 +10,7 @@ import {
   TableProps,
 } from "antd";
 import { useEffect, useState } from "react";
+import { useDispatch } from "react-redux";
 import { Link, useParams } from "react-router-dom";
 import PageTitle from "../features/PageTitle";
 import WaypointLink from "../features/WaypointLink";
@@ -20,20 +21,18 @@ import {
   WaypointTraitSymbol,
   WaypointType,
 } from "../models/api";
-import { SQLSystem, SystemResp } from "../models/SQLSystem";
+import { SystemResp } from "../models/SQLSystem";
 import { SQLWaypoint } from "../models/SQLWaypoint";
-import useMyStore, { backendUrl } from "../store";
+import { backendUrl } from "../MyApp";
+import { useAppSelector } from "../redux/hooks";
+import { selectSystem, setSystem } from "../redux/slices/systemSlice";
 import { message } from "../utils/antdMessage";
 
 function System() {
   const { systemID } = useParams();
-  const System:
-    | {
-        system: SQLSystem;
-        waypoints: SQLWaypoint[];
-      }
-    | undefined = useMyStore((state) => state.systems[systemID || ""]);
-  const setWaypoints = useMyStore((state) => state.setSystem);
+  const system = useAppSelector((state) => selectSystem(state, systemID));
+
+  const dispatch = useDispatch();
 
   const [loading, setLoading] = useState(false);
 
@@ -55,22 +54,22 @@ function System() {
 
           return sql_wp;
         });
-        setWaypoints(system, waypoints);
+        dispatch(setSystem({ system, waypoints }));
       });
-  }, [setWaypoints, systemID]);
+  }, [dispatch, systemID]);
 
-  const Waypoints = System?.waypoints || [];
+  const Waypoints = system?.waypoints || [];
 
   const items = [
     {
       label: "Symbol",
       key: "symbol",
-      children: System?.system?.symbol,
+      children: system?.system?.symbol,
     },
     {
       label: "Sector Symbol",
       key: "sectorSymbol",
-      children: System?.system?.sector_symbol,
+      children: system?.system?.sector_symbol,
     },
     {
       key: "reload",
@@ -94,7 +93,7 @@ function System() {
 
                   return sql_wp;
                 });
-                setWaypoints(system, waypoints);
+                dispatch(setSystem({ system, waypoints }));
               });
           }}
         >
@@ -105,12 +104,12 @@ function System() {
     {
       label: "System Type",
       key: "systemType",
-      children: System?.system?.system_type,
+      children: system?.system?.system_type,
     },
     {
       label: "Waypoints",
       key: "Waypoints",
-      children: System?.waypoints?.length,
+      children: system?.waypoints?.length,
     },
     {
       key: "Map",
@@ -119,12 +118,12 @@ function System() {
     {
       label: "X Coordinate",
       key: "x",
-      children: System?.system?.x,
+      children: system?.system?.x,
     },
     {
       label: "Y Coordinate",
       key: "y",
-      children: System?.system?.y,
+      children: system?.system?.y,
     },
 
     {
@@ -159,7 +158,7 @@ function System() {
 
                     return sql_wp;
                   });
-                  setWaypoints(system, waypoints);
+                  dispatch(setSystem({ system, waypoints }));
                 });
             }}
           >

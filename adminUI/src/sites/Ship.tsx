@@ -14,14 +14,12 @@ import RoleRenderer from "../features/RoleRenderer/RoleRenderer";
 import ShipControl from "../features/ShipControl/ShipControl";
 import Timer from "../features/Timer/Timer";
 import WaypointLink from "../features/WaypointLink";
-import RustShip from "../models/ship";
-import useMyStore from "../store";
+import { useAppSelector } from "../redux/hooks";
+import { selectShip } from "../redux/slices/shipSlice";
 
 function Ship() {
   const { shipID } = useParams();
-  const ship: RustShip | undefined = useMyStore(
-    (state) => state.ships[shipID || ""]
-  );
+  const ship = useAppSelector((state) => selectShip(state, shipID));
 
   if (!ship) return <div>Ship not found</div>;
 

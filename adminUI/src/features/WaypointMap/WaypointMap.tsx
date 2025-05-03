@@ -3,7 +3,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ShipNavFlightMode, System } from "../../models/api";
 import RustShip from "../../models/ship";
 import { SQLWaypoint } from "../../models/SQLWaypoint";
-import useMyStore from "../../store";
+import { useAppSelector } from "../../redux/hooks";
+import { selectSelectedShipSymbol } from "../../redux/slices/mapSlice";
+import { selectAllShipsArray } from "../../redux/slices/shipSlice";
+import { selectSystem } from "../../redux/slices/systemSlice";
 import { cyrb53, scaleNum, seedShuffle } from "../../utils/utils";
 import WaypointMapRoute from "../WaypointMapRoute/WaypointMapRoute";
 import WaypointMapShip from "../WaypointMapShip/WaypointMapShip";
@@ -58,16 +61,16 @@ interface RouteMapPoint {
 }
 
 function WaypointMap({ systemID }: { systemID: string }) {
-  const System = useMyStore((state) => state.systems[systemID]);
-  const ships = useMyStore((state) => state.ships);
-  const selectedShip = useMyStore((state) => state.selectedShipSymbol);
+  const system = useAppSelector((state) => selectSystem(state, systemID));
+  const ships = useAppSelector(selectAllShipsArray);
+  const selectedShip = useAppSelector(selectSelectedShipSymbol);
 
   const [shipsMp, setShipsMp] = useState<ShipMapPoint[]>([]);
   const [size, setSize] = useState(16);
 
   const textboxRef = useRef<SVGSVGElement>(null);
 
-  const waypoints = System.waypoints;
+  const waypoints = system?.waypoints;
 
   const {
     token: { colorBgElevated },
@@ -78,7 +81,7 @@ function WaypointMap({ systemID }: { systemID: string }) {
   }, [systemID]);
 
   const waypointsMp = useMemo(
-    () => calculateWaypointMapPoints(waypoints, undefined, directions),
+    () => calculateWaypointMapPoints(waypoints || [], undefined, directions),
     [directions, waypoints]
   );
 
@@ -123,7 +126,9 @@ function WaypointMap({ systemID }: { systemID: string }) {
       <div className={classes.waypointMapIn}>
         {renderWaypoints(waypointsMp, systemID)}
         {renderShips(shipsMp)}
-        <WaypointMapSystem system={System.system} xOne={50} yOne={50} />
+        {system && (
+          <WaypointMapSystem system={system.system} xOne={50} yOne={50} />
+        )}
       </div>
     </>
   );
@@ -131,7 +136,7 @@ function WaypointMap({ systemID }: { systemID: string }) {
 
 function calculateWaypointMapPoints(
   waypointsArr: SQLWaypoint[],
-  system: System | undefined,
+  _system: System | undefined,
   directions: typeof baseDirections
 ): WaypointMapPoint[] {
   // if (!system) return [];
@@ -146,7 +151,7 @@ function calculateWaypointMapPoints(
 
   let orbitals = 0;
 
-  return waypointsArr
+  return [...waypointsArr]
     .sort((a, b) => a.symbol.localeCompare(b.symbol))
     .sort((a, b) => (a.x ^ 2) + (a.y ^ 2) - ((b.x ^ 2) + (b.y ^ 2)))
     .map((w) => {
@@ -171,14 +176,14 @@ function calculateWaypointMapPoints(
 }
 
 function createShipMapPoints(
-  ships: Record<string, RustShip>,
+  ships: RustShip[],
   systemID: string,
   waypointsMp: WaypointMapPoint[],
   directions: typeof baseDirections
 ): ShipMapPoint[] {
   let orbitals = 0;
 
-  return Object.values(ships)
+  return ships
     .filter((s) => s.nav.system_symbol === systemID)
     .map((s) => {
       const navState = s.nav.status;

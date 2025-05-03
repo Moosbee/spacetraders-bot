@@ -1,6 +1,11 @@
 import { useEffect, useRef, useState } from "react";
+import { useDispatch } from "react-redux";
 import { SQLWaypoint } from "../../models/SQLWaypoint";
-import useMyStore from "../../store";
+import { useAppSelector } from "../../redux/hooks";
+import {
+  selectSelectedWaypointSymbol,
+  setSelectedWaypointSymbol,
+} from "../../redux/slices/mapSlice";
 import { waypointIcons } from "../../utils/waypointColors";
 import classes from "./WaypointMapWaypoint.module.css";
 
@@ -19,11 +24,9 @@ function WaypointMapWaypoint({
 }) {
   const [size, setSize] = useState(16);
   const textboxRef = useRef<HTMLDivElement>(null);
-  const selectedWaypoint = useMyStore((state) => state.selectedWaypointSymbol);
+  const selectedWaypoint = useAppSelector(selectSelectedWaypointSymbol);
 
-  const setSelectedWaypointSymbol = useMyStore(
-    (state) => state.setSelectedWaypointSymbol
-  );
+  const dispatch = useDispatch();
 
   function outputsize() {
     if (!textboxRef.current) return;
@@ -63,14 +66,15 @@ function WaypointMapWaypoint({
       }`}
       onClick={() => {
         if (selectedWaypoint?.waypointSymbol === waypoint.symbol) {
-          setSelectedWaypointSymbol(undefined);
+          dispatch(setSelectedWaypointSymbol(undefined));
           return;
         }
-
-        setSelectedWaypointSymbol({
-          waypointSymbol: waypoint.symbol,
-          systemSymbol: waypoint.symbol,
-        });
+        dispatch(
+          setSelectedWaypointSymbol({
+            waypointSymbol: waypoint.symbol,
+            systemSymbol: waypoint.symbol,
+          })
+        );
       }}
       onDoubleClick={() => {
         window.open(

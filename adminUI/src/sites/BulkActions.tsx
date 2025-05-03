@@ -1,7 +1,7 @@
 import { Button, Flex, Input, Typography } from "antd";
 import { useState } from "react";
 import PageTitle from "../features/PageTitle";
-import { backendUrl } from "../store";
+import { backendUrl } from "../MyApp";
 
 const { TextArea } = Input;
 const { Text } = Typography;

@@ -1,6 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { SQLSystem } from "../../models/SQLSystem";
-import useMyStore from "../../store";
+import { useAppDispatch, useAppSelector } from "../../redux/hooks";
+import {
+  selectSelectedSystemSymbol,
+  setSelectedSystemSymbol,
+} from "../../redux/slices/mapSlice";
 import { systemIcons } from "../../utils/waypointColors";
 import classes from "./WaypointMapSystem.module.css";
 
@@ -15,11 +19,9 @@ function WaypointMapSystem({
 }) {
   const [size, setSize] = useState(16);
   const textboxRef = useRef<HTMLDivElement>(null);
-  const selectedSystem = useMyStore((state) => state.selectedSystemSymbol);
+  const selectedSystem = useAppSelector(selectSelectedSystemSymbol);
 
-  const setSelectedSystemSymbol = useMyStore(
-    (state) => state.setSelectedSystemSymbol
-  );
+  const dispatch = useAppDispatch();
 
   function outputsize() {
     if (!textboxRef.current) return;
@@ -53,10 +55,10 @@ function WaypointMapSystem({
       className={`${classes.waypointContainer} ${classes.star}`}
       onClick={() => {
         if (selectedSystem === system.symbol) {
-          setSelectedSystemSymbol(undefined);
+          dispatch(setSelectedSystemSymbol(undefined));
           return;
         }
-        setSelectedSystemSymbol(system.symbol);
+        dispatch(setSelectedSystemSymbol(system.symbol));
       }}
       onDoubleClick={() => {
         window.open(
