@@ -73,7 +73,30 @@ pub struct ControlServer {
     pub active: bool,
 }
 
-lazy_static! {
-    pub static ref CONFIG: Config =
-        serde_json::from_str(&std::fs::read_to_string("config.json").unwrap()).unwrap();
+impl From<Config> for crate::utils::Config {
+    fn from(config: Config) -> Self {
+        Self {
+            socket_address: config.control_server.socket_address,
+            control_start_sleep: config.control_server.start_sleep_duration,
+            control_active: config.control_server.active,
+            scrapper_start_sleep: config.market.start_sleep_duration,
+            scrap_agents: config.market.agents,
+            max_miners_per_waypoint: config.mining.max_miners_per_waypoint,
+            mining_eject_list: config.mining.blacklist.clone(),
+            fuel_cost: config.trading.fuel_cost,
+            purchase_multiplier: config.trading.purchase_multiplier,
+            market_blacklist: config.trading.blacklist.clone(),
+            default_purchase_price: config.trading.default_purchase_price,
+            default_sell_price: config.trading.default_sell_price,
+            default_profit: config.trading.default_profit,
+            markup_percentage: config.trading.markup_percentage,
+            margin_percentage: config.trading.margin_percentage,
+            update_all_systems: config.market.active,
+        }
+    }
 }
+
+// lazy_static! {
+//     pub static ref CONFIG: Config =
+//         serde_json::from_str(&std::fs::read_to_string("config.json").unwrap()).unwrap();
+// }

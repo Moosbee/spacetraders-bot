@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use log::debug;
 use space_traders_client::models;
 
-use crate::{config::CONFIG, error::Error, utils::ConductorContext};
+use crate::{error::Error, utils::ConductorContext};
 
 use super::{
     route_calculator_concrete::ConcreteRouteCalculator,
@@ -45,13 +45,32 @@ impl RouteCalculator {
             database::Waypoint::get_by_system(&self.context.database_pool, &ship.nav.system_symbol)
                 .await?;
 
+        let config = { self.context.config.read().await.clone() };
+
         let routes = possible_trades
             .into_iter()
-            .map(|route| self.extrapolate_trade_route(route))
-            .filter(|route| self.is_valid_route(route))
+            .map(|route| {
+                self.extrapolate_trade_route(
+                    route,
+                    config.markup_percentage,
+                    config.margin_percentage,
+                    config.default_purchase_price,
+                    config.default_sell_price,
+                    config.default_profit,
+                )
+            })
+            .filter(|route| self.is_valid_route(route, &config.market_blacklist))
             .collect::<Vec<_>>()
             .into_iter()
-            .map(|route| self.concrete.calc(ship, route, &waypoints))
+            .map(|route| {
+                self.concrete.calc(
+                    ship,
+                    route,
+                    &waypoints,
+                    config.fuel_cost,
+                    config.purchase_multiplier,
+                )
+            })
             // .filter(|route| route.trip.total_profit > 2000)
             .collect::<Vec<_>>();
 
@@ -119,7 +138,15 @@ impl RouteCalculator {
         possible_trades
     }
 
-    fn extrapolate_trade_route(&self, route: PossibleTradeRoute) -> ExtrapolatedTradeRoute {
+    fn extrapolate_trade_route(
+        &self,
+        route: PossibleTradeRoute,
+        markup_percentage: f32,
+        margin_percentage: f32,
+        default_purchase_price: i32,
+        default_sell_price: i32,
+        default_profit: i32,
+    ) -> ExtrapolatedTradeRoute {
         let (min_trade_volume, max_trade_volume) = {
             let min_volume = route
                 .purchase_good
@@ -175,23 +202,19 @@ impl RouteCalculator {
                 }
                 (Some(p), None) => {
                     // Only purchase price is known, apply markup
-                    let markup = (p as f32 * CONFIG.trading.markup_percentage) as i32;
+                    let markup = (p as f32 * markup_percentage) as i32;
                     let estimated_sell = p + markup;
                     (p, estimated_sell, markup)
                 }
                 (None, Some(s)) => {
                     // Only sell price is known, apply margin
-                    let margin = (s as f32 * CONFIG.trading.margin_percentage) as i32;
+                    let margin = (s as f32 * margin_percentage) as i32;
                     let estimated_purchase = s - margin;
                     (estimated_purchase, s, margin)
                 }
                 (None, None) => {
                     // No prices known, use default values
-                    (
-                        CONFIG.trading.default_purchase_price,
-                        CONFIG.trading.default_sell_price,
-                        CONFIG.trading.default_profit,
-                    )
+                    (default_purchase_price, default_sell_price, default_profit)
                 }
             };
 
@@ -205,8 +228,12 @@ impl RouteCalculator {
 
         ExtrapolatedTradeRoute { route, data }
     }
-    fn is_valid_route(&self, route: &ExtrapolatedTradeRoute) -> bool {
-        !CONFIG.trading.blacklist.contains(&route.route.symbol)
+    fn is_valid_route(
+        &self,
+        route: &ExtrapolatedTradeRoute,
+        blacklist: &[models::TradeSymbol],
+    ) -> bool {
+        !blacklist.contains(&route.route.symbol)
             && route.data.profit > 0
             && route.route.purchase.waypoint_symbol != route.route.sell.waypoint_symbol
     }

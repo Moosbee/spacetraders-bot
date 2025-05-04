@@ -1,7 +1,10 @@
+use std::net::SocketAddr;
 use std::sync::Arc;
 
 use database::DbPool;
+use serde::Deserialize;
 use ship::ShipManager;
+use space_traders_client::models;
 use tokio::sync::RwLock;
 use utils::RunInfo;
 
@@ -27,4 +30,32 @@ pub struct ConductorContext {
     pub fleet_manager: FleetManagerMessanger,
     pub chart_manager: ChartManagerMessanger,
     pub run_info: Arc<RwLock<RunInfo>>,
+    pub config: Arc<RwLock<Config>>,
+}
+
+#[derive(Deserialize, Debug, Clone)]
+pub struct Config {
+    pub socket_address: SocketAddr,
+    pub control_start_sleep: u64,
+    pub control_active: bool,
+
+    pub scrapper_start_sleep: u64,
+    pub scrap_agents: bool,
+    pub update_all_systems: bool,
+
+    pub max_miners_per_waypoint: u32,
+    pub mining_eject_list: Vec<models::TradeSymbol>,
+
+    pub fuel_cost: i32,
+    pub purchase_multiplier: f32,
+
+    pub market_blacklist: Vec<models::TradeSymbol>,
+
+    pub default_purchase_price: i32,
+    pub default_sell_price: i32,
+    pub default_profit: i32,
+
+    // Markup and margin percentages (as decimals)
+    pub markup_percentage: f32,
+    pub margin_percentage: f32,
 }

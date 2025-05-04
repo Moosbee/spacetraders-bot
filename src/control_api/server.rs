@@ -3,7 +3,7 @@ use std::time::Duration;
 use futures::FutureExt;
 use tokio_util::sync::CancellationToken;
 
-use crate::{config::CONFIG, manager::Manager, utils::ConductorContext};
+use crate::{config, manager::Manager, utils::ConductorContext};
 
 use super::types::MyReceiver;
 
@@ -57,15 +57,13 @@ impl ControlApiServer {
     }
 
     async fn run_server(&mut self) -> anyhow::Result<()> {
-        if !CONFIG.control_server.active {
+        let config = { self.context.config.read().await.clone() };
+        if !config.control_active {
             log::info!("Control API not active, exiting");
             return Ok(());
         }
 
-        tokio::time::sleep(Duration::from_millis(
-            CONFIG.control_server.start_sleep_duration,
-        ))
-        .await;
+        tokio::time::sleep(Duration::from_millis(config.control_start_sleep)).await;
 
         let (ship_rx, agent_rx) = self.setup_broadcast_channels()?;
         let routes = crate::control_api::routes::build_routes(
@@ -79,7 +77,7 @@ impl ControlApiServer {
             _ = self.cancellation_token.cancelled() => {
                 log::info!("Shutting down server via cancellation");
             },
-            _ = warp::serve(routes).run(CONFIG.control_server.socket_address).fuse() => {
+            _ = warp::serve(routes).run(config.socket_address).fuse() => {
                 log::info!("Server shutdown completed");
             }
         }

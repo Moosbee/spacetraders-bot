@@ -9,7 +9,6 @@ use log::{debug, error, info};
 use utils::{distance_between_waypoints, WaypointCan};
 
 use crate::{
-    config::CONFIG,
     error::{Error, Result},
     manager::{
         fleet_manager::message::{Budget, Priority, RequestedShipType, RequiredShips},
@@ -58,9 +57,15 @@ impl ScrappingManager {
     }
 
     async fn run_scrapping_worker(&mut self) -> Result<()> {
-        tokio::time::sleep(Duration::from_millis(CONFIG.market.start_sleep_duration)).await;
+        tokio::time::sleep(Duration::from_millis({
+            self.context.config.read().await.scrapper_start_sleep
+        }))
+        .await;
 
-        let agent_join_handle = if CONFIG.market.agents {
+        let agent_join_handle = if {
+            let erg = { self.context.config.read().await.scrap_agents };
+            erg
+        } {
             let api = self.context.api.clone();
             let database_pool = self.context.database_pool.clone();
             let cancel_token = self.cancel_token.child_token();
@@ -74,7 +79,10 @@ impl ScrappingManager {
 
         let system_join_handle: tokio::task::JoinHandle<
             std::result::Result<(), crate::error::Error>,
-        > = if false {
+        > = if {
+            let erg = { self.context.config.read().await.update_all_systems };
+            erg
+        } {
             let api = self.context.api.clone();
             let database_pool = self.context.database_pool.clone();
 

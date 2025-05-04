@@ -12,7 +12,6 @@ mod utils;
 use std::{collections::HashSet, env, error::Error, str::FromStr, sync::Arc, vec};
 
 use chrono::{DateTime, Utc};
-use config::CONFIG;
 use database::DatabaseConnector;
 use env_logger::{Env, Target};
 use manager::{
@@ -71,8 +70,6 @@ async fn setup_unauthed() -> Result<(space_traders_client::Api, database::DbPool
 
     let access_token = env::var("ACCESS_TOKEN").ok();
     let database_url = env::var("DATABASE_URL").unwrap();
-
-    info!("{:?}", CONFIG.clone());
 
     let api: space_traders_client::Api =
         space_traders_client::Api::new(access_token, 550, NonZeroU32::new(2).unwrap());
@@ -200,6 +197,13 @@ async fn setup_context(
     let fleet_manager = FleetManager::create();
     let ship_task_handler = ShipTaskHandler::create();
 
+    let conf: config::Config =
+        serde_json::from_str(&std::fs::read_to_string("config.json").unwrap()).unwrap();
+
+    let config: utils::Config = Into::into(conf);
+
+    let max_miners_per_waypoint = config.max_miners_per_waypoint;
+
     let context = ConductorContext {
         api: api.clone(),
         database_pool,
@@ -213,6 +217,7 @@ async fn setup_context(
         fleet_manager: fleet_manager.1,
         chart_manager: chart_manager.1,
         run_info: Arc::new(RwLock::new(run_info)),
+        config: Arc::new(RwLock::new(config)),
     };
 
     debug!("Context created");
@@ -236,6 +241,7 @@ async fn setup_context(
         context.clone(),
         mining_manager_data.0,
         mining_manager_data.2,
+        max_miners_per_waypoint,
     );
     let scrapping_manager = ScrappingManager::new(
         manager_cancel_token.child_token(),

@@ -7,7 +7,6 @@ use ship::status::{ExtractorState, MiningShipAssignment};
 use space_traders_client::models;
 
 use crate::{
-    config::CONFIG,
     error::Result,
     manager::mining_manager::{ActionType, ExtractorTransferRequest, TransferResult},
     utils::ConductorContext,
@@ -415,8 +414,9 @@ impl ExtractionPilot {
     async fn eject_blacklist(&self, ship: &mut ship::MyShip) -> Result<()> {
         debug!("Ejecting blacklist on ship: {}", ship.symbol);
         let cargo = ship.cargo.inventory.clone();
+        let eject_list = &self.context.config.read().await.mining_eject_list;
         for item in cargo.iter() {
-            if CONFIG.mining.blacklist.contains(item.0) {
+            if eject_list.contains(item.0) {
                 debug!("Ejecting: {:?}", item);
                 ship.jettison(&self.context.api, *item.0, *item.1).await?;
             }

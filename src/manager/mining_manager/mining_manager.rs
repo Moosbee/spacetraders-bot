@@ -5,7 +5,6 @@ use space_traders_client::models::{self};
 use utils::WaypointCan;
 
 use crate::{
-    config::CONFIG,
     error::Result,
     manager::{
         fleet_manager::message::{Budget, Priority, RequestedShipType, RequiredShips},
@@ -56,6 +55,7 @@ impl MiningManager {
         context: ConductorContext,
         receiver: tokio::sync::mpsc::Receiver<MiningManagerMessage>,
         transfer_manager: Arc<TransferManager>,
+        max_miners_per_waypoint: u32,
     ) -> Self {
         debug!("Initializing new MiningManager");
         Self {
@@ -63,10 +63,7 @@ impl MiningManager {
             receiver,
             transfer_manager,
             inventory_manager: ShipInventoryManager::new(),
-            waypoint_manager: WaypointManager::new(
-                context.clone(),
-                CONFIG.mining.max_miners_per_waypoint,
-            ),
+            waypoint_manager: WaypointManager::new(context.clone(), max_miners_per_waypoint),
             context,
         }
     }
