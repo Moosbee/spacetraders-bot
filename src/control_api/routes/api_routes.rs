@@ -241,6 +241,19 @@ pub(crate) fn build_api_routes(
         .and(with_context(context.clone()))
         .and_then(handlers::handle_get_run_info);
 
+    let get_config = warp::path!("insights" / "config")
+        .and(warp::path::end())
+        .and(warp::get())
+        .and(with_context(context.clone()))
+        .and_then(handlers::handle_get_config);
+
+    let update_config = warp::path!("insights" / "config")
+        .and(warp::path::end())
+        .and(warp::post())
+        .and(warp::body::json())
+        .and(with_context(context.clone()))
+        .and_then(handlers::handle_update_config);
+
     // Shutdown route
     let shutdown = warp::path("shutdown")
         .and(warp::path::end())
@@ -286,6 +299,8 @@ pub(crate) fn build_api_routes(
         .or(ship_discrepancy)
         .or(possible_trades)
         .or(run_info)
+        .or(get_config)
+        .or(update_config)
         .or(shutdown)
     // .or(not_found_routes)
 }

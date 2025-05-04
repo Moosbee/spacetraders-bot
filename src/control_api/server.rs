@@ -3,7 +3,7 @@ use std::time::Duration;
 use futures::FutureExt;
 use tokio_util::sync::CancellationToken;
 
-use crate::{config, manager::Manager, utils::ConductorContext};
+use crate::{manager::Manager, utils::ConductorContext};
 
 use super::types::MyReceiver;
 

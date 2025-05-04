@@ -1,5 +1,4 @@
 #![recursion_limit = "256"]
-mod config;
 mod tests;
 
 mod control_api;
@@ -197,10 +196,8 @@ async fn setup_context(
     let fleet_manager = FleetManager::create();
     let ship_task_handler = ShipTaskHandler::create();
 
-    let conf: config::Config =
+    let config: utils::Config =
         serde_json::from_str(&std::fs::read_to_string("config.json").unwrap()).unwrap();
-
-    let config: utils::Config = Into::into(conf);
 
     let max_miners_per_waypoint = config.max_miners_per_waypoint;
 

@@ -175,3 +175,30 @@ pub async fn handle_get_run_info(context: ConductorContext) -> Result<impl Reply
     let info = { context.run_info.read().await.clone() };
     Ok(warp::reply::json(&serde_json::json!(info)))
 }
+
+pub async fn handle_get_config(context: ConductorContext) -> Result<impl Reply> {
+    let info = { context.config.read().await.clone() };
+    Ok(warp::reply::json(&serde_json::json!(info)))
+}
+
+pub async fn handle_update_config(
+    body: serde_json::Value,
+    context: ConductorContext,
+) -> Result<impl Reply> {
+    {
+        let new_config = serde_json::from_value::<crate::utils::Config>(body.clone())
+            .map_err(|e| ServerError::BadRequest(e.to_string()))?;
+        let mut config = context.config.write().await;
+        *config = new_config;
+    }
+
+    let info = { context.config.read().await.clone() };
+
+    let serde_string =
+        serde_json::to_string(&info).map_err(|e| ServerError::Server(e.to_string()))?;
+    tokio::fs::write("config.json", serde_string)
+        .await
+        .map_err(|e| ServerError::Server(e.to_string()))?;
+
+    Ok(warp::reply::json(&serde_json::json!(info)))
+}

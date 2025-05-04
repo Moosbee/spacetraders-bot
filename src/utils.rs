@@ -2,7 +2,7 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 
 use database::DbPool;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use ship::ShipManager;
 use space_traders_client::models;
 use tokio::sync::RwLock;
@@ -33,7 +33,7 @@ pub struct ConductorContext {
     pub config: Arc<RwLock<Config>>,
 }
 
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct Config {
     pub socket_address: SocketAddr,
     pub control_start_sleep: u64,
