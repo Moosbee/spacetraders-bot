@@ -1,4 +1,5 @@
 mod extraction;
+mod surveyor;
 mod transport;
 
 use log::debug;
@@ -12,6 +13,7 @@ use crate::{
 pub struct MiningPilot {
     extraction: extraction::ExtractionPilot,
     transport: transport::TransportPilot,
+    survey: surveyor::SurveyPilot,
     context: ConductorContext,
     ship_symbol: String,
 }
@@ -22,6 +24,7 @@ impl MiningPilot {
             ship_symbol,
             extraction: extraction::ExtractionPilot::new(context.clone()),
             transport: transport::TransportPilot::new(context.clone()),
+            survey: surveyor::SurveyPilot::new(context.clone()),
             context,
         }
     }
@@ -45,7 +48,7 @@ impl MiningPilot {
                 MiningShipAssignment::Siphoner { .. } => {
                     self.run_siphoned_ship_worker(ship, pilot).await?
                 }
-                MiningShipAssignment::Surveyor => {
+                MiningShipAssignment::Surveyor { .. } => {
                     self.run_surveyor_ship_worker(ship, pilot).await?
                 }
                 MiningShipAssignment::Idle => {}
@@ -93,7 +96,10 @@ impl MiningPilot {
 
             ShipCapabilities {
                 can_survey: true, ..
-            } => MiningShipAssignment::Surveyor,
+            } => MiningShipAssignment::Surveyor {
+                surveys: None,
+                waypoint_symbol: None,
+            },
 
             ShipCapabilities {
                 can_cargo: true, ..
@@ -149,12 +155,7 @@ impl MiningPilot {
         ship: &mut ship::MyShip,
         pilot: &super::Pilot,
     ) -> Result<()> {
-        ship.status = ship::ShipStatus::Mining {
-            assignment: MiningShipAssignment::Surveyor,
-        };
-        ship.notify().await;
-        pilot.cancellation_token.cancelled().await;
-        Ok(())
+        self.survey.execute_survey_circle(ship, pilot).await
     }
 }
 

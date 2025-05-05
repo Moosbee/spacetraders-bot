@@ -9,7 +9,17 @@
   "mining_eject_list": [
     "ICE_WATER"
   ],
+  "mining_prefer_list": [
+    "SILICON_CRYSTALS",
+    "COPPER_ORE",
+    "IRON_ORE",
+    "QUARTZ_SAND"
+  ],
+  "ignore_engineered_asteroids": true,
+  "unstable_since_timeout": 10800,
+  "stop_all_unstable": true,
   "fuel_cost": 72,
+  "antimatter_price": 6000,
   "purchase_multiplier": 2.0,
   "market_blacklist": [
     "ADVANCED_CIRCUITRY",
@@ -19,5 +29,10 @@
   "default_sell_price": 150,
   "default_profit": 50,
   "markup_percentage": 0.5,
-  "margin_percentage": 0.33
+  "margin_percentage": 0.33,
+  "markets_per_ship": 5,
+  "mining_waypoints_per_system": 2,
+  "mining_ships_per_waypoint": 8,
+  "transport_capacity_per_waypoint": 80,
+  "trade_mode": "ProfitPerHour"
 }

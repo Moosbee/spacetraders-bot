@@ -51,20 +51,31 @@ impl WaypointManager {
         ship: &ship::MyShip,
         action: ActionType,
     ) -> Result<String> {
+        let (ignore_engineered_asteroids, unstable_since_timeout, stop_all_unstable) = {
+            let config = self.context.config.read().await;
+            (
+                config.ignore_engineered_asteroids,
+                config.unstable_since_timeout,
+                config.stop_all_unstable,
+            )
+        };
+
         if let Some((waypoint_symbol, _)) = self.places.get_ship(&ship.symbol) {
             let waypoint =
                 database::Waypoint::get_by_symbol(&self.context.database_pool, &waypoint_symbol)
                     .await?;
+
             if waypoint
                 .map(|waypoint| {
                     waypoint.is_minable()
-                        && waypoint.waypoint_type != models::WaypointType::EngineeredAsteroid
+                        && (waypoint.waypoint_type != models::WaypointType::EngineeredAsteroid
+                            || ignore_engineered_asteroids)
                         && waypoint
                             .unstable_since
                             .map(|last| {
-                                // last + chrono::Duration::hours(20)
-                                //     < chrono::Utc::now().naive_local()
-                                false
+                                (last + chrono::Duration::seconds(unstable_since_timeout)
+                                    < chrono::Utc::now().naive_local())
+                                    || !stop_all_unstable
                             })
                             .unwrap_or(true)
                 })
@@ -87,12 +98,14 @@ impl WaypointManager {
         if waypoint
             .map(|waypoint| {
                 waypoint.is_minable()
-                    && waypoint.waypoint_type != models::WaypointType::EngineeredAsteroid
+                    && (waypoint.waypoint_type != models::WaypointType::EngineeredAsteroid
+                        || ignore_engineered_asteroids)
                     && waypoint
                         .unstable_since
                         .map(|last| {
-                            // last + chrono::Duration::hours(20) < chrono::Utc::now().naive_local()
-                            false
+                            (last + chrono::Duration::seconds(unstable_since_timeout)
+                                < chrono::Utc::now().naive_local())
+                                || !stop_all_unstable
                         })
                         .unwrap_or(true)
             })
@@ -116,13 +129,14 @@ impl WaypointManager {
                 match action {
                     ActionType::Extract => |waypoint| {
                         waypoint.is_minable()
-                            && waypoint.waypoint_type != models::WaypointType::EngineeredAsteroid
+                            && (waypoint.waypoint_type != models::WaypointType::EngineeredAsteroid
+                                || ignore_engineered_asteroids)
                             && waypoint
                                 .unstable_since
                                 .map(|last| {
-                                    // last + chrono::Duration::hours(20)
-                                    //     < chrono::Utc::now().naive_local()
-                                    false
+                                    (last + chrono::Duration::seconds(unstable_since_timeout)
+                                        < chrono::Utc::now().naive_local())
+                                        || !stop_all_unstable
                                 })
                                 .unwrap_or(true)
                     },

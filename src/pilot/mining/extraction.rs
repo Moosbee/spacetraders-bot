@@ -1,4 +1,7 @@
-use std::sync::{atomic::AtomicI32, Arc};
+use std::{
+    cmp::Ordering,
+    sync::{atomic::AtomicI32, Arc},
+};
 
 use database::DatabaseConnector;
 use futures::FutureExt;
@@ -75,7 +78,7 @@ impl ExtractionPilot {
             ExtractorState::Unknown,
             Some(waypoint_symbol.clone()),
             Some(self.count.load(std::sync::atomic::Ordering::Relaxed)),
-            false,
+            true,
         )
         .await;
 
@@ -270,107 +273,159 @@ impl ExtractionPilot {
 
         match action {
             ActionType::Extract => {
-                let erg = ship.extract(&self.context.api).await;
-                debug!("Extracted on ship: {} result: {:?}", ship.symbol, erg);
-                match erg {
-                    Err(space_traders_client::apis::Error::ResponseError(e)) => {
-                        if e.entity
-                            .as_ref()
-                            .map(|e| {
-                                e.error.code == models::error_codes::SHIP_EXTRACT_DESTABILIZED_ERROR
-                            })
-                            .unwrap_or(false)
-                        {
-                            log::warn!(
-                                "Waypoint {} is destabilized by {}",
-                                ship.nav.waypoint_symbol,
-                                ship.symbol
-                            );
+                let survey: Option<database::Survey> = self.get_best_survey(ship).await?;
 
-                            let new_wp = database::Waypoint::get_by_symbol(
-                                &self.context.database_pool,
-                                &ship.nav.waypoint_symbol,
-                            )
-                            .await?;
-                            let mut wp = if let Some(new_wp) = new_wp {
-                                new_wp
-                            } else {
-                                let new_wp = self
-                                    .context
-                                    .api
-                                    .get_waypoint(
-                                        &ship.nav.system_symbol,
-                                        &ship.nav.waypoint_symbol,
-                                    )
+                if let Some(survey) = survey {
+                    let survey_erg = ship
+                        .extract_with_survey(&self.context.api, &survey.into())
+                        .await;
+
+                    match survey_erg {
+                        Err(space_traders_client::apis::Error::ResponseError(e)) => {
+                            if e.entity
+                                .as_ref()
+                                .map(|e| {
+                                    e.error.code
+                                        == models::error_codes::SHIP_EXTRACT_DESTABILIZED_ERROR
+                                })
+                                .unwrap_or(false)
+                            {
+                                log::warn!(
+                                    "Waypoint {} is destabilized by {}",
+                                    ship.nav.waypoint_symbol,
+                                    ship.symbol
+                                );
+
+                                let new_wp = database::Waypoint::get_by_symbol(
+                                    &self.context.database_pool,
+                                    &ship.nav.waypoint_symbol,
+                                )
+                                .await?;
+                                let mut wp = if let Some(new_wp) = new_wp {
+                                    new_wp
+                                } else {
+                                    let new_wp = self
+                                        .context
+                                        .api
+                                        .get_waypoint(
+                                            &ship.nav.system_symbol,
+                                            &ship.nav.waypoint_symbol,
+                                        )
+                                        .await?;
+                                    (&(*new_wp.data)).into()
+                                };
+                                wp.unstable_since = Some(chrono::Utc::now());
+                                database::Waypoint::insert(&self.context.database_pool, &wp)
                                     .await?;
-                                (&(*new_wp.data)).into()
+                            } else {
+                                return Err(
+                                    space_traders_client::apis::Error::ResponseError(e).into()
+                                );
+                            }
+                        }
+                        Err(e) => return Err(e.into()),
+                        Ok(erg) => {
+                            let after_state_id = ship.snapshot(&self.context.database_pool).await?;
+
+                            let extraction = database::Extraction {
+                                id: 0,
+                                ship_symbol: ship.symbol.clone(),
+                                waypoint_symbol: ship.nav.waypoint_symbol.clone(),
+                                ship_info_before: state_id,
+                                ship_info_after: after_state_id,
+                                siphon: false,
+                                yield_symbol: erg.data.extraction.r#yield.symbol,
+                                yield_units: erg.data.extraction.r#yield.units,
+                                survey: None,
+                                created_at: chrono::Utc::now(),
                             };
-                            wp.unstable_since = Some(chrono::Utc::now());
-                            database::Waypoint::insert(&self.context.database_pool, &wp).await?;
-                        } else {
-                            return Err(space_traders_client::apis::Error::ResponseError(e).into());
+
+                            database::Extraction::insert(&self.context.database_pool, &extraction)
+                                .await?;
+
+                            info!(
+                                "Extracted on ship: {} erg {:?} events: {:?}",
+                                erg.data.extraction.ship_symbol,
+                                erg.data.extraction.r#yield,
+                                erg.data.events
+                            );
                         }
                     }
-                    Err(e) => return Err(e.into()),
-                    Ok(erg) => {
-                        let after_state_id = ship.snapshot(&self.context.database_pool).await?;
+                } else {
+                    let simple_erg = ship.extract(&self.context.api).await;
 
-                        let extraction = database::Extraction {
-                            id: 0,
-                            ship_symbol: ship.symbol.clone(),
-                            waypoint_symbol: ship.nav.waypoint_symbol.clone(),
-                            ship_info_before: state_id,
-                            ship_info_after: after_state_id,
-                            siphon: false,
-                            yield_symbol: erg.data.extraction.r#yield.symbol,
-                            yield_units: erg.data.extraction.r#yield.units,
-                            created_at: chrono::Utc::now(),
-                        };
+                    match simple_erg {
+                        Err(space_traders_client::apis::Error::ResponseError(e)) => {
+                            if e.entity
+                                .as_ref()
+                                .map(|e| {
+                                    e.error.code
+                                        == models::error_codes::SHIP_EXTRACT_DESTABILIZED_ERROR
+                                })
+                                .unwrap_or(false)
+                            {
+                                log::warn!(
+                                    "Waypoint {} is destabilized by {}",
+                                    ship.nav.waypoint_symbol,
+                                    ship.symbol
+                                );
 
-                        database::Extraction::insert(&self.context.database_pool, &extraction)
-                            .await?;
+                                let new_wp = database::Waypoint::get_by_symbol(
+                                    &self.context.database_pool,
+                                    &ship.nav.waypoint_symbol,
+                                )
+                                .await?;
+                                let mut wp = if let Some(new_wp) = new_wp {
+                                    new_wp
+                                } else {
+                                    let new_wp = self
+                                        .context
+                                        .api
+                                        .get_waypoint(
+                                            &ship.nav.system_symbol,
+                                            &ship.nav.waypoint_symbol,
+                                        )
+                                        .await?;
+                                    (&(*new_wp.data)).into()
+                                };
+                                wp.unstable_since = Some(chrono::Utc::now());
+                                database::Waypoint::insert(&self.context.database_pool, &wp)
+                                    .await?;
+                            } else {
+                                return Err(
+                                    space_traders_client::apis::Error::ResponseError(e).into()
+                                );
+                            }
+                        }
+                        Err(e) => return Err(e.into()),
+                        Ok(erg) => {
+                            let after_state_id = ship.snapshot(&self.context.database_pool).await?;
 
-                        info!(
-                            "Extracted on ship: {} erg {:?} events: {:?}",
-                            erg.data.extraction.ship_symbol,
-                            erg.data.extraction.r#yield,
-                            erg.data.events
-                        );
+                            let extraction = database::Extraction {
+                                id: 0,
+                                ship_symbol: ship.symbol.clone(),
+                                waypoint_symbol: ship.nav.waypoint_symbol.clone(),
+                                ship_info_before: state_id,
+                                ship_info_after: after_state_id,
+                                siphon: false,
+                                yield_symbol: erg.data.extraction.r#yield.symbol,
+                                yield_units: erg.data.extraction.r#yield.units,
+                                survey: None,
+                                created_at: chrono::Utc::now(),
+                            };
 
-                        // let new_wp = self
-                        //     .context
-                        //     .api
-                        //     .get_waypoint(&ship.nav.system_symbol, &ship.nav.waypoint_symbol)
-                        //     .await?;
+                            database::Extraction::insert(&self.context.database_pool, &extraction)
+                                .await?;
 
-                        // if new_wp
-                        //     .data
-                        //     .modifiers
-                        //     .as_ref()
-                        //     .map(|v| {
-                        //         v.iter().any(|m| {
-                        //             m.symbol == models::WaypointModifierSymbol::CriticalLimit
-                        //         })
-                        //     })
-                        //     .unwrap_or(false)
-                        // {
-                        //     log::warn!("Waypoint {} has critical limit", ship.nav.waypoint_symbol);
-                        // }
-
-                        // if new_wp
-                        //     .data
-                        //     .modifiers
-                        //     .as_ref()
-                        //     .map(|v| {
-                        //         v.iter()
-                        //             .any(|m| m.symbol == models::WaypointModifierSymbol::Unstable)
-                        //     })
-                        //     .unwrap_or(false)
-                        // {
-                        //     log::warn!("Waypoint {} is unstable", ship.nav.waypoint_symbol);
-                        // }
+                            info!(
+                                "Extracted on ship: {} erg {:?} events: {:?}",
+                                erg.data.extraction.ship_symbol,
+                                erg.data.extraction.r#yield,
+                                erg.data.events
+                            );
+                        }
                     }
-                }
+                };
             }
             ActionType::Siphon => {
                 let erg = ship.siphon(&self.context.api).await?;
@@ -384,6 +439,8 @@ impl ExtractionPilot {
                     ship_info_before: state_id,
                     ship_info_after: after_state_id,
                     siphon: true,
+                    survey: None,
+
                     yield_symbol: erg.data.siphon.r#yield.symbol,
                     yield_units: erg.data.siphon.r#yield.units,
                     created_at: chrono::Utc::now(),
@@ -535,5 +592,41 @@ impl ExtractionPilot {
             ship.symbol, request.to_symbol
         );
         Ok(())
+    }
+
+    async fn get_best_survey(&self, ship: &mut ship::MyShip) -> Result<Option<database::Survey>> {
+        let working_surveys = database::Survey::get_working_for_waypoint(
+            &self.context.database_pool,
+            &ship.nav.waypoint_symbol,
+        )
+        .await?;
+
+        let prefer_list = { self.context.config.read().await.mining_prefer_list.clone() };
+
+        let best_survey = working_surveys
+            .iter()
+            .filter(|survey| prefer_list.iter().any(|p| survey.deposits.contains(p)))
+            .max_by(|a, b| {
+                let count_a = a.get_percent();
+                let score_a = count_a
+                    .iter()
+                    .filter(|f| prefer_list.contains(&f.0))
+                    .map(|f| f.1)
+                    .sum::<f64>();
+                let count_b = b.get_percent();
+                let score_b = count_b
+                    .iter()
+                    .filter(|f| prefer_list.contains(&f.0))
+                    .map(|f| f.1)
+                    .sum::<f64>();
+
+                score_b.partial_cmp(&score_a).unwrap()
+            });
+
+        if let Some(best_survey) = best_survey {
+            return Ok(Some(best_survey.clone()));
+        }
+
+        Ok(None)
     }
 }

@@ -463,9 +463,15 @@ impl FleetManager {
         all_systems_hashmap: &HashMap<String, HashMap<String, database::Waypoint>>,
         connection_hash_map: &HashMap<String, Vec<database::JumpGateConnection>>,
     ) -> Result<()> {
+        let config = { self.context.config.read().await.clone() };
+
         let scrap_ships = ScrappingManager::get_required_ships(all_ships, all_systems_hashmap)?;
 
-        let trading_ships = TradeManager::get_required_ships(all_ships, all_systems_hashmap)?;
+        let trading_ships = TradeManager::get_required_ships(
+            all_ships,
+            all_systems_hashmap,
+            config.markets_per_ship,
+        )?;
 
         let mining_ships = self.context.mining_manager.get_ships(&self.context).await?;
 

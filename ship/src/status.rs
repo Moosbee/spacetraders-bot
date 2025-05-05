@@ -72,7 +72,10 @@ pub enum MiningShipAssignment {
         waypoint_symbol: Option<String>,
         extractions: Option<i32>,
     },
-    Surveyor,
+    Surveyor {
+        waypoint_symbol: Option<String>,
+        surveys: Option<i32>,
+    },
     #[default]
     Idle,
     Useless,

@@ -115,6 +115,7 @@ impl TradeManager {
     pub fn get_required_ships(
         all_ships: &[ship::MyShip],
         all_systems_hashmap: &HashMap<String, HashMap<String, database::Waypoint>>,
+        markets_per_ship: i64,
     ) -> Result<RequiredShips> {
         // let all_ships = context
         //     .ship_manager
@@ -168,14 +169,13 @@ impl TradeManager {
         }
 
         let mut required_ships = RequiredShips::new();
-        const MARKETS_PER_SHIP: i64 = 5;
 
         for (system, ships) in systems {
             let waypoints = all_systems_hashmap
                 .get(&system)
                 .map(|s| s.values().filter(|w| w.is_marketplace()).count())
                 .unwrap_or(0);
-            let diff = ((waypoints as i64) / MARKETS_PER_SHIP) - (ships.len() as i64);
+            let diff = ((waypoints as i64) / markets_per_ship) - (ships.len() as i64);
             if diff <= 0 {
                 continue;
             };
@@ -224,8 +224,9 @@ impl TradeManager {
         let next_route = if !my_unfinished_routes.is_empty() {
             Some(my_unfinished_routes[0].clone())
         } else {
+            let mode = { self.context.config.read().await.trade_mode };
             self.calculator
-                .get_best_route(&ship_clone, &self.routes_tracker)
+                .get_best_route(&ship_clone, &self.routes_tracker, mode)
                 .await?
         };
 

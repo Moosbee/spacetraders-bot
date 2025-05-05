@@ -33,6 +33,7 @@ mod jump_gate_connection;
 mod ship_jump;
 mod ship_state;
 mod ship_transfer;
+mod survey;
 
 pub use agent::Agent;
 pub use construction_material::ConstructionMaterial;
@@ -62,6 +63,7 @@ pub use shipyard::Shipyard;
 pub use shipyard_ship::ShipyardShip;
 pub use shipyard_ship_types::ShipyardShipTypes;
 pub use shipyard_transaction::ShipyardTransaction;
+pub use survey::Survey;
 pub use system::RespSystem;
 pub use system::System;
 pub use trade_route::TradeRoute;

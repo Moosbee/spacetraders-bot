@@ -12,23 +12,26 @@ impl MyShip {
     pub async fn assemble_route(&self, connections: &[SimpleConnection]) -> Result<Route> {
         let simple = self.to_connection(connections);
 
-        let mut big_stats = (0.0, 0.0, 0.0);
+        let mut big_stats = (0.0, 0.0, 0.0, 0);
 
         for c in simple.iter() {
             match c {
                 ConcreteConnection::JumpGate(jump_connection) => {
                     big_stats.0 += jump_connection.distance;
                     big_stats.2 += 6_000.0;
+                    big_stats.3 += 1;
                 }
                 ConcreteConnection::Warp(warp_connection) => {
                     big_stats.0 += warp_connection.distance;
                     big_stats.1 += warp_connection.travel_time + 1.0;
                     big_stats.2 += (warp_connection.refuel.fuel_needed as f64 / 100.0).ceil();
+                    big_stats.3 += 4;
                 }
                 ConcreteConnection::Navigate(navigate_connection) => {
                     big_stats.0 += navigate_connection.distance;
                     big_stats.1 += navigate_connection.travel_time + 1.0;
                     big_stats.2 += (navigate_connection.refuel.fuel_needed as f64 / 100.0).ceil();
+                    big_stats.3 += 4;
                 }
             }
         }
@@ -38,33 +41,39 @@ impl MyShip {
             total_distance: big_stats.0,
             total_fuel_cost: big_stats.2,
             total_travel_time: big_stats.1,
+            total_api_requests: big_stats.3,
         })
     }
     pub fn assemble_simple_route(
         &self,
         connections: &[SimpleConnection],
         fuel_price: i32,
+        antimatter_price: i32,
     ) -> Result<Route> {
         let simple = self.to_connection(connections);
 
-        let mut big_stats = (0.0, 0.0, 0.0);
+        let mut big_stats = (0.0, 0.0, 0.0, 0);
 
         for c in simple.iter() {
             match c {
-                ConcreteConnection::JumpGate(_jump_connection) => {
-                    return Err("Is sync not possible".into());
+                ConcreteConnection::JumpGate(jump_connection) => {
+                    big_stats.0 += jump_connection.distance;
+                    big_stats.2 += antimatter_price as f64;
+                    big_stats.3 += 1;
                 }
                 ConcreteConnection::Warp(warp_connection) => {
                     big_stats.0 += warp_connection.distance;
                     big_stats.1 += warp_connection.travel_time;
                     big_stats.2 += (warp_connection.refuel.fuel_needed as f64 / 100.0).ceil()
                         * (fuel_price as f64);
+                    big_stats.3 += 4;
                 }
                 ConcreteConnection::Navigate(navigate_connection) => {
                     big_stats.0 += navigate_connection.distance;
                     big_stats.1 += navigate_connection.travel_time;
                     big_stats.2 += (navigate_connection.refuel.fuel_needed as f64 / 100.0).ceil()
                         * (fuel_price as f64);
+                    big_stats.3 += 4;
                 }
             }
         }
@@ -74,6 +83,7 @@ impl MyShip {
             total_distance: big_stats.0,
             total_fuel_cost: big_stats.2,
             total_travel_time: big_stats.1,
+            total_api_requests: big_stats.3,
         })
     }
 

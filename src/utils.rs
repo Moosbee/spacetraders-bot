@@ -45,8 +45,13 @@ pub struct Config {
 
     pub max_miners_per_waypoint: u32,
     pub mining_eject_list: Vec<models::TradeSymbol>,
+    pub mining_prefer_list: Vec<models::TradeSymbol>,
+    pub ignore_engineered_asteroids: bool,
+    pub unstable_since_timeout: u64, // in seconds
+    pub stop_all_unstable: bool,
 
     pub fuel_cost: i32,
+    pub antimatter_price: i32,
     pub purchase_multiplier: f32,
 
     pub market_blacklist: Vec<models::TradeSymbol>,
@@ -58,4 +63,12 @@ pub struct Config {
     // Markup and margin percentages (as decimals)
     pub markup_percentage: f32,
     pub margin_percentage: f32,
+
+    pub markets_per_ship: i64,
+
+    pub mining_waypoints_per_system: i32,
+    pub mining_ships_per_waypoint: i32,
+    pub transport_capacity_per_waypoint: i32,
+
+    pub trade_mode: crate::manager::trade_manager::RouteMode,
 }

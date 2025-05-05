@@ -92,4 +92,5 @@ pub struct Route {
     pub total_distance: f64,
     pub total_fuel_cost: f64,
     pub total_travel_time: f64,
+    pub total_api_requests: i32,
 }

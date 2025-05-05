@@ -111,9 +111,12 @@ pub async fn handle_get_ships_to_purchase(context: ConductorContext) -> Result<i
 
     debug!("Got Scrap ships: {}", scrap_ships.len());
 
+    let markets_per_ship = { context.config.read().await.markets_per_ship };
+
     let trading_ships = crate::manager::trade_manager::TradeManager::get_required_ships(
         &all_ships,
         &all_systems_hashmap,
+        markets_per_ship,
     )
     .map_err(|e| ServerError::Server(e.to_string()))?;
 

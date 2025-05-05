@@ -5,7 +5,6 @@ mod control_api;
 mod error;
 mod manager;
 mod pilot;
-mod types;
 mod utils;
 
 use std::{collections::HashSet, env, error::Error, str::FromStr, sync::Arc, vec};

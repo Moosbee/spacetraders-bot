@@ -11,6 +11,14 @@ use super::{
     routes_tracker::RoutesTracker,
 };
 
+#[derive(serde::Deserialize, serde::Serialize, Debug, Clone, Copy)]
+#[allow(clippy::enum_variant_names)]
+pub enum RouteMode {
+    ProfitPerHour,
+    ProfitPerAPIRequest,
+    ProfitPerTrip,
+}
+
 #[derive(Debug)]
 pub struct RouteCalculator {
     context: ConductorContext,
@@ -35,6 +43,7 @@ impl RouteCalculator {
         &mut self,
         ship: &ship::MyShip,
         running_routes: &RoutesTracker,
+        mode: RouteMode,
     ) -> Result<Option<database::TradeRoute>, Error> {
         debug!("Getting new best route");
         let (trade_goods, market_trade) = self.fetch_market_data(&ship.nav.system_symbol).await?;
@@ -68,6 +77,7 @@ impl RouteCalculator {
                     route,
                     &waypoints,
                     config.fuel_cost,
+                    config.antimatter_price,
                     config.purchase_multiplier,
                 )
             })
@@ -80,7 +90,7 @@ impl RouteCalculator {
         let route = routes
             .into_iter()
             .filter(|route| !running_routes.is_locked(&(*route).clone().into()))
-            .max_by(|a, b| a.partial_cmp(b).unwrap());
+            .max_by(|a, b| a.compare(b, mode).unwrap());
 
         Ok(route.map(|route| route.into()))
     }

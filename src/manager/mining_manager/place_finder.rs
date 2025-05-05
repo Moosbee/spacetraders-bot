@@ -19,7 +19,7 @@ impl ActionType {
                 ship::status::MiningShipAssignment::Transporter { .. } => None,
                 ship::status::MiningShipAssignment::Extractor { .. } => Some(ActionType::Extract),
                 ship::status::MiningShipAssignment::Siphoner { .. } => Some(ActionType::Siphon),
-                ship::status::MiningShipAssignment::Surveyor => None,
+                ship::status::MiningShipAssignment::Surveyor { .. } => None,
                 ship::status::MiningShipAssignment::Idle => None,
                 ship::status::MiningShipAssignment::Useless => None,
             },

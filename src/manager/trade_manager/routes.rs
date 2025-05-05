@@ -125,6 +125,7 @@ pub struct TripStats {
     pub fuel_units: i32,
     pub time: f64,
     pub distance: f64,
+    pub api_requests: i32,
 
     pub volume: i32,
 
@@ -134,6 +135,7 @@ pub struct TripStats {
 
     pub trips_per_hour: f32,
     pub profit_per_hour: i32,
+    pub profit_per_api_request: i32,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -143,6 +145,28 @@ pub struct ConcreteTradeRoute {
     pub data: RouteData,
 
     pub trip: TripStats,
+}
+impl ConcreteTradeRoute {
+    pub(crate) fn compare(
+        &self,
+        other: &ConcreteTradeRoute,
+        mode: super::routes_calculator::RouteMode,
+    ) -> Option<std::cmp::Ordering> {
+        let cmp = self.route.cmp(&other.route).reverse();
+        if cmp != Ordering::Equal {
+            Some(cmp)
+        } else {
+            match mode {
+                super::RouteMode::ProfitPerHour => {
+                    Some(self.trip.profit_per_hour.cmp(&other.trip.profit_per_hour))
+                }
+                super::RouteMode::ProfitPerAPIRequest => None,
+                super::RouteMode::ProfitPerTrip => {
+                    Some(self.trip.total_profit.cmp(&other.trip.total_profit))
+                }
+            }
+        }
+    }
 }
 
 impl From<ConcreteTradeRoute> for database::TradeRoute {

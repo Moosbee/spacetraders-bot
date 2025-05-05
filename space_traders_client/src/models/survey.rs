@@ -50,13 +50,19 @@ impl Survey {
     }
 }
 /// The size of the deposit. This value indicates how much can be extracted from the survey before it is exhausted.
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize)]
+#[derive(
+    Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize, sqlx::Type,
+)]
+#[sqlx(type_name = "survey_size")]
 pub enum Size {
     #[serde(rename = "SMALL")]
+    #[sqlx(rename = "SMALL")]
     Small,
     #[serde(rename = "MODERATE")]
+    #[sqlx(rename = "MODERATE")]
     Moderate,
     #[serde(rename = "LARGE")]
+    #[sqlx(rename = "LARGE")]
     Large,
 }
 

@@ -167,9 +167,8 @@ impl MiningManager {
 
         // every waypoint can sustain around 8 mining ships, two waypoints per system and all possible gas giants
         // per waypoint 8 ships, on asterioids 1 surveier, and per waypoint at least 1 transporter and 80 units of transport capacity
-        const MINING_WAYPOINTS_PER_SYSTEM: i32 = 2;
-        const MINING_SHIPS_PER_WAYPOINT: i32 = 8;
-        const TANSPORT_CAPACITY_PER_WAYPOINT: i32 = 80;
+
+        let config = { context.config.read().await.clone() };
 
         for (system, ships) in systems {
             let system_waypoints =
@@ -180,9 +179,9 @@ impl MiningManager {
                 .filter(|w| w.is_sipherable())
                 .count() as i32;
             let asteroid_count = system_waypoints.iter().filter(|w| w.is_minable()).count() as i32;
-            let mining_ships_per_system =
-                asteroid_count.min(MINING_WAYPOINTS_PER_SYSTEM) * MINING_SHIPS_PER_WAYPOINT;
-            let gas_ships_per_system = gas_count * MINING_SHIPS_PER_WAYPOINT;
+            let mining_ships_per_system = asteroid_count.min(config.mining_waypoints_per_system)
+                * config.mining_ships_per_waypoint;
+            let gas_ships_per_system = gas_count * config.mining_ships_per_waypoint;
 
             let (mining_count, siphon_count, surveying_count, transport_count, transport_capacity) =
                 ships.iter().fold((0, 0, 0, 0, 0), |acc, s| match s.3 {
@@ -195,7 +194,7 @@ impl MiningManager {
                     ship::status::MiningShipAssignment::Siphoner { .. } => {
                         (acc.0, acc.1 + 1, acc.2, acc.3, acc.4)
                     }
-                    ship::status::MiningShipAssignment::Surveyor => {
+                    ship::status::MiningShipAssignment::Surveyor { .. } => {
                         (acc.0, acc.1, acc.2 + 1, acc.3, acc.4)
                     }
                     _ => acc,
@@ -204,10 +203,11 @@ impl MiningManager {
             let needed_mining_ships = (mining_ships_per_system - mining_count).max(0);
             let needed_siphon_ships = (gas_ships_per_system - siphon_count).max(0);
             let needed_surveying_ships =
-                (asteroid_count.min(MINING_WAYPOINTS_PER_SYSTEM) - surveying_count).max(0);
-            let needed_transport_ships =
-                ((asteroid_count.min(MINING_WAYPOINTS_PER_SYSTEM) + gas_count) - transport_count)
-                    .max(0);
+                (asteroid_count.min(config.mining_waypoints_per_system) - surveying_count).max(0);
+            let needed_transport_ships = ((asteroid_count.min(config.mining_waypoints_per_system)
+                + gas_count)
+                - transport_count)
+                .max(0);
 
             let mut sys_ships = vec![
                 // (
@@ -255,7 +255,9 @@ impl MiningManager {
                 ));
             }
 
-            if needed_transport_ships <= 0 && transport_capacity < TANSPORT_CAPACITY_PER_WAYPOINT {
+            if needed_transport_ships <= 0
+                && transport_capacity < config.transport_capacity_per_waypoint
+            {
                 sys_ships.push((
                     RequestedShipType::Transporter,
                     Priority::Medium,
