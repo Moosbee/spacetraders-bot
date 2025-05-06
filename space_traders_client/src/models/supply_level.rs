@@ -20,19 +20,19 @@ use serde::{Deserialize, Serialize};
 pub enum SupplyLevel {
     #[serde(rename = "SCARCE")]
     #[sqlx(rename = "SCARCE")]
-    Scarce,
+    Scarce = 0,
     #[serde(rename = "LIMITED")]
     #[sqlx(rename = "LIMITED")]
-    Limited,
+    Limited = 1,
     #[serde(rename = "MODERATE")]
     #[sqlx(rename = "MODERATE")]
-    Moderate,
+    Moderate = 2,
     #[serde(rename = "HIGH")]
     #[sqlx(rename = "HIGH")]
-    High,
+    High = 3,
     #[serde(rename = "ABUNDANT")]
     #[sqlx(rename = "ABUNDANT")]
-    Abundant,
+    Abundant = 4,
 }
 
 impl std::fmt::Display for SupplyLevel {

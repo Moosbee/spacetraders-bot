@@ -10,6 +10,7 @@ pub use database::handle_get_construction_shipments;
 pub use database::handle_get_contract;
 pub use database::handle_get_contracts;
 pub use database::handle_get_jump_gates;
+pub use database::handle_get_surveys;
 pub use database::handle_get_system;
 pub use database::handle_get_systems;
 pub use database::handle_get_trade_routes;

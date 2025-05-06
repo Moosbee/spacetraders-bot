@@ -74,7 +74,7 @@ impl WaypointManager {
                             .unstable_since
                             .map(|last| {
                                 (last + chrono::Duration::seconds(unstable_since_timeout)
-                                    < chrono::Utc::now().naive_local())
+                                    < chrono::Utc::now())
                                     || !stop_all_unstable
                             })
                             .unwrap_or(true)
@@ -104,7 +104,7 @@ impl WaypointManager {
                         .unstable_since
                         .map(|last| {
                             (last + chrono::Duration::seconds(unstable_since_timeout)
-                                < chrono::Utc::now().naive_local())
+                                < chrono::Utc::now())
                                 || !stop_all_unstable
                         })
                         .unwrap_or(true)
@@ -126,8 +126,8 @@ impl WaypointManager {
             .finder
             .find(
                 ship.clone(),
-                match action {
-                    ActionType::Extract => |waypoint| {
+                |waypoint| match action {
+                    ActionType::Extract => {
                         waypoint.is_minable()
                             && (waypoint.waypoint_type != models::WaypointType::EngineeredAsteroid
                                 || ignore_engineered_asteroids)
@@ -135,12 +135,12 @@ impl WaypointManager {
                                 .unstable_since
                                 .map(|last| {
                                     (last + chrono::Duration::seconds(unstable_since_timeout)
-                                        < chrono::Utc::now().naive_local())
+                                        < chrono::Utc::now())
                                         || !stop_all_unstable
                                 })
                                 .unwrap_or(true)
-                    },
-                    ActionType::Siphon => database::Waypoint::is_sipherable,
+                    }
+                    ActionType::Siphon => waypoint.is_sipherable(),
                 },
                 &self.places,
                 counts as usize,

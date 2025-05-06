@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { backendUrl } from "../../data";
 import { SQLSystem } from "../../models/SQLSystem";
-import { backendUrl } from "../../MyApp";
 import { useAppSelector } from "../../redux/hooks";
 import { selectSelectedSystemSymbol } from "../../redux/slices/mapSlice";
 import { systemIcons } from "../../utils/waypointColors";

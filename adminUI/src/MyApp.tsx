@@ -8,6 +8,7 @@ import { selectDarkMode } from "./redux/slices/configSlice";
 import Agent from "./sites/Agent";
 import Agents from "./sites/Agents";
 import BulkActions from "./sites/BulkActions";
+import { ConfigScreen } from "./sites/Config";
 import ConstructionMaterials from "./sites/ConstructionMaterials";
 import ConstructionShipments from "./sites/ConstructionShipments";
 import Contract from "./sites/Contract";
@@ -19,6 +20,7 @@ import PossibleTrades from "./sites/PossibleTrades";
 import Ship from "./sites/Ship";
 import Ships from "./sites/Ships";
 import ShipsToPurchase from "./sites/ShipsToPurchase";
+import Surveys from "./sites/Surveys";
 import System from "./sites/System";
 import SysMap from "./sites/SystemMap";
 import Systems from "./sites/Systems";
@@ -32,8 +34,6 @@ import WorkerLoader from "./workers/WorkerLoader";
 const { Header, Content, Sider } = Layout;
 
 export { Header as AntHeaderHeader, Sider as AntSiderSider };
-
-export const backendUrl = "127.0.0.1:8780";
 
 function MyApp() {
   const {
@@ -124,6 +124,8 @@ function MyApp() {
                       path="/miningAssignments"
                       element={<MiningAssignments />}
                     />
+                    <Route path="/surveys" element={<Surveys />} />
+                    <Route path="/config" element={<ConfigScreen />} />
 
                     <Route path="*" element={<ErrorPage />} />
                   </Routes>

@@ -1,9 +1,9 @@
 import { Button, Space, Table, TableProps } from "antd";
 import { useEffect, useState } from "react";
+import { backendUrl } from "../data";
 import MoneyDisplay from "../features/MonyDisplay";
 import PageTitle from "../features/PageTitle";
 import { TradeRoute } from "../models/TradeRoute";
-import { backendUrl } from "../MyApp";
 
 function TradeRoutes() {
   const [tradeRoutes, setTradeRoutes] = useState<TradeRoute[] | null>(null);

@@ -4,8 +4,8 @@
   "control_active": true,
   "scrapper_start_sleep": 1000,
   "scrap_agents": true,
-  "update_all_systems": true,
-  "max_miners_per_waypoint": 8,
+  "update_all_systems": false,
+  "max_miners_per_waypoint": 12,
   "mining_eject_list": [
     "ICE_WATER"
   ],
@@ -18,6 +18,7 @@
   "ignore_engineered_asteroids": true,
   "unstable_since_timeout": 10800,
   "stop_all_unstable": true,
+  "extra_mining_transporter": 1,
   "fuel_cost": 72,
   "antimatter_price": 6000,
   "purchase_multiplier": 2.0,
@@ -31,8 +32,8 @@
   "markup_percentage": 0.5,
   "margin_percentage": 0.33,
   "markets_per_ship": 5,
-  "mining_waypoints_per_system": 2,
-  "mining_ships_per_waypoint": 8,
+  "mining_waypoints_per_system": 1,
+  "mining_ships_per_waypoint": 12,
   "transport_capacity_per_waypoint": 80,
   "trade_mode": "ProfitPerHour"
 }

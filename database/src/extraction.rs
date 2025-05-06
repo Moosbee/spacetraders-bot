@@ -94,7 +94,7 @@ impl DatabaseConnector<Extraction> for Extraction {
                 e.siphon,
                 e.yield_symbol,
                 e.yield_units,
-                e.survey,
+                e.survey.clone(),
             )
         }));
 

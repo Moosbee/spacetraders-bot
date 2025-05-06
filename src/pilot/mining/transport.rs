@@ -350,30 +350,37 @@ impl TransportPilot {
             return None;
         }
 
-        let mut waypoints: HashMap<String, Vec<(database::MarketTradeGood, i32, i32)>> =
-            HashMap::new();
+        let mut waypoints: HashMap<String, Vec<_>> = HashMap::new();
 
         for (amount, trade) in filtered_trades {
             let wp = waypoints.entry(trade.waypoint_symbol.clone()).or_default();
             let price = trade.sell_price;
-            wp.push((trade, amount, amount * price));
+            let trade_supply = trade.supply;
+            wp.push((trade, amount, amount * price, trade_supply));
         }
 
-        let erg = waypoints
+        let mut erg = waypoints
             .into_iter()
             .map(|(wps, v)| {
-                let total_ammount = v.iter().map(|(_, amount, _)| *amount).sum::<i32>();
-                let total_price = v.iter().map(|(_, _, price)| *price).sum::<i32>();
-                (wps, total_ammount, total_price, v)
+                let median_supply_level = calculate_median(
+                    v.iter()
+                        .map(|(_, _, _, supply)| *supply)
+                        .collect::<Vec<_>>(),
+                );
+                let total_ammount = v.iter().map(|(_, amount, _, _)| *amount).sum::<i32>();
+                let total_price = v.iter().map(|(_, _, price, _)| *price).sum::<i32>();
+                (wps, total_ammount, total_price, v, median_supply_level)
             })
             .collect::<Vec<_>>();
 
-        let way_p = erg.iter().max_by(|a, b| a.2.cmp(&b.2));
+        // let way_p = erg.iter().max_by(|a, b| a.2.cmp(&b.2));
+        erg.sort_by(|a, b| a.2.cmp(&b.2));
+        let way_p = erg.iter().min_by(|a, b| a.4.cmp(&b.4));
 
         way_p.map(|w| {
             (
                 w.0.clone(),
-                w.3.iter().map(|(t, _, _)| t.symbol).collect::<Vec<_>>(),
+                w.3.iter().map(|(t, _, _, _)| t.symbol).collect::<Vec<_>>(),
             )
         })
     }
@@ -410,4 +417,13 @@ impl TransportPilot {
 
         Ok(())
     }
+}
+
+fn calculate_median(vec: Vec<models::SupplyLevel>) -> Option<models::SupplyLevel> {
+    let len = vec.len();
+
+    let mut sorted_vec = vec.clone();
+    sorted_vec.sort_unstable();
+
+    sorted_vec.get(len / 2).cloned()
 }

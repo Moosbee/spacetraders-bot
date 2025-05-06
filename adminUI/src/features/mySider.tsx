@@ -8,6 +8,7 @@ import {
   InfoCircleOutlined,
   ReconciliationOutlined,
   RocketOutlined,
+  SettingOutlined,
   ShoppingCartOutlined,
   TeamOutlined,
   TruckOutlined,
@@ -31,6 +32,11 @@ const items: MenuItem[] = [
     label: <Link to="/">Spacetraders API</Link>,
     key: "home",
     icon: <HomeOutlined />,
+  },
+  {
+    label: <Link to="/config">Config</Link>,
+    key: "config",
+    icon: <SettingOutlined />,
   },
 
   // Fleet management

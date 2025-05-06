@@ -21,10 +21,10 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { backendUrl } from "../data";
 import MoneyDisplay from "../features/MonyDisplay";
 import PageTitle from "../features/PageTitle";
 import { DbAgent } from "../models/Agent";
-import { backendUrl } from "../MyApp";
 
 const { RangePicker } = DatePicker;
 

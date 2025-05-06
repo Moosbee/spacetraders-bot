@@ -1,12 +1,12 @@
 import { Button, Card, List, Space } from "antd";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { backendUrl } from "../data";
 import PageTitle from "../features/PageTitle";
 import {
   Assignment,
   MiningAssignmentsResponse,
 } from "../models/MiningAssignments";
-import { backendUrl } from "../MyApp";
 
 export default function MiningAssignments() {
   const [shipAssignments, setShipAssignments] = useState<Assignment[] | null>();

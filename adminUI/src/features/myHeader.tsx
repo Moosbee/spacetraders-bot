@@ -13,8 +13,9 @@ import {
 } from "antd";
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { backendUrl } from "../data";
 import { DbAgent } from "../models/Agent";
-import { backendUrl, type AntHeaderHeader } from "../MyApp";
+import { type AntHeaderHeader } from "../MyApp";
 import { useAppDispatch, useAppSelector } from "../redux/hooks";
 import { selectMyAgent, setMyAgent } from "../redux/slices/agentSlice";
 import {
@@ -82,7 +83,7 @@ function MyHeader({ Header }: { Header: typeof AntHeaderHeader }) {
       label: (
         <Space>
           {connectWebsocket ? "Disconnect Websocket" : "Connect Websocket"}
-          <Badge status={websocketConnected ? "success" : "error"} />
+          <Badge status={connectWebsocket ? "success" : "error"} />
         </Space>
       ),
       icon: <FaIcon type="solid" icon="fa-right-from-bracket" />,

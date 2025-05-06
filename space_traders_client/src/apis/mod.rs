@@ -2,6 +2,8 @@ use std::error;
 use std::fmt;
 use std::fmt::Debug;
 
+use regex::Regex;
+
 // #[derive(Debug, Clone)]
 // pub struct ResponseContent<T> {
 //     pub status: reqwest::StatusCode,
@@ -23,6 +25,33 @@ pub struct ResponseContent<T> {
     pub status: reqwest::StatusCode,
     pub content: String,
     pub entity: Option<ResponseContentEntity<T>>,
+}
+
+lazy_static::lazy_static! {
+    pub static ref ERROR_REGEX: Regex = Regex::new("\"code\":(\\d{4})").unwrap();
+}
+
+impl<T: Debug> ResponseContent<T> {
+    pub fn get_error_code(&self) -> Option<u32> {
+        match &self.entity {
+            Some(entity) => Some(entity.error.code),
+            None => {
+                let erg = ERROR_REGEX.captures(&self.content);
+                log::debug!(
+                    "regex Erg of {:?} {:?}",
+                    erg,
+                    erg.as_ref().map(|f| f.get(1))
+                );
+                let reg = erg.map(|f| f.get(1).map(|m| m.as_str().parse::<u32>().ok()));
+                log::warn!(
+                    "No response entity on {:?} getting via regex, got {:?}",
+                    self,
+                    reg
+                );
+                reg.flatten().flatten()
+            }
+        }
+    }
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
@@ -216,3 +245,27 @@ pub mod global_api;
 pub mod systems_api;
 
 pub mod configuration;
+
+#[cfg(test)]
+mod tests {
+    use crate::apis::ERROR_REGEX;
+
+    use super::ResponseContent;
+
+    #[test]
+    fn response_error_test() {
+        let error: ResponseContent<()> = ResponseContent {
+            status: reqwest::StatusCode::CONFLICT,
+            entity: None,
+            content: "{\"error\":{\"message\":\"Ship extract failed. Survey X1-RU19-ZC5X-B781FB has been exhausted.\",\"code\":4224}}".to_string(),
+        };
+
+        dbg!(ERROR_REGEX.find(&error.content));
+        dbg!(ERROR_REGEX.captures(&error.content));
+        dbg!(ERROR_REGEX.captures_len());
+
+        let code = dbg!(error.get_error_code());
+
+        assert_eq!(code, Some(4224))
+    }
+}

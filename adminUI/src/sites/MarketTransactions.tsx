@@ -1,9 +1,9 @@
 import { Button, Space } from "antd";
 import { useEffect, useState } from "react";
+import { backendUrl } from "../data";
 import PageTitle from "../features/PageTitle";
 import TransactionTable from "../features/TransactionTable/TransactionTable";
 import { Transaction } from "../models/Transaction";
-import { backendUrl } from "../MyApp";
 
 function MarketTransactions() {
   const [transactions, setTransactions] = useState<Transaction[] | null>(null);

@@ -1,12 +1,12 @@
 import { Button, Descriptions, Flex, Space, Table } from "antd";
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
+import { backendUrl } from "../data";
 import MoneyDisplay from "../features/MonyDisplay";
 import PageTitle from "../features/PageTitle";
 import TransactionTable from "../features/TransactionTable/TransactionTable";
 import WaypointLink from "../features/WaypointLink";
 import { ContractDeliverable, ContractResponse } from "../models/SQLContract";
-import { backendUrl } from "../MyApp";
 
 function Contract() {
   const { contractID } = useParams();

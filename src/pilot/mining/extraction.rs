@@ -1,11 +1,9 @@
-use std::{
-    cmp::Ordering,
-    sync::{atomic::AtomicI32, Arc},
-};
+use std::sync::{atomic::AtomicI32, Arc};
 
 use database::DatabaseConnector;
 use futures::FutureExt;
 use log::{debug, info};
+use rand::seq::SliceRandom;
 use ship::status::{ExtractorState, MiningShipAssignment};
 use space_traders_client::models;
 
@@ -276,17 +274,30 @@ impl ExtractionPilot {
                 let survey: Option<database::Survey> = self.get_best_survey(ship).await?;
 
                 if let Some(survey) = survey {
+                    let prefer_list =
+                        { self.context.config.read().await.mining_prefer_list.clone() };
+
+                    let count_a = survey.get_percent();
+                    let score_a = count_a
+                        .iter()
+                        .filter(|f| prefer_list.contains(&f.0))
+                        .map(|f| f.1)
+                        .sum::<f64>();
+                    debug!(
+                        "Using survey {} on ship {} score {}",
+                        survey.signature, ship.symbol, score_a
+                    );
+
                     let survey_erg = ship
-                        .extract_with_survey(&self.context.api, &survey.into())
+                        .extract_with_survey(&self.context.api, &(&survey).into())
                         .await;
 
                     match survey_erg {
                         Err(space_traders_client::apis::Error::ResponseError(e)) => {
-                            if e.entity
-                                .as_ref()
-                                .map(|e| {
-                                    e.error.code
-                                        == models::error_codes::SHIP_EXTRACT_DESTABILIZED_ERROR
+                            let error_code = e.get_error_code();
+                            if error_code
+                                .map(|code| {
+                                    code == models::error_codes::SHIP_EXTRACT_DESTABILIZED_ERROR
                                 })
                                 .unwrap_or(false)
                             {
@@ -317,6 +328,29 @@ impl ExtractionPilot {
                                 wp.unstable_since = Some(chrono::Utc::now());
                                 database::Waypoint::insert(&self.context.database_pool, &wp)
                                     .await?;
+                            } else if error_code
+                                .map(|code| {
+                                    code == models::error_codes::SHIP_SURVEY_EXHAUSTED_ERROR
+                                })
+                                .unwrap_or(false)
+                            {
+                                let mut survey = survey.clone();
+                                log::warn!(
+                                    "Survey {} is exhausted by ship {}",
+                                    survey.signature,
+                                    ship.symbol
+                                );
+                                survey.exhausted_since = Some(chrono::Utc::now());
+                                database::Survey::insert(&self.context.database_pool, &survey)
+                                    .await?;
+                            } else if error_code
+                                .map(|code| {
+                                    code == models::error_codes::SHIP_SURVEY_EXPIRATION_ERROR
+                                })
+                                .unwrap_or(false)
+                            {
+                                // no real action needed
+                                debug!("Survey {} has expired", survey.signature);
                             } else {
                                 return Err(
                                     space_traders_client::apis::Error::ResponseError(e).into()
@@ -336,7 +370,7 @@ impl ExtractionPilot {
                                 siphon: false,
                                 yield_symbol: erg.data.extraction.r#yield.symbol,
                                 yield_units: erg.data.extraction.r#yield.units,
-                                survey: None,
+                                survey: Some(survey.signature.clone()),
                                 created_at: chrono::Utc::now(),
                             };
 
@@ -356,12 +390,9 @@ impl ExtractionPilot {
 
                     match simple_erg {
                         Err(space_traders_client::apis::Error::ResponseError(e)) => {
-                            if e.entity
-                                .as_ref()
-                                .map(|e| {
-                                    e.error.code
-                                        == models::error_codes::SHIP_EXTRACT_DESTABILIZED_ERROR
-                                })
+                            let error_code = e.get_error_code();
+                            if error_code
+                                .map(|e| e == models::error_codes::SHIP_EXTRACT_DESTABILIZED_ERROR)
                                 .unwrap_or(false)
                             {
                                 log::warn!(
@@ -595,38 +626,33 @@ impl ExtractionPilot {
     }
 
     async fn get_best_survey(&self, ship: &mut ship::MyShip) -> Result<Option<database::Survey>> {
-        let working_surveys = database::Survey::get_working_for_waypoint(
+        let mut working_surveys = database::Survey::get_working_for_waypoint(
             &self.context.database_pool,
             &ship.nav.waypoint_symbol,
         )
         .await?;
 
+        working_surveys.shuffle(&mut rand::thread_rng());
+
         let prefer_list = { self.context.config.read().await.mining_prefer_list.clone() };
 
-        let best_survey = working_surveys
-            .iter()
-            .filter(|survey| prefer_list.iter().any(|p| survey.deposits.contains(p)))
-            .max_by(|a, b| {
-                let count_a = a.get_percent();
-                let score_a = count_a
-                    .iter()
-                    .filter(|f| prefer_list.contains(&f.0))
-                    .map(|f| f.1)
-                    .sum::<f64>();
-                let count_b = b.get_percent();
-                let score_b = count_b
-                    .iter()
-                    .filter(|f| prefer_list.contains(&f.0))
-                    .map(|f| f.1)
-                    .sum::<f64>();
+        let best_survey = working_surveys.iter().max_by(|a, b| {
+            let count_a = a.get_percent();
+            let score_a = count_a
+                .iter()
+                .filter(|f| prefer_list.contains(&f.0))
+                .map(|f| f.1)
+                .sum::<f64>();
+            let count_b = b.get_percent();
+            let score_b = count_b
+                .iter()
+                .filter(|f| prefer_list.contains(&f.0))
+                .map(|f| f.1)
+                .sum::<f64>();
 
-                score_b.partial_cmp(&score_a).unwrap()
-            });
+            score_b.partial_cmp(&score_a).unwrap()
+        });
 
-        if let Some(best_survey) = best_survey {
-            return Ok(Some(best_survey.clone()));
-        }
-
-        Ok(None)
+        best_survey.cloned().map_or(Ok(None), |f| Ok(Some(f)))
     }
 }

@@ -1,12 +1,12 @@
 import { Button, Space, Table, TableProps } from "antd";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { backendUrl } from "../data";
 import MoneyDisplay from "../features/MonyDisplay";
 import PageTitle from "../features/PageTitle";
 import WaypointLink from "../features/WaypointLink";
 import { DbAgent } from "../models/Agent";
 import { FactionSymbol } from "../models/api";
-import { backendUrl } from "../MyApp";
 
 function Agents() {
   const [agents, setAgents] = useState<DbAgent[] | null>(null);

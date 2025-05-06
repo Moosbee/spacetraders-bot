@@ -12,9 +12,9 @@ import {
 } from "antd";
 import { useState } from "react";
 import { useDispatch } from "react-redux";
+import { backendUrl } from "../../data";
 import { TradeSymbol } from "../../models/api";
 import RustShip, { ShipInfo, SystemShipRoles } from "../../models/ship";
-import { backendUrl } from "../../MyApp";
 import { useAppSelector } from "../../redux/hooks";
 import { setShip } from "../../redux/slices/shipSlice";
 import { selectSystem } from "../../redux/slices/systemSlice";

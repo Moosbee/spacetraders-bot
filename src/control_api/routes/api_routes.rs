@@ -190,6 +190,12 @@ pub(crate) fn build_api_routes(
         .and(with_context(context.clone()))
         .and_then(handlers::handle_get_jump_gates);
 
+    let surveys = warp::path!("surveys")
+        .and(warp::path::end())
+        .and(warp::get())
+        .and(with_context(context.clone()))
+        .and_then(handlers::handle_get_surveys);
+
     // insights routes
 
     // API Counter
@@ -290,6 +296,7 @@ pub(crate) fn build_api_routes(
         .or(agent)
         .or(agents)
         .or(jump_gates)
+        .or(surveys)
         .or(api_counter)
         .or(running_contract_shipments)
         .or(running_construction_shipments)

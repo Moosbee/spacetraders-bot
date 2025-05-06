@@ -8,9 +8,9 @@ import {
   Space,
 } from "antd";
 import { useEffect, useState } from "react";
+import { backendUrl } from "../data";
 import PageTitle from "../features/PageTitle";
 import { Info } from "../models/MainInfo";
-import { backendUrl } from "../MyApp";
 
 function Main() {
   const [data, setData] = useState<Info>({

@@ -1,10 +1,10 @@
 import { Button, Space } from "antd";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
+import { backendUrl } from "../data";
 import MarketTradeHistory from "../features/MarketTradeHistory/MarketTradeHistory";
 import PageTitle from "../features/PageTitle";
 import { WaypointResponse } from "../models/SQLWaypoint";
-import { backendUrl } from "../MyApp";
 
 function WaypointMarketHistory() {
   const { systemID } = useParams();

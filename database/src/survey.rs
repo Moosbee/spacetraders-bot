@@ -5,6 +5,7 @@ use space_traders_client::models::{self};
 
 use crate::{DatabaseConnector, DbPool};
 
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct Survey {
     pub ship_info_before: i64,
     pub ship_info_after: i64,
@@ -100,6 +101,26 @@ impl From<Survey> for models::Survey {
         models::Survey {
             signature: value.signature,
             symbol: value.waypoint_symbol,
+            deposits: value
+                .deposits
+                .iter()
+                .map(|f| models::SurveyDeposit {
+                    symbol: f.to_string(),
+                })
+                .collect(),
+            expiration: value
+                .expiration
+                .to_rfc3339_opts(chrono::SecondsFormat::Millis, true),
+            size: value.size,
+        }
+    }
+}
+
+impl From<&Survey> for models::Survey {
+    fn from(value: &Survey) -> Self {
+        models::Survey {
+            signature: value.signature.clone(),
+            symbol: value.waypoint_symbol.clone(),
             deposits: value
                 .deposits
                 .iter()

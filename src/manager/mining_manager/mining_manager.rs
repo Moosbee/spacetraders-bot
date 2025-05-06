@@ -207,7 +207,7 @@ impl MiningManager {
             let needed_transport_ships = ((asteroid_count.min(config.mining_waypoints_per_system)
                 + gas_count)
                 - transport_count)
-                .max(0);
+                + config.extra_mining_transporter.max(0);
 
             let mut sys_ships = vec![
                 // (

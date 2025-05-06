@@ -444,3 +444,13 @@ pub async fn handle_get_jump_gates(context: ConductorContext) -> Result<impl Rep
         &connection_map.into_values().collect::<Vec<_>>(),
     ))
 }
+
+pub async fn handle_get_surveys(context: ConductorContext) -> Result<impl Reply> {
+    debug!("Getting all surveys");
+    let surveys = database::Survey::get_all(&context.database_pool)
+        .await
+        .map_err(ServerError::Database)?;
+
+    debug!("Got {} surveys", surveys.len());
+    Ok(warp::reply::json(&surveys))
+}

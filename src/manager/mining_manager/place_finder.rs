@@ -48,7 +48,7 @@ impl PlaceFinder {
     pub async fn find(
         &self,
         ship_clone: ship::MyShip,
-        filter_fn: fn(&database::Waypoint) -> bool,
+        filter_fn: impl Fn(&database::Waypoint) -> bool,
         mining_places: &MiningPlaces,
         max_miners: usize,
     ) -> Result<Vec<FoundWaypointInfo>, crate::error::Error> {
@@ -73,7 +73,7 @@ impl PlaceFinder {
     fn get_best_waypoints(
         &self,
         system_waypoints: &[database::Waypoint],
-        filter: fn(&database::Waypoint) -> bool,
+        filter: impl Fn(&database::Waypoint) -> bool,
     ) -> Vec<FoundWaypointInfo> {
         let points = system_waypoints
             .iter()

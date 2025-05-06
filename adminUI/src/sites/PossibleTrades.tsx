@@ -1,9 +1,9 @@
 import { Space, Table } from "antd";
 import { useEffect, useState } from "react";
+import { backendUrl } from "../data";
 import MoneyDisplay from "../features/MonyDisplay";
 import PageTitle from "../features/PageTitle";
 import { PossibleTrade } from "../models/TradeRoute";
-import { backendUrl } from "../MyApp";
 
 export default function PossibleTrades() {
   const [possibleTrades, setPossibleTrades] = useState<PossibleTrade[]>([]);

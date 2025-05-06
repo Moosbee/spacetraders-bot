@@ -12,6 +12,7 @@ import {
 import { useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
 import { Link, useParams } from "react-router-dom";
+import { backendUrl } from "../data";
 import PageTitle from "../features/PageTitle";
 import WaypointLink from "../features/WaypointLink";
 import {
@@ -23,7 +24,6 @@ import {
 } from "../models/api";
 import { SystemResp } from "../models/SQLSystem";
 import { SQLWaypoint } from "../models/SQLWaypoint";
-import { backendUrl } from "../MyApp";
 import { useAppSelector } from "../redux/hooks";
 import { selectSystem, setSystem } from "../redux/slices/systemSlice";
 import { message } from "../utils/antdMessage";

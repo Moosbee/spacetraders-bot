@@ -10,12 +10,12 @@ import {
 } from "antd";
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { backendUrl } from "../data";
 import PageTitle from "../features/PageTitle";
 import RoleRenderer from "../features/RoleRenderer/RoleRenderer";
 import Timer from "../features/Timer/Timer";
 import { ShipNavFlightMode, ShipNavStatus, ShipRole } from "../models/api";
 import RustShip, { SystemShipRoles } from "../models/ship";
-import { backendUrl } from "../MyApp";
 import { useAppDispatch, useAppSelector } from "../redux/hooks";
 import {
   resetShips,
@@ -83,6 +83,7 @@ function Ships() {
         "Mining",
         "Charter",
         "Manuel",
+        "Transfer",
       ],
       onFilter: (value, record) => record.role === value,
       sorter: (a, b) => {

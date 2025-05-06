@@ -47,8 +47,9 @@ pub struct Config {
     pub mining_eject_list: Vec<models::TradeSymbol>,
     pub mining_prefer_list: Vec<models::TradeSymbol>,
     pub ignore_engineered_asteroids: bool,
-    pub unstable_since_timeout: u64, // in seconds
+    pub unstable_since_timeout: i64, // in seconds
     pub stop_all_unstable: bool,
+    pub extra_mining_transporter: i32,
 
     pub fuel_cost: i32,
     pub antimatter_price: i32,

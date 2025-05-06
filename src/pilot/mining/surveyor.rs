@@ -83,7 +83,6 @@ impl SurveyPilot {
         };
 
         ship.notify().await;
-        pilot.cancellation_token.cancelled().await;
         Ok(())
     }
 

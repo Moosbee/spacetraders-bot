@@ -198,7 +198,7 @@ pub async fn handle_update_config(
     let info = { context.config.read().await.clone() };
 
     let serde_string =
-        serde_json::to_string(&info).map_err(|e| ServerError::Server(e.to_string()))?;
+        serde_json::to_string_pretty(&info).map_err(|e| ServerError::Server(e.to_string()))?;
     tokio::fs::write("config.json", serde_string)
         .await
         .map_err(|e| ServerError::Server(e.to_string()))?;

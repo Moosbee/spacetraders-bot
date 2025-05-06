@@ -17,6 +17,7 @@ import Timer from "../features/Timer/Timer";
 import TransactionTable from "../features/TransactionTable/TransactionTable";
 import WaypointLink from "../features/WaypointLink";
 
+import { backendUrl } from "../data";
 import ShipyardShipTable from "../features/ShipyardShipTable/ShipyardShipTable";
 import {
   ActivityLevel,
@@ -28,7 +29,6 @@ import { ConstructionMaterial } from "../models/Construction";
 import { MarketTrade, MarketTradeGood } from "../models/Market";
 import { ShipTransaction, ShipyardShipType } from "../models/Shipyard";
 import { WaypointResponse } from "../models/SQLWaypoint";
-import { backendUrl } from "../MyApp";
 import { useAppSelector } from "../redux/hooks";
 import { selectAllShipsArray } from "../redux/slices/shipSlice";
 import { message } from "../utils/antdMessage";

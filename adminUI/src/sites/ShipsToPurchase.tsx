@@ -1,9 +1,9 @@
 import { Button, Flex, List, Space, Spin } from "antd";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { backendUrl } from "../data";
 import PageTitle from "../features/PageTitle";
 import { ShipManagementResponse } from "../models/RequiredShips";
-import { backendUrl } from "../MyApp";
 
 export default function ShipsToPurchase() {
   const [requiredShips, setRequiredShips] =

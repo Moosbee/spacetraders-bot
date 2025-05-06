@@ -1,11 +1,11 @@
 import { Button, Space, Table, TableProps } from "antd";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { backendUrl } from "../data";
 import MoneyDisplay from "../features/MonyDisplay";
 import PageTitle from "../features/PageTitle";
 import WaypointLink from "../features/WaypointLink";
 import { ConstructionShipment } from "../models/Construction";
-import { backendUrl } from "../MyApp";
 
 function ConstructionShipments() {
   const [constructionShipments, setConstructionShipments] = useState<
