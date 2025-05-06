@@ -1,16 +1,32 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            INSERT INTO extraction (\n                ship_symbol,\n                waypoint_symbol,\n                ship_info_before,\n                ship_info_after,\n                siphon,\n                yield_symbol,\n                yield_units\n            )\n            SELECT * FROM UNNEST(\n                $1::character varying[],\n                $2::character varying[],\n                $3::bigint[],\n                $4::bigint[],\n                $5::boolean[],\n                $6::trade_symbol[],\n                $7::integer[]\n            )\n            ON CONFLICT (id) DO UPDATE\n            SET ship_symbol = EXCLUDED.ship_symbol,\n                waypoint_symbol = EXCLUDED.waypoint_symbol,\n                ship_info_before = EXCLUDED.ship_info_before,\n                ship_info_after = EXCLUDED.ship_info_after,\n                siphon = EXCLUDED.siphon,\n                yield_symbol = EXCLUDED.yield_symbol,\n                yield_units = EXCLUDED.yield_units;\n            ",
+  "query": "\n                SELECT\n                  signature,\n                  ship_info_before,\n                  ship_info_after,\n                  waypoint_symbol,\n                  deposits as \"deposits: Vec<models::TradeSymbol>\",\n                  expiration,\n                  size as \"size: models::survey::Size\",\n                  exhausted_since,\n                  created_at,\n                  updated_at\n                FROM surveys\n            ",
   "describe": {
-    "columns": [],
-    "parameters": {
-      "Left": [
-        "VarcharArray",
-        "VarcharArray",
-        "Int8Array",
-        "Int8Array",
-        "BoolArray",
-        {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "signature",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "ship_info_before",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "ship_info_after",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "waypoint_symbol",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "deposits: Vec<models::TradeSymbol>",
+        "type_info": {
           "Custom": {
             "name": "trade_symbol[]",
             "kind": {
@@ -170,11 +186,60 @@
               }
             }
           }
-        },
-        "Int4Array"
-      ]
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "expiration",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 6,
+        "name": "size: models::survey::Size",
+        "type_info": {
+          "Custom": {
+            "name": "survey_size",
+            "kind": {
+              "Enum": [
+                "SMALL",
+                "MODERATE",
+                "LARGE"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "exhausted_since",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 8,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 9,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": []
     },
-    "nullable": []
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false
+    ]
   },
-  "hash": "bf2fbaa1a903b233bc718575cfc2fe1775d92a85aa1b0fabaeeea3bd85bb8120"
+  "hash": "3ca5c9c3f4c7365952237f1e46d9e31cdd2cd3eac538c6e58f27a1ab12f5d879"
 }

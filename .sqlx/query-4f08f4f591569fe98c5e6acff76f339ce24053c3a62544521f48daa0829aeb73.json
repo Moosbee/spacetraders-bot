@@ -1,42 +1,16 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n                SELECT\n                  id,\n                  ship_symbol,\n                  waypoint_symbol,\n                  ship_info_before,\n                  ship_info_after,\n                  siphon,\n                  yield_symbol as \"yield_symbol: models::TradeSymbol\",\n                  yield_units,\n                  created_at\n                FROM extraction\n            ",
+  "query": "\n                INSERT INTO extraction (\n                  ship_symbol,\n                  waypoint_symbol,\n                  ship_info_before,\n                  ship_info_after,\n                  siphon,\n                  yield_symbol,\n                  yield_units,\n                  survey\n                )\n                VALUES (\n                  $1,\n                  $2,\n                  $3,\n                  $4,\n                  $5,\n                  $6,\n                  $7,\n                  $8\n                )\n                ON CONFLICT (id) DO UPDATE SET\n                  ship_symbol = EXCLUDED.ship_symbol,\n                  waypoint_symbol = EXCLUDED.waypoint_symbol,\n                  ship_info_before = EXCLUDED.ship_info_before,\n                  ship_info_after = EXCLUDED.ship_info_after,\n                  siphon = EXCLUDED.siphon,\n                  yield_symbol = EXCLUDED.yield_symbol,\n                  yield_units = EXCLUDED.yield_units,\n                  survey = EXCLUDED.survey;\n            ",
   "describe": {
-    "columns": [
-      {
-        "ordinal": 0,
-        "name": "id",
-        "type_info": "Int8"
-      },
-      {
-        "ordinal": 1,
-        "name": "ship_symbol",
-        "type_info": "Varchar"
-      },
-      {
-        "ordinal": 2,
-        "name": "waypoint_symbol",
-        "type_info": "Varchar"
-      },
-      {
-        "ordinal": 3,
-        "name": "ship_info_before",
-        "type_info": "Int8"
-      },
-      {
-        "ordinal": 4,
-        "name": "ship_info_after",
-        "type_info": "Int8"
-      },
-      {
-        "ordinal": 5,
-        "name": "siphon",
-        "type_info": "Bool"
-      },
-      {
-        "ordinal": 6,
-        "name": "yield_symbol: models::TradeSymbol",
-        "type_info": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Varchar",
+        "Varchar",
+        "Int8",
+        "Int8",
+        "Bool",
+        {
           "Custom": {
             "name": "trade_symbol",
             "kind": {
@@ -189,33 +163,12 @@
               ]
             }
           }
-        }
-      },
-      {
-        "ordinal": 7,
-        "name": "yield_units",
-        "type_info": "Int4"
-      },
-      {
-        "ordinal": 8,
-        "name": "created_at",
-        "type_info": "Timestamptz"
-      }
-    ],
-    "parameters": {
-      "Left": []
+        },
+        "Int4",
+        "Varchar"
+      ]
     },
-    "nullable": [
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false
-    ]
+    "nullable": []
   },
-  "hash": "bad5aed58147daf72a79c98bae725730a7730cea1bcda65bec5213ed1bce1d56"
+  "hash": "4f08f4f591569fe98c5e6acff76f339ce24053c3a62544521f48daa0829aeb73"
 }
