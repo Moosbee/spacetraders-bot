@@ -9,6 +9,7 @@ Method | HTTP request | Description
 [**fulfill_contract**](ContractsApi.md#fulfill_contract) | **POST** /my/contracts/{contractId}/fulfill | Fulfill Contract
 [**get_contract**](ContractsApi.md#get_contract) | **GET** /my/contracts/{contractId} | Get Contract
 [**get_contracts**](ContractsApi.md#get_contracts) | **GET** /my/contracts | List Contracts
+[**negotiate_contract_0**](ContractsApi.md#negotiate_contract_0) | **POST** /my/ships/{shipSymbol}/negotiate/contract | Negotiate Contract
 
 
 
@@ -55,7 +56,7 @@ Deliver cargo to a contract.  In order to use this API, a ship must be at the de
 Name | Type | Description  | Required | Notes
 ------------- | ------------- | ------------- | ------------- | -------------
 **contract_id** | **String** | The ID of the contract. | [required] |
-**deliver_contract_request** | Option<[**DeliverContractRequest**](DeliverContractRequest.md)> |  |  |
+**deliver_contract_request** | [**DeliverContractRequest**](DeliverContractRequest.md) |  | [required] |
 
 ### Return type
 
@@ -108,14 +109,14 @@ Name | Type | Description  | Required | Notes
 > models::GetContract200Response get_contract(contract_id)
 Get Contract
 
-Get the details of a contract by ID.
+Get the details of a specific contract.
 
 ### Parameters
 
 
 Name | Type | Description  | Required | Notes
 ------------- | ------------- | ------------- | ------------- | -------------
-**contract_id** | **String** | The contract ID | [required] |
+**contract_id** | **String** | The contract ID to accept. | [required] |
 
 ### Return type
 
@@ -151,6 +152,36 @@ Name | Type | Description  | Required | Notes
 ### Return type
 
 [**models::GetContracts200Response**](get_contracts_200_response.md)
+
+### Authorization
+
+[AgentToken](../README.md#AgentToken)
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: application/json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+
+## negotiate_contract_0
+
+> models::NegotiateContract201Response negotiate_contract_0(ship_symbol)
+Negotiate Contract
+
+Negotiate a new contract with the HQ.  In order to negotiate a new contract, an agent must not have ongoing or offered contracts over the allowed maximum amount. Currently the maximum contracts an agent can have at a time is 1.  Once a contract is negotiated, it is added to the list of contracts offered to the agent, which the agent can then accept.   The ship must be present at any waypoint with a faction present to negotiate a contract with that faction.
+
+### Parameters
+
+
+Name | Type | Description  | Required | Notes
+------------- | ------------- | ------------- | ------------- | -------------
+**ship_symbol** | **String** | The symbol of the ship. | [required] |
+
+### Return type
+
+[**models::NegotiateContract201Response**](Negotiate_Contract_201_Response.md)
 
 ### Authorization
 

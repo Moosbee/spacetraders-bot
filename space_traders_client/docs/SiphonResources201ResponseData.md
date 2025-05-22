@@ -4,8 +4,8 @@
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**cooldown** | [**models::Cooldown**](Cooldown.md) |  | 
 **siphon** | [**models::Siphon**](Siphon.md) |  | 
+**cooldown** | [**models::Cooldown**](Cooldown.md) |  | 
 **cargo** | [**models::ShipCargo**](ShipCargo.md) |  | 
 **events** | [**Vec<models::ShipConditionEvent>**](ShipConditionEvent.md) |  | 
 

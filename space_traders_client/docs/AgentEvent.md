@@ -1,11 +1,14 @@
-# ShipRefine201ResponseDataProducedInner
+# AgentEvent
 
 ## Properties
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**trade_symbol** | [**models::TradeSymbol**](TradeSymbol.md) | Symbol of the good. | 
-**units** | **i32** | Amount of units of the good. | 
+**id** | **String** |  | 
+**r#type** | **String** |  | 
+**message** | **String** |  | 
+**data** | Option<[**serde_json::Value**](.md)> |  | [optional]
+**created_at** | **String** |  | 
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
 

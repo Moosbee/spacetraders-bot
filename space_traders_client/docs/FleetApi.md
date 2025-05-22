@@ -49,7 +49,7 @@ Method | HTTP request | Description
 > models::CreateChart201Response create_chart(ship_symbol)
 Create Chart
 
-Command a ship to chart the waypoint at its current location.  Most waypoints in the universe are uncharted by default. These waypoints have their traits hidden until they have been charted by a ship.  Charting a waypoint will record your agent as the one who created the chart, and all other agents would also be able to see the waypoint's traits.
+Command a ship to chart the waypoint at its current location.  Most waypoints in the universe are uncharted by default. These waypoints have their traits hidden until they have been charted by a ship.  Charting a waypoint will record your agent as the one who created the chart, and all other agents would also be able to see the waypoint's traits. Charting a waypoint gives you a one time reward of credits based on the rarity of the waypoint's traits.
 
 ### Parameters
 
@@ -86,7 +86,7 @@ Scan for nearby ships, retrieving information for all ships in range.  Requires 
 
 Name | Type | Description  | Required | Notes
 ------------- | ------------- | ------------- | ------------- | -------------
-**ship_symbol** | **String** | The ship symbol. | [required] |
+**ship_symbol** | **String** | The symbol of the ship. | [required] |
 
 ### Return type
 
@@ -116,7 +116,7 @@ Scan for nearby systems, retrieving information on the systems' distance from th
 
 Name | Type | Description  | Required | Notes
 ------------- | ------------- | ------------- | ------------- | -------------
-**ship_symbol** | **String** | The ship symbol. | [required] |
+**ship_symbol** | **String** | The symbol of the ship. | [required] |
 
 ### Return type
 
@@ -146,7 +146,7 @@ Scan for nearby waypoints, retrieving detailed information on each waypoint in r
 
 Name | Type | Description  | Required | Notes
 ------------- | ------------- | ------------- | ------------- | -------------
-**ship_symbol** | **String** | The ship symbol. | [required] |
+**ship_symbol** | **String** | The symbol of the ship. | [required] |
 
 ### Return type
 
@@ -226,7 +226,7 @@ Name | Type | Description  | Required | Notes
 
 ## extract_resources
 
-> models::ExtractResources201Response extract_resources(ship_symbol, extract_resources_request)
+> models::ExtractResources201Response extract_resources(ship_symbol)
 Extract Resources
 
 Extract resources from a waypoint that can be extracted, such as asteroid fields, into your ship. Send an optional survey as the payload to target specific yields.  The ship must be in orbit to be able to extract and must have mining equipments installed that can extract goods, such as the `Gas Siphon` mount for gas-based goods or `Mining Laser` mount for ore-based goods.  The survey property is now deprecated. See the `extract/survey` endpoint for more details.
@@ -236,8 +236,7 @@ Extract resources from a waypoint that can be extracted, such as asteroid fields
 
 Name | Type | Description  | Required | Notes
 ------------- | ------------- | ------------- | ------------- | -------------
-**ship_symbol** | **String** | The ship symbol. | [required] |
-**extract_resources_request** | Option<[**ExtractResourcesRequest**](ExtractResourcesRequest.md)> |  |  |
+**ship_symbol** | **String** | The symbol of the ship. | [required] |
 
 ### Return type
 
@@ -249,7 +248,7 @@ Name | Type | Description  | Required | Notes
 
 ### HTTP request headers
 
-- **Content-Type**: application/json
+- **Content-Type**: Not defined
 - **Accept**: application/json
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
@@ -267,7 +266,7 @@ Use a survey when extracting resources from a waypoint. This endpoint requires a
 
 Name | Type | Description  | Required | Notes
 ------------- | ------------- | ------------- | ------------- | -------------
-**ship_symbol** | **String** | The ship symbol. | [required] |
+**ship_symbol** | **String** | The symbol of the ship. | [required] |
 **survey** | Option<[**Survey**](Survey.md)> |  |  |
 
 ### Return type
@@ -298,7 +297,7 @@ Get the mounts installed on a ship.
 
 Name | Type | Description  | Required | Notes
 ------------- | ------------- | ------------- | ------------- | -------------
-**ship_symbol** | **String** | The ship's symbol. | [required] |
+**ship_symbol** | **String** | The symbol of the ship. | [required] |
 
 ### Return type
 
@@ -412,14 +411,14 @@ Name | Type | Description  | Required | Notes
 > models::GetRepairShip200Response get_repair_ship(ship_symbol)
 Get Repair Ship
 
-Get the cost of repairing a ship.
+Get the cost of repairing a ship. Requires the ship to be docked at a waypoint that has the `Shipyard` trait.
 
 ### Parameters
 
 
 Name | Type | Description  | Required | Notes
 ------------- | ------------- | ------------- | ------------- | -------------
-**ship_symbol** | **String** | The ship symbol. | [required] |
+**ship_symbol** | **String** | The symbol of the ship. | [required] |
 
 ### Return type
 
@@ -442,14 +441,14 @@ Name | Type | Description  | Required | Notes
 > models::GetScrapShip200Response get_scrap_ship(ship_symbol)
 Get Scrap Ship
 
-Get the amount of value that will be returned when scrapping a ship.
+Get the value of scrapping a ship. Requires the ship to be docked at a waypoint that has the `Shipyard` trait.
 
 ### Parameters
 
 
 Name | Type | Description  | Required | Notes
 ------------- | ------------- | ------------- | ------------- | -------------
-**ship_symbol** | **String** | The ship symbol. | [required] |
+**ship_symbol** | **String** | The symbol of the ship. | [required] |
 
 ### Return type
 
@@ -509,7 +508,7 @@ Get the modules installed on a ship.
 
 Name | Type | Description  | Required | Notes
 ------------- | ------------- | ------------- | ------------- | -------------
-**ship_symbol** | **String** | The symbol of the ship | [required] |
+**ship_symbol** | **String** | The symbol of the ship. | [required] |
 
 ### Return type
 
@@ -517,7 +516,7 @@ Name | Type | Description  | Required | Notes
 
 ### Authorization
 
-[AccountToken](../README.md#AccountToken), [AgentToken](../README.md#AgentToken)
+[AgentToken](../README.md#AgentToken)
 
 ### HTTP request headers
 
@@ -539,7 +538,7 @@ Get the current nav status of a ship.
 
 Name | Type | Description  | Required | Notes
 ------------- | ------------- | ------------- | ------------- | -------------
-**ship_symbol** | **String** | The ship symbol. | [required] |
+**ship_symbol** | **String** | The symbol of the ship. | [required] |
 
 ### Return type
 
@@ -569,8 +568,8 @@ Install a mount on a ship.  In order to install a mount, the ship must be docked
 
 Name | Type | Description  | Required | Notes
 ------------- | ------------- | ------------- | ------------- | -------------
-**ship_symbol** | **String** | The ship's symbol. | [required] |
-**install_mount_request** | Option<[**InstallMountRequest**](InstallMountRequest.md)> |  |  |
+**ship_symbol** | **String** | The symbol of the ship. | [required] |
+**install_mount_request** | [**InstallMountRequest**](InstallMountRequest.md) |  | [required] |
 
 ### Return type
 
@@ -593,15 +592,15 @@ Name | Type | Description  | Required | Notes
 > models::InstallShipModule201Response install_ship_module(ship_symbol, install_ship_module_request)
 Install Ship Module
 
-Install a module on a ship.  In order to install a module, the ship must be docked and located in a waypoint that has a `Shipyard` trait. The ship also must have the module to install in its cargo hold.  An installation fee will be deduced by the Shipyard for installing the module on the ship.
+Install a module on a ship. The module must be in your cargo.
 
 ### Parameters
 
 
 Name | Type | Description  | Required | Notes
 ------------- | ------------- | ------------- | ------------- | -------------
-**ship_symbol** | **String** | The symbol of the ship | [required] |
-**install_ship_module_request** | Option<[**InstallShipModuleRequest**](InstallShipModuleRequest.md)> |  |  |
+**ship_symbol** | **String** | The symbol of the ship. | [required] |
+**install_ship_module_request** | [**InstallShipModuleRequest**](InstallShipModuleRequest.md) |  | [required] |
 
 ### Return type
 
@@ -609,7 +608,7 @@ Name | Type | Description  | Required | Notes
 
 ### Authorization
 
-[AccountToken](../README.md#AccountToken), [AgentToken](../README.md#AgentToken)
+[AgentToken](../README.md#AgentToken)
 
 ### HTTP request headers
 
@@ -631,8 +630,8 @@ Jettison cargo from your ship's cargo hold.
 
 Name | Type | Description  | Required | Notes
 ------------- | ------------- | ------------- | ------------- | -------------
-**ship_symbol** | **String** | The ship symbol. | [required] |
-**jettison_request** | Option<[**JettisonRequest**](JettisonRequest.md)> |  |  |
+**ship_symbol** | **String** | The symbol of the ship. | [required] |
+**jettison_request** | [**JettisonRequest**](JettisonRequest.md) |  | [required] |
 
 ### Return type
 
@@ -662,8 +661,8 @@ Jump your ship instantly to a target connected waypoint. The ship must be in orb
 
 Name | Type | Description  | Required | Notes
 ------------- | ------------- | ------------- | ------------- | -------------
-**ship_symbol** | **String** | The ship symbol. | [required] |
-**jump_ship_request** | Option<[**JumpShipRequest**](JumpShipRequest.md)> |  |  |
+**ship_symbol** | **String** | The symbol of the ship. | [required] |
+**jump_ship_request** | [**JumpShipRequest**](JumpShipRequest.md) |  | [required] |
 
 ### Return type
 
@@ -693,8 +692,8 @@ Navigate to a target destination. The ship must be in orbit to use this function
 
 Name | Type | Description  | Required | Notes
 ------------- | ------------- | ------------- | ------------- | -------------
-**ship_symbol** | **String** | The ship symbol. | [required] |
-**navigate_ship_request** | Option<[**NavigateShipRequest**](NavigateShipRequest.md)> |  |  |
+**ship_symbol** | **String** | The symbol of the ship. | [required] |
+**navigate_ship_request** | [**NavigateShipRequest**](NavigateShipRequest.md) |  | [required] |
 
 ### Return type
 
@@ -714,7 +713,7 @@ Name | Type | Description  | Required | Notes
 
 ## negotiate_contract
 
-> models::NegotiateContract200Response negotiate_contract(ship_symbol)
+> models::NegotiateContract201Response negotiate_contract(ship_symbol)
 Negotiate Contract
 
 Negotiate a new contract with the HQ.  In order to negotiate a new contract, an agent must not have ongoing or offered contracts over the allowed maximum amount. Currently the maximum contracts an agent can have at a time is 1.  Once a contract is negotiated, it is added to the list of contracts offered to the agent, which the agent can then accept.   The ship must be present at any waypoint with a faction present to negotiate a contract with that faction.
@@ -724,11 +723,11 @@ Negotiate a new contract with the HQ.  In order to negotiate a new contract, an 
 
 Name | Type | Description  | Required | Notes
 ------------- | ------------- | ------------- | ------------- | -------------
-**ship_symbol** | **String** | The ship's symbol. | [required] |
+**ship_symbol** | **String** | The symbol of the ship. | [required] |
 
 ### Return type
 
-[**models::NegotiateContract200Response**](Negotiate_Contract_200_Response.md)
+[**models::NegotiateContract201Response**](Negotiate_Contract_201_Response.md)
 
 ### Authorization
 
@@ -754,7 +753,7 @@ Attempt to move your ship into orbit at its current location. The request will o
 
 Name | Type | Description  | Required | Notes
 ------------- | ------------- | ------------- | ------------- | -------------
-**ship_symbol** | **String** | The symbol of the ship. | [required] |
+**ship_symbol** | **String** |  | [required] |
 
 ### Return type
 
@@ -784,7 +783,7 @@ Update the nav configuration of a ship.  Currently only supports configuring the
 
 Name | Type | Description  | Required | Notes
 ------------- | ------------- | ------------- | ------------- | -------------
-**ship_symbol** | **String** | The ship symbol. | [required] |
+**ship_symbol** | **String** | The symbol of the ship. | [required] |
 **patch_ship_nav_request** | Option<[**PatchShipNavRequest**](PatchShipNavRequest.md)> |  |  |
 
 ### Return type
@@ -815,8 +814,8 @@ Purchase cargo from a market.  The ship must be docked in a waypoint that has `M
 
 Name | Type | Description  | Required | Notes
 ------------- | ------------- | ------------- | ------------- | -------------
-**ship_symbol** | **String** | The ship's symbol. | [required] |
-**purchase_cargo_request** | Option<[**PurchaseCargoRequest**](PurchaseCargoRequest.md)> |  |  |
+**ship_symbol** | **String** | The symbol of the ship. | [required] |
+**purchase_cargo_request** | [**PurchaseCargoRequest**](PurchaseCargoRequest.md) |  | [required] |
 
 ### Return type
 
@@ -846,7 +845,7 @@ Purchase a ship from a Shipyard. In order to use this function, a ship under you
 
 Name | Type | Description  | Required | Notes
 ------------- | ------------- | ------------- | ------------- | -------------
-**purchase_ship_request** | Option<[**PurchaseShipRequest**](PurchaseShipRequest.md)> |  |  |
+**purchase_ship_request** | [**PurchaseShipRequest**](PurchaseShipRequest.md) |  | [required] |
 
 ### Return type
 
@@ -876,7 +875,7 @@ Refuel your ship by buying fuel from the local market.  Requires the ship to be 
 
 Name | Type | Description  | Required | Notes
 ------------- | ------------- | ------------- | ------------- | -------------
-**ship_symbol** | **String** | The ship symbol. | [required] |
+**ship_symbol** | **String** | The symbol of the ship. | [required] |
 **refuel_ship_request** | Option<[**RefuelShipRequest**](RefuelShipRequest.md)> |  |  |
 
 ### Return type
@@ -889,7 +888,7 @@ Name | Type | Description  | Required | Notes
 
 ### HTTP request headers
 
-- **Content-Type**: application/json
+- **Content-Type**: application/json, text/plain
 - **Accept**: application/json
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
@@ -907,8 +906,8 @@ Remove a mount from a ship.  The ship must be docked in a waypoint that has the 
 
 Name | Type | Description  | Required | Notes
 ------------- | ------------- | ------------- | ------------- | -------------
-**ship_symbol** | **String** | The ship's symbol. | [required] |
-**remove_mount_request** | Option<[**RemoveMountRequest**](RemoveMountRequest.md)> |  |  |
+**ship_symbol** | **String** | The symbol of the ship. | [required] |
+**remove_mount_request** | [**RemoveMountRequest**](RemoveMountRequest.md) |  | [required] |
 
 ### Return type
 
@@ -928,26 +927,26 @@ Name | Type | Description  | Required | Notes
 
 ## remove_ship_module
 
-> models::RemoveModule201Response remove_ship_module(ship_symbol, remove_ship_module_request)
+> models::RemoveShipModule201Response remove_ship_module(ship_symbol, remove_ship_module_request)
 Remove Ship Module
 
-Remove a module from a ship.  The ship must be docked in a waypoint that has the `Shipyard` trait, and must have the module to remove installed.  A removal fee will be deduced from the agent by the Shipyard.
+Remove a module from a ship. The module will be placed in cargo.
 
 ### Parameters
 
 
 Name | Type | Description  | Required | Notes
 ------------- | ------------- | ------------- | ------------- | -------------
-**ship_symbol** | **String** | The symbol of the ship | [required] |
-**remove_ship_module_request** | Option<[**RemoveShipModuleRequest**](RemoveShipModuleRequest.md)> |  |  |
+**ship_symbol** | **String** | The symbol of the ship. | [required] |
+**remove_ship_module_request** | [**RemoveShipModuleRequest**](RemoveShipModuleRequest.md) |  | [required] |
 
 ### Return type
 
-[**models::RemoveModule201Response**](Remove_Module_201_Response.md)
+[**models::RemoveShipModule201Response**](remove_ship_module_201_response.md)
 
 ### Authorization
 
-[AccountToken](../README.md#AccountToken), [AgentToken](../README.md#AgentToken)
+[AgentToken](../README.md#AgentToken)
 
 ### HTTP request headers
 
@@ -969,7 +968,7 @@ Repair a ship, restoring the ship to maximum condition. The ship must be docked 
 
 Name | Type | Description  | Required | Notes
 ------------- | ------------- | ------------- | ------------- | -------------
-**ship_symbol** | **String** | The ship symbol. | [required] |
+**ship_symbol** | **String** | The symbol of the ship. | [required] |
 
 ### Return type
 
@@ -992,14 +991,14 @@ Name | Type | Description  | Required | Notes
 > models::ScrapShip200Response scrap_ship(ship_symbol)
 Scrap Ship
 
-Scrap a ship, removing it from the game and returning a portion of the ship's value to the agent. The ship must be docked in a waypoint that has the `Shipyard` trait in order to use this function. To preview the amount of value that will be returned, use the Get Ship action.
+Scrap a ship, removing it from the game and receiving a portion of the ship's value back in credits. The ship must be docked in a waypoint that has the `Shipyard` trait to be scrapped.
 
 ### Parameters
 
 
 Name | Type | Description  | Required | Notes
 ------------- | ------------- | ------------- | ------------- | -------------
-**ship_symbol** | **String** | The ship symbol. | [required] |
+**ship_symbol** | **String** | The symbol of the ship. | [required] |
 
 ### Return type
 
@@ -1029,8 +1028,8 @@ Sell cargo in your ship to a market that trades this cargo. The ship must be doc
 
 Name | Type | Description  | Required | Notes
 ------------- | ------------- | ------------- | ------------- | -------------
-**ship_symbol** | **String** | Symbol of a ship. | [required] |
-**sell_cargo_request** | Option<[**SellCargoRequest**](SellCargoRequest.md)> |  |  |
+**ship_symbol** | **String** | The symbol of the ship. | [required] |
+**sell_cargo_request** | [**SellCargoRequest**](SellCargoRequest.md) |  | [required] |
 
 ### Return type
 
@@ -1061,7 +1060,7 @@ Attempt to refine the raw materials on your ship. The request will only succeed 
 Name | Type | Description  | Required | Notes
 ------------- | ------------- | ------------- | ------------- | -------------
 **ship_symbol** | **String** | The symbol of the ship. | [required] |
-**ship_refine_request** | Option<[**ShipRefineRequest**](ShipRefineRequest.md)> |  |  |
+**ship_refine_request** | [**ShipRefineRequest**](ShipRefineRequest.md) |  | [required] |
 
 ### Return type
 
@@ -1084,14 +1083,14 @@ Name | Type | Description  | Required | Notes
 > models::SiphonResources201Response siphon_resources(ship_symbol)
 Siphon Resources
 
-Siphon gases, such as hydrocarbon, from gas giants.  The ship must be in orbit to be able to siphon and must have siphon mounts and a gas processor installed.
+Siphon gases or other resources from gas giants.  The ship must be in orbit to be able to siphon and must have siphon mounts and a gas processor installed.
 
 ### Parameters
 
 
 Name | Type | Description  | Required | Notes
 ------------- | ------------- | ------------- | ------------- | -------------
-**ship_symbol** | **String** | The ship symbol. | [required] |
+**ship_symbol** | **String** | The symbol of the ship. | [required] |
 
 ### Return type
 
@@ -1121,8 +1120,8 @@ Transfer cargo between ships.  The receiving ship must be in the same waypoint a
 
 Name | Type | Description  | Required | Notes
 ------------- | ------------- | ------------- | ------------- | -------------
-**ship_symbol** | **String** | The transferring ship's symbol. | [required] |
-**transfer_cargo_request** | Option<[**TransferCargoRequest**](TransferCargoRequest.md)> |  |  |
+**ship_symbol** | **String** | The symbol of the ship. | [required] |
+**transfer_cargo_request** | [**TransferCargoRequest**](TransferCargoRequest.md) |  | [required] |
 
 ### Return type
 
@@ -1142,7 +1141,7 @@ Name | Type | Description  | Required | Notes
 
 ## warp_ship
 
-> models::WarpShip200Response warp_ship(ship_symbol, navigate_ship_request)
+> models::NavigateShip200Response warp_ship(ship_symbol, navigate_ship_request)
 Warp Ship
 
 Warp your ship to a target destination in another system. The ship must be in orbit to use this function and must have the `Warp Drive` module installed. Warping will consume the necessary fuel from the ship's manifest.  The returned response will detail the route information including the expected time of arrival. Most ship actions are unavailable until the ship has arrived at its destination.
@@ -1152,12 +1151,12 @@ Warp your ship to a target destination in another system. The ship must be in or
 
 Name | Type | Description  | Required | Notes
 ------------- | ------------- | ------------- | ------------- | -------------
-**ship_symbol** | **String** | The ship symbol. | [required] |
-**navigate_ship_request** | Option<[**NavigateShipRequest**](NavigateShipRequest.md)> |  |  |
+**ship_symbol** | **String** | The symbol of the ship. | [required] |
+**navigate_ship_request** | [**NavigateShipRequest**](NavigateShipRequest.md) |  | [required] |
 
 ### Return type
 
-[**models::WarpShip200Response**](warp_ship_200_response.md)
+[**models::NavigateShip200Response**](navigate_ship_200_response.md)
 
 ### Authorization
 

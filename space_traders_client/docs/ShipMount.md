@@ -4,9 +4,9 @@
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**symbol** | **String** | Symbo of this mount. | 
+**symbol** | **String** | Symbol of this mount. | 
 **name** | **String** | Name of this mount. | 
-**description** | Option<**String**> | Description of this mount. | [optional]
+**description** | **String** | Description of this mount. | 
 **strength** | Option<**i32**> | Mounts that have this value, such as mining lasers, denote how powerful this mount's capabilities are. | [optional]
 **deposits** | Option<**Vec<String>**> | Mounts that have this value denote what goods can be produced from using the mount. | [optional]
 **requirements** | [**models::ShipRequirements**](ShipRequirements.md) |  | 

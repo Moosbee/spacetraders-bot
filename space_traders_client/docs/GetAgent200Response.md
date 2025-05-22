@@ -1,11 +1,10 @@
-# ShipRefine201ResponseDataProducedInner
+# GetAgent200Response
 
 ## Properties
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**trade_symbol** | [**models::TradeSymbol**](TradeSymbol.md) | Symbol of the good. | 
-**units** | **i32** | Amount of units of the good. | 
+**data** | [**models::PublicAgent**](PublicAgent.md) |  | 
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
 

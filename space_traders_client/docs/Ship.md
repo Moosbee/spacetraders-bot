@@ -11,11 +11,11 @@ Name | Type | Description | Notes
 **frame** | [**models::ShipFrame**](ShipFrame.md) |  | 
 **reactor** | [**models::ShipReactor**](ShipReactor.md) |  | 
 **engine** | [**models::ShipEngine**](ShipEngine.md) |  | 
-**cooldown** | [**models::Cooldown**](Cooldown.md) |  | 
 **modules** | [**Vec<models::ShipModule>**](ShipModule.md) | Modules installed in this ship. | 
 **mounts** | [**Vec<models::ShipMount>**](ShipMount.md) | Mounts installed in this ship. | 
 **cargo** | [**models::ShipCargo**](ShipCargo.md) |  | 
 **fuel** | [**models::ShipFuel**](ShipFuel.md) |  | 
+**cooldown** | [**models::Cooldown**](Cooldown.md) |  | 
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
 

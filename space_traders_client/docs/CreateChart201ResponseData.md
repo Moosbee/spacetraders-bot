@@ -6,6 +6,8 @@ Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
 **chart** | [**models::Chart**](Chart.md) |  | 
 **waypoint** | [**models::Waypoint**](Waypoint.md) |  | 
+**transaction** | [**models::ChartTransaction**](ChartTransaction.md) |  | 
+**agent** | [**models::Agent**](Agent.md) |  | 
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
 

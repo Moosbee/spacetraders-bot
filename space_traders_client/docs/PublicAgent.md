@@ -1,10 +1,9 @@
-# Agent
+# PublicAgent
 
 ## Properties
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**account_id** | **String** | Account ID that is tied to this agent. Only included on your own agent. | 
 **symbol** | **String** | Symbol of the agent. | 
 **headquarters** | **String** | The headquarters of the agent. | 
 **credits** | **i64** | The number of credits the agent has available. Credits can be negative if funds have been overdrawn. | 

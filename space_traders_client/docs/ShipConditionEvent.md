@@ -4,7 +4,7 @@
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**symbol** | **String** |  | 
+**symbol** | **String** | The symbol of the event that occurred. | 
 **component** | **String** |  | 
 **name** | **String** | The name of the event. | 
 **description** | **String** | A description of the event. | 

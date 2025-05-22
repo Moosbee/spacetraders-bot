@@ -52,7 +52,7 @@ Name | Type | Description  | Required | Notes
 > models::GetJumpGate200Response get_jump_gate(system_symbol, waypoint_symbol)
 Get Jump Gate
 
-Get jump gate details for a waypoint. Requires a waypoint of type `JUMP_GATE` to use.  Waypoints connected to this jump gate can be 
+Get jump gate details for a waypoint. Requires a waypoint of type `JUMP_GATE` to use.  Waypoints connected to this jump gate can be found by querying the waypoints in the system.
 
 ### Parameters
 
@@ -145,14 +145,14 @@ Name | Type | Description  | Required | Notes
 > models::GetSystem200Response get_system(system_symbol)
 Get System
 
-Get the details of a system.
+Get the details of a system. Requires the system to have been visited or charted.
 
 ### Parameters
 
 
 Name | Type | Description  | Required | Notes
 ------------- | ------------- | ------------- | ------------- | -------------
-**system_symbol** | **String** | The system symbol | [required] |[default to X1-OE]
+**system_symbol** | **String** |  | [required] |
 
 ### Return type
 
@@ -182,10 +182,10 @@ Return a paginated list of all of the waypoints for a given system.  If a waypoi
 
 Name | Type | Description  | Required | Notes
 ------------- | ------------- | ------------- | ------------- | -------------
-**system_symbol** | **String** | The system symbol | [required] |
+**system_symbol** | **String** |  | [required] |
 **page** | Option<**i32**> | What entry offset to request |  |[default to 1]
 **limit** | Option<**i32**> | How many entries to return per page |  |[default to 10]
-**r#type** | Option<[**WaypointType**](.md)> | Filter waypoints by type. |  |
+**r#type** | Option<[**models::WaypointType**](.md)> | Filter waypoints by type. |  |
 **traits** | Option<[**GetSystemWaypointsTraitsParameter**](.md)> | Filter waypoints by one or more traits. |  |
 
 ### Return type
@@ -280,7 +280,7 @@ Name | Type | Description  | Required | Notes
 ------------- | ------------- | ------------- | ------------- | -------------
 **system_symbol** | **String** | The system symbol | [required] |
 **waypoint_symbol** | **String** | The waypoint symbol | [required] |
-**supply_construction_request** | Option<[**SupplyConstructionRequest**](SupplyConstructionRequest.md)> |  |  |
+**supply_construction_request** | [**SupplyConstructionRequest**](SupplyConstructionRequest.md) |  | [required] |
 
 ### Return type
 

@@ -2245,7 +2245,7 @@ dependencies = [
 
 [[package]]
 name = "space_traders_client"
-version = "2.0.0"
+version = "2.3.0"
 dependencies = [
  "async-trait",
  "governor",
@@ -2258,6 +2258,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_repr",
+ "serde_with",
  "sqlx",
  "strum",
  "strum_macros",
