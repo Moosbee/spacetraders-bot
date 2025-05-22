@@ -50,7 +50,7 @@ impl Shipyard {
         database_pool: &super::DbPool,
         waypoint_symbol: &str,
     ) -> crate::Result<Option<Shipyard>> {
-       let erg= sqlx::query_as!(
+        let erg = sqlx::query_as!(
             Shipyard,
             r#"
             SELECT DISTINCT ON (waypoint_symbol)
@@ -121,7 +121,7 @@ impl DatabaseConnector<Shipyard> for Shipyard {
     }
 
     async fn get_all(database_pool: &super::DbPool) -> crate::Result<Vec<Shipyard>> {
-       let erg= sqlx::query_as!(
+        let erg = sqlx::query_as!(
             Shipyard,
             r#"
             SELECT

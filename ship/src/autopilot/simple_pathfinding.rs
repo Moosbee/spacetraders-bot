@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use priority_queue::PriorityQueue;
 use space_traders_client::models;
-use utils::{distance_between_waypoints, WaypointCan};
+use utils::{WaypointCan, distance_between_waypoints};
 
 use super::{
     connection::SimpleConnection,

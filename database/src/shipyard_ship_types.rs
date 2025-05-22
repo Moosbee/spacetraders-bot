@@ -18,7 +18,7 @@ impl ShipyardShipTypes {
         database_pool: &super::DbPool,
         waypoint_symbol: &str,
     ) -> crate::Result<Vec<ShipyardShipTypes>> {
-       let erg= sqlx::query_as!(
+        let erg= sqlx::query_as!(
             ShipyardShipTypes,
             r#"
             SELECT
@@ -88,7 +88,7 @@ impl DatabaseConnector<ShipyardShipTypes> for ShipyardShipTypes {
     }
 
     async fn get_all(database_pool: &super::DbPool) -> crate::Result<Vec<ShipyardShipTypes>> {
-       let erg= sqlx::query_as!(
+        let erg = sqlx::query_as!(
             ShipyardShipTypes,
             r#"
             SELECT

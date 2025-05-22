@@ -128,7 +128,7 @@ impl DatabaseConnector<ReactorInfo> for ReactorInfo {
     }
 
     async fn get_all(database_pool: &super::DbPool) -> crate::Result<Vec<ReactorInfo>> {
-       let erg= sqlx::query_as!(
+        let erg = sqlx::query_as!(
             ReactorInfo,
             r#"
             SELECT

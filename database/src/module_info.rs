@@ -145,7 +145,7 @@ impl DatabaseConnector<ModuleInfo> for ModuleInfo {
     }
 
     async fn get_all(database_pool: &super::DbPool) -> crate::Result<Vec<ModuleInfo>> {
-       let erg= sqlx::query_as!(
+        let erg = sqlx::query_as!(
             ModuleInfo,
             r#"
             SELECT

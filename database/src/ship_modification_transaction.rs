@@ -111,7 +111,7 @@ impl DatabaseConnector<ShipModificationTransaction> for ShipModificationTransact
     async fn get_all(
         database_pool: &super::DbPool,
     ) -> crate::Result<Vec<ShipModificationTransaction>> {
-       let erg= sqlx::query_as!(
+        let erg = sqlx::query_as!(
             ShipModificationTransaction,
             r#"
             SELECT

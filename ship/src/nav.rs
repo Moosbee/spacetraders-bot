@@ -4,7 +4,7 @@ use space_traders_client::{apis, models};
 
 use crate::error;
 
-use super::{autopilot::AutopilotState, MyShip};
+use super::{MyShip, autopilot::AutopilotState};
 
 use std::fmt::Debug;
 
