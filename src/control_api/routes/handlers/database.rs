@@ -1,4 +1,7 @@
-use std::collections::HashMap;
+use std::{
+    collections::{HashMap, HashSet},
+    sync::Arc,
+};
 
 use database::DatabaseConnector;
 use log::debug;
@@ -69,13 +72,6 @@ pub async fn handle_request_system(
     context: ConductorContext,
 ) -> Result<impl Reply> {
     let now = tokio::time::Instant::now();
-
-    let waypoints = database::System::get_by_id(&context.database_pool, &symbol)
-        .await
-        .map_err(ServerError::Database)?;
-    if let Some(waypoints) = waypoints {
-        return Ok(warp::reply::json(&waypoints));
-    }
 
     let system = context
         .api
@@ -341,10 +337,38 @@ pub async fn handle_get_system(symbol: String, context: ConductorContext) -> Res
         }));
     }
 
+    let system_market_transactions =
+        database::MarketTransaction::get_by_system(&context.database_pool, &symbol)
+            .await
+            .map_err(ServerError::Database)?;
+
+    let system_shipyard_transactions =
+        database::ShipyardTransaction::get_by_system(&context.database_pool, &symbol)
+            .await
+            .map_err(ServerError::Database)?;
+
+    let known_market_agents = system_market_transactions
+        .iter()
+        .filter_map(|f| {
+            f.ship_symbol
+                .chars()
+                .rev()
+                .collect::<String>()
+                .split_once("-")
+                .map(|f| f.1.chars().rev().collect::<String>())
+        })
+        .collect::<HashSet<String>>();
+
+    let known_shipyard_agents = system_shipyard_transactions
+        .iter()
+        .map(|f| f.agent_symbol.clone())
+        .collect::<HashSet<String>>();
+
     debug!("Got {} waypoints", waypoints_data.len());
     Ok(warp::reply::json(&serde_json::json!({
         "system": system,
-        "waypoints":waypoints_data
+        "waypoints":waypoints_data,
+        "know_agents":known_market_agents.union(&known_shipyard_agents).cloned().collect::<Vec<String>>(),
     })))
 }
 

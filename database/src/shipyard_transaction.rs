@@ -56,6 +56,30 @@ impl ShipyardTransaction {
         .await?;
         Ok(erg)
     }
+
+    pub async fn get_by_system(
+        database_pool: &super::DbPool,
+        system: &str,
+    ) -> crate::Result<Vec<Self>> {
+        let system_qr = format!("{}-%", system);
+        let erg = sqlx::query_as!(
+            ShipyardTransaction,
+            r#"
+      select 
+                waypoint_symbol,
+                ship_type as "ship_type: models::ShipType",
+                price,
+                agent_symbol,
+                "timestamp"
+      from shipyard_transaction
+      where waypoint_symbol like $1
+    "#,
+            system_qr
+        )
+        .fetch_all(&database_pool.database_pool)
+        .await?;
+        Ok(erg)
+    }
 }
 
 impl DatabaseConnector<ShipyardTransaction> for ShipyardTransaction {

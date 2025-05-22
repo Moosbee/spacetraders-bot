@@ -237,6 +237,33 @@ impl MarketTransaction {
         .await?;
         Ok(erg)
     }
+
+    pub async fn get_by_system(database_pool: &DbPool, system: &str) -> crate::Result<Vec<Self>> {
+        let system_qr = format!("{}-%", system);
+        let erg = sqlx::query_as!(
+            MarketTransaction,
+            r#"
+      select 
+        waypoint_symbol,
+        ship_symbol,trade_symbol as "trade_symbol: models::TradeSymbol",
+        "type" as "type: models::market_transaction::Type",
+        units,
+        price_per_unit,
+        total_price,
+        "timestamp",
+        contract,
+        trade_route,
+        mining,
+        construction
+      from market_transaction
+      where waypoint_symbol like $1
+    "#,
+            system_qr
+        )
+        .fetch_all(&database_pool.database_pool)
+        .await?;
+        Ok(erg)
+    }
 }
 
 impl From<MarketTransaction> for models::MarketTransaction {

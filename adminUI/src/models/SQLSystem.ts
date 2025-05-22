@@ -4,6 +4,7 @@ import { SQLWaypoint } from "./SQLWaypoint";
 
 export interface SystemResp {
   system: SQLSystem;
+  know_agents: string[];
   waypoints: {
     waypoint: SQLWaypoint;
     trade_goods: MarketTrade[];

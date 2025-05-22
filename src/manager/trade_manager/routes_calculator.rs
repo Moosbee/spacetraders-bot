@@ -81,7 +81,7 @@ impl RouteCalculator {
                     config.purchase_multiplier,
                 )
             })
-            // .filter(|route| route.trip.total_profit > 2000)
+            .filter(|route| route.trip.total_profit > config.trade_profit_threshold)
             .collect::<Vec<_>>();
 
         debug!("Routes: {}", routes.len());

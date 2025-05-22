@@ -30,7 +30,7 @@ impl FleetManager {
         tokio::sync::mpsc::Receiver<FleetManagerMessage>,
         FleetManagerMessanger,
     ) {
-        let (sender, receiver) = tokio::sync::mpsc::channel(1024);
+        let (sender, receiver) = tokio::sync::mpsc::channel(24);
         debug!("Created FleetManager channel");
 
         (receiver, FleetManagerMessanger::new(sender))
@@ -132,6 +132,12 @@ impl FleetManager {
     ) -> Result<()> {
         // return Ok(());
 
+        let ship_puchase_stop = { self.context.config.read().await.ship_purchase_stop };
+
+        if ship_puchase_stop {
+            return Ok(());
+        }
+
         let pathfinder = ship::autopilot::jump_gate_nav::JumpPathfinder::new(
             ship::autopilot::jump_gate_nav::generate_all_connections(&self.context.database_pool)
                 .await?
@@ -149,7 +155,7 @@ impl FleetManager {
         .map(|t| (t.waypoint_symbol.clone(), t.purchase_price))
         .collect();
 
-        let count = 5;
+        let count = { self.context.config.read().await.ship_purchase_amount };
 
         debug!("Buying ships at {}", waypoint_symbol);
 
@@ -259,6 +265,8 @@ impl FleetManager {
     > {
         let agent_symbol = { self.context.run_info.read().await.agent_symbol.clone() };
 
+        let expand = { self.context.config.read().await.expand };
+
         let agent = database::Agent::get_last_by_symbol(&self.context.database_pool, &agent_symbol)
             .await?
             .ok_or(crate::error::Error::General("Agent not found".to_string()))?;
@@ -332,6 +340,10 @@ impl FleetManager {
         ) in ships
         {
             if (purchase_price as f32) > ((min_price as f32) * 1.5) {
+                continue;
+            }
+
+            if ship_role == database::ShipInfoRole::Charter && !expand {
                 continue;
             }
 

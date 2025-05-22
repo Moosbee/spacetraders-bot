@@ -16,14 +16,26 @@ impl FleetManagerMessanger {
         ship_symbol: String,
     ) -> Result<(), crate::error::Error> {
         let (sender, receiver) = tokio::sync::oneshot::channel();
-        self.sender
-            .send(FleetManagerMessage::ScrapperAtShipyard {
-                waypoint_symbol,
-                ship_symbol,
-                callback: sender,
-            })
-            .await
-            .map_err(|e| crate::error::Error::General(e.to_string()))?;
+        let erg = self
+            .sender
+            .send_timeout(
+                FleetManagerMessage::ScrapperAtShipyard {
+                    waypoint_symbol,
+                    ship_symbol,
+                    callback: sender,
+                },
+                tokio::time::Duration::from_millis(5000),
+            )
+            .await;
+        if let Err(e) = erg {
+            match e {
+                tokio::sync::mpsc::error::SendTimeoutError::Timeout(_e) => return Ok(()),
+                tokio::sync::mpsc::error::SendTimeoutError::Closed(_e) => {
+                    // return Err(crate::error::Error::General("Channel closed".to_string()))
+                    return Ok(());
+                }
+            }
+        }
         let _erg = receiver
             .await
             .map_err(|e| crate::error::Error::General(e.to_string()))?;

@@ -44,6 +44,10 @@ fn calculate_fuel_and_multiplier(
     }
 }
 
+pub fn calculate_jump_cooldown(distance: f64) -> f64 {
+    (15.0 + 0.3 * distance).round()
+}
+
 fn calculate_travel_time(
     distance: f64,
     multiplier: f64,

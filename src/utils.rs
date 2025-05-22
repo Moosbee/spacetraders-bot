@@ -72,4 +72,10 @@ pub struct Config {
     pub transport_capacity_per_waypoint: i32,
 
     pub trade_mode: crate::manager::trade_manager::RouteMode,
+
+    pub ship_purchase_stop: bool,
+    pub trade_profit_threshold: i32,
+    pub expand: bool,
+
+    pub ship_purchase_amount: i32,
 }

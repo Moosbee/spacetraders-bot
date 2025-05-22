@@ -31,9 +31,13 @@
   "default_profit": 50,
   "markup_percentage": 0.5,
   "margin_percentage": 0.33,
-  "markets_per_ship": 5,
+  "markets_per_ship": 10,
   "mining_waypoints_per_system": 1,
   "mining_ships_per_waypoint": 12,
   "transport_capacity_per_waypoint": 80,
-  "trade_mode": "ProfitPerHour"
+  "trade_mode": "ProfitPerHour",
+  "ship_purchase_stop": false,
+  "trade_profit_threshold": 2000,
+  "expand": true,
+  "ship_purchase_amount": 2
 }

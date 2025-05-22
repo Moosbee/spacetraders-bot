@@ -1,8 +1,10 @@
 import {
   Button,
+  Card,
   Descriptions,
   Divider,
   Flex,
+  List,
   Popover,
   Space,
   Spin,
@@ -36,12 +38,15 @@ function System() {
 
   const [loading, setLoading] = useState(false);
 
+  const [knownAgents, setKnownAgents] = useState<string[]>([]);
+
   useEffect(() => {
     fetch(`http://${backendUrl}/systems/${systemID}`)
       .then((response) => response.json())
       .then((data: SystemResp) => {
         const system = data.system;
         const waypoints_date = data.waypoints;
+        setKnownAgents(data.know_agents);
         const waypoints = waypoints_date.map((waypoint) => {
           const sql_wp = waypoint.waypoint;
 
@@ -419,6 +424,17 @@ function System() {
       <h2>System {systemID}</h2>
       <Space>
         <Descriptions bordered column={3} items={items} />
+        <Card size="small" title="Known Agents">
+          <List
+            size="small"
+            dataSource={knownAgents}
+            renderItem={(agent) => (
+              <List.Item>
+                <Link to={`/agents/${agent}`}>{agent}</Link>
+              </List.Item>
+            )}
+          />
+        </Card>
       </Space>
       <Divider />
       <Table

@@ -22,6 +22,7 @@ import { useEffect, useState } from "react";
 import { backendUrl } from "../data";
 import PageTitle from "../features/PageTitle";
 import { TradeSymbol } from "../models/api";
+import { message } from "../utils/antdMessage";
 
 const { Text } = Typography;
 
@@ -54,6 +55,9 @@ export function ConfigScreen() {
     transport_capacity_per_waypoint: 0,
     unstable_since_timeout: 0,
     update_all_systems: false,
+    ship_purchase_stop: false,
+    trade_profit_threshold: 0,
+    expand: false,
   });
 
   useEffect(() => {
@@ -92,6 +96,7 @@ export function ConfigScreen() {
       .then((response) => {
         console.log(response);
         setConfig(response);
+        message.success("Configuration saved successfully");
       });
   };
 
@@ -168,6 +173,26 @@ export function ConfigScreen() {
                   onChange={(value) =>
                     handleChange("scrapper_start_sleep", value)
                   }
+                />
+              </FormItem>
+            </Col>
+          </Row>
+          <Row gutter={16}>
+            <Col span={12}>
+              <FormItem label="Ship Purchase Stop">
+                <Switch
+                  checked={config.ship_purchase_stop}
+                  onChange={(checked) =>
+                    handleChange("ship_purchase_stop", checked)
+                  }
+                />
+              </FormItem>
+            </Col>
+            <Col span={12}>
+              <FormItem label="Expand">
+                <Switch
+                  checked={config.expand}
+                  onChange={(checked) => handleChange("expand", checked)}
                 />
               </FormItem>
             </Col>
@@ -281,7 +306,7 @@ export function ConfigScreen() {
             </Col>
           </Row>
           <Row gutter={16}>
-            <Col span={12}>
+            <Col span={8}>
               <FormItem label="Trade Mode">
                 <Select
                   style={{ width: "100%" }}
@@ -291,12 +316,23 @@ export function ConfigScreen() {
                 />
               </FormItem>
             </Col>
-            <Col span={12}>
+            <Col span={8}>
               <FormItem label="Markets Per Ship">
                 <InputNumber
                   style={{ width: "100%" }}
                   value={config.markets_per_ship}
                   onChange={(value) => handleChange("markets_per_ship", value)}
+                />
+              </FormItem>
+            </Col>
+            <Col span={8}>
+              <FormItem label="Trade Profit Threshold">
+                <InputNumber
+                  style={{ width: "100%" }}
+                  value={config.trade_profit_threshold}
+                  onChange={(value) =>
+                    handleChange("trade_profit_threshold", value)
+                  }
                 />
               </FormItem>
             </Col>

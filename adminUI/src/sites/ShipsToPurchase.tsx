@@ -154,7 +154,7 @@ export default function ShipsToPurchase() {
           renderItem={(ship) => (
             <List.Item>
               <Link to={`/system/${ship[0]}`}>{ship[0]}</Link>: {ship[1].length}
-              {/* <List
+              <List
                 size="small"
                 dataSource={ship[1]}
                 renderItem={(ship) => (
@@ -162,7 +162,7 @@ export default function ShipsToPurchase() {
                     {ship[0]} {ship[1]} {ship[2]}
                   </List.Item>
                 )}
-              /> */}
+              />
             </List.Item>
           )}
         />
