@@ -17,7 +17,21 @@ pub struct Agent {
 impl From<space_traders_client::models::Agent> for Agent {
     fn from(item: space_traders_client::models::Agent) -> Agent {
         Agent {
-            account_id: item.account_id,
+            account_id: Some(item.account_id),
+            symbol: item.symbol,
+            headquarters: item.headquarters,
+            credits: item.credits,
+            starting_faction: item.starting_faction,
+            ship_count: item.ship_count,
+            created_at: sqlx::types::chrono::DateTime::<chrono::Utc>::MIN_UTC,
+        }
+    }
+}
+
+impl From<space_traders_client::models::PublicAgent> for Agent {
+    fn from(item: space_traders_client::models::PublicAgent) -> Agent {
+        Agent {
+            account_id: None,
             symbol: item.symbol,
             headquarters: item.headquarters,
             credits: item.credits,

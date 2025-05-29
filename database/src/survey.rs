@@ -13,7 +13,7 @@ pub struct Survey {
     pub waypoint_symbol: String,
     pub deposits: Vec<models::TradeSymbol>,
     pub expiration: DateTime<Utc>,
-    pub size: models::survey::Size,
+    pub size: models::SurveySize,
     pub exhausted_since: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -25,15 +25,7 @@ impl Survey {
         ship_before: i64,
         ship_after: i64,
     ) -> crate::Result<Survey> {
-        let deposits_res = value
-            .deposits
-            .iter()
-            .map(|f| {
-                models::TradeSymbol::from_str(&f.symbol)
-                    .map_err(|_err| crate::Error::InvalidTradeSymbol(f.symbol.clone()))
-            })
-            .collect::<Result<Vec<_>, _>>();
-        let deposits = deposits_res?;
+        let deposits = value.deposits.iter().map(|f| f.symbol).collect::<Vec<_>>();
         let expiration = DateTime::<chrono::Utc>::from_str(&value.expiration)?;
 
         Ok(Survey {
@@ -81,7 +73,7 @@ impl Survey {
                   waypoint_symbol,
                   deposits as "deposits: Vec<models::TradeSymbol>",
                   expiration,
-                  size as "size: models::survey::Size",
+                  size as "size: models::SurveySize",
                   exhausted_since,
                   created_at,
                   updated_at
@@ -104,9 +96,7 @@ impl From<Survey> for models::Survey {
             deposits: value
                 .deposits
                 .iter()
-                .map(|f| models::SurveyDeposit {
-                    symbol: f.to_string(),
-                })
+                .map(|f| models::SurveyDeposit { symbol: *f })
                 .collect(),
             expiration: value
                 .expiration
@@ -124,9 +114,7 @@ impl From<&Survey> for models::Survey {
             deposits: value
                 .deposits
                 .iter()
-                .map(|f| models::SurveyDeposit {
-                    symbol: f.to_string(),
-                })
+                .map(|f| models::SurveyDeposit { symbol: *f })
                 .collect(),
             expiration: value
                 .expiration
@@ -168,7 +156,7 @@ impl DatabaseConnector<Survey> for Survey {
             &item.waypoint_symbol,
             &item.deposits as &[models::TradeSymbol],
             &item.expiration,
-            &item.size as &models::survey::Size,
+            &item.size as &models::SurveySize,
             &item.exhausted_since as &Option<DateTime<Utc>>,
         )
         .execute(&database_pool.database_pool)
@@ -194,7 +182,7 @@ impl DatabaseConnector<Survey> for Survey {
                   waypoint_symbol,
                   deposits as "deposits: Vec<models::TradeSymbol>",
                   expiration,
-                  size as "size: models::survey::Size",
+                  size as "size: models::SurveySize",
                   exhausted_since,
                   created_at,
                   updated_at

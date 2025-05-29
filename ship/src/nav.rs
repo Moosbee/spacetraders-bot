@@ -61,9 +61,9 @@ impl MyShip {
         let nav_data = api
             .navigate_ship(
                 &self.symbol,
-                Some(models::NavigateShipRequest {
+                models::NavigateShipRequest {
                     waypoint_symbol: waypoint_symbol.to_string(),
-                }),
+                },
             )
             .await?;
 
@@ -84,9 +84,9 @@ impl MyShip {
         let jump_data = api
             .jump_ship(
                 &self.symbol,
-                Some(models::JumpShipRequest {
+                models::JumpShipRequest {
                     waypoint_symbol: waypoint_symbol.to_string(),
-                }),
+                },
             )
             .await?;
 
@@ -102,14 +102,14 @@ impl MyShip {
         &mut self,
         api: &space_traders_client::Api,
         waypoint_symbol: &str,
-    ) -> error::Result<models::WarpShip200Response> {
+    ) -> error::Result<models::NavigateShip200Response> {
         self.mutate();
         let warp_data = api
             .warp_ship(
                 &self.symbol,
-                Some(models::NavigateShipRequest {
+                models::NavigateShipRequest {
                     waypoint_symbol: waypoint_symbol.to_string(),
-                }),
+                },
             )
             .await?;
 
@@ -285,15 +285,9 @@ impl MyShip {
 
         self.fuel.update(&refuel_data.data.fuel);
 
-        if from_cargo {
-            let refuel_units = ((units as f32) / 100.0).ceil() as i32;
-
-            self.cargo.remove_cargo(
-                &space_traders_client::models::TradeSymbol::Fuel,
-                refuel_units,
-            )?;
+        if let Some(cargo) = refuel_data.data.cargo.as_ref() {
+            self.cargo.update(cargo);
         }
-
         self.notify().await;
 
         Ok(refuel_data)

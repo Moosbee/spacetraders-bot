@@ -6,7 +6,7 @@ use super::DatabaseConnector;
 pub struct MountInfo {
     pub symbol: models::ship_mount::Symbol,
     pub name: String,
-    pub description: Option<String>,
+    pub description: String,
     pub strength: Option<i32>,
     pub deposits: Option<Vec<models::TradeSymbol>>,
     pub power_required: Option<i32>,

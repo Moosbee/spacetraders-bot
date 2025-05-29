@@ -145,10 +145,10 @@ impl MyShip {
                 let sell_data: space_traders_client::models::SellCargo201Response = api
                     .sell_cargo(
                         &self.symbol,
-                        Some(space_traders_client::models::SellCargoRequest {
+                        space_traders_client::models::SellCargoRequest {
                             symbol: *good,
                             units: volume,
-                        }),
+                        },
                     )
                     .await?;
 
@@ -158,10 +158,10 @@ impl MyShip {
                 let purchase_data: space_traders_client::models::PurchaseCargo201Response = api
                     .purchase_cargo(
                         &self.symbol,
-                        Some(space_traders_client::models::PurchaseCargoRequest {
+                        space_traders_client::models::PurchaseCargoRequest {
                             symbol: *good,
                             units: volume,
-                        }),
+                        },
                     )
                     .await?;
 
@@ -193,11 +193,11 @@ impl MyShip {
         let delivery_result: space_traders_client::models::DeliverContract200Response = api
             .deliver_contract(
                 contract_id,
-                Some(space_traders_client::models::DeliverContractRequest {
+                space_traders_client::models::DeliverContractRequest {
                     units,
                     ship_symbol: self.symbol.clone(),
                     trade_symbol: trade_symbol.to_string(),
-                }),
+                },
             )
             .await?;
 
@@ -218,11 +218,11 @@ impl MyShip {
             .supply_construction(
                 &self.nav.system_symbol,
                 &self.nav.waypoint_symbol,
-                Some(space_traders_client::models::SupplyConstructionRequest {
+                space_traders_client::models::SupplyConstructionRequest {
                     units,
                     ship_symbol: self.symbol.clone(),
-                    trade_symbol: trade_symbol.to_string(),
-                }),
+                    trade_symbol,
+                },
             )
             .await?;
 
@@ -247,11 +247,11 @@ impl MyShip {
         let transfer_result: space_traders_client::models::TransferCargo200Response = api
             .transfer_cargo(
                 &self.symbol,
-                Some(space_traders_client::models::TransferCargoRequest {
+                space_traders_client::models::TransferCargoRequest {
                     units,
                     ship_symbol: target_ship.to_string(),
                     trade_symbol,
-                }),
+                },
             )
             .await?;
 
@@ -271,10 +271,10 @@ impl MyShip {
         let jettison_data: space_traders_client::models::Jettison200Response = api
             .jettison(
                 &self.symbol,
-                Some(JettisonRequest {
+                JettisonRequest {
                     units,
                     symbol: trade_symbol,
-                }),
+                },
             )
             .await?;
         self.cargo.update(&jettison_data.data.cargo);

@@ -16,13 +16,9 @@ pub struct RefuelShipRequest {
     /// The amount of fuel to fill in the ship's tanks. When not specified, the ship will be refueled to its maximum fuel capacity. If the amount specified is greater than the ship's remaining capacity, the ship will only be refueled to its maximum fuel capacity. The amount specified is not in market units but in ship fuel units.
     #[serde(rename = "units", skip_serializing_if = "Option::is_none")]
     pub units: Option<i32>,
-    #[serde(
-        rename = "fromCargo",
-        default,
-        with = "::serde_with::rust::double_option",
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub from_cargo: Option<Option<bool>>,
+    /// Wether to use the FUEL thats in your cargo or not. Default: false
+    #[serde(rename = "fromCargo", skip_serializing_if = "Option::is_none")]
+    pub from_cargo: Option<bool>,
 }
 
 impl RefuelShipRequest {

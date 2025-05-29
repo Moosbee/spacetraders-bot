@@ -91,7 +91,7 @@ impl Clone for MyShip {
     fn clone(&self) -> Self {
         Self {
             status: self.status.clone(),
-            role: self.role.clone(),
+            role: self.role,
             registration_role: self.registration_role,
             display_name: self.display_name.clone(),
             symbol: self.symbol.clone(),
@@ -145,7 +145,7 @@ impl From<&MyShip> for database::ShipState {
             id: 0,
             symbol: value.symbol.clone(),
             display_name: value.display_name.clone(),
-            role: value.role.clone(),
+            role: value.role,
             active: value.active,
             engine_speed: value.engine_speed,
 

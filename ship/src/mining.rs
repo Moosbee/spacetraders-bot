@@ -36,9 +36,7 @@ impl MyShip {
         space_traders_client::apis::Error<ExtractResourcesError>,
     > {
         self.mutate();
-        let extraction = api
-            .extract_resources(&self.symbol, Some(Default::default()))
-            .await?;
+        let extraction = api.extract_resources(&self.symbol).await?;
 
         self.update_cooldown(&extraction.data.cooldown);
         self.cargo.update(&extraction.data.cargo);

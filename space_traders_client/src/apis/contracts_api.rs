@@ -51,7 +51,7 @@ pub enum GetContractsError {
 /// struct for typed errors of method [`negotiate_contract_0`]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(untagged)]
-pub enum NegotiateContract0Error {
+pub enum NegotiateContractError {
     UnknownValue(serde_json::Value),
 }
 
@@ -288,10 +288,10 @@ pub async fn get_contracts(
 }
 
 /// Negotiate a new contract with the HQ.  In order to negotiate a new contract, an agent must not have ongoing or offered contracts over the allowed maximum amount. Currently the maximum contracts an agent can have at a time is 1.  Once a contract is negotiated, it is added to the list of contracts offered to the agent, which the agent can then accept.   The ship must be present at any waypoint with a faction present to negotiate a contract with that faction.
-pub async fn negotiate_contract_0(
+pub async fn negotiate_contract(
     configuration: &configuration::Configuration,
     ship_symbol: &str,
-) -> Result<models::NegotiateContract201Response, Error<NegotiateContract0Error>> {
+) -> Result<models::NegotiateContract201Response, Error<NegotiateContractError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -321,7 +321,7 @@ pub async fn negotiate_contract_0(
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
         serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
-        let local_var_entity: Option<ResponseContentEntity<NegotiateContract0Error>> =
+        let local_var_entity: Option<ResponseContentEntity<NegotiateContractError>> =
             serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent {
             status: local_var_status,

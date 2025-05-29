@@ -557,7 +557,7 @@ impl FleetManager {
         let resp = self
             .context
             .api
-            .purchase_ship(Some(purchase_ship_request.clone()))
+            .purchase_ship(purchase_ship_request)
             .await?;
 
         database::Agent::insert(

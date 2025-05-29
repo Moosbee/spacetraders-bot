@@ -57,8 +57,8 @@ impl From<&models::Waypoint> for Waypoint {
                     mm
                 })
                 .unwrap_or_default(),
-            charted_by: value.chart.as_ref().and_then(|c| c.submitted_by.clone()),
-            charted_on: value.chart.as_ref().and_then(|c| c.submitted_on.clone()),
+            charted_by: value.chart.as_ref().map(|c| c.submitted_by.clone()),
+            charted_on: value.chart.as_ref().map(|c| c.submitted_on.clone()),
             has_marketplace: value
                 .traits
                 .iter()
@@ -76,19 +76,19 @@ impl From<&Waypoint> for models::Waypoint {
     fn from(value: &Waypoint) -> Self {
         let chart = match (value.charted_by.as_ref(), value.charted_on.as_ref()) {
             (Some(charted_by), Some(charted_on)) => Some(models::Chart {
-                submitted_by: Some(charted_by.clone()),
-                submitted_on: Some(charted_on.clone()),
-                waypoint_symbol: Some(value.symbol.clone()),
+                submitted_by: charted_by.clone(),
+                submitted_on: charted_on.clone(),
+                waypoint_symbol: value.symbol.clone(),
             }),
             (None, Some(charted_on)) => Some(models::Chart {
-                submitted_by: None,
-                submitted_on: Some(charted_on.clone()),
-                waypoint_symbol: Some(value.symbol.clone()),
+                submitted_by: "".to_string(),
+                submitted_on: charted_on.clone(),
+                waypoint_symbol: value.symbol.clone(),
             }),
             (Some(charted_by), None) => Some(models::Chart {
-                submitted_by: Some(charted_by.clone()),
-                submitted_on: None,
-                waypoint_symbol: Some(value.symbol.clone()),
+                submitted_by: charted_by.clone(),
+                submitted_on: "".to_string(),
+                waypoint_symbol: value.symbol.clone(),
             }),
             _ => None,
         };

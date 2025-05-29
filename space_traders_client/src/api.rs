@@ -1,7 +1,10 @@
 use std::num::NonZeroU32;
 use std::sync::Arc;
 
-use crate::apis::agents_api::{GetAgentError, GetAgentsError, GetMyAgentError};
+use crate::apis::accounts_api::{GetMyAccountError, RegisterError};
+use crate::apis::agents_api::{
+    GetAgentError, GetAgentsError, GetMyAgentError, GetMyAgentEventsError,
+};
 use crate::apis::configuration::Configuration;
 use crate::apis::contracts_api::{
     AcceptContractError, DeliverContractError, FulfillContractError, GetContractError,
@@ -9,17 +12,17 @@ use crate::apis::contracts_api::{
 };
 use crate::apis::factions_api::{GetFactionError, GetFactionsError};
 use crate::apis::fleet_api::{
-    CreateChartError, CreateShipShipScanError, CreateShipSystemScanError,
+    self, CreateChartError, CreateShipShipScanError, CreateShipSystemScanError,
     CreateShipWaypointScanError, CreateSurveyError, DockShipError, ExtractResourcesError,
     ExtractResourcesWithSurveyError, GetMountsError, GetMyShipCargoError, GetMyShipError,
     GetMyShipsError, GetRepairShipError, GetScrapShipError, GetShipCooldownError,
     GetShipModulesError, GetShipNavError, InstallMountError, InstallShipModuleError, JettisonError,
-    JumpShipError, NavigateShipError, NegotiateContractError, OrbitShipError, PatchShipNavError,
-    PurchaseCargoError, PurchaseShipError, RefuelShipError, RemoveMountError,
-    RemoveShipModuleError, RepairShipError, ScrapShipError, SellCargoError, ShipRefineError,
-    SiphonResourcesError, TransferCargoError, WarpShipError,
+    JumpShipError, NavigateShipError, OrbitShipError, PatchShipNavError, PurchaseCargoError,
+    PurchaseShipError, RefuelShipError, RemoveMountError, RemoveShipModuleError, RepairShipError,
+    ScrapShipError, SellCargoError, ShipRefineError, SiphonResourcesError, TransferCargoError,
+    WarpShipError,
 };
-use crate::apis::global_api::{GetStatusError, RegisterError};
+use crate::apis::global_api::GetStatusError;
 use crate::apis::systems_api::{
     GetConstructionError, GetJumpGateError, GetMarketError, GetShipyardError, GetSystemError,
     GetSystemWaypointsError, GetSystemsError, GetWaypointError, SupplyConstructionError,
@@ -73,17 +76,25 @@ impl Api {
         &self,
         symbol: String,
         faction: FactionSymbol,
-        email: Option<String>,
+        account_token: String,
     ) -> Result<Register201ResponseData, Error<RegisterError>> {
-        let register_response: models::Register201Response = crate::apis::global_api::register(
-            &self.configuration,
-            Some(RegisterRequest {
-                symbol,
-                faction,
-                email,
-            }),
-        )
-        .await?;
+        let mut config = Configuration::clone(&self.configuration);
+        config.bearer_access_token = Some(account_token);
+        let register_response: models::Register201Response =
+            crate::apis::accounts_api::register(&config, RegisterRequest { symbol, faction })
+                .await?;
+
+        Ok(*register_response.data)
+    }
+
+    /// Fetch your agent's details.
+    pub async fn get_my_account(
+        &self,
+        account_token: String,
+    ) -> Result<models::GetMyAccount200ResponseData, Error<GetMyAccountError>> {
+        let mut config = Configuration::clone(&self.configuration);
+        config.bearer_access_token = Some(account_token);
+        let register_response = crate::apis::accounts_api::get_my_account(&config).await?;
 
         Ok(*register_response.data)
     }
@@ -92,7 +103,7 @@ impl Api {
     pub async fn get_agent(
         &self,
         agent_symbol: &str,
-    ) -> Result<models::GetMyAgent200Response, Error<GetAgentError>> {
+    ) -> Result<models::GetAgent200Response, Error<GetAgentError>> {
         self.limiter.until_ready(50, "get_agent").await;
         let result = crate::apis::agents_api::get_agent(&self.configuration, agent_symbol).await?;
 
@@ -114,13 +125,13 @@ impl Api {
     pub async fn get_all_agents(
         &self,
         limit: i32,
-    ) -> Result<Vec<models::Agent>, Error<GetAgentsError>> {
+    ) -> Result<Vec<models::PublicAgent>, Error<GetAgentsError>> {
         if !(1..=20).contains(&limit) {
             panic!("Invalid limit must be between 1 and 20");
         }
         let mut current_page = 1;
 
-        let mut agents = Vec::new();
+        let mut agents: Vec<models::PublicAgent> = Vec::new();
 
         loop {
             let page = self.get_agents(Some(current_page), Some(limit)).await?;
@@ -155,6 +166,16 @@ impl Api {
         Ok(result)
     }
 
+    /// Get recent events for your agent.
+    pub async fn get_my_agent_events(
+        &self,
+    ) -> Result<models::GetMyAgentEvents200Response, Error<GetMyAgentEventsError>> {
+        self.limiter.until_ready(50, "get_my_agent_events").await;
+        let result = crate::apis::agents_api::get_my_agent_events(&self.configuration).await?;
+
+        Ok(result)
+    }
+
     /// Accept a contract by ID.   You can only accept contracts that were offered to you, were not accepted yet, and whose deadlines has not passed yet.
     pub async fn accept_contract(
         &self,
@@ -174,7 +195,7 @@ impl Api {
     pub async fn deliver_contract(
         &self,
         contract_id: &str,
-        deliver_contract_request: Option<models::DeliverContractRequest>,
+        deliver_contract_request: models::DeliverContractRequest,
     ) -> Result<models::DeliverContract200Response, Error<DeliverContractError>> {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
@@ -431,18 +452,13 @@ impl Api {
     pub async fn extract_resources(
         &self,
         ship_symbol: &str,
-        extract_resources_request: Option<models::ExtractResourcesRequest>,
     ) -> Result<models::ExtractResources201Response, Error<ExtractResourcesError>> {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
         self.limiter.until_ready(50, "extract_resources").await;
-        let result = crate::apis::fleet_api::extract_resources(
-            &self.configuration,
-            ship_symbol,
-            extract_resources_request,
-        )
-        .await?;
+        let result =
+            crate::apis::fleet_api::extract_resources(&self.configuration, ship_symbol).await?;
 
         Ok(result)
     }
@@ -643,7 +659,7 @@ impl Api {
     pub async fn install_mount(
         &self,
         ship_symbol: &str,
-        install_mount_request: Option<models::InstallMountRequest>,
+        install_mount_request: models::InstallMountRequest,
     ) -> Result<models::InstallMount201Response, Error<InstallMountError>> {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
@@ -663,7 +679,7 @@ impl Api {
     pub async fn install_ship_module(
         &self,
         ship_symbol: &str,
-        install_ship_module_request: Option<models::InstallShipModuleRequest>,
+        install_ship_module_request: models::InstallShipModuleRequest,
     ) -> Result<models::InstallShipModule201Response, Error<InstallShipModuleError>> {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
@@ -683,7 +699,7 @@ impl Api {
     pub async fn jettison(
         &self,
         ship_symbol: &str,
-        jettison_request: Option<models::JettisonRequest>,
+        jettison_request: models::JettisonRequest,
     ) -> Result<models::Jettison200Response, Error<JettisonError>> {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
@@ -700,7 +716,7 @@ impl Api {
     pub async fn jump_ship(
         &self,
         ship_symbol: &str,
-        jump_ship_request: Option<models::JumpShipRequest>,
+        jump_ship_request: models::JumpShipRequest,
     ) -> Result<models::JumpShip200Response, Error<JumpShipError>> {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
@@ -717,7 +733,7 @@ impl Api {
     pub async fn navigate_ship(
         &self,
         ship_symbol: &str,
-        navigate_ship_request: Option<models::NavigateShipRequest>,
+        navigate_ship_request: models::NavigateShipRequest,
     ) -> Result<models::NavigateShip200Response, Error<NavigateShipError>> {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
@@ -737,13 +753,20 @@ impl Api {
     pub async fn negotiate_contract(
         &self,
         ship_symbol: &str,
-    ) -> Result<models::NegotiateContract200Response, Error<NegotiateContractError>> {
+    ) -> Result<
+        models::NegotiateContract201Response,
+        Error<crate::apis::contracts_api::NegotiateContractError>,
+    > {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
         self.limiter.until_ready(50, "negotiate_contract").await;
+        // let result =
+        //     crate::apis::fleet_api::negotiate_contract(&self.configuration, ship_symbol).await?;
+
         let result =
-            crate::apis::fleet_api::negotiate_contract(&self.configuration, ship_symbol).await?;
+            crate::apis::contracts_api::negotiate_contract(&self.configuration, ship_symbol)
+                .await?;
 
         Ok(result)
     }
@@ -786,7 +809,7 @@ impl Api {
     pub async fn purchase_cargo(
         &self,
         ship_symbol: &str,
-        purchase_cargo_request: Option<models::PurchaseCargoRequest>,
+        purchase_cargo_request: models::PurchaseCargoRequest,
     ) -> Result<models::PurchaseCargo201Response, Error<PurchaseCargoError>> {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
@@ -805,7 +828,7 @@ impl Api {
     /// Purchase a ship from a Shipyard. In order to use this function, a ship under your agent's ownership must be in a waypoint that has the `Shipyard` trait, and the Shipyard must sell the type of the desired ship.  Shipyards typically offer ship types, which are predefined templates of ships that have dedicated roles. A template comes with a preset of an engine, a reactor, and a frame. It may also include a few modules and mounts.
     pub async fn purchase_ship(
         &self,
-        purchase_ship_request: Option<models::PurchaseShipRequest>,
+        purchase_ship_request: models::PurchaseShipRequest,
     ) -> Result<models::PurchaseShip201Response, Error<PurchaseShipError>> {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
@@ -842,7 +865,7 @@ impl Api {
     pub async fn remove_mount(
         &self,
         ship_symbol: &str,
-        remove_mount_request: Option<models::RemoveMountRequest>,
+        remove_mount_request: models::RemoveMountRequest,
     ) -> Result<models::RemoveMount201Response, Error<RemoveMountError>> {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
@@ -862,8 +885,8 @@ impl Api {
     pub async fn remove_ship_module(
         &self,
         ship_symbol: &str,
-        remove_ship_module_request: Option<models::RemoveShipModuleRequest>,
-    ) -> Result<models::RemoveModule201Response, Error<RemoveShipModuleError>> {
+        remove_ship_module_request: models::RemoveShipModuleRequest,
+    ) -> Result<models::RemoveShipModule201Response, Error<RemoveShipModuleError>> {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
@@ -910,7 +933,7 @@ impl Api {
     pub async fn sell_cargo(
         &self,
         ship_symbol: &str,
-        sell_cargo_request: Option<models::SellCargoRequest>,
+        sell_cargo_request: models::SellCargoRequest,
     ) -> Result<models::SellCargo201Response, Error<SellCargoError>> {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
@@ -930,7 +953,7 @@ impl Api {
     pub async fn ship_refine(
         &self,
         ship_symbol: &str,
-        ship_refine_request: Option<models::ShipRefineRequest>,
+        ship_refine_request: models::ShipRefineRequest,
     ) -> Result<models::ShipRefine201Response, Error<ShipRefineError>> {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
@@ -965,7 +988,7 @@ impl Api {
     pub async fn transfer_cargo(
         &self,
         ship_symbol: &str,
-        transfer_cargo_request: Option<models::TransferCargoRequest>,
+        transfer_cargo_request: models::TransferCargoRequest,
     ) -> Result<models::TransferCargo200Response, Error<TransferCargoError>> {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
@@ -985,8 +1008,8 @@ impl Api {
     pub async fn warp_ship(
         &self,
         ship_symbol: &str,
-        navigate_ship_request: Option<models::NavigateShipRequest>,
-    ) -> Result<models::WarpShip200Response, Error<WarpShipError>> {
+        navigate_ship_request: models::NavigateShipRequest,
+    ) -> Result<models::NavigateShip200Response, Error<WarpShipError>> {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
@@ -1207,45 +1230,6 @@ impl Api {
         Ok(systems)
     }
 
-    /// Return a list of ALL systems using the undocumented `/systems.json` endpoint
-    pub async fn get_all_systems_json(&self) -> Result<Vec<System>, Error<GetSystemsError>> {
-        self.limiter.until_ready(50, "get_all_systems_json").await;
-        let local_var_configuration = &self.configuration;
-
-        let local_var_client = &local_var_configuration.client;
-
-        let local_var_uri_str = format!("{}/systems.json", local_var_configuration.base_path);
-        let mut local_var_req_builder =
-            local_var_client.request(reqwest::Method::GET, local_var_uri_str.as_str());
-
-        if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
-            local_var_req_builder = local_var_req_builder
-                .header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
-        }
-        if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
-            local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
-        };
-
-        let local_var_req = local_var_req_builder.build()?;
-        let local_var_resp = local_var_client.execute(local_var_req).await?;
-
-        let local_var_status = local_var_resp.status();
-        let local_var_content = local_var_resp.text().await?;
-
-        if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-            serde_json::from_str(&local_var_content).map_err(Error::from)
-        } else {
-            let local_var_entity: Option<ResponseContentEntity<GetSystemsError>> =
-                serde_json::from_str(&local_var_content).ok();
-            let local_var_error = ResponseContent {
-                status: local_var_status,
-                content: local_var_content,
-                entity: local_var_entity,
-            };
-            Err(Error::ResponseError(local_var_error))
-        }
-    }
-
     /// View the details of a waypoint.  If the waypoint is uncharted, it will return the 'Uncharted' trait instead of its actual traits.
     pub async fn get_waypoint(
         &self,
@@ -1268,7 +1252,7 @@ impl Api {
         &self,
         system_symbol: &str,
         waypoint_symbol: &str,
-        supply_construction_request: Option<models::SupplyConstructionRequest>,
+        supply_construction_request: models::SupplyConstructionRequest,
     ) -> Result<models::SupplyConstruction201Response, Error<SupplyConstructionError>> {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");

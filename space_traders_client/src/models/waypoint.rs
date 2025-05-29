@@ -12,7 +12,7 @@ use crate::models;
 use serde::{Deserialize, Serialize};
 
 /// Waypoint : A waypoint is a location that ships can travel to such as a Planet, Moon or Space Station.
-#[derive(Clone, Default, Debug, PartialEq, Serialize, Deserialize, Hash, Eq)]
+#[derive(Clone, Default, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Waypoint {
     /// The symbol of the waypoint.
     #[serde(rename = "symbol")]

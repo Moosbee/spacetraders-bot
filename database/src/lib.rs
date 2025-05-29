@@ -6,7 +6,6 @@ mod contract_delivery;
 mod contract_shipment;
 mod market_trade;
 mod market_trade_good;
-mod market_transaction;
 mod route;
 mod ship_info;
 mod system;
@@ -16,11 +15,13 @@ mod waypoint;
 mod shipyard;
 mod shipyard_ship;
 mod shipyard_ship_types;
-mod shipyard_transaction;
 
+mod chart_transaction;
+mod market_transaction;
 mod repair_transaction;
 mod scrap_transaction;
 mod ship_modification_transaction;
+mod shipyard_transaction;
 
 mod engine_info;
 mod frame_info;
@@ -36,6 +37,7 @@ mod ship_transfer;
 mod survey;
 
 pub use agent::Agent;
+pub use chart_transaction::ChartTransaction;
 pub use construction_material::ConstructionMaterial;
 pub use construction_shipment::ConstructionShipment;
 pub use contract::Contract;

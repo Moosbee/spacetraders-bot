@@ -121,7 +121,7 @@ pub async fn handle_buy_ship(
 
     let resp = context
         .api
-        .purchase_ship(Some(purchase_ship_request.clone()))
+        .purchase_ship(purchase_ship_request)
         .await
         .map_err(crate::error::Error::from)
         .map_err(ServerError::from)?;
@@ -395,6 +395,24 @@ pub async fn handle_chart_waypoint(
     let erg = context
         .api
         .create_chart(&symbol)
+        .await
+        .map_err(|err| ServerError::Server(err.to_string()))?;
+
+    // erg.data.agent;
+    // erg.data.transaction;
+
+    database::Agent::insert(
+        &context.database_pool,
+        &database::Agent::from((*erg.data.agent).clone()),
+    )
+    .await
+    .map_err(|err| ServerError::Server(err.to_string()))?;
+
+    let transaction: database::ChartTransaction = ((*erg.data.transaction).clone())
+        .try_into()
+        .map_err(|err: database::Error| ServerError::Server(err.to_string()))?;
+
+    database::ChartTransaction::insert(&context.database_pool, &transaction)
         .await
         .map_err(|err| ServerError::Server(err.to_string()))?;
 
