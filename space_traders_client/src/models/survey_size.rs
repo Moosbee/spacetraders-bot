@@ -11,44 +11,36 @@
 use crate::models;
 use serde::{Deserialize, Serialize};
 
-/// SupplyLevel : The supply level of a trade good.
-/// The supply level of a trade good.
+/// SurveySize : The size of the deposit. This value indicates how much can be extracted from the survey before it is exhausted.
+/// The size of the deposit. This value indicates how much can be extracted from the survey before it is exhausted.
 #[derive(
     Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize, sqlx::Type,
 )]
-#[sqlx(type_name = "supply_level")]
-pub enum SupplyLevel {
-    #[serde(rename = "SCARCE")]
-    #[sqlx(rename = "SCARCE")]
-    Scarce = 0,
-    #[serde(rename = "LIMITED")]
-    #[sqlx(rename = "LIMITED")]
-    Limited = 1,
+#[sqlx(type_name = "survey_size")]
+pub enum SurveySize {
+    #[serde(rename = "SMALL")]
+    #[sqlx(rename = "SMALL")]
+    Small,
     #[serde(rename = "MODERATE")]
     #[sqlx(rename = "MODERATE")]
-    Moderate = 2,
-    #[serde(rename = "HIGH")]
-    #[sqlx(rename = "HIGH")]
-    High = 3,
-    #[serde(rename = "ABUNDANT")]
-    #[sqlx(rename = "ABUNDANT")]
-    Abundant = 4,
+    Moderate,
+    #[serde(rename = "LARGE")]
+    #[sqlx(rename = "LARGE")]
+    Large,
 }
 
-impl std::fmt::Display for SupplyLevel {
+impl std::fmt::Display for SurveySize {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            Self::Scarce => write!(f, "SCARCE"),
-            Self::Limited => write!(f, "LIMITED"),
+            Self::Small => write!(f, "SMALL"),
             Self::Moderate => write!(f, "MODERATE"),
-            Self::High => write!(f, "HIGH"),
-            Self::Abundant => write!(f, "ABUNDANT"),
+            Self::Large => write!(f, "LARGE"),
         }
     }
 }
 
-impl Default for SupplyLevel {
-    fn default() -> SupplyLevel {
-        Self::Scarce
+impl Default for SurveySize {
+    fn default() -> SurveySize {
+        Self::Small
     }
 }
