@@ -13,29 +13,29 @@ use crate::{apis::ResponseContent, models};
 use reqwest;
 use serde::{Deserialize, Serialize};
 
-/// struct for typed errors of method [`get_error_codes`]
+/// struct for typed errors of method [`get_my_account`]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(untagged)]
-pub enum GetErrorCodesError {
+pub enum GetMyAccountError {
     UnknownValue(serde_json::Value),
 }
 
-/// struct for typed errors of method [`get_status`]
+/// struct for typed errors of method [`register`]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(untagged)]
-pub enum GetStatusError {
+pub enum RegisterError {
     UnknownValue(serde_json::Value),
 }
 
-/// Return a list of all possible error codes thrown by the game server.
-pub async fn get_error_codes(
+/// Fetch your account details.
+pub async fn get_my_account(
     configuration: &configuration::Configuration,
-) -> Result<models::GetErrorCodes200Response, Error<GetErrorCodesError>> {
+) -> Result<models::GetMyAccount200Response, Error<GetMyAccountError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
 
-    let local_var_uri_str = format!("{}/error-codes", local_var_configuration.base_path);
+    let local_var_uri_str = format!("{}/my/account", local_var_configuration.base_path);
     let mut local_var_req_builder =
         local_var_client.request(reqwest::Method::GET, local_var_uri_str.as_str());
 
@@ -43,9 +43,6 @@ pub async fn get_error_codes(
         local_var_req_builder =
             local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
-    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
-        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
-    };
     if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
         local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
     };
@@ -59,7 +56,7 @@ pub async fn get_error_codes(
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
         serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
-        let local_var_entity: Option<ResponseContentEntity<GetErrorCodesError>> =
+        let local_var_entity: Option<ResponseContentEntity<GetMyAccountError>> =
             serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent {
             status: local_var_status,
@@ -70,17 +67,18 @@ pub async fn get_error_codes(
     }
 }
 
-/// Return the status of the game server. This also includes a few global elements, such as announcements, server reset dates and leaderboards.
-pub async fn get_status(
+/// Creates a new agent and ties it to an account.  The agent symbol must consist of a 3-14 character string, and will be used to represent your agent. This symbol will prefix the symbol of every ship you own. Agent symbols will be cast to all uppercase characters.  This new agent will be tied to a starting faction of your choice, which determines your starting location, and will be granted an authorization token, a contract with their starting faction, a command ship that can fly across space with advanced capabilities, a small probe ship that can be used for reconnaissance, and 175,000 credits.  > #### Keep your token safe and secure > > Keep careful track of where you store your token. You can generate a new token from our account dashboard, but if someone else gains access to your token they will be able to use it to make API requests on your behalf until the end of the reset.  If you are new to SpaceTraders, It is recommended to register with the COSMIC faction, a faction that is well connected to the rest of the universe. After registering, you should try our interactive [quickstart guide](https://docs.spacetraders.io/quickstart/new-game) which will walk you through a few basic API requests in just a few minutes.
+pub async fn register(
     configuration: &configuration::Configuration,
-) -> Result<models::GetStatus200Response, Error<GetStatusError>> {
+    register_request: models::RegisterRequest,
+) -> Result<models::Register201Response, Error<RegisterError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
 
-    let local_var_uri_str = format!("{}/", local_var_configuration.base_path);
+    let local_var_uri_str = format!("{}/register", local_var_configuration.base_path);
     let mut local_var_req_builder =
-        local_var_client.request(reqwest::Method::GET, local_var_uri_str.as_str());
+        local_var_client.request(reqwest::Method::POST, local_var_uri_str.as_str());
 
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder =
@@ -89,6 +87,7 @@ pub async fn get_status(
     if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
         local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
     };
+    local_var_req_builder = local_var_req_builder.json(&register_request);
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -99,7 +98,7 @@ pub async fn get_status(
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
         serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
-        let local_var_entity: Option<ResponseContentEntity<GetStatusError>> =
+        let local_var_entity: Option<ResponseContentEntity<RegisterError>> =
             serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent {
             status: local_var_status,
