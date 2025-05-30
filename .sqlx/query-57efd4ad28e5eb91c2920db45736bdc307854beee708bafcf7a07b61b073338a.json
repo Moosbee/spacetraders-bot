@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n                SELECT\n                  signature,\n                  ship_info_before,\n                  ship_info_after,\n                  waypoint_symbol,\n                  deposits as \"deposits: Vec<models::TradeSymbol>\",\n                  expiration,\n                  size as \"size: models::survey::Size\",\n                  exhausted_since,\n                  created_at,\n                  updated_at\n                FROM surveys\n            ",
+  "query": "\n                SELECT\n                  signature,\n                  ship_info_before,\n                  ship_info_after,\n                  waypoint_symbol,\n                  deposits as \"deposits: Vec<models::TradeSymbol>\",\n                  expiration,\n                  size as \"size: models::SurveySize\",\n                  exhausted_since,\n                  created_at,\n                  updated_at\n                FROM surveys\n            ",
   "describe": {
     "columns": [
       {
@@ -195,7 +195,7 @@
       },
       {
         "ordinal": 6,
-        "name": "size: models::survey::Size",
+        "name": "size: models::SurveySize",
         "type_info": {
           "Custom": {
             "name": "survey_size",
@@ -241,5 +241,5 @@
       false
     ]
   },
-  "hash": "3ca5c9c3f4c7365952237f1e46d9e31cdd2cd3eac538c6e58f27a1ab12f5d879"
+  "hash": "57efd4ad28e5eb91c2920db45736bdc307854beee708bafcf7a07b61b073338a"
 }

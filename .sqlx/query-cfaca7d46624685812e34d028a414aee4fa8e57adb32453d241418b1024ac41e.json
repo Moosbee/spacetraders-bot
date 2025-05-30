@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n              INSERT INTO chart_transaction (\n                waypoint_symbol,\n                ship_symbol,\n                total_price,\n                \"timestamp\"\n              )\n              VALUES ($1, $2, $3, $4)\n              ON CONFLICT (waypoint_symbol) DO UPDATE SET\n                ship_symbol = EXCLUDED.ship_symbol,\n                total_price = EXCLUDED.total_price,\n                \"timestamp\" = EXCLUDED.\"timestamp\";\n          ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Varchar",
+        "Varchar",
+        "Int4",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "cfaca7d46624685812e34d028a414aee4fa8e57adb32453d241418b1024ac41e"
+}

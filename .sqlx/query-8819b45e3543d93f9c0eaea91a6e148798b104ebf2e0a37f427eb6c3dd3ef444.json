@@ -1,0 +1,38 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n              SELECT\n                waypoint_symbol,\n                ship_symbol,\n                total_price,\n                \"timestamp\"\n              FROM chart_transaction\n          ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "waypoint_symbol",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "ship_symbol",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "total_price",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 3,
+        "name": "timestamp",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "8819b45e3543d93f9c0eaea91a6e148798b104ebf2e0a37f427eb6c3dd3ef444"
+}
