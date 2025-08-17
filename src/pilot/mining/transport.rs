@@ -90,6 +90,10 @@ impl TransportPilot {
             };
             ship.notify().await;
 
+            let budget_manager = self.context.budget_manager.clone();
+
+            let update_funds_fn = move |amount| budget_manager.set_current_funds(amount);
+
             ship.nav_to_prepare(
                 &next_mining_waypoint,
                 true,
@@ -97,6 +101,7 @@ impl TransportPilot {
                 true,
                 &self.context.database_pool,
                 &self.context.api,
+                update_funds_fn,
             )
             .await?;
 
@@ -296,12 +301,18 @@ impl TransportPilot {
             ship.notify().await;
             let (next_waypoint, trade_symbols) =
                 self.get_next_best_sell_waypoint(ship).await.unwrap();
+
+            let budget_manager = self.context.budget_manager.clone();
+
+            let update_funds_fn = move |amount| budget_manager.set_current_funds(amount);
+
             ship.nav_to(
                 &next_waypoint,
                 true,
                 database::TransactionReason::MiningWaypoint(mining_waypoint.clone()),
                 &self.context.database_pool,
                 &self.context.api,
+                update_funds_fn,
             )
             .await?;
 
@@ -411,8 +422,20 @@ impl TransportPilot {
                 continue;
             }
             debug!("Selling {} units of {} for {}", amount, trade, ship.symbol);
-            ship.sell_cargo(api, &trade, amount, database_pool, reason.clone())
-                .await?;
+
+            let budget_manager = self.context.budget_manager.clone();
+
+            let update_funds_fn = move |amount| budget_manager.set_current_funds(amount);
+
+            ship.sell_cargo(
+                api,
+                &trade,
+                amount,
+                database_pool,
+                reason.clone(),
+                update_funds_fn,
+            )
+            .await?;
         }
 
         Ok(())

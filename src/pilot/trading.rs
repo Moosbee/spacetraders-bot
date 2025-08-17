@@ -142,12 +142,18 @@ impl TradingPilot {
                 "Navigating to purchase waypoint: {}",
                 route.purchase_waypoint
             );
+
+            let budget_manager = self.context.budget_manager.clone();
+
+            let update_funds_fn = move |amount| budget_manager.set_current_funds(amount);
+
             ship.nav_to(
                 &route.purchase_waypoint,
                 true,
                 database::TransactionReason::TradeRoute(route.id),
                 &self.context.database_pool,
                 &self.context.api,
+                update_funds_fn.clone(),
             )
             .await?;
 
@@ -193,14 +199,23 @@ impl TradingPilot {
                 "Purchasing cargo: {} units of {}",
                 trade_volume, route.symbol
             );
-            ship.purchase_cargo(
-                &self.context.api,
-                &route.symbol,
-                trade_volume,
-                &self.context.database_pool,
-                database::TransactionReason::TradeRoute(route.id),
-            )
-            .await?;
+            let cost = ship
+                .purchase_cargo(
+                    &self.context.api,
+                    &route.symbol,
+                    trade_volume,
+                    &self.context.database_pool,
+                    database::TransactionReason::TradeRoute(route.id),
+                    update_funds_fn,
+                )
+                .await?;
+
+            if let Some(reservation_id) = route.reserved_fund {
+                self.context
+                    .budget_manager
+                    .use_reservation(&self.context.database_pool, reservation_id, cost)
+                    .await?;
+            }
         }
         debug!(
             "Purchase completed for ship {} on route {:?}",
@@ -230,12 +245,18 @@ impl TradingPilot {
         ship.notify().await;
 
         debug!("Navigating to sell waypoint: {}", route.sell_waypoint);
+
+        let budget_manager = self.context.budget_manager.clone();
+
+        let update_funds_fn = move |amount| budget_manager.set_current_funds(amount);
+
         ship.nav_to(
             &route.sell_waypoint,
             true,
             database::TransactionReason::TradeRoute(route.id),
             &self.context.database_pool,
             &self.context.api,
+            update_funds_fn.clone(),
         )
         .await?;
 
@@ -259,6 +280,7 @@ impl TradingPilot {
             cargo_volume,
             &self.context.database_pool,
             database::TransactionReason::TradeRoute(route.id),
+            update_funds_fn,
         )
         .await?;
 

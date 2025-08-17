@@ -200,6 +200,13 @@ async fn setup_context(
 
     let max_miners_per_waypoint = config.max_miners_per_waypoint;
 
+    let budget_manager = manager::budget_manager::BudgetManager::init(
+        &database_pool,
+        my_agent.data.credits,
+        config.iron_reserve,
+    )
+    .await?;
+
     let context = ConductorContext {
         api: api.clone(),
         database_pool,
@@ -212,6 +219,7 @@ async fn setup_context(
         trade_manager: trade_manager_data.1,
         fleet_manager: fleet_manager.1,
         chart_manager: chart_manager.1,
+        budget_manager: Arc::new(budget_manager),
         run_info: Arc::new(RwLock::new(run_info)),
         config: Arc::new(RwLock::new(config)),
     };

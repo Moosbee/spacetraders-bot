@@ -19,6 +19,7 @@ pub use database::handle_get_waypoint;
 pub use database::handle_get_waypoints;
 pub use database::handle_request_system;
 pub use insight::handle_get_api_counter;
+pub use insight::handle_get_budget_info;
 pub use insight::handle_get_config;
 pub use insight::handle_get_mining_assignments;
 pub use insight::handle_get_possible_trades;

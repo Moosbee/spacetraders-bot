@@ -89,12 +89,17 @@ impl ScraperPilot {
         ship.notify().await;
 
         if waypoint_symbol != ship.nav.waypoint_symbol {
+            let budget_manager = self.context.budget_manager.clone();
+
+            let update_funds_fn = move |amount| budget_manager.set_current_funds(amount);
+
             ship.nav_to(
                 &waypoint_symbol,
                 true,
                 database::TransactionReason::None,
                 &self.context.database_pool,
                 &self.context.api,
+                update_funds_fn,
             )
             .await?;
         }

@@ -30,6 +30,7 @@ pub struct ContractManager {
     receiver: tokio::sync::mpsc::Receiver<ContractManagerMessage>,
     current_contract: Option<models::Contract>,
     running_shipments: Vec<database::ContractShipment>,
+    reserved_funds: Option<database::ReservedFund>,
 }
 
 impl ContractManager {
@@ -55,6 +56,7 @@ impl ContractManager {
             receiver,
             current_contract: None,
             running_shipments: Vec::new(),
+            reserved_funds: None,
         }
     }
 
@@ -279,7 +281,10 @@ impl ContractManager {
                 let shipment = shipments[0].clone();
                 debug!("Ship already has {:?} in transit", shipment);
                 self.running_shipments.push(shipment.clone());
-                return Ok(NextShipmentResp::Shipment(shipment));
+                return Ok(NextShipmentResp::Shipment(
+                    shipment,
+                    self.reserved_funds.as_ref().map(|r| r.id),
+                ));
             }
             _ if shipments.len() > 1 => {
                 log::error!("Ship already has {} shipments in transit", shipments.len());
@@ -340,19 +345,50 @@ impl ContractManager {
             .await?;
         debug!("Obtained purchase waypoint: {:?}", purchase_symbol);
 
-        if let Some(purchase_price) = purchase_symbol.1 {
-            debug!("Calculated purchase price: {}", purchase_price);
-            let total_price = (purchase_price * remaining) as i64;
+        if self.reserved_funds.is_none() {
+            let reservation = if let Some(purchase_price) = purchase_symbol.1 {
+                debug!("Calculated purchase price: {}", purchase_price);
+                let total_price = (purchase_price * remaining) as i64;
 
-            let budget = self.get_budget().await?;
-            debug!("Calculated budget: {}", budget);
-            if total_price > budget {
-                debug!(
-                    "Not enough budget for purchase has {} needed {}",
-                    total_price, budget
-                );
-                return Ok(NextShipmentResp::ComeBackLater);
-            }
+                let budget = self
+                    .context
+                    .budget_manager
+                    .reserve_funds_with_remain(&self.context.database_pool, total_price, 30_000)
+                    .await;
+
+                debug!("Calculated budget: {:?}", budget);
+                if budget.is_err() {
+                    if let Err(e) = budget {
+                        if let crate::error::Error::NotEnoughFunds {
+                            remaining_funds,
+                            required_funds,
+                        } = e
+                        {
+                            debug!(
+                                "Not enough budget for purchase has {} needed {}",
+                                remaining_funds, required_funds
+                            );
+                            return Ok(super::NextShipmentResp::ComeBackLater);
+                        } else {
+                            debug!("Error reserving funds: {:?}", e);
+                            return Err(e);
+                        }
+                    }
+                }
+
+                Some(budget.unwrap())
+            } else {
+                None
+            };
+
+            self.reserved_funds = reservation;
+
+            database::Contract::update_reserved_fund(
+                &self.context.database_pool,
+                &contract.id,
+                self.reserved_funds.as_ref().map(|r| r.id),
+            )
+            .await?;
         }
 
         let mut next_shipment = database::ContractShipment {
@@ -379,7 +415,10 @@ impl ContractManager {
 
         self.running_shipments.push(next_shipment.clone());
 
-        Ok(NextShipmentResp::Shipment(next_shipment))
+        Ok(NextShipmentResp::Shipment(
+            next_shipment,
+            self.reserved_funds.as_ref().map(|r| r.id),
+        ))
     }
 
     fn calculate_purchase_volume(
@@ -459,6 +498,24 @@ impl ContractManager {
                 &database::Agent::from(*fulfill_contract_data.data.agent),
             )
             .await?;
+
+            if let Some(reserved_funds) = &self.reserved_funds {
+                let transactions = database::MarketTransaction::get_by_reason(
+                    &self.context.database_pool,
+                    database::TransactionReason::Contract(contract.id.clone()),
+                )
+                .await?;
+                let funds = transactions
+                    .iter()
+                    .filter(|t| t.r#type == models::market_transaction::Type::Purchase)
+                    .map(|t| t.total_price as i64)
+                    .sum();
+                self.context
+                    .budget_manager
+                    .complete_use_reservation(&self.context.database_pool, reserved_funds.id, funds)
+                    .await?;
+                self.reserved_funds = None;
+            }
         } else {
             self.current_contract = Some(contract);
         }

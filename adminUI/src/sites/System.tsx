@@ -11,7 +11,7 @@ import {
   Table,
   TableProps,
 } from "antd";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useDispatch } from "react-redux";
 import { Link, useParams } from "react-router-dom";
 import { backendUrl } from "../data";
@@ -27,6 +27,7 @@ import {
 import { SystemResp } from "../models/SQLSystem";
 import { SQLWaypoint } from "../models/SQLWaypoint";
 import { useAppSelector } from "../redux/hooks";
+import { selectAllShipsArray } from "../redux/slices/shipSlice";
 import { selectSystem, setSystem } from "../redux/slices/systemSlice";
 import { message } from "../utils/antdMessage";
 
@@ -62,6 +63,12 @@ function System() {
         dispatch(setSystem({ system, waypoints }));
       });
   }, [dispatch, systemID]);
+
+  const ships = useAppSelector(selectAllShipsArray);
+
+  const onSystemsShips = useMemo(() => {
+    return ships.filter((ship) => ship.nav.system_symbol === systemID);
+  }, [systemID, ships]);
 
   const Waypoints = system?.waypoints || [];
 
@@ -431,6 +438,20 @@ function System() {
             renderItem={(agent) => (
               <List.Item>
                 <Link to={`/agents/${agent}`}>{agent}</Link>
+              </List.Item>
+            )}
+          />
+        </Card>
+        <Card size="small" title="Ships in System">
+          <List
+            size="small"
+            style={{ maxHeight: "200px", overflowY: "auto" }}
+            dataSource={onSystemsShips}
+            renderItem={(ship) => (
+              <List.Item>
+                <Link to={`/ships/${ship.symbol}`}>
+                  {ship.symbol} ({ship.role})
+                </Link>
               </List.Item>
             )}
           />

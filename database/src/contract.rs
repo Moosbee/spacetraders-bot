@@ -16,6 +16,7 @@ pub struct Contract {
     pub deadline: String,
     pub updated_at: DateTime<Utc>,
     pub created_at: DateTime<Utc>,
+    pub reserved_fund: Option<i64>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -34,6 +35,7 @@ pub struct ContractSummary {
     pub net_profit: Option<i32>,
     pub updated_at: DateTime<Utc>,
     pub created_at: DateTime<Utc>,
+    pub reserved_fund: Option<i64>,
 }
 
 impl From<models::Contract> for Contract {
@@ -50,6 +52,7 @@ impl From<models::Contract> for Contract {
             deadline: value.terms.deadline,
             updated_at: Utc::now(),
             created_at: Utc::now(),
+            reserved_fund: None,
         }
     }
 }
@@ -67,9 +70,10 @@ impl DatabaseConnector<Contract> for Contract {
               deadline_to_accept,
               on_accepted,
               on_fulfilled,
-              deadline
+              deadline,
+              reserved_fund
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
             ON CONFLICT (id) DO UPDATE SET 
               faction_symbol = EXCLUDED.faction_symbol,
               contract_type = EXCLUDED.contract_type,
@@ -79,7 +83,8 @@ impl DatabaseConnector<Contract> for Contract {
               on_accepted = EXCLUDED.on_accepted,
               on_fulfilled = EXCLUDED.on_fulfilled,
               deadline = EXCLUDED.deadline,
-              updated_at = EXCLUDED.updated_at
+              updated_at = EXCLUDED.updated_at,
+              reserved_fund = EXCLUDED.reserved_fund
         "#,
             item.id,
             item.faction_symbol,
@@ -89,7 +94,8 @@ impl DatabaseConnector<Contract> for Contract {
             item.deadline_to_accept,
             item.on_accepted,
             item.on_fulfilled,
-            item.deadline
+            item.deadline,
+            item.reserved_fund
         )
         .execute(&database_pool.database_pool)
         .await?;
@@ -108,7 +114,9 @@ impl DatabaseConnector<Contract> for Contract {
             deadlines,
             on_accepteds,
             on_fulfilleds,
+            reserved_funds,
         ): (
+            Vec<_>,
             Vec<_>,
             Vec<_>,
             Vec<_>,
@@ -129,6 +137,7 @@ impl DatabaseConnector<Contract> for Contract {
                 c.deadline.clone(),
                 c.on_accepted,
                 c.on_fulfilled,
+                c.reserved_fund,
             )
         }));
 
@@ -143,7 +152,8 @@ impl DatabaseConnector<Contract> for Contract {
               deadline_to_accept,
               on_accepted,
               on_fulfilled,
-              deadline
+              deadline,
+              reserved_fund
             )
             SELECT * FROM UNNEST(
               $1::character varying[],
@@ -154,7 +164,8 @@ impl DatabaseConnector<Contract> for Contract {
               $6::character varying[],
               $7::integer[],
               $8::integer[],
-              $9::character varying[]
+              $9::character varying[],
+              $10::bigint[]
             )
             ON CONFLICT (id) DO UPDATE SET 
               contract_type = EXCLUDED.contract_type,
@@ -165,7 +176,8 @@ impl DatabaseConnector<Contract> for Contract {
               on_accepted = EXCLUDED.on_accepted,
               on_fulfilled = EXCLUDED.on_fulfilled,
               deadline = EXCLUDED.deadline,
-              updated_at = EXCLUDED.updated_at
+              updated_at = EXCLUDED.updated_at,
+              reserved_fund = EXCLUDED.reserved_fund
         "#,
             &ids as &[String],
             &contract_types as &[models::contract::Type],
@@ -175,7 +187,8 @@ impl DatabaseConnector<Contract> for Contract {
             &deadlines_to_accept as &[Option<String>],
             &on_accepteds as &[i32],
             &on_fulfilleds as &[i32],
-            &deadlines as &[String]
+            &deadlines as &[String],
+            &reserved_funds as &[Option<i64>],
         )
         .execute(&database_pool.database_pool)
         .await;
@@ -197,7 +210,8 @@ impl DatabaseConnector<Contract> for Contract {
                     on_fulfilled,
                     deadline,
                     updated_at,
-                    created_at
+                    created_at,
+                    reserved_fund
                 FROM contract
             "#
         )
@@ -242,7 +256,8 @@ impl Contract {
           on_fulfilled,
           deadline,
           updated_at,
-          created_at
+          created_at,
+          reserved_fund
         FROM public.contract WHERE id = $1"#,
             &id
         )
@@ -269,7 +284,8 @@ SELECT
   COALESCE(sum(market_transaction.total_price), 0) as "total_expenses: i32",
   contract.on_accepted + contract.on_fulfilled - COALESCE(sum(market_transaction.total_price), 0) as "net_profit: i32",
   contract.updated_at,
-  contract.created_at
+  contract.created_at,
+  contract.reserved_fund
 FROM
   public.contract
  left join public.market_transaction ON market_transaction.contract = contract.id
@@ -282,5 +298,25 @@ order by
         .fetch_all(&database_pool.database_pool)
         .await?;
         Ok(erg)
+    }
+
+    pub async fn update_reserved_fund(
+        database_pool: &DbPool,
+        contract_id: &String,
+        reserved_fund: Option<i64>,
+    ) -> crate::Result<()> {
+        sqlx::query!(
+            r#"
+            UPDATE contract
+            SET reserved_fund = $1
+            WHERE id = $2
+        "#,
+            reserved_fund,
+            contract_id
+        )
+        .execute(&database_pool.database_pool)
+        .await?;
+
+        Ok(())
     }
 }

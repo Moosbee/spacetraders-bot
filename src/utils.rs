@@ -8,6 +8,7 @@ use space_traders_client::models;
 use tokio::sync::RwLock;
 use utils::RunInfo;
 
+use crate::manager::budget_manager::BudgetManager;
 use crate::manager::chart_manager::ChartManagerMessanger;
 use crate::manager::construction_manager::ConstructionManagerMessanger;
 use crate::manager::contract_manager::ContractManagerMessanger;
@@ -29,6 +30,7 @@ pub struct ConductorContext {
     pub trade_manager: TradeManagerMessanger,
     pub fleet_manager: FleetManagerMessanger,
     pub chart_manager: ChartManagerMessanger,
+    pub budget_manager: Arc<BudgetManager>,
     pub run_info: Arc<RwLock<RunInfo>>,
     pub config: Arc<RwLock<Config>>,
 }
@@ -72,10 +74,11 @@ pub struct Config {
     pub transport_capacity_per_waypoint: i32,
 
     pub trade_mode: crate::manager::trade_manager::RouteMode,
+    pub trade_profit_threshold: i32,
 
     pub ship_purchase_stop: bool,
-    pub trade_profit_threshold: i32,
     pub expand: bool,
-
     pub ship_purchase_amount: i32,
+
+    pub iron_reserve: i64,
 }

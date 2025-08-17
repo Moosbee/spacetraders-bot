@@ -31,24 +31,29 @@ impl MyShip {
         units: i32,
         database_pool: &database::DbPool,
         reason: database::TransactionReason,
-    ) -> error::Result<()> {
+        update_funds_fn: impl Fn(i64) + Clone,
+    ) -> error::Result<i64> {
         self.mutate();
         let market_info = self.get_market_info(api, database_pool).await?;
         let purchase_volumes = self.calculate_volumes(units, &market_info, symbol)?;
+        let mut total_cost = 0;
 
         for volume in purchase_volumes {
-            self.execute_trade(
-                api,
-                symbol,
-                volume,
-                Mode::Purchase,
-                database_pool,
-                reason.clone(),
-            )
-            .await?;
+            let transaction = self
+                .execute_trade(
+                    api,
+                    symbol,
+                    volume,
+                    Mode::Purchase,
+                    database_pool,
+                    reason.clone(),
+                    update_funds_fn.clone(),
+                )
+                .await?;
+            total_cost += transaction.total_price as i64;
         }
 
-        Ok(())
+        Ok(total_cost)
     }
 
     pub async fn sell_cargo(
@@ -58,24 +63,31 @@ impl MyShip {
         units: i32,
         database_pool: &database::DbPool,
         reason: database::TransactionReason,
-    ) -> error::Result<()> {
+        update_funds_fn: impl Fn(i64) + Clone,
+    ) -> error::Result<i64> {
         self.mutate();
         let market_info = self.get_market_info(api, database_pool).await?;
         let sell_volumes = self.calculate_volumes(units, &market_info, symbol)?;
 
+        let mut total_revenue = 0;
+
         for volume in sell_volumes {
-            self.execute_trade(
-                api,
-                symbol,
-                volume,
-                Mode::Sell,
-                database_pool,
-                reason.clone(),
-            )
-            .await?;
+            let transaction = self
+                .execute_trade(
+                    api,
+                    symbol,
+                    volume,
+                    Mode::Sell,
+                    database_pool,
+                    reason.clone(),
+                    update_funds_fn.clone(),
+                )
+                .await?;
+
+            total_revenue += transaction.total_price as i64;
         }
 
-        Ok(())
+        Ok(total_revenue)
     }
 
     pub async fn get_market_info(
@@ -138,7 +150,8 @@ impl MyShip {
         r_type: Mode,
         database_pool: &database::DbPool,
         reason: database::TransactionReason,
-    ) -> error::Result<()> {
+        update_funds_fn: impl Fn(i64) + Clone,
+    ) -> error::Result<database::MarketTransaction> {
         self.mutate();
         let trade_data = match r_type {
             Mode::Sell => {
@@ -172,14 +185,16 @@ impl MyShip {
         self.cargo.update(&trade_data.cargo);
         self.notify().await;
 
+        update_funds_fn(trade_data.agent.credits);
+
         database::Agent::insert(database_pool, &database::Agent::from(*trade_data.agent)).await?;
 
-        let transaction =
+        let transaction: database::MarketTransaction =
             database::MarketTransaction::try_from(trade_data.transaction.as_ref().clone())?
                 .with(reason);
         database::MarketTransaction::insert(database_pool, &transaction).await?;
 
-        Ok(())
+        Ok(transaction)
     }
 
     pub async fn deliver_contract(

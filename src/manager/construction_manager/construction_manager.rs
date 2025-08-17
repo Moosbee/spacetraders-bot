@@ -53,15 +53,6 @@ impl ConstructionManager {
         }
     }
 
-    async fn get_budget(&self) -> Result<i64> {
-        let agent_symbol = { self.context.run_info.read().await.agent_symbol.clone() };
-
-        let agent = database::Agent::get_last_by_symbol(&self.context.database_pool, &agent_symbol)
-            .await?
-            .ok_or(Error::General("Agent not found".to_string()))?;
-        Ok(agent.credits - 1_000_000)
-    }
-
     async fn run_construction_worker(&mut self) -> Result<()> {
         let systems_to_search_for_construction = self
             .context
@@ -274,20 +265,40 @@ impl ConstructionManager {
             .await?;
         debug!("Obtained purchase waypoint: {:?}", purchase_symbol);
 
-        if let Some(purchase_price) = purchase_symbol.1 {
+        let reservation = if let Some(purchase_price) = purchase_symbol.1 {
             debug!("Calculated purchase price: {}", purchase_price);
             let total_price = (purchase_price * (purchase_volume * 2).min(remaining)) as i64;
 
-            let budget = self.get_budget().await?;
-            debug!("Calculated budget: {}", budget);
-            if total_price > budget {
-                debug!(
-                    "Not enough budget for purchase has {} needed {}",
-                    total_price, budget
-                );
-                return Ok(super::NextShipmentResp::ComeBackLater);
+            let budget = self
+                .context
+                .budget_manager
+                .reserve_funds_with_remain(&self.context.database_pool, total_price, 1_000_000)
+                .await;
+
+            debug!("Calculated budget: {:?}", budget);
+            if budget.is_err() {
+                if let Err(e) = budget {
+                    if let crate::error::Error::NotEnoughFunds {
+                        remaining_funds,
+                        required_funds,
+                    } = e
+                    {
+                        debug!(
+                            "Not enough budget for purchase has {} needed {}",
+                            remaining_funds, required_funds
+                        );
+                        return Ok(super::NextShipmentResp::ComeBackLater);
+                    } else {
+                        debug!("Error reserving funds: {:?}", e);
+                        return Err(e);
+                    }
+                }
             }
-        }
+
+            Some(budget.unwrap())
+        } else {
+            None
+        };
 
         let next_shipment = database::ConstructionShipment {
             id: 0,
@@ -300,6 +311,7 @@ impl ConstructionManager {
             created_at: Utc::now(),
             updated_at: Utc::now(),
             status: database::ShipmentStatus::InTransit,
+            reserved_fund: reservation.map(|r| r.id),
         };
 
         let id =
@@ -336,6 +348,13 @@ impl ConstructionManager {
 
         shipment.status = database::ShipmentStatus::Failed;
 
+        if let Some(reserved_fund_id) = shipment.reserved_fund {
+            self.context
+                .budget_manager
+                .cancel_reservation(&self.context.database_pool, reserved_fund_id)
+                .await?;
+        }
+
         database::ConstructionShipment::insert(&self.context.database_pool, &shipment).await?;
 
         Ok(())
@@ -362,6 +381,23 @@ impl ConstructionManager {
 
         if let Some(pos) = pos {
             self.running_shipments.remove(pos);
+        }
+
+        if let Some(reserved_fund_id) = shipment.reserved_fund {
+            let transactions = database::MarketTransaction::get_by_reason(
+                &self.context.database_pool,
+                database::TransactionReason::Construction(shipment.id),
+            )
+            .await?;
+            let funds = transactions
+                .iter()
+                .filter(|t| t.r#type == models::market_transaction::Type::Purchase)
+                .map(|t| t.total_price as i64)
+                .sum();
+            self.context
+                .budget_manager
+                .complete_use_reservation(&self.context.database_pool, reserved_fund_id, funds)
+                .await?;
         }
 
         shipment.status = database::ShipmentStatus::Delivered;

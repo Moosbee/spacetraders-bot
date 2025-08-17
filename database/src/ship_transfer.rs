@@ -7,6 +7,7 @@ pub struct ShipTransfer {
     pub system_symbol: String,
     pub role: ShipInfoRole,
     pub finished: bool,
+    pub reserved_fund: Option<i64>,
 }
 
 impl ShipTransfer {
@@ -17,15 +18,17 @@ impl ShipTransfer {
                   ship_symbol,
                   system_symbol,
                   role,
-                  finished
+                  finished,
+                  reserved_fund
                 )
-                VALUES ($1, $2, $3::ship_info_role, $4)
+                VALUES ($1, $2, $3::ship_info_role, $4, $5)
                   RETURNING id;
             "#,
             &item.ship_symbol,
             &item.system_symbol,
             &item.role as &ShipInfoRole,
-            &item.finished
+            &item.finished,
+            &item.reserved_fund as &Option<i64>
         )
         .fetch_one(&database_pool.database_pool)
         .await?;
@@ -41,7 +44,8 @@ impl ShipTransfer {
                   ship_symbol,
                   system_symbol,
                   role as "role: ShipInfoRole",
-                  finished
+                  finished,
+                  reserved_fund
                 FROM ship_transfers
                 WHERE finished = false
             "#,
@@ -61,20 +65,23 @@ impl DatabaseConnector<ShipTransfer> for ShipTransfer {
                   ship_symbol,
                   system_symbol,
                   role,
-                  finished
+                  finished,
+                  reserved_fund
                 )
-                VALUES ($1, $2, $3, $4::ship_info_role, $5)
+                VALUES ($1, $2, $3, $4::ship_info_role, $5, $6)
                 ON CONFLICT (id) DO UPDATE SET
                   ship_symbol = EXCLUDED.ship_symbol,
                   system_symbol = EXCLUDED.system_symbol,
                   role = EXCLUDED.role,
-                  finished = EXCLUDED.finished;
+                  finished = EXCLUDED.finished,
+                  reserved_fund = EXCLUDED.reserved_fund;
             "#,
             &item.id,
             &item.ship_symbol,
             &item.system_symbol,
             &item.role as &ShipInfoRole,
-            &item.finished
+            &item.finished,
+            &item.reserved_fund as &Option<i64>
         )
         .execute(&database_pool.database_pool)
         .await?;
@@ -82,17 +89,19 @@ impl DatabaseConnector<ShipTransfer> for ShipTransfer {
     }
 
     async fn insert_bulk(database_pool: &DbPool, items: &[ShipTransfer]) -> crate::Result<()> {
-        let (ship_symbols, system_symbols, roles, finished_values): (
+        let (ship_symbols, system_symbols, roles, finished_values, reserved_funds): (
             Vec<String>,
             Vec<String>,
             Vec<ShipInfoRole>,
             Vec<bool>,
+            Vec<Option<i64>>,
         ) = itertools::multiunzip(items.iter().map(|st| {
             (
                 st.ship_symbol.clone(),
                 st.system_symbol.clone(),
                 st.role,
                 st.finished,
+                st.reserved_fund,
             )
         }));
 
@@ -102,24 +111,28 @@ impl DatabaseConnector<ShipTransfer> for ShipTransfer {
                 ship_symbol,
                 system_symbol,
                 role,
-                finished
+                finished,
+                reserved_fund
             )
-            SELECT ship, system, r, fin FROM UNNEST(
+            SELECT ship, system, r, fin, res FROM UNNEST(
                 $1::character varying[],
                 $2::character varying[],
                 $3::ship_info_role[],
-                $4::boolean[]
-            ) AS t(ship, system, r, fin)
+                $4::boolean[],
+                $5::bigint[]
+            ) AS t(ship, system, r, fin, res)
             ON CONFLICT (id) DO UPDATE
             SET ship_symbol = EXCLUDED.ship_symbol,
                 system_symbol = EXCLUDED.system_symbol,
                 role = EXCLUDED.role,
-                finished = EXCLUDED.finished;
+                finished = EXCLUDED.finished,
+                reserved_fund = EXCLUDED.reserved_fund;
             "#,
             &ship_symbols,
             &system_symbols,
             &roles as &[ShipInfoRole],
-            &finished_values
+            &finished_values,
+            &reserved_funds as &[Option<i64>]
         )
         .execute(&database_pool.database_pool)
         .await?;
@@ -135,7 +148,8 @@ impl DatabaseConnector<ShipTransfer> for ShipTransfer {
                   ship_symbol,
                   system_symbol,
                   role as "role: ShipInfoRole",
-                  finished
+                  finished,
+                  reserved_fund
                 FROM ship_transfers
             "#
         )

@@ -14,6 +14,7 @@ pub struct TradeRoute {
     pub predicted_purchase_price: i32,
     pub predicted_sell_price: i32,
     pub created_at: sqlx::types::chrono::DateTime<chrono::Utc>,
+    pub reserved_fund: Option<i64>,
 }
 
 #[derive(Debug, Clone, serde::Serialize)]
@@ -31,6 +32,7 @@ pub struct TradeRouteSummary {
     pub expenses: Option<i32>,
     pub income: Option<i32>,
     pub profit: Option<i32>,
+    pub reserved_fund: Option<i64>,
 }
 
 impl TradeRoute {
@@ -55,6 +57,7 @@ impl Default for TradeRoute {
             predicted_purchase_price: 0,
             predicted_sell_price: 0,
             created_at: sqlx::types::chrono::DateTime::<chrono::Utc>::MIN_UTC,
+            reserved_fund: None,
         }
     }
 }
@@ -87,7 +90,8 @@ impl DatabaseConnector<TradeRoute> for TradeRoute {
             status,
             trade_volume,
             predicted_purchase_price,
-            predicted_sell_price
+            predicted_sell_price,
+            reserved_fund
             ) values (
             $1,
             $2,
@@ -97,10 +101,12 @@ impl DatabaseConnector<TradeRoute> for TradeRoute {
             $6,
             $7,
             $8,
-            $9
+            $9,
+            $10
             )
             on conflict (id) do update
-            set status = EXCLUDED.status
+            set status = EXCLUDED.status,
+            reserved_fund = EXCLUDED.reserved_fund
             "#,
             item.id,
             item.symbol as models::TradeSymbol,
@@ -110,7 +116,8 @@ impl DatabaseConnector<TradeRoute> for TradeRoute {
             item.status as crate::ShipmentStatus,
             item.trade_volume,
             item.predicted_purchase_price,
-            item.predicted_sell_price
+            item.predicted_sell_price,
+            item.reserved_fund
         )
         .execute(&database_pool.database_pool)
         .await?;
@@ -132,7 +139,9 @@ impl DatabaseConnector<TradeRoute> for TradeRoute {
             trade_volume_s,
             predicted_purchase_price_s,
             predicted_sell_price_s,
+            reserved_fund_s,
         ): (
+            Vec<_>,
             Vec<_>,
             Vec<_>,
             Vec<_>,
@@ -153,6 +162,7 @@ impl DatabaseConnector<TradeRoute> for TradeRoute {
                 s.trade_volume,
                 s.predicted_purchase_price,
                 s.predicted_sell_price,
+                s.reserved_fund,
             )
         }));
 
@@ -167,7 +177,8 @@ impl DatabaseConnector<TradeRoute> for TradeRoute {
               status,
               trade_volume,
               predicted_purchase_price,
-              predicted_sell_price
+              predicted_sell_price,
+              reserved_fund
             )
             SELECT * FROM UNNEST(
               $1::integer[],
@@ -178,10 +189,12 @@ impl DatabaseConnector<TradeRoute> for TradeRoute {
               $6::shipment_status[],
               $7::integer[],
               $8::integer[],
-              $9::integer[]
+              $9::integer[],
+              $10::bigint[]
             )
             on conflict (id) do update
-            set status = EXCLUDED.status
+            set status = EXCLUDED.status,
+            reserved_fund = EXCLUDED.reserved_fund
             "#,
             &id_s,
             &symbol_s as &[models::TradeSymbol],
@@ -191,7 +204,8 @@ impl DatabaseConnector<TradeRoute> for TradeRoute {
             &status_s as &[ShipmentStatus],
             &trade_volume_s,
             &predicted_purchase_price_s,
-            &predicted_sell_price_s
+            &predicted_sell_price_s,
+            &reserved_fund_s as &[Option<i64>],
         )
         .execute(&database_pool.database_pool)
         .await?;
@@ -213,7 +227,8 @@ impl DatabaseConnector<TradeRoute> for TradeRoute {
                   trade_volume,
                   predicted_purchase_price,
                   predicted_sell_price,
-                  created_at
+                  created_at,
+                  reserved_fund
                 FROM trade_route
             "#
         )
@@ -239,7 +254,8 @@ impl TradeRoute {
             status,
             trade_volume,
             predicted_purchase_price,
-            predicted_sell_price
+            predicted_sell_price,
+            reserved_fund
             ) values (
             $1,
             $2,
@@ -248,7 +264,8 @@ impl TradeRoute {
             $5,
             $6,
             $7,
-            $8
+            $8,
+            $9
             )
             RETURNING id
             "#,
@@ -259,7 +276,8 @@ impl TradeRoute {
             item.status as crate::ShipmentStatus,
             item.trade_volume,
             item.predicted_purchase_price,
-            item.predicted_sell_price
+            item.predicted_sell_price,
+            item.reserved_fund
         )
         .fetch_all(&database_pool.database_pool)
         .await?;
@@ -283,7 +301,8 @@ impl TradeRoute {
                   trade_volume,
                   predicted_purchase_price,
                   predicted_sell_price,
-                  created_at
+                  created_at,
+                  reserved_fund
                  FROM trade_route WHERE status='IN_TRANSIT'
             "#
         )
@@ -324,7 +343,8 @@ impl TradeRoute {
                     WHEN market_transaction.type = 'PURCHASE' THEN (market_transaction.total_price * -1)
                     ELSE market_transaction.total_price
                   END
-                ) as "profit: i32"
+                ) as "profit: i32",
+                reserved_fund
               FROM
                 public.trade_route
               left join public.market_transaction ON market_transaction.trade_route = trade_route.id

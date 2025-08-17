@@ -9,6 +9,7 @@ pub enum Error {
         remaining_funds: i64,
         required_funds: i64,
     },
+
     #[error("General error: {0}")]
     General(String),
     #[error(transparent)]

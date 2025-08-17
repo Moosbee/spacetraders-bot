@@ -39,8 +39,10 @@ impl ContractPilot {
 
         debug!("Next shipment: {:?}", shipment);
 
-        let shipment = match shipment {
-            NextShipmentResp::Shipment(contract_shipment) => contract_shipment,
+        let (shipment, reservation_id) = match shipment {
+            NextShipmentResp::Shipment(contract_shipment, reservation_id) => {
+                (contract_shipment, reservation_id)
+            }
             NextShipmentResp::ComeBackLater => {
                 debug!("No shipment available, doing something else");
                 return self.do_elsewhere(ship).await;
@@ -65,7 +67,7 @@ impl ContractPilot {
 
         if storage_count != shipment.units {
             debug!("Purchasing cargo");
-            let er = self.purchase_cargo(ship, &shipment, pilot).await;
+            let er = self.purchase_cargo(ship, &shipment, reservation_id).await;
             if let Err(e) = er {
                 let erg = self
                     .context
@@ -132,7 +134,7 @@ impl ContractPilot {
         &self,
         ship: &mut ship::MyShip,
         shipment: &database::ContractShipment,
-        pilot: &crate::pilot::Pilot,
+        reservation_id: Option<i64>,
     ) -> Result<()> {
         ship.status = ship::ShipStatus::Contract {
             contract_id: Some(shipment.contract_id.clone()),
@@ -144,12 +146,17 @@ impl ContractPilot {
 
         ship.notify().await;
 
+        let budget_manager = self.context.budget_manager.clone();
+
+        let update_funds_fn = move |amount| budget_manager.set_current_funds(amount);
+
         ship.nav_to(
             &shipment.purchase_symbol,
             true,
             database::TransactionReason::Contract(shipment.contract_id.clone()),
             &self.context.database_pool,
             &self.context.api,
+            update_funds_fn.clone(),
         )
         .await?;
 
@@ -177,32 +184,28 @@ impl ContractPilot {
 
         let current_price = (market_trade.purchase_price * units_needed) as i64;
 
-        let budget = pilot.get_budget().await?;
-
-        if budget < current_price {
-            debug!(
-                "Not enough funds to purchase units: {} should cost: {} funds has {} funds",
-                units_needed, current_price, budget
-            );
-            return Err(Error::NotEnoughFunds {
-                remaining_funds: budget,
-                required_funds: current_price,
-            });
-        }
-
         debug!(
-            "Purchasing units: {} should cost: {} funds has {} funds",
-            units_needed, current_price, budget
+            "Purchasing units: {} should cost: {} funds",
+            units_needed, current_price
         );
 
-        ship.purchase_cargo(
-            &self.context.api,
-            &shipment.trade_symbol,
-            units_needed,
-            &self.context.database_pool,
-            database::TransactionReason::Contract(shipment.contract_id.clone()),
-        )
-        .await?;
+        let cost = ship
+            .purchase_cargo(
+                &self.context.api,
+                &shipment.trade_symbol,
+                units_needed,
+                &self.context.database_pool,
+                database::TransactionReason::Contract(shipment.contract_id.clone()),
+                update_funds_fn,
+            )
+            .await?;
+
+        if let Some(reservation_id) = reservation_id {
+            self.context
+                .budget_manager
+                .use_reservation(&self.context.database_pool, reservation_id, cost)
+                .await?;
+        }
 
         Ok(())
     }
@@ -225,12 +228,17 @@ impl ContractPilot {
 
         ship.notify().await;
 
+        let budget_manager = self.context.budget_manager.clone();
+
+        let update_funds_fn = move |amount| budget_manager.set_current_funds(amount);
+
         ship.nav_to(
             &shipment.destination_symbol,
             true,
             database::TransactionReason::Contract(shipment.contract_id.clone()),
             &self.context.database_pool,
             &self.context.api,
+            update_funds_fn,
         )
         .await?;
 

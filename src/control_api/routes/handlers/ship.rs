@@ -126,6 +126,10 @@ pub async fn handle_buy_ship(
         .map_err(crate::error::Error::from)
         .map_err(ServerError::from)?;
 
+    context
+        .budget_manager
+        .set_current_funds(resp.data.agent.credits);
+
     database::Agent::insert(
         &context.database_pool,
         &database::Agent::from(*resp.data.agent),
@@ -229,6 +233,7 @@ pub async fn handle_purchase_cargo_ship(
         units,
         &context.database_pool,
         database::TransactionReason::None,
+        |amount| context.budget_manager.set_current_funds(amount),
     )
     .await
     .map_err(|err| ServerError::Server(err.to_string()))?;
@@ -297,6 +302,10 @@ pub async fn handle_jump_ship(
     let end_system = database::System::get_by_id(&context.database_pool, &ship.nav.system_symbol)
         .await
         .map_err(ServerError::from)?;
+
+    context
+        .budget_manager
+        .set_current_funds(jump_data.data.agent.credits);
 
     database::Agent::insert(
         &context.database_pool,
@@ -401,6 +410,10 @@ pub async fn handle_chart_waypoint(
     // erg.data.agent;
     // erg.data.transaction;
 
+    context
+        .budget_manager
+        .set_current_funds(erg.data.agent.credits);
+
     database::Agent::insert(
         &context.database_pool,
         &database::Agent::from((*erg.data.agent).clone()),
@@ -483,7 +496,7 @@ pub async fn handle_navigate_ship(
         let context = context.clone();
 
         tokio::spawn(async move {
-            if let Err(e) = navigate_ship(&context, &symbol, &waypoint_id).await {
+            if let Err(e) = navigate_ship(context.clone(), symbol, waypoint_id).await {
                 log::error!("Navigation failed: {}", e);
             }
         });
@@ -497,21 +510,26 @@ pub async fn handle_navigate_ship(
 }
 
 async fn navigate_ship(
-    context: &ConductorContext,
-    symbol: &str,
-    waypoint_id: &str,
+    context: ConductorContext,
+    symbol: String,
+    waypoint_id: String,
 ) -> error::Result<()> {
-    let mut ship_guard = context.ship_manager.get_mut(symbol).await;
+    let mut ship_guard = context.ship_manager.get_mut(&symbol).await;
     let ship = ship_guard
         .value_mut()
         .ok_or_else(|| error::Error::General("Ship not found".to_string()))?;
 
+    let budget_manager = context.budget_manager.clone();
+
+    let update_funds_fn = move |amount| budget_manager.set_current_funds(amount);
+
     ship.nav_to(
-        waypoint_id,
+        &waypoint_id,
         true,
         database::TransactionReason::None,
         &context.database_pool,
         &context.api,
+        update_funds_fn,
     )
     .await?;
 

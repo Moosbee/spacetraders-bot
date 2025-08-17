@@ -23,3 +23,9 @@ sequenceDiagram
         Transporter ->> MiningManager: Transfer complete
     end
 ```
+
+## Todo
+- better budgeting system
+- pathfinding for SATELLITE is broken
+- finish transport manager
+- rework manuel controle

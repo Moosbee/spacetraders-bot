@@ -208,12 +208,40 @@ impl FleetManager {
 
             let next_to_buy = wps_ships.first();
 
-            if let Some((ship_type, predicted_price, priority, ship_role, system_symbol)) =
+            if let Some((ship_type, predicted_total_price, priority, ship_role, system_symbol)) =
                 next_to_buy
             {
+                let reservation = self
+                    .context
+                    .budget_manager
+                    .reserve_funds_with_remain(
+                        &self.context.database_pool,
+                        *predicted_total_price as i64,
+                        *priority as i64,
+                    )
+                    .await;
+
+                let reservation = if let Err(e) = reservation {
+                    if let crate::error::Error::NotEnoughFunds {
+                        remaining_funds,
+                        required_funds,
+                    } = e
+                    {
+                        debug!(
+                            "Not enough funds to purchase ship: {}. Remaining: {}, Required: {}",
+                            ship_type, remaining_funds, required_funds
+                        );
+                        continue;
+                    } else {
+                        return Err(e);
+                    }
+                } else {
+                    reservation.unwrap()
+                };
+
                 debug!(
                     "Found ship to purchase at {} with price {} and priority {:?}: {:?} for system {}",
-                    waypoint_symbol, predicted_price, priority, ship_type, system_symbol
+                    waypoint_symbol, predicted_total_price, priority, ship_type, system_symbol
                 );
 
                 let ship = self
@@ -232,12 +260,22 @@ impl FleetManager {
                     )
                     .await?;
 
+                self.context
+                    .budget_manager
+                    .use_reservation(
+                        &self.context.database_pool,
+                        reservation.id,
+                        ship.1.price as i64,
+                    )
+                    .await?;
+
                 let transfer = database::ShipTransfer {
                     id: 0,
                     ship_symbol: ship.0.symbol,
                     system_symbol: system_symbol.clone(),
                     role: *ship_role,
                     finished: false,
+                    reserved_fund: Some(reservation.id),
                 };
                 database::ShipTransfer::insert_new(&self.context.database_pool, &transfer).await?;
                 self.is_dirty = true;
@@ -256,21 +294,18 @@ impl FleetManager {
             String,
             Vec<(
                 models::ShipType,
-                i32,
+                i32, // predicted total price
                 super::message::Priority,
                 database::ShipInfoRole,
                 String,
             )>,
         >,
     > {
-        let agent_symbol = { self.context.run_info.read().await.agent_symbol.clone() };
-
         let expand = { self.context.config.read().await.expand };
 
-        let agent = database::Agent::get_last_by_symbol(&self.context.database_pool, &agent_symbol)
-            .await?
-            .ok_or(crate::error::Error::General("Agent not found".to_string()))?;
         let shipyards = database::ShipyardShip::get_last(&self.context.database_pool).await?;
+
+        let budget = self.context.budget_manager.get_spendable_funds().await;
 
         let required_ships = self.required_ships.ships.clone();
 
@@ -282,7 +317,7 @@ impl FleetManager {
                     .get_best_shipyard(
                         &system.0,
                         (ship.0, ship.1, ship.2, ship.3),
-                        &agent,
+                        budget,
                         &shipyards,
                         pathfinder,
                         antimatter_prices,
@@ -371,7 +406,7 @@ impl FleetManager {
             super::message::Budget,
             database::ShipInfoRole,
         ),
-        agent: &database::Agent,
+        available_budget: i64,
         shipyards: &[database::ShipyardShip],
         pathfinder: &ship::autopilot::jump_gate_nav::JumpPathfinder,
         antimatter_prices: &HashMap<String, i32>,
@@ -379,12 +414,16 @@ impl FleetManager {
         Vec<(
             String,
             models::ShipType,
-            i32,
+            i32, // predicted total price
             super::message::Priority,
             database::ShipInfoRole,
         )>,
     > {
-        let mut ships = shipyards
+        let mut ships: Vec<(
+            &database::ShipyardShip,
+            i32, /*travel cost */
+            i32, /* total price */
+        )> = shipyards
             .iter()
             .filter(|f| match ship.0 {
                 super::message::RequestedShipType::Scrapper => true,
@@ -404,7 +443,8 @@ impl FleetManager {
                         })
                         .sum();
 
-                    sum >= 80
+                    sum >= 40
+                    // sum >= 80
                 }
                 super::message::RequestedShipType::Mining => {
                     f.mounts.iter().any(|f| {
@@ -444,7 +484,7 @@ impl FleetManager {
                 (f, travel_cost, f.purchase_price + travel_cost)
             })
             .filter(|f| f.2 > (ship.3 as i32))
-            .filter(|f| agent.credits - (f.2 as i64) > (ship.1 as i64))
+            .filter(|f| available_budget - (f.2 as i64) > (ship.1 as i64))
             .collect::<Vec<_>>();
 
         ships.sort_by(|a, b| a.2.cmp(&b.2));
@@ -455,7 +495,7 @@ impl FleetManager {
                 (
                     f.0.waypoint_symbol.clone(),
                     f.0.ship_type,
-                    f.2,
+                    f.2, // total price
                     ship.1,
                     ship.3,
                 )
@@ -532,7 +572,15 @@ impl FleetManager {
         if unfinished_ships.len() == 1 {
             let mut ship_transfer = unfinished_ships[0].clone();
             ship_transfer.finished = true;
+
             database::ShipTransfer::insert(&self.context.database_pool, &ship_transfer).await?;
+
+            if let Some(reservation_id) = ship_transfer.reserved_fund {
+                self.context
+                    .budget_manager
+                    .complete_reservation(&self.context.database_pool, reservation_id)
+                    .await?;
+            }
         } else {
             return Err(Error::General(format!(
                 "Found multiple ship transfers for ship {}",
@@ -559,6 +607,10 @@ impl FleetManager {
             .api
             .purchase_ship(purchase_ship_request)
             .await?;
+
+        self.context
+            .budget_manager
+            .set_current_funds(resp.data.agent.credits);
 
         database::Agent::insert(
             &self.context.database_pool,

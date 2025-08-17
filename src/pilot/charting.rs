@@ -74,12 +74,17 @@ impl ChartPilot {
         };
         ship.notify().await;
 
+        let budget_manager = self.context.budget_manager.clone();
+
+        let update_funds_fn = move |amount| budget_manager.set_current_funds(amount);
+
         ship.nav_to(
             &chart,
             true,
             database::TransactionReason::None,
             &self.context.database_pool,
             &self.context.api,
+            update_funds_fn,
         )
         .await?;
 
@@ -125,8 +130,11 @@ impl ChartPilot {
 
         let erg = self.context.api.create_chart(&symbol).await;
 
-        let waypoint = match erg {
-            Ok(data) => *data.data.waypoint,
+        let (waypoint, agent_info) = match erg {
+            Ok(data) => (
+                *data.data.waypoint,
+                Some((*data.data.agent, *data.data.transaction)),
+            ),
             Err(space_traders_client::apis::Error::ResponseError(error)) => {
                 if error
                     .entity
@@ -137,12 +145,15 @@ impl ChartPilot {
                     })
                     .unwrap_or(false)
                 {
-                    *self
-                        .context
-                        .api
-                        .get_waypoint(&ship.nav.system_symbol, &ship.nav.waypoint_symbol)
-                        .await?
-                        .data
+                    (
+                        *self
+                            .context
+                            .api
+                            .get_waypoint(&ship.nav.system_symbol, &ship.nav.waypoint_symbol)
+                            .await?
+                            .data,
+                        None,
+                    )
                 } else {
                     return Err(space_traders_client::apis::Error::ResponseError(error).into());
                 }
@@ -151,6 +162,20 @@ impl ChartPilot {
                 return Err(err.into());
             }
         };
+
+        if let Some((agent, transaction)) = agent_info {
+            let sql_agent = database::Agent::from(agent);
+
+            self.context
+                .budget_manager
+                .set_current_funds(sql_agent.credits);
+
+            database::Agent::insert(&self.context.database_pool, &sql_agent).await?;
+
+            let sql_transaction = database::ChartTransaction::try_from(transaction)?;
+            database::ChartTransaction::insert(&self.context.database_pool, &sql_transaction)
+                .await?;
+        }
 
         let sql_waypoint = (&waypoint).into();
 

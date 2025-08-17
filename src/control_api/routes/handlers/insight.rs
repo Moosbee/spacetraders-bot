@@ -205,3 +205,8 @@ pub async fn handle_update_config(
 
     Ok(warp::reply::json(&serde_json::json!(info)))
 }
+
+pub async fn handle_get_budget_info(context: ConductorContext) -> Result<impl Reply> {
+    let budget_info = context.budget_manager.get_budget_info().await;
+    Ok(warp::reply::json(&serde_json::json!(budget_info)))
+}

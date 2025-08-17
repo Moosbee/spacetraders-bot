@@ -197,6 +197,11 @@ pub struct RunInfo {
     pub version: String,
 }
 
+// pub typed AgentUpdateFn = Fn(
+//     &RunInfo,
+//     &space_traders_client::models::Agent,
+// ) -> std::result::Result<(), space_traders_client::apis::ApiError>;
+
 pub trait SendFuture: core::future::Future {
     fn send(self) -> impl core::future::Future<Output = Self::Output> + Send
     where

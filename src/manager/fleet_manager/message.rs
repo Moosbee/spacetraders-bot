@@ -14,12 +14,12 @@ pub enum RequestedShipType {
 // how low money can go before we stop buying ships
 #[derive(Debug, serde::Serialize, Clone, Copy, PartialEq, Eq)]
 pub enum Priority {
-    High = 10_000_000,
-    Medium = 20_000_000,
-    Low = 100_000_000,
-    // High = 100_000,
-    // Medium = 500_000,
-    // Low = 1_000_000,
+    // High = 10_000_000,
+    // Medium = 20_000_000,
+    // Low = 100_000_000,
+    High = 100_000,
+    Medium = 500_000,
+    Low = 1_000_000,
 }
 
 impl PartialOrd for Priority {

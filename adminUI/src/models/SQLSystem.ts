@@ -21,4 +21,5 @@ export interface SQLSystem {
   waypoints: number | undefined;
   shipyards: number | undefined;
   marketplaces: number | undefined;
+  has_my_ships: boolean | undefined;
 }

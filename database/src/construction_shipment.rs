@@ -14,6 +14,7 @@ pub struct ConstructionShipment {
     pub created_at: sqlx::types::chrono::DateTime<chrono::Utc>,
     pub updated_at: sqlx::types::chrono::DateTime<chrono::Utc>,
     pub status: ShipmentStatus,
+    pub reserved_fund: Option<i64>,
 }
 
 #[derive(Debug, Clone, serde::Serialize)]
@@ -31,6 +32,7 @@ pub struct ConstructionShipmentSummary {
     pub sum: Option<i32>,
     pub expenses: Option<i32>,
     pub income: Option<i32>,
+    pub reserved_fund: Option<i64>,
 }
 
 impl ConstructionShipment {
@@ -49,11 +51,12 @@ impl ConstructionShipment {
                   purchase_waypoint,
                   created_at,
                   updated_at,
-                  status
+                  status,
+                  reserved_fund
                 )
                 VALUES (
                   $1, $2, $3, $4::trade_symbol, $5, $6, 
-                  NOW(), NOW(), $7::shipment_status
+                  NOW(), NOW(), $7::shipment_status, $8
                 )
                 RETURNING id;
             "#,
@@ -63,7 +66,8 @@ impl ConstructionShipment {
             &next_shipment.trade_symbol as &models::TradeSymbol,
             &next_shipment.units,
             &next_shipment.purchase_waypoint,
-            &next_shipment.status as &ShipmentStatus
+            &next_shipment.status as &ShipmentStatus,
+            &next_shipment.reserved_fund as &Option<i64>
         )
         .fetch_one(&database_pool.database_pool)
         .await?;
@@ -87,7 +91,8 @@ impl ConstructionShipment {
                   purchase_waypoint,
                   created_at,
                   updated_at,
-                  status as "status: ShipmentStatus"
+                  status as "status: ShipmentStatus",
+                  reserved_fund
                 FROM construction_shipment
                 WHERE id = $1
                 LIMIT 1
@@ -115,7 +120,8 @@ impl ConstructionShipment {
                   purchase_waypoint,
                   created_at,
                   updated_at,
-                  status as "status: ShipmentStatus"
+                  status as "status: ShipmentStatus",
+                  reserved_fund
                 FROM construction_shipment
                 WHERE status = 'IN_TRANSIT'
             "#,
@@ -154,7 +160,8 @@ impl ConstructionShipment {
                       WHEN market_transaction.type = 'PURCHASE' THEN 0
                       ELSE market_transaction.total_price
                     END
-                  ) as "income: i32"
+                  ) as "income: i32",
+                  construction_shipment.reserved_fund
                 FROM 
                   public.construction_shipment 
                   left join public.market_transaction ON market_transaction.construction = construction_shipment.id
@@ -184,11 +191,12 @@ impl DatabaseConnector<ConstructionShipment> for ConstructionShipment {
                   purchase_waypoint,
                   created_at,
                   updated_at,
-                  status
+                  status,
+                  reserved_fund
                 )
                 VALUES (
                   $1, $2, $3, $4, $5::trade_symbol, $6, $7, 
-                  NOW(), NOW(), $8::shipment_status
+                  NOW(), NOW(), $8::shipment_status, $9
                 )
                 ON CONFLICT (id) DO UPDATE SET
                   material_id = EXCLUDED.material_id,
@@ -198,7 +206,8 @@ impl DatabaseConnector<ConstructionShipment> for ConstructionShipment {
                   units = EXCLUDED.units,
                   purchase_waypoint = EXCLUDED.purchase_waypoint,
                   updated_at = NOW(),
-                  status = EXCLUDED.status;
+                  status = EXCLUDED.status,
+                  reserved_fund = EXCLUDED.reserved_fund;
             "#,
             &item.id,
             &item.material_id,
@@ -207,7 +216,8 @@ impl DatabaseConnector<ConstructionShipment> for ConstructionShipment {
             &item.trade_symbol as &models::TradeSymbol,
             &item.units,
             &item.purchase_waypoint,
-            &item.status as &ShipmentStatus
+            &item.status as &ShipmentStatus,
+            &item.reserved_fund as &Option<i64>
         )
         .execute(&database_pool.database_pool)
         .await?;
@@ -227,7 +237,9 @@ impl DatabaseConnector<ConstructionShipment> for ConstructionShipment {
             units_values,
             purchase_waypoints,
             statuses,
+            reserved_funds,
         ): (
+            Vec<_>,
             Vec<_>,
             Vec<_>,
             Vec<_>,
@@ -246,6 +258,7 @@ impl DatabaseConnector<ConstructionShipment> for ConstructionShipment {
                 cs.units,
                 cs.purchase_waypoint.clone(),
                 cs.status,
+                cs.reserved_fund,
             )
         }));
 
@@ -261,7 +274,8 @@ impl DatabaseConnector<ConstructionShipment> for ConstructionShipment {
                 purchase_waypoint,
                 created_at,
                 updated_at,
-                status
+                status,
+                reserved_fund
             )
             SELECT 
                 id,
@@ -273,7 +287,8 @@ impl DatabaseConnector<ConstructionShipment> for ConstructionShipment {
                 purch_waypoint, 
                 NOW(), 
                 NOW(), 
-                stat 
+                stat,
+                reserved_fund
             FROM UNNEST(
                 $1::bigint[],
                 $2::bigint[],
@@ -282,8 +297,9 @@ impl DatabaseConnector<ConstructionShipment> for ConstructionShipment {
                 $5::trade_symbol[],
                 $6::integer[],
                 $7::character varying[],
-                $8::shipment_status[]
-            ) AS t(id, mat_id, constr_waypoint, ship, trade, u, purch_waypoint, stat)
+                $8::shipment_status[],
+                $9::bigint[]
+            ) AS t(id, mat_id, constr_waypoint, ship, trade, u, purch_waypoint, stat, reserved_fund)
             ON CONFLICT (id) DO UPDATE
             SET material_id = EXCLUDED.material_id,
                 construction_site_waypoint = EXCLUDED.construction_site_waypoint,
@@ -292,7 +308,8 @@ impl DatabaseConnector<ConstructionShipment> for ConstructionShipment {
                 units = EXCLUDED.units,
                 purchase_waypoint = EXCLUDED.purchase_waypoint,
                 updated_at = NOW(),
-                status = EXCLUDED.status;
+                status = EXCLUDED.status,
+                reserved_fund = EXCLUDED.reserved_fund;
             "#,
             &ids,
             &material_ids,
@@ -301,7 +318,8 @@ impl DatabaseConnector<ConstructionShipment> for ConstructionShipment {
             &trade_symbols as &[models::TradeSymbol],
             &units_values,
             &purchase_waypoints,
-            &statuses as &[ShipmentStatus]
+            &statuses as &[ShipmentStatus],
+            &reserved_funds as &[Option<i64>],
         )
         .execute(&database_pool.database_pool)
         .await?;
@@ -322,7 +340,8 @@ impl DatabaseConnector<ConstructionShipment> for ConstructionShipment {
                   purchase_waypoint,
                   created_at,
                   updated_at,
-                  status as "status: ShipmentStatus"
+                  status as "status: ShipmentStatus",
+                  reserved_fund
                 FROM construction_shipment
             "#
         )

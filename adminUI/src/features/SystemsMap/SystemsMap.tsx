@@ -84,11 +84,18 @@ function drawSystems(
   }
 
   for (const { system, xOne, yOne } of Object.values(systems)) {
-    context.beginPath();
     const x = xOne * zoom * maxRatio + left;
     const y = yOne * zoom * maxRatio + top;
     if (x < 0 || x > width || y < 0 || y > height) continue;
     const r = Math.min(Math.abs(zoom / 2), 10);
+    if (system.has_my_ships) {
+      context.beginPath();
+      context.arc(x, y, r * 1.5, 0, 2 * Math.PI);
+      context.fillStyle = "#ffffff";
+      context.fill();
+    }
+
+    context.beginPath();
     context.arc(x, y, r, 0, 2 * Math.PI);
     const color = systemIcons[system.system_type].color;
     context.fillStyle = color;

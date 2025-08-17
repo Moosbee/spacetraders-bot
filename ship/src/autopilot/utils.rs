@@ -28,3 +28,21 @@ pub(crate) fn get_route(
     route.reverse();
     Some(route)
 }
+
+pub fn estimate_route_cost(
+    route: &[super::connection::SimpleConnection],
+    fuel_cost: i64,
+    antimatter_cost: i64,
+) -> i64 {
+    route.iter().fold(0, |acc, conn| {
+        acc + match conn.connection_type {
+            super::connection::ConnectionType::JumpGate => antimatter_cost,
+            super::connection::ConnectionType::Warp { .. } => {
+                fuel_cost * (conn.distance / 10.0).ceil() as i64
+            }
+            super::connection::ConnectionType::Navigate { .. } => {
+                fuel_cost * (conn.distance / 10.0).ceil() as i64
+            }
+        }
+    })
+}

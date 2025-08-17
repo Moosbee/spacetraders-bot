@@ -64,7 +64,7 @@ impl ConstructionPilot {
 
         if storage_count != shipment.units {
             debug!("Purchasing cargo");
-            let er = self.purchase_cargo(ship, &shipment, pilot).await;
+            let er = self.purchase_cargo(ship, &shipment).await;
             if let Err(e) = er {
                 let erg = self
                     .context
@@ -130,7 +130,6 @@ impl ConstructionPilot {
         &self,
         ship: &mut ship::MyShip,
         shipment: &database::ConstructionShipment,
-        pilot: &crate::pilot::Pilot,
     ) -> Result<()> {
         ship.status = ship::ShipStatus::Construction {
             cycle: Some(self.count.load(std::sync::atomic::Ordering::SeqCst)),
@@ -141,12 +140,17 @@ impl ConstructionPilot {
 
         ship.notify().await;
 
+        let budget_manager = self.context.budget_manager.clone();
+
+        let update_funds_fn = move |amount| budget_manager.set_current_funds(amount);
+
         ship.nav_to(
             &shipment.purchase_waypoint,
             true,
             database::TransactionReason::Construction(shipment.id),
             &self.context.database_pool,
             &self.context.api,
+            update_funds_fn.clone(),
         )
         .await?;
 
@@ -173,32 +177,28 @@ impl ConstructionPilot {
 
         let current_price = (market_trade.purchase_price * units_needed) as i64;
 
-        let budget = pilot.get_budget().await?;
-
-        if budget < current_price {
-            debug!(
-                "Not enough funds to purchase units: {} should cost: {} funds has {} funds",
-                units_needed, current_price, budget
-            );
-            return Err(Error::NotEnoughFunds {
-                remaining_funds: budget,
-                required_funds: current_price,
-            });
-        }
-
         debug!(
-            "Purchasing units: {} should cost: {} funds has {} funds",
-            units_needed, current_price, budget
+            "Purchasing units: {} should cost: {}",
+            units_needed, current_price
         );
 
-        ship.purchase_cargo(
-            &self.context.api,
-            &shipment.trade_symbol,
-            units_needed,
-            &self.context.database_pool,
-            database::TransactionReason::Construction(shipment.id),
-        )
-        .await?;
+        let cost = ship
+            .purchase_cargo(
+                &self.context.api,
+                &shipment.trade_symbol,
+                units_needed,
+                &self.context.database_pool,
+                database::TransactionReason::Construction(shipment.id),
+                update_funds_fn,
+            )
+            .await?;
+
+        if let Some(reservation_id) = shipment.reserved_fund {
+            self.context
+                .budget_manager
+                .use_reservation(&self.context.database_pool, reservation_id, cost)
+                .await?;
+        }
 
         Ok(())
     }
@@ -217,12 +217,17 @@ impl ConstructionPilot {
 
         ship.notify().await;
 
+        let budget_manager = self.context.budget_manager.clone();
+
+        let update_funds_fn = move |amount| budget_manager.set_current_funds(amount);
+
         ship.nav_to(
             &shipment.construction_site_waypoint,
             true,
             database::TransactionReason::Construction(shipment.id),
             &self.context.database_pool,
             &self.context.api,
+            update_funds_fn,
         )
         .await?;
 

@@ -230,12 +230,17 @@ impl ExtractionPilot {
             return Err("Waypoint is not in ship's system".into());
         }
 
+        let budget_manager = self.context.budget_manager.clone();
+
+        let update_funds_fn = move |amount| budget_manager.set_current_funds(amount);
+
         ship.nav_to(
             waypoint_symbol,
             true,
             database::TransactionReason::MiningWaypoint(waypoint_symbol.to_string()),
             &self.context.database_pool,
             &self.context.api,
+            update_funds_fn,
         )
         .await?;
 

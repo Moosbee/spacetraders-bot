@@ -25,7 +25,7 @@ pub enum ContractShipmentMessage {
 
 #[derive(Debug, Clone)]
 pub enum NextShipmentResp {
-    Shipment(database::ContractShipment),
+    Shipment(database::ContractShipment, Option<i64>), // Shipment and the reservation id
     ComeBackLater,
 }
 

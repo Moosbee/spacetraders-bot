@@ -62,12 +62,18 @@ impl TransferPilot {
                 .find(|w| w.is_jump_gate())
                 .cloned()
                 .ok_or(Error::General("No jump gate found".to_string()))?;
+
+            let budget_manager = self.context.budget_manager.clone();
+
+            let update_funds_fn = move |amount| budget_manager.set_current_funds(amount);
+
             ship.nav_to(
                 &jump_gate.symbol,
                 true,
                 database::TransactionReason::None,
                 &self.context.database_pool,
                 &self.context.api,
+                update_funds_fn,
             )
             .await?;
         }

@@ -44,12 +44,17 @@ impl SurveyPilot {
 
         ship.notify().await;
 
+        let budget_manager = self.context.budget_manager.clone();
+
+        let update_funds_fn = move |amount| budget_manager.set_current_funds(amount);
+
         ship.nav_to(
             &waypoint,
             true,
             database::TransactionReason::MiningWaypoint(waypoint.clone()),
             &self.context.database_pool,
             &self.context.api,
+            update_funds_fn,
         )
         .await?;
 

@@ -18,11 +18,19 @@ impl MyShip {
         database_pool: &database::DbPool,
         api: &space_traders_client::Api,
         wp_action: impl AsyncFn(&mut MyShip, String, String) -> crate::error::Result<()> + Clone,
+        update_funds_fn: impl Fn(i64) + Clone,
     ) -> crate::error::Result<()> {
         self.set_auto_pilot(route.clone()).await?;
         for connection in route.connections {
-            self.execute_connection(connection, &reason, database_pool, api, wp_action.clone())
-                .await?;
+            self.execute_connection(
+                connection,
+                &reason,
+                database_pool,
+                api,
+                wp_action.clone(),
+                update_funds_fn.clone(),
+            )
+            .await?;
         }
         self.wait_for_arrival().await;
         self.nav.refresh_nav();
@@ -38,6 +46,7 @@ impl MyShip {
         database_pool: &database::DbPool,
         api: &space_traders_client::Api,
         wp_action: impl AsyncFn(&mut MyShip, String, String) -> crate::error::Result<()>,
+        update_funds_fn: impl Fn(i64) + Clone,
     ) -> crate::error::Result<()> {
         match connection {
             ConcreteConnection::JumpGate(jump_connection) => {
@@ -47,6 +56,7 @@ impl MyShip {
                     database_pool,
                     api,
                     wp_action,
+                    update_funds_fn,
                 )
                 .await?;
             }
@@ -57,6 +67,7 @@ impl MyShip {
                     database_pool,
                     api,
                     wp_action,
+                    update_funds_fn,
                 )
                 .await?;
             }
@@ -67,6 +78,7 @@ impl MyShip {
                     database_pool,
                     api,
                     wp_action,
+                    update_funds_fn,
                 )
                 .await?;
             }
@@ -82,6 +94,7 @@ impl MyShip {
         database_pool: &database::DbPool,
         api: &space_traders_client::Api,
         wp_action: impl (AsyncFn(&mut MyShip, String, String) -> crate::error::Result<()>),
+        update_funds_fn: impl Fn(i64) + Clone,
     ) -> crate::error::Result<()> {
         if self.nav.waypoint_symbol != connection.start_symbol {
             return Err("Not on waypoint".into());
@@ -119,6 +132,8 @@ impl MyShip {
 
         let after = self.snapshot(database_pool).await?;
 
+        update_funds_fn(jump_data.data.agent.credits);
+
         database::Agent::insert(
             database_pool,
             &database::Agent::from((*jump_data.data.agent).clone()),
@@ -152,6 +167,7 @@ impl MyShip {
         database_pool: &database::DbPool,
         api: &space_traders_client::Api,
         wp_action: impl AsyncFn(&mut MyShip, String, String) -> crate::error::Result<()>,
+        update_funds_fn: impl Fn(i64) + Clone,
     ) -> crate::error::Result<()> {
         if self.nav.waypoint_symbol != connection.start_symbol {
             return Err("Not on waypoint".into());
@@ -162,8 +178,14 @@ impl MyShip {
 
         self.wait_for_arrival().await;
 
-        self.handle_refuel(connection.refuel, reason, database_pool, api)
-            .await?;
+        self.handle_refuel(
+            connection.refuel,
+            reason,
+            database_pool,
+            api,
+            update_funds_fn,
+        )
+        .await?;
 
         self.update_flight_mode(api, connection.nav_mode).await?;
 
@@ -215,6 +237,7 @@ impl MyShip {
         database_pool: &database::DbPool,
         api: &space_traders_client::Api,
         wp_action: impl AsyncFn(&mut MyShip, String, String) -> crate::error::Result<()>,
+        update_funds_fn: impl Fn(i64) + Clone,
     ) -> crate::error::Result<()> {
         if self.nav.waypoint_symbol != connection.start_symbol {
             return Err("Not on waypoint".into());
@@ -225,8 +248,14 @@ impl MyShip {
 
         self.wait_for_arrival().await;
 
-        self.handle_refuel(connection.refuel, reason, database_pool, api)
-            .await?;
+        self.handle_refuel(
+            connection.refuel,
+            reason,
+            database_pool,
+            api,
+            update_funds_fn,
+        )
+        .await?;
 
         self.update_flight_mode(api, connection.nav_mode).await?;
 
@@ -281,6 +310,7 @@ impl MyShip {
         reason: &database::TransactionReason,
         database_pool: &database::DbPool,
         api: &space_traders_client::Api,
+        update_funds_fn: impl Fn(i64) + Clone,
     ) -> crate::error::Result<()> {
         // the system should refuel at least to such a level, that we can navigate.
         // the system should refuel as much as would fit in the fuel tanks. But not waste fuel by overfilling the tanks. Except overfilling is required for navigation.
@@ -297,10 +327,10 @@ impl MyShip {
         }
 
         if is_marketplace {
-            self.marketplace_refuel(requirements, api, reason, database_pool)
+            self.marketplace_refuel(requirements, api, reason, database_pool, update_funds_fn)
                 .await?;
         } else {
-            self.space_refuel(requirements, api, reason, database_pool)
+            self.space_refuel(requirements, api, reason, database_pool, update_funds_fn)
                 .await?;
         }
         Ok(())
@@ -347,6 +377,7 @@ impl MyShip {
         api: &space_traders_client::Api,
         reason: &database::TransactionReason,
         database_pool: &database::DbPool,
+        update_funds_fn: impl Fn(i64) + Clone,
     ) -> crate::error::Result<()> {
         // we need to refuel/restock something
 
@@ -354,6 +385,8 @@ impl MyShip {
 
         if refuel.refuel_amount > 0 {
             let refuel_data = self.refuel_ship(api, refuel.refuel_amount, false).await?;
+
+            update_funds_fn(refuel_data.data.agent.credits);
 
             database::Agent::insert(
                 database_pool,
@@ -375,6 +408,7 @@ impl MyShip {
                 refuel.restock_amount,
                 database_pool,
                 reason.clone(),
+                update_funds_fn,
             )
             .await?;
         }
@@ -388,9 +422,12 @@ impl MyShip {
         api: &space_traders_client::Api,
         reason: &database::TransactionReason,
         database_pool: &database::DbPool,
+        update_funds_fn: impl Fn(i64) + Clone,
     ) -> crate::error::Result<()> {
         if refuel.refuel_amount > 0 {
             let refuel_data = self.refuel_ship(api, refuel.refuel_amount, true).await?;
+
+            update_funds_fn(refuel_data.data.agent.credits);
 
             database::Agent::insert(
                 database_pool,

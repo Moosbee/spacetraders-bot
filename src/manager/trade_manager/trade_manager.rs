@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use database::DatabaseConnector;
 use log::debug;
+use space_traders_client::models;
 use tokio::select;
 use utils::WaypointCan;
 
@@ -234,15 +235,29 @@ impl TradeManager {
             return Ok(None);
         }
 
-        let next_route = next_route.unwrap();
-
-        let next_route = self.record_trade_start(&next_route).await?;
+        let mut next_route = next_route.unwrap();
 
         let done = self.routes_tracker.lock(&next_route.clone().into());
 
         if !done {
             return Err("Failed to lock route".into());
         }
+
+        if next_route.reserved_fund.is_none() {
+            let total_expense =
+                (next_route.predicted_purchase_price * next_route.trade_volume) as i64;
+
+            let reservation = self
+                .context
+                .budget_manager
+                .reserve_funds(&self.context.database_pool, total_expense)
+                .await?;
+
+            next_route.reserved_fund = Some(reservation.id);
+        }
+
+        let next_route = self.record_trade_start(&next_route).await?;
+
         Ok(Some(next_route))
     }
 
@@ -251,6 +266,29 @@ impl TradeManager {
         trade_route: database::TradeRoute,
     ) -> Result<database::TradeRoute> {
         let trade = self.complete_trade_record(trade_route).await?;
+
+        if let Some(reservation_id) = trade.reserved_fund {
+            let transactions = database::MarketTransaction::get_by_reason(
+                &self.context.database_pool,
+                database::TransactionReason::TradeRoute(trade.id),
+            )
+            .await?;
+            let actual_amount = transactions
+                .iter()
+                .filter(|t| t.r#type == models::market_transaction::Type::Purchase)
+                .map(|t| t.total_price as i64)
+                .sum();
+
+            self.context
+                .budget_manager
+                .complete_use_reservation(
+                    &self.context.database_pool,
+                    reservation_id,
+                    actual_amount,
+                )
+                .await?;
+        }
+
         self.routes_tracker.unlock(&trade.clone().into());
         Ok(trade)
     }

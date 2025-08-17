@@ -1,7 +1,4 @@
-use std::{
-    collections::{HashMap, HashSet},
-    sync::Arc,
-};
+use std::collections::{HashMap, HashSet};
 
 use database::DatabaseConnector;
 use log::debug;
@@ -302,6 +299,7 @@ pub async fn handle_get_systems(context: ConductorContext) -> Result<impl Reply>
         .map_err(ServerError::Database)?;
 
     debug!("Got {} systems", systems.len());
+
     Ok(warp::reply::json(&systems))
 }
 

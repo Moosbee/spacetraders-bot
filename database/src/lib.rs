@@ -16,12 +16,12 @@ mod shipyard;
 mod shipyard_ship;
 mod shipyard_ship_types;
 
-mod chart_transaction;
-mod market_transaction;
-mod repair_transaction;
-mod scrap_transaction;
-mod ship_modification_transaction;
-mod shipyard_transaction;
+mod chart_transaction; // + credits
+mod market_transaction; // + credits - credits
+mod repair_transaction; // - credits
+mod scrap_transaction; // + credits
+mod ship_modification_transaction; // - credits
+mod shipyard_transaction; // - credits
 
 mod engine_info;
 mod frame_info;
@@ -31,6 +31,7 @@ mod reactor_info;
 
 mod extraction;
 mod jump_gate_connection;
+mod reserved_fund;
 mod ship_jump;
 mod ship_state;
 mod ship_transfer;
@@ -55,6 +56,8 @@ pub use market_transaction::TransactionReason;
 pub use module_info::ModuleInfo;
 pub use mount_info::MountInfo;
 pub use reactor_info::ReactorInfo;
+pub use reserved_fund::FundStatus;
+pub use reserved_fund::ReservedFund;
 pub use route::Route;
 pub use ship_info::ShipInfo;
 pub use ship_info::ShipInfoRole;

@@ -247,6 +247,12 @@ pub(crate) fn build_api_routes(
         .and(with_context(context.clone()))
         .and_then(handlers::handle_get_run_info);
 
+    let get_budget_info = warp::path!("insights" / "budget")
+        .and(warp::path::end())
+        .and(warp::get())
+        .and(with_context(context.clone()))
+        .and_then(handlers::handle_get_budget_info);
+
     let get_config = warp::path!("insights" / "config")
         .and(warp::path::end())
         .and(warp::get())
@@ -306,6 +312,7 @@ pub(crate) fn build_api_routes(
         .or(ship_discrepancy)
         .or(possible_trades)
         .or(run_info)
+        .or(get_budget_info)
         .or(get_config)
         .or(update_config)
         .or(shutdown)

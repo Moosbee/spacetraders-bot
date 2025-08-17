@@ -30,10 +30,19 @@ impl MyShip {
         reason: TransactionReason,
         database_pool: &database::DbPool,
         api: &space_traders_client::Api,
+        update_funds_fn: impl Fn(i64) + Clone,
     ) -> Result<()> {
         self.mutate();
-        self.nav_to_prepare(waypoint, update_market, reason, false, database_pool, api)
-            .await
+        self.nav_to_prepare(
+            waypoint,
+            update_market,
+            reason,
+            false,
+            database_pool,
+            api,
+            update_funds_fn,
+        )
+        .await
     }
 
     pub async fn nav_to_prepare(
@@ -44,6 +53,7 @@ impl MyShip {
         prepare: bool, // prepare to have enough fuel to leave the waypoint without a marketplace
         database_pool: &database::DbPool,
         api: &space_traders_client::Api,
+        update_funds_fn: impl Fn(i64) + Clone,
     ) -> Result<()> {
         let pathfinder = self
             .get_pathfinder(database_pool, api)
@@ -59,6 +69,7 @@ impl MyShip {
         let api2 = api.clone();
         let route2 = route.clone();
         let reson2 = reason.clone();
+        let update_funds_fn2 = update_funds_fn.clone();
         let wp_action = async move |shipi: &mut MyShip,
                                     start_waypoint: String,
                                     end_waypoint: String| {
@@ -108,6 +119,7 @@ impl MyShip {
                                 1,
                                 &database_pool2,
                                 reson2.clone(),
+                                update_funds_fn2.clone(),
                             )
                             .await?;
                     }
@@ -117,8 +129,15 @@ impl MyShip {
             Ok(())
         };
 
-        self.fly_route(route, reason, database_pool, api, wp_action)
-            .await?;
+        self.fly_route(
+            route,
+            reason,
+            database_pool,
+            api,
+            wp_action,
+            update_funds_fn,
+        )
+        .await?;
 
         Ok(())
     }
