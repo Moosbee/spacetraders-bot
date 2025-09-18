@@ -17,6 +17,7 @@ import ErrorPage from "./sites/ErrorPage";
 import MarketTransactions from "./sites/MarketTransactions";
 import MiningAssignments from "./sites/MiningAssignments";
 import PossibleTrades from "./sites/PossibleTrades";
+import ReservedFunds from "./sites/ReservedFunds";
 import Ship from "./sites/Ship";
 import Ships from "./sites/Ships";
 import ShipsToPurchase from "./sites/ShipsToPurchase";
@@ -124,6 +125,7 @@ function MyApp() {
                       path="/miningAssignments"
                       element={<MiningAssignments />}
                     />
+                    <Route path="/reservedFunds" element={<ReservedFunds />} />
                     <Route path="/surveys" element={<Surveys />} />
                     <Route path="/config" element={<ConfigScreen />} />
 

@@ -225,8 +225,10 @@ impl Contract {
     pub async fn insert_contract(
         database_pool: &DbPool,
         contract: models::Contract,
+        reserved_fund: Option<i64>,
     ) -> crate::Result<()> {
-        let contract_old = Contract::from(contract.clone());
+        let mut contract_old = Contract::from(contract.clone());
+        contract_old.reserved_fund = reserved_fund;
         Contract::insert(database_pool, &contract_old).await?;
 
         if let Some(deliveries) = &contract.terms.deliver {
@@ -242,7 +244,7 @@ impl Contract {
         Ok(())
     }
 
-    pub async fn get_by_id(database_pool: &DbPool, id: &String) -> crate::Result<Contract> {
+    pub async fn get_by_id(database_pool: &DbPool, id: &String) -> crate::Result<Option<Contract>> {
         let erg = sqlx::query_as!(
             Contract,
             r#"SELECT
@@ -261,7 +263,7 @@ impl Contract {
         FROM public.contract WHERE id = $1"#,
             &id
         )
-        .fetch_one(&database_pool.database_pool)
+        .fetch_optional(&database_pool.database_pool)
         .await?;
         Ok(erg)
     }

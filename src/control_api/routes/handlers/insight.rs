@@ -207,6 +207,15 @@ pub async fn handle_update_config(
 }
 
 pub async fn handle_get_budget_info(context: ConductorContext) -> Result<impl Reply> {
-    let budget_info = context.budget_manager.get_budget_info().await;
-    Ok(warp::reply::json(&serde_json::json!(budget_info)))
+    let budget_info: crate::manager::budget_manager::BudgetInfo =
+        context.budget_manager.get_budget_info().await;
+    let all_reservations: Vec<database::ReservedFund> =
+        database::ReservedFund::get_all(&context.database_pool)
+            .await
+            .map_err(|e| ServerError::Server(e.to_string()))?;
+    debug!("All Reservations from DB: {:?}", all_reservations);
+    Ok(warp::reply::json(&serde_json::json!({
+        "budget_info": budget_info,
+        "all_reservations": all_reservations,
+    })))
 }

@@ -20,7 +20,16 @@ pub async fn handle_get_trade_routes(context: ConductorContext) -> Result<impl R
 pub async fn handle_get_contract(id: String, context: ConductorContext) -> Result<impl Reply> {
     let contract = database::Contract::get_by_id(&context.database_pool, &id)
         .await
-        .map_err(ServerError::Database)?;
+        .map_err(ServerError::Database)?
+        .ok_or(ServerError::NotFound)?;
+
+    let reserved_funds = if let Some(reserved_fund_id) = contract.reserved_fund {
+        database::ReservedFund::get_by_id(&context.database_pool, &reserved_fund_id)
+            .await
+            .map_err(ServerError::Database)?
+    } else {
+        None
+    };
 
     let deliveries = database::ContractDelivery::get_by_contract_id(&context.database_pool, &id)
         .await
@@ -43,6 +52,7 @@ pub async fn handle_get_contract(id: String, context: ConductorContext) -> Resul
         deliveries,
         transactions,
         shipments,
+        reserved_funds,
     )))
 }
 

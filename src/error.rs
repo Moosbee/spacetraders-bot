@@ -14,6 +14,8 @@ pub enum Error {
     General(String),
     #[error(transparent)]
     Ship(#[from] ship::Error),
+    #[error("Reservation not found: {reservation_id}")]
+    ReservationNotFound { reservation_id: i64 },
 }
 
 impl From<&str> for Error {

@@ -1,4 +1,5 @@
 import { ContractTypeEnum, FactionSymbol, TradeSymbol } from "./api";
+import { ReservedFund } from "./ReservedFund";
 import { Transaction } from "./Transaction";
 
 interface SQLContract {
@@ -11,6 +12,7 @@ interface SQLContract {
   on_accepted: number;
   on_fulfilled: number;
   deadline: string;
+  reserved_fund?: number;
 }
 
 interface ContractDeliverable {
@@ -40,6 +42,7 @@ interface ContractResponse {
   2: ContractDeliverable[];
   3: Transaction[];
   4: ContractShipment[];
+  5: ReservedFund | null;
 }
 
 export type { ContractDeliverable, ContractResponse, SQLContract };

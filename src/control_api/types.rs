@@ -86,12 +86,15 @@ impl From<crate::error::Error> for ServerError {
                 }
             },
             crate::error::Error::Ship(error) => match error {
-                ship::Error::Database(error) => ServerError::Database(error.into()),
+                ship::Error::Database(error) => ServerError::Database(error),
                 ship::Error::Api(api_error) => {
                     ServerError::from(Into::<crate::error::Error>::into(api_error))
                 }
                 ship::Error::General(message) => ServerError::Server(message),
             },
+            crate::error::Error::ReservationNotFound { reservation_id } => {
+                ServerError::Server(format!("Reservation not found: {}", reservation_id))
+            }
         }
     }
 }

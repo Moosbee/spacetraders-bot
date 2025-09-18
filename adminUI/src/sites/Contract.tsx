@@ -107,6 +107,41 @@ function Contract() {
                   key: "terms.deadline",
                   children: new Date(contractResp[1].deadline).toLocaleString(),
                 },
+
+                ...(contractResp[5]
+                  ? [
+                      {
+                        label: "Fund Amount",
+                        key: "terms.reservedFundAmount",
+                        children: (
+                          <span>
+                            <MoneyDisplay amount={contractResp[5]?.amount} />
+                          </span>
+                        ),
+                      },
+                      {
+                        label: "Funds Spent",
+                        key: "terms.reservedFundSpent",
+                        children: (
+                          <span>
+                            <MoneyDisplay
+                              amount={contractResp[5]?.actual_amount}
+                            />
+                          </span>
+                        ),
+                      },
+                      {
+                        label: "Fund Status",
+                        key: "terms.reservedFundStatus",
+                        children: (
+                          <span>
+                            {contractResp[5]?.status} (ID: {contractResp[5]?.id}
+                            )
+                          </span>
+                        ),
+                      },
+                    ]
+                  : []),
               ]}
             ></Descriptions>
 

@@ -133,12 +133,11 @@ impl BudgetManager {
         {
             let reserved_fund = reserved_funds
                 .get_mut(&reservation_id)
-                .ok_or_else(|| "Reservation not found".to_string())?;
+                .ok_or_else(|| crate::error::Error::ReservationNotFound { reservation_id })?;
 
             let db_funds = ReservedFund::get_by_id(database_pool, &reservation_id)
-                .await
-                .map_err(|e| e.to_string())?
-                .ok_or_else(|| "Reservation not found".to_string())?;
+                .await?
+                .ok_or_else(|| crate::error::Error::ReservationNotFound { reservation_id })?;
 
             if reserved_fund != &db_funds {
                 return Err("Reservation mismatch".to_string().into());
@@ -166,12 +165,11 @@ impl BudgetManager {
 
         let reserved_fund = reserved_funds
             .get_mut(&reservation_id)
-            .ok_or_else(|| "Reservation not found".to_string())?;
+            .ok_or_else(|| crate::error::Error::ReservationNotFound { reservation_id })?;
 
         let db_funds = ReservedFund::get_by_id(database_pool, &reservation_id)
-            .await
-            .map_err(|e| e.to_string())?
-            .ok_or_else(|| "Reservation not found".to_string())?;
+            .await?
+            .ok_or_else(|| crate::error::Error::ReservationNotFound { reservation_id })?;
 
         if reserved_fund != &db_funds {
             return Err("Reservation mismatch".to_string().into());
@@ -187,7 +185,7 @@ impl BudgetManager {
 
         ReservedFund::insert(database_pool, reserved_fund).await?;
 
-        reserved_funds.remove(&reservation_id);
+        // reserved_funds.remove(&reservation_id);
 
         Ok(())
     }
@@ -202,12 +200,11 @@ impl BudgetManager {
 
         let reserved_fund = reserved_funds
             .get_mut(&reservation_id)
-            .ok_or_else(|| "Reservation not found".to_string())?;
+            .ok_or_else(|| crate::error::Error::ReservationNotFound { reservation_id })?;
 
         let db_funds = ReservedFund::get_by_id(database_pool, &reservation_id)
-            .await
-            .map_err(|e| e.to_string())?
-            .ok_or_else(|| "Reservation not found".to_string())?;
+            .await?
+            .ok_or_else(|| crate::error::Error::ReservationNotFound { reservation_id })?;
 
         if reserved_fund != &db_funds {
             return Err("Reservation mismatch".to_string().into());
@@ -239,12 +236,11 @@ impl BudgetManager {
 
         let reserved_fund = reserved_funds
             .get_mut(&reservation_id)
-            .ok_or_else(|| "Reservation not found".to_string())?;
+            .ok_or_else(|| crate::error::Error::ReservationNotFound { reservation_id })?;
 
         let db_funds = ReservedFund::get_by_id(database_pool, &reservation_id)
-            .await
-            .map_err(|e| e.to_string())?
-            .ok_or_else(|| "Reservation not found".to_string())?;
+            .await?
+            .ok_or_else(|| crate::error::Error::ReservationNotFound { reservation_id })?;
 
         if reserved_fund != &db_funds {
             return Err("Reservation mismatch".to_string().into());

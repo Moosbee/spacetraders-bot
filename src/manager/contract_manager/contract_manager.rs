@@ -66,10 +66,26 @@ impl ContractManager {
 
         for contract in contracts.iter() {
             debug!("Contract found: {}", contract.id);
-            // let in_db=database::Contract::get_by_id(&self.context.database_pool, &contract.id).await;
+            let in_db =
+                database::Contract::get_by_id(&self.context.database_pool, &contract.id).await?;
 
-            database::Contract::insert_contract(&self.context.database_pool, contract.clone())
-                .await?;
+            if let Some(existing_contract) = in_db {
+                if let Some(reserved_fund_id) = existing_contract.reserved_fund {
+                    let fund = database::ReservedFund::get_by_id(
+                        &self.context.database_pool,
+                        &reserved_fund_id,
+                    )
+                    .await?;
+                    self.reserved_funds = fund;
+                }
+            }
+
+            database::Contract::insert_contract(
+                &self.context.database_pool,
+                contract.clone(),
+                self.reserved_funds.as_ref().map(|r| r.id),
+            )
+            .await?;
         }
 
         match contracts.len() {
@@ -224,6 +240,7 @@ impl ContractManager {
             database::Contract::insert_contract(
                 &self.context.database_pool,
                 *fulfill_contract_data.data.contract,
+                self.reserved_funds.as_ref().map(|r| r.id),
             )
             .await?;
 
@@ -256,8 +273,12 @@ impl ContractManager {
 
             self.current_contract = Some(*resp.data.contract.clone());
 
-            database::Contract::insert_contract(&self.context.database_pool, *resp.data.contract)
-                .await?;
+            database::Contract::insert_contract(
+                &self.context.database_pool,
+                *resp.data.contract,
+                self.reserved_funds.as_ref().map(|r| r.id),
+            )
+            .await?;
 
             database::Agent::insert(
                 &self.context.database_pool,
@@ -463,7 +484,12 @@ impl ContractManager {
         mut shipment: database::ContractShipment,
     ) -> Result<()> {
         debug!("Handling finished shipment: {:?}", shipment);
-        database::Contract::insert_contract(&self.context.database_pool, contract.clone()).await?;
+        database::Contract::insert_contract(
+            &self.context.database_pool,
+            contract.clone(),
+            self.reserved_funds.as_ref().map(|r| r.id),
+        )
+        .await?;
 
         let pos = self
             .running_shipments
@@ -490,6 +516,7 @@ impl ContractManager {
             database::Contract::insert_contract(
                 &self.context.database_pool,
                 *fulfill_contract_data.data.contract,
+                self.reserved_funds.as_ref().map(|r| r.id),
             )
             .await?;
 
@@ -620,7 +647,12 @@ impl ContractManager {
 
         let contract = *contract_resp.data.contract;
 
-        database::Contract::insert_contract(&self.context.database_pool, contract.clone()).await?;
+        database::Contract::insert_contract(
+            &self.context.database_pool,
+            contract.clone(),
+            self.reserved_funds.as_ref().map(|r| r.id),
+        )
+        .await?;
 
         let viable = self.is_contract_viable(&contract).await?;
         self.current_contract = Some(contract);
