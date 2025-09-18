@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n                SELECT\n                  id,\n                  ship_symbol,\n                  system_symbol,\n                  role as \"role: ShipInfoRole\",\n                  finished\n                FROM ship_transfers\n            ",
+  "query": "\n                SELECT\n                  id,\n                  ship_symbol,\n                  system_symbol,\n                  role as \"role: ShipInfoRole\",\n                  finished,\n                  reserved_fund\n                FROM ship_transfers\n            ",
   "describe": {
     "columns": [
       {
@@ -44,6 +44,11 @@
         "ordinal": 4,
         "name": "finished",
         "type_info": "Bool"
+      },
+      {
+        "ordinal": 5,
+        "name": "reserved_fund",
+        "type_info": "Int8"
       }
     ],
     "parameters": {
@@ -54,8 +59,9 @@
       false,
       false,
       false,
-      false
+      false,
+      true
     ]
   },
-  "hash": "af91a39f79f6f3290d0189e406ea4475e5704507169d93411ad3c56fe47ca861"
+  "hash": "238a5c2fc600a8a7a0ad1e0e227017f0d7627dabcbb940a5fcb31877c3aab03e"
 }

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            insert into trade_route (\n              id,\n              symbol,\n              ship_symbol,\n              purchase_waypoint,\n              sell_waypoint,\n              status,\n              trade_volume,\n              predicted_purchase_price,\n              predicted_sell_price\n            )\n            SELECT * FROM UNNEST(\n              $1::integer[],\n              $2::trade_symbol[],\n              $3::character varying[],\n              $4::character varying[],\n              $5::character varying[],\n              $6::shipment_status[],\n              $7::integer[],\n              $8::integer[],\n              $9::integer[]\n            )\n            on conflict (id) do update\n            set status = EXCLUDED.status\n            ",
+  "query": "\n            insert into trade_route (\n              id,\n              symbol,\n              ship_symbol,\n              purchase_waypoint,\n              sell_waypoint,\n              status,\n              trade_volume,\n              predicted_purchase_price,\n              predicted_sell_price,\n              reserved_fund\n            )\n            SELECT * FROM UNNEST(\n              $1::integer[],\n              $2::trade_symbol[],\n              $3::character varying[],\n              $4::character varying[],\n              $5::character varying[],\n              $6::shipment_status[],\n              $7::integer[],\n              $8::integer[],\n              $9::integer[],\n              $10::bigint[]\n            )\n            on conflict (id) do update\n            set status = EXCLUDED.status,\n            reserved_fund = EXCLUDED.reserved_fund\n            ",
   "describe": {
     "columns": [],
     "parameters": {
@@ -191,10 +191,11 @@
         },
         "Int4Array",
         "Int4Array",
-        "Int4Array"
+        "Int4Array",
+        "Int8Array"
       ]
     },
     "nullable": []
   },
-  "hash": "b6b50050e99ba9bcb653fd0259c19f545e46ee6cebec749d33bfef3d092eacad"
+  "hash": "a4daf8144f8ce92055dff0d30d491cb125f096ae9c8f97c988a4ddadfb7f6308"
 }

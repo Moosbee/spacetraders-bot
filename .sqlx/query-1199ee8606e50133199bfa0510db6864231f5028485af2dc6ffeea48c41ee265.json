@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n                SELECT\n                  id,\n                  material_id,\n                  construction_site_waypoint,\n                  construction_shipment.ship_symbol,\n                  construction_shipment.trade_symbol as \"trade_symbol: models::TradeSymbol\",\n                  construction_shipment.units,\n                  purchase_waypoint,\n                  construction_shipment.created_at,\n                  construction_shipment.updated_at,\n                  status as \"status: ShipmentStatus\",\n                  sum(market_transaction.total_price) as \"sum: i32\",\n                  sum(\n                    CASE\n                      WHEN market_transaction.type = 'PURCHASE' THEN market_transaction.total_price\n                      ELSE 0\n                    END\n                  ) as \"expenses: i32\",\n                  sum(\n                    CASE\n                      WHEN market_transaction.type = 'PURCHASE' THEN 0\n                      ELSE market_transaction.total_price\n                    END\n                  ) as \"income: i32\"\n                FROM \n                  public.construction_shipment \n                  left join public.market_transaction ON market_transaction.construction = construction_shipment.id\n                group by\n                  id\n                ORDER BY\n                  id ASC;\n            ",
+  "query": "\n                SELECT\n                  id,\n                  material_id,\n                  construction_site_waypoint,\n                  ship_symbol,\n                  trade_symbol as \"trade_symbol: models::TradeSymbol\",\n                  units,\n                  purchase_waypoint,\n                  created_at,\n                  updated_at,\n                  status as \"status: ShipmentStatus\",\n                  reserved_fund\n                FROM construction_shipment\n            ",
   "describe": {
     "columns": [
       {
@@ -219,17 +219,7 @@
       },
       {
         "ordinal": 10,
-        "name": "sum: i32",
-        "type_info": "Int8"
-      },
-      {
-        "ordinal": 11,
-        "name": "expenses: i32",
-        "type_info": "Int8"
-      },
-      {
-        "ordinal": 12,
-        "name": "income: i32",
+        "name": "reserved_fund",
         "type_info": "Int8"
       }
     ],
@@ -247,10 +237,8 @@
       false,
       false,
       false,
-      null,
-      null,
-      null
+      true
     ]
   },
-  "hash": "3f8ead524ac1adb505ab511113fd8274060b60b249d67ff27d7424cd7183f31d"
+  "hash": "1199ee8606e50133199bfa0510db6864231f5028485af2dc6ffeea48c41ee265"
 }

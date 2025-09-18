@@ -1,20 +1,17 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n                INSERT INTO construction_shipment (\n                  material_id,\n                  construction_site_waypoint,\n                  ship_symbol,\n                  trade_symbol,\n                  units,\n                  purchase_waypoint,\n                  created_at,\n                  updated_at,\n                  status\n                )\n                VALUES (\n                  $1, $2, $3, $4::trade_symbol, $5, $6, \n                  NOW(), NOW(), $7::shipment_status\n                )\n                RETURNING id;\n            ",
+  "query": "\n                SELECT\n                id,\n                symbol as \"symbol: models::TradeSymbol\",\n                trade_route.ship_symbol,\n                purchase_waypoint,\n                sell_waypoint,\n                status as \"status: ShipmentStatus\",\n                trade_volume,\n                predicted_purchase_price,\n                predicted_sell_price,\n                sum(market_transaction.total_price) as \"sum: i32\",\n                sum(\n                  CASE\n                    WHEN market_transaction.type = 'PURCHASE' THEN market_transaction.total_price\n                    ELSE 0\n                  END\n                ) as \"expenses: i32\",\n                sum(\n                  CASE\n                    WHEN market_transaction.type = 'PURCHASE' THEN 0\n                    ELSE market_transaction.total_price\n                  END\n                ) as \"income: i32\",\n                sum(\n                  CASE\n                    WHEN market_transaction.type = 'PURCHASE' THEN (market_transaction.total_price * -1)\n                    ELSE market_transaction.total_price\n                  END\n                ) as \"profit: i32\",\n                reserved_fund\n              FROM\n                public.trade_route\n              left join public.market_transaction ON market_transaction.trade_route = trade_route.id\n              group by\n                id\n              ORDER BY\n                id ASC;\n            ",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
         "name": "id",
-        "type_info": "Int8"
-      }
-    ],
-    "parameters": {
-      "Left": [
-        "Int8",
-        "Varchar",
-        "Varchar",
-        {
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "symbol: models::TradeSymbol",
+        "type_info": {
           "Custom": {
             "name": "trade_symbol",
             "kind": {
@@ -167,10 +164,27 @@
               ]
             }
           }
-        },
-        "Int4",
-        "Varchar",
-        {
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "ship_symbol",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "purchase_waypoint",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "sell_waypoint",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 5,
+        "name": "status: ShipmentStatus",
+        "type_info": {
           "Custom": {
             "name": "shipment_status",
             "kind": {
@@ -182,11 +196,67 @@
             }
           }
         }
-      ]
+      },
+      {
+        "ordinal": 6,
+        "name": "trade_volume",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 7,
+        "name": "predicted_purchase_price",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 8,
+        "name": "predicted_sell_price",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 9,
+        "name": "sum: i32",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 10,
+        "name": "expenses: i32",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 11,
+        "name": "income: i32",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 12,
+        "name": "profit: i32",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 13,
+        "name": "reserved_fund",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": []
     },
     "nullable": [
-      false
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      null,
+      null,
+      null,
+      null,
+      true
     ]
   },
-  "hash": "a3f41776dfdb85e6dbffaa3de846d2864d04c013df747a6545b82ac96228305b"
+  "hash": "219cf44f6916f5420880238afd4ceddfe03f34387893aca491a98a58391b5561"
 }

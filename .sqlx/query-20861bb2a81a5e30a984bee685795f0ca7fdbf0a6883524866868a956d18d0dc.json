@@ -1,16 +1,31 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n                SELECT\n                id,\n                symbol as \"symbol: models::TradeSymbol\",\n                trade_route.ship_symbol,\n                purchase_waypoint,\n                sell_waypoint,\n                status as \"status: ShipmentStatus\",\n                trade_volume,\n                predicted_purchase_price,\n                predicted_sell_price,\n                sum(market_transaction.total_price) as \"sum: i32\",\n                sum(\n                  CASE\n                    WHEN market_transaction.type = 'PURCHASE' THEN market_transaction.total_price\n                    ELSE 0\n                  END\n                ) as \"expenses: i32\",\n                sum(\n                  CASE\n                    WHEN market_transaction.type = 'PURCHASE' THEN 0\n                    ELSE market_transaction.total_price\n                  END\n                ) as \"income: i32\",\n                sum(\n                  CASE\n                    WHEN market_transaction.type = 'PURCHASE' THEN (market_transaction.total_price * -1)\n                    ELSE market_transaction.total_price\n                  END\n                ) as \"profit: i32\"\n              FROM\n                public.trade_route\n              left join public.market_transaction ON market_transaction.trade_route = trade_route.id\n              group by\n                id\n              ORDER BY\n                id ASC;\n            ",
+  "query": "\n                SELECT\n                  id,\n                  material_id,\n                  construction_site_waypoint,\n                  construction_shipment.ship_symbol,\n                  construction_shipment.trade_symbol as \"trade_symbol: models::TradeSymbol\",\n                  construction_shipment.units,\n                  purchase_waypoint,\n                  construction_shipment.created_at,\n                  construction_shipment.updated_at,\n                  status as \"status: ShipmentStatus\",\n                  sum(market_transaction.total_price) as \"sum: i32\",\n                  sum(\n                    CASE\n                      WHEN market_transaction.type = 'PURCHASE' THEN market_transaction.total_price\n                      ELSE 0\n                    END\n                  ) as \"expenses: i32\",\n                  sum(\n                    CASE\n                      WHEN market_transaction.type = 'PURCHASE' THEN 0\n                      ELSE market_transaction.total_price\n                    END\n                  ) as \"income: i32\",\n                  construction_shipment.reserved_fund\n                FROM \n                  public.construction_shipment \n                  left join public.market_transaction ON market_transaction.construction = construction_shipment.id\n                group by\n                  id\n                ORDER BY\n                  id ASC;\n            ",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
         "name": "id",
-        "type_info": "Int4"
+        "type_info": "Int8"
       },
       {
         "ordinal": 1,
-        "name": "symbol: models::TradeSymbol",
+        "name": "material_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "construction_site_waypoint",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "ship_symbol",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "trade_symbol: models::TradeSymbol",
         "type_info": {
           "Custom": {
             "name": "trade_symbol",
@@ -167,22 +182,27 @@
         }
       },
       {
-        "ordinal": 2,
-        "name": "ship_symbol",
-        "type_info": "Varchar"
+        "ordinal": 5,
+        "name": "units",
+        "type_info": "Int4"
       },
       {
-        "ordinal": 3,
+        "ordinal": 6,
         "name": "purchase_waypoint",
         "type_info": "Varchar"
       },
       {
-        "ordinal": 4,
-        "name": "sell_waypoint",
-        "type_info": "Varchar"
+        "ordinal": 7,
+        "name": "created_at",
+        "type_info": "Timestamptz"
       },
       {
-        "ordinal": 5,
+        "ordinal": 8,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 9,
         "name": "status: ShipmentStatus",
         "type_info": {
           "Custom": {
@@ -198,38 +218,23 @@
         }
       },
       {
-        "ordinal": 6,
-        "name": "trade_volume",
-        "type_info": "Int4"
-      },
-      {
-        "ordinal": 7,
-        "name": "predicted_purchase_price",
-        "type_info": "Int4"
-      },
-      {
-        "ordinal": 8,
-        "name": "predicted_sell_price",
-        "type_info": "Int4"
-      },
-      {
-        "ordinal": 9,
+        "ordinal": 10,
         "name": "sum: i32",
         "type_info": "Int8"
       },
       {
-        "ordinal": 10,
+        "ordinal": 11,
         "name": "expenses: i32",
         "type_info": "Int8"
       },
       {
-        "ordinal": 11,
+        "ordinal": 12,
         "name": "income: i32",
         "type_info": "Int8"
       },
       {
-        "ordinal": 12,
-        "name": "profit: i32",
+        "ordinal": 13,
+        "name": "reserved_fund",
         "type_info": "Int8"
       }
     ],
@@ -246,11 +251,12 @@
       false,
       false,
       false,
+      false,
       null,
       null,
       null,
-      null
+      true
     ]
   },
-  "hash": "c5873f1ca97a9c08a7114603a6fc2648e331f568cab89d88ac8b1555dfc8127f"
+  "hash": "20861bb2a81a5e30a984bee685795f0ca7fdbf0a6883524866868a956d18d0dc"
 }

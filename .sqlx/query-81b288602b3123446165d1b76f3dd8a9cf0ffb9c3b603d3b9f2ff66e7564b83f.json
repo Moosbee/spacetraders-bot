@@ -1,32 +1,12 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n                SELECT\n                  id,\n                  material_id,\n                  construction_site_waypoint,\n                  ship_symbol,\n                  trade_symbol as \"trade_symbol: models::TradeSymbol\",\n                  units,\n                  purchase_waypoint,\n                  created_at,\n                  updated_at,\n                  status as \"status: ShipmentStatus\"\n                FROM construction_shipment\n            ",
+  "query": "\n            insert into trade_route (\n            id,\n            symbol,\n            ship_symbol,\n            purchase_waypoint,\n            sell_waypoint,\n            status,\n            trade_volume,\n            predicted_purchase_price,\n            predicted_sell_price,\n            reserved_fund\n            ) values (\n            $1,\n            $2,\n            $3,\n            $4,\n            $5,\n            $6,\n            $7,\n            $8,\n            $9,\n            $10\n            )\n            on conflict (id) do update\n            set status = EXCLUDED.status,\n            reserved_fund = EXCLUDED.reserved_fund\n            ",
   "describe": {
-    "columns": [
-      {
-        "ordinal": 0,
-        "name": "id",
-        "type_info": "Int8"
-      },
-      {
-        "ordinal": 1,
-        "name": "material_id",
-        "type_info": "Int8"
-      },
-      {
-        "ordinal": 2,
-        "name": "construction_site_waypoint",
-        "type_info": "Varchar"
-      },
-      {
-        "ordinal": 3,
-        "name": "ship_symbol",
-        "type_info": "Varchar"
-      },
-      {
-        "ordinal": 4,
-        "name": "trade_symbol: models::TradeSymbol",
-        "type_info": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4",
+        {
           "Custom": {
             "name": "trade_symbol",
             "kind": {
@@ -179,32 +159,11 @@
               ]
             }
           }
-        }
-      },
-      {
-        "ordinal": 5,
-        "name": "units",
-        "type_info": "Int4"
-      },
-      {
-        "ordinal": 6,
-        "name": "purchase_waypoint",
-        "type_info": "Varchar"
-      },
-      {
-        "ordinal": 7,
-        "name": "created_at",
-        "type_info": "Timestamptz"
-      },
-      {
-        "ordinal": 8,
-        "name": "updated_at",
-        "type_info": "Timestamptz"
-      },
-      {
-        "ordinal": 9,
-        "name": "status: ShipmentStatus",
-        "type_info": {
+        },
+        "Varchar",
+        "Varchar",
+        "Varchar",
+        {
           "Custom": {
             "name": "shipment_status",
             "kind": {
@@ -215,24 +174,14 @@
               ]
             }
           }
-        }
-      }
-    ],
-    "parameters": {
-      "Left": []
+        },
+        "Int4",
+        "Int4",
+        "Int4",
+        "Int8"
+      ]
     },
-    "nullable": [
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false
-    ]
+    "nullable": []
   },
-  "hash": "63a70b4bcf323bee97d4cf4efbb2d6d0f501bebed74a52c3c78f1b25ba60be38"
+  "hash": "81b288602b3123446165d1b76f3dd8a9cf0ffb9c3b603d3b9f2ff66e7564b83f"
 }

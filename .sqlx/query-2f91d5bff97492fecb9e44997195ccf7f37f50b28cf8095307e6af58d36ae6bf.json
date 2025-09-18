@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n                SELECT \n                    id,\n                    faction_symbol,\n                    contract_type as \"contract_type: models::contract::Type\",\n                    accepted,\n                    fulfilled,\n                    deadline_to_accept,\n                    on_accepted,\n                    on_fulfilled,\n                    deadline,\n                    updated_at,\n                    created_at\n                FROM contract\n            ",
+  "query": "\nSELECT\n  contract.id,\n  contract.faction_symbol,\n  contract.contract_type as \"contract_type: models::contract::Type\",\n  contract.accepted,\n  contract.fulfilled,\n  contract.deadline_to_accept,\n  contract.on_accepted,\n  contract.on_fulfilled,\n  contract.deadline,\n  contract.on_accepted + contract.on_fulfilled as \"totalprofit: i32\",\n  COALESCE(sum(market_transaction.total_price), 0) as \"total_expenses: i32\",\n  contract.on_accepted + contract.on_fulfilled - COALESCE(sum(market_transaction.total_price), 0) as \"net_profit: i32\",\n  contract.updated_at,\n  contract.created_at,\n  contract.reserved_fund\nFROM\n  public.contract\n left join public.market_transaction ON market_transaction.contract = contract.id\ngroup by\n  contract.id\norder by\n  contract.deadline_to_accept ASC;\n    ",
   "describe": {
     "columns": [
       {
@@ -61,13 +61,33 @@
       },
       {
         "ordinal": 9,
+        "name": "totalprofit: i32",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 10,
+        "name": "total_expenses: i32",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 11,
+        "name": "net_profit: i32",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 12,
         "name": "updated_at",
         "type_info": "Timestamptz"
       },
       {
-        "ordinal": 10,
+        "ordinal": 13,
         "name": "created_at",
         "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 14,
+        "name": "reserved_fund",
+        "type_info": "Int8"
       }
     ],
     "parameters": {
@@ -83,9 +103,13 @@
       false,
       false,
       false,
+      null,
+      null,
+      null,
       false,
-      false
+      false,
+      true
     ]
   },
-  "hash": "f8b73aab90131b32f01b1ceaef72cf04e8d99cd44a86e1fb7c254843f30fdfb8"
+  "hash": "2f91d5bff97492fecb9e44997195ccf7f37f50b28cf8095307e6af58d36ae6bf"
 }

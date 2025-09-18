@@ -1,31 +1,16 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n                SELECT\n                  id,\n                  material_id,\n                  construction_site_waypoint,\n                  ship_symbol,\n                  trade_symbol as \"trade_symbol: models::TradeSymbol\",\n                  units,\n                  purchase_waypoint,\n                  created_at,\n                  updated_at,\n                  status as \"status: ShipmentStatus\"\n                FROM construction_shipment\n                WHERE id = $1\n                LIMIT 1\n            ",
+  "query": "\n                SELECT \n                  id,\n                  symbol as \"symbol: models::TradeSymbol\",\n                  ship_symbol,\n                  purchase_waypoint,\n                  sell_waypoint,\n                  status as \"status: ShipmentStatus\",\n                  trade_volume,\n                  predicted_purchase_price,\n                  predicted_sell_price,\n                  created_at,\n                  reserved_fund\n                 FROM trade_route WHERE status='IN_TRANSIT'\n            ",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
         "name": "id",
-        "type_info": "Int8"
+        "type_info": "Int4"
       },
       {
         "ordinal": 1,
-        "name": "material_id",
-        "type_info": "Int8"
-      },
-      {
-        "ordinal": 2,
-        "name": "construction_site_waypoint",
-        "type_info": "Varchar"
-      },
-      {
-        "ordinal": 3,
-        "name": "ship_symbol",
-        "type_info": "Varchar"
-      },
-      {
-        "ordinal": 4,
-        "name": "trade_symbol: models::TradeSymbol",
+        "name": "symbol: models::TradeSymbol",
         "type_info": {
           "Custom": {
             "name": "trade_symbol",
@@ -182,27 +167,22 @@
         }
       },
       {
-        "ordinal": 5,
-        "name": "units",
-        "type_info": "Int4"
+        "ordinal": 2,
+        "name": "ship_symbol",
+        "type_info": "Varchar"
       },
       {
-        "ordinal": 6,
+        "ordinal": 3,
         "name": "purchase_waypoint",
         "type_info": "Varchar"
       },
       {
-        "ordinal": 7,
-        "name": "created_at",
-        "type_info": "Timestamptz"
+        "ordinal": 4,
+        "name": "sell_waypoint",
+        "type_info": "Varchar"
       },
       {
-        "ordinal": 8,
-        "name": "updated_at",
-        "type_info": "Timestamptz"
-      },
-      {
-        "ordinal": 9,
+        "ordinal": 5,
         "name": "status: ShipmentStatus",
         "type_info": {
           "Custom": {
@@ -216,12 +196,35 @@
             }
           }
         }
+      },
+      {
+        "ordinal": 6,
+        "name": "trade_volume",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 7,
+        "name": "predicted_purchase_price",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 8,
+        "name": "predicted_sell_price",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 9,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 10,
+        "name": "reserved_fund",
+        "type_info": "Int8"
       }
     ],
     "parameters": {
-      "Left": [
-        "Int8"
-      ]
+      "Left": []
     },
     "nullable": [
       false,
@@ -233,8 +236,9 @@
       false,
       false,
       false,
-      false
+      false,
+      true
     ]
   },
-  "hash": "b83711f5954e45678fd8efc692fc3a7fb237d8c0492c4d4e68abe83b7af49d12"
+  "hash": "76d453b5bceabd5e7b74a43a4cab242d103e0dd9f4ee65fe2fb5d095e62fb999"
 }

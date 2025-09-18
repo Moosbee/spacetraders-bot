@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            insert into trade_route (\n            symbol,\n            ship_symbol,\n            purchase_waypoint,\n            sell_waypoint,\n            status,\n            trade_volume,\n            predicted_purchase_price,\n            predicted_sell_price\n            ) values (\n            $1,\n            $2,\n            $3,\n            $4,\n            $5,\n            $6,\n            $7,\n            $8\n            )\n            RETURNING id\n            ",
+  "query": "\n            insert into trade_route (\n            symbol,\n            ship_symbol,\n            purchase_waypoint,\n            sell_waypoint,\n            status,\n            trade_volume,\n            predicted_purchase_price,\n            predicted_sell_price,\n            reserved_fund\n            ) values (\n            $1,\n            $2,\n            $3,\n            $4,\n            $5,\n            $6,\n            $7,\n            $8,\n            $9\n            )\n            RETURNING id\n            ",
   "describe": {
     "columns": [
       {
@@ -182,12 +182,13 @@
         },
         "Int4",
         "Int4",
-        "Int4"
+        "Int4",
+        "Int8"
       ]
     },
     "nullable": [
       false
     ]
   },
-  "hash": "40e1e7d9eb8e2ec4172b69e9f18ac008f1ce69cb4222d31227ee42a2fc6b4158"
+  "hash": "c483d7cde35b70f7f88b0c02fcd6bc9402d38a2e20525642d530fd747f9c34b7"
 }

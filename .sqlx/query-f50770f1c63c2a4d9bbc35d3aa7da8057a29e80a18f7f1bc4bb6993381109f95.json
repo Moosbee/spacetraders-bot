@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            INSERT INTO construction_shipment (\n                id,\n                material_id,\n                construction_site_waypoint,\n                ship_symbol,\n                trade_symbol,\n                units,\n                purchase_waypoint,\n                created_at,\n                updated_at,\n                status\n            )\n            SELECT \n                id,\n                mat_id, \n                constr_waypoint, \n                ship, \n                trade, \n                u, \n                purch_waypoint, \n                NOW(), \n                NOW(), \n                stat \n            FROM UNNEST(\n                $1::bigint[],\n                $2::bigint[],\n                $3::character varying[],\n                $4::character varying[],\n                $5::trade_symbol[],\n                $6::integer[],\n                $7::character varying[],\n                $8::shipment_status[]\n            ) AS t(id, mat_id, constr_waypoint, ship, trade, u, purch_waypoint, stat)\n            ON CONFLICT (id) DO UPDATE\n            SET material_id = EXCLUDED.material_id,\n                construction_site_waypoint = EXCLUDED.construction_site_waypoint,\n                ship_symbol = EXCLUDED.ship_symbol,\n                trade_symbol = EXCLUDED.trade_symbol,\n                units = EXCLUDED.units,\n                purchase_waypoint = EXCLUDED.purchase_waypoint,\n                updated_at = NOW(),\n                status = EXCLUDED.status;\n            ",
+  "query": "\n            INSERT INTO construction_shipment (\n                id,\n                material_id,\n                construction_site_waypoint,\n                ship_symbol,\n                trade_symbol,\n                units,\n                purchase_waypoint,\n                created_at,\n                updated_at,\n                status,\n                reserved_fund\n            )\n            SELECT \n                id,\n                mat_id, \n                constr_waypoint, \n                ship, \n                trade, \n                u, \n                purch_waypoint, \n                NOW(), \n                NOW(), \n                stat,\n                reserved_fund\n            FROM UNNEST(\n                $1::bigint[],\n                $2::bigint[],\n                $3::character varying[],\n                $4::character varying[],\n                $5::trade_symbol[],\n                $6::integer[],\n                $7::character varying[],\n                $8::shipment_status[],\n                $9::bigint[]\n            ) AS t(id, mat_id, constr_waypoint, ship, trade, u, purch_waypoint, stat, reserved_fund)\n            ON CONFLICT (id) DO UPDATE\n            SET material_id = EXCLUDED.material_id,\n                construction_site_waypoint = EXCLUDED.construction_site_waypoint,\n                ship_symbol = EXCLUDED.ship_symbol,\n                trade_symbol = EXCLUDED.trade_symbol,\n                units = EXCLUDED.units,\n                purchase_waypoint = EXCLUDED.purchase_waypoint,\n                updated_at = NOW(),\n                status = EXCLUDED.status,\n                reserved_fund = EXCLUDED.reserved_fund;\n            ",
   "describe": {
     "columns": [],
     "parameters": {
@@ -190,10 +190,11 @@
               }
             }
           }
-        }
+        },
+        "Int8Array"
       ]
     },
     "nullable": []
   },
-  "hash": "63ef97109b1ea1954f4a262812ce3bd5689cdd6783e38bc741803656a232aa7e"
+  "hash": "f50770f1c63c2a4d9bbc35d3aa7da8057a29e80a18f7f1bc4bb6993381109f95"
 }
