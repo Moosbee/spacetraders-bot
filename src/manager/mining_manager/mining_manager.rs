@@ -108,8 +108,6 @@ impl MiningManager {
     }
 
     pub async fn get_required_ships(context: &ConductorContext) -> Result<RequiredShips> {
-        return Ok(RequiredShips::new());
-
         let all_ships = context
             .ship_manager
             .get_all_clone()

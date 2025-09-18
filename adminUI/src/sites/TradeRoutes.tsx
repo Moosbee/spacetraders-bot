@@ -71,6 +71,14 @@ function TradeRoutes() {
       align: "right",
     },
     {
+      title: "Reserved Fund",
+      dataIndex: "reserved_fund",
+      key: "reserved_fund",
+      align: "right",
+      render: (value) => value,
+      sorter: (a, b) => (a.reserved_fund || 0) - (b.reserved_fund || 0),
+    },
+    {
       title: "Predicted Purchase Price",
       dataIndex: "predicted_purchase_price",
       key: "predicted_purchase_price",

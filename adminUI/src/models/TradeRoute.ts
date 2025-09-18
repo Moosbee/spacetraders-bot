@@ -15,6 +15,7 @@ export interface TradeRoute {
   expenses: number;
   income: number;
   profit: number;
+  reserved_fund?: number;
 }
 
 export interface PossibleTrade {
