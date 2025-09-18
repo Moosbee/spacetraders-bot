@@ -195,11 +195,23 @@ pub async fn handle_update_config(
         *config = new_config;
     }
 
+    let old_string = tokio::fs::read_to_string("config.toml")
+        .await
+        .map_err(|e| ServerError::Server(e.to_string()))?;
+
     let info = { context.config.read().await.clone() };
 
-    let serde_string =
-        serde_json::to_string_pretty(&info).map_err(|e| ServerError::Server(e.to_string()))?;
-    tokio::fs::write("config.json", serde_string)
+    let mut toml_edit_doc = old_string
+        .parse::<toml_edit::DocumentMut>()
+        .map_err(|e| ServerError::Server(e.to_string()))?;
+
+    let config_doc: toml_edit::DocumentMut =
+        toml_edit::ser::to_document(&info).map_err(|e| ServerError::Server(e.to_string()))?;
+
+    toml_edit_doc.extend(config_doc.iter());
+
+    let toml_string = toml_edit_doc.to_string();
+    tokio::fs::write("config.toml", toml_string)
         .await
         .map_err(|e| ServerError::Server(e.to_string()))?;
 

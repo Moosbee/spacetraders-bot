@@ -196,7 +196,7 @@ async fn setup_context(
     let ship_task_handler = ShipTaskHandler::create();
 
     let config: utils::Config =
-        serde_json::from_str(&std::fs::read_to_string("config.json").unwrap()).unwrap();
+        toml_edit::de::from_str(&std::fs::read_to_string("config.toml").unwrap()).unwrap();
 
     let max_miners_per_waypoint = config.max_miners_per_waypoint;
 

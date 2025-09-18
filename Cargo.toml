@@ -44,3 +44,4 @@ moka = { version = "0.12.8", features = ["future"] }
 thiserror = "2.0.6"
 reqwest-middleware = { version = "0.4.1", features = ["json", "multipart"] }
 itertools = "0.14.0"
+toml_edit = { version = "0.23.5", features = ["serde"] }
