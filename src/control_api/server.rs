@@ -2,6 +2,7 @@ use std::time::Duration;
 
 use futures::FutureExt;
 use tokio_util::sync::CancellationToken;
+use tracing::instrument;
 
 use crate::{manager::Manager, utils::ConductorContext};
 
@@ -36,7 +37,17 @@ impl ControlApiServer {
 
         if let Some(mut incoming_ship_rx) = self.ship_rx.take() {
             let ship_tx = ship_tx.clone();
-            tokio::spawn(async move {
+            // tokio::task::Builder::new()
+            //     .name("control_api_ship_broadcaster")
+            //     .spawn(async move {
+            //         while let Ok(ship) = incoming_ship_rx.recv().await {
+            //             if let Err(e) = ship_tx.send(ship.clone()) {
+            //                 log::error!("Failed to broadcast ship update: {}", e);
+            //             }
+            //         }
+            //     })
+            //     .unwrap();
+            tokio::task::spawn(async move {
                 while let Ok(ship) = incoming_ship_rx.recv().await {
                     if let Err(e) = ship_tx.send(ship.clone()) {
                         log::error!("Failed to broadcast ship update: {}", e);
@@ -56,6 +67,11 @@ impl ControlApiServer {
         Ok((MyReceiver(ship_rx), agent_rx))
     }
 
+    #[instrument(
+        level = "info",
+        name = "spacetraders::control_api::run_server",
+        skip(self)
+    )]
     async fn run_server(&mut self) -> anyhow::Result<()> {
         let config = { self.context.config.read().await.clone() };
         if !config.control_active {

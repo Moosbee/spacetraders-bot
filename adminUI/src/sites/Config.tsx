@@ -37,6 +37,7 @@ export function ConfigScreen() {
     extra_mining_transporter: 0,
     fuel_cost: 0,
     ignore_engineered_asteroids: false,
+    iron_reserve: 0,
     margin_percentage: 0,
     market_blacklist: [],
     markets_per_ship: 0,
@@ -49,6 +50,7 @@ export function ConfigScreen() {
     purchase_multiplier: 0,
     scrap_agents: false,
     scrapper_start_sleep: 0,
+    ship_purchase_amount: 0,
     socket_address: "",
     stop_all_unstable: false,
     trade_mode: "ProfitPerHour",
@@ -178,7 +180,7 @@ export function ConfigScreen() {
             </Col>
           </Row>
           <Row gutter={16}>
-            <Col span={12}>
+            <Col span={8}>
               <FormItem label="Ship Purchase Stop">
                 <Switch
                   checked={config.ship_purchase_stop}
@@ -188,11 +190,23 @@ export function ConfigScreen() {
                 />
               </FormItem>
             </Col>
-            <Col span={12}>
+            <Col span={8}>
               <FormItem label="Expand">
                 <Switch
                   checked={config.expand}
                   onChange={(checked) => handleChange("expand", checked)}
+                />
+              </FormItem>
+            </Col>
+            <Col span={8}>
+              <FormItem label="Ship Purchase Amount">
+                <InputNumber
+                  style={{ width: "100%" }}
+                  value={config.ship_purchase_amount}
+                  onChange={(value) =>
+                    handleChange("ship_purchase_amount", value)
+                  }
+                  min={0}
                 />
               </FormItem>
             </Col>
@@ -214,7 +228,17 @@ export function ConfigScreen() {
       children: (
         <div>
           <Row gutter={16}>
-            <Col span={12}>
+            <Col span={8}>
+              <FormItem label="Iron Reserve">
+                <InputNumber
+                  style={{ width: "100%" }}
+                  value={config.iron_reserve}
+                  onChange={(value) => handleChange("iron_reserve", value)}
+                  min={0}
+                />
+              </FormItem>
+            </Col>
+            <Col span={8}>
               <FormItem label="Antimatter Price">
                 <InputNumber
                   style={{ width: "100%" }}
@@ -223,7 +247,7 @@ export function ConfigScreen() {
                 />
               </FormItem>
             </Col>
-            <Col span={12}>
+            <Col span={8}>
               <FormItem label="Fuel Cost">
                 <InputNumber
                   style={{ width: "100%" }}

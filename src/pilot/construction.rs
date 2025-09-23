@@ -2,6 +2,7 @@ use std::sync::{atomic::AtomicI32, Arc};
 
 use log::debug;
 use space_traders_client::models;
+use tracing::instrument;
 
 use crate::{
     error::{Error, Result},
@@ -23,6 +24,8 @@ impl ConstructionPilot {
             count: Arc::new(AtomicI32::new(0)),
         }
     }
+
+    #[instrument(level = "info", name = "spacetraders::pilot::pilot_construction", skip(self, pilot), fields(self.ship_symbol = %self.ship_symbol, construction_shipment))]
     pub async fn execute_pilot_circle(&self, pilot: &super::Pilot) -> Result<()> {
         let mut erg = pilot.context.ship_manager.get_mut(&self.ship_symbol).await;
         let ship = erg
@@ -39,6 +42,11 @@ impl ConstructionPilot {
 
         debug!("Next shipment: {:?}", shipment);
 
+        // if (self.count.load(std::sync::atomic::Ordering::SeqCst) == 0) {
+        //     self.count.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        //     return self.do_elsewhere(ship).await;
+        // }
+
         let shipment = match shipment {
             NextShipmentResp::Shipment(construct_shipment) => construct_shipment,
             NextShipmentResp::ComeBackLater => {
@@ -46,6 +54,8 @@ impl ConstructionPilot {
                 return self.do_elsewhere(ship).await;
             }
         };
+
+        tracing::Span::current().record("construction_shipment", format!("{:?}", shipment));
 
         self.count.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
 

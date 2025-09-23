@@ -60,6 +60,7 @@ impl ContractManager {
         }
     }
 
+    #[tracing::instrument(level = "info", name = "spacetraders::manager::contract_manager_worker", skip(self))]
     async fn run_contract_worker(&mut self) -> Result<()> {
         debug!("Starting contract worker");
         let contracts = self.get_unfulfilled_contracts().await?;
@@ -117,14 +118,6 @@ impl ContractManager {
         }
 
         Ok(())
-    }
-
-    async fn get_budget(&self) -> Result<i64> {
-        let agent_symbol = { self.context.run_info.read().await.agent_symbol.clone() };
-        let agent = database::Agent::get_last_by_symbol(&self.context.database_pool, &agent_symbol)
-            .await?
-            .ok_or(Error::General("Agent not found".to_string()))?;
-        Ok(agent.credits - 30_000)
     }
 
     async fn handle_contract_message(&mut self, message: ContractManagerMessage) -> Result<()> {

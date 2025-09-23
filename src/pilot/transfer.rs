@@ -1,11 +1,13 @@
 use database::DatabaseConnector;
 use log::debug;
+use tracing::instrument;
 use utils::WaypointCan;
 
 use crate::{
     error::{Error, Result},
     utils::ConductorContext,
 };
+
 pub struct TransferPilot {
     context: ConductorContext,
     ship_symbol: String,
@@ -18,6 +20,8 @@ impl TransferPilot {
             ship_symbol,
         }
     }
+
+    #[instrument(level = "info", name = "spacetraders::pilot::pilot_transfer", skip(self, pilot), fields(self.ship_symbol = %self.ship_symbol, transfer))]
     pub async fn execute_pilot_circle(&self, pilot: &super::Pilot) -> Result<()> {
         let mut erg = pilot.context.ship_manager.get_mut(&self.ship_symbol).await;
         let ship = erg
@@ -26,11 +30,13 @@ impl TransferPilot {
 
         debug!("Requesting next transfer for ship: {:?}", ship.symbol);
 
-        let transfer = self
+        let transfer: database::ShipTransfer = self
             .context
             .fleet_manager
             .get_transfer(ship.clone())
             .await?;
+
+        tracing::Span::current().record("transfer", format!("{:?}", transfer));
 
         debug!("Next transfer: {:?}", transfer);
 

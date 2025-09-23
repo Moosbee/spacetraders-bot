@@ -6,6 +6,7 @@ use log::{debug, info};
 use rand::seq::SliceRandom;
 use ship::status::{ExtractorState, MiningShipAssignment};
 use space_traders_client::models;
+use tracing::instrument;
 
 use crate::{
     error::Result,
@@ -55,6 +56,7 @@ impl ExtractionPilot {
         }
     }
 
+    #[instrument(level = "info", name = "spacetraders::pilot::pilot_extraction", skip(self, pilot), fields(self.ship_symbol = pilot.ship_symbol, waypoint))]
     pub async fn execute_extraction_circle(
         &self,
         ship: &mut ship::MyShip,
@@ -67,6 +69,8 @@ impl ExtractionPilot {
             .mining_manager
             .get_waypoint(ship, is_syphon)
             .await?;
+
+        tracing::Span::current().record("waypoint", &waypoint_symbol);
 
         debug!("Mining Waypoint: {}", waypoint_symbol);
 

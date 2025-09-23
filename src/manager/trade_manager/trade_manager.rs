@@ -55,6 +55,11 @@ impl TradeManager {
         }
     }
 
+    #[tracing::instrument(
+        level = "info",
+        name = "spacetraders::manager::trade_manager_worker",
+        skip(self)
+    )]
     async fn run_trade_worker(&mut self) -> Result<()> {
         debug!("Starting TradeManager worker");
         while !self.cancel_token.is_cancelled() {

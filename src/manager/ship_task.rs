@@ -1,4 +1,5 @@
 use tokio::{select, task::JoinSet};
+use tracing::instrument;
 
 use crate::utils::ConductorContext;
 
@@ -51,6 +52,11 @@ impl ShipTaskHandler {
         }
     }
 
+    #[instrument(
+        level = "info",
+        name = "spacetraders::manager::ship_task_handler",
+        skip(self)
+    )]
     pub async fn await_all(&mut self) -> Result<(), crate::error::Error> {
         log::debug!("ShipTaskHandler::await_all");
         let mut set: JoinSet<(String, Result<ShipFuture, anyhow::Error>)> = JoinSet::new();
@@ -67,6 +73,16 @@ impl ShipTaskHandler {
                 ship_name.symbol.clone(),
                 self.ship_cancel_token.child_token(),
             );
+            // set.build_task()
+            //     .name(format!("ship-ds-{}", ship_name.symbol).as_str())
+            //     .spawn(async move {
+            //         (
+            //             ship_name.symbol.clone(),
+            //             pilot.pilot_ship().await.map_err(anyhow::Error::from),
+            //         )
+            //     })
+            //     .unwrap();
+
             set.spawn(async move {
                 (
                     ship_name.symbol.clone(),
@@ -82,7 +98,15 @@ impl ShipTaskHandler {
                         Some(ship_name) => {
                             log::debug!("ShipTaskHandler::await_all: got ship_name: {:?}", ship_name);
                             let pilot = crate::pilot::Pilot::new(self.context.clone(), ship_name.symbol.clone(), self.ship_cancel_token.child_token());
-                             set.spawn(async move {
+                            // set.build_task()
+                            //     .name(format!("ship-as-{}", ship_name.symbol).as_str())
+                            //     .spawn(async move {
+                            //         (
+                            //             ship_name.symbol.clone(),
+                            //             pilot.pilot_ship().await.map_err(anyhow::Error::from),
+                            //         )
+                            //     }).unwrap();
+                            set.spawn(async move {
                                 (
                                     ship_name.symbol.clone(),
                                     pilot.pilot_ship().await.map_err(anyhow::Error::from),

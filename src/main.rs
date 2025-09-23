@@ -4,6 +4,7 @@ mod tests;
 mod control_api;
 mod error;
 mod manager;
+mod open_telemetry;
 mod pilot;
 mod utils;
 
@@ -11,7 +12,6 @@ use std::{collections::HashSet, env, error::Error, str::FromStr, sync::Arc, vec}
 
 use chrono::{DateTime, Utc};
 use database::DatabaseConnector;
-use env_logger::{Env, Target};
 use manager::{
     chart_manager::ChartManager,
     construction_manager::ConstructionManager,
@@ -23,6 +23,12 @@ use manager::{
     trade_manager::TradeManager,
     Manager,
 };
+
+use opentelemetry::{
+    global::{self, ObjectSafeTracer},
+    sdk::propagation::TraceContextPropagator,
+};
+use opentelemetry_otlp::WithExportConfig;
 use rsntp::AsyncSntpClient;
 use ship::ShipManager;
 use space_traders_client::models;
@@ -32,11 +38,15 @@ use tokio_util::sync::CancellationToken;
 
 use ::utils::{RunInfo, WaypointCan};
 use log::{debug, error, info};
+use tracing::instrument;
+use tracing_subscriber::layer::SubscriberExt;
 use utils::ConductorContext;
 
 use std::num::NonZeroU32;
 
 use sqlx::postgres::PgPoolOptions;
+
+use crate::open_telemetry::init_trace;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -56,13 +66,25 @@ async fn main() -> anyhow::Result<()> {
 async fn setup_unauthed() -> Result<(space_traders_client::Api, database::DbPool), anyhow::Error> {
     dotenvy::dotenv()?;
 
-    let env = Env::default()
-        .filter_or("RUST_LOG", "info")
-        .write_style_or("RUST_LOG_STYLE", "always");
+    // console_subscriber::init();
 
-    env_logger::Builder::from_env(env)
-        .target(Target::Stdout)
-        .init();
+    global::set_text_map_propagator(TraceContextPropagator::new());
+    let tracer = init_trace().unwrap();
+    let fmt_tracer = tracing_subscriber::fmt::layer();
+    let telemetry = tracing_opentelemetry::layer().with_tracer(tracer);
+    let subscriber = tracing_subscriber::Registry::default()
+        .with(tracing_subscriber::filter::EnvFilter::from_default_env())
+        .with(fmt_tracer)
+        .with(telemetry);
+    tracing::subscriber::set_global_default(subscriber).unwrap();
+
+    // let env = Env::default()
+    //     .filter_or("RUST_LOG", "info")
+    //     .write_style_or("RUST_LOG_STYLE", "always");
+
+    // env_logger::Builder::from_env(env)
+    //     .target(Target::Stdout)
+    //     .init();
 
     check_time().await;
 
@@ -325,6 +347,11 @@ async fn check_time() {
     }
 }
 
+#[instrument(
+    level = "info",
+    name = "spacetraders::running",
+    skip(context, manager_token, managers)
+)]
 async fn start(
     context: ConductorContext,
     manager_token: CancellationToken,
@@ -381,6 +408,18 @@ async fn start_managers(
 
             erg
         });
+        // let handle = tokio::task::Builder::new()
+        //     .name(format!("manager-{}", name).as_str())
+        //     .spawn(async move {
+        //         let erg = manager.run().await;
+
+        //         if let Err(errror) = &erg {
+        //             error!("Managers error: {} {:?}", errror, errror);
+        //         }
+
+        //         erg
+        //     })
+        //     .unwrap();
         handles.push((handle, name, cancel_token));
     }
     Ok(handles)

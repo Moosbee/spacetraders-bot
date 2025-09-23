@@ -2,6 +2,7 @@ use std::sync::{atomic::AtomicI32, Arc};
 
 use database::DatabaseConnector;
 use log::debug;
+use tracing::instrument;
 use utils::WaypointCan;
 
 use crate::{
@@ -23,6 +24,8 @@ impl ChartPilot {
             count: Arc::new(AtomicI32::new(0)),
         }
     }
+
+    #[instrument(level = "info", name = "spacetraders::pilot::pilot_chart", skip(self, pilot), fields(self.ship_symbol = %self.ship_symbol, chart_waypoint))]
     pub async fn execute_pilot_circle(&self, pilot: &super::Pilot) -> Result<()> {
         let mut erg = pilot.context.ship_manager.get_mut(&self.ship_symbol).await;
         let ship = erg
@@ -49,6 +52,8 @@ impl ChartPilot {
                 return self.do_elsewhere(ship).await;
             }
         };
+
+        tracing::Span::current().record("chart_waypoint", &chart);
 
         let erg = self.start_chart(ship, chart.clone()).await;
 

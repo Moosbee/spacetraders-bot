@@ -53,6 +53,11 @@ impl ConstructionManager {
         }
     }
 
+    #[tracing::instrument(
+        level = "info",
+        name = "spacetraders::manager::construction_manager_worker",
+        skip(self)
+    )]
     async fn run_construction_worker(&mut self) -> Result<()> {
         let systems_to_search_for_construction = self
             .context

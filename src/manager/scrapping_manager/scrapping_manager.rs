@@ -6,6 +6,7 @@ use std::{
 
 use database::{DatabaseConnector, DbPool};
 use log::{debug, error, info};
+use tracing::Instrument;
 use utils::{distance_between_waypoints, WaypointCan};
 
 use crate::{
@@ -56,16 +57,15 @@ impl ScrappingManager {
         }
     }
 
+    #[tracing::instrument(level = "info", name = "spacetraders::manager::scrapping_manager_worker", skip(self))]
     async fn run_scrapping_worker(&mut self) -> Result<()> {
         tokio::time::sleep(Duration::from_millis({
             self.context.config.read().await.scrapper_start_sleep
         }))
         .await;
 
-        let agent_join_handle = if {
-            let erg = { self.context.config.read().await.scrap_agents };
-            erg
-        } {
+        let erg = { self.context.config.read().await.scrap_agents };
+        let agent_join_handle = if erg {
             let api = self.context.api.clone();
             let database_pool = self.context.database_pool.clone();
             let cancel_token = self.cancel_token.child_token();
@@ -77,42 +77,46 @@ impl ScrappingManager {
             tokio::spawn(async move { Ok(()) })
         };
 
+        let erg = { self.context.config.read().await.update_all_systems };
         let system_join_handle: tokio::task::JoinHandle<
             std::result::Result<(), crate::error::Error>,
-        > = if {
-            let erg = { self.context.config.read().await.update_all_systems };
-            erg
-        } {
+        > = if erg {
             let api = self.context.api.clone();
             let database_pool = self.context.database_pool.clone();
 
-            tokio::spawn(async move {
-                crate::manager::scrapping_manager::utils::update_all_systems(&database_pool, &api)
+            tokio::spawn(
+                async move {
+                    crate::manager::scrapping_manager::utils::update_all_systems(
+                        &database_pool,
+                        &api,
+                    )
                     .await?;
-                let gates = database::Waypoint::get_all(&database_pool)
-                    .await?
-                    .into_iter()
-                    .filter(|w| w.is_jump_gate())
-                    .filter(|w| w.is_charted())
-                    .map(|w| {
-                        let chart = w.is_charted();
-                        (w.system_symbol, w.symbol, chart)
-                    })
-                    .collect::<Vec<_>>();
-                let jump_gates =
-                    crate::manager::scrapping_manager::utils::get_all_jump_gates(&api, gates)
-                        .await?;
+                    let gates = database::Waypoint::get_all(&database_pool)
+                        .await?
+                        .into_iter()
+                        .filter(|w| w.is_jump_gate())
+                        .filter(|w| w.is_charted())
+                        .map(|w| {
+                            let chart = w.is_charted();
+                            (w.system_symbol, w.symbol, chart)
+                        })
+                        .collect::<Vec<_>>();
+                    let jump_gates =
+                        crate::manager::scrapping_manager::utils::get_all_jump_gates(&api, gates)
+                            .await?;
 
-                let jump_gates_len = jump_gates.len();
-                crate::manager::scrapping_manager::utils::update_jump_gates(
-                    &database_pool,
-                    jump_gates,
-                )
-                .await?;
-                debug!("Updated jump gates {}", jump_gates_len);
+                    let jump_gates_len = jump_gates.len();
+                    crate::manager::scrapping_manager::utils::update_jump_gates(
+                        &database_pool,
+                        jump_gates,
+                    )
+                    .await?;
+                    debug!("Updated jump gates {}", jump_gates_len);
 
-                Ok(())
-            })
+                    Ok(())
+                }
+                .instrument(tracing::info_span!("spacetraders::manager::scrapping_update_systems")),
+            )
         } else {
             tokio::spawn(async move { Ok(()) })
         };
@@ -155,6 +159,11 @@ impl ScrappingManager {
         Ok(())
     }
 
+    #[tracing::instrument(
+        level = "info",
+        name = "spacetraders::manager::scrapping_agent_worker",
+        skip(api, database_pool, cancel_token)
+    )]
     async fn run_agent_worker(
         api: &space_traders_client::Api,
         database_pool: &DbPool,

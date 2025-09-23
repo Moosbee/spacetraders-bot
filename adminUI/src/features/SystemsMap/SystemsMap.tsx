@@ -3,6 +3,7 @@ import { backendUrl } from "../../data";
 import { SQLSystem } from "../../models/SQLSystem";
 import { useAppSelector } from "../../redux/hooks";
 import { selectSelectedSystemSymbol } from "../../redux/slices/mapSlice";
+import { selectAllShipsArray } from "../../redux/slices/shipSlice";
 import { systemIcons } from "../../utils/waypointColors";
 import classes from "./SystemsMap.module.css";
 
@@ -90,7 +91,7 @@ function drawSystems(
     const r = Math.min(Math.abs(zoom / 2), 10);
     if (system.has_my_ships) {
       context.beginPath();
-      context.arc(x, y, r * 1.5, 0, 2 * Math.PI);
+      context.arc(x, y, r * 10.5, 0, 2 * Math.PI);
       context.fillStyle = "#ffffff";
       context.fill();
     }
@@ -151,6 +152,15 @@ function SystemsMap({
   }, []);
 
   const selectedSystem = useAppSelector(selectSelectedSystemSymbol);
+  const ships = useAppSelector(selectAllShipsArray);
+
+  const systemWithShips = useMemo(() => {
+    const systemsSet = new Set<string>();
+    for (const ship of ships) {
+      systemsSet.add(ship.nav.system_symbol);
+    }
+    return systemsSet;
+  }, [ships]);
 
   const calcSystems: Record<
     string,
@@ -171,6 +181,9 @@ function SystemsMap({
         xOne: (system.x - wpMinX) / (wpMaxX - wpMinX),
         yOne: (system.y - wpMinY) / (wpMaxY - wpMinY),
       };
+      if (systemWithShips.has(system.symbol)) {
+        wp[system.symbol].system.has_my_ships = true;
+      }
     }
 
     return wp;

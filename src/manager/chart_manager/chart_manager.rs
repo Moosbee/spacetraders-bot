@@ -49,6 +49,11 @@ impl ChartManager {
         }
     }
 
+    #[tracing::instrument(
+        level = "info",
+        name = "spacetraders::manager::chart_manager_worker",
+        skip(self)
+    )]
     async fn run_chart_worker(&mut self) -> Result<()> {
         while !self.cancel_token.is_cancelled() {
             let message = tokio::select! {

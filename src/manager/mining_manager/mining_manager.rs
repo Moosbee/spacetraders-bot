@@ -68,6 +68,7 @@ impl MiningManager {
         }
     }
 
+    #[tracing::instrument(level = "info", name = "spacetraders::manager::mining_manager_worker", skip(self))]
     async fn run_mining_worker(&mut self) -> Result<()> {
         debug!("Starting MiningManager worker");
         while !self.cancel_token.is_cancelled() {

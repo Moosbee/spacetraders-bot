@@ -52,6 +52,11 @@ impl FleetManager {
         }
     }
 
+    #[tracing::instrument(
+        level = "info",
+        name = "spacetraders::manager::fleet_manager_worker",
+        skip(self)
+    )]
     async fn run_fleet_worker(&mut self) -> std::result::Result<(), crate::error::Error> {
         while !self.cancel_token.is_cancelled() {
             let message = tokio::select! {

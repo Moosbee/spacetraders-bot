@@ -3,6 +3,7 @@ use std::sync::{atomic::AtomicI32, Arc};
 use chrono::Utc;
 use database::DatabaseConnector;
 use log::debug;
+use tracing::instrument;
 use utils::WaypointCan;
 
 use crate::{
@@ -24,6 +25,8 @@ impl ScraperPilot {
             count: Arc::new(AtomicI32::new(0)),
         }
     }
+
+    #[instrument(level = "info", name = "spacetraders::pilot::pilot_scraper", skip(self, pilot), fields(self.ship_symbol = %self.ship_symbol, scrap_waypoint = tracing::field::Empty, scrap_date = tracing::field::Empty))]
     pub async fn execute_pilot_circle(&self, pilot: &super::Pilot) -> Result<()> {
         let mut erg = pilot.context.ship_manager.get_mut(&self.ship_symbol).await;
         let ship = erg
@@ -56,6 +59,9 @@ impl ScraperPilot {
                 date,
             } => (waypoint_symbol, date),
         };
+
+        tracing::Span::current().record("scrap_waypoint", &waypoint_symbol);
+        tracing::Span::current().record("scrap_date", date.to_rfc3339());
 
         let erg = self.scrap(ship, waypoint_symbol.clone(), date).await;
 

@@ -13,6 +13,7 @@ use log::debug;
 use mining::MiningPilot;
 use scraper::ScraperPilot;
 use tokio_util::sync::CancellationToken;
+use tracing::instrument;
 use trading::TradingPilot;
 use transfer::TransferPilot;
 
@@ -60,6 +61,7 @@ impl Pilot {
         self.cancellation_token.clone()
     }
 
+    #[instrument(level = "info", name = "spacetraders::pilot::pilot_ship", skip(self), fields(self.ship_symbol = %self.ship_symbol))]
     pub async fn pilot_ship(&self) -> Result<()> {
         debug!("Starting pilot for ship {}", self.ship_symbol);
         tokio::time::sleep(std::time::Duration::from_millis(

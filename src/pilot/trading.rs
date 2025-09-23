@@ -2,6 +2,7 @@ use std::sync::{atomic::AtomicI32, Arc};
 
 use log::{debug, info};
 use tokio::select;
+use tracing::instrument;
 
 use crate::{
     error::{Error, Result},
@@ -22,6 +23,8 @@ impl TradingPilot {
             count: Arc::new(AtomicI32::new(0)),
         }
     }
+
+    #[instrument(level = "info", name = "spacetraders::pilot::pilot_trading", skip(self, pilot), fields(self.ship_symbol = %self.ship_symbol, trade_route))]
     pub async fn execute_pilot_circle(&self, pilot: &crate::pilot::Pilot) -> Result<()> {
         let mut erg = pilot.context.ship_manager.get_mut(&self.ship_symbol).await;
         let ship = erg
@@ -59,6 +62,8 @@ impl TradingPilot {
         };
 
         ship.notify().await;
+
+        tracing::Span::current().record("trade_route", format!("{:?}", route));
 
         info!("Starting trade route for ship {}: {}", ship.symbol, route);
         self.execute_trade(ship, &route, pilot).await?;

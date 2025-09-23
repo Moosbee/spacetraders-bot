@@ -5,6 +5,7 @@ use std::{
 
 use database::DatabaseConnector;
 use ship::status::MiningShipAssignment;
+use tracing::instrument;
 
 use crate::{error::Result, utils::ConductorContext};
 
@@ -21,6 +22,7 @@ impl SurveyPilot {
         }
     }
 
+    #[instrument(level = "info", name = "spacetraders::pilot::pilot_survey", skip(self, pilot), fields(self.ship_symbol = pilot.ship_symbol, waypoint))]
     pub async fn execute_survey_circle(
         &self,
         ship: &mut ship::MyShip,
@@ -34,6 +36,8 @@ impl SurveyPilot {
         }
 
         let waypoint = waypoint.unwrap();
+
+        tracing::Span::current().record("waypoint", &waypoint);
 
         ship.status = ship::ShipStatus::Mining {
             assignment: MiningShipAssignment::Surveyor {

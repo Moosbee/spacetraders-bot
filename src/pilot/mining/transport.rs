@@ -6,6 +6,7 @@ use std::{
 use log::{debug, info, warn};
 use ship::status::{MiningShipAssignment, TransporterState};
 use space_traders_client::models;
+use tracing::instrument;
 
 use crate::{
     error::Result,
@@ -26,6 +27,7 @@ impl TransportPilot {
         }
     }
 
+    #[instrument(level = "info", name = "spacetraders::pilot::pilot_transport", skip(self, pilot), fields(self.ship_symbol = pilot.ship_symbol))]
     pub async fn execute_transport_circle(
         &self,
         ship: &mut ship::MyShip,

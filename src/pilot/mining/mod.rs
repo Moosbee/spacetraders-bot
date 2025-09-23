@@ -4,6 +4,7 @@ mod transport;
 
 use log::debug;
 use ship::status::MiningShipAssignment;
+use tracing::instrument;
 
 use crate::{
     error::{Error, Result},
@@ -29,6 +30,7 @@ impl MiningPilot {
         }
     }
 
+    #[instrument(level = "info", name = "spacetraders::pilot::pilot_mining", skip(self, pilot), fields(self.ship_symbol = %self.ship_symbol))]
     pub async fn execute_pilot_circle(&self, pilot: &super::Pilot) -> Result<()> {
         let mut erg = pilot.context.ship_manager.get_mut(&self.ship_symbol).await;
         let ship = erg
