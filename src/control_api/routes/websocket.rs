@@ -2,6 +2,7 @@ use super::*;
 use crate::control_api::types::{WsData, WsObject};
 use futures::{FutureExt, StreamExt};
 use tokio_stream::wrappers::BroadcastStream;
+use tracing::instrument;
 
 pub fn build_ws_routes(
     ship_rx: MyReceiver<ship::MyShip>,
@@ -21,12 +22,12 @@ pub fn build_ws_routes(
         )
 }
 
+#[instrument(skip(websocket, ship_rx, agent_rx))]
 async fn handle_ws_connection(
     websocket: warp::ws::WebSocket,
     ship_rx: MyReceiver<ship::MyShip>,
     agent_rx: MyReceiver<database::Agent>,
 ) {
-    log::info!("New websocket connection");
     let (tx, _rx) = websocket.split();
 
     let ship_stream = BroadcastStream::new(ship_rx.0)
@@ -55,10 +56,9 @@ async fn handle_ws_connection(
 
     let forward_future = combined_stream.forward(tx).map(|result| {
         if let Err(e) = result {
-            log::error!("websocket error: {:?}", e);
+            tracing::error!("websocket error: {:?}", e);
         }
     });
 
-    forward_future.await;
-    log::info!("Websocket connection closed");
+    let _result = forward_future.await;
 }

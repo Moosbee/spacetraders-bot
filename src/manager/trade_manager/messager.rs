@@ -1,4 +1,4 @@
-use log::debug;
+use tracing::debug;
 
 use crate::{error::Error, manager::fleet_manager::message::RequiredShips};
 

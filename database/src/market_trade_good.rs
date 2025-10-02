@@ -1,4 +1,5 @@
 use space_traders_client::models;
+use tracing::instrument;
 
 use super::{DatabaseConnector, DbPool};
 
@@ -48,6 +49,7 @@ impl MarketTradeGood {
 }
 
 impl DatabaseConnector<MarketTradeGood> for MarketTradeGood {
+    #[instrument(level = "trace", skip(database_pool))]
     async fn insert(database_pool: &DbPool, item: &MarketTradeGood) -> crate::Result<()> {
         sqlx::query!(
             r#"
@@ -77,6 +79,7 @@ impl DatabaseConnector<MarketTradeGood> for MarketTradeGood {
         Ok(())
     }
 
+    #[instrument(level = "trace", skip(database_pool, items))]
     async fn insert_bulk(database_pool: &DbPool, items: &[MarketTradeGood]) -> crate::Result<()> {
         let (
             m_symbol,
@@ -147,6 +150,7 @@ impl DatabaseConnector<MarketTradeGood> for MarketTradeGood {
         Ok(())
     }
 
+    #[instrument(level = "trace", skip(database_pool))]
     async fn get_all(database_pool: &DbPool) -> crate::Result<Vec<MarketTradeGood>> {
         let erg = sqlx::query_as!(
             MarketTradeGood,
@@ -173,6 +177,7 @@ impl DatabaseConnector<MarketTradeGood> for MarketTradeGood {
 }
 
 impl MarketTradeGood {
+    #[instrument(level = "trace", skip(database_pool))]
     pub async fn get_by_waypoint(
         database_pool: &DbPool,
         waypoint_symbol: &str,
@@ -202,6 +207,7 @@ impl MarketTradeGood {
         Ok(erg)
     }
 
+    #[instrument(level = "trace", skip(database_pool))]
     pub async fn get_last_by_waypoint(
         database_pool: &DbPool,
         waypoint_symbol: &str,
@@ -231,6 +237,7 @@ impl MarketTradeGood {
         Ok(erg)
     }
 
+    #[instrument(level = "trace", skip(database_pool))]
     pub async fn get_last_by_symbol(
         database_pool: &DbPool,
         trade_symbol: &models::TradeSymbol,
@@ -261,6 +268,7 @@ impl MarketTradeGood {
         Ok(row)
     }
 
+    #[instrument(level = "trace", skip(database_pool))]
     pub async fn get_last(database_pool: &DbPool) -> crate::Result<Vec<MarketTradeGood>> {
         let erg = sqlx::query_as!(
             MarketTradeGood,
@@ -285,6 +293,7 @@ impl MarketTradeGood {
         Ok(erg)
     }
 
+    #[instrument(level = "trace", skip(database_pool))]
     pub async fn get_last_by_system(
         database_pool: &DbPool,
         system_symbol: &str,

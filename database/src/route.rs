@@ -1,4 +1,5 @@
 use chrono::{DateTime, Utc};
+use tracing::instrument;
 
 use super::DatabaseConnector;
 
@@ -18,6 +19,7 @@ pub struct Route {
 }
 
 impl DatabaseConnector<Route> for Route {
+    #[instrument(level = "trace", skip(database_pool))]
     async fn insert(database_pool: &super::DbPool, item: &Route) -> crate::Result<()> {
         sqlx::query!(
             r#"
@@ -61,6 +63,7 @@ impl DatabaseConnector<Route> for Route {
         Ok(())
     }
 
+    #[instrument(level = "trace", skip(database_pool, items))]
     async fn insert_bulk(database_pool: &super::DbPool, items: &[Route]) -> crate::Result<()> {
         for item in items {
             Self::insert(database_pool, item).await?;
@@ -69,6 +72,7 @@ impl DatabaseConnector<Route> for Route {
         Ok(())
     }
 
+    #[instrument(level = "trace", skip(database_pool))]
     async fn get_all(database_pool: &super::DbPool) -> crate::Result<Vec<Route>> {
         let erg = sqlx::query_as!(
             Route,

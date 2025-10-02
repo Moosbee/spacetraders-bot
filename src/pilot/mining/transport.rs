@@ -3,9 +3,9 @@ use std::{
     sync::{atomic::AtomicI32, Arc},
 };
 
-use log::{debug, info, warn};
 use ship::status::{MiningShipAssignment, TransporterState};
 use space_traders_client::models;
+use tracing::debug;
 use tracing::instrument;
 
 use crate::{
@@ -27,7 +27,7 @@ impl TransportPilot {
         }
     }
 
-    #[instrument(level = "info", name = "spacetraders::pilot::pilot_transport", skip(self, pilot), fields(self.ship_symbol = pilot.ship_symbol))]
+    #[instrument(level = "info", name = "spacetraders::pilot::pilot_transport", skip(self, pilot, ship), fields(self.ship_symbol = pilot.ship_symbol))]
     pub async fn execute_transport_circle(
         &self,
         ship: &mut ship::MyShip,
@@ -68,7 +68,7 @@ impl TransportPilot {
                 let next_err = next_mining_waypoint.unwrap_err();
                 if let crate::error::Error::General(err_r) = &next_err {
                     if err_r == "No routes found" {
-                        info!("No more mining waypoints");
+                        tracing::info!("No more mining waypoints");
                         tokio::time::sleep(std::time::Duration::from_millis(
                             1000 + rand::random::<u64>() % 500,
                         ))
@@ -206,15 +206,18 @@ impl TransportPilot {
                 }
                 Some(transfer_request) => {
                     debug!("Received transfer request for ship: {}", ship.symbol);
+                    let from = transfer_request.from_symbol.clone();
+                    let to = transfer_request.to_symbol.clone();
                     let erg = self.handle_transfer_request(ship, transfer_request).await;
-                    if let Err(err) = erg {
-                        log::error!(
-                            "Failed to handle transfer request: {} and also {:?} on ship: {}",
-                            err,
-                            err,
-                            ship.symbol
+                    if let Err(error) = erg {
+                        tracing::error!(
+                            ship_symbol = ship.symbol,
+                            to_symbol = to,
+                            from_symbol = from,
+                            error = format!("{} {:?}", error, error),
+                            "Transfer request failed",
                         );
-                        return Err(err);
+                        return Err(error);
                     }
                 }
             }
@@ -248,7 +251,10 @@ impl TransportPilot {
 
         if let Err(err) = erg {
             // the mining ship had dropped
-            log::error!("Failed to send message to extractor: {}", err);
+            tracing::error!(
+              error=?err,
+              "Failed to send message to extractor",
+            );
             let _erg = request.callback.send(());
 
             return Ok(());
@@ -259,7 +265,10 @@ impl TransportPilot {
         let transfer = match transfer {
             Ok(transfer) => transfer,
             Err(e) => {
-                log::error!("Failed to receive message from extractor: {}", e);
+                tracing::error!(
+                  error=?e,
+                  "Failed to send message to extractor",
+                );
                 return Ok(());
             }
         };
@@ -289,7 +298,7 @@ impl TransportPilot {
     ) -> Result<()> {
         while ship.cargo.get_units_no_fuel() > 0 {
             if pilot.cancellation_token.is_cancelled() {
-                info!("Transport cycle cancelled for {} ", ship.symbol);
+                tracing::info!("Transport cycle cancelled for {} ", ship.symbol);
                 break;
             }
 
@@ -412,15 +421,16 @@ impl TransportPilot {
 
         for trade in trade_symbols {
             if !possible_trades.iter().any(|t| t.symbol == trade) {
-                warn!(
-                    "Trade symbol {} not found in market: {}",
-                    trade, ship.nav.waypoint_symbol
+                tracing::warn!(
+                    ship_symbol = ship.symbol,
+                    trade_symbol = trade.to_string(),
+                    "Skipping trade as not in market"
                 );
                 continue;
             }
             let amount = ship.cargo.get_amount(&trade);
             if amount == 0 {
-                info!("Skipping {} as cargo is empty", trade);
+                tracing::info!("Skipping {} as cargo is empty", trade);
                 continue;
             }
             debug!("Selling {} units of {} for {}", amount, trade, ship.symbol);

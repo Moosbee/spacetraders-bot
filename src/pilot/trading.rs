@@ -1,7 +1,7 @@
 use std::sync::{atomic::AtomicI32, Arc};
 
-use log::{debug, info};
 use tokio::select;
+use tracing::debug;
 use tracing::instrument;
 
 use crate::{
@@ -65,7 +65,6 @@ impl TradingPilot {
 
         tracing::Span::current().record("trade_route", format!("{:?}", route));
 
-        info!("Starting trade route for ship {}: {}", ship.symbol, route);
         self.execute_trade(ship, &route, pilot).await?;
         let _completed_route = self.context.trade_manager.complete_trade(&route).await?;
         ship.status = ship::ShipStatus::Trader {
@@ -99,6 +98,7 @@ impl TradingPilot {
         Ok(())
     }
 
+    #[instrument(level = "info", name = "spacetraders::pilot::execute_trade", skip(self, ship, pilot), fields(self.ship_symbol = %self.ship_symbol, trade_route = ?route))]
     async fn execute_trade(
         &self,
         ship: &mut ship::MyShip,

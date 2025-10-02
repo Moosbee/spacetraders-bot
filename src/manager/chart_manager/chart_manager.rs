@@ -1,8 +1,8 @@
 use std::collections::{HashMap, HashSet};
 
 use database::{DatabaseConnector, JumpGateConnection};
-use log::debug;
 use space_traders_client::models::{self};
+use tracing::debug;
 use utils::{distance_between_waypoints, get_system_symbol, WaypointCan};
 
 use crate::{
@@ -96,6 +96,11 @@ impl ChartManager {
         Ok(())
     }
 
+    #[tracing::instrument(
+        level = "info",
+        name = "spacetraders::manager::chart_manager_get_required_ships",
+        skip(all_ships, all_systems_hashmap, connection_hash_map)
+    )]
     pub fn get_required_ships(
         all_ships: &[ship::MyShip],
         all_systems_hashmap: &HashMap<String, HashMap<String, database::Waypoint>>,

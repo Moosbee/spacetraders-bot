@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
 use database::DatabaseConnector;
-use log::debug;
 use space_traders_client::{models, Api};
+use tracing::debug;
 
 pub async fn update_all_systems(
     database_pool: &database::DbPool,
@@ -23,7 +23,7 @@ pub async fn update_all_systems(
     for system in &all_systems {
         let erg = update_system(database_pool, api, &system.symbol, false).await;
         if let Err(e) = erg {
-            log::error!("Error updating system {}: {}", system.symbol, e);
+            tracing::error!("Error updating system {}: {}", system.symbol, e);
         }
     }
 
@@ -47,7 +47,7 @@ pub async fn update_system(
         match waypoints {
             Ok(waypoints) => break waypoints,
             Err(e) => {
-                log::error!("Error getting waypoints: {}", e);
+                tracing::error!("Error getting waypoints: {}", e);
                 std::thread::sleep(std::time::Duration::from_millis(1000));
             }
         }

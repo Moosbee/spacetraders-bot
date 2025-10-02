@@ -1,4 +1,5 @@
 use space_traders_client::models;
+use tracing::instrument;
 
 use super::DatabaseConnector;
 
@@ -32,6 +33,7 @@ impl From<models::ship_mount::ShipMount> for MountInfo {
 }
 
 impl DatabaseConnector<MountInfo> for MountInfo {
+    #[instrument(level = "trace", skip(database_pool))]
     async fn insert(database_pool: &super::DbPool, item: &MountInfo) -> crate::Result<()> {
         let deposits = item.deposits.clone();
         sqlx::query!(
@@ -70,6 +72,7 @@ impl DatabaseConnector<MountInfo> for MountInfo {
         Ok(())
     }
 
+    #[instrument(level = "trace", skip(database_pool, items))]
     async fn insert_bulk(database_pool: &super::DbPool, items: &[MountInfo]) -> crate::Result<()> {
         for item in items {
             Self::insert(database_pool, item).await?;
@@ -77,6 +80,7 @@ impl DatabaseConnector<MountInfo> for MountInfo {
         Ok(())
     }
 
+    #[instrument(level = "trace", skip(database_pool))]
     async fn get_all(database_pool: &super::DbPool) -> crate::Result<Vec<MountInfo>> {
         let erg = sqlx::query_as!(
             MountInfo,

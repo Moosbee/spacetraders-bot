@@ -2,6 +2,7 @@ use std::str::FromStr;
 
 use chrono::{DateTime, Utc};
 use space_traders_client::models;
+use tracing::instrument;
 
 use super::DatabaseConnector;
 
@@ -27,6 +28,7 @@ impl TryFrom<models::ScrapTransaction> for ScrapTransaction {
 }
 
 impl DatabaseConnector<ScrapTransaction> for ScrapTransaction {
+    #[instrument(level = "trace", skip(database_pool, item))]
     async fn insert(database_pool: &super::DbPool, item: &ScrapTransaction) -> crate::Result<()> {
         sqlx::query!(
             r#"
@@ -49,6 +51,7 @@ impl DatabaseConnector<ScrapTransaction> for ScrapTransaction {
         Ok(())
     }
 
+    #[instrument(level = "trace", skip(database_pool, items))]
     async fn insert_bulk(
         database_pool: &super::DbPool,
         items: &[ScrapTransaction],
@@ -93,6 +96,7 @@ impl DatabaseConnector<ScrapTransaction> for ScrapTransaction {
         Ok(())
     }
 
+    #[instrument(level = "trace", skip(database_pool))]
     async fn get_all(database_pool: &super::DbPool) -> crate::Result<Vec<ScrapTransaction>> {
         let erg = sqlx::query_as!(
             ScrapTransaction,

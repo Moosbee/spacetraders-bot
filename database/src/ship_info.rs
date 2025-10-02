@@ -1,3 +1,5 @@
+use tracing::instrument;
+
 use super::DatabaseConnector;
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
@@ -103,6 +105,7 @@ impl TryFrom<&str> for ShipInfoRole {
 // }
 
 impl ShipInfo {
+    #[instrument(level = "trace", skip(database_pool))]
     pub async fn get_by_symbol(
         database_pool: &super::DbPool,
         symbol: &str,
@@ -122,6 +125,7 @@ impl ShipInfo {
         Ok(erg)
     }
 
+    #[instrument(level = "trace", skip(database_pool))]
     pub async fn get_by_role(
         database_pool: &super::DbPool,
         symbol: &ShipInfoRole,
@@ -142,6 +146,7 @@ impl ShipInfo {
 }
 
 impl DatabaseConnector<ShipInfo> for ShipInfo {
+    #[instrument(level = "trace", skip(database_pool))]
     async fn insert(database_pool: &super::DbPool, item: &ShipInfo) -> crate::Result<()> {
         sqlx::query!(
             r#"
@@ -172,6 +177,7 @@ impl DatabaseConnector<ShipInfo> for ShipInfo {
         Ok(())
     }
 
+    #[instrument(level = "trace", skip(database_pool, items))]
     async fn insert_bulk(database_pool: &super::DbPool, items: &[ShipInfo]) -> crate::Result<()> {
         let (symbol_s, display_name_s, role_s, active_s): (
             Vec<String>,
@@ -215,6 +221,7 @@ impl DatabaseConnector<ShipInfo> for ShipInfo {
         Ok(())
     }
 
+    #[instrument(level = "trace", skip(database_pool))]
     async fn get_all(database_pool: &super::DbPool) -> crate::Result<Vec<ShipInfo>> {
         let erg = sqlx::query_as! {
             ShipInfo,

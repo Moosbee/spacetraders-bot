@@ -1,5 +1,5 @@
-use log::debug;
 use space_traders_client::models;
+use tracing::debug;
 use utils::WaypointCan;
 
 use crate::utils::ConductorContext;

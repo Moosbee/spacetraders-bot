@@ -2,8 +2,8 @@ mod extraction;
 mod surveyor;
 mod transport;
 
-use log::debug;
 use ship::status::MiningShipAssignment;
+use tracing::debug;
 use tracing::instrument;
 
 use crate::{

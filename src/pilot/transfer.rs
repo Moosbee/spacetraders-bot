@@ -1,5 +1,5 @@
 use database::DatabaseConnector;
-use log::debug;
+use tracing::debug;
 use tracing::instrument;
 use utils::WaypointCan;
 

@@ -2,10 +2,10 @@ use std::sync::{atomic::AtomicI32, Arc};
 
 use database::DatabaseConnector;
 use futures::FutureExt;
-use log::{debug, info};
 use rand::seq::SliceRandom;
 use ship::status::{ExtractorState, MiningShipAssignment};
 use space_traders_client::models;
+use tracing::debug;
 use tracing::instrument;
 
 use crate::{
@@ -56,7 +56,7 @@ impl ExtractionPilot {
         }
     }
 
-    #[instrument(level = "info", name = "spacetraders::pilot::pilot_extraction", skip(self, pilot), fields(self.ship_symbol = pilot.ship_symbol, waypoint))]
+    #[instrument(level = "info", name = "spacetraders::pilot::pilot_extraction", skip(self, pilot, ship), fields(self.ship_symbol = pilot.ship_symbol, waypoint))]
     pub async fn execute_extraction_circle(
         &self,
         ship: &mut ship::MyShip,
@@ -310,10 +310,10 @@ impl ExtractionPilot {
                                 })
                                 .unwrap_or(false)
                             {
-                                log::warn!(
-                                    "Waypoint {} is destabilized by {}",
-                                    ship.nav.waypoint_symbol,
-                                    ship.symbol
+                                tracing::warn!(
+                                    ship_symbol = ship.symbol,
+                                    waypoint_symbol = ship.nav.waypoint_symbol,
+                                    "Waypoint destabilized",
                                 );
 
                                 let new_wp = database::Waypoint::get_by_symbol(
@@ -344,10 +344,10 @@ impl ExtractionPilot {
                                 .unwrap_or(false)
                             {
                                 let mut survey = survey.clone();
-                                log::warn!(
-                                    "Survey {} is exhausted by ship {}",
-                                    survey.signature,
-                                    ship.symbol
+                                tracing::warn!(
+                                    signature = survey.signature,
+                                    ship_symbol = ship.symbol,
+                                    "Survey exhausted",
                                 );
                                 survey.exhausted_since = Some(chrono::Utc::now());
                                 database::Survey::insert(&self.context.database_pool, &survey)
@@ -386,7 +386,7 @@ impl ExtractionPilot {
                             database::Extraction::insert(&self.context.database_pool, &extraction)
                                 .await?;
 
-                            info!(
+                            tracing::info!(
                                 "Extracted on ship: {} erg {:?} events: {:?}",
                                 erg.data.extraction.ship_symbol,
                                 erg.data.extraction.r#yield,
@@ -404,10 +404,10 @@ impl ExtractionPilot {
                                 .map(|e| e == models::error_codes::SHIP_EXTRACT_DESTABILIZED_ERROR)
                                 .unwrap_or(false)
                             {
-                                log::warn!(
-                                    "Waypoint {} is destabilized by {}",
-                                    ship.nav.waypoint_symbol,
-                                    ship.symbol
+                                tracing::warn!(
+                                    ship_symbol = ship.symbol,
+                                    waypoint_symbol = ship.nav.waypoint_symbol,
+                                    "Waypoint destabilized",
                                 );
 
                                 let new_wp = database::Waypoint::get_by_symbol(
@@ -457,7 +457,7 @@ impl ExtractionPilot {
                             database::Extraction::insert(&self.context.database_pool, &extraction)
                                 .await?;
 
-                            info!(
+                            tracing::info!(
                                 "Extracted on ship: {} erg {:?} events: {:?}",
                                 erg.data.extraction.ship_symbol,
                                 erg.data.extraction.r#yield,
@@ -488,9 +488,11 @@ impl ExtractionPilot {
 
                 database::Extraction::insert(&self.context.database_pool, &extraction).await?;
 
-                info!(
+                tracing::info!(
                     "Siphoned on ship: {} erg {:?} events: {:?}",
-                    erg.data.siphon.ship_symbol, erg.data.siphon.r#yield, erg.data.events
+                    erg.data.siphon.ship_symbol,
+                    erg.data.siphon.r#yield,
+                    erg.data.events
                 );
             }
         }
@@ -588,10 +590,12 @@ impl ExtractionPilot {
         debug!("Handling transfer request for ship: {}", ship.symbol);
 
         if ship.cargo.get_amount(&request.trade_symbol) < request.amount {
-            log::warn!(
-                "Ship {} does not have enough {} to transfer",
-                ship.symbol,
-                request.trade_symbol
+            tracing::warn!(
+                ship_symbol = ship.symbol,
+                to_symbol = request.to_symbol,
+                trade_symbol = request.trade_symbol.to_string(),
+                amount = request.amount,
+                "Not enough cargo to transfer",
             );
             let _erg = request.callback.send(None);
             return Ok(());
@@ -612,13 +616,12 @@ impl ExtractionPilot {
                 units: request.amount,
             }),
             Err(error) => {
-                log::error!(
-                    "Transfer request failed for ship: {} to {} error {} {:?} request: {:?}",
-                    ship.symbol,
-                    request.to_symbol,
-                    error,
-                    error,
-                    request
+                tracing::error!(
+                    ship_symbol = ship.symbol,
+                    to_symbol = request.to_symbol,
+                    error= format!("{} {:?}", error, error),
+                    request=?request,
+                    "Transfer request failed",
                 );
 
                 None

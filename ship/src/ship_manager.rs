@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::HashMap, fmt::Debug, sync::Arc};
 
 use lockable::{AsyncLimit, Lockable, LockableHashMap, SyncLimit};
 use tokio::sync::RwLock;
@@ -14,6 +14,19 @@ pub struct ShipManager {
     mpsc_rx: tokio::sync::broadcast::Receiver<MyShip>,
     id: u32,
     broadcaster: my_ship_update::InterShipBroadcaster,
+}
+
+impl Debug for ShipManager {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ShipManager")
+            // .field("locked_ships", &self.locked_ships)
+            // .field("copy", &self.copy)
+            .field("mpsc_tx", &self.mpsc_tx)
+            .field("mpsc_rx", &self.mpsc_rx)
+            .field("id", &self.id)
+            .field("broadcaster", &self.broadcaster)
+            .finish()
+    }
 }
 
 pub type ShipGuard<'a> = <LockableHashMap<String, MyShip> as Lockable<String, MyShip>>::Guard<'a>;

@@ -1,4 +1,5 @@
 use space_traders_client::models;
+use tracing::instrument;
 
 use super::{DatabaseConnector, DbPool, ShipmentStatus};
 
@@ -36,6 +37,7 @@ pub struct ConstructionShipmentSummary {
 }
 
 impl ConstructionShipment {
+    #[instrument(level = "trace", skip(database_pool))]
     pub async fn insert_new(
         database_pool: &DbPool,
         next_shipment: &ConstructionShipment,
@@ -74,6 +76,7 @@ impl ConstructionShipment {
         Ok(id.id)
     }
 
+    #[instrument(level = "trace", skip(database_pool))]
     pub async fn get_by_id(
         database_pool: &DbPool,
         id: i64,
@@ -104,6 +107,7 @@ impl ConstructionShipment {
         Ok(erg)
     }
 
+    #[instrument(level = "trace", skip(database_pool))]
     pub async fn get_all_in_transit(
         database_pool: &DbPool,
     ) -> crate::Result<Vec<ConstructionShipment>> {
@@ -131,6 +135,7 @@ impl ConstructionShipment {
         Ok(erg)
     }
 
+    #[instrument(level = "trace", skip(database_pool))]
     pub async fn get_summary(
         database_pool: &DbPool,
     ) -> crate::Result<Vec<ConstructionShipmentSummary>> {
@@ -178,6 +183,7 @@ impl ConstructionShipment {
 }
 
 impl DatabaseConnector<ConstructionShipment> for ConstructionShipment {
+    #[instrument(level = "trace", skip(database_pool))]
     async fn insert(database_pool: &DbPool, item: &ConstructionShipment) -> crate::Result<()> {
         sqlx::query!(
             r#"
@@ -224,6 +230,7 @@ impl DatabaseConnector<ConstructionShipment> for ConstructionShipment {
         Ok(())
     }
 
+    #[instrument(level = "trace", skip(database_pool, items))]
     async fn insert_bulk(
         database_pool: &DbPool,
         items: &[ConstructionShipment],
@@ -326,6 +333,7 @@ impl DatabaseConnector<ConstructionShipment> for ConstructionShipment {
         Ok(())
     }
 
+    #[instrument(level = "trace", skip(database_pool))]
     async fn get_all(database_pool: &DbPool) -> crate::Result<Vec<ConstructionShipment>> {
         let erg = sqlx::query_as!(
             ConstructionShipment,

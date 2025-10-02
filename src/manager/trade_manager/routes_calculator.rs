@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
-use log::debug;
 use space_traders_client::models;
+use tracing::debug;
 
 use crate::{error::Error, utils::ConductorContext};
 

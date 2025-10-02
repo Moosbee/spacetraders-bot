@@ -1,4 +1,5 @@
 use chrono::{DateTime, Utc};
+use tracing::instrument;
 
 use super::{DatabaseConnector, DbPool};
 
@@ -12,6 +13,7 @@ pub struct JumpGateConnection {
 }
 
 impl JumpGateConnection {
+    #[instrument(level = "trace", skip(database_pool))]
     pub async fn get_all_from(
         database_pool: &DbPool,
         from: &String,
@@ -37,6 +39,7 @@ impl JumpGateConnection {
 }
 
 impl DatabaseConnector<JumpGateConnection> for JumpGateConnection {
+    #[instrument(level = "trace", skip(database_pool))]
     async fn insert(database_pool: &DbPool, item: &JumpGateConnection) -> crate::Result<()> {
         sqlx::query!(
             r#"
@@ -57,6 +60,7 @@ impl DatabaseConnector<JumpGateConnection> for JumpGateConnection {
         Ok(())
     }
 
+    #[instrument(level = "trace", skip(database_pool, items))]
     async fn insert_bulk(
         database_pool: &DbPool,
         items: &[JumpGateConnection],
@@ -90,6 +94,7 @@ impl DatabaseConnector<JumpGateConnection> for JumpGateConnection {
         Ok(())
     }
 
+    #[instrument(level = "trace", skip(database_pool))]
     async fn get_all(database_pool: &DbPool) -> crate::Result<Vec<JumpGateConnection>> {
         let erg = sqlx::query_as!(
             JumpGateConnection,

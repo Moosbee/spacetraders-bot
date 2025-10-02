@@ -1,3 +1,5 @@
+use tracing::instrument;
+
 use crate::{DatabaseConnector, DbPool, ShipInfoRole};
 
 #[derive(Debug, Clone)]
@@ -11,6 +13,7 @@ pub struct ShipTransfer {
 }
 
 impl ShipTransfer {
+    #[instrument(level = "trace", skip(database_pool))]
     pub async fn insert_new(database_pool: &DbPool, item: &ShipTransfer) -> crate::Result<i64> {
         let id = sqlx::query!(
             r#"
@@ -35,6 +38,7 @@ impl ShipTransfer {
         Ok(id.id)
     }
 
+    #[instrument(level = "trace", skip(database_pool))]
     pub async fn get_unfinished(database_pool: &DbPool) -> crate::Result<Vec<ShipTransfer>> {
         let erg = sqlx::query_as!(
             ShipTransfer,
@@ -57,6 +61,7 @@ impl ShipTransfer {
 }
 
 impl DatabaseConnector<ShipTransfer> for ShipTransfer {
+    #[instrument(level = "trace", skip(database_pool))]
     async fn insert(database_pool: &DbPool, item: &ShipTransfer) -> crate::Result<()> {
         sqlx::query!(
             r#"
@@ -88,6 +93,7 @@ impl DatabaseConnector<ShipTransfer> for ShipTransfer {
         Ok(())
     }
 
+    #[instrument(level = "trace", skip(database_pool, items))]
     async fn insert_bulk(database_pool: &DbPool, items: &[ShipTransfer]) -> crate::Result<()> {
         let (ship_symbols, system_symbols, roles, finished_values, reserved_funds): (
             Vec<String>,
@@ -139,6 +145,7 @@ impl DatabaseConnector<ShipTransfer> for ShipTransfer {
         Ok(())
     }
 
+    #[instrument(level = "trace", skip(database_pool))]
     async fn get_all(database_pool: &DbPool) -> crate::Result<Vec<ShipTransfer>> {
         let erg = sqlx::query_as!(
             ShipTransfer,

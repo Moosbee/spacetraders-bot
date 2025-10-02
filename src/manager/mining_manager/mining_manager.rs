@@ -1,7 +1,7 @@
 use std::{collections::HashMap, sync::Arc};
 
-use log::{debug, info};
 use space_traders_client::models::{self};
+use tracing::debug;
 use utils::WaypointCan;
 
 use crate::{
@@ -68,7 +68,11 @@ impl MiningManager {
         }
     }
 
-    #[tracing::instrument(level = "info", name = "spacetraders::manager::mining_manager_worker", skip(self))]
+    #[tracing::instrument(
+        level = "info",
+        name = "spacetraders::manager::mining_manager_worker",
+        skip(self)
+    )]
     async fn run_mining_worker(&mut self) -> Result<()> {
         debug!("Starting MiningManager worker");
         while !self.cancel_token.is_cancelled() {
@@ -108,6 +112,11 @@ impl MiningManager {
         Ok(())
     }
 
+    #[tracing::instrument(
+        level = "info",
+        name = "spacetraders::manager::mining_manager_get_required_ships",
+        skip(context)
+    )]
     pub async fn get_required_ships(context: &ConductorContext) -> Result<RequiredShips> {
         let all_ships = context
             .ship_manager
@@ -326,7 +335,10 @@ impl MiningManager {
                 ship_clone,
                 callback,
             } => {
-                debug!("Waypoint unassignment complete for ship: {:?}", ship_clone);
+                debug!(
+                    "Waypoint unassignment complete for ship: {:?}",
+                    ship_clone.symbol
+                );
                 let erg = self
                     .waypoint_manager
                     .unassign_waypoint_complete(ship_clone)
@@ -537,9 +549,12 @@ impl MiningManager {
                 .transfer_manager
                 .viable(&extractor.ship_symbol, &transporter.ship_symbol)
         {
-            info!(
-                "Processing transfer: {} of {} from {:?} to {:?}",
-                transfer_amount, trade_symbol, extractor.ship_symbol, transporter.ship_symbol
+            tracing::info!(
+                transfer_amount = transfer_amount,
+                trade_symbol = trade_symbol.to_string(),
+                extractor_ship_symbol = extractor.ship_symbol,
+                transporter_ship_symbol = transporter.ship_symbol,
+                "Processing transfer",
             );
             let erg = self
                 .transfer_manager
@@ -607,10 +622,7 @@ impl MiningManager {
 
                 Ok(route.0.clone())
             }
-            None => {
-                info!("No routes found for {}", ship_clone.symbol);
-                Err("No routes found".into())
-            }
+            None => Err("No routes found".into()),
         }
     }
 }

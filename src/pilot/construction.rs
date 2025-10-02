@@ -1,7 +1,7 @@
 use std::sync::{atomic::AtomicI32, Arc};
 
-use log::debug;
 use space_traders_client::models;
+use tracing::debug;
 use tracing::instrument;
 
 use crate::{

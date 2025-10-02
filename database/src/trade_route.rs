@@ -1,4 +1,5 @@
 use space_traders_client::models;
+use tracing::instrument;
 
 use super::{DatabaseConnector, DbPool, ShipmentStatus};
 
@@ -78,6 +79,7 @@ impl std::fmt::Display for TradeRoute {
 }
 
 impl DatabaseConnector<TradeRoute> for TradeRoute {
+    #[instrument(level = "trace", skip(database_pool))]
     async fn insert(database_pool: &DbPool, item: &TradeRoute) -> crate::Result<()> {
         sqlx::query!(
             r#"
@@ -125,6 +127,7 @@ impl DatabaseConnector<TradeRoute> for TradeRoute {
         Ok(())
     }
 
+    #[instrument(level = "trace", skip(database_pool, items))]
     async fn insert_bulk(
         database_pool: &DbPool,
         items: &[crate::trade_route::TradeRoute],
@@ -213,6 +216,7 @@ impl DatabaseConnector<TradeRoute> for TradeRoute {
         Ok(())
     }
 
+    #[instrument(level = "trace", skip(database_pool))]
     async fn get_all(database_pool: &DbPool) -> crate::Result<Vec<TradeRoute>> {
         let erg = sqlx::query_as!(
             TradeRoute,
@@ -239,6 +243,7 @@ impl DatabaseConnector<TradeRoute> for TradeRoute {
 }
 
 impl TradeRoute {
+    #[instrument(level = "trace", skip(database_pool))]
     pub async fn insert_new(database_pool: &DbPool, item: &TradeRoute) -> crate::Result<i32> {
         struct Erg {
             id: i32,
@@ -287,6 +292,7 @@ impl TradeRoute {
         Ok(erg.id)
     }
 
+    #[instrument(level = "trace", skip(database_pool))]
     pub async fn get_unfinished(database_pool: &DbPool) -> crate::Result<Vec<TradeRoute>> {
         let erg = sqlx::query_as!(
             TradeRoute,
@@ -311,6 +317,7 @@ impl TradeRoute {
         Ok(erg)
     }
 
+    #[instrument(level = "trace", skip(database_pool))]
     pub async fn get_summarys(database_pool: &DbPool) -> crate::Result<Vec<TradeRouteSummary>> {
         let erg= sqlx::query_as!(
             TradeRouteSummary,

@@ -1,7 +1,7 @@
 use std::sync::{atomic::AtomicI32, Arc};
 
 use database::DatabaseConnector;
-use log::debug;
+use tracing::debug;
 use tracing::instrument;
 use utils::WaypointCan;
 

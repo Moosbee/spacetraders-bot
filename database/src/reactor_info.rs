@@ -1,4 +1,5 @@
 use space_traders_client::models;
+use tracing::instrument;
 
 use super::DatabaseConnector;
 
@@ -27,6 +28,7 @@ impl From<models::ship_reactor::ShipReactor> for ReactorInfo {
 }
 
 impl DatabaseConnector<ReactorInfo> for ReactorInfo {
+    #[instrument(level = "trace", skip(database_pool, item))]
     async fn insert(database_pool: &super::DbPool, item: &ReactorInfo) -> crate::Result<()> {
         sqlx::query!(
             r#"
@@ -61,6 +63,7 @@ impl DatabaseConnector<ReactorInfo> for ReactorInfo {
         Ok(())
     }
 
+    #[instrument(level = "trace", skip(database_pool, items))]
     async fn insert_bulk(
         database_pool: &super::DbPool,
         items: &[ReactorInfo],
@@ -127,6 +130,7 @@ impl DatabaseConnector<ReactorInfo> for ReactorInfo {
         Ok(())
     }
 
+    #[instrument(level = "trace", skip(database_pool))]
     async fn get_all(database_pool: &super::DbPool) -> crate::Result<Vec<ReactorInfo>> {
         let erg = sqlx::query_as!(
             ReactorInfo,

@@ -271,9 +271,9 @@ pub(crate) fn build_api_routes(
         .and(warp::path::end())
         .and(warp::post())
         .map(move || {
-            log::info!("Shutting down server");
+            let span = tracing::info_span!("shutdown");
+            let _enter = span.enter();
             ship_cancellation_token.cancel();
-            log::debug!("Shut down server");
 
             warp::reply()
         });

@@ -2,6 +2,7 @@ use std::str::FromStr;
 
 use chrono::{DateTime, Utc};
 use space_traders_client::models;
+use tracing::instrument;
 
 use super::DatabaseConnector;
 
@@ -34,6 +35,7 @@ impl TryFrom<models::ShipyardTransaction> for ShipyardTransaction {
 }
 
 impl ShipyardTransaction {
+    #[instrument(level = "trace", skip(database_pool))]
     pub async fn get_by_waypoint(
         database_pool: &super::DbPool,
         waypoint_symbol: &str,
@@ -57,6 +59,7 @@ impl ShipyardTransaction {
         Ok(erg)
     }
 
+    #[instrument(level = "trace", skip(database_pool))]
     pub async fn get_by_system(
         database_pool: &super::DbPool,
         system: &str,
@@ -83,6 +86,7 @@ impl ShipyardTransaction {
 }
 
 impl DatabaseConnector<ShipyardTransaction> for ShipyardTransaction {
+    #[instrument(level = "trace", skip(database_pool))]
     async fn insert(
         database_pool: &super::DbPool,
         item: &ShipyardTransaction,
@@ -110,6 +114,7 @@ impl DatabaseConnector<ShipyardTransaction> for ShipyardTransaction {
         Ok(())
     }
 
+    #[instrument(level = "trace", skip(database_pool, items))]
     async fn insert_bulk(
         database_pool: &super::DbPool,
         items: &[ShipyardTransaction],
@@ -159,6 +164,7 @@ impl DatabaseConnector<ShipyardTransaction> for ShipyardTransaction {
         Ok(())
     }
 
+    #[instrument(level = "trace", skip(database_pool))]
     async fn get_all(database_pool: &super::DbPool) -> crate::Result<Vec<ShipyardTransaction>> {
         let erg = sqlx::query_as!(
             ShipyardTransaction,

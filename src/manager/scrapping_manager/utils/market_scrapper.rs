@@ -4,7 +4,9 @@ use database::DatabaseConnector;
 use log::{debug, warn};
 use space_traders_client::models;
 use tokio::time::sleep;
+use tracing::instrument;
 
+#[instrument(skip(waypoints))]
 pub async fn get_all_markets(
     api: &space_traders_client::Api,
     waypoints: &[(String, String)],
@@ -25,7 +27,11 @@ pub async fn get_all_markets(
                         break *market.data;
                     }
                     Err(e) => {
-                        warn!("Market: {} Error: {} {:?}", waypoint.1, e, e);
+                        tracing::warn!(
+                            error = format!("{} {:?}", e, e),
+                            waypoint_symbol = waypoint.1,
+                            "Market Error",
+                        );
                         sleep(Duration::from_millis(500)).await;
                     }
                 }
@@ -50,7 +56,7 @@ pub async fn get_all_markets(
                 markets.push(market);
             }
             Err(e) => {
-                warn!("Market: Error: {} {:?}", e, e);
+                tracing::warn!(error = format!("{} {:?}", e, e), "Market Join Error",);
             }
         }
     }

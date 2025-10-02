@@ -1,6 +1,7 @@
 use std::{collections::HashMap, str::FromStr};
 
 use space_traders_client::models;
+use tracing::instrument;
 
 use super::{DatabaseConnector, DbPool};
 
@@ -135,6 +136,7 @@ impl From<&Waypoint> for models::Waypoint {
 }
 
 impl Waypoint {
+    #[instrument(level = "trace", skip(database_pool))]
     pub async fn get_hash_map(
         database_pool: &DbPool,
     ) -> crate::Result<HashMap<String, HashMap<String, Waypoint>>> {
@@ -150,6 +152,7 @@ impl Waypoint {
         Ok(map)
     }
 
+    #[instrument(level = "trace", skip(database_pool))]
     pub async fn get_by_system(
         database_pool: &DbPool,
         system_symbol: &str,
@@ -185,6 +188,7 @@ impl Waypoint {
         Ok(erg)
     }
 
+    #[instrument(level = "trace", skip(database_pool))]
     pub async fn get_by_symbol(
         database_pool: &DbPool,
         symbol: &str,
@@ -223,6 +227,7 @@ impl Waypoint {
 }
 
 impl DatabaseConnector<Waypoint> for Waypoint {
+    #[instrument(level = "trace", skip(database_pool))]
     async fn insert(database_pool: &DbPool, item: &Waypoint) -> crate::Result<()> {
         sqlx::query!(
             r#"
@@ -301,6 +306,7 @@ impl DatabaseConnector<Waypoint> for Waypoint {
         Ok(())
     }
 
+    #[instrument(level = "trace", skip(database_pool, items))]
     async fn insert_bulk(database_pool: &DbPool, items: &[Waypoint]) -> crate::Result<()> {
         for item in items {
             Self::insert(database_pool, item).await?;
@@ -309,6 +315,7 @@ impl DatabaseConnector<Waypoint> for Waypoint {
         Ok(())
     }
 
+    #[instrument(level = "trace", skip(database_pool))]
     async fn get_all(database_pool: &DbPool) -> crate::Result<Vec<Waypoint>> {
         let erg = sqlx::query_as!(
             Waypoint,

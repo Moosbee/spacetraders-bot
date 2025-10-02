@@ -1,3 +1,5 @@
+use tracing::instrument;
+
 use crate::DatabaseConnector;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -12,6 +14,7 @@ pub struct ShipJump {
 }
 
 impl DatabaseConnector<ShipJump> for ShipJump {
+    #[instrument(level = "trace", skip(database_pool))]
     async fn insert(database_pool: &super::DbPool, item: &ShipJump) -> crate::Result<()> {
         sqlx::query!(
             r#"
@@ -37,6 +40,7 @@ impl DatabaseConnector<ShipJump> for ShipJump {
         Ok(())
     }
 
+    #[instrument(level = "trace", skip(database_pool, items))]
     async fn insert_bulk(database_pool: &super::DbPool, items: &[ShipJump]) -> crate::Result<()> {
         let (ship_symbols, froms, tos, distances, ship_befores, ship_afters): (
             Vec<_>,
@@ -87,6 +91,7 @@ impl DatabaseConnector<ShipJump> for ShipJump {
         Ok(())
     }
 
+    #[instrument(level = "trace", skip(database_pool))]
     async fn get_all(database_pool: &super::DbPool) -> crate::Result<Vec<ShipJump>> {
         let results = sqlx::query_as!(
             ShipJump,

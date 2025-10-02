@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 
 use database::DatabaseConnector;
-use log::debug;
 use space_traders_client::models;
 use tokio::select;
+use tracing::debug;
 use utils::WaypointCan;
 
 use crate::{
@@ -83,7 +83,6 @@ impl TradeManager {
     }
 
     async fn handle_trade_message(&mut self, message: TradeManagerMessage) -> Result<()> {
-        debug!("Handling trade message: {:?}", message);
         match message {
             TradeMessage::RequestNextTradeRoute {
                 ship_clone,
@@ -118,6 +117,11 @@ impl TradeManager {
         Ok(())
     }
 
+    #[tracing::instrument(
+        level = "info",
+        name = "spacetraders::manager::trade_manager_get_required_ships",
+        skip(all_ships, all_systems_hashmap, markets_per_ship)
+    )]
     pub fn get_required_ships(
         all_ships: &[ship::MyShip],
         all_systems_hashmap: &HashMap<String, HashMap<String, database::Waypoint>>,
@@ -209,7 +213,7 @@ impl TradeManager {
 
             let before = required_ships.ships.insert(system, sys_ships);
             if before.is_some() {
-                log::warn!("Trading Ship contains ships");
+                tracing::warn!("Trading Ship contains ships");
             }
         }
 

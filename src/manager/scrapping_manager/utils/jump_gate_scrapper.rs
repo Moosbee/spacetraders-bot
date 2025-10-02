@@ -2,9 +2,9 @@ use std::time::Duration;
 
 use chrono::DateTime;
 use database::DatabaseConnector;
-use log::{debug, warn};
 use space_traders_client::models;
 use tokio::time::sleep;
+use tracing::debug;
 
 pub async fn get_all_jump_gates(
     api: &space_traders_client::Api,
@@ -38,7 +38,7 @@ pub async fn get_all_jump_gates(
                             break None;
                         }
                         err_count -= 1;
-                        warn!("JumpGate: {} Error: {:?}", waypoint.1, e);
+                        tracing::warn!("JumpGate: {} Error: {:?}", waypoint.1, e);
                         if err_count <= 0 {
                             break None;
                         }
@@ -46,7 +46,7 @@ pub async fn get_all_jump_gates(
                     }
                     Err(e) => {
                         err_count -= 1;
-                        warn!("JumpGate: {} Error: {} {:?}", waypoint.1, e, e);
+                        tracing::warn!("JumpGate: {} Error: {} {:?}", waypoint.1, e, e);
                         if err_count <= 0 {
                             break None;
                         }
@@ -77,7 +77,7 @@ pub async fn get_all_jump_gates(
                 }
             }
             Err(e) => {
-                warn!("JumpGate: Error: {}, {:?}", e, e);
+                tracing::warn!("JumpGate: Error: {}, {:?}", e, e);
             }
         }
     }

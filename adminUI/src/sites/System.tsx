@@ -39,7 +39,7 @@ function System() {
 
   const [loading, setLoading] = useState(false);
 
-  const [knownAgents, setKnownAgents] = useState<string[]>([]);
+  const [knownAgents, setKnownAgents] = useState<Record<string, number>>({});
 
   useEffect(() => {
     fetch(`http://${backendUrl}/systems/${systemID}`)
@@ -47,7 +47,8 @@ function System() {
       .then((data: SystemResp) => {
         const system = data.system;
         const waypoints_date = data.waypoints;
-        setKnownAgents(data.know_agents);
+        console.log("System Data:", data);
+        setKnownAgents(data.known_agents);
         const waypoints = waypoints_date.map((waypoint) => {
           const sql_wp = waypoint.waypoint;
 
@@ -93,6 +94,8 @@ function System() {
               .then((data: SystemResp) => {
                 const system = data.system;
                 const waypoints_date = data.waypoints;
+                console.log("System Data:", data);
+                setKnownAgents(data.known_agents);
                 const waypoints = waypoints_date.map((waypoint) => {
                   const sql_wp = waypoint.waypoint;
 
@@ -434,10 +437,12 @@ function System() {
         <Card size="small" title="Known Agents">
           <List
             size="small"
-            dataSource={knownAgents}
+            dataSource={Object.entries(knownAgents).sort((a, b) => b[1] - a[1])}
             renderItem={(agent) => (
               <List.Item>
-                <Link to={`/agents/${agent}`}>{agent}</Link>
+                <Link to={`/agents/${agent[0]}`}>
+                  {agent[0]} ({agent[1]})
+                </Link>
               </List.Item>
             )}
           />

@@ -2,6 +2,7 @@ use std::str::FromStr;
 
 use chrono::{DateTime, Utc};
 use space_traders_client::models::{self};
+use tracing::instrument;
 
 use super::{DatabaseConnector, DbPool};
 
@@ -78,6 +79,7 @@ impl MarketTransaction {
         }
     }
 
+    #[instrument(level = "trace", skip(database_pool))]
     pub async fn get_by_reason(
         database_pool: &DbPool,
         reason: TransactionReason,
@@ -180,6 +182,7 @@ impl MarketTransaction {
         Ok(erg)
     }
 
+    #[instrument(level = "trace", skip(database_pool))]
     pub async fn get_by_waypoint(
         database_pool: &DbPool,
         waypoint: &str,
@@ -238,6 +241,7 @@ impl MarketTransaction {
         Ok(erg)
     }
 
+    #[instrument(level = "trace", skip(database_pool))]
     pub async fn get_by_system(database_pool: &DbPool, system: &str) -> crate::Result<Vec<Self>> {
         let system_qr = format!("{}-%", system);
         let erg = sqlx::query_as!(
@@ -307,6 +311,7 @@ impl TryFrom<models::MarketTransaction> for MarketTransaction {
 }
 
 impl DatabaseConnector<MarketTransaction> for MarketTransaction {
+    #[instrument(level = "trace", skip(database_pool))]
     async fn insert(database_pool: &DbPool, item: &MarketTransaction) -> crate::Result<()> {
         sqlx::query!(
         r#"
@@ -336,6 +341,7 @@ impl DatabaseConnector<MarketTransaction> for MarketTransaction {
         Ok(())
     }
 
+    #[instrument(level = "trace", skip(database_pool, items))]
     async fn insert_bulk(database_pool: &DbPool, items: &[MarketTransaction]) -> crate::Result<()> {
         #[allow(clippy::type_complexity)]
         let (
@@ -423,6 +429,7 @@ impl DatabaseConnector<MarketTransaction> for MarketTransaction {
         Ok(())
     }
 
+    #[instrument(level = "trace", skip(database_pool))]
     async fn get_all(database_pool: &DbPool) -> crate::Result<Vec<MarketTransaction>> {
         let erg = sqlx::query_as!(
             MarketTransaction,

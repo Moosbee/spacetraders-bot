@@ -2,6 +2,7 @@ use std::str::FromStr;
 
 use chrono::{DateTime, Utc};
 use space_traders_client::models;
+use tracing::instrument;
 
 use crate::{DatabaseConnector, DbPool};
 
@@ -32,6 +33,7 @@ impl TryFrom<models::ChartTransaction> for ChartTransaction {
 }
 
 impl DatabaseConnector<ChartTransaction> for ChartTransaction {
+    #[instrument(level = "trace", skip(database_pool))]
     async fn insert(database_pool: &DbPool, item: &ChartTransaction) -> crate::Result<()> {
         sqlx::query!(
             r#"
@@ -57,6 +59,7 @@ impl DatabaseConnector<ChartTransaction> for ChartTransaction {
         Ok(())
     }
 
+    #[instrument(level = "trace", skip(database_pool, items))]
     async fn insert_bulk(database_pool: &DbPool, items: &[ChartTransaction]) -> crate::Result<()> {
         let (waypoint_symbols, ship_symbols, total_prices, timestamps): (
             Vec<String>,
@@ -101,6 +104,7 @@ impl DatabaseConnector<ChartTransaction> for ChartTransaction {
         Ok(())
     }
 
+    #[instrument(level = "trace", skip(database_pool))]
     async fn get_all(database_pool: &DbPool) -> crate::Result<Vec<ChartTransaction>> {
         let erg = sqlx::query_as!(
             ChartTransaction,

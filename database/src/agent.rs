@@ -1,4 +1,5 @@
 use itertools::Itertools;
+use tracing::instrument;
 
 use super::{DatabaseConnector, DbPool};
 
@@ -43,6 +44,7 @@ impl From<space_traders_client::models::PublicAgent> for Agent {
 }
 
 impl Agent {
+    #[instrument(level = "trace", skip(database_pool))]
     pub async fn get_last(database_pool: &DbPool) -> crate::Result<Vec<Agent>> {
         let erg= sqlx::query_as! {
         Agent,
@@ -58,6 +60,7 @@ impl Agent {
         Ok(erg)
     }
 
+    #[instrument(level = "trace", skip(database_pool))]
     pub async fn get_last_by_symbol(
         database_pool: &DbPool,
         symbol: &str,
@@ -78,6 +81,7 @@ impl Agent {
         Ok(erg)
     }
 
+    #[instrument(level = "trace", skip(database_pool))]
     pub async fn get_by_symbol(database_pool: &DbPool, symbol: &str) -> crate::Result<Vec<Agent>> {
         let erg = sqlx::query_as!(
             Agent,
@@ -102,6 +106,7 @@ impl Agent {
 }
 
 impl DatabaseConnector<Agent> for Agent {
+    #[instrument(level = "trace", skip(database_pool))]
     async fn insert(database_pool: &DbPool, item: &Agent) -> crate::Result<()> {
         sqlx::query!(
             r#"
@@ -120,6 +125,7 @@ impl DatabaseConnector<Agent> for Agent {
         Ok(())
     }
 
+    #[instrument(level = "trace", skip(database_pool, items))]
     async fn insert_bulk(database_pool: &DbPool, items: &[Agent]) -> crate::Result<()> {
         let (account_ids, symbols, creditss, ship_counts, headquarterss, starting_factions): (
             Vec<_>,
@@ -173,6 +179,7 @@ impl DatabaseConnector<Agent> for Agent {
         Ok(())
     }
 
+    #[instrument(level = "trace", skip(database_pool))]
     async fn get_all(database_pool: &DbPool) -> crate::Result<Vec<Agent>> {
         let erg= sqlx::query_as!(
             Agent,

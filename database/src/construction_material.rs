@@ -1,5 +1,6 @@
 use chrono::{DateTime, Utc};
 use space_traders_client::models;
+use tracing::instrument;
 
 use super::{DatabaseConnector, DbPool};
 
@@ -41,6 +42,7 @@ impl ConstructionMaterial {
         }
     }
 
+    #[instrument(level = "trace", skip(database_pool))]
     pub async fn get_by_waypoint(
         database_pool: &DbPool,
         waypoint_symbol: &str,
@@ -66,6 +68,7 @@ impl ConstructionMaterial {
         Ok(erg)
     }
 
+    #[instrument(level = "trace", skip(database_pool))]
     pub async fn get_unfulfilled(
         database_pool: &DbPool,
     ) -> crate::Result<Vec<ConstructionMaterial>> {
@@ -89,6 +92,7 @@ impl ConstructionMaterial {
         Ok(erg)
     }
 
+    #[instrument(level = "trace", skip(database_pool))]
     pub async fn get_summary(
         database_pool: &DbPool,
     ) -> crate::Result<Vec<ConstructionMaterialSummary>> {
@@ -133,6 +137,7 @@ impl ConstructionMaterial {
 }
 
 impl DatabaseConnector<ConstructionMaterial> for ConstructionMaterial {
+    #[instrument(level = "trace", skip(database_pool))]
     async fn insert(database_pool: &DbPool, item: &ConstructionMaterial) -> crate::Result<()> {
         sqlx::query!(
             r#"
@@ -159,6 +164,7 @@ impl DatabaseConnector<ConstructionMaterial> for ConstructionMaterial {
         Ok(())
     }
 
+    #[instrument(level = "trace", skip(database_pool, items))]
     async fn insert_bulk(
         database_pool: &DbPool,
         items: &[ConstructionMaterial],
@@ -207,6 +213,7 @@ impl DatabaseConnector<ConstructionMaterial> for ConstructionMaterial {
         Ok(())
     }
 
+    #[instrument(level = "trace", skip(database_pool))]
     async fn get_all(database_pool: &DbPool) -> crate::Result<Vec<ConstructionMaterial>> {
         let erg = sqlx::query_as!(
             ConstructionMaterial,

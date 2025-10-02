@@ -3,6 +3,7 @@ mod handlers;
 mod websocket;
 
 use log::{debug, warn};
+use serde_json::error;
 use tokio_util::sync::CancellationToken;
 use warp::{reply::Reply, Filter};
 
@@ -40,9 +41,12 @@ pub fn build_routes(
 }
 
 async fn handle_rejection(err: warp::Rejection) -> crate::control_api::types::Result<impl Reply> {
-    warn!("Rejection: {:?}", err);
+    tracing::warn!(
+      error = ?err,
+      "Rejection"
+    );
     if let Some(e) = err.find::<ServerError>() {
-        debug!("Error: {}", e);
+        tracing::debug!("Error: {}", e);
         let code = match e {
             ServerError::BadRequest(_) => warp::http::StatusCode::BAD_REQUEST,
             ServerError::NotFound => warp::http::StatusCode::NOT_FOUND,

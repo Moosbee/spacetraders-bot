@@ -13,8 +13,6 @@ The ship will then go to the waypoint and wait until said date comes and scrap
 if there are ships to spare, shipyards(all or only requested) get a static scrapper directly
 */
 
-use crate::manager::fleet_manager::message::RequiredShips;
-
 #[derive(Debug)]
 pub enum ScrapResponse {
     Unassigned,

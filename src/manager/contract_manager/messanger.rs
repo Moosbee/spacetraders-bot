@@ -1,4 +1,4 @@
-use log::debug;
+use tracing::debug;
 
 use crate::{
     error::{Error, Result},
@@ -70,8 +70,6 @@ impl ContractManagerMessanger {
         contract: space_traders_client::models::Contract,
     ) -> Result<()> {
         let message = ContractShipmentMessage::Finished { contract, shipment };
-
-        debug!("Sending message: {:?}", message);
 
         self.sender
             .send(message)

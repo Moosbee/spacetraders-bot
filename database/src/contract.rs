@@ -1,5 +1,6 @@
 use chrono::{DateTime, Utc};
 use space_traders_client::models;
+use tracing::instrument;
 
 use super::{ContractDelivery, DatabaseConnector, DbPool};
 
@@ -58,6 +59,7 @@ impl From<models::Contract> for Contract {
 }
 
 impl DatabaseConnector<Contract> for Contract {
+    #[instrument(level = "trace", skip(database_pool))]
     async fn insert(database_pool: &DbPool, item: &Contract) -> crate::Result<()> {
         sqlx::query!(
             r#"
@@ -103,6 +105,7 @@ impl DatabaseConnector<Contract> for Contract {
         Ok(())
     }
 
+    #[instrument(level = "trace", skip(database_pool, items))]
     async fn insert_bulk(database_pool: &DbPool, items: &[Contract]) -> crate::Result<()> {
         let (
             ids,
@@ -195,6 +198,7 @@ impl DatabaseConnector<Contract> for Contract {
 
         Ok(())
     }
+    #[instrument(level = "trace", skip(database_pool))]
     async fn get_all(database_pool: &DbPool) -> crate::Result<Vec<Contract>> {
         let erg = sqlx::query_as!(
             Contract,
@@ -222,6 +226,7 @@ impl DatabaseConnector<Contract> for Contract {
 }
 
 impl Contract {
+    #[instrument(level = "trace", skip(database_pool))]
     pub async fn insert_contract(
         database_pool: &DbPool,
         contract: models::Contract,
@@ -244,6 +249,7 @@ impl Contract {
         Ok(())
     }
 
+    #[instrument(level = "trace", skip(database_pool))]
     pub async fn get_by_id(database_pool: &DbPool, id: &String) -> crate::Result<Option<Contract>> {
         let erg = sqlx::query_as!(
             Contract,
@@ -268,6 +274,7 @@ impl Contract {
         Ok(erg)
     }
 
+    #[instrument(level = "trace", skip(database_pool))]
     pub async fn get_all_sm(database_pool: &DbPool) -> crate::Result<Vec<ContractSummary>> {
         let erg = sqlx::query_as!(
     ContractSummary,
@@ -302,6 +309,7 @@ order by
         Ok(erg)
     }
 
+    #[instrument(level = "trace", skip(database_pool))]
     pub async fn update_reserved_fund(
         database_pool: &DbPool,
         contract_id: &String,

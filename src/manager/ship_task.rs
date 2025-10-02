@@ -22,7 +22,10 @@ pub struct ShipTaskMessanger {
 
 impl ShipTaskMessanger {
     pub async fn start_ship(&self, ship_names: database::ShipInfo) {
-        log::debug!("start_ship: {:?}", ship_names);
+        tracing::debug!(
+           ship_names = ?ship_names,
+          "start_ship"
+        );
         let _erg = self.sender.send(ship_names).await;
     }
 }
@@ -42,7 +45,6 @@ impl ShipTaskHandler {
         context: ConductorContext,
         receiver: tokio::sync::mpsc::Receiver<database::ShipInfo>,
     ) -> Self {
-        log::debug!("ShipTaskHandler::new");
         Self {
             ship_cancel_token,
             receiver,
@@ -58,15 +60,14 @@ impl ShipTaskHandler {
         skip(self)
     )]
     pub async fn await_all(&mut self) -> Result<(), crate::error::Error> {
-        log::debug!("ShipTaskHandler::await_all");
         let mut set: JoinSet<(String, Result<ShipFuture, anyhow::Error>)> = JoinSet::new();
 
         tokio::time::sleep(std::time::Duration::from_millis(500)).await;
 
         while let Ok(ship_name) = self.receiver.try_recv() {
-            log::debug!(
-                "ShipTaskHandler::await_all starting: got ship_name: {:?}",
-                ship_name
+            tracing::debug!(
+                ship_name = ?ship_name,
+                "ShipTaskHandler::await_all starting initial tasks",
             );
             let pilot = crate::pilot::Pilot::new(
                 self.context.clone(),
@@ -96,7 +97,10 @@ impl ShipTaskHandler {
                 ship_name = self.receiver.recv() => {
                     match ship_name {
                         Some(ship_name) => {
-                            log::debug!("ShipTaskHandler::await_all: got ship_name: {:?}", ship_name);
+                            tracing::debug!(
+                              ship_name = ?ship_name,
+                              "ShipTaskHandler::await_all starting new tasks",
+                            );
                             let pilot = crate::pilot::Pilot::new(self.context.clone(), ship_name.symbol.clone(), self.ship_cancel_token.child_token());
                             // set.build_task()
                             //     .name(format!("ship-as-{}", ship_name.symbol).as_str())
@@ -114,7 +118,7 @@ impl ShipTaskHandler {
                             });
                         }
                         None => {
-                            log::debug!("ShipTaskHandler::await_all: receiver is closed");
+                            tracing::info!("ShipTaskHandler::await_all: receiver is closed");
                             break;
                         }
                     }
@@ -124,25 +128,30 @@ impl ShipTaskHandler {
                     Some(finished_future) => {
                       match finished_future {
                         Ok((ship_name,Ok(erg))) => {
-                          log::debug!("ShipTaskHandler::await_all: finished_future: {:?} last one: {}", erg,ship_name);
+                          tracing::debug!(
+                            ship_name = %ship_name,
+                            erg=?erg,
+                            "ShipTaskHandler::await_all: finished ship",
+                          );
                         }
                         Ok((ship_name,Err(e))) => {
-                          log::error!(
-                              "Ship error for ship: {} error: {} {:?} {:?} {:?}",
-                              ship_name,
-                              e,
-                              e.backtrace(),
-                              e.source(),
-                              e.root_cause()
+                          tracing::error!(
+                            ship_name,
+                            error = %e,
+                            backtrace = ?e.backtrace(),
+                            source = ?e.source(),
+                            root_cause = ?e.root_cause(),
+                              "Ship error",
                           );
                         }
                         Err(e) => {
-                          log::error!("JoinError Error: {}", e);
+                            tracing::error!(error = format!("{:?}", e), "Ship Join error");
+
                         }
                       }
                     },
                     None => {
-                        log::debug!("ShipTaskHandler::await_all: finished_future is None");
+                        tracing::debug!("ShipTaskHandler::await_all: finished_future is None");
                         break;
                     }
                   }
@@ -150,7 +159,6 @@ impl ShipTaskHandler {
             }
         }
 
-        log::debug!("ShipTaskHandler::await_all finished");
         self.manager_cancel_token.cancel();
         Ok(())
     }
@@ -162,7 +170,6 @@ impl Manager for ShipTaskHandler {
     ) -> std::pin::Pin<
         Box<dyn std::future::Future<Output = Result<(), crate::error::Error>> + Send + '_>,
     > {
-        log::debug!("ShipTaskHandler::run");
         Box::pin(async move { self.await_all().await })
     }
 

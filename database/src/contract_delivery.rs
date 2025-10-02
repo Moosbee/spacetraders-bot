@@ -1,4 +1,5 @@
 use space_traders_client::models;
+use tracing::instrument;
 
 use super::{DatabaseConnector, DbPool};
 
@@ -30,6 +31,7 @@ impl ContractDelivery {
         })
     }
 
+    #[instrument(level = "trace", skip(database_pool))]
     pub async fn get_by_contract_id(
         database_pool: &DbPool,
         contract_id: &str,
@@ -55,6 +57,7 @@ impl ContractDelivery {
 }
 
 impl DatabaseConnector<ContractDelivery> for ContractDelivery {
+    #[instrument(level = "trace", skip(database_pool))]
     async fn insert(database_pool: &DbPool, item: &ContractDelivery) -> crate::Result<()> {
         sqlx::query!(
             r#"
@@ -74,6 +77,7 @@ impl DatabaseConnector<ContractDelivery> for ContractDelivery {
         Ok(())
     }
 
+    #[instrument(level = "trace", skip(database_pool, items))]
     async fn insert_bulk(database_pool: &DbPool, items: &[ContractDelivery]) -> crate::Result<()> {
         let (contract_ids, trade_symbols, units_fulfilled, units_required, destination_symbols): (
             Vec<_>,
@@ -122,6 +126,7 @@ impl DatabaseConnector<ContractDelivery> for ContractDelivery {
         Ok(())
     }
 
+    #[instrument(level = "trace", skip(database_pool))]
     async fn get_all(database_pool: &DbPool) -> crate::Result<Vec<ContractDelivery>> {
         let erg = sqlx::query_as!(
             ContractDelivery,

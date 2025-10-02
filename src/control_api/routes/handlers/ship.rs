@@ -1,7 +1,8 @@
 use std::str::FromStr;
 
 use database::DatabaseConnector;
-use log::debug;
+use tracing::debug;
+use tracing::{instrument, Instrument};
 use utils::{distance_between_waypoints, WaypointCan};
 use warp::reply::Reply;
 
@@ -11,6 +12,7 @@ use crate::{
     utils::ConductorContext,
 };
 
+#[instrument(skip(context))]
 pub async fn handle_get_ships(context: ConductorContext) -> Result<impl Reply> {
     debug!("Getting ships");
     let ships = context.ship_manager.get_all_clone().await;
@@ -18,6 +20,7 @@ pub async fn handle_get_ships(context: ConductorContext) -> Result<impl Reply> {
     Ok(warp::reply::json(&ships))
 }
 
+#[instrument(skip(context))]
 pub async fn handle_toggle_activation(
     symbol: String,
     context: ConductorContext,
@@ -35,6 +38,7 @@ pub async fn handle_toggle_activation(
     Ok(warp::reply::json(&sql_ship))
 }
 
+#[instrument(skip(context))]
 pub async fn handle_change_role(
     symbol: String,
     body: serde_json::Value,
@@ -59,6 +63,7 @@ pub async fn handle_change_role(
     Ok(warp::reply::json(&sql_ship))
 }
 
+#[instrument(skip(context))]
 pub async fn handle_toggle_orbit(symbol: String, context: ConductorContext) -> Result<impl Reply> {
     let mut ship_guard = context
         .ship_manager
@@ -101,6 +106,7 @@ pub async fn handle_toggle_orbit(symbol: String, context: ConductorContext) -> R
     Ok(warp::reply::json(&ship))
 }
 
+#[instrument(skip(context))]
 pub async fn handle_buy_ship(
     body: serde_json::Value,
     context: ConductorContext,
@@ -191,6 +197,7 @@ pub async fn handle_buy_ship(
     })))
 }
 
+#[instrument(skip(context))]
 pub async fn handle_purchase_cargo_ship(
     symbol: String,
     body: serde_json::Value,
@@ -246,6 +253,7 @@ pub async fn handle_purchase_cargo_ship(
     })))
 }
 
+#[instrument(skip(context))]
 pub async fn handle_jump_ship(
     symbol: String,
     body: serde_json::Value,
@@ -353,6 +361,7 @@ pub async fn handle_jump_ship(
     })))
 }
 
+#[instrument(skip(context))]
 pub async fn handle_warp_ship(
     symbol: String,
     body: serde_json::Value,
@@ -397,6 +406,7 @@ pub async fn handle_warp_ship(
     })))
 }
 
+#[instrument(skip(context))]
 pub async fn handle_chart_waypoint(
     symbol: String,
     context: ConductorContext,
@@ -467,6 +477,7 @@ pub async fn handle_chart_waypoint(
     Ok(warp::reply::json(&serde_json::json!({"chart": erg})))
 }
 
+#[instrument(skip(context))]
 pub async fn handle_navigate_ship(
     symbol: String,
     body: serde_json::Value,
@@ -491,15 +502,18 @@ pub async fn handle_navigate_ship(
         .map(|s| s.to_string())
         .ok_or(ServerError::BadRequest("Missing waypointSymbol".into()))?;
     {
-        let symbol = symbol.clone();
-        let waypoint_id = waypoint_id.clone();
+        let symbol_c = symbol.clone();
+        let waypoint_id_c = waypoint_id.clone();
         let context = context.clone();
 
-        tokio::spawn(async move {
-            if let Err(e) = navigate_ship(context.clone(), symbol, waypoint_id).await {
-                log::error!("Navigation failed: {}", e);
+        tokio::spawn(
+            async move {
+                if let Err(e) = navigate_ship(context.clone(), symbol_c, waypoint_id_c).await {
+                    tracing::error!("Navigation failed: {}", e);
+                }
             }
-        });
+            .instrument(tracing::info_span!("navigate_ship", ship=%symbol, waypoint=%waypoint_id)),
+        );
     }
 
     Ok(warp::reply::json(&serde_json::json!({

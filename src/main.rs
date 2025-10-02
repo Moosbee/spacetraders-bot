@@ -25,10 +25,9 @@ use manager::{
 };
 
 use opentelemetry::{
-    global::{self, ObjectSafeTracer},
+    global::{self},
     sdk::propagation::TraceContextPropagator,
 };
-use opentelemetry_otlp::WithExportConfig;
 use rsntp::AsyncSntpClient;
 use ship::ShipManager;
 use space_traders_client::models;
@@ -37,16 +36,14 @@ use tokio_stream::StreamExt;
 use tokio_util::sync::CancellationToken;
 
 use ::utils::{RunInfo, WaypointCan};
-use log::{debug, error, info};
-use tracing::instrument;
+use tracing::debug;
+use tracing::{instrument, Instrument};
 use tracing_subscriber::layer::SubscriberExt;
 use utils::ConductorContext;
 
 use std::num::NonZeroU32;
 
 use sqlx::postgres::PgPoolOptions;
-
-use crate::open_telemetry::init_trace;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -69,12 +66,16 @@ async fn setup_unauthed() -> Result<(space_traders_client::Api, database::DbPool
     // console_subscriber::init();
 
     global::set_text_map_propagator(TraceContextPropagator::new());
-    let tracer = init_trace().unwrap();
-    let fmt_tracer = tracing_subscriber::fmt::layer();
+    let tracer = open_telemetry::init_trace().unwrap();
     let telemetry = tracing_opentelemetry::layer().with_tracer(tracer);
-    let subscriber = tracing_subscriber::Registry::default()
+    let fmt_tracer = tracing_subscriber::fmt::layer();
+
+    // let tracing_tracy = tracing_tracy::TracyLayer::default();
+
+    let subscriber = tracing_subscriber::registry()
         .with(tracing_subscriber::filter::EnvFilter::from_default_env())
         .with(fmt_tracer)
+        // .with(tracing_tracy)
         .with(telemetry);
     tracing::subscriber::set_global_default(subscriber).unwrap();
 
@@ -101,6 +102,17 @@ async fn setup_unauthed() -> Result<(space_traders_client::Api, database::DbPool
             .await?,
     );
 
+    // database::ShipInfo::insert(
+    //     &database_pool,
+    //     &database::ShipInfo {
+    //         symbol: "MOSE".to_string(),
+    //         display_name: "tester".to_string(),
+    //         role: database::ShipInfoRole::Manuel,
+    //         active: true,
+    //     },
+    // )
+    // .await?;
+
     Ok((api, database_pool))
 }
 
@@ -109,9 +121,15 @@ async fn setup_context(
     let (api, database_pool) = setup_unauthed().await?;
 
     let my_agent = api.get_my_agent().await?;
-    info!("My agent: {:?}", my_agent);
+    tracing::info!(
+      my_agent=?my_agent,
+      "My agent"
+    );
     let status = api.get_status().await?;
-    info!("Status: {:?}", status);
+    tracing::info!(
+      status=?status,
+      "Status"
+    );
 
     let run_info = RunInfo {
         agent_symbol: my_agent.data.symbol.clone(),
@@ -122,53 +140,60 @@ async fn setup_context(
         version: status.version.clone(),
     };
 
-    // let ship_purchase = api
-    //     .purchase_ship(Some(models::PurchaseShipRequest {
-    //         ship_type: models::ShipType::Probe,
-    //         waypoint_symbol: "X1-NR44-A2".to_string(),
-    //     }))
-    //     .await;
+    let ships = async {
+        let ships = api.get_all_my_ships(20).await?;
+        tracing::info!(count = ships.len(), "Ships count");
 
-    // info!("ss {:?}", ship_purchase);
+        let system_symbols = ships
+            .iter()
+            .map(|s| s.nav.system_symbol.clone())
+            .collect::<HashSet<_>>();
 
-    // panic!();
+        tracing::debug!(count = system_symbols.len(), "Systems count");
 
-    let ships = api.get_all_my_ships(20).await?;
-    info!("Ships: {:?}", ships.len());
+        for system_symbol in system_symbols {
+            async {
+                let db_system = database::System::get_by_id(&database_pool, &system_symbol).await?;
+                let waypoints =
+                    database::Waypoint::get_by_system(&database_pool, &system_symbol).await?;
 
-    let system_symbols = ships
-        .iter()
-        .map(|s| s.nav.system_symbol.clone())
-        .collect::<HashSet<_>>();
+                if db_system.is_none() || waypoints.is_empty() {
+                    tracing::debug!(system=%system_symbol, "Updating system and waypoints");
+                    // some systems have no waypoints, but we likely won't have ships there
+                    scrapping_manager::utils::update_system(
+                        &database_pool,
+                        &api,
+                        &system_symbol,
+                        true,
+                    )
+                    .await?;
+                    let wps = database::Waypoint::get_by_system(&database_pool, &system_symbol)
+                        .await?
+                        .into_iter()
+                        .filter(|w| w.is_marketplace())
+                        .map(|w| (w.system_symbol, w.symbol))
+                        .collect::<Vec<_>>();
 
-    debug!("Systems: {}", system_symbols.len());
-
-    for system_symbol in system_symbols {
-        let db_system = database::System::get_by_id(&database_pool, &system_symbol).await?;
-        let waypoints = database::Waypoint::get_by_system(&database_pool, &system_symbol).await?;
-
-        if db_system.is_none() || waypoints.is_empty() {
-            // some systems have no waypoints, but we likely won't have ships there
-            scrapping_manager::utils::update_system(&database_pool, &api, &system_symbol, true)
-                .await?;
-            let wps = database::Waypoint::get_by_system(&database_pool, &system_symbol)
-                .await?
-                .into_iter()
-                .filter(|w| w.is_marketplace())
-                .map(|w| (w.system_symbol, w.symbol))
-                .collect::<Vec<_>>();
-
-            let markets = scrapping_manager::utils::get_all_markets(&api, &wps).await?;
-            let markets_len = markets.len();
-            scrapping_manager::utils::update_markets(markets, database_pool.clone()).await?;
-            debug!(
-                "Updated markets for system {} {} {}",
-                system_symbol,
-                wps.len(),
-                markets_len
-            );
+                    let markets = scrapping_manager::utils::get_all_markets(&api, &wps).await?;
+                    let markets_len = markets.len();
+                    scrapping_manager::utils::update_markets(markets, database_pool.clone())
+                        .await?;
+                    tracing::debug!(
+                        system=%system_symbol,
+                        waypoints=?wps.len(),
+                        markets=?markets_len,
+                        "Updated markets"
+                    );
+                }
+                Ok::<(), crate::error::Error>(())
+            }
+            .instrument(tracing::info_span!("update_system", system=%system_symbol))
+            .await?;
         }
+        crate::error::Result::Ok(ships)
     }
+    .instrument(tracing::info_span!("setup_ship_systems"))
+    .await?;
 
     let (sender, receiver) = broadcast::channel(1024);
 
@@ -332,7 +357,7 @@ async fn check_time() {
     let local_time: DateTime<Utc> = result.datetime().into_chrono_datetime().unwrap();
     let time_diff = (local_time - Utc::now()).abs();
 
-    info!(
+    tracing::info!(
         "The local time is: {} and it should be: {} and the time diff is: {:?}",
         Utc::now(),
         local_time,
@@ -377,7 +402,7 @@ async fn start(
     debug!("Managers and ships finished");
 
     if let Err(errror) = erg {
-        error!("Managers error: {} {:?}", errror, errror);
+        tracing::error!("Managers error: {} {:?}", errror, errror);
     }
 
     debug!("Start function finished");
@@ -403,7 +428,7 @@ async fn start_managers(
             let erg = manager.run().await;
 
             if let Err(errror) = &erg {
-                error!("Managers error: {} {:?}", errror, errror);
+                tracing::error!("Managers error: {} {:?}", errror, errror);
             }
 
             erg
@@ -414,7 +439,7 @@ async fn start_managers(
         //         let erg = manager.run().await;
 
         //         if let Err(errror) = &erg {
-        //             error!("Managers error: {} {:?}", errror, errror);
+        //             tracing::error!("Managers error: {} {:?}", errror, errror);
         //         }
 
         //         erg
@@ -449,16 +474,20 @@ async fn wait_managers(managers_handles: Vec<ManagersHandle>) -> Result<(), crat
         let manager_handle = handle.0;
         manager_futures.push(async move {
             let erg = manager_handle.await;
-            info!("{:?}: {:?}", manager_name, erg);
-            if let Err(errror) = erg {
-                log::error!("{:?} manager error: {} {:?}", manager_name, errror, errror);
+            tracing::info!(
+                manager_name,
+                erg=?erg,
+                "Manager finished and joined"
+            );
+            if let Err(ref errror) = erg {
+                tracing::error!(manager_name, error = format!("{:?}", errror), "Join error");
             } else if let Ok(r_erg) = erg {
                 if let Err(errror) = r_erg {
-                    log::error!(
-                        "{:?} manager error: {} {:?}",
+                    tracing::error!(
                         manager_name,
-                        errror,
-                        errror.source(),
+                        error = format!("{:?}", errror),
+                        error = format!("{:?}", errror.source()),
+                        "Manager error",
                     );
                 } else if let Ok(_res) = r_erg {
                 }
@@ -468,7 +497,10 @@ async fn wait_managers(managers_handles: Vec<ManagersHandle>) -> Result<(), crat
     }
 
     while let Some(result) = manager_futures.next().await {
-        info!("Manager finished: {}", result);
+        tracing::info!(
+          result=?result,
+          "Manager finished"
+        );
     }
     Ok(())
 }

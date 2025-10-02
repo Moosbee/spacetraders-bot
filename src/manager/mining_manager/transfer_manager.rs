@@ -1,7 +1,7 @@
 use dashmap::DashMap;
-use log::debug;
 use space_traders_client::models;
 use tokio::sync::mpsc;
+use tracing::debug;
 use utils::safely_get_map;
 
 #[derive(Debug)]

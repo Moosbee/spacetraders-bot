@@ -1,4 +1,5 @@
 use space_traders_client::models;
+use tracing::instrument;
 
 use super::DatabaseConnector;
 
@@ -49,6 +50,7 @@ impl From<&models::System> for System {
 }
 
 impl RespSystem {
+    #[instrument(level = "trace", skip(database_pool))]
     pub async fn get_all(database_pool: &super::DbPool) -> crate::Result<Vec<RespSystem>> {
         let erg = sqlx::query_as!(
             RespSystem,
@@ -75,6 +77,7 @@ impl RespSystem {
 }
 
 impl DatabaseConnector<System> for System {
+    #[instrument(level = "trace", skip(database_pool))]
     async fn insert(database_pool: &super::DbPool, item: &System) -> crate::Result<()> {
         sqlx::query!(
             r#"
@@ -104,6 +107,7 @@ impl DatabaseConnector<System> for System {
         Ok(())
     }
 
+    #[instrument(level = "trace", skip(database_pool, items))]
     async fn insert_bulk(database_pool: &super::DbPool, items: &[System]) -> crate::Result<()> {
         let (symbols, sector_symbols, system_types, xs, ys): (
             Vec<_>,
@@ -155,6 +159,7 @@ impl DatabaseConnector<System> for System {
         Ok(())
     }
 
+    #[instrument(level = "trace", skip(database_pool))]
     async fn get_all(database_pool: &super::DbPool) -> crate::Result<Vec<System>> {
         let erg = sqlx::query_as!(
             System,
@@ -175,6 +180,7 @@ impl DatabaseConnector<System> for System {
 }
 
 impl System {
+    #[instrument(level = "trace", skip(database_pool))]
     pub async fn get_by_id(
         database_pool: &super::DbPool,
         id: &String,

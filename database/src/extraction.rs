@@ -1,5 +1,6 @@
 use chrono::{DateTime, Utc};
 use space_traders_client::models::{self};
+use tracing::instrument;
 
 use super::{DatabaseConnector, DbPool};
 
@@ -19,6 +20,7 @@ pub struct Extraction {
 }
 
 impl DatabaseConnector<Extraction> for Extraction {
+    #[instrument(level = "trace", skip(database_pool, item))]
     async fn insert(database_pool: &DbPool, item: &Extraction) -> crate::Result<()> {
         sqlx::query!(
             r#"
@@ -66,6 +68,7 @@ impl DatabaseConnector<Extraction> for Extraction {
         Ok(())
     }
 
+    #[instrument(level = "trace", skip(database_pool, items))]
     async fn insert_bulk(database_pool: &DbPool, items: &[Extraction]) -> crate::Result<()> {
         let (
             ship_symbols,
@@ -144,6 +147,7 @@ impl DatabaseConnector<Extraction> for Extraction {
         Ok(())
     }
 
+    #[instrument(level = "trace", skip(database_pool))]
     async fn get_all(database_pool: &DbPool) -> crate::Result<Vec<Extraction>> {
         let erg = sqlx::query_as!(
             Extraction,

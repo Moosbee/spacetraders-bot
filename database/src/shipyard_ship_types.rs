@@ -1,5 +1,6 @@
 use chrono::{DateTime, Utc};
 use space_traders_client::models;
+use tracing::instrument;
 
 use super::DatabaseConnector;
 
@@ -14,6 +15,7 @@ pub struct ShipyardShipTypes {
 }
 
 impl ShipyardShipTypes {
+    #[instrument(level = "trace", skip(database_pool))]
     pub async fn get_last_by_waypoint(
         database_pool: &super::DbPool,
         waypoint_symbol: &str,
@@ -38,6 +40,7 @@ impl ShipyardShipTypes {
 }
 
 impl DatabaseConnector<ShipyardShipTypes> for ShipyardShipTypes {
+    #[instrument(level = "trace", skip(database_pool))]
     async fn insert(database_pool: &super::DbPool, item: &ShipyardShipTypes) -> crate::Result<()> {
         sqlx::query!(
             r#"
@@ -58,6 +61,7 @@ impl DatabaseConnector<ShipyardShipTypes> for ShipyardShipTypes {
         Ok(())
     }
 
+    #[instrument(level = "trace", skip(database_pool, items))]
     async fn insert_bulk(
         database_pool: &super::DbPool,
         items: &[ShipyardShipTypes],
@@ -87,6 +91,7 @@ impl DatabaseConnector<ShipyardShipTypes> for ShipyardShipTypes {
         Ok(())
     }
 
+    #[instrument(level = "trace", skip(database_pool))]
     async fn get_all(database_pool: &super::DbPool) -> crate::Result<Vec<ShipyardShipTypes>> {
         let erg = sqlx::query_as!(
             ShipyardShipTypes,

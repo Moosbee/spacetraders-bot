@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { backendUrl } from "../data";
 import MoneyDisplay from "../features/MonyDisplay";
 import PageTitle from "../features/PageTitle";
+import WaypointLink from "../features/WaypointLink";
 import { TradeRoute } from "../models/TradeRoute";
 
 function TradeRoutes() {
@@ -43,12 +44,14 @@ function TradeRoutes() {
       dataIndex: "purchase_waypoint",
       key: "purchase_waypoint",
       sorter: (a, b) => a.purchase_waypoint.localeCompare(b.purchase_waypoint),
+      render: (value) => <WaypointLink waypoint={value}>{value}</WaypointLink>,
     },
     {
       title: "Sell Waypoint",
       dataIndex: "sell_waypoint",
       key: "sell_waypoint",
       sorter: (a, b) => a.sell_waypoint.localeCompare(b.sell_waypoint),
+      render: (value) => <WaypointLink waypoint={value}>{value}</WaypointLink>,
     },
     {
       title: "Status",

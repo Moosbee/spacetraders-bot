@@ -1,8 +1,8 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 
 use database::{DatabaseConnector, ShipInfo};
-use log::debug;
 use space_traders_client::models;
+use tracing::debug;
 use utils::get_system_symbol;
 
 use crate::{
@@ -112,6 +112,12 @@ impl FleetManager {
         Ok(())
     }
 
+    #[tracing::instrument(
+        level = "info",
+        name = "spacetraders::manager::handle_get_transfer",
+        fields(ship_symbol = %ship_clone.symbol),
+        skip(self, ship_clone),
+    )]
     async fn handle_get_transfer(
         &self,
         ship_clone: ship::MyShip,
@@ -130,6 +136,11 @@ impl FleetManager {
         todo!()
     }
 
+    #[tracing::instrument(
+        level = "info",
+        name = "spacetraders::manager::handle_scrapper_at_shipyard",
+        skip(self)
+    )]
     async fn handle_scrapper_at_shipyard(
         &mut self,
         waypoint_symbol: &str,
@@ -143,38 +154,42 @@ impl FleetManager {
             return Ok(());
         }
 
-        let pathfinder = ship::autopilot::jump_gate_nav::JumpPathfinder::new(
+        let pathfinder = Arc::new(ship::autopilot::jump_gate_nav::JumpPathfinder::new(
             ship::autopilot::jump_gate_nav::generate_all_connections(&self.context.database_pool)
                 .await?
                 .into_iter()
                 .filter(|c| !c.under_construction_a && !c.under_construction_b)
                 .collect::<Vec<_>>(),
-        );
+        ));
 
-        let antimatter_prices = database::MarketTradeGood::get_last_by_symbol(
-            &self.context.database_pool,
-            &models::TradeSymbol::Antimatter,
-        )
-        .await?
-        .iter()
-        .map(|t| (t.waypoint_symbol.clone(), t.purchase_price))
-        .collect();
+        let antimatter_prices: Arc<HashMap<String, i32>> = Arc::new(
+            database::MarketTradeGood::get_last_by_symbol(
+                &self.context.database_pool,
+                &models::TradeSymbol::Antimatter,
+            )
+            .await?
+            .iter()
+            .map(|t| (t.waypoint_symbol.clone(), t.purchase_price))
+            .collect(),
+        );
 
         let count = { self.context.config.read().await.ship_purchase_amount };
 
         debug!("Buying ships at {}", waypoint_symbol);
 
-        let all_ships = self
-            .context
-            .ship_manager
-            .get_all_clone()
-            .await
-            .into_values()
-            .collect::<Vec<_>>();
+        let all_ships = Arc::new(
+            self.context
+                .ship_manager
+                .get_all_clone()
+                .await
+                .into_values()
+                .collect::<Vec<_>>()
+                .into_boxed_slice(),
+        );
 
-        let all_systems_hashmap: HashMap<String, HashMap<String, database::Waypoint>> =
-            database::Waypoint::get_hash_map(&self.context.database_pool).await?;
-        let all_connections: Vec<database::JumpGateConnection> =
+        let all_systems_hashmap =
+            Arc::new(database::Waypoint::get_hash_map(&self.context.database_pool).await?);
+        let all_connections =
             database::JumpGateConnection::get_all(&self.context.database_pool).await?;
 
         let mut connection_hash_map: HashMap<String, Vec<database::JumpGateConnection>> =
@@ -187,14 +202,21 @@ impl FleetManager {
             entry.push(connection);
         }
 
+        let connection_hash_map: Arc<HashMap<String, Vec<database::JumpGateConnection>>> =
+            Arc::new(connection_hash_map);
+
         for _ in 0..count {
             if self.needs_update() {
-                self.update_required_ships(&all_ships, &all_systems_hashmap, &connection_hash_map)
-                    .await?
+                self.update_required_ships(
+                    all_ships.clone(),
+                    all_systems_hashmap.clone(),
+                    connection_hash_map.clone(),
+                )
+                .await?
             }
 
             let locations = self
-                .get_purchase_locations(&pathfinder, &antimatter_prices)
+                .get_purchase_locations(pathfinder.clone(), antimatter_prices.clone())
                 .await?;
 
             debug!("Found {} purchase locations", locations.len());
@@ -292,8 +314,8 @@ impl FleetManager {
 
     async fn get_purchase_locations(
         &self,
-        pathfinder: &ship::autopilot::jump_gate_nav::JumpPathfinder,
-        antimatter_prices: &HashMap<String, i32>,
+        pathfinder: Arc<ship::autopilot::jump_gate_nav::JumpPathfinder>,
+        antimatter_prices: Arc<HashMap<String, i32>>,
     ) -> Result<
         HashMap<
             String,
@@ -314,96 +336,103 @@ impl FleetManager {
 
         let required_ships = self.required_ships.ships.clone();
 
-        let mut ships = Vec::new();
+        let erg = tokio::task::spawn_blocking(move || {
+            let mut ships = Vec::new();
 
-        for system in required_ships {
-            for ship in system.1.iter() {
-                let best_shipyards = self
-                    .get_best_shipyard(
+            for system in required_ships {
+                for ship in system.1.iter() {
+                    // Stand-in for compute-heavy work or using synchronous APIs
+                    // Pass ownership of the value back to the asynchronous context
+
+                    let best_shipyards = Self::get_best_shipyard(
                         &system.0,
                         (ship.0, ship.1, ship.2, ship.3),
                         budget,
                         &shipyards,
-                        pathfinder,
-                        antimatter_prices,
-                    )
-                    .await?;
+                        &pathfinder,
+                        &antimatter_prices,
+                    )?;
 
-                let len = best_shipyards.len();
+                    let len = best_shipyards.len();
 
-                let mut min_price = i32::MAX;
+                    let mut min_price = i32::MAX;
 
-                for (index, (shipyard_symbol, ship_type, purchase_price, priority, ship_role)) in
-                    best_shipyards.into_iter().enumerate()
-                {
-                    if purchase_price < min_price {
-                        min_price = purchase_price;
-                    }
-                    ships.push((
-                        shipyard_symbol,
-                        ship_type,
-                        purchase_price,
-                        priority,
-                        ship_role,
-                        system.0.clone(),
+                    for (
                         index,
-                        len,
-                        min_price,
-                    ));
+                        (shipyard_symbol, ship_type, purchase_price, priority, ship_role),
+                    ) in best_shipyards.into_iter().enumerate()
+                    {
+                        if purchase_price < min_price {
+                            min_price = purchase_price;
+                        }
+                        ships.push((
+                            shipyard_symbol,
+                            ship_type,
+                            purchase_price,
+                            priority,
+                            ship_role,
+                            system.0.clone(),
+                            index,
+                            len,
+                            min_price,
+                        ));
+                    }
                 }
             }
-        }
 
-        ships.sort_by(|a, b| b.3.cmp(&a.3));
+            ships.sort_by(|a, b| b.3.cmp(&a.3));
 
-        let mut map: HashMap<
-            String,
-            Vec<(
-                models::ShipType,
-                i32,
-                super::message::Priority,
-                database::ShipInfoRole,
+            let mut map: HashMap<
                 String,
-            )>,
-        > = HashMap::new();
+                Vec<(
+                    models::ShipType,
+                    i32,
+                    super::message::Priority,
+                    database::ShipInfoRole,
+                    String,
+                )>,
+            > = HashMap::new();
 
-        for (
-            shipyard_symbol,
-            ship_type,
-            purchase_price,
-            priority,
-            ship_role,
-            system_symbol,
-            index,
-            _len,
-            min_price,
-        ) in ships
-        {
-            if (purchase_price as f32) > ((min_price as f32) * 1.5) {
-                continue;
-            }
-
-            if ship_role == database::ShipInfoRole::Charter && !expand {
-                continue;
-            }
-
-            if !map.contains_key(&shipyard_symbol) {
-                map.insert(shipyard_symbol.clone(), Vec::new());
-            }
-            map.get_mut(&shipyard_symbol).unwrap().push((
+            for (
+                shipyard_symbol,
                 ship_type,
                 purchase_price,
                 priority,
                 ship_role,
                 system_symbol,
-            ));
-        }
+                index,
+                _len,
+                min_price,
+            ) in ships
+            {
+                if (purchase_price as f32) > ((min_price as f32) * 1.5) {
+                    continue;
+                }
 
-        Ok(map)
+                if ship_role == database::ShipInfoRole::Charter && !expand {
+                    continue;
+                }
+
+                if !map.contains_key(&shipyard_symbol) {
+                    map.insert(shipyard_symbol.clone(), Vec::new());
+                }
+                map.get_mut(&shipyard_symbol).unwrap().push((
+                    ship_type,
+                    purchase_price,
+                    priority,
+                    ship_role,
+                    system_symbol,
+                ));
+            }
+            crate::error::Result::Ok(map)
+        })
+        .await
+        .map_err(|e| crate::error::Error::General(e.to_string()))??;
+
+        Ok(erg)
     }
 
-    async fn get_best_shipyard(
-        &self,
+    fn get_best_shipyard(
         system_symbol: &str,
         ship: (
             super::message::RequestedShipType,
@@ -458,8 +487,7 @@ impl FleetManager {
                             || *f == models::ship_mount::Symbol::MiningLaserIii
                     }) && f
                         .modules
-                        .iter()
-                        .any(|f| *f == models::ship_module::Symbol::MineralProcessorI)
+                        .contains(&models::ship_module::Symbol::MineralProcessorI)
                 }
                 super::message::RequestedShipType::Siphon => {
                     f.mounts.iter().any(|f| {
@@ -468,8 +496,7 @@ impl FleetManager {
                             || *f == models::ship_mount::Symbol::GasSiphonIii
                     }) && f
                         .modules
-                        .iter()
-                        .any(|f| *f == models::ship_module::Symbol::GasProcessorI)
+                        .contains(&models::ship_module::Symbol::GasProcessorI)
                 }
                 super::message::RequestedShipType::Survey => f.mounts.iter().any(|f| {
                     *f == models::ship_mount::Symbol::SurveyorI
@@ -516,19 +543,11 @@ impl FleetManager {
 
     async fn update_required_ships(
         &mut self,
-        all_ships: &[ship::MyShip],
-        all_systems_hashmap: &HashMap<String, HashMap<String, database::Waypoint>>,
-        connection_hash_map: &HashMap<String, Vec<database::JumpGateConnection>>,
+        all_ships: Arc<Box<[ship::MyShip]>>,
+        all_systems_hashmap: Arc<HashMap<String, HashMap<String, database::Waypoint>>>,
+        connection_hash_map: Arc<HashMap<String, Vec<database::JumpGateConnection>>>,
     ) -> Result<()> {
         let config = { self.context.config.read().await.clone() };
-
-        let scrap_ships = ScrappingManager::get_required_ships(all_ships, all_systems_hashmap)?;
-
-        let trading_ships = TradeManager::get_required_ships(
-            all_ships,
-            all_systems_hashmap,
-            config.markets_per_ship,
-        )?;
 
         let mining_ships = self.context.mining_manager.get_ships(&self.context).await?;
 
@@ -538,14 +557,35 @@ impl FleetManager {
             .get_ships(&self.context)
             .await?;
 
-        let chart_ships =
-            ChartManager::get_required_ships(all_ships, all_systems_hashmap, connection_hash_map)?;
-
         let contract_ships = self
             .context
             .contract_manager
             .get_ships(&self.context)
             .await?;
+
+        let (scrap_ships, trading_ships, chart_ships) = tokio::task::spawn_blocking(move || {
+            // Stand-in for compute-heavy work or using synchronous APIs
+            // Pass ownership of the value back to the asynchronous context
+
+            let scrap_ships =
+                ScrappingManager::get_required_ships(&all_ships, &all_systems_hashmap)?;
+
+            let trading_ships = TradeManager::get_required_ships(
+                &all_ships,
+                &all_systems_hashmap,
+                config.markets_per_ship,
+            )?;
+
+            let chart_ships = ChartManager::get_required_ships(
+                &all_ships,
+                &all_systems_hashmap,
+                &connection_hash_map,
+            )?;
+
+            crate::error::Result::Ok((scrap_ships, trading_ships, chart_ships))
+        })
+        .await
+        .map_err(|e| crate::error::Error::General(e.to_string()))??;
 
         self.required_ships = scrap_ships
             + trading_ships
@@ -561,6 +601,11 @@ impl FleetManager {
         Ok(())
     }
 
+    #[tracing::instrument(
+        level = "info",
+        name = "spacetraders::manager::handle_ship_arrived",
+        skip(self)
+    )]
     async fn handle_ship_arrived(
         &mut self,
         _waypoint_symbol: &str,

@@ -6,7 +6,7 @@ use std::{
 
 use chrono::{DateTime, Utc};
 use database::DatabaseConnector;
-use log::{debug, info};
+use log::debug;
 use space_traders_client::models::{self};
 
 use crate::{
@@ -60,7 +60,11 @@ impl ContractManager {
         }
     }
 
-    #[tracing::instrument(level = "info", name = "spacetraders::manager::contract_manager_worker", skip(self))]
+    #[tracing::instrument(
+        level = "info",
+        name = "spacetraders::manager::contract_manager_worker",
+        skip(self)
+    )]
     async fn run_contract_worker(&mut self) -> Result<()> {
         debug!("Starting contract worker");
         let contracts = self.get_unfulfilled_contracts().await?;
@@ -156,6 +160,11 @@ impl ContractManager {
         Ok(())
     }
 
+    #[tracing::instrument(
+        level = "info",
+        name = "spacetraders::manager::contract_manager_get_required_ships",
+        skip(context)
+    )]
     pub async fn get_required_ships(context: &ConductorContext) -> Result<RequiredShips> {
         let db_ships = database::ShipInfo::get_by_role(
             &context.database_pool,
@@ -221,13 +230,10 @@ impl ContractManager {
                 .as_ref()
                 .map(|c| c.id.clone())
                 .unwrap();
-            info!("Can Fulfilled contract: {}", id);
+            tracing::info!(contract_id = &id, "Can Fulfilled contract");
+
             let fulfill_contract_data = self.context.api.fulfill_contract(&id).await?;
 
-            info!(
-                "Fulfilled contract: {}",
-                fulfill_contract_data.data.contract.id
-            );
             self.current_contract = None;
 
             database::Contract::insert_contract(
@@ -301,7 +307,12 @@ impl ContractManager {
                 ));
             }
             _ if shipments.len() > 1 => {
-                log::error!("Ship already has {} shipments in transit", shipments.len());
+                tracing::error!(
+                    length = shipments.len(),
+                    ship_symbol = ship_clone.symbol,
+                    "Ship already has {} shipments in transit",
+                    shipments.len()
+                );
                 panic!("Ship already has {} shipments in transit", shipments.len());
             }
             _ => {} // This arm is not necessary in this case, but it's good practice to include it
@@ -498,12 +509,10 @@ impl ContractManager {
         database::ContractShipment::insert(&self.context.database_pool, &shipment).await?;
 
         if self.can_fulfill_trade(&contract) {
+            tracing::info!(contract_id = &contract.id, "Can Fulfilled contract");
+
             let fulfill_contract_data = self.context.api.fulfill_contract(&contract.id).await?;
 
-            info!(
-                "Fulfilled contract: {}",
-                fulfill_contract_data.data.contract.id
-            );
             self.current_contract = None;
 
             database::Contract::insert_contract(

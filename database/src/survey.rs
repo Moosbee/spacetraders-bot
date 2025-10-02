@@ -2,6 +2,7 @@ use std::{collections::HashMap, str::FromStr};
 
 use chrono::{DateTime, Utc};
 use space_traders_client::models::{self};
+use tracing::instrument;
 
 use crate::{DatabaseConnector, DbPool};
 
@@ -59,6 +60,7 @@ impl Survey {
         vecs
     }
 
+    #[instrument(level = "trace", skip(database_pool))]
     pub async fn get_working_for_waypoint(
         database_pool: &DbPool,
         waypoint_symbol: &str,
@@ -125,6 +127,7 @@ impl From<&Survey> for models::Survey {
 }
 
 impl DatabaseConnector<Survey> for Survey {
+    #[instrument(level = "trace", skip(database_pool))]
     async fn insert(database_pool: &DbPool, item: &Survey) -> crate::Result<()> {
         sqlx::query!(
             r#"
@@ -164,6 +167,7 @@ impl DatabaseConnector<Survey> for Survey {
         Ok(())
     }
 
+    #[instrument(level = "trace", skip(database_pool, items))]
     async fn insert_bulk(database_pool: &DbPool, items: &[Survey]) -> crate::Result<()> {
         for item in items {
             Self::insert(database_pool, item).await?;
@@ -171,6 +175,7 @@ impl DatabaseConnector<Survey> for Survey {
         Ok(())
     }
 
+    #[instrument(level = "trace", skip(database_pool))]
     async fn get_all(database_pool: &DbPool) -> crate::Result<Vec<Survey>> {
         let erg = sqlx::query_as!(
             Survey,

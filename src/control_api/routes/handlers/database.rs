@@ -1,7 +1,8 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 use database::DatabaseConnector;
-use log::debug;
+use tracing::debug;
+use tracing::instrument;
 use utils::WaypointCan;
 use warp::reply::Reply;
 
@@ -10,6 +11,8 @@ use crate::{
     utils::ConductorContext,
 };
 
+#[instrument(skip(context))]
+#[instrument(skip(context))]
 pub async fn handle_get_trade_routes(context: ConductorContext) -> Result<impl Reply> {
     let trade_routes = database::TradeRoute::get_summarys(&context.database_pool)
         .await
@@ -17,6 +20,8 @@ pub async fn handle_get_trade_routes(context: ConductorContext) -> Result<impl R
     Ok(warp::reply::json(&trade_routes))
 }
 
+#[instrument(skip(context))]
+#[instrument(skip(context))]
 pub async fn handle_get_contract(id: String, context: ConductorContext) -> Result<impl Reply> {
     let contract = database::Contract::get_by_id(&context.database_pool, &id)
         .await
@@ -56,6 +61,7 @@ pub async fn handle_get_contract(id: String, context: ConductorContext) -> Resul
     )))
 }
 
+#[instrument(skip(context))]
 pub async fn handle_get_contracts(context: ConductorContext) -> Result<impl Reply> {
     debug!("Getting contracts");
     let contracts = database::Contract::get_all_sm(&context.database_pool)
@@ -65,6 +71,7 @@ pub async fn handle_get_contracts(context: ConductorContext) -> Result<impl Repl
     Ok(warp::reply::json(&contracts))
 }
 
+#[instrument(skip(context))]
 pub async fn handle_get_transactions(context: ConductorContext) -> Result<impl Reply> {
     debug!("Getting transactions");
     let transactions = database::MarketTransaction::get_all(&context.database_pool)
@@ -74,6 +81,7 @@ pub async fn handle_get_transactions(context: ConductorContext) -> Result<impl R
     Ok(warp::reply::json(&transactions))
 }
 
+#[instrument(skip(context))]
 pub async fn handle_request_system(
     symbol: String,
     context: ConductorContext,
@@ -128,6 +136,7 @@ pub async fn handle_request_system(
     ))
 }
 
+#[instrument(skip(context))]
 pub async fn handle_get_waypoints(context: ConductorContext) -> Result<impl Reply> {
     debug!("Getting all waypoints");
     let waypoints = database::Waypoint::get_all(&context.database_pool)
@@ -160,6 +169,7 @@ pub async fn handle_get_waypoints(context: ConductorContext) -> Result<impl Repl
     Ok(warp::reply::json(&waypoints_data))
 }
 
+#[instrument(skip(context))]
 pub async fn handle_get_waypoint(symbol: String, context: ConductorContext) -> Result<impl Reply> {
     debug!("Getting {} waypoint", symbol);
     let waypoint = database::Waypoint::get_by_symbol(&context.database_pool, &symbol)
@@ -280,6 +290,7 @@ pub async fn handle_get_waypoint(symbol: String, context: ConductorContext) -> R
     })))
 }
 
+#[instrument(skip(context))]
 pub async fn handle_get_construction_materials(context: ConductorContext) -> Result<impl Reply> {
     debug!("Getting all construction materials");
 
@@ -291,6 +302,7 @@ pub async fn handle_get_construction_materials(context: ConductorContext) -> Res
     Ok(warp::reply::json(&construction_materials))
 }
 
+#[instrument(skip(context))]
 pub async fn handle_get_construction_shipments(context: ConductorContext) -> Result<impl Reply> {
     debug!("Getting all construction shipments");
 
@@ -302,6 +314,7 @@ pub async fn handle_get_construction_shipments(context: ConductorContext) -> Res
     Ok(warp::reply::json(&construction_shipments))
 }
 
+#[instrument(skip(context))]
 pub async fn handle_get_systems(context: ConductorContext) -> Result<impl Reply> {
     debug!("Getting all systems");
     let systems = database::RespSystem::get_all(&context.database_pool)
@@ -313,6 +326,7 @@ pub async fn handle_get_systems(context: ConductorContext) -> Result<impl Reply>
     Ok(warp::reply::json(&systems))
 }
 
+#[instrument(skip(context))]
 pub async fn handle_get_system(symbol: String, context: ConductorContext) -> Result<impl Reply> {
     debug!("Getting all systems");
     let system = database::System::get_by_id(&context.database_pool, &symbol)
@@ -355,31 +369,38 @@ pub async fn handle_get_system(symbol: String, context: ConductorContext) -> Res
             .await
             .map_err(ServerError::Database)?;
 
-    let known_market_agents = system_market_transactions
+    let known_agents_iter = system_market_transactions
         .iter()
         .filter_map(|f| {
-            f.ship_symbol
+            let agent_symbol = f
+                .ship_symbol
                 .chars()
                 .rev()
                 .collect::<String>()
                 .split_once("-")
-                .map(|f| f.1.chars().rev().collect::<String>())
+                .map(|f| f.1.chars().rev().collect::<String>());
+            agent_symbol
         })
-        .collect::<HashSet<String>>();
+        .chain(
+            system_shipyard_transactions
+                .iter()
+                .map(|f| f.agent_symbol.clone()),
+        );
 
-    let known_shipyard_agents = system_shipyard_transactions
-        .iter()
-        .map(|f| f.agent_symbol.clone())
-        .collect::<HashSet<String>>();
+    let known_agents = known_agents_iter.fold(HashMap::new(), |mut acc, f| {
+        acc.entry(f).and_modify(|e: &mut u32| *e += 1).or_insert(1);
+        acc
+    });
 
     debug!("Got {} waypoints", waypoints_data.len());
     Ok(warp::reply::json(&serde_json::json!({
         "system": system,
         "waypoints":waypoints_data,
-        "know_agents":known_market_agents.union(&known_shipyard_agents).cloned().collect::<Vec<String>>(),
+        "known_agents":known_agents,
     })))
 }
 
+#[instrument(skip(context))]
 pub async fn handle_get_agents(context: ConductorContext) -> Result<impl Reply> {
     debug!("Getting all agents");
     let agents = database::Agent::get_last(&context.database_pool)
@@ -390,6 +411,7 @@ pub async fn handle_get_agents(context: ConductorContext) -> Result<impl Reply> 
     Ok(warp::reply::json(&agents))
 }
 
+#[instrument(skip(context))]
 pub async fn handle_get_agent(callsign: String, context: ConductorContext) -> Result<impl Reply> {
     debug!("Getting {} agent", callsign);
     let agents = database::Agent::get_last_by_symbol(&context.database_pool, &callsign)
@@ -400,6 +422,7 @@ pub async fn handle_get_agent(callsign: String, context: ConductorContext) -> Re
     Ok(warp::reply::json(&agents))
 }
 
+#[instrument(skip(context))]
 pub async fn handle_get_agent_history(
     callsign: String,
     context: ConductorContext,
@@ -423,6 +446,7 @@ pub struct GateConn {
     from_b: bool,
 }
 
+#[instrument(skip(context))]
 pub async fn handle_get_jump_gates(context: ConductorContext) -> Result<impl Reply> {
     debug!("Getting jump gates");
     let connections = database::JumpGateConnection::get_all(&context.database_pool)
@@ -477,6 +501,7 @@ pub async fn handle_get_jump_gates(context: ConductorContext) -> Result<impl Rep
     ))
 }
 
+#[instrument(skip(context))]
 pub async fn handle_get_surveys(context: ConductorContext) -> Result<impl Reply> {
     debug!("Getting all surveys");
     let surveys = database::Survey::get_all(&context.database_pool)

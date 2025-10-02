@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use chrono::{DateTime, Utc};
 use space_traders_client::models;
+use tracing::instrument;
 
 use super::{DatabaseConnector, DbPool};
 
@@ -81,6 +82,7 @@ pub struct ShipState {
 }
 
 impl ShipState {
+    #[instrument(level = "trace", skip(database_pool, item))]
     pub async fn insert_get_id(database_pool: &DbPool, item: &ShipState) -> crate::Result<i64> {
         let id = sqlx::query!(
             r#"
@@ -225,11 +227,13 @@ impl ShipState {
 }
 
 impl DatabaseConnector<ShipState> for ShipState {
+    #[instrument(level = "trace", skip(database_pool, item))]
     async fn insert(database_pool: &DbPool, item: &ShipState) -> crate::Result<()> {
         let _id = Self::insert_get_id(database_pool, item).await?;
         Ok(())
     }
 
+    #[instrument(level = "trace", skip(database_pool, items))]
     async fn insert_bulk(database_pool: &DbPool, items: &[ShipState]) -> crate::Result<()> {
         for item in items {
             Self::insert(database_pool, item).await?;
@@ -237,6 +241,7 @@ impl DatabaseConnector<ShipState> for ShipState {
         Ok(())
     }
 
+    #[instrument(level = "trace", skip(database_pool))]
     async fn get_all(database_pool: &DbPool) -> crate::Result<Vec<ShipState>> {
         let erg = sqlx::query_as!(
             ShipState,

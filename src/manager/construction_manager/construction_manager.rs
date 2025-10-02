@@ -5,8 +5,8 @@ use std::{
 
 use chrono::Utc;
 use database::DatabaseConnector;
-use log::{debug, info};
 use space_traders_client::models::{self};
+use tracing::debug;
 use utils::get_system_symbol;
 
 use crate::{
@@ -154,6 +154,11 @@ impl ConstructionManager {
         Ok(())
     }
 
+    #[tracing::instrument(
+        level = "info",
+        name = "spacetraders::manager::construction_manager_get_required_ships",
+        skip(context)
+    )]
     pub async fn get_required_ships(context: &ConductorContext) -> Result<RequiredShips> {
         // we need one transporter(39+ cargo space) in our headquarters as long as their are unfinished constructions in the main system
         let db_ships = database::ShipInfo::get_by_role(
@@ -250,7 +255,7 @@ impl ConstructionManager {
             .collect::<Vec<_>>();
 
         if construction_materials.is_empty() {
-            info!("No more constructions");
+            debug!("No more constructions");
             return Ok(super::NextShipmentResp::ComeBackLater);
         }
 

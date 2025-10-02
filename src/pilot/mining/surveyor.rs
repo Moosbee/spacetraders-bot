@@ -22,7 +22,7 @@ impl SurveyPilot {
         }
     }
 
-    #[instrument(level = "info", name = "spacetraders::pilot::pilot_survey", skip(self, pilot), fields(self.ship_symbol = pilot.ship_symbol, waypoint))]
+    #[instrument(level = "info", name = "spacetraders::pilot::pilot_survey", skip(self, pilot, ship), fields(self.ship_symbol = pilot.ship_symbol, waypoint))]
     pub async fn execute_survey_circle(
         &self,
         ship: &mut ship::MyShip,

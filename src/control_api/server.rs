@@ -42,7 +42,7 @@ impl ControlApiServer {
             //     .spawn(async move {
             //         while let Ok(ship) = incoming_ship_rx.recv().await {
             //             if let Err(e) = ship_tx.send(ship.clone()) {
-            //                 log::error!("Failed to broadcast ship update: {}", e);
+            //                 tracing::error!("Failed to broadcast ship update: {}", e);
             //             }
             //         }
             //     })
@@ -50,7 +50,7 @@ impl ControlApiServer {
             tokio::task::spawn(async move {
                 while let Ok(ship) = incoming_ship_rx.recv().await {
                     if let Err(e) = ship_tx.send(ship.clone()) {
-                        log::error!("Failed to broadcast ship update: {}", e);
+                        tracing::error!("Failed to broadcast ship update: {}", e);
                     }
                 }
             });
@@ -75,7 +75,6 @@ impl ControlApiServer {
     async fn run_server(&mut self) -> anyhow::Result<()> {
         let config = { self.context.config.read().await.clone() };
         if !config.control_active {
-            log::info!("Control API not active, exiting");
             return Ok(());
         }
 
@@ -91,10 +90,10 @@ impl ControlApiServer {
 
         tokio::select! {
             _ = self.cancellation_token.cancelled() => {
-                log::info!("Shutting down server via cancellation");
+                tracing::info!("Shutting down server via cancellation");
             },
             _ = warp::serve(routes).run(config.socket_address).fuse() => {
-                log::info!("Server shutdown completed");
+                tracing::info!("Server shutdown completed");
             }
         }
 

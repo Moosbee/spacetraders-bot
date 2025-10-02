@@ -1,7 +1,8 @@
 use std::collections::HashMap;
 
 use database::DatabaseConnector;
-use log::debug;
+use tracing::debug;
+use tracing::instrument;
 use warp::reply::Reply;
 
 use crate::{
@@ -9,11 +10,13 @@ use crate::{
     utils::ConductorContext,
 };
 
+#[instrument(skip(context))]
 pub async fn handle_get_api_counter(context: ConductorContext) -> Result<impl Reply> {
     let counter = context.api.get_limiter().get_counter();
     Ok(warp::reply::json(&serde_json::json!({"counter": counter})))
 }
 
+#[instrument(skip(context))]
 pub async fn handle_get_running_contract_shipments(
     context: ConductorContext,
 ) -> Result<impl Reply> {
@@ -35,6 +38,7 @@ pub async fn handle_get_running_contract_shipments(
     Ok(warp::reply::json(&serde_json::json!({"shipments": erg})))
 }
 
+#[instrument(skip(context))]
 pub async fn handle_get_running_construction_shipments(
     context: ConductorContext,
 ) -> Result<impl Reply> {
@@ -48,6 +52,7 @@ pub async fn handle_get_running_construction_shipments(
     ))
 }
 
+#[instrument(skip(context))]
 pub async fn handle_get_mining_assignments(context: ConductorContext) -> Result<impl Reply> {
     let assignments = context
         .mining_manager
@@ -59,6 +64,7 @@ pub async fn handle_get_mining_assignments(context: ConductorContext) -> Result<
     ))
 }
 
+#[instrument(skip(context))]
 pub async fn handle_get_scrapping_info(
     symbol: String,
     context: ConductorContext,
@@ -75,6 +81,7 @@ pub async fn handle_get_scrapping_info(
     Ok(warp::reply::json(&serde_json::json!({"info": info})))
 }
 
+#[instrument(skip(context))]
 pub async fn handle_get_ships_to_purchase(context: ConductorContext) -> Result<impl Reply> {
     debug!("Getting ships to purchase");
     let all_ships = context
@@ -165,6 +172,7 @@ pub async fn handle_get_ships_to_purchase(context: ConductorContext) -> Result<i
     })))
 }
 
+#[instrument(skip(context))]
 pub async fn handle_get_possible_trades(context: ConductorContext) -> Result<impl Reply> {
     let trades = context
         .trade_manager
@@ -174,16 +182,19 @@ pub async fn handle_get_possible_trades(context: ConductorContext) -> Result<imp
     Ok(warp::reply::json(&serde_json::json!({"trades": trades})))
 }
 
+#[instrument(skip(context))]
 pub async fn handle_get_run_info(context: ConductorContext) -> Result<impl Reply> {
     let info = { context.run_info.read().await.clone() };
     Ok(warp::reply::json(&serde_json::json!(info)))
 }
 
+#[instrument(skip(context))]
 pub async fn handle_get_config(context: ConductorContext) -> Result<impl Reply> {
     let info = { context.config.read().await.clone() };
     Ok(warp::reply::json(&serde_json::json!(info)))
 }
 
+#[instrument(skip(context))]
 pub async fn handle_update_config(
     body: serde_json::Value,
     context: ConductorContext,
@@ -218,6 +229,7 @@ pub async fn handle_update_config(
     Ok(warp::reply::json(&serde_json::json!(info)))
 }
 
+#[instrument(skip(context))]
 pub async fn handle_get_budget_info(context: ConductorContext) -> Result<impl Reply> {
     let budget_info: crate::manager::budget_manager::BudgetInfo =
         context.budget_manager.get_budget_info().await;

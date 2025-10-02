@@ -5,7 +5,7 @@ use std::{
 };
 
 use database::{DatabaseConnector, DbPool};
-use log::{debug, error, info};
+use tracing::debug;
 use tracing::Instrument;
 use utils::{distance_between_waypoints, WaypointCan};
 
@@ -57,7 +57,11 @@ impl ScrappingManager {
         }
     }
 
-    #[tracing::instrument(level = "info", name = "spacetraders::manager::scrapping_manager_worker", skip(self))]
+    #[tracing::instrument(
+        level = "info",
+        name = "spacetraders::manager::scrapping_manager_worker",
+        skip(self)
+    )]
     async fn run_scrapping_worker(&mut self) -> Result<()> {
         tokio::time::sleep(Duration::from_millis({
             self.context.config.read().await.scrapper_start_sleep
@@ -115,7 +119,9 @@ impl ScrappingManager {
 
                     Ok(())
                 }
-                .instrument(tracing::info_span!("spacetraders::manager::scrapping_update_systems")),
+                .instrument(tracing::info_span!(
+                    "spacetraders::manager::scrapping_update_systems"
+                )),
             )
         } else {
             tokio::spawn(async move { Ok(()) })
@@ -144,17 +150,15 @@ impl ScrappingManager {
 
         match agent_errs {
             Ok(Ok(_)) => {}
-            Ok(Err(err)) => error!("Failed to update agents: {}", err),
-            Err(err) => error!("JoinFailed to update agents: {}", err),
+            Ok(Err(err)) => tracing::error!("Failed to update agents: {}", err),
+            Err(err) => tracing::error!("JoinFailed to update agents: {}", err),
         }
 
         match system_errs {
             Ok(Ok(_)) => {}
-            Ok(Err(err)) => error!("Failed to update systems: {}", err),
-            Err(err) => error!("JoinFailed to update systems: {}", err),
+            Ok(Err(err)) => tracing::error!("Failed to update systems: {}", err),
+            Err(err) => tracing::error!("JoinFailed to update systems: {}", err),
         }
-
-        info!("ScrappingManager done");
 
         Ok(())
     }
@@ -225,6 +229,11 @@ impl ScrappingManager {
         Ok(())
     }
 
+    #[tracing::instrument(
+        level = "info",
+        name = "spacetraders::manager::scrapping_manager_get_required_ships",
+        skip(all_ships, all_systems_hashmap)
+    )]
     pub fn get_required_ships(
         all_ships: &[ship::MyShip],
         all_systems_hashmap: &HashMap<String, HashMap<String, database::Waypoint>>,
