@@ -122,7 +122,7 @@ impl MarketTransaction {
     "#,
             contract
         )
-        .fetch_all(&database_pool.database_pool)
+        .fetch_all(database_pool.get_cache_pool())
         .await?;
         Ok(erg)
     }
@@ -148,7 +148,7 @@ impl MarketTransaction {
     "#,
             route
         )
-        .fetch_all(&database_pool.database_pool)
+        .fetch_all(database_pool.get_cache_pool())
         .await?;
         Ok(erg)
     }
@@ -177,7 +177,7 @@ impl MarketTransaction {
     "#,
             waypoint
         )
-        .fetch_all(&database_pool.database_pool)
+        .fetch_all(database_pool.get_cache_pool())
         .await?;
         Ok(erg)
     }
@@ -207,7 +207,7 @@ impl MarketTransaction {
     "#,
             waypoint
         )
-        .fetch_all(&database_pool.database_pool)
+        .fetch_all(database_pool.get_cache_pool())
         .await?;
         Ok(erg)
     }
@@ -236,7 +236,7 @@ impl MarketTransaction {
     "#,
             construction
         )
-        .fetch_all(&database_pool.database_pool)
+        .fetch_all(database_pool.get_cache_pool())
         .await?;
         Ok(erg)
     }
@@ -264,7 +264,7 @@ impl MarketTransaction {
     "#,
             system_qr
         )
-        .fetch_all(&database_pool.database_pool)
+        .fetch_all(database_pool.get_cache_pool())
         .await?;
         Ok(erg)
     }
@@ -449,7 +449,7 @@ impl DatabaseConnector<MarketTransaction> for MarketTransaction {
       from market_transaction
     "#,
         )
-        .fetch_all(&database_pool.database_pool)
+        .fetch_all(database_pool.get_cache_pool())
         .await?;
         Ok(erg)
     }

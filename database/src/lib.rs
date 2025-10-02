@@ -100,6 +100,7 @@ pub type Result<T, E = Error> = std::result::Result<T, E>;
 #[derive(Debug)]
 pub struct DbPool {
     pub database_pool: sqlx::PgPool,
+    pub readyset_pool: Option<sqlx::PgPool>,
     pub agent_broadcast_channel: (
         tokio::sync::broadcast::Sender<Agent>,
         tokio::sync::broadcast::Receiver<Agent>,
@@ -107,11 +108,19 @@ pub struct DbPool {
 }
 
 impl DbPool {
-    pub fn new(database_pool: sqlx::PgPool) -> DbPool {
+    pub fn new(database_pool: sqlx::PgPool, readyset_pool: Option<sqlx::PgPool>) -> DbPool {
         let agent_broadcast_channel = tokio::sync::broadcast::channel(10);
         DbPool {
             database_pool,
+            readyset_pool,
             agent_broadcast_channel,
+        }
+    }
+    pub fn get_cache_pool(&self) -> &sqlx::PgPool {
+        if let Some(pool) = &self.readyset_pool {
+            pool
+        } else {
+            &self.database_pool
         }
     }
 }
@@ -120,6 +129,7 @@ impl Clone for DbPool {
     fn clone(&self) -> Self {
         Self {
             database_pool: self.database_pool.clone(),
+            readyset_pool: self.readyset_pool.clone(),
             agent_broadcast_channel: (
                 self.agent_broadcast_channel.0.clone(),
                 self.agent_broadcast_channel.0.subscribe(),

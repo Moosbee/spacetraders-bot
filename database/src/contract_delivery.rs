@@ -50,7 +50,7 @@ impl ContractDelivery {
         "#,
             contract_id
         )
-        .fetch_all(&database_pool.database_pool)
+        .fetch_all(database_pool.get_cache_pool())
         .await?;
         Ok(erg)
     }
@@ -140,7 +140,7 @@ impl DatabaseConnector<ContractDelivery> for ContractDelivery {
             FROM contract_delivery
         "#
         )
-        .fetch_all(&database_pool.database_pool)
+        .fetch_all(database_pool.get_cache_pool())
         .await?;
         Ok(erg)
     }

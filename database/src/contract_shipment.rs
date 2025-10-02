@@ -191,7 +191,7 @@ impl DatabaseConnector<ContractShipment> for ContractShipment {
             FROM contract_shipment
             "#
         )
-        .fetch_all(&database_pool.database_pool)
+        .fetch_all(database_pool.get_cache_pool())
         .await?;
         Ok(erg)
     }
@@ -255,7 +255,7 @@ impl ContractShipment {
                 "#,
             contract_id
         )
-        .fetch_all(&database_pool.database_pool)
+        .fetch_all(database_pool.get_cache_pool())
         .await?;
         Ok(erg)
     }
@@ -284,7 +284,7 @@ impl ContractShipment {
             "#,
             id
         )
-        .fetch_one(&database_pool.database_pool)
+        .fetch_one(database_pool.get_cache_pool())
         .await?;
         Ok(erg)
     }
@@ -313,7 +313,7 @@ impl ContractShipment {
             "#,
             ship_symbol
         )
-        .fetch_all(&database_pool.database_pool)
+        .fetch_all(database_pool.get_cache_pool())
         .await?;
         Ok(erg)
     }

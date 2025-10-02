@@ -170,7 +170,7 @@ impl DatabaseConnector<MarketTradeGood> for MarketTradeGood {
             ORDER BY symbol, created DESC
         "#,
         )
-        .fetch_all(&database_pool.database_pool)
+        .fetch_all(database_pool.get_cache_pool())
         .await?;
         Ok(erg)
     }
@@ -202,7 +202,7 @@ impl MarketTradeGood {
         "#,
             waypoint_symbol,
         )
-        .fetch_all(&database_pool.database_pool)
+        .fetch_all(database_pool.get_cache_pool())
         .await?;
         Ok(erg)
     }
@@ -232,7 +232,7 @@ impl MarketTradeGood {
         "#,
             waypoint_symbol,
         )
-        .fetch_all(&database_pool.database_pool)
+        .fetch_all(database_pool.get_cache_pool())
         .await?;
         Ok(erg)
     }
@@ -288,7 +288,7 @@ impl MarketTradeGood {
             ORDER BY symbol, waypoint_symbol, created DESC
         "#,
         )
-        .fetch_all(&database_pool.database_pool)
+        .fetch_all(database_pool.get_cache_pool())
         .await?;
         Ok(erg)
     }
@@ -318,7 +318,7 @@ impl MarketTradeGood {
         "#,
             system_symbol
         )
-        .fetch_all(&database_pool.database_pool)
+        .fetch_all(database_pool.get_cache_pool())
         .await?;
 
         Ok(row)

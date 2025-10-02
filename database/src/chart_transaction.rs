@@ -117,7 +117,7 @@ impl DatabaseConnector<ChartTransaction> for ChartTransaction {
               FROM chart_transaction
           "#
         )
-        .fetch_all(&database_pool.database_pool)
+        .fetch_all(database_pool.get_cache_pool())
         .await?;
 
         Ok(erg)

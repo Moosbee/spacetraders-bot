@@ -69,7 +69,7 @@ impl RespSystem {
 			group by system.symbol
             "#
         )
-        .fetch_all(&database_pool.database_pool)
+        .fetch_all(database_pool.get_cache_pool())
         .await?;
 
         Ok(erg)
@@ -173,7 +173,7 @@ impl DatabaseConnector<System> for System {
             FROM system
             "#
         )
-        .fetch_all(&database_pool.database_pool)
+        .fetch_all(database_pool.get_cache_pool())
         .await?;
         Ok(erg)
     }

@@ -102,7 +102,7 @@ impl ConstructionShipment {
             "#,
             id
         )
-        .fetch_optional(&database_pool.database_pool)
+        .fetch_optional(database_pool.get_cache_pool())
         .await?;
         Ok(erg)
     }
@@ -130,7 +130,7 @@ impl ConstructionShipment {
                 WHERE status = 'IN_TRANSIT'
             "#,
         )
-        .fetch_all(&database_pool.database_pool)
+        .fetch_all(database_pool.get_cache_pool())
         .await?;
         Ok(erg)
     }
@@ -176,7 +176,7 @@ impl ConstructionShipment {
                   id ASC;
             "#,
         )
-        .fetch_all(&database_pool.database_pool)
+        .fetch_all(database_pool.get_cache_pool())
         .await?;
         Ok(erg)
     }
@@ -353,7 +353,7 @@ impl DatabaseConnector<ConstructionShipment> for ConstructionShipment {
                 FROM construction_shipment
             "#
         )
-        .fetch_all(&database_pool.database_pool)
+        .fetch_all(database_pool.get_cache_pool())
         .await?;
         Ok(erg)
     }

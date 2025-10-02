@@ -110,7 +110,7 @@ impl DatabaseConnector<RepairTransaction> for RepairTransaction {
             FROM repair_transaction
             "#
         )
-        .fetch_all(&database_pool.database_pool)
+        .fetch_all(database_pool.get_cache_pool())
         .await?;
         Ok(erg)
     }

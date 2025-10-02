@@ -127,7 +127,7 @@ impl DatabaseConnector<ShipModificationTransaction> for ShipModificationTransact
             FROM ship_modification_transaction
             "#
         )
-        .fetch_all(&database_pool.database_pool)
+        .fetch_all(database_pool.get_cache_pool())
         .await?;
         Ok(erg)
     }

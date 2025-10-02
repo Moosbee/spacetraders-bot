@@ -54,7 +54,7 @@ impl Agent {
         ORDER BY  symbol ASC, created_at DESC
         "#
     }
-    .fetch_all(&database_pool.database_pool)
+    .fetch_all(database_pool.get_cache_pool())
     .await?;
 
         Ok(erg)
@@ -75,7 +75,7 @@ impl Agent {
         "#,
         symbol
     }
-    .fetch_optional(&database_pool.database_pool)
+    .fetch_optional(database_pool.get_cache_pool())
     .await?;
 
         Ok(erg)
@@ -99,7 +99,7 @@ impl Agent {
             "#,
             symbol
         )
-        .fetch_all(&database_pool.database_pool)
+        .fetch_all(database_pool.get_cache_pool())
         .await?;
         Ok(erg)
     }
@@ -187,7 +187,7 @@ impl DatabaseConnector<Agent> for Agent {
                 SELECT symbol, account_id, headquarters, credits, starting_faction, ship_count, created_at FROM agent
             "#
         )
-        .fetch_all(&database_pool.database_pool)
+        .fetch_all(database_pool.get_cache_pool())
         .await?;
         Ok(erg)
     }

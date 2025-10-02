@@ -91,16 +91,27 @@ async fn setup_unauthed() -> Result<(space_traders_client::Api, database::DbPool
 
     let access_token = env::var("ACCESS_TOKEN").ok();
     let database_url = env::var("DATABASE_URL").unwrap();
+    let readyset_url = env::var("READYSET_URL").ok();
+    let database_pool = PgPoolOptions::new()
+        .max_connections(5)
+        .connect(&database_url)
+        .await?;
+
+    let readyset_pool = if let Some(readyset_url) = readyset_url {
+        Some(
+            PgPoolOptions::new()
+                .max_connections(5)
+                .connect(&readyset_url)
+                .await?,
+        )
+    } else {
+        None
+    };
 
     let api: space_traders_client::Api =
         space_traders_client::Api::new(access_token, 550, NonZeroU32::new(2).unwrap());
 
-    let database_pool = database::DbPool::new(
-        PgPoolOptions::new()
-            .max_connections(5)
-            .connect(&database_url)
-            .await?,
-    );
+    let database_pool = database::DbPool::new(database_pool, readyset_pool);
 
     // database::ShipInfo::insert(
     //     &database_pool,

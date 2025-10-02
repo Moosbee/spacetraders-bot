@@ -63,7 +63,7 @@ impl ConstructionMaterial {
       "#,
             waypoint_symbol
         )
-        .fetch_all(&database_pool.database_pool)
+        .fetch_all(database_pool.get_cache_pool())
         .await?;
         Ok(erg)
     }
@@ -87,7 +87,7 @@ impl ConstructionMaterial {
         WHERE fulfilled < required
       "#
         )
-        .fetch_all(&database_pool.database_pool)
+        .fetch_all(database_pool.get_cache_pool())
         .await?;
         Ok(erg)
     }
@@ -130,7 +130,7 @@ impl ConstructionMaterial {
                 CONSTRUCTION_MATERIAL.ID ASC;
       "#
         )
-        .fetch_all(&database_pool.database_pool)
+        .fetch_all(database_pool.get_cache_pool())
         .await?;
         Ok(erg)
     }
@@ -229,7 +229,7 @@ impl DatabaseConnector<ConstructionMaterial> for ConstructionMaterial {
                 FROM construction_material
             "#
         )
-        .fetch_all(&database_pool.database_pool)
+        .fetch_all(database_pool.get_cache_pool())
         .await?;
         Ok(erg)
     }

@@ -85,7 +85,7 @@ impl ShipyardShip {
             "#,
             waypoint_symbol
         )
-        .fetch_all(&database_pool.database_pool)
+        .fetch_all(database_pool.get_cache_pool())
         .await?;
         Ok(erg)
     }
@@ -118,7 +118,7 @@ impl ShipyardShip {
             ORDER BY waypoint_symbol, ship_type, created_at DESC
             "#
         )
-        .fetch_all(&database_pool.database_pool)
+        .fetch_all(database_pool.get_cache_pool())
         .await?;
         Ok(erg)
     }
@@ -228,7 +228,7 @@ impl DatabaseConnector<ShipyardShip> for ShipyardShip {
             FROM shipyard_ship
             "#
         )
-        .fetch_all(&database_pool.database_pool)
+        .fetch_all(database_pool.get_cache_pool())
         .await?;
         Ok(erg)
     }

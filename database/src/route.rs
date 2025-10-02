@@ -92,7 +92,7 @@ impl DatabaseConnector<Route> for Route {
                 FROM route
             "#
         )
-        .fetch_all(&database_pool.database_pool)
+        .fetch_all(database_pool.get_cache_pool())
         .await?;
         Ok(erg)
     }

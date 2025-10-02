@@ -97,7 +97,7 @@ impl DatabaseConnector<MountInfo> for MountInfo {
             FROM mount_info
             "#
         )
-        .fetch_all(&database_pool.database_pool)
+        .fetch_all(database_pool.get_cache_pool())
         .await?;
         Ok(erg)
     }

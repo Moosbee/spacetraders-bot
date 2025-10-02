@@ -53,10 +53,7 @@ impl From<&models::Waypoint> for Waypoint {
             modifiers: value
                 .modifiers
                 .as_ref()
-                .map(|m| {
-                    let mm = m.iter().map(|t| t.symbol).collect::<Vec<_>>();
-                    mm
-                })
+                .map(|m| m.iter().map(|t| t.symbol).collect::<Vec<_>>())
                 .unwrap_or_default(),
             charted_by: value.chart.as_ref().map(|c| c.submitted_by.clone()),
             charted_on: value.chart.as_ref().map(|c| c.submitted_on.clone()),
@@ -102,7 +99,7 @@ impl From<&Waypoint> for models::Waypoint {
             .and_then(|f| models::FactionSymbol::from_str(f).ok())
             .map(|f| Box::new(models::WaypointFaction::new(f)));
 
-        let erg = Self {
+        Self {
             symbol: value.symbol.clone(),
             system_symbol: value.system_symbol.clone(),
             x: value.x,
@@ -129,9 +126,7 @@ impl From<&Waypoint> for models::Waypoint {
                     .collect::<Vec<_>>(),
             ),
             chart,
-        };
-
-        erg
+        }
     }
 }
 
@@ -183,7 +178,7 @@ impl Waypoint {
             "#,
             system_symbol
         )
-        .fetch_all(&database_pool.database_pool)
+        .fetch_all(database_pool.get_cache_pool())
         .await?;
         Ok(erg)
     }
@@ -220,7 +215,7 @@ impl Waypoint {
             "#,
             symbol
         )
-        .fetch_optional(&database_pool.database_pool)
+        .fetch_optional(database_pool.get_cache_pool())
         .await?;
         Ok(erg)
     }
@@ -341,7 +336,7 @@ impl DatabaseConnector<Waypoint> for Waypoint {
                 FROM waypoint
             "#
         )
-        .fetch_all(&database_pool.database_pool)
+        .fetch_all(database_pool.get_cache_pool())
         .await?;
         Ok(erg)
     }

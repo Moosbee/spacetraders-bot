@@ -16,18 +16,18 @@ pub struct ShipManager {
     broadcaster: my_ship_update::InterShipBroadcaster,
 }
 
-impl Debug for ShipManager {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("ShipManager")
-            // .field("locked_ships", &self.locked_ships)
-            // .field("copy", &self.copy)
-            .field("mpsc_tx", &self.mpsc_tx)
-            .field("mpsc_rx", &self.mpsc_rx)
-            .field("id", &self.id)
-            .field("broadcaster", &self.broadcaster)
-            .finish()
-    }
-}
+// impl Debug for ShipManager {
+//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+//         f.debug_struct("ShipManager")
+//             // .field("locked_ships", &self.locked_ships)
+//             // .field("copy", &self.copy)
+//             .field("mpsc_tx", &self.mpsc_tx)
+//             .field("mpsc_rx", &self.mpsc_rx)
+//             .field("id", &self.id)
+//             .field("broadcaster", &self.broadcaster)
+//             .finish()
+//     }
+// }
 
 pub type ShipGuard<'a> = <LockableHashMap<String, MyShip> as Lockable<String, MyShip>>::Guard<'a>;
 
@@ -129,12 +129,9 @@ impl ShipManager {
     }
 
     pub async fn try_get_mut(&self, symbol: &str) -> Option<ShipGuard<'_>> {
-        let erg = self
-            .locked_ships
+        self.locked_ships
             .try_lock(symbol.to_owned(), SyncLimit::no_limit())
-            .unwrap();
-
-        erg
+            .unwrap()
     }
 
     pub fn get_broadcaster(&self) -> my_ship_update::InterShipBroadcaster {

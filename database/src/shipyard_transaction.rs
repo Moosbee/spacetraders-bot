@@ -54,7 +54,7 @@ impl ShipyardTransaction {
             "#,
             waypoint_symbol
         )
-        .fetch_all(&database_pool.database_pool)
+        .fetch_all(database_pool.get_cache_pool())
         .await?;
         Ok(erg)
     }
@@ -79,7 +79,7 @@ impl ShipyardTransaction {
     "#,
             system_qr
         )
-        .fetch_all(&database_pool.database_pool)
+        .fetch_all(database_pool.get_cache_pool())
         .await?;
         Ok(erg)
     }
@@ -178,7 +178,7 @@ impl DatabaseConnector<ShipyardTransaction> for ShipyardTransaction {
             FROM shipyard_transaction
             "#
         )
-        .fetch_all(&database_pool.database_pool)
+        .fetch_all(database_pool.get_cache_pool())
         .await?;
         Ok(erg)
     }

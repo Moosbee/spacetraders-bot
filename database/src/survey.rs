@@ -84,7 +84,7 @@ impl Survey {
             "#,
             waypoint_symbol
         )
-        .fetch_all(&database_pool.database_pool)
+        .fetch_all(database_pool.get_cache_pool())
         .await?;
         Ok(erg)
     }
@@ -194,7 +194,7 @@ impl DatabaseConnector<Survey> for Survey {
                 FROM surveys
             "#
         )
-        .fetch_all(&database_pool.database_pool)
+        .fetch_all(database_pool.get_cache_pool())
         .await?;
         Ok(erg)
     }

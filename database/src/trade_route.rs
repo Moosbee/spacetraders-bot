@@ -236,7 +236,7 @@ impl DatabaseConnector<TradeRoute> for TradeRoute {
                 FROM trade_route
             "#
         )
-        .fetch_all(&database_pool.database_pool)
+        .fetch_all(database_pool.get_cache_pool())
         .await?;
         Ok(erg)
     }
@@ -312,7 +312,7 @@ impl TradeRoute {
                  FROM trade_route WHERE status='IN_TRANSIT'
             "#
         )
-        .fetch_all(&database_pool.database_pool)
+        .fetch_all(database_pool.get_cache_pool())
         .await?;
         Ok(erg)
     }
@@ -361,7 +361,7 @@ impl TradeRoute {
                 id ASC;
             "#
         )
-        .fetch_all(&database_pool.database_pool)
+        .fetch_all(database_pool.get_cache_pool())
         .await?;
         Ok(erg)
     }

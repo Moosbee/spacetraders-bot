@@ -107,7 +107,7 @@ impl DatabaseConnector<ShipJump> for ShipJump {
             FROM ship_jumps
             "#
         )
-        .fetch_all(&database_pool.database_pool)
+        .fetch_all(database_pool.get_cache_pool())
         .await?;
         Ok(results)
     }

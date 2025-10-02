@@ -219,7 +219,7 @@ impl DatabaseConnector<Contract> for Contract {
                 FROM contract
             "#
         )
-        .fetch_all(&database_pool.database_pool)
+        .fetch_all(database_pool.get_cache_pool())
         .await?;
         Ok(erg)
     }
@@ -269,7 +269,7 @@ impl Contract {
         FROM public.contract WHERE id = $1"#,
             &id
         )
-        .fetch_optional(&database_pool.database_pool)
+        .fetch_optional(database_pool.get_cache_pool())
         .await?;
         Ok(erg)
     }
@@ -304,7 +304,7 @@ order by
   contract.deadline_to_accept ASC;
     "#,
 )
-        .fetch_all(&database_pool.database_pool)
+        .fetch_all(database_pool.get_cache_pool())
         .await?;
         Ok(erg)
     }

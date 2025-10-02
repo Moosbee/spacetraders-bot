@@ -33,7 +33,7 @@ impl ShipyardShipTypes {
             "#,
             waypoint_symbol
         )
-        .fetch_all(&database_pool.database_pool)
+        .fetch_all(database_pool.get_cache_pool())
         .await?;
         Ok(erg)
     }
@@ -104,7 +104,7 @@ impl DatabaseConnector<ShipyardShipTypes> for ShipyardShipTypes {
             FROM shipyard_ship_types
             "#
         )
-        .fetch_all(&database_pool.database_pool)
+        .fetch_all(database_pool.get_cache_pool())
         .await?;
         Ok(erg)
     }

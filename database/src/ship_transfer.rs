@@ -54,7 +54,7 @@ impl ShipTransfer {
                 WHERE finished = false
             "#,
         )
-        .fetch_all(&database_pool.database_pool)
+        .fetch_all(database_pool.get_cache_pool())
         .await?;
         Ok(erg)
     }
@@ -160,7 +160,7 @@ impl DatabaseConnector<ShipTransfer> for ShipTransfer {
                 FROM ship_transfers
             "#
         )
-        .fetch_all(&database_pool.database_pool)
+        .fetch_all(database_pool.get_cache_pool())
         .await?;
         Ok(erg)
     }

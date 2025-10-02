@@ -32,7 +32,7 @@ impl JumpGateConnection {
       "#,
             from
         )
-        .fetch_all(&database_pool.database_pool)
+        .fetch_all(database_pool.get_cache_pool())
         .await?;
         Ok(erg)
     }
@@ -108,7 +108,7 @@ impl DatabaseConnector<JumpGateConnection> for JumpGateConnection {
                 FROM jump_gate_connections
             "#
         )
-        .fetch_all(&database_pool.database_pool)
+        .fetch_all(database_pool.get_cache_pool())
         .await?;
         Ok(erg)
     }

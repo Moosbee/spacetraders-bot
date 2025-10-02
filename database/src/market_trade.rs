@@ -102,7 +102,7 @@ impl DatabaseConnector<MarketTrade> for MarketTrade {
                 FROM market_trade
             "#
         )
-        .fetch_all(&database_pool.database_pool)
+        .fetch_all(database_pool.get_cache_pool())
         .await?;
         Ok(erg)
     }
@@ -150,7 +150,7 @@ impl MarketTrade {
     "#,
             waypoint_symbol
         )
-        .fetch_all(&database_pool.database_pool)
+        .fetch_all(database_pool.get_cache_pool())
         .await?;
         Ok(row)
     }
@@ -169,7 +169,7 @@ impl MarketTrade {
             ORDER BY waypoint_symbol, symbol, created_at DESC
     "#,
         )
-        .fetch_all(&database_pool.database_pool)
+        .fetch_all(database_pool.get_cache_pool())
         .await?;
         Ok(row)
     }
@@ -193,7 +193,7 @@ impl MarketTrade {
     "#,
             system_symbol
         )
-        .fetch_all(&database_pool.database_pool)
+        .fetch_all(database_pool.get_cache_pool())
         .await?;
         Ok(row)
     }
