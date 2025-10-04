@@ -31,6 +31,7 @@ use crate::apis::{Error, ResponseContent, ResponseContentEntity};
 use crate::models::{self, FactionSymbol, System};
 use crate::models::{Register201ResponseData, RegisterRequest};
 use log::debug;
+use std::time::Duration;
 
 use crate::rate_limiter::PriorityRateLimiter;
 
@@ -38,6 +39,27 @@ use crate::rate_limiter::PriorityRateLimiter;
 pub struct Api {
     configuration: Arc<Configuration>,
     limiter: Arc<PriorityRateLimiter>,
+}
+
+macro_rules! rate_limit_retry {
+    ($self:ident, $priority:expr, $name:expr, $code:expr) => {
+        loop {
+            $self.limiter.until_ready($priority, $name).await;
+            let result = $code;
+            if let Err(Error::ResponseError(ref response_content)) = result {
+                if response_content.status == reqwest::StatusCode::TOO_MANY_REQUESTS
+                    && response_content.get_error_code() == Some(429)
+                {
+                    debug!(
+                        "Rate limited on {}, retrying after delay...",
+                        stringify!($name)
+                    );
+                    continue;
+                }
+            }
+            break result;
+        }
+    };
 }
 
 #[allow(dead_code)]
@@ -65,9 +87,12 @@ impl Api {
 
     /// Return the status of the game server. This also includes a few global elements, such as announcements, server reset dates and leaderboards.
     pub async fn get_status(&self) -> Result<models::GetStatus200Response, Error<GetStatusError>> {
-        self.limiter.until_ready(50, "").await;
-        let result = crate::apis::global_api::get_status(&self.configuration).await?;
-
+        let result = rate_limit_retry!(
+            self,
+            50,
+            "get_status",
+            crate::apis::global_api::get_status(&self.configuration).await
+        )?;
         Ok(result)
     }
 
@@ -80,10 +105,19 @@ impl Api {
     ) -> Result<Register201ResponseData, Error<RegisterError>> {
         let mut config = Configuration::clone(&self.configuration);
         config.bearer_access_token = Some(account_token);
-        let register_response: models::Register201Response =
-            crate::apis::accounts_api::register(&config, RegisterRequest { symbol, faction })
-                .await?;
-
+        let register_response: models::Register201Response = rate_limit_retry!(
+            self,
+            50,
+            "register",
+            crate::apis::accounts_api::register(
+                &config,
+                RegisterRequest {
+                    symbol: symbol.clone(),
+                    faction
+                }
+            )
+            .await
+        )?;
         Ok(*register_response.data)
     }
 
@@ -94,8 +128,12 @@ impl Api {
     ) -> Result<models::GetMyAccount200ResponseData, Error<GetMyAccountError>> {
         let mut config = Configuration::clone(&self.configuration);
         config.bearer_access_token = Some(account_token);
-        let register_response = crate::apis::accounts_api::get_my_account(&config).await?;
-
+        let register_response = rate_limit_retry!(
+            self,
+            50,
+            "get_my_account",
+            crate::apis::accounts_api::get_my_account(&config).await
+        )?;
         Ok(*register_response.data)
     }
 
@@ -104,9 +142,12 @@ impl Api {
         &self,
         agent_symbol: &str,
     ) -> Result<models::GetAgent200Response, Error<GetAgentError>> {
-        self.limiter.until_ready(50, "get_agent").await;
-        let result = crate::apis::agents_api::get_agent(&self.configuration, agent_symbol).await?;
-
+        let result = rate_limit_retry!(
+            self,
+            50,
+            "get_agent",
+            crate::apis::agents_api::get_agent(&self.configuration, agent_symbol).await
+        )?;
         Ok(result)
     }
 
@@ -116,9 +157,12 @@ impl Api {
         page: Option<i32>,
         limit: Option<i32>,
     ) -> Result<models::GetAgents200Response, Error<GetAgentsError>> {
-        self.limiter.until_ready(50, "get_agents").await;
-        let result = crate::apis::agents_api::get_agents(&self.configuration, page, limit).await?;
-
+        let result = rate_limit_retry!(
+            self,
+            50,
+            "get_agents",
+            crate::apis::agents_api::get_agents(&self.configuration, page, limit).await
+        )?;
         Ok(result)
     }
 
@@ -160,9 +204,12 @@ impl Api {
     pub async fn get_my_agent(
         &self,
     ) -> Result<models::GetMyAgent200Response, Error<GetMyAgentError>> {
-        self.limiter.until_ready(50, "get_my_agent").await;
-        let result = crate::apis::agents_api::get_my_agent(&self.configuration).await?;
-
+        let result = rate_limit_retry!(
+            self,
+            50,
+            "get_my_agent",
+            crate::apis::agents_api::get_my_agent(&self.configuration).await
+        )?;
         Ok(result)
     }
 
@@ -170,9 +217,12 @@ impl Api {
     pub async fn get_my_agent_events(
         &self,
     ) -> Result<models::GetMyAgentEvents200Response, Error<GetMyAgentEventsError>> {
-        self.limiter.until_ready(50, "get_my_agent_events").await;
-        let result = crate::apis::agents_api::get_my_agent_events(&self.configuration).await?;
-
+        let result = rate_limit_retry!(
+            self,
+            50,
+            "get_my_agent_events",
+            crate::apis::agents_api::get_my_agent_events(&self.configuration).await
+        )?;
         Ok(result)
     }
 
@@ -184,10 +234,12 @@ impl Api {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
-        self.limiter.until_ready(50, "").await;
-        let result =
-            crate::apis::contracts_api::accept_contract(&self.configuration, contract_id).await?;
-
+        let result = rate_limit_retry!(
+            self,
+            50,
+            "accept_contract",
+            crate::apis::contracts_api::accept_contract(&self.configuration, contract_id).await
+        )?;
         Ok(result)
     }
 
@@ -200,14 +252,17 @@ impl Api {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
-        self.limiter.until_ready(50, "deliver_contract").await;
-        let result = crate::apis::contracts_api::deliver_contract(
-            &self.configuration,
-            contract_id,
-            deliver_contract_request,
-        )
-        .await?;
-
+        let result = rate_limit_retry!(
+            self,
+            50,
+            "deliver_contract",
+            crate::apis::contracts_api::deliver_contract(
+                &self.configuration,
+                contract_id,
+                deliver_contract_request.clone(),
+            )
+            .await
+        )?;
         Ok(result)
     }
 
@@ -219,10 +274,12 @@ impl Api {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
-        self.limiter.until_ready(50, "fulfill_contract").await;
-        let result =
-            crate::apis::contracts_api::fulfill_contract(&self.configuration, contract_id).await?;
-
+        let result = rate_limit_retry!(
+            self,
+            50,
+            "fulfill_contract",
+            crate::apis::contracts_api::fulfill_contract(&self.configuration, contract_id).await
+        )?;
         Ok(result)
     }
 
@@ -234,10 +291,12 @@ impl Api {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
-        self.limiter.until_ready(50, "get_contract").await;
-        let result =
-            crate::apis::contracts_api::get_contract(&self.configuration, contract_id).await?;
-
+        let result = rate_limit_retry!(
+            self,
+            50,
+            "get_contract",
+            crate::apis::contracts_api::get_contract(&self.configuration, contract_id).await
+        )?;
         Ok(result)
     }
 
@@ -250,10 +309,12 @@ impl Api {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
-        self.limiter.until_ready(50, "get_contracts").await;
-        let result =
-            crate::apis::contracts_api::get_contracts(&self.configuration, page, limit).await?;
-
+        let result = rate_limit_retry!(
+            self,
+            50,
+            "get_contracts",
+            crate::apis::contracts_api::get_contracts(&self.configuration, page, limit).await
+        )?;
         Ok(result)
     }
 
@@ -300,10 +361,12 @@ impl Api {
         &self,
         faction_symbol: &str,
     ) -> Result<models::GetFaction200Response, Error<GetFactionError>> {
-        self.limiter.until_ready(50, "get_faction").await;
-        let result =
-            crate::apis::factions_api::get_faction(&self.configuration, faction_symbol).await?;
-
+        let result = rate_limit_retry!(
+            self,
+            50,
+            "get_faction",
+            crate::apis::factions_api::get_faction(&self.configuration, faction_symbol).await
+        )?;
         Ok(result)
     }
 
@@ -313,10 +376,12 @@ impl Api {
         page: Option<i32>,
         limit: Option<i32>,
     ) -> Result<models::GetFactions200Response, Error<GetFactionsError>> {
-        self.limiter.until_ready(50, "get_factions").await;
-        let result =
-            crate::apis::factions_api::get_factions(&self.configuration, page, limit).await?;
-
+        let result = rate_limit_retry!(
+            self,
+            50,
+            "get_factions",
+            crate::apis::factions_api::get_factions(&self.configuration, page, limit).await
+        )?;
         Ok(result)
     }
 
@@ -362,9 +427,12 @@ impl Api {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
-        self.limiter.until_ready(50, "create_chart").await;
-        let result = crate::apis::fleet_api::create_chart(&self.configuration, ship_symbol).await?;
-
+        let result = rate_limit_retry!(
+            self,
+            50,
+            "create_chart",
+            crate::apis::fleet_api::create_chart(&self.configuration, ship_symbol).await
+        )?;
         Ok(result)
     }
 
@@ -376,10 +444,12 @@ impl Api {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
-        self.limiter.until_ready(50, "create_ship_ship_scan").await;
-        let result =
-            crate::apis::fleet_api::create_ship_ship_scan(&self.configuration, ship_symbol).await?;
-
+        let result = rate_limit_retry!(
+            self,
+            50,
+            "create_ship_ship_scan",
+            crate::apis::fleet_api::create_ship_ship_scan(&self.configuration, ship_symbol).await
+        )?;
         Ok(result)
     }
 
@@ -391,13 +461,12 @@ impl Api {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
-        self.limiter
-            .until_ready(50, "create_ship_system_scan")
-            .await;
-        let result =
-            crate::apis::fleet_api::create_ship_system_scan(&self.configuration, ship_symbol)
-                .await?;
-
+        let result = rate_limit_retry!(
+            self,
+            50,
+            "create_ship_system_scan",
+            crate::apis::fleet_api::create_ship_system_scan(&self.configuration, ship_symbol).await
+        )?;
         Ok(result)
     }
 
@@ -409,13 +478,13 @@ impl Api {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
-        self.limiter
-            .until_ready(50, "create_ship_waypoint_scan")
-            .await;
-        let result =
+        let result = rate_limit_retry!(
+            self,
+            50,
+            "create_ship_waypoint_scan",
             crate::apis::fleet_api::create_ship_waypoint_scan(&self.configuration, ship_symbol)
-                .await?;
-
+                .await
+        )?;
         Ok(result)
     }
 
@@ -427,10 +496,12 @@ impl Api {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
-        self.limiter.until_ready(50, "create_survey").await;
-        let result =
-            crate::apis::fleet_api::create_survey(&self.configuration, ship_symbol).await?;
-
+        let result = rate_limit_retry!(
+            self,
+            50,
+            "create_survey",
+            crate::apis::fleet_api::create_survey(&self.configuration, ship_symbol).await
+        )?;
         Ok(result)
     }
 
@@ -442,9 +513,12 @@ impl Api {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
-        self.limiter.until_ready(50, "dock_ship").await;
-        let result = crate::apis::fleet_api::dock_ship(&self.configuration, ship_symbol).await?;
-
+        let result = rate_limit_retry!(
+            self,
+            50,
+            "dock_ship",
+            crate::apis::fleet_api::dock_ship(&self.configuration, ship_symbol).await
+        )?;
         Ok(result)
     }
 
@@ -456,10 +530,12 @@ impl Api {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
-        self.limiter.until_ready(50, "extract_resources").await;
-        let result =
-            crate::apis::fleet_api::extract_resources(&self.configuration, ship_symbol).await?;
-
+        let result = rate_limit_retry!(
+            self,
+            50,
+            "extract_resources",
+            crate::apis::fleet_api::extract_resources(&self.configuration, ship_symbol).await
+        )?;
         Ok(result)
     }
 
@@ -472,16 +548,17 @@ impl Api {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
-        self.limiter
-            .until_ready(50, "extract_resources_with_survey")
-            .await;
-        let result = crate::apis::fleet_api::extract_resources_with_survey(
-            &self.configuration,
-            ship_symbol,
-            survey,
-        )
-        .await?;
-
+        let result = rate_limit_retry!(
+            self,
+            50,
+            "extract_resources_with_survey",
+            crate::apis::fleet_api::extract_resources_with_survey(
+                &self.configuration,
+                ship_symbol,
+                survey.clone(),
+            )
+            .await
+        )?;
         Ok(result)
     }
 
@@ -493,9 +570,12 @@ impl Api {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
-        self.limiter.until_ready(50, "get_mounts").await;
-        let result = crate::apis::fleet_api::get_mounts(&self.configuration, ship_symbol).await?;
-
+        let result = rate_limit_retry!(
+            self,
+            50,
+            "get_mounts",
+            crate::apis::fleet_api::get_mounts(&self.configuration, ship_symbol).await
+        )?;
         Ok(result)
     }
 
@@ -507,10 +587,12 @@ impl Api {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
-        self.limiter.until_ready(50, "get_ship_modules").await;
-        let result =
-            crate::apis::fleet_api::get_ship_modules(&self.configuration, ship_symbol).await?;
-
+        let result = rate_limit_retry!(
+            self,
+            50,
+            "get_ship_modules",
+            crate::apis::fleet_api::get_ship_modules(&self.configuration, ship_symbol).await
+        )?;
         Ok(result)
     }
 
@@ -522,9 +604,12 @@ impl Api {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
-        self.limiter.until_ready(50, "get_my_ship").await;
-        let result = crate::apis::fleet_api::get_my_ship(&self.configuration, ship_symbol).await?;
-
+        let result = rate_limit_retry!(
+            self,
+            50,
+            "get_my_ship",
+            crate::apis::fleet_api::get_my_ship(&self.configuration, ship_symbol).await
+        )?;
         Ok(result)
     }
 
@@ -536,10 +621,12 @@ impl Api {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
-        self.limiter.until_ready(50, "get_my_ship_cargo").await;
-        let result =
-            crate::apis::fleet_api::get_my_ship_cargo(&self.configuration, ship_symbol).await?;
-
+        let result = rate_limit_retry!(
+            self,
+            50,
+            "get_my_ship_cargo",
+            crate::apis::fleet_api::get_my_ship_cargo(&self.configuration, ship_symbol).await
+        )?;
         Ok(result)
     }
 
@@ -552,9 +639,12 @@ impl Api {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
-        self.limiter.until_ready(50, "get_my_ships").await;
-        let result = crate::apis::fleet_api::get_my_ships(&self.configuration, page, limit).await?;
-
+        let result = rate_limit_retry!(
+            self,
+            50,
+            "get_my_ships",
+            crate::apis::fleet_api::get_my_ships(&self.configuration, page, limit).await
+        )?;
         Ok(result)
     }
 
@@ -604,10 +694,12 @@ impl Api {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
-        self.limiter.until_ready(50, "get_repair_ship").await;
-        let result =
-            crate::apis::fleet_api::get_repair_ship(&self.configuration, ship_symbol).await?;
-
+        let result = rate_limit_retry!(
+            self,
+            50,
+            "get_repair_ship",
+            crate::apis::fleet_api::get_repair_ship(&self.configuration, ship_symbol).await
+        )?;
         Ok(result)
     }
 
@@ -619,10 +711,12 @@ impl Api {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
-        self.limiter.until_ready(50, "get_scrap_ship").await;
-        let result =
-            crate::apis::fleet_api::get_scrap_ship(&self.configuration, ship_symbol).await?;
-
+        let result = rate_limit_retry!(
+            self,
+            50,
+            "get_scrap_ship",
+            crate::apis::fleet_api::get_scrap_ship(&self.configuration, ship_symbol).await
+        )?;
         Ok(result)
     }
 
@@ -634,10 +728,12 @@ impl Api {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
-        self.limiter.until_ready(50, "get_ship_cooldown").await;
-        let result =
-            crate::apis::fleet_api::get_ship_cooldown(&self.configuration, ship_symbol).await?;
-
+        let result = rate_limit_retry!(
+            self,
+            50,
+            "get_ship_cooldown",
+            crate::apis::fleet_api::get_ship_cooldown(&self.configuration, ship_symbol).await
+        )?;
         Ok(result)
     }
 
@@ -649,9 +745,12 @@ impl Api {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
-        self.limiter.until_ready(50, "get_ship_nav").await;
-        let result = crate::apis::fleet_api::get_ship_nav(&self.configuration, ship_symbol).await?;
-
+        let result = rate_limit_retry!(
+            self,
+            50,
+            "get_ship_nav",
+            crate::apis::fleet_api::get_ship_nav(&self.configuration, ship_symbol).await
+        )?;
         Ok(result)
     }
 
@@ -664,14 +763,17 @@ impl Api {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
-        self.limiter.until_ready(50, "install_mount").await;
-        let result = crate::apis::fleet_api::install_mount(
-            &self.configuration,
-            ship_symbol,
-            install_mount_request,
-        )
-        .await?;
-
+        let result = rate_limit_retry!(
+            self,
+            50,
+            "install_mount",
+            crate::apis::fleet_api::install_mount(
+                &self.configuration,
+                ship_symbol,
+                install_mount_request.clone(),
+            )
+            .await
+        )?;
         Ok(result)
     }
 
@@ -684,14 +786,17 @@ impl Api {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
-        self.limiter.until_ready(50, "install_ship_module").await;
-        let result = crate::apis::fleet_api::install_ship_module(
-            &self.configuration,
-            ship_symbol,
-            install_ship_module_request,
-        )
-        .await?;
-
+        let result = rate_limit_retry!(
+            self,
+            50,
+            "install_ship_module",
+            crate::apis::fleet_api::install_ship_module(
+                &self.configuration,
+                ship_symbol,
+                install_ship_module_request.clone(),
+            )
+            .await
+        )?;
         Ok(result)
     }
 
@@ -704,11 +809,17 @@ impl Api {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
-        self.limiter.until_ready(50, "jettison").await;
-        let result =
-            crate::apis::fleet_api::jettison(&self.configuration, ship_symbol, jettison_request)
-                .await?;
-
+        let result = rate_limit_retry!(
+            self,
+            50,
+            "jettison",
+            crate::apis::fleet_api::jettison(
+                &self.configuration,
+                ship_symbol,
+                jettison_request.clone()
+            )
+            .await
+        )?;
         Ok(result)
     }
 
@@ -721,11 +832,17 @@ impl Api {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
-        self.limiter.until_ready(50, "jump_ship").await;
-        let result =
-            crate::apis::fleet_api::jump_ship(&self.configuration, ship_symbol, jump_ship_request)
-                .await?;
-
+        let result = rate_limit_retry!(
+            self,
+            50,
+            "jump_ship",
+            crate::apis::fleet_api::jump_ship(
+                &self.configuration,
+                ship_symbol,
+                jump_ship_request.clone()
+            )
+            .await
+        )?;
         Ok(result)
     }
 
@@ -738,14 +855,17 @@ impl Api {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
-        self.limiter.until_ready(50, "navigate_ship").await;
-        let result = crate::apis::fleet_api::navigate_ship(
-            &self.configuration,
-            ship_symbol,
-            navigate_ship_request,
-        )
-        .await?;
-
+        let result = rate_limit_retry!(
+            self,
+            50,
+            "navigate_ship",
+            crate::apis::fleet_api::navigate_ship(
+                &self.configuration,
+                ship_symbol,
+                navigate_ship_request.clone(),
+            )
+            .await
+        )?;
         Ok(result)
     }
 
@@ -760,14 +880,12 @@ impl Api {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
-        self.limiter.until_ready(50, "negotiate_contract").await;
-        // let result =
-        //     crate::apis::fleet_api::negotiate_contract(&self.configuration, ship_symbol).await?;
-
-        let result =
-            crate::apis::contracts_api::negotiate_contract(&self.configuration, ship_symbol)
-                .await?;
-
+        let result = rate_limit_retry!(
+            self,
+            50,
+            "negotiate_contract",
+            crate::apis::contracts_api::negotiate_contract(&self.configuration, ship_symbol).await
+        )?;
         Ok(result)
     }
 
@@ -779,9 +897,12 @@ impl Api {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
-        self.limiter.until_ready(50, "orbit_ship").await;
-        let result = crate::apis::fleet_api::orbit_ship(&self.configuration, ship_symbol).await?;
-
+        let result = rate_limit_retry!(
+            self,
+            50,
+            "orbit_ship",
+            crate::apis::fleet_api::orbit_ship(&self.configuration, ship_symbol).await
+        )?;
         Ok(result)
     }
 
@@ -794,14 +915,17 @@ impl Api {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
-        self.limiter.until_ready(50, "patch_ship_nav").await;
-        let result = crate::apis::fleet_api::patch_ship_nav(
-            &self.configuration,
-            ship_symbol,
-            patch_ship_nav_request,
-        )
-        .await?;
-
+        let result = rate_limit_retry!(
+            self,
+            50,
+            "patch_ship_nav",
+            crate::apis::fleet_api::patch_ship_nav(
+                &self.configuration,
+                ship_symbol,
+                patch_ship_nav_request.clone(),
+            )
+            .await
+        )?;
         Ok(result)
     }
 
@@ -814,14 +938,17 @@ impl Api {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
-        self.limiter.until_ready(50, "purchase_cargo").await;
-        let result = crate::apis::fleet_api::purchase_cargo(
-            &self.configuration,
-            ship_symbol,
-            purchase_cargo_request,
-        )
-        .await?;
-
+        let result = rate_limit_retry!(
+            self,
+            50,
+            "purchase_cargo",
+            crate::apis::fleet_api::purchase_cargo(
+                &self.configuration,
+                ship_symbol,
+                purchase_cargo_request.clone(),
+            )
+            .await
+        )?;
         Ok(result)
     }
 
@@ -833,11 +960,16 @@ impl Api {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
-        self.limiter.until_ready(50, "purchase_ship").await;
-        let result =
-            crate::apis::fleet_api::purchase_ship(&self.configuration, purchase_ship_request)
-                .await?;
-
+        let result = rate_limit_retry!(
+            self,
+            50,
+            "purchase_ship",
+            crate::apis::fleet_api::purchase_ship(
+                &self.configuration,
+                purchase_ship_request.clone()
+            )
+            .await
+        )?;
         Ok(result)
     }
 
@@ -850,14 +982,17 @@ impl Api {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
-        self.limiter.until_ready(50, "refuel_ship").await;
-        let result = crate::apis::fleet_api::refuel_ship(
-            &self.configuration,
-            ship_symbol,
-            refuel_ship_request,
-        )
-        .await?;
-
+        let result = rate_limit_retry!(
+            self,
+            50,
+            "refuel_ship",
+            crate::apis::fleet_api::refuel_ship(
+                &self.configuration,
+                ship_symbol,
+                refuel_ship_request.clone(),
+            )
+            .await
+        )?;
         Ok(result)
     }
 
@@ -870,14 +1005,17 @@ impl Api {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
-        self.limiter.until_ready(50, "remove_mount").await;
-        let result = crate::apis::fleet_api::remove_mount(
-            &self.configuration,
-            ship_symbol,
-            remove_mount_request,
-        )
-        .await?;
-
+        let result = rate_limit_retry!(
+            self,
+            50,
+            "remove_mount",
+            crate::apis::fleet_api::remove_mount(
+                &self.configuration,
+                ship_symbol,
+                remove_mount_request.clone(),
+            )
+            .await
+        )?;
         Ok(result)
     }
 
@@ -890,14 +1028,17 @@ impl Api {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
-        self.limiter.until_ready(50, "remove_ship_module").await;
-        let result = crate::apis::fleet_api::remove_ship_module(
-            &self.configuration,
-            ship_symbol,
-            remove_ship_module_request,
-        )
-        .await?;
-
+        let result = rate_limit_retry!(
+            self,
+            50,
+            "remove_ship_module",
+            crate::apis::fleet_api::remove_ship_module(
+                &self.configuration,
+                ship_symbol,
+                remove_ship_module_request.clone(),
+            )
+            .await
+        )?;
         Ok(result)
     }
 
@@ -909,9 +1050,12 @@ impl Api {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
-        self.limiter.until_ready(50, "repair_ship").await;
-        let result = crate::apis::fleet_api::repair_ship(&self.configuration, ship_symbol).await?;
-
+        let result = rate_limit_retry!(
+            self,
+            50,
+            "repair_ship",
+            crate::apis::fleet_api::repair_ship(&self.configuration, ship_symbol).await
+        )?;
         Ok(result)
     }
 
@@ -923,9 +1067,12 @@ impl Api {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
-        self.limiter.until_ready(50, "scrap_ship").await;
-        let result = crate::apis::fleet_api::scrap_ship(&self.configuration, ship_symbol).await?;
-
+        let result = rate_limit_retry!(
+            self,
+            50,
+            "scrap_ship",
+            crate::apis::fleet_api::scrap_ship(&self.configuration, ship_symbol).await
+        )?;
         Ok(result)
     }
 
@@ -938,14 +1085,17 @@ impl Api {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
-        self.limiter.until_ready(50, "sell_cargo").await;
-        let result = crate::apis::fleet_api::sell_cargo(
-            &self.configuration,
-            ship_symbol,
-            sell_cargo_request,
-        )
-        .await?;
-
+        let result = rate_limit_retry!(
+            self,
+            50,
+            "sell_cargo",
+            crate::apis::fleet_api::sell_cargo(
+                &self.configuration,
+                ship_symbol,
+                sell_cargo_request.clone(),
+            )
+            .await
+        )?;
         Ok(result)
     }
 
@@ -958,14 +1108,17 @@ impl Api {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
-        self.limiter.until_ready(50, "ship_refine").await;
-        let result = crate::apis::fleet_api::ship_refine(
-            &self.configuration,
-            ship_symbol,
-            ship_refine_request,
-        )
-        .await?;
-
+        let result = rate_limit_retry!(
+            self,
+            50,
+            "ship_refine",
+            crate::apis::fleet_api::ship_refine(
+                &self.configuration,
+                ship_symbol,
+                ship_refine_request.clone(),
+            )
+            .await
+        )?;
         Ok(result)
     }
 
@@ -977,10 +1130,12 @@ impl Api {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
-        self.limiter.until_ready(50, "siphon_resources").await;
-        let result =
-            crate::apis::fleet_api::siphon_resources(&self.configuration, ship_symbol).await?;
-
+        let result = rate_limit_retry!(
+            self,
+            50,
+            "siphon_resources",
+            crate::apis::fleet_api::siphon_resources(&self.configuration, ship_symbol).await
+        )?;
         Ok(result)
     }
 
@@ -993,14 +1148,17 @@ impl Api {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
-        self.limiter.until_ready(50, "transfer_cargo").await;
-        let result = crate::apis::fleet_api::transfer_cargo(
-            &self.configuration,
-            ship_symbol,
-            transfer_cargo_request,
-        )
-        .await?;
-
+        let result = rate_limit_retry!(
+            self,
+            50,
+            "transfer_cargo",
+            crate::apis::fleet_api::transfer_cargo(
+                &self.configuration,
+                ship_symbol,
+                transfer_cargo_request.clone(),
+            )
+            .await
+        )?;
         Ok(result)
     }
 
@@ -1013,14 +1171,17 @@ impl Api {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
-        self.limiter.until_ready(50, "warp_ship").await;
-        let result = crate::apis::fleet_api::warp_ship(
-            &self.configuration,
-            ship_symbol,
-            navigate_ship_request,
-        )
-        .await?;
-
+        let result = rate_limit_retry!(
+            self,
+            50,
+            "warp_ship",
+            crate::apis::fleet_api::warp_ship(
+                &self.configuration,
+                ship_symbol,
+                navigate_ship_request.clone(),
+            )
+            .await
+        )?;
         Ok(result)
     }
 
@@ -1030,14 +1191,17 @@ impl Api {
         system_symbol: &str,
         waypoint_symbol: &str,
     ) -> Result<models::GetConstruction200Response, Error<GetConstructionError>> {
-        self.limiter.until_ready(50, "get_construction").await;
-        let result = crate::apis::systems_api::get_construction(
-            &self.configuration,
-            system_symbol,
-            waypoint_symbol,
-        )
-        .await?;
-
+        let result = rate_limit_retry!(
+            self,
+            50,
+            "get_construction",
+            crate::apis::systems_api::get_construction(
+                &self.configuration,
+                system_symbol,
+                waypoint_symbol,
+            )
+            .await
+        )?;
         Ok(result)
     }
 
@@ -1047,14 +1211,17 @@ impl Api {
         system_symbol: &str,
         waypoint_symbol: &str,
     ) -> Result<models::GetJumpGate200Response, Error<GetJumpGateError>> {
-        self.limiter.until_ready(50, "get_jump_gate").await;
-        let result = crate::apis::systems_api::get_jump_gate(
-            &self.configuration,
-            system_symbol,
-            waypoint_symbol,
-        )
-        .await?;
-
+        let result = rate_limit_retry!(
+            self,
+            50,
+            "get_jump_gate",
+            crate::apis::systems_api::get_jump_gate(
+                &self.configuration,
+                system_symbol,
+                waypoint_symbol,
+            )
+            .await
+        )?;
         Ok(result)
     }
 
@@ -1064,14 +1231,17 @@ impl Api {
         system_symbol: &str,
         waypoint_symbol: &str,
     ) -> Result<models::GetMarket200Response, Error<GetMarketError>> {
-        self.limiter.until_ready(50, "get_market").await;
-        let result = crate::apis::systems_api::get_market(
-            &self.configuration,
-            system_symbol,
-            waypoint_symbol,
-        )
-        .await?;
-
+        let result = rate_limit_retry!(
+            self,
+            50,
+            "get_market",
+            crate::apis::systems_api::get_market(
+                &self.configuration,
+                system_symbol,
+                waypoint_symbol,
+            )
+            .await
+        )?;
         Ok(result)
     }
 
@@ -1081,14 +1251,17 @@ impl Api {
         system_symbol: &str,
         waypoint_symbol: &str,
     ) -> Result<models::GetShipyard200Response, Error<GetShipyardError>> {
-        self.limiter.until_ready(50, "get_shipyard").await;
-        let result = crate::apis::systems_api::get_shipyard(
-            &self.configuration,
-            system_symbol,
-            waypoint_symbol,
-        )
-        .await?;
-
+        let result = rate_limit_retry!(
+            self,
+            50,
+            "get_shipyard",
+            crate::apis::systems_api::get_shipyard(
+                &self.configuration,
+                system_symbol,
+                waypoint_symbol,
+            )
+            .await
+        )?;
         Ok(result)
     }
 
@@ -1097,10 +1270,12 @@ impl Api {
         &self,
         system_symbol: &str,
     ) -> Result<models::GetSystem200Response, Error<GetSystemError>> {
-        self.limiter.until_ready(50, "get_system").await;
-        let result =
-            crate::apis::systems_api::get_system(&self.configuration, system_symbol).await?;
-
+        let result = rate_limit_retry!(
+            self,
+            50,
+            "get_system",
+            crate::apis::systems_api::get_system(&self.configuration, system_symbol).await
+        )?;
         Ok(result)
     }
 
@@ -1113,17 +1288,20 @@ impl Api {
         r#type: Option<models::WaypointType>,
         traits: Option<models::GetSystemWaypointsTraitsParameter>,
     ) -> Result<models::GetSystemWaypoints200Response, Error<GetSystemWaypointsError>> {
-        self.limiter.until_ready(50, "get_system_waypoints").await;
-        let result = crate::apis::systems_api::get_system_waypoints(
-            &self.configuration,
-            system_symbol,
-            page,
-            limit,
-            r#type,
-            traits,
-        )
-        .await?;
-
+        let result = rate_limit_retry!(
+            self,
+            50,
+            "get_system_waypoints",
+            crate::apis::systems_api::get_system_waypoints(
+                &self.configuration,
+                system_symbol,
+                page,
+                limit,
+                r#type,
+                traits.clone(),
+            )
+            .await
+        )?;
         Ok(result)
     }
 
@@ -1188,10 +1366,12 @@ impl Api {
         page: Option<i32>,
         limit: Option<i32>,
     ) -> Result<models::GetSystems200Response, Error<GetSystemsError>> {
-        self.limiter.until_ready(50, "get_systems").await;
-        let result =
-            crate::apis::systems_api::get_systems(&self.configuration, page, limit).await?;
-
+        let result = rate_limit_retry!(
+            self,
+            50,
+            "get_systems",
+            crate::apis::systems_api::get_systems(&self.configuration, page, limit).await
+        )?;
         Ok(result)
     }
 
@@ -1236,14 +1416,17 @@ impl Api {
         system_symbol: &str,
         waypoint_symbol: &str,
     ) -> Result<models::GetWaypoint200Response, Error<GetWaypointError>> {
-        self.limiter.until_ready(50, "get_waypoint").await;
-        let result = crate::apis::systems_api::get_waypoint(
-            &self.configuration,
-            system_symbol,
-            waypoint_symbol,
-        )
-        .await?;
-
+        let result = rate_limit_retry!(
+            self,
+            50,
+            "get_waypoint",
+            crate::apis::systems_api::get_waypoint(
+                &self.configuration,
+                system_symbol,
+                waypoint_symbol,
+            )
+            .await
+        )?;
         Ok(result)
     }
 
@@ -1257,15 +1440,18 @@ impl Api {
         if self.configuration.bearer_access_token.is_none() {
             panic!("Invalid bearer_access_token");
         }
-        self.limiter.until_ready(50, "supply_construction").await;
-        let result = crate::apis::systems_api::supply_construction(
-            &self.configuration,
-            system_symbol,
-            waypoint_symbol,
-            supply_construction_request,
-        )
-        .await?;
-
+        let result = rate_limit_retry!(
+            self,
+            50,
+            "supply_construction",
+            crate::apis::systems_api::supply_construction(
+                &self.configuration,
+                system_symbol,
+                waypoint_symbol,
+                supply_construction_request.clone(),
+            )
+            .await
+        )?;
         Ok(result)
     }
 
