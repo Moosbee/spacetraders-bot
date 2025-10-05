@@ -119,7 +119,7 @@ impl ShipInfo {
       "#,
             symbol
         )
-        .fetch_optional(database_pool.get_cache_pool())
+        .fetch_optional(&database_pool.database_pool)
         .await?;
 
         Ok(erg)
@@ -234,7 +234,7 @@ impl DatabaseConnector<ShipInfo> for ShipInfo {
                 FROM ship_info
             "#
         }
-        .fetch_all(database_pool.get_cache_pool())
+        .fetch_all(&database_pool.database_pool)
         .await?;
 
         Ok(erg)

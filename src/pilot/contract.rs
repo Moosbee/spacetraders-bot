@@ -24,7 +24,7 @@ impl ContractPilot {
         }
     }
 
-    #[instrument(level = "info", name = "spacetraders::pilot::pilot_contract", skip(self, pilot), fields(self.ship_symbol = %self.ship_symbol, contract_shipment = tracing::field::Empty, contract_id = tracing::field::Empty))]
+    #[instrument(level = "info", name = "spacetraders::pilot::contract::pilot_contract", skip(self, pilot), fields(self.ship_symbol = %self.ship_symbol, contract_shipment = tracing::field::Empty, contract_id = tracing::field::Empty))]
     pub async fn execute_pilot_circle(&self, pilot: &super::Pilot) -> Result<()> {
         let mut erg = pilot.context.ship_manager.get_mut(&self.ship_symbol).await;
         let ship = erg

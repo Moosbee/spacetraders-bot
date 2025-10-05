@@ -62,8 +62,9 @@ impl ContractManager {
 
     #[tracing::instrument(
         level = "info",
-        name = "spacetraders::manager::contract_manager_worker",
-        skip(self)
+        name = "spacetraders::manager::contract_manager::contract_manager_worker",
+        skip(self),
+        err(Debug)
     )]
     async fn run_contract_worker(&mut self) -> Result<()> {
         debug!("Starting contract worker");
@@ -124,6 +125,12 @@ impl ContractManager {
         Ok(())
     }
 
+    #[tracing::instrument(
+        level = "info",
+        name = "spacetraders::manager::contract_manager::contract_manager_handle_contract_message",
+        skip(self),
+        err(Debug)
+    )]
     async fn handle_contract_message(&mut self, message: ContractManagerMessage) -> Result<()> {
         debug!("Handling contract message: {:?}", message);
         match message {
@@ -162,7 +169,7 @@ impl ContractManager {
 
     #[tracing::instrument(
         level = "info",
-        name = "spacetraders::manager::contract_manager_get_required_ships",
+        name = "spacetraders::manager::contract_manager::get_required_ships",
         skip(context)
     )]
     pub async fn get_required_ships(context: &ConductorContext) -> Result<RequiredShips> {

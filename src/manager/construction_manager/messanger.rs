@@ -17,6 +17,7 @@ impl ConstructionManagerMessanger {
         Self { sender }
     }
 
+    #[tracing::instrument(skip(self, ship_clone), name = "ConstructionManagerMessanger::next_shipment", fields(ship = %ship_clone.symbol))]
     pub async fn next_shipment(
         &self,
         ship_clone: ship::MyShip,
@@ -43,6 +44,7 @@ impl ConstructionManagerMessanger {
         Ok(resp)
     }
 
+    #[tracing::instrument(skip(self), name = "ConstructionManagerMessanger::fail_shipment", fields(shipment_id = %shipment.id))]
     pub async fn fail_shipment(
         &self,
         shipment: database::ConstructionShipment,
@@ -70,6 +72,7 @@ impl ConstructionManagerMessanger {
         Ok(resp)
     }
 
+    #[tracing::instrument(skip(self), name = "ConstructionManagerMessanger::complete_shipment", fields(shipment_id = %shipment.id))]
     pub async fn complete_shipment(
         &self,
         shipment: database::ConstructionShipment,

@@ -78,7 +78,7 @@ impl ReservedFund {
           "#,
             id
         )
-        .fetch_optional(database_pool.get_cache_pool())
+        .fetch_optional(&database_pool.database_pool)
         .await?;
         Ok(result)
     }
@@ -207,7 +207,7 @@ impl DatabaseConnector<ReservedFund> for ReservedFund {
               FROM reserved_funds
           "#
         )
-        .fetch_all(database_pool.get_cache_pool())
+        .fetch_all(&database_pool.database_pool)
         .await?;
         Ok(result)
     }

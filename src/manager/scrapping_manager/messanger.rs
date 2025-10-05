@@ -12,6 +12,7 @@ impl ScrappingManagerMessanger {
         Self { sender }
     }
 
+    #[tracing::instrument(skip(self, ship_clone), name = "ScrappingManagerMessanger::get_next", fields(ship = %ship_clone.symbol))]
     pub async fn get_next(
         &self,
         ship_clone: ship::MyShip,
@@ -28,6 +29,7 @@ impl ScrappingManagerMessanger {
             .map_err(|e| crate::error::Error::General(format!("Failed to receive message: {}", e)))
     }
 
+    #[tracing::instrument(skip(self, ship_clone, waypoint_symbol), name = "ScrappingManagerMessanger::fail", fields(ship = %ship_clone.symbol, waypoint = %waypoint_symbol))]
     pub async fn fail(
         &self,
         ship_clone: ship::MyShip,
@@ -44,6 +46,7 @@ impl ScrappingManagerMessanger {
         Ok(())
     }
 
+    #[tracing::instrument(skip(self, ship_clone, waypoint_symbol), name = "ScrappingManagerMessanger::complete", fields(ship = %ship_clone.symbol, waypoint = %waypoint_symbol))]
     pub async fn complete(
         &self,
         ship_clone: ship::MyShip,
@@ -60,6 +63,7 @@ impl ScrappingManagerMessanger {
         Ok(())
     }
 
+    #[tracing::instrument(skip(self, ship_clone), name = "ScrappingManagerMessanger::get_info", fields(ship = %ship_clone.symbol))]
     pub(crate) async fn get_info(
         &self,
         ship_clone: ship::MyShip,

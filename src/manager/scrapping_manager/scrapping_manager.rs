@@ -59,8 +59,9 @@ impl ScrappingManager {
 
     #[tracing::instrument(
         level = "info",
-        name = "spacetraders::manager::scrapping_manager_worker",
-        skip(self)
+        name = "spacetraders::manager::scrapping_manager::scrapping_manager_worker",
+        skip(self),
+        err(Debug)
     )]
     async fn run_scrapping_worker(&mut self) -> Result<()> {
         tokio::time::sleep(Duration::from_millis({
@@ -194,6 +195,12 @@ impl ScrappingManager {
         systems.into_iter().collect()
     }
 
+    #[tracing::instrument(
+        level = "info",
+        name = "spacetraders::manager::scrapping_manager::scrapping_manager_handle_scrap_message",
+        skip(self),
+        err(Debug)
+    )]
     async fn handle_scrap_message(&mut self, message: super::message::ScrapMessage) -> Result<()> {
         match message {
             super::message::ScrapMessage::Next {
@@ -231,7 +238,7 @@ impl ScrappingManager {
 
     #[tracing::instrument(
         level = "info",
-        name = "spacetraders::manager::scrapping_manager_get_required_ships",
+        name = "spacetraders::manager::scrapping_manager::get_required_ships",
         skip(all_ships, all_systems_hashmap)
     )]
     pub fn get_required_ships(

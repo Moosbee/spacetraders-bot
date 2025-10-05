@@ -70,8 +70,9 @@ impl MiningManager {
 
     #[tracing::instrument(
         level = "info",
-        name = "spacetraders::manager::mining_manager_worker",
-        skip(self)
+        name = "spacetraders::manager::mining_manager::mining_manager_worker",
+        skip(self),
+        err(Debug)
     )]
     async fn run_mining_worker(&mut self) -> Result<()> {
         debug!("Starting MiningManager worker");
@@ -96,6 +97,12 @@ impl MiningManager {
         Ok(())
     }
 
+    #[tracing::instrument(
+        level = "info",
+        name = "spacetraders::manager::mining_manager::mining_manager_handle_message",
+        skip(self),
+        err(Debug)
+    )]
     async fn handle_message(&mut self, message: MiningManagerMessage) -> Result<()> {
         match message {
             MiningMessage::AssignWaypoint(message) => {
@@ -114,7 +121,7 @@ impl MiningManager {
 
     #[tracing::instrument(
         level = "info",
-        name = "spacetraders::manager::mining_manager_get_required_ships",
+        name = "spacetraders::manager::mining_manager::get_required_ships",
         skip(context)
     )]
     pub async fn get_required_ships(context: &ConductorContext) -> Result<RequiredShips> {

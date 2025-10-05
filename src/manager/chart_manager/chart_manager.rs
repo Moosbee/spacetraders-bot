@@ -51,8 +51,9 @@ impl ChartManager {
 
     #[tracing::instrument(
         level = "info",
-        name = "spacetraders::manager::chart_manager_worker",
-        skip(self)
+        name = "spacetraders::manager::chart_manager::chart_manager_worker",
+        skip(self),
+        err(Debug)
     )]
     async fn run_chart_worker(&mut self) -> Result<()> {
         while !self.cancel_token.is_cancelled() {
@@ -73,6 +74,12 @@ impl ChartManager {
         Ok(())
     }
 
+    #[tracing::instrument(
+        level = "info",
+        name = "spacetraders::manager::chart_manager::chart_manager_handle_chart_message",
+        skip(self),
+        err(Debug)
+    )]
     async fn handle_chart_message(&mut self, message: super::messages::ChartMessage) -> Result<()> {
         match message {
             super::messages::ChartMessage::Next {
@@ -98,7 +105,7 @@ impl ChartManager {
 
     #[tracing::instrument(
         level = "info",
-        name = "spacetraders::manager::chart_manager_get_required_ships",
+        name = "spacetraders::manager::chart_manager::get_required_ships",
         skip(all_ships, all_systems_hashmap, connection_hash_map)
     )]
     pub fn get_required_ships(

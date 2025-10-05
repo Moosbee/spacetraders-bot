@@ -30,7 +30,7 @@ impl MiningPilot {
         }
     }
 
-    #[instrument(level = "info", name = "spacetraders::pilot::pilot_mining", skip(self, pilot), fields(self.ship_symbol = %self.ship_symbol))]
+    #[instrument(level = "info", name = "spacetraders::pilot::mining::pilot_mining", skip(self, pilot), fields(self.ship_symbol = %self.ship_symbol))]
     pub async fn execute_pilot_circle(&self, pilot: &super::Pilot) -> Result<()> {
         let mut erg = pilot.context.ship_manager.get_mut(&self.ship_symbol).await;
         let ship = erg

@@ -63,7 +63,11 @@ impl Pilot {
 
     #[instrument(level = "info", name = "spacetraders::pilot::pilot_ship", skip(self), fields(self.ship_symbol = %self.ship_symbol), err(Debug))]
     pub async fn pilot_ship(&self) -> Result<()> {
-        debug!("Starting pilot for ship {}", self.ship_symbol);
+        {
+            let span = tracing::info_span!("spacetraders::pilot::pilot_ship_start", ship_symbol=%self.ship_symbol);
+            let _enter = span.enter();
+            debug!("Starting pilot for ship {}", self.ship_symbol);
+        }
         tokio::time::sleep(std::time::Duration::from_millis(
             500 + rand::random::<u64>() % 500,
         ))

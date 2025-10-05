@@ -24,7 +24,7 @@ impl TradingPilot {
         }
     }
 
-    #[instrument(level = "info", name = "spacetraders::pilot::pilot_trading", skip(self, pilot), fields(self.ship_symbol = %self.ship_symbol, trade_route))]
+    #[instrument(level = "info", name = "spacetraders::pilot::trading::pilot_trading", skip(self, pilot), fields(self.ship_symbol = %self.ship_symbol, trade_route))]
     pub async fn execute_pilot_circle(&self, pilot: &crate::pilot::Pilot) -> Result<()> {
         let mut erg = pilot.context.ship_manager.get_mut(&self.ship_symbol).await;
         let ship = erg
@@ -98,7 +98,7 @@ impl TradingPilot {
         Ok(())
     }
 
-    #[instrument(level = "info", name = "spacetraders::pilot::execute_trade", skip(self, ship, pilot), fields(self.ship_symbol = %self.ship_symbol, trade_route = ?route))]
+    #[instrument(level = "info", name = "spacetraders::pilot::trading::execute_trade", skip(self, ship, pilot), fields(self.ship_symbol = %self.ship_symbol, trade_route = ?route))]
     async fn execute_trade(
         &self,
         ship: &mut ship::MyShip,

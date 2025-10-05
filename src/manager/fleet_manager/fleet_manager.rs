@@ -2,7 +2,7 @@ use std::{collections::HashMap, sync::Arc};
 
 use database::{DatabaseConnector, ShipInfo};
 use space_traders_client::models;
-use tracing::debug;
+use tracing::{debug, warn};
 use utils::get_system_symbol;
 
 use crate::{
@@ -54,8 +54,9 @@ impl FleetManager {
 
     #[tracing::instrument(
         level = "info",
-        name = "spacetraders::manager::fleet_manager_worker",
-        skip(self)
+        name = "spacetraders::manager::fleet_manager::fleet_manager_worker",
+        skip(self),
+        err(Debug)
     )]
     async fn run_fleet_worker(&mut self) -> std::result::Result<(), crate::error::Error> {
         while !self.cancel_token.is_cancelled() {
@@ -76,6 +77,12 @@ impl FleetManager {
         Ok(())
     }
 
+    #[tracing::instrument(
+        level = "info",
+        name = "spacetraders::manager::fleet_manager::handle_fleet_message",
+        skip(self),
+        err(Debug)
+    )]
     async fn handle_fleet_message(&mut self, message: super::message::FleetMessage) -> Result<()> {
         match message {
             super::message::FleetMessage::ScrapperAtShipyard {
@@ -114,7 +121,7 @@ impl FleetManager {
 
     #[tracing::instrument(
         level = "info",
-        name = "spacetraders::manager::handle_get_transfer",
+        name = "spacetraders::manager::fleet_manager::handle_get_transfer",
         fields(ship_symbol = %ship_clone.symbol),
         skip(self, ship_clone),
     )]
@@ -133,12 +140,16 @@ impl FleetManager {
         if let Some(ship_transfer) = ship_transfer {
             return Ok(ship_transfer);
         }
+        warn!(
+            "No transfer found for ship: {}. This should not happen.",
+            ship_clone.symbol
+        );
         todo!()
     }
 
     #[tracing::instrument(
         level = "info",
-        name = "spacetraders::manager::handle_scrapper_at_shipyard",
+        name = "spacetraders::manager::fleet_manager::handle_scrapper_at_shipyard",
         skip(self)
     )]
     async fn handle_scrapper_at_shipyard(

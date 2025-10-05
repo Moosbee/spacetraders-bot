@@ -109,7 +109,7 @@ async fn setup_unauthed() -> Result<(space_traders_client::Api, database::DbPool
     };
 
     let api: space_traders_client::Api =
-        space_traders_client::Api::new(access_token, 550, NonZeroU32::new(2).unwrap());
+        space_traders_client::Api::new(access_token, 500, NonZeroU32::new(2).unwrap());
 
     let database_pool = database::DbPool::new(database_pool, readyset_pool);
 
@@ -203,7 +203,7 @@ async fn setup_context(
         }
         crate::error::Result::Ok(ships)
     }
-    .instrument(tracing::info_span!("setup_ship_systems"))
+    .instrument(tracing::info_span!("main::setup_ship_systems"))
     .await?;
 
     let (sender, receiver) = broadcast::channel(1024);
@@ -310,11 +310,12 @@ async fn setup_context(
         context.clone(),
         scrapping_manager_data.0,
     );
-    let trade_manager = TradeManager::new(
+    let trade_manager = TradeManager::init(
         manager_cancel_token.child_token(),
         context.clone(),
         trade_manager_data.0,
-    );
+    )
+    .await?;
 
     let chart_manager = ChartManager::new(
         manager_cancel_token.child_token(),

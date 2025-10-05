@@ -40,25 +40,36 @@ impl TradeManager {
         (receiver, TradeManagerMessanger::new(sender))
     }
 
-    pub fn new(
+    pub async fn init(
         cancel_token: tokio_util::sync::CancellationToken,
         context: ConductorContext,
         receiver: tokio::sync::mpsc::Receiver<TradeManagerMessage>,
-    ) -> Self {
+    ) -> crate::error::Result<Self> {
         debug!("Created new TradeManager");
-        Self {
+
+        let mut tracker = RoutesTracker::default();
+
+        let unfinished_routes =
+            database::TradeRoute::get_unfinished(&context.database_pool).await?;
+
+        for route in &unfinished_routes {
+            let _ = tracker.lock(&route.clone().into());
+        }
+
+        Ok(Self {
             cancel_token,
             context: context.clone(),
             receiver,
-            routes_tracker: RoutesTracker::default(),
+            routes_tracker: tracker,
             calculator: RouteCalculator::new(context),
-        }
+        })
     }
 
     #[tracing::instrument(
         level = "info",
-        name = "spacetraders::manager::trade_manager_worker",
-        skip(self)
+        name = "spacetraders::manager::trade_manager::trade_manager_worker",
+        skip(self),
+        err(Debug)
     )]
     async fn run_trade_worker(&mut self) -> Result<()> {
         debug!("Starting TradeManager worker");
@@ -82,6 +93,12 @@ impl TradeManager {
         Ok(())
     }
 
+    #[tracing::instrument(
+        level = "info",
+        name = "spacetraders::manager::trade_manager::trade_manager_handle_trade_message",
+        skip(self),
+        err(Debug)
+    )]
     async fn handle_trade_message(&mut self, message: TradeManagerMessage) -> Result<()> {
         match message {
             TradeMessage::RequestNextTradeRoute {
@@ -119,7 +136,7 @@ impl TradeManager {
 
     #[tracing::instrument(
         level = "info",
-        name = "spacetraders::manager::trade_manager_get_required_ships",
+        name = "spacetraders::manager::trade_manager::trade_manager::get_required_ships",
         skip(all_ships, all_systems_hashmap, markets_per_ship)
     )]
     pub fn get_required_ships(
@@ -231,25 +248,31 @@ impl TradeManager {
             .filter(|r| r.ship_symbol == ship_clone.symbol)
             .collect::<Vec<_>>();
 
-        let next_route = if !my_unfinished_routes.is_empty() {
-            Some(my_unfinished_routes[0].clone())
+        let next_route_potential = if !my_unfinished_routes.is_empty() {
+            (Some(my_unfinished_routes[0].clone()), true)
         } else {
             let mode = { self.context.config.read().await.trade_mode };
-            self.calculator
-                .get_best_route(&ship_clone, &self.routes_tracker, mode)
-                .await?
+            (
+                self.calculator
+                    .get_best_route(&ship_clone, &self.routes_tracker, mode)
+                    .await?,
+                false,
+            )
         };
 
-        if next_route.is_none() {
+        if next_route_potential.0.is_none() {
             return Ok(None);
         }
 
-        let mut next_route = next_route.unwrap();
+        let mut next_route = next_route_potential.0.unwrap();
 
         let done = self.routes_tracker.lock(&next_route.clone().into());
 
-        if !done {
+        if !done && !next_route_potential.1 {
             return Err("Failed to lock route".into());
+        }
+        if !done && next_route_potential.1 {
+            tracing::warn!("Route was already locked, continuing");
         }
 
         if next_route.reserved_fund.is_none() {

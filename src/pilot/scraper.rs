@@ -26,7 +26,7 @@ impl ScraperPilot {
         }
     }
 
-    #[instrument(level = "info", name = "spacetraders::pilot::pilot_scraper", skip(self, pilot), fields(self.ship_symbol = %self.ship_symbol, scrap_waypoint = tracing::field::Empty, scrap_date = tracing::field::Empty))]
+    #[instrument(level = "info", name = "spacetraders::pilot::scraper::pilot_scraper", skip(self, pilot), fields(self.ship_symbol = %self.ship_symbol, scrap_waypoint = tracing::field::Empty, scrap_date = tracing::field::Empty))]
     pub async fn execute_pilot_circle(&self, pilot: &super::Pilot) -> Result<()> {
         let mut erg = pilot.context.ship_manager.get_mut(&self.ship_symbol).await;
         let ship = erg

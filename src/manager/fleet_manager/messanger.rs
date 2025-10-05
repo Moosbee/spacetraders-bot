@@ -10,6 +10,7 @@ impl FleetManagerMessanger {
         Self { sender }
     }
 
+    #[tracing::instrument(skip(self, waypoint_symbol, ship_symbol), name = "FleetManagerMessanger::at_shipyard", fields(waypoint = %waypoint_symbol, ship = %ship_symbol))]
     pub async fn at_shipyard(
         &self,
         waypoint_symbol: String,
@@ -43,6 +44,7 @@ impl FleetManagerMessanger {
         Ok(())
     }
 
+    #[tracing::instrument(skip(self, waypoint_symbol, ship_symbol), name = "FleetManagerMessanger::ship_arrived", fields(waypoint = %waypoint_symbol, ship = %ship_symbol))]
     pub async fn ship_arrived(
         &self,
         waypoint_symbol: String,
@@ -58,6 +60,7 @@ impl FleetManagerMessanger {
         Ok(())
     }
 
+    #[tracing::instrument(skip(self, ship_clone), name = "FleetManagerMessanger::get_transfer", fields(ship = %ship_clone.symbol))]
     pub async fn get_transfer(
         &self,
         ship_clone: ship::MyShip,

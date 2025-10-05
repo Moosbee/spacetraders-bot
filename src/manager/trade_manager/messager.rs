@@ -45,7 +45,7 @@ impl TradeManagerMessanger {
         &self,
         trade_route: &database::TradeRoute,
     ) -> Result<database::TradeRoute, Error> {
-        debug!("Completing trade route: {:?}", trade_route);
+        debug!("Completing trade route: {}", trade_route.id);
         let (sender, receiver) = tokio::sync::oneshot::channel();
 
         let message = TradeManagerMessage::CompleteTradeRoute {

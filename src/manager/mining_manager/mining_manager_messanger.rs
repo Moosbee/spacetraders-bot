@@ -29,6 +29,7 @@ impl MiningManagerMessanger {
         }
     }
 
+    #[tracing::instrument(skip(self, ship), name = "MiningManagerMessanger::get_waypoint", fields(ship = %ship.symbol))]
     pub async fn get_waypoint(&self, ship: &ship::MyShip, is_syphon: bool) -> Result<String> {
         let (sender, callback) = tokio::sync::oneshot::channel();
 
@@ -50,6 +51,7 @@ impl MiningManagerMessanger {
         Ok(erg)
     }
 
+    #[tracing::instrument(skip(self, ship), name = "MiningManagerMessanger::notify_waypoint", fields(ship = %ship.symbol))]
     pub async fn notify_waypoint(&self, ship: &ship::MyShip, is_syphon: bool) -> Result<String> {
         let (sender, callback) = tokio::sync::oneshot::channel();
 
@@ -71,6 +73,7 @@ impl MiningManagerMessanger {
         Ok(erg)
     }
 
+    #[tracing::instrument(skip(self, ship), name = "MiningManagerMessanger::unassign_waypoint", fields(ship = %ship.symbol))]
     pub async fn unassign_waypoint(&self, ship: &ship::MyShip) -> Result<String> {
         let (sender, callback) = tokio::sync::oneshot::channel();
 
@@ -91,6 +94,7 @@ impl MiningManagerMessanger {
         Ok(erg)
     }
 
+    #[tracing::instrument(skip(self, ship), name = "MiningManagerMessanger::get_next_transport", fields(ship = %ship.symbol))]
     pub async fn get_next_transport(&self, ship: &ship::MyShip) -> Result<String> {
         let (sender, callback) = tokio::sync::oneshot::channel();
 
@@ -112,6 +116,7 @@ impl MiningManagerMessanger {
         Ok(erg)
     }
 
+    #[tracing::instrument(skip(self, ship, waypoint), name = "MiningManagerMessanger::extraction_complete", fields(ship = %ship, waypoint = %waypoint))]
     pub async fn extraction_complete(&self, ship: &str, waypoint: &str) -> Result<String> {
         let message =
             MiningMessage::ExtractionNotification(ExtractionNotification::ExtractionComplete {
@@ -136,6 +141,7 @@ impl MiningManagerMessanger {
         Ok("ok".to_string())
     }
 
+    #[tracing::instrument(skip(self, ship, waypoint), name = "MiningManagerMessanger::transport_arrived", fields(ship = %ship, waypoint = %waypoint))]
     pub async fn transport_arrived(&self, ship: &str, waypoint: &str) -> Result<String> {
         let message =
             MiningMessage::ExtractionNotification(ExtractionNotification::TransportArrived {
@@ -157,6 +163,11 @@ impl MiningManagerMessanger {
         Ok("ok".to_string())
     }
 
+    #[tracing::instrument(
+        skip(self),
+        name = "MiningManagerMessanger::extractor_contact",
+        fields()
+    )]
     pub async fn extractor_contact(
         &self,
         symbol: &str,
@@ -169,6 +180,11 @@ impl MiningManagerMessanger {
         Ok(receiver)
     }
 
+    #[tracing::instrument(
+        skip(self),
+        name = "MiningManagerMessanger::transport_contact",
+        fields()
+    )]
     pub async fn transport_contact(
         &self,
         symbol: &str,
@@ -182,6 +198,7 @@ impl MiningManagerMessanger {
         Ok(receiver)
     }
 
+    #[tracing::instrument(skip(self), name = "MiningManagerMessanger::get_assignments")]
     pub async fn get_assignments(
         &self,
     ) -> Result<Vec<(String, super::mining_places::WaypointInfo)>> {

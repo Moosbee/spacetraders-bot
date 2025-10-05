@@ -55,8 +55,9 @@ impl ConstructionManager {
 
     #[tracing::instrument(
         level = "info",
-        name = "spacetraders::manager::construction_manager_worker",
-        skip(self)
+        name = "spacetraders::manager::construction_manager::construction_manager_worker",
+        skip(self),
+        err(Debug)
     )]
     async fn run_construction_worker(&mut self) -> Result<()> {
         let systems_to_search_for_construction = self
@@ -116,6 +117,12 @@ impl ConstructionManager {
         Ok(())
     }
 
+    #[tracing::instrument(
+        level = "info",
+        name = "spacetraders::manager::construction_manager::construction_manager_handle_construction_message",
+        skip(self),
+        err(Debug)
+    )]
     async fn handle_construction_message(
         &mut self,
         message: super::message::ConstructionMessage,
@@ -156,7 +163,7 @@ impl ConstructionManager {
 
     #[tracing::instrument(
         level = "info",
-        name = "spacetraders::manager::construction_manager_get_required_ships",
+        name = "spacetraders::manager::construction_manager::get_required_ships",
         skip(context)
     )]
     pub async fn get_required_ships(context: &ConductorContext) -> Result<RequiredShips> {

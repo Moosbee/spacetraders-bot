@@ -27,7 +27,7 @@ impl TransportPilot {
         }
     }
 
-    #[instrument(level = "info", name = "spacetraders::pilot::pilot_transport", skip(self, pilot, ship), fields(self.ship_symbol = pilot.ship_symbol))]
+    #[instrument(level = "info", name = "spacetraders::pilot::mining::pilot_transport", skip(self, pilot, ship), fields(self.ship_symbol = pilot.ship_symbol))]
     pub async fn execute_transport_circle(
         &self,
         ship: &mut ship::MyShip,

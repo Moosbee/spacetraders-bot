@@ -17,6 +17,7 @@ impl ContractManagerMessanger {
         Self { sender }
     }
 
+    #[tracing::instrument(skip(self, ship), name = "ContractManagerMessanger::request_next_shipment", fields(ship = %ship.symbol))]
     pub async fn request_next_shipment(&self, ship: &ship::MyShip) -> Result<NextShipmentResp> {
         let (sender, receiver) = tokio::sync::oneshot::channel();
         let message = ContractShipmentMessage::RequestNext {
@@ -38,6 +39,7 @@ impl ContractManagerMessanger {
         resp
     }
 
+    #[tracing::instrument(skip(self), name = "ContractManagerMessanger::fail_shipment", fields(shipment_id = %shipment.id))]
     pub async fn fail_shipment(
         &self,
         shipment: database::ContractShipment,
@@ -64,6 +66,7 @@ impl ContractManagerMessanger {
         resp
     }
 
+    #[tracing::instrument(skip(self, contract), name = "ContractManagerMessanger::complete_shipment", fields(shipment_id = %shipment.id))]
     pub async fn complete_shipment(
         &self,
         shipment: database::ContractShipment,

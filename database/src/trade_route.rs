@@ -312,7 +312,7 @@ impl TradeRoute {
                  FROM trade_route WHERE status='IN_TRANSIT'
             "#
         )
-        .fetch_all(database_pool.get_cache_pool())
+        .fetch_all(&database_pool.database_pool)
         .await?;
         Ok(erg)
     }

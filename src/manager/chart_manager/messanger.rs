@@ -1,3 +1,5 @@
+use tracing::instrument;
+
 use crate::manager::fleet_manager::message::RequiredShips;
 
 use super::{
@@ -15,6 +17,7 @@ impl ChartManagerMessanger {
         Self { sender }
     }
 
+    #[instrument(skip(self, ship_clone), name = "ChartManagerMessanger::get_next", fields(ship = %ship_clone.symbol))]
     pub async fn get_next(
         &self,
         ship_clone: ship::MyShip,
@@ -37,6 +40,7 @@ impl ChartManagerMessanger {
         Ok(resp)
     }
 
+    #[instrument(skip(self, waypoint_symbol), name = "ChartManagerMessanger::fail_chart", fields(waypoint = %waypoint_symbol))]
     pub async fn fail_chart(&self, waypoint_symbol: String) -> Result<(), crate::error::Error> {
         let message = ChartManagerMessage::Fail { waypoint_symbol };
         self.sender
@@ -46,6 +50,7 @@ impl ChartManagerMessanger {
         Ok(())
     }
 
+    #[instrument(skip(self, waypoint_symbol), name = "ChartManagerMessanger::complete_chart", fields(waypoint = %waypoint_symbol))]
     pub async fn complete_chart(&self, waypoint_symbol: String) -> Result<(), crate::error::Error> {
         let message = ChartManagerMessage::Success { waypoint_symbol };
         self.sender

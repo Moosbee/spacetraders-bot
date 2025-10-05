@@ -21,7 +21,7 @@ impl TransferPilot {
         }
     }
 
-    #[instrument(level = "info", name = "spacetraders::pilot::pilot_transfer", skip(self, pilot), fields(self.ship_symbol = %self.ship_symbol, transfer))]
+    #[instrument(level = "info", name = "spacetraders::pilot::transfer::pilot_transfer", skip(self, pilot), fields(self.ship_symbol = %self.ship_symbol, transfer))]
     pub async fn execute_pilot_circle(&self, pilot: &super::Pilot) -> Result<()> {
         let mut erg = pilot.context.ship_manager.get_mut(&self.ship_symbol).await;
         let ship = erg

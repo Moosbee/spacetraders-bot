@@ -25,7 +25,7 @@ impl ChartPilot {
         }
     }
 
-    #[instrument(level = "info", name = "spacetraders::pilot::pilot_chart", skip(self, pilot), fields(self.ship_symbol = %self.ship_symbol, chart_waypoint))]
+    #[instrument(level = "info", name = "spacetraders::pilot::charting::pilot_chart", skip(self, pilot), fields(self.ship_symbol = %self.ship_symbol, chart_waypoint))]
     pub async fn execute_pilot_circle(&self, pilot: &super::Pilot) -> Result<()> {
         let mut erg = pilot.context.ship_manager.get_mut(&self.ship_symbol).await;
         let ship = erg
