@@ -37,10 +37,10 @@ impl<T: Debug> ResponseContent<T> {
             Some(entity) => Some(entity.error.code),
             None => {
                 let erg = ERROR_REGEX.captures(&self.content);
-                log::debug!(
-                    "regex Erg of {:?} {:?}",
-                    erg,
-                    erg.as_ref().map(|f| f.get(1))
+                tracing::debug!(
+                    erg = format!("{:?}", erg),
+                    icode = format!("{:?}", erg.as_ref().map(|f| f.get(1))),
+                    "regex Erg",
                 );
                 let reg = erg.map(|f| f.get(1).map(|m| m.as_str().parse::<u32>().ok()));
                 log::warn!(

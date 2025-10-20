@@ -2588,6 +2588,7 @@ dependencies = [
  "sqlx",
  "strum",
  "strum_macros",
+ "tracing",
  "url",
  "uuid",
 ]
