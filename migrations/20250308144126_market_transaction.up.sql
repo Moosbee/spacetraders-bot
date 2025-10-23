@@ -2,6 +2,7 @@
 -- Table: public.market_transaction
 -- DROP TABLE IF EXISTS public.market_transaction;
 CREATE TABLE IF NOT EXISTS public.market_transaction (
+  id bigserial NOT NULL,
   waypoint_symbol character varying(255) NOT NULL,
   ship_symbol character varying(255) NOT NULL,
   type market_transaction_type NOT NULL,
@@ -16,7 +17,8 @@ CREATE TABLE IF NOT EXISTS public.market_transaction (
   "timestamp" timestamp with time zone NOT NULL,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   updated_at timestamp with time zone NOT NULL DEFAULT now(),
-  CONSTRAINT market_transaction_pkey PRIMARY KEY (
+  CONSTRAINT market_transaction_pkey PRIMARY KEY (id),
+  CONSTRAINT unique_market_transaction UNIQUE (
     waypoint_symbol,
     ship_symbol,
     trade_symbol,

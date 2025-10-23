@@ -8,6 +8,7 @@ use super::{DatabaseConnector, DbPool};
 
 #[derive(Clone, Default, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct MarketTransaction {
+    pub id: i64,
     /// The symbol of the waypoint.
     pub waypoint_symbol: String,
     /// The symbol of the ship that made the transaction.
@@ -105,7 +106,8 @@ impl MarketTransaction {
         let erg = sqlx::query_as!(
             MarketTransaction,
             r#"
-      select 
+      select
+        id,
         waypoint_symbol,
         ship_symbol,trade_symbol as "trade_symbol: models::TradeSymbol",
         "type" as "type: models::market_transaction::Type",
@@ -132,6 +134,7 @@ impl MarketTransaction {
             MarketTransaction,
             r#"
       select 
+        id,
         waypoint_symbol,
         ship_symbol,trade_symbol as "trade_symbol: models::TradeSymbol",
         "type" as "type: models::market_transaction::Type",
@@ -161,6 +164,7 @@ impl MarketTransaction {
             MarketTransaction,
             r#"
       select 
+        id,
         waypoint_symbol,
         ship_symbol,trade_symbol as "trade_symbol: models::TradeSymbol",
         "type" as "type: models::market_transaction::Type",
@@ -191,6 +195,7 @@ impl MarketTransaction {
             MarketTransaction,
             r#"
       select 
+        id,
         waypoint_symbol,
         ship_symbol,trade_symbol as "trade_symbol: models::TradeSymbol",
         "type" as "type: models::market_transaction::Type",
@@ -220,6 +225,7 @@ impl MarketTransaction {
             MarketTransaction,
             r#"
       select 
+        id,
         waypoint_symbol,
         ship_symbol,trade_symbol as "trade_symbol: models::TradeSymbol",
         "type" as "type: models::market_transaction::Type",
@@ -248,6 +254,7 @@ impl MarketTransaction {
             MarketTransaction,
             r#"
       select 
+        id,
         waypoint_symbol,
         ship_symbol,trade_symbol as "trade_symbol: models::TradeSymbol",
         "type" as "type: models::market_transaction::Type",
@@ -293,6 +300,7 @@ impl TryFrom<models::MarketTransaction> for MarketTransaction {
         let timestamp = DateTime::<chrono::Utc>::from_str(&value.timestamp)?;
 
         Ok(MarketTransaction {
+            id: 0,
             ship_symbol: value.ship_symbol,
             trade_symbol: tr_symbol,
             r#type: value.r#type,
@@ -313,7 +321,7 @@ impl TryFrom<models::MarketTransaction> for MarketTransaction {
 impl DatabaseConnector<MarketTransaction> for MarketTransaction {
     #[instrument(level = "trace", skip(database_pool))]
     async fn insert(database_pool: &DbPool, item: &MarketTransaction) -> crate::Result<()> {
-        sqlx::query!(
+        let erg= sqlx::query!(
         r#"
             INSERT INTO market_transaction (waypoint_symbol, ship_symbol, trade_symbol, "type", units, price_per_unit, total_price, "timestamp", contract, trade_route, mining, construction)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
@@ -321,6 +329,7 @@ impl DatabaseConnector<MarketTransaction> for MarketTransaction {
             SET units = EXCLUDED.units,
             price_per_unit = EXCLUDED.price_per_unit,
             total_price = EXCLUDED.total_price
+            returning id
         "#,
         item.waypoint_symbol,
         item.ship_symbol,
@@ -335,8 +344,10 @@ impl DatabaseConnector<MarketTransaction> for MarketTransaction {
         item.mining,
         item.construction
     )
-    .execute(&database_pool.database_pool)
+    .fetch_one(&database_pool.database_pool)
     .await?;
+
+        erg.id;
 
         Ok(())
     }
@@ -435,6 +446,7 @@ impl DatabaseConnector<MarketTransaction> for MarketTransaction {
             MarketTransaction,
             r#"
       select 
+        id,
         waypoint_symbol,
         ship_symbol,trade_symbol as "trade_symbol: models::TradeSymbol",
         "type" as "type: models::market_transaction::Type",

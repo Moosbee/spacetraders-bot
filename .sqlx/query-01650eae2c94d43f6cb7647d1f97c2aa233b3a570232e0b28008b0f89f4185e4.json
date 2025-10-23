@@ -1,21 +1,16 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT\n                waypoint_symbol,\n                ship_symbol,\n                trade_symbol as \"trade_symbol: models::TradeSymbol\",\n                total_price,\n                \"timestamp\"\n            FROM ship_modification_transaction\n            ",
+  "query": "\n                SELECT\n                trade_route.id,\n                symbol as \"symbol: models::TradeSymbol\",\n                trade_route.ship_symbol,\n                purchase_waypoint,\n                sell_waypoint,\n                status as \"status: ShipmentStatus\",\n                trade_volume,\n                predicted_purchase_price,\n                predicted_sell_price,\n                sum(market_transaction.total_price) as \"sum: i32\",\n                sum(\n                  CASE\n                    WHEN market_transaction.type = 'PURCHASE' THEN market_transaction.total_price\n                    ELSE 0\n                  END\n                ) as \"expenses: i32\",\n                sum(\n                  CASE\n                    WHEN market_transaction.type = 'PURCHASE' THEN 0\n                    ELSE market_transaction.total_price\n                  END\n                ) as \"income: i32\",\n                sum(\n                  CASE\n                    WHEN market_transaction.type = 'PURCHASE' THEN (market_transaction.total_price * -1)\n                    ELSE market_transaction.total_price\n                  END\n                ) as \"profit: i32\",\n                reserved_fund\n              FROM\n                public.trade_route\n              left join public.market_transaction ON market_transaction.trade_route = trade_route.id\n              group by\n                trade_route.id\n              ORDER BY\n                trade_route.id ASC;\n            ",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
-        "name": "waypoint_symbol",
-        "type_info": "Varchar"
+        "name": "id",
+        "type_info": "Int4"
       },
       {
         "ordinal": 1,
-        "name": "ship_symbol",
-        "type_info": "Varchar"
-      },
-      {
-        "ordinal": 2,
-        "name": "trade_symbol: models::TradeSymbol",
+        "name": "symbol: models::TradeSymbol",
         "type_info": {
           "Custom": {
             "name": "trade_symbol",
@@ -172,14 +167,75 @@
         }
       },
       {
+        "ordinal": 2,
+        "name": "ship_symbol",
+        "type_info": "Varchar"
+      },
+      {
         "ordinal": 3,
-        "name": "total_price",
-        "type_info": "Int4"
+        "name": "purchase_waypoint",
+        "type_info": "Varchar"
       },
       {
         "ordinal": 4,
-        "name": "timestamp",
-        "type_info": "Timestamptz"
+        "name": "sell_waypoint",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 5,
+        "name": "status: ShipmentStatus",
+        "type_info": {
+          "Custom": {
+            "name": "shipment_status",
+            "kind": {
+              "Enum": [
+                "IN_TRANSIT",
+                "FAILED",
+                "DELIVERED"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "trade_volume",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 7,
+        "name": "predicted_purchase_price",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 8,
+        "name": "predicted_sell_price",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 9,
+        "name": "sum: i32",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 10,
+        "name": "expenses: i32",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 11,
+        "name": "income: i32",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 12,
+        "name": "profit: i32",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 13,
+        "name": "reserved_fund",
+        "type_info": "Int8"
       }
     ],
     "parameters": {
@@ -190,8 +246,17 @@
       false,
       false,
       false,
-      false
+      false,
+      false,
+      false,
+      false,
+      false,
+      null,
+      null,
+      null,
+      null,
+      true
     ]
   },
-  "hash": "38d49ff45946b7e8bd0358f914246e2a5b1a1931b2fda0144b6e743882f6008a"
+  "hash": "01650eae2c94d43f6cb7647d1f97c2aa233b3a570232e0b28008b0f89f4185e4"
 }

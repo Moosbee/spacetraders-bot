@@ -1,20 +1,25 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n      select \n        waypoint_symbol,\n        ship_symbol,trade_symbol as \"trade_symbol: models::TradeSymbol\",\n        \"type\" as \"type: models::market_transaction::Type\",\n        units,\n        price_per_unit,\n        total_price,\n        \"timestamp\",\n        contract,\n        trade_route,\n        mining,\n        construction\n      from market_transaction\n      where construction = $1\n    ",
+  "query": "\n      select \n        id,\n        waypoint_symbol,\n        ship_symbol,trade_symbol as \"trade_symbol: models::TradeSymbol\",\n        \"type\" as \"type: models::market_transaction::Type\",\n        units,\n        price_per_unit,\n        total_price,\n        \"timestamp\",\n        contract,\n        trade_route,\n        mining,\n        construction\n      from market_transaction\n    ",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
         "name": "waypoint_symbol",
         "type_info": "Varchar"
       },
       {
-        "ordinal": 1,
+        "ordinal": 2,
         "name": "ship_symbol",
         "type_info": "Varchar"
       },
       {
-        "ordinal": 2,
+        "ordinal": 3,
         "name": "trade_symbol: models::TradeSymbol",
         "type_info": {
           "Custom": {
@@ -172,7 +177,7 @@
         }
       },
       {
-        "ordinal": 3,
+        "ordinal": 4,
         "name": "type: models::market_transaction::Type",
         "type_info": {
           "Custom": {
@@ -187,52 +192,51 @@
         }
       },
       {
-        "ordinal": 4,
+        "ordinal": 5,
         "name": "units",
         "type_info": "Int4"
       },
       {
-        "ordinal": 5,
+        "ordinal": 6,
         "name": "price_per_unit",
         "type_info": "Int4"
       },
       {
-        "ordinal": 6,
+        "ordinal": 7,
         "name": "total_price",
         "type_info": "Int4"
       },
       {
-        "ordinal": 7,
+        "ordinal": 8,
         "name": "timestamp",
         "type_info": "Timestamptz"
       },
       {
-        "ordinal": 8,
+        "ordinal": 9,
         "name": "contract",
         "type_info": "Varchar"
       },
       {
-        "ordinal": 9,
+        "ordinal": 10,
         "name": "trade_route",
         "type_info": "Int4"
       },
       {
-        "ordinal": 10,
+        "ordinal": 11,
         "name": "mining",
         "type_info": "Varchar"
       },
       {
-        "ordinal": 11,
+        "ordinal": 12,
         "name": "construction",
         "type_info": "Int8"
       }
     ],
     "parameters": {
-      "Left": [
-        "Int8"
-      ]
+      "Left": []
     },
     "nullable": [
+      false,
       false,
       false,
       false,
@@ -247,5 +251,5 @@
       true
     ]
   },
-  "hash": "24161c4f47b8961542d68ac583c71ccf7be819baa784462a99b8c8f278e9c842"
+  "hash": "84686e64e30edce4a0ac589a0e3e417e81142d82b4283570a334c3ab95fd47b0"
 }

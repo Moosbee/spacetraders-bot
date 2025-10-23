@@ -1,8 +1,14 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            INSERT INTO market_transaction (waypoint_symbol, ship_symbol, trade_symbol, \"type\", units, price_per_unit, total_price, \"timestamp\", contract, trade_route, mining, construction)\n            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)\n            ON CONFLICT (waypoint_symbol, ship_symbol, trade_symbol, \"timestamp\") DO UPDATE\n            SET units = EXCLUDED.units,\n            price_per_unit = EXCLUDED.price_per_unit,\n            total_price = EXCLUDED.total_price\n        ",
+  "query": "\n            INSERT INTO market_transaction (waypoint_symbol, ship_symbol, trade_symbol, \"type\", units, price_per_unit, total_price, \"timestamp\", contract, trade_route, mining, construction)\n            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)\n            ON CONFLICT (waypoint_symbol, ship_symbol, trade_symbol, \"timestamp\") DO UPDATE\n            SET units = EXCLUDED.units,\n            price_per_unit = EXCLUDED.price_per_unit,\n            total_price = EXCLUDED.total_price\n            returning id\n        ",
   "describe": {
-    "columns": [],
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      }
+    ],
     "parameters": {
       "Left": [
         "Varchar",
@@ -182,7 +188,9 @@
         "Int8"
       ]
     },
-    "nullable": []
+    "nullable": [
+      false
+    ]
   },
-  "hash": "cdc303a30315a5a8731810b5e5ff8937c5d57e1de6c530f90214de567cfc88fa"
+  "hash": "a01f7fb201ec507e57ad2dcdf13e82effc837754a9f69cc7b9ef62956a448262"
 }

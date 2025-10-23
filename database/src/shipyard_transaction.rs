@@ -8,6 +8,7 @@ use super::DatabaseConnector;
 
 #[derive(Clone, Debug, PartialEq, serde::Serialize)]
 pub struct ShipyardTransaction {
+    pub id: i64,
     pub waypoint_symbol: String,
     pub ship_type: models::ShipType,
     pub price: i32,
@@ -25,6 +26,7 @@ impl TryFrom<models::ShipyardTransaction> for ShipyardTransaction {
             .map_err(|_| Self::Error::InvalidTimestamp(item.timestamp))?;
 
         Ok(Self {
+            id: 0,
             waypoint_symbol: item.waypoint_symbol,
             ship_type,
             price: item.price,
@@ -44,6 +46,7 @@ impl ShipyardTransaction {
             ShipyardTransaction,
             r#"
             SELECT
+                id,
                 waypoint_symbol,
                 ship_type as "ship_type: models::ShipType",
                 price,
@@ -69,6 +72,7 @@ impl ShipyardTransaction {
             ShipyardTransaction,
             r#"
       select 
+                id,
                 waypoint_symbol,
                 ship_type as "ship_type: models::ShipType",
                 price,
@@ -170,6 +174,7 @@ impl DatabaseConnector<ShipyardTransaction> for ShipyardTransaction {
             ShipyardTransaction,
             r#"
             SELECT
+                id,
                 waypoint_symbol,
                 ship_type as "ship_type: models::ShipType",
                 price,

@@ -7,6 +7,7 @@ use tracing::instrument;
 use super::DatabaseConnector;
 
 pub struct RepairTransaction {
+    pub id: i64,
     pub waypoint_symbol: String,
     pub ship_symbol: String,
     pub total_price: i32,
@@ -20,6 +21,7 @@ impl TryFrom<models::RepairTransaction> for RepairTransaction {
         let timestamp = DateTime::<chrono::Utc>::from_str(&item.timestamp)
             .map_err(|_| Self::Error::InvalidTimestamp(item.timestamp))?;
         Ok(Self {
+            id: 0,
             waypoint_symbol: item.waypoint_symbol,
             ship_symbol: item.ship_symbol,
             total_price: item.total_price,
@@ -103,6 +105,7 @@ impl DatabaseConnector<RepairTransaction> for RepairTransaction {
             RepairTransaction,
             r#"
             SELECT
+                id,
                 waypoint_symbol,
                 ship_symbol,
                 total_price,

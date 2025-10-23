@@ -323,7 +323,7 @@ impl TradeRoute {
             TradeRouteSummary,
             r#"
                 SELECT
-                id,
+                trade_route.id,
                 symbol as "symbol: models::TradeSymbol",
                 trade_route.ship_symbol,
                 purchase_waypoint,
@@ -356,9 +356,9 @@ impl TradeRoute {
                 public.trade_route
               left join public.market_transaction ON market_transaction.trade_route = trade_route.id
               group by
-                id
+                trade_route.id
               ORDER BY
-                id ASC;
+                trade_route.id ASC;
             "#
         )
         .fetch_all(database_pool.get_cache_pool())

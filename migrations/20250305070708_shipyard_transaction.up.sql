@@ -14,12 +14,14 @@ CREATE TYPE ship_type AS ENUM (
   'SHIP_SURVEYOR'
 );
 CREATE TABLE public.shipyard_transaction (
+  id bigserial NOT NULL,
   waypoint_symbol character varying NOT NULL,
   ship_type character varying NOT NULL,
   price integer NOT NULL,
   agent_symbol character varying NOT NULL,
   "timestamp" timestamp with time zone NOT NULL,
-  PRIMARY KEY (
+  PRIMARY KEY (id),
+  CONSTRAINT unique_shipyard_transaction UNIQUE (
     waypoint_symbol,
     ship_type,
     agent_symbol,

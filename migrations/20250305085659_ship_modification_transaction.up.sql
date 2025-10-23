@@ -1,11 +1,13 @@
 -- Add up migration script here
 CREATE TABLE public.ship_modification_transaction (
+  id bigserial NOT NULL,
   waypoint_symbol character varying NOT NULL,
   ship_symbol character varying NOT NULL,
   trade_symbol trade_symbol NOT NULL,
   total_price integer NOT NULL,
   "timestamp" timestamp with time zone NOT NULL,
-  PRIMARY KEY (
+  PRIMARY KEY (id),
+  CONSTRAINT unique_ship_modification_transaction UNIQUE (
     waypoint_symbol,
     ship_symbol,
     trade_symbol,

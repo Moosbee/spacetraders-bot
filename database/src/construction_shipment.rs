@@ -143,7 +143,7 @@ impl ConstructionShipment {
             ConstructionShipmentSummary,
             r#"
                 SELECT
-                  id,
+                  construction_shipment.id,
                   material_id,
                   construction_site_waypoint,
                   construction_shipment.ship_symbol,
@@ -171,9 +171,9 @@ impl ConstructionShipment {
                   public.construction_shipment 
                   left join public.market_transaction ON market_transaction.construction = construction_shipment.id
                 group by
-                  id
+                  construction_shipment.id
                 ORDER BY
-                  id ASC;
+                  construction_shipment.id ASC;
             "#,
         )
         .fetch_all(database_pool.get_cache_pool())

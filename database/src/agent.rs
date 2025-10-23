@@ -5,6 +5,7 @@ use super::{DatabaseConnector, DbPool};
 
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct Agent {
+    pub id: i64,
     pub symbol: String,
     pub account_id: Option<String>,
     pub headquarters: String,
@@ -18,6 +19,7 @@ pub struct Agent {
 impl From<space_traders_client::models::Agent> for Agent {
     fn from(item: space_traders_client::models::Agent) -> Agent {
         Agent {
+            id: 0,
             account_id: Some(item.account_id),
             symbol: item.symbol,
             headquarters: item.headquarters,
@@ -32,6 +34,7 @@ impl From<space_traders_client::models::Agent> for Agent {
 impl From<space_traders_client::models::PublicAgent> for Agent {
     fn from(item: space_traders_client::models::PublicAgent) -> Agent {
         Agent {
+            id: 0,
             account_id: None,
             symbol: item.symbol,
             headquarters: item.headquarters,
@@ -49,7 +52,7 @@ impl Agent {
         let erg= sqlx::query_as! {
         Agent,
         r#"
-        SELECT DISTINCT ON (symbol) symbol, account_id, headquarters, credits, starting_faction, ship_count, created_at
+        SELECT DISTINCT ON (symbol) id, symbol, account_id, headquarters, credits, starting_faction, ship_count, created_at
         FROM agent
         ORDER BY  symbol ASC, created_at DESC
         "#
@@ -68,7 +71,7 @@ impl Agent {
         let erg= sqlx::query_as! {
         Agent,
         r#"
-        SELECT DISTINCT ON (symbol) symbol, account_id, headquarters, credits, starting_faction, ship_count, created_at
+        SELECT DISTINCT ON (symbol) id, symbol, account_id, headquarters, credits, starting_faction, ship_count, created_at
         FROM agent WHERE symbol = $1
         ORDER BY  symbol ASC, created_at DESC
         LIMIT 1
@@ -87,6 +90,7 @@ impl Agent {
             Agent,
             r#"
                 SELECT 
+                  id,
                   symbol,
                   account_id,
                   headquarters,
@@ -184,7 +188,7 @@ impl DatabaseConnector<Agent> for Agent {
         let erg= sqlx::query_as!(
             Agent,
             r#"
-                SELECT symbol, account_id, headquarters, credits, starting_faction, ship_count, created_at FROM agent
+                SELECT id, symbol, account_id, headquarters, credits, starting_faction, ship_count, created_at FROM agent
             "#
         )
         .fetch_all(database_pool.get_cache_pool())

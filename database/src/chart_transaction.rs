@@ -8,6 +8,7 @@ use crate::{DatabaseConnector, DbPool};
 
 #[derive(Clone, Default, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct ChartTransaction {
+    pub id: i64,
     /// The symbol of the waypoint.
     pub waypoint_symbol: String, // only one per waypoint
     /// The symbol of the ship.
@@ -24,6 +25,7 @@ impl TryFrom<models::ChartTransaction> for ChartTransaction {
         let timestamp = DateTime::<chrono::Utc>::from_str(&item.timestamp)?;
 
         Ok(Self {
+            id: 0,
             waypoint_symbol: item.waypoint_symbol,
             ship_symbol: item.ship_symbol,
             total_price: item.total_price,
@@ -110,6 +112,7 @@ impl DatabaseConnector<ChartTransaction> for ChartTransaction {
             ChartTransaction,
             r#"
               SELECT
+                id,
                 waypoint_symbol,
                 ship_symbol,
                 total_price,
