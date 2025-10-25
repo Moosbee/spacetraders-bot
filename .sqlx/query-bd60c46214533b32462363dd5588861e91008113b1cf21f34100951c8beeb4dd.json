@@ -1,0 +1,36 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n              INSERT INTO public.ship_info(\n                symbol,\n                display_name,\n                role,\n                active,\n                assignment_id,\n                purchase_id\n                ) VALUES (\n                 $1,\n                 $2,\n                 $3::ship_info_role,\n                 $4,\n                 $5,\n                 $6\n                 )\n                 on conflict (symbol) DO UPDATE SET \n                display_name = EXCLUDED.display_name,\n                role = EXCLUDED.role,\n                active = EXCLUDED.active,\n                assignment_id = EXCLUDED.assignment_id,\n                purchase_id = EXCLUDED.purchase_id;\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Varchar",
+        "Varchar",
+        {
+          "Custom": {
+            "name": "ship_info_role",
+            "kind": {
+              "Enum": [
+                "Construction",
+                "Trader",
+                "TempTrader",
+                "Charter",
+                "Contract",
+                "Scraper",
+                "Mining",
+                "Manuel",
+                "Transfer"
+              ]
+            }
+          }
+        },
+        "Bool",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "bd60c46214533b32462363dd5588861e91008113b1cf21f34100951c8beeb4dd"
+}

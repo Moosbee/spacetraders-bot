@@ -150,18 +150,18 @@ impl ConcreteTradeRoute {
     pub(crate) fn compare(
         &self,
         other: &ConcreteTradeRoute,
-        mode: super::routes_calculator::RouteMode,
+        mode: database::TradeMode,
     ) -> Option<std::cmp::Ordering> {
         let cmp = self.route.cmp(&other.route).reverse();
         if cmp != Ordering::Equal {
             Some(cmp)
         } else {
             match mode {
-                super::RouteMode::ProfitPerHour => {
+                database::TradeMode::ProfitPerHour => {
                     Some(self.trip.profit_per_hour.cmp(&other.trip.profit_per_hour))
                 }
-                super::RouteMode::ProfitPerAPIRequest => None,
-                super::RouteMode::ProfitPerTrip => {
+                database::TradeMode::ProfitPerAPIRequest => None,
+                database::TradeMode::ProfitPerTrip => {
                     Some(self.trip.total_profit.cmp(&other.trip.total_profit))
                 }
             }

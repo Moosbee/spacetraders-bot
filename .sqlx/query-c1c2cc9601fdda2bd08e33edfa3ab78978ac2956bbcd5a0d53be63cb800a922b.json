@@ -1,0 +1,43 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n              INSERT INTO public.ship_info (\n                symbol,\n                display_name,\n                role,\n                active,\n                assignment_id,\n                purchase_id\n                )\n                SELECT * FROM UNNEST(\n                  $1::character varying[],\n                  $2::character varying[],\n                  $3::ship_info_role[],\n                  $4::boolean[],\n                  $5::bigint[],\n                  $6::bigint[]\n                 )\n                 on conflict (symbol) DO UPDATE SET \n                display_name = EXCLUDED.display_name,\n                role = EXCLUDED.role,\n                active = EXCLUDED.active,\n                assignment_id = EXCLUDED.assignment_id,\n                purchase_id = EXCLUDED.purchase_id;\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "VarcharArray",
+        "VarcharArray",
+        {
+          "Custom": {
+            "name": "ship_info_role[]",
+            "kind": {
+              "Array": {
+                "Custom": {
+                  "name": "ship_info_role",
+                  "kind": {
+                    "Enum": [
+                      "Construction",
+                      "Trader",
+                      "TempTrader",
+                      "Charter",
+                      "Contract",
+                      "Scraper",
+                      "Mining",
+                      "Manuel",
+                      "Transfer"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "BoolArray",
+        "Int8Array",
+        "Int8Array"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "c1c2cc9601fdda2bd08e33edfa3ab78978ac2956bbcd5a0d53be63cb800a922b"
+}

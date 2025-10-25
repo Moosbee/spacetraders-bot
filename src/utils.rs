@@ -73,7 +73,7 @@ pub struct Config {
     pub mining_ships_per_waypoint: i32,
     pub transport_capacity_per_waypoint: i32,
 
-    pub trade_mode: crate::manager::trade_manager::RouteMode,
+    pub trade_mode: database::TradeMode,
     pub trade_profit_threshold: i32,
 
     pub ship_purchase_stop: bool,

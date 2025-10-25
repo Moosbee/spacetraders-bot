@@ -11,14 +11,6 @@ use super::{
     routes_tracker::RoutesTracker,
 };
 
-#[derive(serde::Deserialize, serde::Serialize, Debug, Clone, Copy)]
-#[allow(clippy::enum_variant_names)]
-pub enum RouteMode {
-    ProfitPerHour,
-    ProfitPerAPIRequest,
-    ProfitPerTrip,
-}
-
 #[derive(Debug)]
 pub struct RouteCalculator {
     context: ConductorContext,
@@ -43,7 +35,7 @@ impl RouteCalculator {
         &mut self,
         ship: &ship::MyShip,
         running_routes: &RoutesTracker,
-        mode: RouteMode,
+        mode: database::TradeMode,
     ) -> Result<Option<database::TradeRoute>, Error> {
         debug!("Getting new best route");
         let (trade_goods, market_trade) = self.fetch_market_data(&ship.nav.system_symbol).await?;

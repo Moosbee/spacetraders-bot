@@ -30,8 +30,10 @@ mod mount_info;
 mod reactor_info;
 
 mod extraction;
+mod fleet;
 mod jump_gate_connection;
 mod reserved_fund;
+mod ship_assignment;
 mod ship_jump;
 mod ship_state;
 mod ship_transfer;
@@ -47,6 +49,7 @@ pub use contract_shipment::ContractShipment;
 pub use contract_shipment::ShipmentStatus;
 pub use engine_info::EngineInfo;
 pub use extraction::Extraction;
+pub use fleet::TradeMode;
 pub use frame_info::FrameInfo;
 pub use jump_gate_connection::JumpGateConnection;
 pub use market_trade::MarketTrade;

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        SELECT symbol, display_name, role as \"role: ShipInfoRole\", active\n        FROM ship_info WHERE role = $1\n      ",
+  "query": "\n        SELECT symbol, display_name, role as \"role: ShipInfoRole\", active, assignment_id, purchase_id\n        FROM ship_info WHERE role = $1\n      ",
   "describe": {
     "columns": [
       {
@@ -39,6 +39,16 @@
         "ordinal": 3,
         "name": "active",
         "type_info": "Bool"
+      },
+      {
+        "ordinal": 4,
+        "name": "assignment_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 5,
+        "name": "purchase_id",
+        "type_info": "Int8"
       }
     ],
     "parameters": {
@@ -67,8 +77,10 @@
       false,
       false,
       false,
-      false
+      false,
+      true,
+      true
     ]
   },
-  "hash": "7d31b059b2305dc879106aa796b0f8b5e2341c098694befa9b97644e9e014829"
+  "hash": "bc58caa0e770d388d3cd86eae67ba15af1c17cad20e6e172139f332349a85ffb"
 }

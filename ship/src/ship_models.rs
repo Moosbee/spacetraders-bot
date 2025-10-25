@@ -268,10 +268,12 @@ impl MyShip {
                     self.display_name.clone()
                 };
                 let ship_info = database::ShipInfo {
+                    purchase_id: None,
                     symbol: self.symbol.clone(),
                     display_name,
                     role: self.role,
                     active: self.active,
+                    assignment_id: None,
                 };
                 database::ShipInfo::insert(&database_pool, &ship_info).await?;
                 ship_info

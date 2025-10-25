@@ -8,6 +8,8 @@ pub struct ShipInfo {
     pub display_name: String,
     pub role: ShipInfoRole,
     pub active: bool,
+    pub assignment_id: Option<i64>,
+    pub purchase_id: Option<i64>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, serde::Serialize, sqlx::Type)]
@@ -113,7 +115,7 @@ impl ShipInfo {
         let erg = sqlx::query_as!(
             ShipInfo,
             r#"
-        SELECT symbol, display_name, role as "role: ShipInfoRole", active
+        SELECT symbol, display_name, role as "role: ShipInfoRole", active, assignment_id, purchase_id
         FROM ship_info WHERE symbol = $1
         LIMIT 1
       "#,
@@ -133,7 +135,7 @@ impl ShipInfo {
         let erg = sqlx::query_as!(
             ShipInfo,
             r#"
-        SELECT symbol, display_name, role as "role: ShipInfoRole", active
+        SELECT symbol, display_name, role as "role: ShipInfoRole", active, assignment_id, purchase_id
         FROM ship_info WHERE role = $1
       "#,
             symbol as &ShipInfoRole
@@ -154,22 +156,30 @@ impl DatabaseConnector<ShipInfo> for ShipInfo {
                 symbol,
                 display_name,
                 role,
-                active
+                active,
+                assignment_id,
+                purchase_id
                 ) VALUES (
                  $1,
                  $2,
                  $3::ship_info_role,
-                 $4
+                 $4,
+                 $5,
+                 $6
                  )
                  on conflict (symbol) DO UPDATE SET 
                 display_name = EXCLUDED.display_name,
                 role = EXCLUDED.role,
-                active = EXCLUDED.active;
+                active = EXCLUDED.active,
+                assignment_id = EXCLUDED.assignment_id,
+                purchase_id = EXCLUDED.purchase_id;
             "#,
             &item.symbol,
             &item.display_name,
             &item.role as &ShipInfoRole,
-            &item.active
+            &item.active,
+            &item.assignment_id as &Option<i64>,
+            &item.purchase_id as &Option<i64>
         )
         .execute(&database_pool.database_pool)
         .await?;
@@ -179,17 +189,23 @@ impl DatabaseConnector<ShipInfo> for ShipInfo {
 
     #[instrument(level = "trace", skip(database_pool, items))]
     async fn insert_bulk(database_pool: &super::DbPool, items: &[ShipInfo]) -> crate::Result<()> {
-        let (symbol_s, display_name_s, role_s, active_s): (
-            Vec<String>,
-            Vec<String>,
-            Vec<ShipInfoRole>,
-            Vec<bool>,
-        ) = itertools::Itertools::multiunzip(
-            items
-                .iter()
-                .cloned()
-                .map(|s| (s.symbol.clone(), s.display_name.clone(), s.role, s.active)),
-        );
+        let (symbol_s, display_name_s, role_s, active_s, assignment_id_s, purchase_id_s): (
+            Vec<_>,
+            Vec<_>,
+            Vec<_>,
+            Vec<_>,
+            Vec<_>,
+            Vec<_>,
+        ) = itertools::Itertools::multiunzip(items.iter().cloned().map(|s| {
+            (
+                s.symbol.clone(),
+                s.display_name.clone(),
+                s.role,
+                s.active,
+                s.assignment_id,
+                s.purchase_id,
+            )
+        }));
 
         sqlx::query!(
             r#"
@@ -197,23 +213,31 @@ impl DatabaseConnector<ShipInfo> for ShipInfo {
                 symbol,
                 display_name,
                 role,
-                active
+                active,
+                assignment_id,
+                purchase_id
                 )
                 SELECT * FROM UNNEST(
                   $1::character varying[],
                   $2::character varying[],
                   $3::ship_info_role[],
-                  $4::boolean[]
+                  $4::boolean[],
+                  $5::bigint[],
+                  $6::bigint[]
                  )
                  on conflict (symbol) DO UPDATE SET 
                 display_name = EXCLUDED.display_name,
                 role = EXCLUDED.role,
-                active = EXCLUDED.active
+                active = EXCLUDED.active,
+                assignment_id = EXCLUDED.assignment_id,
+                purchase_id = EXCLUDED.purchase_id;
             "#,
             &symbol_s as &[String],
             &display_name_s as &[String],
             &role_s as &[ShipInfoRole],
-            &active_s as &[bool]
+            &active_s as &[bool],
+            &assignment_id_s as &[Option<i64>],
+            &purchase_id_s as &[Option<i64>]
         )
         .execute(&database_pool.database_pool)
         .await?;
@@ -230,7 +254,9 @@ impl DatabaseConnector<ShipInfo> for ShipInfo {
                     symbol,
                     display_name,
                     role as "role: ShipInfoRole",
-                    active
+                    active,
+                    assignment_id,
+                    purchase_id
                 FROM ship_info
             "#
         }
