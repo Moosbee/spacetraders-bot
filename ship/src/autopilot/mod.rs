@@ -20,9 +20,9 @@ pub use connection::SimpleConnection;
 
 use crate::error::Result;
 
-use super::MyShip;
+use super::RustShip;
 
-impl MyShip {
+impl<T: Clone> RustShip<T> {
     pub async fn nav_to(
         &mut self,
         waypoint: &str,
@@ -70,7 +70,7 @@ impl MyShip {
         let route2 = route.clone();
         let reson2 = reason.clone();
         let update_funds_fn2 = update_funds_fn.clone();
-        let wp_action = async move |shipi: &mut MyShip,
+        let wp_action = async move |shipi: &mut RustShip<_>,
                                     start_waypoint: String,
                                     end_waypoint: String| {
             let start = database::Waypoint::get_by_symbol(&database_pool2, &start_waypoint).await?;

@@ -53,7 +53,7 @@ pub enum Budget {
 
 #[derive(Debug, Default, serde::Serialize)]
 pub struct RequiredShips {
-    pub ships: HashMap<String, Vec<(RequestedShipType, Priority, Budget, database::ShipInfoRole)>>,
+    pub ships: HashMap<String, Vec<(RequestedShipType, Priority, Budget)>>,
 }
 
 impl RequiredShips {
@@ -94,14 +94,6 @@ pub enum FleetMessage {
         waypoint_symbol: String,
         ship_symbol: String,
         callback: tokio::sync::oneshot::Sender<String>,
-    },
-    ShipArrived {
-        waypoint_symbol: String,
-        ship_symbol: String,
-    },
-    GetTransfer {
-        ship_clone: ship::MyShip,
-        callback: tokio::sync::oneshot::Sender<database::ShipTransfer>,
     },
 }
 

@@ -74,9 +74,9 @@ impl TradingPilot {
             waiting_for_manager: false,
             on_sleep: false,
         };
-        if ship.role == database::ShipInfoRole::TempTrader {
-            ship.role = database::ShipInfoRole::Manuel;
-        }
+        // if ship.role == database::ShipInfoRole::TempTrader {
+        //     ship.role = database::ShipInfoRole::Manuel;
+        // }
 
         ship.notify().await;
 

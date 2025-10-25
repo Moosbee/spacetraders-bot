@@ -36,7 +36,6 @@ mod reserved_fund;
 mod ship_assignment;
 mod ship_jump;
 mod ship_state;
-mod ship_transfer;
 mod survey;
 
 pub use agent::Agent;
@@ -63,10 +62,8 @@ pub use reserved_fund::FundStatus;
 pub use reserved_fund::ReservedFund;
 pub use route::Route;
 pub use ship_info::ShipInfo;
-pub use ship_info::ShipInfoRole;
 pub use ship_jump::ShipJump;
 pub use ship_state::ShipState;
-pub use ship_transfer::ShipTransfer;
 pub use shipyard::Shipyard;
 pub use shipyard_ship::ShipyardShip;
 pub use shipyard_ship_types::ShipyardShipTypes;

@@ -15,7 +15,6 @@ pub struct ShipState {
     // Basic ship identification
     pub symbol: String,
     pub display_name: String,
-    pub role: crate::ShipInfoRole,
     pub active: bool,
 
     // Performance
@@ -89,7 +88,6 @@ impl ShipState {
                 INSERT INTO ship_state (
                   symbol,
                   display_name,
-                  role,
                   active,
                   engine_speed,
                   engine_condition,
@@ -133,7 +131,7 @@ impl ShipState {
                 VALUES (
                   $1,
                   $2,
-                  $3::ship_info_role,
+                  $3,
                   $4,
                   $5,
                   $6,
@@ -145,15 +143,15 @@ impl ShipState {
                   $12,
                   $13,
                   $14,
-                  $15,
-                  $16::jsonb,
-                  $17::ship_mount_symbol[],
-                  $18::ship_module_symbol[],
+                  $15::jsonb,
+                  $16::ship_mount_symbol[],
+                  $17::ship_module_symbol[],
+                  $18,
                   $19,
-                  $20,
-                  $21::ship_reactor_symbol,
-                  $22::ship_frame_symbol,
-                  $23::ship_engine_symbol,
+                  $20::ship_reactor_symbol,
+                  $21::ship_frame_symbol,
+                  $22::ship_engine_symbol,
+                  $23,
                   $24,
                   $25,
                   $26,
@@ -171,14 +169,12 @@ impl ShipState {
                   $38,
                   $39,
                   $40,
-                  $41,
-                  $42
+                  $41
                 )
                 RETURNING id;
             "#,
             &item.symbol,
             &item.display_name,
-            &item.role as &crate::ShipInfoRole,
             &item.active,
             &item.engine_speed,
             &item.engine_condition,
@@ -250,7 +246,6 @@ impl DatabaseConnector<ShipState> for ShipState {
                   id,
                   symbol,
                   display_name,
-                  role as "role: crate::ShipInfoRole",
                   active,
                   engine_speed,
                   engine_condition,

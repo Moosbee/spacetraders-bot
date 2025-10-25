@@ -4,9 +4,9 @@ use space_traders_client::{
     models::{self},
 };
 
-use super::MyShip;
+use super::RustShip;
 
-impl MyShip {
+impl<T: Clone> RustShip<T> {
     pub fn is_on_cooldown(&self) -> bool {
         if self.cooldown_expiration.is_some() {
             let t = self.cooldown_expiration.unwrap();
@@ -18,7 +18,7 @@ impl MyShip {
         }
     }
 
-    pub fn wait_for_cooldown<'a>(&self) -> impl std::future::Future<Output = ()> + use<'a> {
+    pub fn wait_for_cooldown<'a>(&self) -> impl std::future::Future<Output = ()> + use<'a, T> {
         if let Some(cooldown_expiration) = self.cooldown_expiration {
             let time_until_cooldown = cooldown_expiration.signed_duration_since(Utc::now());
             if time_until_cooldown.num_milliseconds() > 0 {

@@ -5,7 +5,7 @@ use space_traders_client::models::{self, TradeSymbol};
 use tokio::{select, sync::broadcast};
 use utils::SendFuture;
 
-use crate::MyShip;
+use crate::RustShip;
 
 #[derive(Debug)]
 pub struct InterShipBroadcaster {
@@ -57,14 +57,16 @@ pub struct TransferRequest {
     pub callback: tokio::sync::mpsc::Sender<()>,
 }
 
-impl MyShip {
-    pub fn from_ship(ship: models::Ship, broadcaster: InterShipBroadcaster) -> MyShip {
-        let mut new_ship = MyShip::default();
+impl<T: Default + Clone> RustShip<T> {
+    pub fn from_ship(ship: models::Ship, broadcaster: InterShipBroadcaster) -> RustShip<T> {
+        let mut new_ship = RustShip::default();
         new_ship.update(ship);
         new_ship.broadcaster = broadcaster;
         new_ship
     }
+}
 
+impl<T: Clone> RustShip<T> {
     pub async fn try_recive_update(&mut self, api: &space_traders_client::Api) {
         self.mutate();
         while let Ok(data) = self.broadcaster.receiver.try_recv() {
@@ -125,21 +127,21 @@ impl MyShip {
         self.notify().await;
     }
 
-    #[deprecated]
-    pub async fn sleep(&mut self, duration: std::time::Duration, api: &space_traders_client::Api) {
-        self.mutate();
-        let cancel = tokio_util::sync::CancellationToken::new();
+    // #[deprecated]
+    // pub async fn sleep(&mut self, duration: std::time::Duration, api: &space_traders_client::Api) {
+    //     self.mutate();
+    //     let cancel = tokio_util::sync::CancellationToken::new();
 
-        let update_future = self.receive_update_loop(&cancel, api);
-        let sleep_future = tokio::time::sleep(duration).then(|_| {
-            cancel.cancel();
+    //     let update_future = self.receive_update_loop(&cancel, api);
+    //     let sleep_future = tokio::time::sleep(duration).then(|_| {
+    //         cancel.cancel();
 
-            async move {}
-        });
-        let _erg = futures::future::join(update_future, sleep_future)
-            .send() // https://github.com/rust-lang/rust/issues/96865
-            .await;
-    }
+    //         async move {}
+    //     });
+    //     let _erg = futures::future::join(update_future, sleep_future)
+    //         .send() // https://github.com/rust-lang/rust/issues/96865
+    //         .await;
+    // }
 
     pub async fn transfer_cargo(
         &mut self,
@@ -168,24 +170,5 @@ impl MyShip {
             .map_err(|err| crate::error::Error::General(err.to_string()))?;
 
         Ok(transfer_result)
-    }
-
-    pub async fn wait_for_cooldown_mut(
-        &mut self,
-        api: &space_traders_client::Api,
-    ) -> crate::error::Result<()> {
-        self.mutate();
-        if self.cooldown_expiration.is_none() {
-            return Ok(());
-        }
-        let t = self.cooldown_expiration.unwrap();
-        let t = t - Utc::now();
-        let t = t.num_seconds().try_into();
-        if let Ok(t) = t {
-            self.sleep(std::time::Duration::from_secs(t), api).await;
-        } else {
-            self.try_recive_update(api).await;
-        }
-        Ok(())
     }
 }

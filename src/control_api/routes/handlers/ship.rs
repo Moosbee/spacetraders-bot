@@ -38,30 +38,30 @@ pub async fn handle_toggle_activation(
     Ok(warp::reply::json(&sql_ship))
 }
 
-#[instrument(skip(context))]
-pub async fn handle_change_role(
-    symbol: String,
-    body: serde_json::Value,
-    context: ConductorContext,
-) -> Result<impl Reply> {
-    let mut sql_ship = database::ShipInfo::get_by_symbol(&context.database_pool, &symbol)
-        .await
-        .map_err(ServerError::Database)?
-        .ok_or(ServerError::NotFound)?;
+// #[instrument(skip(context))]
+// pub async fn handle_change_role(
+//     symbol: String,
+//     body: serde_json::Value,
+//     context: ConductorContext,
+// ) -> Result<impl Reply> {
+//     let mut sql_ship = database::ShipInfo::get_by_symbol(&context.database_pool, &symbol)
+//         .await
+//         .map_err(ServerError::Database)?
+//         .ok_or(ServerError::NotFound)?;
 
-    let trade_symbol_str = body["role"]
-        .as_str()
-        .ok_or(ServerError::BadRequest("Missing role".into()))?;
-    let trade_symbol = database::ShipInfoRole::try_from(trade_symbol_str)
-        .map_err(|_| ServerError::BadRequest("Invalid Role".into()))?;
+//     let trade_symbol_str = body["role"]
+//         .as_str()
+//         .ok_or(ServerError::BadRequest("Missing role".into()))?;
+//     let trade_symbol = database::ShipInfoRole::try_from(trade_symbol_str)
+//         .map_err(|_| ServerError::BadRequest("Invalid Role".into()))?;
 
-    sql_ship.role = trade_symbol;
-    database::ShipInfo::insert(&context.database_pool, &sql_ship)
-        .await
-        .map_err(ServerError::Database)?;
+//     sql_ship.role = trade_symbol;
+//     database::ShipInfo::insert(&context.database_pool, &sql_ship)
+//         .await
+//         .map_err(ServerError::Database)?;
 
-    Ok(warp::reply::json(&sql_ship))
-}
+//     Ok(warp::reply::json(&sql_ship))
+// }
 
 #[instrument(skip(context))]
 pub async fn handle_toggle_orbit(symbol: String, context: ConductorContext) -> Result<impl Reply> {
@@ -75,9 +75,9 @@ pub async fn handle_toggle_orbit(symbol: String, context: ConductorContext) -> R
         .value_mut()
         .ok_or_else(|| ServerError::BadRequest("Ship not found".into()))?;
 
-    if ship.role != database::ShipInfoRole::Manuel {
-        return Err(ServerError::BadRequest("Ship not in Manuel mode".into()).into());
-    }
+    // if ship.role != database::ShipInfoRole::Manuel {
+    //     return Err(ServerError::BadRequest("Ship not in Manuel mode".into()).into());
+    // }
 
     match ship.nav.status {
         space_traders_client::models::ShipNavStatus::InTransit => {
@@ -213,9 +213,9 @@ pub async fn handle_purchase_cargo_ship(
         .value_mut()
         .ok_or_else(|| ServerError::BadRequest("Ship not found".into()))?;
 
-    if ship.role != database::ShipInfoRole::Manuel {
-        return Err(ServerError::BadRequest("Ship not in Manuel mode".into()).into());
-    }
+    // if ship.role != database::ShipInfoRole::Manuel {
+    //     return Err(ServerError::BadRequest("Ship not in Manuel mode".into()).into());
+    // }
 
     let trade_symbol_str = body["tradeSymbol"]
         .as_str()
@@ -271,9 +271,9 @@ pub async fn handle_jump_ship(
         .value_mut()
         .ok_or_else(|| ServerError::BadRequest("Ship not found".into()))?;
 
-    if ship.role != database::ShipInfoRole::Manuel {
-        return Err(ServerError::BadRequest("Ship not in Manuel mode".into()).into());
-    }
+    // if ship.role != database::ShipInfoRole::Manuel {
+    //     return Err(ServerError::BadRequest("Ship not in Manuel mode".into()).into());
+    // }
 
     let waypoint_symbol = body["waypointSymbol"]
         .as_str()
@@ -379,9 +379,9 @@ pub async fn handle_warp_ship(
         .value_mut()
         .ok_or_else(|| ServerError::BadRequest("Ship not found".into()))?;
 
-    if ship.role != database::ShipInfoRole::Manuel {
-        return Err(ServerError::BadRequest("Ship not in Manuel mode".into()).into());
-    }
+    // if ship.role != database::ShipInfoRole::Manuel {
+    //     return Err(ServerError::BadRequest("Ship not in Manuel mode".into()).into());
+    // }
 
     let waypoint_symbol = body["waypointSymbol"]
         .as_str()
@@ -493,9 +493,9 @@ pub async fn handle_navigate_ship(
         .value_mut()
         .ok_or_else(|| ServerError::BadRequest("Ship not found".into()))?;
 
-    if ship.role != database::ShipInfoRole::Manuel {
-        return Err(ServerError::BadRequest("Ship not in Manuel mode".into()).into());
-    }
+    // if ship.role != database::ShipInfoRole::Manuel {
+    //     return Err(ServerError::BadRequest("Ship not in Manuel mode".into()).into());
+    // }
 
     let waypoint_id = body["waypointSymbol"]
         .as_str()

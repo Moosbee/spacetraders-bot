@@ -70,12 +70,12 @@ pub(crate) fn build_api_routes(
         .and(with_context(context.clone()))
         .and_then(handlers::handle_toggle_activation);
 
-    let ship_role = warp::path!("ship" / String / "role")
-        .and(warp::path::end())
-        .and(warp::post())
-        .and(warp::body::json())
-        .and(with_context(context.clone()))
-        .and_then(handlers::handle_change_role);
+    // let ship_role = warp::path!("ship" / String / "role")
+    //     .and(warp::path::end())
+    //     .and(warp::post())
+    //     .and(warp::body::json())
+    //     .and(with_context(context.clone()))
+    //     .and_then(handlers::handle_change_role);
 
     let ship_chart = warp::path!("ship" / String / "chart")
         .and(warp::path::end())
@@ -285,7 +285,7 @@ pub(crate) fn build_api_routes(
         .or(ship_toggle_orbit)
         .or(ship_purchase_cargo)
         .or(ship_toggle_activation)
-        .or(ship_role)
+        // .or(ship_role)
         .or(ship_chart)
         .or(ship_warp)
         .or(trade_routes)

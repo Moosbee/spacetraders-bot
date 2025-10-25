@@ -30,7 +30,7 @@ pub use insight::handle_get_scrapping_info;
 pub use insight::handle_get_ships_to_purchase;
 pub use insight::handle_update_config;
 pub use ship::handle_buy_ship;
-pub use ship::handle_change_role;
+// pub use ship::handle_change_role;
 pub use ship::handle_chart_waypoint;
 pub use ship::handle_get_ships;
 pub use ship::handle_jump_ship;

@@ -4,20 +4,20 @@ use log::{debug, warn};
 use space_traders_client::models::{self};
 use utils::get_system_symbol;
 
-use crate::MyShip;
+use crate::RustShip;
 
 use super::connection::{
     ConcreteConnection, JumpConnection, NavigateConnection, Refuel, Route, WarpConnection,
 };
 
-impl MyShip {
+impl<T: Clone> RustShip<T> {
     pub async fn fly_route(
         &mut self,
         route: Route,
         reason: database::TransactionReason,
         database_pool: &database::DbPool,
         api: &space_traders_client::Api,
-        wp_action: impl AsyncFn(&mut MyShip, String, String) -> crate::error::Result<()> + Clone,
+        wp_action: impl AsyncFn(&mut RustShip<T>, String, String) -> crate::error::Result<()> + Clone,
         update_funds_fn: impl Fn(i64) + Clone,
     ) -> crate::error::Result<()> {
         self.set_auto_pilot(route.clone()).await?;
@@ -45,7 +45,7 @@ impl MyShip {
         reason: &database::TransactionReason,
         database_pool: &database::DbPool,
         api: &space_traders_client::Api,
-        wp_action: impl AsyncFn(&mut MyShip, String, String) -> crate::error::Result<()>,
+        wp_action: impl AsyncFn(&mut RustShip<T>, String, String) -> crate::error::Result<()>,
         update_funds_fn: impl Fn(i64) + Clone,
     ) -> crate::error::Result<()> {
         match connection {
@@ -93,7 +93,7 @@ impl MyShip {
         reason: &database::TransactionReason,
         database_pool: &database::DbPool,
         api: &space_traders_client::Api,
-        wp_action: impl (AsyncFn(&mut MyShip, String, String) -> crate::error::Result<()>),
+        wp_action: impl (AsyncFn(&mut RustShip<T>, String, String) -> crate::error::Result<()>),
         update_funds_fn: impl Fn(i64) + Clone,
     ) -> crate::error::Result<()> {
         if self.nav.waypoint_symbol != connection.start_symbol {
@@ -112,9 +112,9 @@ impl MyShip {
         )
         .await?;
 
-        let jump_conn =
-            database::JumpGateConnection::get_all_from(database_pool, &connection.start_symbol)
-                .await?;
+        // let jump_conn =
+        //     database::JumpGateConnection::get_all_from(database_pool, &connection.start_symbol)
+        //         .await?;
 
         // if !jump_conn.iter().any(|jg| jg.to == connection.end_symbol) {
         //     return Err(crate::Error::General(format!(
@@ -166,7 +166,7 @@ impl MyShip {
         reason: &database::TransactionReason,
         database_pool: &database::DbPool,
         api: &space_traders_client::Api,
-        wp_action: impl AsyncFn(&mut MyShip, String, String) -> crate::error::Result<()>,
+        wp_action: impl AsyncFn(&mut RustShip<T>, String, String) -> crate::error::Result<()>,
         update_funds_fn: impl Fn(i64) + Clone,
     ) -> crate::error::Result<()> {
         if self.nav.waypoint_symbol != connection.start_symbol {
@@ -236,7 +236,7 @@ impl MyShip {
         reason: &database::TransactionReason,
         database_pool: &database::DbPool,
         api: &space_traders_client::Api,
-        wp_action: impl AsyncFn(&mut MyShip, String, String) -> crate::error::Result<()>,
+        wp_action: impl AsyncFn(&mut RustShip<T>, String, String) -> crate::error::Result<()>,
         update_funds_fn: impl Fn(i64) + Clone,
     ) -> crate::error::Result<()> {
         if self.nav.waypoint_symbol != connection.start_symbol {

@@ -18,5 +18,6 @@ pub use error::Error;
 pub use error::Result;
 pub use ship_manager::ShipManager;
 pub use ship_models::MyShip;
+pub use ship_models::RustShip;
 pub use status::ShipStatus;
 pub use status::ShippingStatus;

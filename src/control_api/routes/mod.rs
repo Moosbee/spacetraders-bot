@@ -2,8 +2,6 @@ mod api_routes;
 mod handlers;
 mod websocket;
 
-use log::{debug, warn};
-use serde_json::error;
 use tokio_util::sync::CancellationToken;
 use warp::{reply::Reply, Filter};
 

@@ -87,6 +87,34 @@ impl ShipyardTransaction {
         .await?;
         Ok(erg)
     }
+
+    pub async fn insert_new(
+        database_pool: &super::DbPool,
+        item: &ShipyardTransaction,
+    ) -> crate::Result<i64> {
+        let erg = sqlx::query!(
+            r#"
+                INSERT INTO shipyard_transaction (
+                    waypoint_symbol,
+                    ship_type,
+                    price,
+                    agent_symbol,
+                    "timestamp"
+                )
+                VALUES ($1, $2, $3, $4, $5)
+                ON CONFLICT (waypoint_symbol, ship_type, agent_symbol, "timestamp") DO NOTHING
+                RETURNING id
+            "#,
+            item.waypoint_symbol,
+            item.ship_type as models::ShipType,
+            item.price,
+            item.agent_symbol,
+            item.timestamp
+        )
+        .fetch_one(&database_pool.database_pool)
+        .await?;
+        Ok(erg.id)
+    }
 }
 
 impl DatabaseConnector<ShipyardTransaction> for ShipyardTransaction {

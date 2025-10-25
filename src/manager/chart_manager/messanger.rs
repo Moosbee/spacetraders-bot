@@ -1,11 +1,7 @@
 use tracing::instrument;
 
-use crate::manager::fleet_manager::message::RequiredShips;
 
-use super::{
-    messages::{ChartManagerMessage, NextChartResp},
-    ChartManager,
-};
+use super::messages::{ChartManagerMessage, NextChartResp};
 
 #[derive(Debug, Clone)]
 pub struct ChartManagerMessanger {

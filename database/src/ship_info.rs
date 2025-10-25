@@ -6,44 +6,44 @@ use super::DatabaseConnector;
 pub struct ShipInfo {
     pub symbol: String,
     pub display_name: String,
-    pub role: ShipInfoRole,
     pub active: bool,
     pub assignment_id: Option<i64>,
+    pub temp_assignment_id: Option<i64>,
     pub purchase_id: Option<i64>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, serde::Serialize, sqlx::Type)]
-#[sqlx(type_name = "ship_info_role")]
-pub enum ShipInfoRole {
-    Transfer,
-    Construction,
-    TempTrader,
-    Trader,
-    Contract,
-    Scraper,
-    Mining,
-    Charter,
-    #[default]
-    Manuel,
-}
+// #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, serde::Serialize, sqlx::Type)]
+// #[sqlx(type_name = "ship_info_role")]
+// pub enum ShipInfoRole {
+//     Transfer,
+//     Construction,
+//     TempTrader,
+//     Trader,
+//     Contract,
+//     Scraper,
+//     Mining,
+//     Charter,
+//     #[default]
+//     Manuel,
+// }
 
-impl TryFrom<&str> for ShipInfoRole {
-    type Error = crate::Error;
+// impl TryFrom<&str> for ShipInfoRole {
+//     type Error = crate::Error;
 
-    fn try_from(value: &str) -> Result<Self, Self::Error> {
-        match value {
-            "Construction" => Ok(ShipInfoRole::Construction),
-            "Trader" => Ok(ShipInfoRole::Trader),
-            "Contract" => Ok(ShipInfoRole::Contract),
-            "Scraper" => Ok(ShipInfoRole::Scraper),
-            "Mining" => Ok(ShipInfoRole::Mining),
-            "Charter" => Ok(ShipInfoRole::Charter),
-            "Manuel" => Ok(ShipInfoRole::Manuel),
-            "Transfer" => Ok(ShipInfoRole::Transfer),
-            _ => Err(crate::Error::InvalidShipInfoRole(value.to_string())),
-        }
-    }
-}
+//     fn try_from(value: &str) -> Result<Self, Self::Error> {
+//         match value {
+//             "Construction" => Ok(ShipInfoRole::Construction),
+//             "Trader" => Ok(ShipInfoRole::Trader),
+//             "Contract" => Ok(ShipInfoRole::Contract),
+//             "Scraper" => Ok(ShipInfoRole::Scraper),
+//             "Mining" => Ok(ShipInfoRole::Mining),
+//             "Charter" => Ok(ShipInfoRole::Charter),
+//             "Manuel" => Ok(ShipInfoRole::Manuel),
+//             "Transfer" => Ok(ShipInfoRole::Transfer),
+//             _ => Err(crate::Error::InvalidShipInfoRole(value.to_string())),
+//         }
+//     }
+// }
 
 // impl From<ship::ShipStatus> for ShipInfoRole {
 //     fn from(role: ship::ShipStatus) -> Self {
@@ -115,32 +115,13 @@ impl ShipInfo {
         let erg = sqlx::query_as!(
             ShipInfo,
             r#"
-        SELECT symbol, display_name, role as "role: ShipInfoRole", active, assignment_id, purchase_id
+        SELECT symbol, display_name, active, assignment_id, temp_assignment_id, purchase_id
         FROM ship_info WHERE symbol = $1
         LIMIT 1
       "#,
             symbol
         )
         .fetch_optional(&database_pool.database_pool)
-        .await?;
-
-        Ok(erg)
-    }
-
-    #[instrument(level = "trace", skip(database_pool))]
-    pub async fn get_by_role(
-        database_pool: &super::DbPool,
-        symbol: &ShipInfoRole,
-    ) -> crate::Result<Vec<ShipInfo>> {
-        let erg = sqlx::query_as!(
-            ShipInfo,
-            r#"
-        SELECT symbol, display_name, role as "role: ShipInfoRole", active, assignment_id, purchase_id
-        FROM ship_info WHERE role = $1
-      "#,
-            symbol as &ShipInfoRole
-        )
-        .fetch_all(&database_pool.database_pool)
         .await?;
 
         Ok(erg)
@@ -155,30 +136,30 @@ impl DatabaseConnector<ShipInfo> for ShipInfo {
               INSERT INTO public.ship_info(
                 symbol,
                 display_name,
-                role,
                 active,
                 assignment_id,
+                temp_assignment_id,
                 purchase_id
                 ) VALUES (
                  $1,
                  $2,
-                 $3::ship_info_role,
+                 $3,
                  $4,
                  $5,
                  $6
                  )
                  on conflict (symbol) DO UPDATE SET 
                 display_name = EXCLUDED.display_name,
-                role = EXCLUDED.role,
                 active = EXCLUDED.active,
                 assignment_id = EXCLUDED.assignment_id,
+                temp_assignment_id = EXCLUDED.temp_assignment_id,
                 purchase_id = EXCLUDED.purchase_id;
             "#,
             &item.symbol,
             &item.display_name,
-            &item.role as &ShipInfoRole,
             &item.active,
             &item.assignment_id as &Option<i64>,
+            &item.temp_assignment_id as &Option<i64>,
             &item.purchase_id as &Option<i64>
         )
         .execute(&database_pool.database_pool)
@@ -189,8 +170,7 @@ impl DatabaseConnector<ShipInfo> for ShipInfo {
 
     #[instrument(level = "trace", skip(database_pool, items))]
     async fn insert_bulk(database_pool: &super::DbPool, items: &[ShipInfo]) -> crate::Result<()> {
-        let (symbol_s, display_name_s, role_s, active_s, assignment_id_s, purchase_id_s): (
-            Vec<_>,
+        let (symbol_s, display_name_s, active_s, assignment_id_s, purchase_id_s): (
             Vec<_>,
             Vec<_>,
             Vec<_>,
@@ -200,7 +180,6 @@ impl DatabaseConnector<ShipInfo> for ShipInfo {
             (
                 s.symbol.clone(),
                 s.display_name.clone(),
-                s.role,
                 s.active,
                 s.assignment_id,
                 s.purchase_id,
@@ -212,7 +191,6 @@ impl DatabaseConnector<ShipInfo> for ShipInfo {
               INSERT INTO public.ship_info (
                 symbol,
                 display_name,
-                role,
                 active,
                 assignment_id,
                 purchase_id
@@ -220,21 +198,18 @@ impl DatabaseConnector<ShipInfo> for ShipInfo {
                 SELECT * FROM UNNEST(
                   $1::character varying[],
                   $2::character varying[],
-                  $3::ship_info_role[],
-                  $4::boolean[],
-                  $5::bigint[],
-                  $6::bigint[]
+                  $3::boolean[],
+                  $4::bigint[],
+                  $5::bigint[]
                  )
                  on conflict (symbol) DO UPDATE SET 
                 display_name = EXCLUDED.display_name,
-                role = EXCLUDED.role,
                 active = EXCLUDED.active,
                 assignment_id = EXCLUDED.assignment_id,
                 purchase_id = EXCLUDED.purchase_id;
             "#,
             &symbol_s as &[String],
             &display_name_s as &[String],
-            &role_s as &[ShipInfoRole],
             &active_s as &[bool],
             &assignment_id_s as &[Option<i64>],
             &purchase_id_s as &[Option<i64>]
@@ -253,9 +228,9 @@ impl DatabaseConnector<ShipInfo> for ShipInfo {
                 SELECT 
                     symbol,
                     display_name,
-                    role as "role: ShipInfoRole",
                     active,
                     assignment_id,
+                    temp_assignment_id,
                     purchase_id
                 FROM ship_info
             "#

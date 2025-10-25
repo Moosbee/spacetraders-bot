@@ -13,7 +13,6 @@ use crate::{
     error::{Error, Result},
     manager::{
         construction_manager::message::ConstructionMessage,
-        fleet_manager::message::{Budget, Priority, RequestedShipType, RequiredShips},
         Manager,
     },
     utils::ConductorContext,
@@ -161,64 +160,64 @@ impl ConstructionManager {
         Ok(())
     }
 
-    #[tracing::instrument(
-        level = "info",
-        name = "spacetraders::manager::construction_manager::get_required_ships",
-        skip(context)
-    )]
-    pub async fn get_required_ships(context: &ConductorContext) -> Result<RequiredShips> {
-        // we need one transporter(39+ cargo space) in our headquarters as long as their are unfinished constructions in the main system
-        let db_ships = database::ShipInfo::get_by_role(
-            &context.database_pool,
-            &database::ShipInfoRole::Construction,
-        )
-        .await?;
-        let all_ships = context
-            .ship_manager
-            .get_all_clone()
-            .await
-            .into_values()
-            .filter(|ship| {
-                (ship.role == database::ShipInfoRole::Construction
-                    || db_ships.iter().any(|db_ship| db_ship.symbol == ship.symbol))
-                    && ship.cargo.capacity >= 40
-            })
-            .collect::<Vec<_>>();
+    // #[tracing::instrument(
+    //     level = "info",
+    //     name = "spacetraders::manager::construction_manager::get_required_ships",
+    //     skip(context)
+    // )]
+    // pub async fn get_required_ships(context: &ConductorContext) -> Result<RequiredShips> {
+    //     // we need one transporter(39+ cargo space) in our headquarters as long as their are unfinished constructions in the main system
+    //     let db_ships = database::ShipInfo::get_by_role(
+    //         &context.database_pool,
+    //         &database::ShipInfoRole::Construction,
+    //     )
+    //     .await?;
+    //     let all_ships = context
+    //         .ship_manager
+    //         .get_all_clone()
+    //         .await
+    //         .into_values()
+    //         .filter(|ship| {
+    //             (ship.role == database::ShipInfoRole::Construction
+    //                 || db_ships.iter().any(|db_ship| db_ship.symbol == ship.symbol))
+    //                 && ship.cargo.capacity >= 40
+    //         })
+    //         .collect::<Vec<_>>();
 
-        let headquarters = { context.run_info.read().await.headquarters.clone() };
+    //     let headquarters = { context.run_info.read().await.headquarters.clone() };
 
-        let headquarters = get_system_symbol(&headquarters);
+    //     let headquarters = get_system_symbol(&headquarters);
 
-        let headquarter_constructions =
-            database::Waypoint::get_by_system(&context.database_pool, &headquarters)
-                .await?
-                .into_iter()
-                .filter(|w| w.is_under_construction)
-                .collect::<Vec<_>>();
-        debug!(
-            "headquarters: {}, headquarter_constructions: {}, all_ships: {}",
-            headquarters,
-            headquarter_constructions.len(),
-            all_ships.len()
-        );
-        let ships = if !headquarter_constructions.is_empty() && all_ships.is_empty() {
-            HashMap::from_iter(
-                vec![(
-                    headquarters.clone(),
-                    vec![(
-                        RequestedShipType::Transporter,
-                        Priority::Low,
-                        Budget::High,
-                        database::ShipInfoRole::Construction,
-                    )],
-                )]
-                .into_iter(),
-            )
-        } else {
-            HashMap::new()
-        };
-        Ok(RequiredShips { ships })
-    }
+    //     let headquarter_constructions =
+    //         database::Waypoint::get_by_system(&context.database_pool, &headquarters)
+    //             .await?
+    //             .into_iter()
+    //             .filter(|w| w.is_under_construction)
+    //             .collect::<Vec<_>>();
+    //     debug!(
+    //         "headquarters: {}, headquarter_constructions: {}, all_ships: {}",
+    //         headquarters,
+    //         headquarter_constructions.len(),
+    //         all_ships.len()
+    //     );
+    //     let ships = if !headquarter_constructions.is_empty() && all_ships.is_empty() {
+    //         HashMap::from_iter(
+    //             vec![(
+    //                 headquarters.clone(),
+    //                 vec![(
+    //                     RequestedShipType::Transporter,
+    //                     Priority::Low,
+    //                     Budget::High,
+    //                     database::ShipInfoRole::Construction,
+    //                 )],
+    //             )]
+    //             .into_iter(),
+    //         )
+    //     } else {
+    //         HashMap::new()
+    //     };
+    //     Ok(RequiredShips { ships })
+    // }
 
     async fn request_next_shipment(
         &mut self,

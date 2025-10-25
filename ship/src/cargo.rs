@@ -9,7 +9,7 @@ use space_traders_client::models::JettisonRequest;
 
 use crate::error;
 
-use super::ship_models::MyShip;
+use super::RustShip;
 
 enum Mode {
     Sell,
@@ -23,7 +23,7 @@ pub struct CargoState {
     pub inventory: HashMap<space_traders_client::models::TradeSymbol, i32>,
 }
 
-impl MyShip {
+impl<T: Clone> RustShip<T> {
     pub async fn purchase_cargo(
         &mut self,
         api: &space_traders_client::Api,

@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use database::DbPool;
 use serde::{Deserialize, Serialize};
-use ship::ShipManager;
+use ship::{ShipManager, ShipStatus};
 use space_traders_client::models;
 use tokio::sync::RwLock;
 use utils::RunInfo;
@@ -21,7 +21,7 @@ use crate::manager::trade_manager::TradeManagerMessanger;
 pub struct ConductorContext {
     pub api: space_traders_client::Api,
     pub database_pool: DbPool,
-    pub ship_manager: Arc<ShipManager>,
+    pub ship_manager: Arc<ShipManager<ShipStatus>>,
     pub ship_tasks: ShipTaskMessanger,
     pub construction_manager: ConstructionManagerMessanger,
     pub contract_manager: ContractManagerMessanger,

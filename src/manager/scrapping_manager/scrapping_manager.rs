@@ -12,7 +12,6 @@ use utils::{distance_between_waypoints, WaypointCan};
 use crate::{
     error::{Error, Result},
     manager::{
-        fleet_manager::message::{Budget, Priority, RequestedShipType, RequiredShips},
         scrapping_manager::priority_calculator,
         Manager,
     },
@@ -236,84 +235,84 @@ impl ScrappingManager {
         Ok(())
     }
 
-    #[tracing::instrument(
-        level = "info",
-        name = "spacetraders::manager::scrapping_manager::get_required_ships",
-        skip(all_ships, all_systems_hashmap)
-    )]
-    pub fn get_required_ships(
-        all_ships: &[ship::MyShip],
-        all_systems_hashmap: &HashMap<String, HashMap<String, database::Waypoint>>,
-    ) -> Result<RequiredShips> {
-        let mut systems: HashMap<String, Vec<String>> = HashMap::new();
+    // #[tracing::instrument(
+    //     level = "info",
+    //     name = "spacetraders::manager::scrapping_manager::get_required_ships",
+    //     skip(all_ships, all_systems_hashmap)
+    // )]
+    // pub fn get_required_ships(
+    //     all_ships: &[ship::MyShip],
+    //     all_systems_hashmap: &HashMap<String, HashMap<String, database::Waypoint>>,
+    // ) -> Result<RequiredShips> {
+    //     let mut systems: HashMap<String, Vec<String>> = HashMap::new();
 
-        for s in all_ships {
-            let is_scrapper = s.role == database::ShipInfoRole::Scraper
-                || (s.role == database::ShipInfoRole::Transfer
-                    && match &s.status {
-                        ship::ShipStatus::Transfer { role, .. } => {
-                            role == &Some(database::ShipInfoRole::Scraper)
-                        }
-                        _ => false,
-                    });
+    //     for s in all_ships {
+    //         let is_scrapper = s.role == database::ShipInfoRole::Scraper
+    //             || (s.role == database::ShipInfoRole::Transfer
+    //                 && match &s.status {
+    //                     ship::ShipStatus::Transfer { role, .. } => {
+    //                         role == &Some(database::ShipInfoRole::Scraper)
+    //                     }
+    //                     _ => false,
+    //                 });
 
-            if !is_scrapper {
-                continue;
-            }
+    //         if !is_scrapper {
+    //             continue;
+    //         }
 
-            let system_str = match &s.role {
-                database::ShipInfoRole::Transfer => match &s.status {
-                    ship::ShipStatus::Transfer { system_symbol, .. } => {
-                        system_symbol.clone().unwrap_or_default()
-                    }
-                    _ => s.nav.system_symbol.clone(),
-                },
-                _ => s.nav.system_symbol.clone(),
-            };
+    //         let system_str = match &s.role {
+    //             database::ShipInfoRole::Transfer => match &s.status {
+    //                 ship::ShipStatus::Transfer { system_symbol, .. } => {
+    //                     system_symbol.clone().unwrap_or_default()
+    //                 }
+    //                 _ => s.nav.system_symbol.clone(),
+    //             },
+    //             _ => s.nav.system_symbol.clone(),
+    //         };
 
-            let system = systems.get_mut(&system_str);
-            if let Some(system) = system {
-                system.push(s.symbol.clone());
-            } else {
-                systems.insert(system_str, vec![s.symbol.clone()]);
-            }
-        }
+    //         let system = systems.get_mut(&system_str);
+    //         if let Some(system) = system {
+    //             system.push(s.symbol.clone());
+    //         } else {
+    //             systems.insert(system_str, vec![s.symbol.clone()]);
+    //         }
+    //     }
 
-        let mut required_ships = RequiredShips::new();
+    //     let mut required_ships = RequiredShips::new();
 
-        for (system, ships) in systems {
-            let waypoints = all_systems_hashmap
-                .get(&system)
-                .map(|wps| {
-                    wps.values()
-                        .filter(|w| w.is_marketplace() || w.is_shipyard())
-                        .count()
-                })
-                .unwrap_or_default();
-            let diff = (waypoints as i64) - (ships.len() as i64);
-            if diff <= 0 {
-                continue;
-            };
+    //     for (system, ships) in systems {
+    //         let waypoints = all_systems_hashmap
+    //             .get(&system)
+    //             .map(|wps| {
+    //                 wps.values()
+    //                     .filter(|w| w.is_marketplace() || w.is_shipyard())
+    //                     .count()
+    //             })
+    //             .unwrap_or_default();
+    //         let diff = (waypoints as i64) - (ships.len() as i64);
+    //         if diff <= 0 {
+    //             continue;
+    //         };
 
-            let sys_ships = (0..(diff as usize))
-                .map(|_| {
-                    (
-                        RequestedShipType::Scrapper,
-                        Priority::High,
-                        Budget::High,
-                        database::ShipInfoRole::Scraper,
-                    )
-                })
-                .collect::<Vec<_>>();
+    //         let sys_ships = (0..(diff as usize))
+    //             .map(|_| {
+    //                 (
+    //                     RequestedShipType::Scrapper,
+    //                     Priority::High,
+    //                     Budget::High,
+    //                     database::ShipInfoRole::Scraper,
+    //                 )
+    //             })
+    //             .collect::<Vec<_>>();
 
-            let before = required_ships.ships.insert(system, sys_ships);
-            if before.is_some() {
-                log::warn!("Scrapping Ship contains ships");
-            }
-        }
+    //         let before = required_ships.ships.insert(system, sys_ships);
+    //         if before.is_some() {
+    //             log::warn!("Scrapping Ship contains ships");
+    //         }
+    //     }
 
-        Ok(required_ships)
-    }
+    //     Ok(required_ships)
+    // }
 
     async fn complete_scrapping(
         &mut self,

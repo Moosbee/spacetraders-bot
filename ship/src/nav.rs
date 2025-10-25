@@ -4,7 +4,7 @@ use space_traders_client::{apis, models};
 
 use crate::error;
 
-use super::{MyShip, autopilot::AutopilotState};
+use super::{RustShip, autopilot::AutopilotState};
 
 use std::fmt::Debug;
 
@@ -51,7 +51,7 @@ pub struct RouteState {
     pub origin_system_symbol: String,
 }
 
-impl MyShip {
+impl<T: Clone> RustShip<T> {
     pub async fn navigate(
         &mut self,
         api: &space_traders_client::Api,

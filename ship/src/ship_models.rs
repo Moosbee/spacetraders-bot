@@ -25,10 +25,11 @@ pub struct ConditionState {
     pub reactor: Condition,
 }
 
+pub type MyShip = RustShip<ShipStatus>;
+
 #[derive(serde::Serialize)]
-pub struct MyShip {
-    pub role: database::ShipInfoRole,
-    pub status: ShipStatus,
+pub struct RustShip<T: Clone> {
+    pub status: T,
     pub registration_role: ShipRole,
     pub symbol: String,
     pub display_name: String,
@@ -56,19 +57,18 @@ pub struct MyShip {
     #[serde(skip)]
     pub broadcaster: InterShipBroadcaster,
     #[serde(skip)]
-    pub pubsub: Publisher<ShipManager, MyShip>,
+    pub pubsub: Publisher<ShipManager<T>, RustShip<T>>,
 }
 
-impl Default for MyShip {
+impl<T: Default + Clone> Default for RustShip<T> {
     fn default() -> Self {
         Self {
+            status: Default::default(),
             active: false,
             is_clone: false,
             cooldown: Default::default(),
             pubsub: Publisher::new(),
             broadcaster: Default::default(),
-            role: Default::default(),
-            status: Default::default(),
             registration_role: Default::default(),
             symbol: Default::default(),
             display_name: Default::default(),
@@ -87,11 +87,10 @@ impl Default for MyShip {
     }
 }
 
-impl Clone for MyShip {
+impl<T: Clone> Clone for RustShip<T> {
     fn clone(&self) -> Self {
         Self {
             status: self.status.clone(),
-            role: self.role,
             registration_role: self.registration_role,
             display_name: self.display_name.clone(),
             symbol: self.symbol.clone(),
@@ -116,10 +115,9 @@ impl Clone for MyShip {
     }
 }
 
-impl Debug for MyShip {
+impl<T: Debug + Clone> Debug for RustShip<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("MyShip")
-            .field("role", &self.role)
+        f.debug_struct("RustShip")
             .field("status", &self.status)
             .field("registration_role", &self.registration_role)
             .field("symbol", &self.symbol)
@@ -139,13 +137,12 @@ impl Debug for MyShip {
     }
 }
 
-impl From<&MyShip> for database::ShipState {
-    fn from(value: &MyShip) -> Self {
+impl<T: Clone> From<&RustShip<T>> for database::ShipState {
+    fn from(value: &RustShip<T>) -> Self {
         Self {
             id: 0,
             symbol: value.symbol.clone(),
             display_name: value.display_name.clone(),
-            role: value.role,
             active: value.active,
             engine_speed: value.engine_speed,
 
@@ -207,7 +204,7 @@ impl From<&MyShip> for database::ShipState {
     }
 }
 
-impl MyShip {
+impl<T: Clone> RustShip<T> {
     pub fn update(&mut self, ship: models::Ship) {
         self.mutate();
         self.symbol = ship.symbol;
@@ -252,28 +249,36 @@ impl MyShip {
         &mut self,
         database_pool: database::DbPool,
     ) -> Result<database::ShipInfo> {
+        self.apply_from_db_ship(database_pool, None).await
+    }
+
+    pub async fn apply_from_db_ship(
+        &mut self,
+        database_pool: database::DbPool,
+        purchase_id: Option<i64>,
+    ) -> Result<database::ShipInfo> {
         self.mutate();
         let db_ship = database::ShipInfo::get_by_symbol(&database_pool, &self.symbol).await?;
         let ship_info = match db_ship {
             Some(db_ship) => db_ship,
             None => {
-                if self.role == database::ShipInfoRole::TempTrader {
-                    return Err(crate::error::Error::General(
-                        "Ship was a temp trader".to_string(),
-                    ));
-                }
+                // if self.role == database::ShipInfoRole::TempTrader {
+                //     return Err(crate::error::Error::General(
+                //         "Ship was a temp trader".to_string(),
+                //     ));
+                // }
                 let display_name = if self.display_name.is_empty() {
                     self.symbol.clone()
                 } else {
                     self.display_name.clone()
                 };
                 let ship_info = database::ShipInfo {
-                    purchase_id: None,
+                    purchase_id,
                     symbol: self.symbol.clone(),
                     display_name,
-                    role: self.role,
                     active: self.active,
                     assignment_id: None,
+                    temp_assignment_id: None,
                 };
                 database::ShipInfo::insert(&database_pool, &ship_info).await?;
                 ship_info
@@ -292,9 +297,9 @@ impl MyShip {
         self.active = ship_info.active;
         self.display_name = ship_info.display_name;
         self.symbol = ship_info.symbol;
-        if self.role != database::ShipInfoRole::TempTrader {
-            self.role = ship_info.role;
-        }
+        // if self.role != database::ShipInfoRole::TempTrader {
+        //     self.role = ship_info.role;
+        // }
     }
 
     pub async fn update_info_db_shipyard(

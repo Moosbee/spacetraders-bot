@@ -128,12 +128,7 @@ impl ConstructionPilot {
     }
 
     async fn do_elsewhere(&self, ship: &mut ship::MyShip) -> Result<()> {
-        ship.status = ship::ShipStatus::Manuel;
-        ship.role = database::ShipInfoRole::TempTrader;
-        debug!("Doing something else");
-        ship.notify().await;
-
-        Ok(())
+        todo!()
     }
 
     async fn purchase_cargo(

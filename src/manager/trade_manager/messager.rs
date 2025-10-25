@@ -1,8 +1,8 @@
 use tracing::debug;
 
-use crate::{error::Error, manager::fleet_manager::message::RequiredShips};
+use crate::error::Error;
 
-use super::{routes::PossibleTradeRoute, TradeManager, TradeManagerMessage};
+use super::{routes::PossibleTradeRoute, TradeManagerMessage};
 
 #[derive(Debug, Clone)]
 pub struct TradeManagerMessanger {

@@ -43,38 +43,4 @@ impl FleetManagerMessanger {
 
         Ok(())
     }
-
-    #[tracing::instrument(skip(self, waypoint_symbol, ship_symbol), name = "FleetManagerMessanger::ship_arrived", fields(waypoint = %waypoint_symbol, ship = %ship_symbol))]
-    pub async fn ship_arrived(
-        &self,
-        waypoint_symbol: String,
-        ship_symbol: String,
-    ) -> Result<(), crate::error::Error> {
-        self.sender
-            .send(FleetManagerMessage::ShipArrived {
-                waypoint_symbol,
-                ship_symbol,
-            })
-            .await
-            .map_err(|e| crate::error::Error::General(e.to_string()))?;
-        Ok(())
-    }
-
-    #[tracing::instrument(skip(self, ship_clone), name = "FleetManagerMessanger::get_transfer", fields(ship = %ship_clone.symbol))]
-    pub async fn get_transfer(
-        &self,
-        ship_clone: ship::MyShip,
-    ) -> Result<database::ShipTransfer, crate::error::Error> {
-        let (tx, rx) = tokio::sync::oneshot::channel();
-        self.sender
-            .send(FleetManagerMessage::GetTransfer {
-                ship_clone,
-                callback: tx,
-            })
-            .await
-            .map_err(|e| crate::error::Error::General(format!("Failed to send message: {}", e)))
-            .unwrap();
-        rx.await
-            .map_err(|e| crate::error::Error::General(format!("Failed to receive message: {}", e)))
-    }
 }

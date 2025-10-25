@@ -108,26 +108,7 @@ impl ChartPilot {
     }
 
     async fn do_elsewhere(&self, ship: &mut ship::MyShip) -> std::result::Result<(), Error> {
-        ship.status = ship::ShipStatus::Manuel;
-        let role = if ship.cargo.capacity == 0 {
-            database::ShipInfoRole::Scraper
-        } else {
-            database::ShipInfoRole::Trader
-        };
-
-        let sql_ship =
-            database::ShipInfo::get_by_symbol(&self.context.database_pool, &ship.symbol).await?;
-        if let Some(mut sql_ship) = sql_ship {
-            sql_ship.role = role;
-            database::ShipInfo::insert(&self.context.database_pool, &sql_ship).await?;
-        }
-
-        ship.apply_from_db(self.context.database_pool.clone())
-            .await?;
-
-        debug!("Doing something else");
-        ship.notify().await;
-        Ok(())
+        todo!();
     }
 
     async fn chart_waypoint(&self, ship: &mut ship::MyShip) -> std::result::Result<(), Error> {

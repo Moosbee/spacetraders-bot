@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use database::DatabaseConnector;
-use log::{debug, warn};
+use log::debug;
 use space_traders_client::models;
 use tokio::time::sleep;
 use tracing::instrument;

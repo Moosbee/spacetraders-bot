@@ -1,7 +1,6 @@
 use std::sync::{atomic::AtomicI32, Arc};
 
 use chrono::Utc;
-use database::DatabaseConnector;
 use tracing::debug;
 use tracing::instrument;
 use utils::WaypointCan;
@@ -184,21 +183,7 @@ impl ScraperPilot {
     }
 
     async fn do_elsewhere(&self, ship: &mut ship::MyShip) -> std::result::Result<(), Error> {
-        ship.status = ship::ShipStatus::Manuel;
-
-        let sql_ship =
-            database::ShipInfo::get_by_symbol(&self.context.database_pool, &ship.symbol).await?;
-        if let Some(mut sql_ship) = sql_ship {
-            sql_ship.role = database::ShipInfoRole::Manuel;
-            database::ShipInfo::insert(&self.context.database_pool, &sql_ship).await?;
-        }
-
-        ship.apply_from_db(self.context.database_pool.clone())
-            .await?;
-
-        debug!("Doing something else");
-        ship.notify().await;
-        Ok(())
+        todo!()
     }
 
     async fn wait_until(

@@ -2,10 +2,10 @@ use tracing::debug;
 
 use crate::{
     error::{Error, Result},
-    manager::{contract_manager::ContractShipmentMessage, fleet_manager::message::RequiredShips},
+    manager::contract_manager::ContractShipmentMessage,
 };
 
-use super::{message::ContractManagerMessage, ContractManager, NextShipmentResp};
+use super::{message::ContractManagerMessage, NextShipmentResp};
 
 #[derive(Debug, Clone)]
 pub struct ContractManagerMessanger {
@@ -80,12 +80,5 @@ impl ContractManagerMessanger {
             .map_err(|e| Error::General(format!("Failed to send message: {}", e)))?;
 
         Ok(())
-    }
-
-    pub async fn get_ships(
-        &self,
-        context: &crate::utils::ConductorContext,
-    ) -> Result<RequiredShips> {
-        ContractManager::get_required_ships(context).await
     }
 }

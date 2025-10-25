@@ -1,11 +1,7 @@
 use space_traders_client::models;
 
-use crate::manager::fleet_manager::message::RequiredShips;
 
-use super::{
-    message::{self, ConstructionManagerMessage},
-    ConstructionManager,
-};
+use super::message::{self, ConstructionManagerMessage};
 
 #[derive(Debug, Clone)]
 pub struct ConstructionManagerMessanger {
@@ -109,12 +105,5 @@ impl ConstructionManagerMessanger {
         })??;
 
         Ok(resp)
-    }
-
-    pub async fn get_ships(
-        &self,
-        context: &crate::utils::ConductorContext,
-    ) -> Result<RequiredShips, crate::error::Error> {
-        ConstructionManager::get_required_ships(context).await
     }
 }

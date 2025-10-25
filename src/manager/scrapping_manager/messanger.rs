@@ -1,6 +1,5 @@
-use crate::manager::fleet_manager::message::RequiredShips;
 
-use super::{message::ScrappingManagerMessage, ScrappingManager};
+use super::message::ScrappingManagerMessage;
 
 #[derive(Debug, Clone)]
 pub struct ScrappingManagerMessanger {

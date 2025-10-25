@@ -45,11 +45,6 @@ pub enum ShipStatus {
         waiting_for_manager: bool,
         waypoint_symbol: Option<String>,
     },
-    Transfer {
-        id: Option<i64>,
-        system_symbol: Option<String>,
-        role: Option<database::ShipInfoRole>,
-    },
     #[default]
     Manuel,
 }

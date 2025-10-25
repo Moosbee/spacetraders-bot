@@ -7,10 +7,9 @@ use super::{
         AssignWaypointMessage, ExtractionNotification, MiningManagerMessage, MiningMessage,
     },
     transfer_manager::{ExtractorTransferRequest, TransferManager, TransportTransferRequest},
-    MiningManager,
 };
 
-use crate::{error::Result, manager::fleet_manager::message::RequiredShips};
+use crate::error::Result;
 
 #[derive(Debug, Clone)]
 pub struct MiningManagerMessanger {
@@ -212,12 +211,5 @@ impl MiningManagerMessanger {
         callback.await.map_err(|e| {
             crate::error::Error::General(format!("Failed to get GetAssignments message: {}", e))
         })?
-    }
-
-    pub async fn get_ships(
-        &self,
-        context: &crate::utils::ConductorContext,
-    ) -> Result<RequiredShips> {
-        MiningManager::get_required_ships(context).await
     }
 }

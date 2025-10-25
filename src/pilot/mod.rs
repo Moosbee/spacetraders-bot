@@ -4,7 +4,6 @@ mod contract;
 pub mod mining;
 mod scraper;
 mod trading;
-mod transfer;
 
 use charting::ChartPilot;
 use construction::ConstructionPilot;
@@ -15,7 +14,6 @@ use tokio_util::sync::CancellationToken;
 use tracing::debug;
 use tracing::instrument;
 use trading::TradingPilot;
-use transfer::TransferPilot;
 
 use crate::{
     error::{Error, Result},
@@ -32,7 +30,6 @@ pub struct Pilot {
     contract_pilot: ContractPilot,
     mining_pilot: MiningPilot,
     chart_pilot: ChartPilot,
-    transfer_pilot: TransferPilot,
 }
 
 impl Pilot {
@@ -53,7 +50,6 @@ impl Pilot {
             contract_pilot: ContractPilot::new(context.clone(), ship_symbol.clone()),
             mining_pilot: MiningPilot::new(context.clone(), ship_symbol.clone()),
             chart_pilot: ChartPilot::new(context.clone(), ship_symbol.clone()),
-            transfer_pilot: TransferPilot::new(context.clone(), ship_symbol.clone()),
         }
     }
 
@@ -116,9 +112,9 @@ impl Pilot {
                     .await?
                     .ok_or(Error::General("Ship not found".to_string()))?;
 
-            if ship_info.role != database::ShipInfoRole::Manuel {
-                break;
-            }
+            // if ship_info.role != database::ShipInfoRole::Manuel {
+            //     break;
+            // }
 
             tokio::select! {
                         _ = self.cancellation_token.cancelled() => {
@@ -131,45 +127,7 @@ impl Pilot {
     }
 
     async fn pilot_circle(&self) -> Result<()> {
-        let role = {
-            let mut ship_guard = self.context.ship_manager.get_mut(&self.ship_symbol).await;
-            // .ok_or(Error::General("Ship was locked".to_string()))?;
-            let ship = ship_guard
-                .value_mut()
-                .ok_or(Error::General("Ship not found".to_string()))?;
-
-            ship.apply_from_db(self.context.database_pool.clone())
-                .await?;
-
-            ship.notify().await;
-
-            if !ship.active {
-                return Ok(());
-            }
-            ship.role
-        };
-
-        debug!("Starting pilot circle for ship {}", self.ship_symbol);
-
-        match role {
-            database::ShipInfoRole::Construction => {
-                self.construction_pilot.execute_pilot_circle(self).await
-            }
-            database::ShipInfoRole::Trader => self.trading_pilot.execute_pilot_circle(self).await,
-            database::ShipInfoRole::Contract => {
-                self.contract_pilot.execute_pilot_circle(self).await
-            }
-            database::ShipInfoRole::Scraper => self.scraper_pilot.execute_pilot_circle(self).await,
-            database::ShipInfoRole::Mining => self.mining_pilot.execute_pilot_circle(self).await,
-            database::ShipInfoRole::Manuel => self.wait_for_new_role().await,
-            database::ShipInfoRole::TempTrader => {
-                self.trading_pilot.execute_pilot_circle(self).await
-            }
-            database::ShipInfoRole::Charter => self.chart_pilot.execute_pilot_circle(self).await,
-            database::ShipInfoRole::Transfer => {
-                self.transfer_pilot.execute_pilot_circle(self).await
-            }
-        }?;
+        todo!();
 
         Ok(())
     }

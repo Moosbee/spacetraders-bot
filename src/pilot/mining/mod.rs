@@ -66,7 +66,7 @@ impl MiningPilot {
             assignment: Self::get_ship_assignment(ship),
         };
 
-        debug!("Assigning role {:?} to ship {}", ship.role, ship.symbol);
+        debug!("Assigning role {:?} to ship {}", ship.status, ship.symbol);
 
         // ship.notify().await;
     }

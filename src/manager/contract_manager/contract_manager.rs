@@ -1,6 +1,6 @@
 use std::{
     cmp::Ordering,
-    collections::{HashMap, HashSet},
+    collections::HashMap,
     str::FromStr,
 };
 
@@ -13,7 +13,6 @@ use crate::{
     error::{self, Error, Result},
     manager::{
         contract_manager::ContractShipmentMessage,
-        fleet_manager::message::{Budget, Priority, RequestedShipType, RequiredShips},
         Manager,
     },
     utils::ConductorContext,
@@ -167,53 +166,53 @@ impl ContractManager {
         Ok(())
     }
 
-    #[tracing::instrument(
-        level = "info",
-        name = "spacetraders::manager::contract_manager::get_required_ships",
-        skip(context)
-    )]
-    pub async fn get_required_ships(context: &ConductorContext) -> Result<RequiredShips> {
-        let db_ships = database::ShipInfo::get_by_role(
-            &context.database_pool,
-            &database::ShipInfoRole::Contract,
-        )
-        .await?;
-        let all_ships = context
-            .ship_manager
-            .get_all_clone()
-            .await
-            .into_values()
-            .filter(|ship| {
-                (ship.role == database::ShipInfoRole::Contract
-                    || db_ships.iter().any(|db_ship| db_ship.symbol == ship.symbol))
-                    && ship.cargo.capacity >= 40
-            })
-            .collect::<Vec<_>>();
+    // #[tracing::instrument(
+    //     level = "info",
+    //     name = "spacetraders::manager::contract_manager::get_required_ships",
+    //     skip(context)
+    // )]
+    // pub async fn get_required_ships(context: &ConductorContext) -> Result<RequiredShips> {
+    //     let db_ships = database::ShipInfo::get_by_role(
+    //         &context.database_pool,
+    //         &database::ShipInfoRole::Contract,
+    //     )
+    //     .await?;
+    //     let all_ships = context
+    //         .ship_manager
+    //         .get_all_clone()
+    //         .await
+    //         .into_values()
+    //         .filter(|ship| {
+    //             (ship.role == database::ShipInfoRole::Contract
+    //                 || db_ships.iter().any(|db_ship| db_ship.symbol == ship.symbol))
+    //                 && ship.cargo.capacity >= 40
+    //         })
+    //         .collect::<Vec<_>>();
 
-        let headquarters = { context.run_info.read().await.headquarters.clone() };
+    //     let headquarters = { context.run_info.read().await.headquarters.clone() };
 
-        let mut contract_systems = HashSet::new();
-        if contract_systems.is_empty() {
-            contract_systems.insert(headquarters.clone());
-        }
-        let ships = if all_ships.is_empty() {
-            HashMap::from_iter(
-                vec![(
-                    contract_systems.iter().next().unwrap().clone(),
-                    vec![(
-                        RequestedShipType::Transporter,
-                        Priority::High,
-                        Budget::Medium,
-                        database::ShipInfoRole::Contract,
-                    )],
-                )]
-                .into_iter(),
-            )
-        } else {
-            HashMap::new()
-        };
-        Ok(RequiredShips { ships })
-    }
+    //     let mut contract_systems = HashSet::new();
+    //     if contract_systems.is_empty() {
+    //         contract_systems.insert(headquarters.clone());
+    //     }
+    //     let ships = if all_ships.is_empty() {
+    //         HashMap::from_iter(
+    //             vec![(
+    //                 contract_systems.iter().next().unwrap().clone(),
+    //                 vec![(
+    //                     RequestedShipType::Transporter,
+    //                     Priority::High,
+    //                     Budget::Medium,
+    //                     database::ShipInfoRole::Contract,
+    //                 )],
+    //             )]
+    //             .into_iter(),
+    //         )
+    //     } else {
+    //         HashMap::new()
+    //     };
+    //     Ok(RequiredShips { ships })
+    // }
 
     async fn request_next_shipment(
         &mut self,

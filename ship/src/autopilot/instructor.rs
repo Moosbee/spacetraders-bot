@@ -6,9 +6,9 @@ use super::{
     },
     stats::{calculate_jump_cooldown, get_travel_stats},
 };
-use crate::{MyShip, error::Result};
+use crate::{RustShip, error::Result};
 
-impl MyShip {
+impl<T: Clone> RustShip<T> {
     pub async fn assemble_route(&self, connections: &[SimpleConnection]) -> Result<Route> {
         let simple = self.to_connection(connections);
 
