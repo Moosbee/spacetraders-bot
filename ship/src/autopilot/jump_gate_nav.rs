@@ -5,7 +5,7 @@ use std::{
 };
 
 use database::DatabaseConnector;
-use log::{debug, info};
+use log::debug;
 use priority_queue::PriorityQueue;
 
 use crate::error::Result;

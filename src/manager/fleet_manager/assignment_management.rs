@@ -6,6 +6,15 @@ use crate::utils::ConductorContext;
 
 const DEFAULT_PRIORITY: i32 = 100;
 
+pub async fn update_fleet_assignments(
+    fleet: &database::Fleet,
+    current_assignments: Vec<ShipAssignment>,
+    new_assignments: Vec<ShipAssignment>,
+    context: &ConductorContext,
+) -> crate::error::Result<Vec<ShipAssignment>> {
+    todo!()
+}
+
 #[tracing::instrument(
     level = "debug",
     name = "spacetraders::manager::fleet_manager::assignment_management::generate_fleet_assignments",
@@ -297,7 +306,7 @@ async fn generate_contract_fleet_assignments(
         .map(|_i| ShipAssignment {
             id: 0, // This should be set appropriately
             fleet_id: fleet.id,
-            priority: DEFAULT_PRIORITY + 5, // lower priority than other assignments
+            priority: DEFAULT_PRIORITY - 10, // higher priority than other assignments
             disabled: false,
             range_min: min_range,
             cargo_min: min_cargo,

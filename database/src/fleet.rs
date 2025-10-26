@@ -1,3 +1,5 @@
+use std::collections::{HashMap, HashSet};
+
 use serde::{Deserialize, Serialize};
 use space_traders_client::models;
 use tracing::instrument;
@@ -266,11 +268,11 @@ impl DatabaseConnector<Fleet> for Fleet {
 }
 
 impl Fleet {
-    pub fn new(system_symbol: String, fleet_type: FleetType, active: bool) -> Self {
+    pub fn new(system_symbol: String, active: bool) -> Self {
         Fleet {
             id: 0,
             system_symbol,
-            fleet_type,
+            fleet_type: FleetType::Manuel,
             active,
             created_at: chrono::Utc::now(),
             updated_at: chrono::Utc::now(),
@@ -360,6 +362,110 @@ impl Fleet {
         Ok(erg.id)
     }
 
+    pub async fn get_by_ids(
+        database_pool: &DbPool,
+        ids: HashSet<i32>,
+    ) -> crate::Result<HashMap<i32, Fleet>> {
+        let ids = ids.into_iter().collect::<Vec<i32>>();
+        let resp = sqlx::query_as!(
+            Fleet,
+            r#"
+              SELECT
+                id,
+                system_symbol,
+                fleet_type as "fleet_type: FleetType",
+                active,
+                created_at,
+                updated_at,
+                market_blacklist as "market_blacklist: Vec<models::TradeSymbol>",
+                market_prefer_list as "market_prefer_list: Vec<models::TradeSymbol>",
+                purchase_multiplier,
+                ship_market_ratio,
+                min_cargo_space,
+                trade_mode as "trade_mode: TradeMode",
+                trade_profit_threshold,
+                allowed_requests,
+                notify_on_shipyard,
+                mining_eject_list as "mining_eject_list: Vec<models::TradeSymbol>",
+                mining_prefer_list as "mining_prefer_list: Vec<models::TradeSymbol>",
+                ignore_engineered_asteroids,
+                stop_all_unstable,
+                mining_waypoints,
+                unstable_since_timeout,
+                syphon_waypoints,
+                miners_per_waypoint,
+                siphoners_per_waypoint,
+                surveyors_per_waypoint,
+                mining_transporters_per_waypoint,
+                min_transporter_cargo_space,
+                min_mining_cargo_space,
+                min_siphon_cargo_space,
+                charting_probe_count,
+                construction_ship_count,
+                construction_waypoint,
+                contract_ship_count
+              FROM fleet
+              WHERE id = ANY($1)
+          "#,
+            &ids
+        )
+        .fetch_all(&database_pool.database_pool)
+        .await?
+        .into_iter()
+        .map(|fleet| (fleet.id, fleet))
+        .collect();
+
+        Ok(resp)
+    }
+
+    pub async fn get_by_system(database_pool: &DbPool, system: &str) -> crate::Result<Vec<Fleet>> {
+        let resp = sqlx::query_as!(
+            Fleet,
+            r#"
+                SELECT
+                  id,
+                  system_symbol,
+                  fleet_type as "fleet_type: FleetType",
+                  active,
+                  created_at,
+                  updated_at,
+                  market_blacklist as "market_blacklist: Vec<models::TradeSymbol>",
+                  market_prefer_list as "market_prefer_list: Vec<models::TradeSymbol>",
+                  purchase_multiplier,
+                  ship_market_ratio,
+                  min_cargo_space,
+                  trade_mode as "trade_mode: TradeMode",
+                  trade_profit_threshold,
+                  allowed_requests,
+                  notify_on_shipyard,
+                  mining_eject_list as "mining_eject_list: Vec<models::TradeSymbol>",
+                  mining_prefer_list as "mining_prefer_list: Vec<models::TradeSymbol>",
+                  ignore_engineered_asteroids,
+                  stop_all_unstable,
+                  mining_waypoints,
+                  unstable_since_timeout,
+                  syphon_waypoints,
+                  miners_per_waypoint,
+                  siphoners_per_waypoint,
+                  surveyors_per_waypoint,
+                  mining_transporters_per_waypoint,
+                  min_transporter_cargo_space,
+                  min_mining_cargo_space,
+                  min_siphon_cargo_space,
+                  charting_probe_count,
+                  construction_ship_count,
+                  construction_waypoint,
+                  contract_ship_count
+                FROM fleet
+                WHERE system_symbol = $1
+            "#,
+            &system
+        )
+        .fetch_all(&database_pool.database_pool)
+        .await?;
+        Ok(resp)
+    }
+
     pub async fn get_by_id(database_pool: &DbPool, id: i32) -> crate::Result<Option<Fleet>> {
         let resp = sqlx::query_as!(
             Fleet,
@@ -406,6 +512,11 @@ impl Fleet {
         .fetch_optional(&database_pool.database_pool)
         .await?;
         Ok(resp)
+    }
+
+    pub fn with_config(mut self, config: FleetConfig) -> Self {
+        self.set_config(config);
+        self
     }
 
     pub fn set_config(&mut self, config: FleetConfig) {

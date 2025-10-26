@@ -35,7 +35,7 @@ use tokio::sync::{broadcast, RwLock};
 use tokio_stream::StreamExt;
 use tokio_util::sync::CancellationToken;
 
-use ::utils::{RunInfo, WaypointCan};
+use ::utils::{get_system_symbol, RunInfo, WaypointCan};
 use tracing::debug;
 use tracing::{instrument, Instrument};
 use tracing_subscriber::layer::SubscriberExt;
@@ -51,10 +51,18 @@ async fn main() -> anyhow::Result<()> {
 
     // run_conductor(context.clone()).await?;
 
+    // let reg = setup_fleets(&context).await;
+
+    // if let Err(errorr) = reg {
+    //     tracing::error!(error = format!("{:?}", errorr), "Join error");
+    // }
+
+    // panic!("Finished");
+
     let erg = start(context, manager_token, managers).await;
 
     if let Err(errror) = erg {
-        println!("Main error: {} {}", errror, errror);
+        tracing::error!("Main error: {} {}", errror, errror);
     }
 
     Ok(())
@@ -127,6 +135,7 @@ async fn setup_unauthed() -> Result<(space_traders_client::Api, database::DbPool
     Ok((api, database_pool))
 }
 
+#[instrument(level = "info", name = "spacetraders::setup_context")]
 async fn setup_context(
 ) -> Result<(ConductorContext, CancellationToken, Vec<Box<dyn Manager>>), anyhow::Error> {
     let (api, database_pool) = setup_unauthed().await?;
@@ -361,6 +370,106 @@ async fn setup_context(
             Box::new(control_api),
         ],
     ))
+}
+
+#[instrument(name = "spacetraders::setup_fleets", skip(context))]
+async fn setup_fleets(
+    context: &ConductorContext,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    let main_system = { get_system_symbol(&context.run_info.read().await.headquarters) };
+
+    let main_fleets = database::Fleet::get_by_system(&context.database_pool, &main_system).await?;
+
+    if main_fleets.is_empty() {
+        let contract_fleet = database::Fleet::new(main_system.clone(), true).with_config(
+            database::FleetConfig::Contract(database::ContractFleetConfig {
+                contract_ship_count: 1,
+            }),
+        );
+        let scrapping_fleet = database::Fleet::new(main_system.clone(), true).with_config(
+            database::FleetConfig::Scraping(database::ScrapingFleetConfig {
+                ship_market_ratio: 1.0,
+                allowed_requests: 1, // todo do right calculations
+                notify_on_shipyard: true,
+            }),
+        );
+        let trading_fleet = database::Fleet::new(main_system.clone(), true).with_config(
+            database::FleetConfig::Trading(database::TradingFleetConfig {
+                market_blacklist: vec![
+                    models::TradeSymbol::AdvancedCircuitry,
+                    models::TradeSymbol::FabMats,
+                ],
+                market_prefer_list: vec![],
+                purchase_multiplier: 2.0,
+                ship_market_ratio: 0.2,
+                min_cargo_space: 40,
+                trade_mode: database::TradeMode::ProfitPerHour,
+                trade_profit_threshold: 200,
+            }),
+        );
+        let mining_fleet = database::Fleet::new(main_system.clone(), true).with_config(
+            database::FleetConfig::Mining(database::MiningFleetConfig {
+                mining_eject_list: vec![
+                    models::TradeSymbol::IceWater,
+                    models::TradeSymbol::AmmoniaIce,
+                    models::TradeSymbol::AluminumOre,
+                    models::TradeSymbol::SilverOre,
+                ],
+                mining_prefer_list: vec![
+                    models::TradeSymbol::SiliconCrystals,
+                    models::TradeSymbol::CopperOre,
+                    models::TradeSymbol::IronOre,
+                    models::TradeSymbol::QuartzSand,
+                ],
+                ignore_engineered_asteroids: false,
+                stop_all_unstable: true,
+                unstable_since_timeout: 10800,
+                mining_waypoints: 1,
+                syphon_waypoints: 1,
+                miners_per_waypoint: 8,
+                siphoners_per_waypoint: 4,
+                surveyers_per_waypoint: 1,
+                mining_transporters_per_waypoint: 2,
+                min_transporter_cargo_space: 80,
+                min_mining_cargo_space: 1,
+                min_siphon_cargo_space: 1,
+            }),
+        );
+        let construction_wypoint =
+            database::Waypoint::get_by_system(&context.database_pool, &main_system)
+                .await?
+                .into_iter()
+                .find(|wp| wp.is_under_construction);
+
+        if let Some(construction_wypoint) = construction_wypoint {
+            let construction_fleet = database::Fleet::new(main_system.clone(), true).with_config(
+                database::FleetConfig::Construction(database::ConstructionFleetConfig {
+                    construction_ship_count: 1,
+                    construction_waypoint: construction_wypoint.symbol.clone(),
+                }),
+            );
+
+            database::Fleet::insert_new(&context.database_pool, &construction_fleet).await?;
+        }
+
+        database::Fleet::insert_new(&context.database_pool, &contract_fleet).await?;
+        database::Fleet::insert_new(&context.database_pool, &scrapping_fleet).await?;
+        database::Fleet::insert_new(&context.database_pool, &trading_fleet).await?;
+        database::Fleet::insert_new(&context.database_pool, &mining_fleet).await?;
+
+        let all_fleets = database::Fleet::get_all(&context.database_pool).await?;
+        for fleet in all_fleets {
+            let assignments =
+                manager::fleet_manager::assignment_management::generate_fleet_assignments(
+                    &fleet, context,
+                )
+                .await?;
+            for assignment in assignments {
+                database::ShipAssignment::insert_new(&context.database_pool, &assignment).await?;
+            }
+        }
+    }
+    Ok(())
 }
 
 async fn check_time() {

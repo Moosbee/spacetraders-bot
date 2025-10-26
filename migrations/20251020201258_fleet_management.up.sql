@@ -60,5 +60,5 @@ CREATE TABLE fleet (
   -- Contract config
   contract_ship_count INTEGER,
   CONSTRAINT fk_system_symbol FOREIGN KEY (system_symbol) REFERENCES public.system (symbol) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION NOT VALID,
-  CONSTRAINT fk_construction_waypoint FOREIGN KEY (construction_waypoint) REFERENCES public.system (symbol) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION NOT VALID
+  CONSTRAINT fk_construction_waypoint FOREIGN KEY (construction_waypoint) REFERENCES public.waypoint (symbol) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION NOT VALID
 );

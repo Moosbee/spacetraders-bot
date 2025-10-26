@@ -8,7 +8,6 @@ mod trading;
 use charting::ChartPilot;
 use construction::ConstructionPilot;
 use contract::ContractPilot;
-use database::DatabaseConnector;
 use mining::MiningPilot;
 use scraper::ScraperPilot;
 use tokio_util::sync::CancellationToken;
@@ -72,32 +71,6 @@ impl Pilot {
         while !self.cancellation_token.is_cancelled() {
             self.pilot_circle().await?;
         }
-        Ok(())
-    }
-
-    async fn unassign_ship(&self) -> Result<()> {
-        let mut ship_info =
-            database::ShipInfo::get_by_symbol(&self.context.database_pool, &self.ship_symbol)
-                .await?
-                .ok_or(Error::General("Ship not found".to_string()))?;
-
-        ship_info.assignment_id = None;
-
-        database::ShipInfo::insert(&self.context.database_pool, &ship_info).await?;
-
-        Ok(())
-    }
-
-    async fn unassign_temp_ship(&self) -> Result<()> {
-        let mut ship_info =
-            database::ShipInfo::get_by_symbol(&self.context.database_pool, &self.ship_symbol)
-                .await?
-                .ok_or(Error::General("Ship not found".to_string()))?;
-
-        ship_info.temp_assignment_id = None;
-
-        database::ShipInfo::insert(&self.context.database_pool, &ship_info).await?;
-
         Ok(())
     }
 
@@ -168,6 +141,12 @@ impl Pilot {
     async fn pilot_circle(&self) -> Result<()> {
         let (ship_info, assignment) = self.get_ship_assignment().await?;
 
+        if !ship_info.active {
+            debug!("Ship {} is inactive, waiting", self.ship_symbol);
+            self.wait_for_activation().await?;
+            return Ok(());
+        }
+
         if let Some((assignment, fleet, is_temp)) = assignment {
             debug!(
                 "Piloting ship {} with assignment {:?} in fleet {:?}",
@@ -180,9 +159,17 @@ impl Pilot {
                     assignment.id, self.ship_symbol
                 );
                 if is_temp {
-                    self.unassign_temp_ship().await?;
+                    database::ShipInfo::unassign_ship(
+                        &self.context.database_pool,
+                        &self.ship_symbol,
+                    )
+                    .await?;
                 } else {
-                    self.unassign_ship().await?;
+                    database::ShipInfo::unassign_temp_ship(
+                        &self.context.database_pool,
+                        &self.ship_symbol,
+                    )
+                    .await?;
                 }
                 return Ok(());
             }
@@ -244,7 +231,11 @@ impl Pilot {
                     "Clearing temporary assignment for ship {}",
                     self.ship_symbol
                 );
-                self.unassign_temp_ship().await?;
+                database::ShipInfo::unassign_temp_ship(
+                    &self.context.database_pool,
+                    &self.ship_symbol,
+                )
+                .await?;
             }
         } else {
             debug!(
@@ -253,10 +244,15 @@ impl Pilot {
             );
             let ship_clone = self.context.ship_manager.get_clone(&ship_info.symbol);
             if let Some(ship_clone) = ship_clone {
-                self.context
+                let assignment_id = self
+                    .context
                     .fleet_manager
                     .get_new_assignment(&ship_clone)
                     .await?;
+                debug!(
+                    "Assigning ship {} to fleet {:?}",
+                    self.ship_symbol, assignment_id
+                );
             } else {
                 debug!(
                     "Ship {} not found in ship manager, sleeping",

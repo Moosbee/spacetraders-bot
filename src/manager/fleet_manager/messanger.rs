@@ -50,16 +50,19 @@ impl FleetManagerMessanger {
         &self,
         ship_clone: &ship::MyShip,
     ) -> Result<Option<i64>, crate::error::Error> {
-        // let (sender, receiver) = tokio::sync::oneshot::channel();
-        // self.sender
-        //     .send(FleetManagerMessage::GetAssignments { callback: sender })
-        //     .await
-        //     .map_err(|e| crate::error::Error::General(e.to_string()))?;
-        // let erg = receiver
-        //     .await
-        //     .map_err(|e| crate::error::Error::General(e.to_string()))?;
-        // Ok(erg)
-        todo!()
+        let (sender, receiver) = tokio::sync::oneshot::channel();
+        self.sender
+            .send(FleetManagerMessage::GetNewAssignments {
+                callback: sender,
+                ship_clone: ship_clone.clone(),
+                temp: false,
+            })
+            .await
+            .map_err(|e| crate::error::Error::General(e.to_string()))?;
+        let erg = receiver
+            .await
+            .map_err(|e| crate::error::Error::General(e.to_string()))?;
+        Ok(erg)
     }
 
     /// gets the best temp assignment for a ship, sets it directly in the database and returns the assignment id
@@ -68,15 +71,18 @@ impl FleetManagerMessanger {
         &self,
         ship_clone: &ship::MyShip,
     ) -> Result<Option<i64>, crate::error::Error> {
-        // let (sender, receiver) = tokio::sync::oneshot::channel();
-        // self.sender
-        //     .send(FleetManagerMessage::GetAssignments { callback: sender })
-        //     .await
-        //     .map_err(|e| crate::error::Error::General(e.to_string()))?;
-        // let erg = receiver
-        //     .await
-        //     .map_err(|e| crate::error::Error::General(e.to_string()))?;
-        // Ok(erg)
-        todo!()
+        let (sender, receiver) = tokio::sync::oneshot::channel();
+        self.sender
+            .send(FleetManagerMessage::GetNewAssignments {
+                callback: sender,
+                ship_clone: ship_clone.clone(),
+                temp: true,
+            })
+            .await
+            .map_err(|e| crate::error::Error::General(e.to_string()))?;
+        let erg = receiver
+            .await
+            .map_err(|e| crate::error::Error::General(e.to_string()))?;
+        Ok(erg)
     }
 }

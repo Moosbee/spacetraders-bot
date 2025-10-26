@@ -126,6 +126,36 @@ impl ShipInfo {
 
         Ok(erg)
     }
+
+    pub async fn unassign_ship(
+        database_pool: &super::DbPool,
+        ship_symbol: &str,
+    ) -> crate::Result<()> {
+        sqlx::query!(
+            r#"
+          UPDATE ship_info SET assignment_id = NULL WHERE symbol = $1
+        "#,
+            ship_symbol
+        )
+        .execute(&database_pool.database_pool)
+        .await?;
+        Ok(())
+    }
+
+    pub async fn unassign_temp_ship(
+        database_pool: &super::DbPool,
+        ship_symbol: &str,
+    ) -> crate::Result<()> {
+        sqlx::query!(
+            r#"
+          UPDATE ship_info SET temp_assignment_id = NULL WHERE symbol = $1
+        "#,
+            ship_symbol
+        )
+        .execute(&database_pool.database_pool)
+        .await?;
+        Ok(())
+    }
 }
 
 impl DatabaseConnector<ShipInfo> for ShipInfo {

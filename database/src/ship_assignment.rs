@@ -2,7 +2,7 @@ use tracing::instrument;
 
 use crate::{DatabaseConnector, DbPool};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ShipAssignment {
     pub id: i64,
     pub fleet_id: i32,
@@ -45,6 +45,71 @@ impl ShipAssignment {
         .await?;
 
         Ok(resp)
+    }
+
+    pub async fn get_open_assignments(
+        database_pool: &DbPool,
+    ) -> crate::Result<Vec<ShipAssignment>> {
+        // get all "open" assignments from the database, i.e. assignments that are not yet assigned to a ship, that are not disabled and where the fleet is activated
+        let resp = sqlx::query_as!(
+            ShipAssignment,
+            r#"
+                SELECT
+                  sa.id,
+                  sa.fleet_id,
+                  sa.priority,
+                  sa.disabled,
+                  sa.range_min,
+                  sa.cargo_min,
+                  sa.survey,
+                  sa.extractor,
+                  sa.siphon,
+                  sa.warp_drive
+                FROM ship_assignment sa
+                JOIN fleet f ON sa.fleet_id = f.id
+                left JOIN ship_info si ON (sa.id = si.assignment_id OR sa.id = si.temp_assignment_id)
+                WHERE sa.disabled = false AND f.active = true AND si.symbol IS NULL
+            "#,
+        )
+        .fetch_all(&database_pool.database_pool)
+        .await?;
+
+        Ok(resp)
+    }
+
+    pub async fn insert_new(database_pool: &DbPool, item: &ShipAssignment) -> crate::Result<i64> {
+        let erg = sqlx::query!(
+            r#"
+                INSERT INTO ship_assignment (
+                  fleet_id,
+                  priority,
+                  disabled,
+                  range_min,
+                  cargo_min,
+                  survey,
+                  extractor,
+                  siphon,
+                  warp_drive
+                )
+                VALUES (
+                  $1, $2, $3, $4, $5, $6, $7, $8, $9
+                )
+                RETURNING id
+            "#,
+            &item.fleet_id,
+            &item.priority,
+            &item.disabled,
+            &item.range_min,
+            &item.cargo_min,
+            &item.survey,
+            &item.extractor,
+            &item.siphon,
+            &item.warp_drive,
+        )
+        .fetch_one(&database_pool.database_pool)
+        .await?;
+
+        Ok(erg.id)
     }
 }
 
