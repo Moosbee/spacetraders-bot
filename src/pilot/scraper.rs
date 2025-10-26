@@ -25,8 +25,14 @@ impl ScraperPilot {
         }
     }
 
-    #[instrument(level = "info", name = "spacetraders::pilot::scraper::pilot_scraper", skip(self, pilot), fields(self.ship_symbol = %self.ship_symbol, scrap_waypoint = tracing::field::Empty, scrap_date = tracing::field::Empty))]
-    pub async fn execute_pilot_circle(&self, pilot: &super::Pilot) -> Result<()> {
+    #[instrument(level = "info", name = "spacetraders::pilot::scraper::pilot_scraper", skip(self, pilot, fleet, ship_assignment, scraping_config), fields(self.ship_symbol = %self.ship_symbol, scrap_waypoint = tracing::field::Empty, scrap_date = tracing::field::Empty, fleet_id = fleet.id, ship_assignment_id = ship_assignment.id))]
+    pub async fn execute_pilot_circle(
+        &self,
+        pilot: &super::Pilot,
+        fleet: database::Fleet,
+        ship_assignment: database::ShipAssignment,
+        scraping_config: database::ScrapingFleetConfig,
+    ) -> Result<()> {
         let mut erg = pilot.context.ship_manager.get_mut(&self.ship_symbol).await;
         let ship = erg
             .value_mut()
@@ -183,7 +189,17 @@ impl ScraperPilot {
     }
 
     async fn do_elsewhere(&self, ship: &mut ship::MyShip) -> std::result::Result<(), Error> {
-        todo!()
+        let temp_assignment = self
+            .context
+            .fleet_manager
+            .get_new_temp_assignment(ship)
+            .await?;
+        if temp_assignment.is_none() {
+            tracing::warn!("No temp assignment available, skipping");
+            return Ok(());
+        }
+
+        Ok(())
     }
 
     async fn wait_until(

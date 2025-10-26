@@ -25,8 +25,14 @@ impl ChartPilot {
         }
     }
 
-    #[instrument(level = "info", name = "spacetraders::pilot::charting::pilot_chart", skip(self, pilot), fields(self.ship_symbol = %self.ship_symbol, chart_waypoint))]
-    pub async fn execute_pilot_circle(&self, pilot: &super::Pilot) -> Result<()> {
+    #[instrument(level = "info", name = "spacetraders::pilot::charting::pilot_chart", skip(self, pilot, fleet, ship_assignment, charting_config), fields(self.ship_symbol = %self.ship_symbol, chart_waypoint, fleet_id = fleet.id, ship_assignment_id = ship_assignment.id))]
+    pub async fn execute_pilot_circle(
+        &self,
+        pilot: &super::Pilot,
+        fleet: database::Fleet,
+        ship_assignment: database::ShipAssignment,
+        charting_config: database::ChartingFleetConfig,
+    ) -> Result<()> {
         let mut erg = pilot.context.ship_manager.get_mut(&self.ship_symbol).await;
         let ship = erg
             .value_mut()
@@ -49,7 +55,7 @@ impl ChartPilot {
             NextChartResp::Next(chart) => chart,
             NextChartResp::NoChartsInSystem => {
                 debug!("No chart available, doing something else");
-                return self.do_elsewhere(ship).await;
+                return self.do_elsewhere(ship, pilot).await;
             }
         };
 
@@ -107,8 +113,14 @@ impl ChartPilot {
         Ok(())
     }
 
-    async fn do_elsewhere(&self, ship: &mut ship::MyShip) -> std::result::Result<(), Error> {
-        todo!();
+    async fn do_elsewhere(
+        &self,
+        ship: &mut ship::MyShip,
+        pilot: &super::Pilot,
+    ) -> std::result::Result<(), Error> {
+        // todo: when this happens disable the charting assignments
+
+        todo!()
     }
 
     async fn chart_waypoint(&self, ship: &mut ship::MyShip) -> std::result::Result<(), Error> {

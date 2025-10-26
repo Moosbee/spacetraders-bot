@@ -5,10 +5,7 @@ use tracing::debug;
 
 use crate::{
     error::Result,
-    manager::{
-        mining_manager::mining_messages::MiningMessage,
-        Manager,
-    },
+    manager::{mining_manager::mining_messages::MiningMessage, Manager},
     utils::ConductorContext,
 };
 

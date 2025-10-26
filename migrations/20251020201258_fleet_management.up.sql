@@ -48,12 +48,17 @@ CREATE TABLE fleet (
   miners_per_waypoint INTEGER,
   siphoners_per_waypoint INTEGER,
   surveyors_per_waypoint INTEGER,
-  mining_transporter_count INTEGER,
+  mining_transporters_per_waypoint INTEGER,
+  min_transporter_cargo_space INTEGER,
+  min_mining_cargo_space INTEGER,
+  min_siphon_cargo_space INTEGER,
   -- Charting config
   charting_probe_count INTEGER,
   -- Construction config
   construction_ship_count INTEGER,
   construction_waypoint character varying,
   -- Contract config
-  contract_ship_count INTEGER
+  contract_ship_count INTEGER,
+  CONSTRAINT fk_system_symbol FOREIGN KEY (system_symbol) REFERENCES public.system (symbol) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION NOT VALID,
+  CONSTRAINT fk_construction_waypoint FOREIGN KEY (construction_waypoint) REFERENCES public.system (symbol) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION NOT VALID
 );

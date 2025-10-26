@@ -24,8 +24,14 @@ impl TradingPilot {
         }
     }
 
-    #[instrument(level = "info", name = "spacetraders::pilot::trading::pilot_trading", skip(self, pilot), fields(self.ship_symbol = %self.ship_symbol, trade_route))]
-    pub async fn execute_pilot_circle(&self, pilot: &crate::pilot::Pilot) -> Result<()> {
+    #[instrument(level = "info", name = "spacetraders::pilot::trading::pilot_trading", skip(self, pilot, fleet, ship_assignment, trading_config), fields(self.ship_symbol = %self.ship_symbol, trade_route, fleet_id = fleet.id, ship_assignment_id = ship_assignment.id))]
+    pub async fn execute_pilot_circle(
+        &self,
+        pilot: &crate::pilot::Pilot,
+        fleet: database::Fleet,
+        ship_assignment: database::ShipAssignment,
+        trading_config: database::TradingFleetConfig,
+    ) -> Result<()> {
         let mut erg = pilot.context.ship_manager.get_mut(&self.ship_symbol).await;
         let ship = erg
             .value_mut()
@@ -187,7 +193,7 @@ impl TradingPilot {
                 )))?
                 .purchase_price;
 
-            let budget = pilot.get_budget().await?;
+            let budget = self.context.budget_manager.get_spendable_funds().await; // todo: fix to include reservations
             let max_buy_volume = (ship.cargo.capacity - ship.cargo.units).min(route.trade_volume);
             let trade_volume = if budget < (purchase_price * max_buy_volume).into() {
                 let trade_volume = (budget as f64 / purchase_price as f64).floor() as i32;

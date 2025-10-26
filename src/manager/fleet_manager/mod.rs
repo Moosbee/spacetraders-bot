@@ -1,3 +1,4 @@
+mod assignment_management;
 mod fleet_manager;
 pub mod message;
 mod messanger;

@@ -24,8 +24,14 @@ impl ContractPilot {
         }
     }
 
-    #[instrument(level = "info", name = "spacetraders::pilot::contract::pilot_contract", skip(self, pilot), fields(self.ship_symbol = %self.ship_symbol, contract_shipment = tracing::field::Empty, contract_id = tracing::field::Empty))]
-    pub async fn execute_pilot_circle(&self, pilot: &super::Pilot) -> Result<()> {
+    #[instrument(level = "info", name = "spacetraders::pilot::contract::pilot_contract", skip(self, pilot, fleet, ship_assignment, contract_config), fields(self.ship_symbol = %self.ship_symbol, contract_shipment = tracing::field::Empty, contract_id = tracing::field::Empty, fleet_id = fleet.id, ship_assignment_id = ship_assignment.id))]
+    pub async fn execute_pilot_circle(
+        &self,
+        pilot: &super::Pilot,
+        fleet: database::Fleet,
+        ship_assignment: database::ShipAssignment,
+        contract_config: database::ContractFleetConfig,
+    ) -> Result<()> {
         let mut erg = pilot.context.ship_manager.get_mut(&self.ship_symbol).await;
         let ship = erg
             .value_mut()
@@ -127,7 +133,17 @@ impl ContractPilot {
     }
 
     async fn do_elsewhere(&self, ship: &mut ship::MyShip) -> Result<()> {
-        todo!()
+        let temp_assignment = self
+            .context
+            .fleet_manager
+            .get_new_temp_assignment(ship)
+            .await?;
+        if temp_assignment.is_none() {
+            tracing::warn!("No temp assignment available, skipping");
+            return Ok(());
+        }
+
+        Ok(())
     }
 
     async fn purchase_cargo(

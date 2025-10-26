@@ -2,14 +2,14 @@ use serde::{Deserialize, Serialize};
 use space_traders_client::models;
 use tracing::instrument;
 
-use crate::{DatabaseConnector, DbPool};
+use crate::{DatabaseConnector, DbPool, Result};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Fleet {
     pub id: i32,
     pub system_symbol: String,
     pub fleet_type: FleetType,
-    pub active: bool,
+    pub active: bool, // if false, ships should not be assigned or purchased for this fleet, but already assigned ships remain but are paused
     pub created_at: chrono::DateTime<chrono::Utc>,
     pub updated_at: chrono::DateTime<chrono::Utc>,
     // add the config...
@@ -37,7 +37,10 @@ pub struct Fleet {
     miners_per_waypoint: Option<i32>,
     siphoners_per_waypoint: Option<i32>,
     surveyors_per_waypoint: Option<i32>,
-    mining_transporter_count: Option<i32>,
+    mining_transporters_per_waypoint: Option<i32>,
+    min_transporter_cargo_space: Option<i32>,
+    min_mining_cargo_space: Option<i32>,
+    min_siphon_cargo_space: Option<i32>,
 
     // charting config
     charting_probe_count: Option<i32>,
@@ -78,7 +81,10 @@ impl Default for Fleet {
             miners_per_waypoint: None,
             siphoners_per_waypoint: None,
             surveyors_per_waypoint: None,
-            mining_transporter_count: None,
+            mining_transporters_per_waypoint: None,
+            min_transporter_cargo_space: None,
+            min_mining_cargo_space: None,
+            min_siphon_cargo_space: None,
             charting_probe_count: None,
             construction_ship_count: None,
             construction_waypoint: None,
@@ -118,7 +124,10 @@ impl DatabaseConnector<Fleet> for Fleet {
                   miners_per_waypoint,
                   siphoners_per_waypoint,
                   surveyors_per_waypoint,
-                  mining_transporter_count,
+                  mining_transporters_per_waypoint,
+                  min_transporter_cargo_space,
+                  min_mining_cargo_space,
+                  min_siphon_cargo_space,
                   charting_probe_count,
                   construction_ship_count,
                   construction_waypoint,
@@ -128,7 +137,7 @@ impl DatabaseConnector<Fleet> for Fleet {
                   $1, $2, $3::fleet_type, $4, NOW(), NOW(),
                   $5, $6, $7, $8, $9, $10::trade_mode, $11,
                   $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24,
-                  $25, $26, $27, $28
+                  $25, $26, $27, $28, $29, $30, $31
                 )
                 ON CONFLICT (id) DO UPDATE SET
                   system_symbol = EXCLUDED.system_symbol,
@@ -154,7 +163,10 @@ impl DatabaseConnector<Fleet> for Fleet {
                   miners_per_waypoint = EXCLUDED.miners_per_waypoint,
                   siphoners_per_waypoint = EXCLUDED.siphoners_per_waypoint,
                   surveyors_per_waypoint = EXCLUDED.surveyors_per_waypoint,
-                  mining_transporter_count = EXCLUDED.mining_transporter_count,
+                  mining_transporters_per_waypoint = EXCLUDED.mining_transporters_per_waypoint,
+                  min_transporter_cargo_space = EXCLUDED.min_transporter_cargo_space,
+                  min_mining_cargo_space = EXCLUDED.min_mining_cargo_space,
+                  min_siphon_cargo_space = EXCLUDED.min_siphon_cargo_space,
                   charting_probe_count = EXCLUDED.charting_probe_count,
                   construction_ship_count = EXCLUDED.construction_ship_count,
                   construction_waypoint = EXCLUDED.construction_waypoint,
@@ -183,7 +195,10 @@ impl DatabaseConnector<Fleet> for Fleet {
             &item.miners_per_waypoint as &Option<i32>,
             &item.siphoners_per_waypoint as &Option<i32>,
             &item.surveyors_per_waypoint as &Option<i32>,
-            &item.mining_transporter_count as &Option<i32>,
+            &item.mining_transporters_per_waypoint as &Option<i32>,
+            &item.min_transporter_cargo_space as &Option<i32>,
+            &item.min_mining_cargo_space as &Option<i32>,
+            &item.min_siphon_cargo_space as &Option<i32>,
             &item.charting_probe_count as &Option<i32>,
             &item.construction_ship_count as &Option<i32>,
             &item.construction_waypoint as &Option<String>,
@@ -233,7 +248,10 @@ impl DatabaseConnector<Fleet> for Fleet {
                   miners_per_waypoint,
                   siphoners_per_waypoint,
                   surveyors_per_waypoint,
-                  mining_transporter_count,
+                  mining_transporters_per_waypoint,
+                  min_transporter_cargo_space,
+                  min_mining_cargo_space,
+                  min_siphon_cargo_space,
                   charting_probe_count,
                   construction_ship_count,
                   construction_waypoint,
@@ -288,7 +306,10 @@ impl Fleet {
                   miners_per_waypoint,
                   siphoners_per_waypoint,
                   surveyors_per_waypoint,
-                  mining_transporter_count,
+                  mining_transporters_per_waypoint,
+                  min_transporter_cargo_space,
+                  min_mining_cargo_space,
+                  min_siphon_cargo_space,
                   charting_probe_count,
                   construction_ship_count,
                   construction_waypoint,
@@ -298,7 +319,7 @@ impl Fleet {
                   $1, $2::fleet_type, $3, NOW(), NOW(),
                   $4, $5, $6, $7, $8, $9::trade_mode, $10,
                   $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24,
-                  $25, $26, $27
+                  $25, $26, $27, $28, $29, $30
                 )
                 RETURNING id;
             "#,
@@ -324,7 +345,10 @@ impl Fleet {
             &item.miners_per_waypoint as &Option<i32>,
             &item.siphoners_per_waypoint as &Option<i32>,
             &item.surveyors_per_waypoint as &Option<i32>,
-            &item.mining_transporter_count as &Option<i32>,
+            &item.mining_transporters_per_waypoint as &Option<i32>,
+            &item.min_transporter_cargo_space as &Option<i32>,
+            &item.min_mining_cargo_space as &Option<i32>,
+            &item.min_siphon_cargo_space as &Option<i32>,
             &item.charting_probe_count as &Option<i32>,
             &item.construction_ship_count as &Option<i32>,
             &item.construction_waypoint as &Option<String>,
@@ -334,6 +358,54 @@ impl Fleet {
         .await?;
 
         Ok(erg.id)
+    }
+
+    pub async fn get_by_id(database_pool: &DbPool, id: i32) -> crate::Result<Option<Fleet>> {
+        let resp = sqlx::query_as!(
+            Fleet,
+            r#"
+                SELECT
+                  id,
+                  system_symbol,
+                  fleet_type as "fleet_type: FleetType",
+                  active,
+                  created_at,
+                  updated_at,
+                  market_blacklist as "market_blacklist: Vec<models::TradeSymbol>",
+                  market_prefer_list as "market_prefer_list: Vec<models::TradeSymbol>",
+                  purchase_multiplier,
+                  ship_market_ratio,
+                  min_cargo_space,
+                  trade_mode as "trade_mode: TradeMode",
+                  trade_profit_threshold,
+                  allowed_requests,
+                  notify_on_shipyard,
+                  mining_eject_list as "mining_eject_list: Vec<models::TradeSymbol>",
+                  mining_prefer_list as "mining_prefer_list: Vec<models::TradeSymbol>",
+                  ignore_engineered_asteroids,
+                  stop_all_unstable,
+                  mining_waypoints,
+                  unstable_since_timeout,
+                  syphon_waypoints,
+                  miners_per_waypoint,
+                  siphoners_per_waypoint,
+                  surveyors_per_waypoint,
+                  mining_transporters_per_waypoint,
+                  min_transporter_cargo_space,
+                  min_mining_cargo_space,
+                  min_siphon_cargo_space,
+                  charting_probe_count,
+                  construction_ship_count,
+                  construction_waypoint,
+                  contract_ship_count
+                FROM fleet
+                WHERE id = $1
+            "#,
+            id
+        )
+        .fetch_optional(&database_pool.database_pool)
+        .await?;
+        Ok(resp)
     }
 
     pub fn set_config(&mut self, config: FleetConfig) {
@@ -366,8 +438,10 @@ impl Fleet {
                 self.miners_per_waypoint = Some(cfg.miners_per_waypoint);
                 self.siphoners_per_waypoint = Some(cfg.siphoners_per_waypoint);
                 self.surveyors_per_waypoint = Some(cfg.surveyers_per_waypoint);
-                self.mining_transporter_count = Some(cfg.mining_transporter_count);
-                self.min_cargo_space = Some(cfg.min_cargo_space);
+                self.mining_transporters_per_waypoint = Some(cfg.mining_transporters_per_waypoint);
+                self.min_transporter_cargo_space = Some(cfg.min_transporter_cargo_space);
+                self.min_mining_cargo_space = Some(cfg.min_mining_cargo_space);
+                self.min_siphon_cargo_space = Some(cfg.min_siphon_cargo_space);
             }
             FleetConfig::Charting(cfg) => {
                 self.fleet_type = FleetType::Charting;
@@ -388,17 +462,33 @@ impl Fleet {
         }
     }
 
-    pub fn get_config(&self) -> Option<FleetConfig> {
+    pub fn get_config(&self) -> Result<FleetConfig> {
         match self.fleet_type {
-            FleetType::Trading => Some(FleetConfig::Trading(self.get_trading_config()?)),
-            FleetType::Scrapping => Some(FleetConfig::Scraping(self.get_scraping_config()?)),
-            FleetType::Mining => Some(FleetConfig::Mining(self.get_mining_config()?)),
-            FleetType::Charting => Some(FleetConfig::Charting(self.get_charting_config()?)),
-            FleetType::Construction => {
-                Some(FleetConfig::Construction(self.get_construction_config()?))
-            }
-            FleetType::Contract => Some(FleetConfig::Contract(self.get_contract_config()?)),
-            FleetType::Manuel => Some(FleetConfig::Manuel),
+            FleetType::Trading => Ok(FleetConfig::Trading(
+                self.get_trading_config()
+                    .ok_or(crate::Error::IncompleteFleetConfig { fleet_id: self.id })?,
+            )),
+            FleetType::Scrapping => Ok(FleetConfig::Scraping(
+                self.get_scraping_config()
+                    .ok_or(crate::Error::IncompleteFleetConfig { fleet_id: self.id })?,
+            )),
+            FleetType::Mining => Ok(FleetConfig::Mining(
+                self.get_mining_config()
+                    .ok_or(crate::Error::IncompleteFleetConfig { fleet_id: self.id })?,
+            )),
+            FleetType::Charting => Ok(FleetConfig::Charting(
+                self.get_charting_config()
+                    .ok_or(crate::Error::IncompleteFleetConfig { fleet_id: self.id })?,
+            )),
+            FleetType::Construction => Ok(FleetConfig::Construction(
+                self.get_construction_config()
+                    .ok_or(crate::Error::IncompleteFleetConfig { fleet_id: self.id })?,
+            )),
+            FleetType::Contract => Ok(FleetConfig::Contract(
+                self.get_contract_config()
+                    .ok_or(crate::Error::IncompleteFleetConfig { fleet_id: self.id })?,
+            )),
+            FleetType::Manuel => Ok(FleetConfig::Manuel),
         }
     }
 
@@ -434,8 +524,10 @@ impl Fleet {
             miners_per_waypoint: self.miners_per_waypoint?,
             siphoners_per_waypoint: self.siphoners_per_waypoint?,
             surveyers_per_waypoint: self.surveyors_per_waypoint?,
-            mining_transporter_count: self.mining_transporter_count?,
-            min_cargo_space: self.min_cargo_space?,
+            mining_transporters_per_waypoint: self.mining_transporters_per_waypoint?,
+            min_transporter_cargo_space: self.min_transporter_cargo_space?,
+            min_mining_cargo_space: self.min_mining_cargo_space?,
+            min_siphon_cargo_space: self.min_siphon_cargo_space?,
         })
     }
 
@@ -517,14 +609,16 @@ pub struct MiningConfig {
     pub mining_prefer_list: Vec<models::TradeSymbol>,
     pub ignore_engineered_asteroids: bool,
     pub stop_all_unstable: bool,
-    pub mining_waypoints: i32,
     pub unstable_since_timeout: i32,
+    pub mining_waypoints: i32,
     pub syphon_waypoints: i32,
     pub miners_per_waypoint: i32,
     pub siphoners_per_waypoint: i32,
     pub surveyers_per_waypoint: i32,
-    pub mining_transporter_count: i32,
-    pub min_cargo_space: i32,
+    pub mining_transporters_per_waypoint: i32,
+    pub min_transporter_cargo_space: i32,
+    pub min_mining_cargo_space: i32,
+    pub min_siphon_cargo_space: i32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

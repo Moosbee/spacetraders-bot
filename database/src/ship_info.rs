@@ -6,7 +6,7 @@ use super::DatabaseConnector;
 pub struct ShipInfo {
     pub symbol: String,
     pub display_name: String,
-    pub active: bool,
+    pub active: bool, // if false ship is paused, does not request new assignments, but holds current assignment
     pub assignment_id: Option<i64>,
     pub temp_assignment_id: Option<i64>,
     pub purchase_id: Option<i64>,

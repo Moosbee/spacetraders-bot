@@ -16,6 +16,12 @@ pub enum Error {
     Ship(#[from] ship::Error),
     #[error("Reservation not found: {reservation_id}")]
     ReservationNotFound { reservation_id: i64 },
+
+    #[error("Fleet not found: fleet_id={fleet_id}, assignment_id={assignment_id:?}")]
+    FleetNotFound {
+        fleet_id: i32,
+        assignment_id: Option<i64>,
+    },
 }
 
 impl From<&str> for Error {

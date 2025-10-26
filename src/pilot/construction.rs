@@ -3,6 +3,7 @@ use std::sync::{atomic::AtomicI32, Arc};
 use space_traders_client::models;
 use tracing::debug;
 use tracing::instrument;
+use tracing::warn;
 
 use crate::{
     error::{Error, Result},
@@ -25,8 +26,14 @@ impl ConstructionPilot {
         }
     }
 
-    #[instrument(level = "info", name = "spacetraders::pilot::construction::pilot_construction", skip(self, pilot), fields(self.ship_symbol = %self.ship_symbol, construction_shipment))]
-    pub async fn execute_pilot_circle(&self, pilot: &super::Pilot) -> Result<()> {
+    #[instrument(level = "info", name = "spacetraders::pilot::construction::pilot_construction", skip(self, pilot, fleet, ship_assignment, construction_config), fields(self.ship_symbol = %self.ship_symbol, construction_shipment, fleet_id = fleet.id, ship_assignment_id = ship_assignment.id))]
+    pub async fn execute_pilot_circle(
+        &self,
+        pilot: &super::Pilot,
+        fleet: database::Fleet,
+        ship_assignment: database::ShipAssignment,
+        construction_config: database::ConstructionFleetConfig,
+    ) -> Result<()> {
         let mut erg = pilot.context.ship_manager.get_mut(&self.ship_symbol).await;
         let ship = erg
             .value_mut()
@@ -51,7 +58,7 @@ impl ConstructionPilot {
             NextShipmentResp::Shipment(construct_shipment) => construct_shipment,
             NextShipmentResp::ComeBackLater => {
                 debug!("No shipment available, doing something else");
-                return self.do_elsewhere(ship).await;
+                return self.do_elsewhere(ship, pilot).await;
             }
         };
 
@@ -127,8 +134,14 @@ impl ConstructionPilot {
         Ok(())
     }
 
-    async fn do_elsewhere(&self, ship: &mut ship::MyShip) -> Result<()> {
-        todo!()
+    async fn do_elsewhere(&self, ship: &mut ship::MyShip, pilot: &super::Pilot) -> Result<()> {
+        let temp_assignment = self.context.fleet_manager.get_new_temp_assignment(ship).await?;
+        if temp_assignment.is_none() {
+            warn!("No temp assignment available, skipping");
+            return Ok(());
+        }
+
+        Ok(())
     }
 
     async fn purchase_cargo(

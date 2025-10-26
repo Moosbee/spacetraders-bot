@@ -43,4 +43,40 @@ impl FleetManagerMessanger {
 
         Ok(())
     }
+
+    /// gets the best assignment for a ship, sets it directly in the database and returns the assignment id
+    #[tracing::instrument(skip(self, ship_clone), name = "FleetManagerMessanger::get_assignment", fields(ship = %ship_clone.symbol))]
+    pub async fn get_new_assignment(
+        &self,
+        ship_clone: &ship::MyShip,
+    ) -> Result<Option<i64>, crate::error::Error> {
+        // let (sender, receiver) = tokio::sync::oneshot::channel();
+        // self.sender
+        //     .send(FleetManagerMessage::GetAssignments { callback: sender })
+        //     .await
+        //     .map_err(|e| crate::error::Error::General(e.to_string()))?;
+        // let erg = receiver
+        //     .await
+        //     .map_err(|e| crate::error::Error::General(e.to_string()))?;
+        // Ok(erg)
+        todo!()
+    }
+
+    /// gets the best temp assignment for a ship, sets it directly in the database and returns the assignment id
+    #[tracing::instrument(skip(self, ship_clone), name = "FleetManagerMessanger::get_temp_assignment", fields(ship = %ship_clone.symbol))]
+    pub async fn get_new_temp_assignment(
+        &self,
+        ship_clone: &ship::MyShip,
+    ) -> Result<Option<i64>, crate::error::Error> {
+        // let (sender, receiver) = tokio::sync::oneshot::channel();
+        // self.sender
+        //     .send(FleetManagerMessage::GetAssignments { callback: sender })
+        //     .await
+        //     .map_err(|e| crate::error::Error::General(e.to_string()))?;
+        // let erg = receiver
+        //     .await
+        //     .map_err(|e| crate::error::Error::General(e.to_string()))?;
+        // Ok(erg)
+        todo!()
+    }
 }

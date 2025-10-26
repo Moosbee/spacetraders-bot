@@ -30,8 +30,14 @@ impl MiningPilot {
         }
     }
 
-    #[instrument(level = "info", name = "spacetraders::pilot::mining::pilot_mining", skip(self, pilot), fields(self.ship_symbol = %self.ship_symbol))]
-    pub async fn execute_pilot_circle(&self, pilot: &super::Pilot) -> Result<()> {
+    #[instrument(level = "info", name = "spacetraders::pilot::mining::pilot_mining", skip(self, pilot, fleet, ship_assignment, mining_config), fields(self.ship_symbol = %self.ship_symbol, fleet_id = fleet.id, ship_assignment_id = ship_assignment.id))]
+    pub async fn execute_pilot_circle(
+        &self,
+        pilot: &super::Pilot,
+        fleet: database::Fleet,
+        ship_assignment: database::ShipAssignment,
+        mining_config: database::MiningFleetConfig,
+    ) -> Result<()> {
         let mut erg = pilot.context.ship_manager.get_mut(&self.ship_symbol).await;
         let ship = erg
             .value_mut()

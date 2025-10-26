@@ -95,6 +95,10 @@ impl From<crate::error::Error> for ServerError {
             crate::error::Error::ReservationNotFound { reservation_id } => {
                 ServerError::Server(format!("Reservation not found: {}", reservation_id))
             }
+            crate::error::Error::FleetNotFound {
+                fleet_id,
+                assignment_id,
+            } => ServerError::Server(format!("Fleet not found {} {:?}", fleet_id, assignment_id)),
         }
     }
 }

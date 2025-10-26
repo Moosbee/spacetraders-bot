@@ -48,7 +48,15 @@ pub use contract_shipment::ContractShipment;
 pub use contract_shipment::ShipmentStatus;
 pub use engine_info::EngineInfo;
 pub use extraction::Extraction;
+pub use fleet::ChartingConfig as ChartingFleetConfig;
+pub use fleet::ConstructionConfig as ConstructionFleetConfig;
+pub use fleet::ContractConfig as ContractFleetConfig;
+pub use fleet::Fleet;
+pub use fleet::FleetConfig;
+pub use fleet::MiningConfig as MiningFleetConfig;
+pub use fleet::ScrapingConfig as ScrapingFleetConfig;
 pub use fleet::TradeMode;
+pub use fleet::TradingConfig as TradingFleetConfig;
 pub use frame_info::FrameInfo;
 pub use jump_gate_connection::JumpGateConnection;
 pub use market_trade::MarketTrade;
@@ -61,6 +69,7 @@ pub use reactor_info::ReactorInfo;
 pub use reserved_fund::FundStatus;
 pub use reserved_fund::ReservedFund;
 pub use route::Route;
+pub use ship_assignment::ShipAssignment;
 pub use ship_info::ShipInfo;
 pub use ship_jump::ShipJump;
 pub use ship_state::ShipState;
@@ -93,6 +102,9 @@ pub enum Error {
 
     #[error("Invalid timestamp: {0}")]
     InvalidTimestamp(String),
+
+    #[error("Incomplete fleet config for fleet ID {fleet_id:?}")]
+    IncompleteFleetConfig { fleet_id: i32 },
 }
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;
