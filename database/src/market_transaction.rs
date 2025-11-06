@@ -347,7 +347,7 @@ impl DatabaseConnector<MarketTransaction> for MarketTransaction {
     .fetch_one(&database_pool.database_pool)
     .await?;
 
-        erg.id;
+        // erg.id;
 
         Ok(())
     }

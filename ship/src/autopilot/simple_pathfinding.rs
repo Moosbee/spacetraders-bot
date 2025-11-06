@@ -48,7 +48,9 @@ impl SimplePathfinder {
         );
 
         let nav_modes = self.nav_mode.get_flight_modes(self.range);
-        let start_range_mode = self.nav_mode.get_flight_modes(self.start_range);
+        let start_range_mode = self
+            .nav_mode
+            .get_flight_modes(self.start_range.max(1).min(self.range));
 
         let mut first = true;
 
@@ -171,7 +173,9 @@ impl SimplePathfinder {
         end_waypoint: &database::Waypoint,
     ) -> SimpleConnection {
         let distance = distance_between_waypoints(current.into(), next.into());
-        let heuristic_cost = distance_between_waypoints(current.into(), end_waypoint.into()) * 0.4;
+        // let heuristic_cost =
+        //     (distance_between_waypoints(current.into(), end_waypoint.into()) * 0.4) + 1.0;
+        let heuristic_cost = 0.0;
         let cost = current_route.cost + (distance * mode.cost_multiplier) + 1.0;
 
         SimpleConnection {

@@ -80,6 +80,8 @@ async fn generate_trading_fleet_assignments(
         .map(|i| ShipAssignment {
             id: 0, // This should be set appropriately
             fleet_id: fleet.id,
+            max_purchase_price: 1_000_000,
+            credits_threshold: 100_000,
             priority: if i == 0 {
                 DEFAULT_PRIORITY - 5 // first ship has higher priority, ensure at least one ship is always active
             } else {
@@ -136,10 +138,12 @@ async fn generate_mining_fleet_assignments(
         id: 0, // This should be set appropriately
         fleet_id: fleet.id,
         priority: DEFAULT_PRIORITY,
+        max_purchase_price: 1_000_000,
+        credits_threshold: 100_000,
         disabled: false,
         range_min: 0,
         cargo_min: mining_config.min_mining_cargo_space,
-        survey: true,
+        survey: false,
         extractor: true,
         siphon: false,
         warp_drive: false,
@@ -149,6 +153,8 @@ async fn generate_mining_fleet_assignments(
         id: 0, // This should be set appropriately
         fleet_id: fleet.id,
         priority: DEFAULT_PRIORITY,
+        max_purchase_price: 1_000_000,
+        credits_threshold: 100_000,
         disabled: false,
         range_min: 0,
         cargo_min: 0,
@@ -162,6 +168,8 @@ async fn generate_mining_fleet_assignments(
         id: 0, // This should be set appropriately
         fleet_id: fleet.id,
         priority: DEFAULT_PRIORITY,
+        max_purchase_price: 1_000_000,
+        credits_threshold: 100_000,
         disabled: false,
         range_min: 0,
         cargo_min: mining_config.min_siphon_cargo_space,
@@ -174,6 +182,8 @@ async fn generate_mining_fleet_assignments(
     let transporter_ships = (0..transporter_ships_count).map(|_i| ShipAssignment {
         id: 0, // This should be set appropriately
         fleet_id: fleet.id,
+        max_purchase_price: 1_000_000,
+        credits_threshold: 100_000,
         priority: DEFAULT_PRIORITY - 1, // transporters have higher priority
         disabled: false,
         range_min: 0,
@@ -181,7 +191,7 @@ async fn generate_mining_fleet_assignments(
         survey: false,
         extractor: false,
         siphon: false,
-        warp_drive: true,
+        warp_drive: false,
     });
 
     let ships = mining_ships
@@ -212,6 +222,8 @@ async fn generate_scraping_fleet_assignments(
         .map(|i| ShipAssignment {
             id: 0, // This should be set appropriately
             fleet_id: fleet.id,
+            max_purchase_price: 1_000_000,
+            credits_threshold: 50_000,
             priority: if i < quarter_ships {
                 DEFAULT_PRIORITY - 5 // first quarter ships have higher priority
             } else {
@@ -249,6 +261,8 @@ async fn generate_charting_fleet_assignments(
         .map(|_i| ShipAssignment {
             id: 0, // This should be set appropriately
             fleet_id: fleet.id,
+            max_purchase_price: 1_000_000,
+            credits_threshold: 100_000,
             priority: DEFAULT_PRIORITY,
             disabled: false,
             range_min: -1, // need infinite range for charting
@@ -277,6 +291,8 @@ async fn generate_construction_fleet_assignments(
         .map(|_i| ShipAssignment {
             id: 0, // This should be set appropriately
             fleet_id: fleet.id,
+            max_purchase_price: 1_000_000,
+            credits_threshold: 500_000,
             priority: DEFAULT_PRIORITY + 10, // lower priority than other assignments
             disabled: false,
             range_min: min_range,
@@ -306,6 +322,8 @@ async fn generate_contract_fleet_assignments(
         .map(|_i| ShipAssignment {
             id: 0, // This should be set appropriately
             fleet_id: fleet.id,
+            max_purchase_price: 1_000_000,
+            credits_threshold: 50_000,
             priority: DEFAULT_PRIORITY - 10, // higher priority than other assignments
             disabled: false,
             range_min: min_range,

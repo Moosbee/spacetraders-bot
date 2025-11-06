@@ -29,27 +29,43 @@ impl NavMode {
     }
 
     fn get_flight_mode_configs(max_fuel: u32) -> Modes {
-        let cruise_base_radius = if max_fuel == 0 {
-            f64::INFINITY
+        if max_fuel == 0 {
+            Modes {
+                burn: Mode {
+                    radius: -1.0,
+                    cost_multiplier: 10.0,
+                    mode: models::ShipNavFlightMode::Burn,
+                },
+                cruise: Mode {
+                    radius: f64::INFINITY,
+                    cost_multiplier: 1.0,
+                    mode: models::ShipNavFlightMode::Cruise,
+                },
+                drift: Mode {
+                    radius: -1.0,
+                    cost_multiplier: 10.0,
+                    mode: models::ShipNavFlightMode::Drift,
+                },
+            }
         } else {
-            max_fuel as f64
-        };
-        Modes {
-            burn: Mode {
-                radius: (max_fuel as f64) / 2.0,
-                cost_multiplier: 0.5,
-                mode: models::ShipNavFlightMode::Burn,
-            },
-            cruise: Mode {
-                radius: cruise_base_radius,
-                cost_multiplier: 1.0,
-                mode: models::ShipNavFlightMode::Cruise,
-            },
-            drift: Mode {
-                radius: f64::INFINITY,
-                cost_multiplier: 10.0,
-                mode: models::ShipNavFlightMode::Drift,
-            },
+            let cruise_base_radius = max_fuel as f64;
+            Modes {
+                burn: Mode {
+                    radius: cruise_base_radius / 2.0,
+                    cost_multiplier: 0.5,
+                    mode: models::ShipNavFlightMode::Burn,
+                },
+                cruise: Mode {
+                    radius: cruise_base_radius,
+                    cost_multiplier: 1.0,
+                    mode: models::ShipNavFlightMode::Cruise,
+                },
+                drift: Mode {
+                    radius: f64::INFINITY,
+                    cost_multiplier: 10.0,
+                    mode: models::ShipNavFlightMode::Drift,
+                },
+            }
         }
     }
     fn get_modes(&self, all_modes: Modes) -> Vec<Mode> {

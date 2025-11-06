@@ -30,10 +30,16 @@ function MapHolder({
       //   newZoom = Math.min(zoom + 5, zoomMax);
       // }
 
-      const zoomFactor = 0.1;
+      console.log("zoom", e.deltaMode, e.deltaY, e.deltaX, e.deltaZ, e);
+
+      const signY = e.deltaY == 0 ? 0 : e.deltaY > 0 ? -1 : 1;
+      const signX = e.deltaX == 0 ? 0 : e.deltaX > 0 ? -1 : 1;
+      const zoomFactorX = 0.1 * (Math.abs(e.deltaX) / 6);
+      const zoomFactorY = 0.1 * (Math.abs(e.deltaY) / 6);
       const newZoom = Math.min(
         Math.max(
-          zoom + (e.deltaY > 0 ? -zoom * zoomFactor : zoom * zoomFactor),
+          zoom +
+            (signY == 0 ? signX * zoomFactorX : signY * zoomFactorY) * zoom,
           zoomMin
         ),
         zoomMax
@@ -60,12 +66,13 @@ function MapHolder({
       const WdH = rootRef.current.clientWidth / rootRef.current.clientHeight;
       const HdW = rootRef.current.clientHeight / rootRef.current.clientWidth;
 
-      console.log(
-        rootRef.current.clientWidth,
-        rootRef.current.clientHeight,
-        WdH,
-        HdW
-      );
+      // console.log(
+      //   "mauscalc",
+      //   rootRef.current.clientWidth,
+      //   rootRef.current.clientHeight,
+      //   WdH,
+      //   HdW
+      // );
 
       // this is the ammount to move the frame up or down to compensate the change in zoom
       const topDiff = zoomDiff * mausPercentPosY * Math.max(WdH, 1);

@@ -12,18 +12,50 @@ pub struct ShipCapabilities {
 }
 
 impl ShipCapabilities {
-    pub fn can_assign(ship_clone: &ship::MyShip, assignment: &database::ShipAssignment) -> bool {
-        let capabilities = Self::get_capabilities(ship_clone);
+    pub fn can_assign_ship(
+        ship_clone: &ship::MyShip,
+        assignment: &database::ShipAssignment,
+    ) -> bool {
+        let capabilities = Self::get_ship_capabilities(ship_clone);
 
-        capabilities.cargo >= assignment.cargo_min
-            && capabilities.fuel >= assignment.range_min
-            && capabilities.survey >= if assignment.survey { 1 } else { 0 }
-            && capabilities.extractor >= if assignment.extractor { 1 } else { 0 }
-            && capabilities.siphon >= if assignment.siphon { 1 } else { 0 }
-            && capabilities.warp_drive >= if assignment.warp_drive { 1 } else { 0 }
+        capabilities.capable(assignment)
     }
 
-    fn get_capabilities(ship_clone: &ship::MyShip) -> ShipCapabilities {
+    pub fn get_shipyard_ship_capabilities(
+        shipyard_ship: &database::ShipyardShip,
+        frame: &database::FrameInfo,
+    ) -> ShipCapabilities {
+        let modules = &shipyard_ship.modules;
+        let mounts = &shipyard_ship.mounts;
+        let cargo = Self::cargo_from_modules(modules);
+        let fuel = frame.fuel_capacity;
+        let survey = Self::survey_from_mounts(mounts);
+        let extractor = Self::extractor_from_mounts_and_modules(modules, mounts);
+        let siphon = Self::siphon_from_mounts_and_modules(modules, mounts);
+        let warp_drive = Self::warp_drive_from_modules(modules);
+        let sensor = Self::sensor_from_mounts(mounts);
+
+        ShipCapabilities {
+            cargo,
+            fuel,
+            survey,
+            extractor,
+            siphon,
+            warp_drive,
+            sensor,
+        }
+    }
+
+    pub fn capable(&self, assignment: &database::ShipAssignment) -> bool {
+        self.cargo >= assignment.cargo_min
+            && self.fuel >= assignment.range_min
+            && self.survey >= if assignment.survey { 1 } else { 0 }
+            && self.extractor >= if assignment.extractor { 1 } else { 0 }
+            && self.siphon >= if assignment.siphon { 1 } else { 0 }
+            && self.warp_drive >= if assignment.warp_drive { 1 } else { 0 }
+    }
+
+    fn get_ship_capabilities(ship_clone: &ship::MyShip) -> ShipCapabilities {
         let cargo = Self::cargo_from_modules(&ship_clone.modules.modules);
         let fuel = ship_clone.fuel.capacity;
         let survey = Self::survey_from_mounts(&ship_clone.mounts.mounts);

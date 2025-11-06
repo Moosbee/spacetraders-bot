@@ -1,11 +1,15 @@
 use std::collections::{HashMap, HashSet};
 
 use database::DatabaseConnector;
-use tracing::debug;
+use itertools::Itertools;
+use tracing::{debug, warn};
 
 use crate::{
     error::Result,
-    manager::{fleet_manager::ship_capabilities::ShipCapabilities, Manager},
+    manager::{
+        fleet_manager::{ship_capabilities::ShipCapabilities, ship_worth::ShipWorth},
+        Manager,
+    },
     utils::ConductorContext,
 };
 
@@ -97,6 +101,14 @@ impl FleetManager {
                     crate::error::Error::General(format!("Failed to send message: {:?}", e))
                 })?;
             }
+            crate::manager::fleet_manager::message::FleetMessage::ReGenerateAssignments {
+                callback,
+            } => {
+                self.re_generate_assignments().await?;
+                callback.send(()).map_err(|e| {
+                    crate::error::Error::General(format!("Failed to send message: {:?}", e))
+                })?;
+            }
         }
 
         Ok(())
@@ -112,7 +124,282 @@ impl FleetManager {
         waypoint_symbol: &str,
         _ship_symbol: &str,
     ) -> Result<()> {
+        let stop = { self.context.config.read().await.ship_purchase_stop };
+        if stop {
+            return Ok(());
+        }
+
+        let ships_purchasable = database::ShipyardShip::get_last_by_waypoint(
+            &self.context.database_pool,
+            waypoint_symbol,
+        )
+        .await?;
+
+        let open_assignments =
+            database::ShipAssignment::get_open_assignments(&self.context.database_pool).await?;
+
+        let assignments_count = open_assignments.len();
+
+        // get all the open assignments that can be fulfilled from this shipyard
+
+        let ship_frames = database::FrameInfo::get_all(&self.context.database_pool)
+            .await?
+            .into_iter()
+            .map(|f| (f.symbol, f))
+            .collect::<HashMap<_, _>>();
+
+        let fulfillable_assignments = open_assignments
+            .into_iter()
+            .filter(|assignment| {
+                ships_purchasable.iter().any(|shipyard_ship| {
+                    let ship_frame = ship_frames.get(&shipyard_ship.frame_type);
+                    if let Some(ship_frame) = ship_frame {
+                        let ship_capabilities = ShipCapabilities::get_shipyard_ship_capabilities(
+                            shipyard_ship,
+                            ship_frame,
+                        );
+
+                        ship_capabilities.capable(assignment)
+                    } else {
+                        false
+                    }
+                })
+            })
+            .collect::<Vec<_>>();
+
+        debug!(
+            "Got {} fulfillable assignments from {} open assignments",
+            fulfillable_assignments.len(),
+            assignments_count
+        );
+
+        // get for those assignments all other shipyard and shipyard_ships
+
+        let all_shipyard_ships = database::ShipyardShip::get_last(&self.context.database_pool)
+            .await?
+            .into_iter()
+            .filter_map(|shipyard_ship| {
+                let ship_frame = ship_frames.get(&shipyard_ship.frame_type);
+                if let Some(ship_frame) = ship_frame {
+                    let ship_capabilities = ShipCapabilities::get_shipyard_ship_capabilities(
+                        &shipyard_ship,
+                        ship_frame,
+                    );
+                    Some((shipyard_ship, ship_capabilities))
+                } else {
+                    None
+                }
+            })
+            .collect::<Vec<_>>();
+
+        let fleets = database::Fleet::get_by_ids(
+            &self.context.database_pool,
+            fulfillable_assignments
+                .iter()
+                .map(|assignment| assignment.fleet_id)
+                .collect::<HashSet<_>>(),
+        )
+        .await?;
+
+        let connections =
+            ship::autopilot::jump_gate_nav::generate_all_connections(&self.context.database_pool)
+                .await?
+                .into_iter()
+                .filter(|c| !c.under_construction_a && !c.under_construction_b)
+                .collect::<Vec<_>>();
+        let jump_gate: ship::autopilot::jump_gate_nav::JumpPathfinder =
+            ship::autopilot::jump_gate_nav::JumpPathfinder::new(connections);
+
+        // per assignment calculate all the things
+
+        let current_money = self.context.budget_manager.get_spendable_funds().await;
+
+        let antimatter_price = { self.context.config.read().await.antimatter_price as i64 };
+
+        let percentile = { self.context.config.read().await.ship_purchase_percentile };
+
+        let assignments = fulfillable_assignments
+            .iter()
+            .map(|assignment| {
+                let shipyard_ships = all_shipyard_ships
+                    .iter()
+                    .filter(|(_shipyard_ship, capability)| capability.capable(assignment))
+                    .map(|(shipyard_ship, _)| shipyard_ship)
+                    .filter_map(|shipyard_ship| {
+                        Some(ShipWorth::new(
+                            assignment,
+                            shipyard_ship,
+                            fleets.get(&assignment.fleet_id)?,
+                            &jump_gate,
+                            antimatter_price as i64,
+                        ))
+                    })
+                    .filter(|sh| {
+                        sh.total_price < (sh.assignment.max_purchase_price as i64)
+                            && current_money - sh.total_price
+                                > (sh.assignment.credits_threshold as i64)
+                    })
+                    .sorted_by(|a, b| a.partial_cmp(b).unwrap())
+                    .collect::<Vec<_>>();
+
+                let purchasable_subset = shipyard_ships
+                    .iter()
+                    .take(((shipyard_ships.len() as f32) * (percentile / 100.0)).ceil() as usize)
+                    .filter(|sh| sh.shipyard_ship.waypoint_symbol == waypoint_symbol)
+                    .cloned()
+                    .collect::<Vec<_>>();
+
+                (assignment, shipyard_ships, purchasable_subset)
+            })
+            .sorted_by(|a, b| a.0.priority.cmp(&b.0.priority))
+            .collect::<Vec<_>>();
+
+        let assignments = assignments
+            .iter()
+            .filter(|(_assignment, _shipyard_ships, purchasable_subset)| {
+                !purchasable_subset.is_empty()
+            })
+            .collect::<Vec<_>>();
+
+        debug!(
+          assignments_count = assignments.len(),
+          fulfillable_assignments = ?fulfillable_assignments,
+            "Filtered assignments",
+        );
+
+        if assignments.is_empty() {
+            return Ok(());
+        }
+
+        for (assignment, _shipyard_ships, purchasable_subset) in assignments {
+            if let Some(shipyard_ship_worth) = purchasable_subset.first() {
+                let reservation = self
+                    .context
+                    .budget_manager
+                    .reserve_funds_with_remain(
+                        &self.context.database_pool,
+                        shipyard_ship_worth.total_price,
+                        assignment.credits_threshold as i64,
+                    )
+                    .await;
+
+                let reservation = if let Err(e) = reservation {
+                    if let crate::error::Error::NotEnoughFunds {
+                        remaining_funds,
+                        required_funds,
+                    } = e
+                    {
+                        warn!(
+                            "Not enough funds to purchase ship: {:?}. Remaining: {}, Required: {}",
+                            shipyard_ship_worth, remaining_funds, required_funds
+                        );
+                        continue;
+                    } else {
+                        return Err(e);
+                    }
+                } else {
+                    reservation.unwrap()
+                };
+
+                self.purchase_ship(
+                    shipyard_ship_worth.shipyard_ship,
+                    assignment,
+                    shipyard_ship_worth.fleet,
+                    &reservation,
+                )
+                .await?;
+            }
+        }
+
         return Ok(());
+    }
+
+    /// will fail if no ship is at the shipyard
+    #[tracing::instrument(
+        level = "info",
+        name = "spacetraders::manager::fleet_manager::purchase_ship",
+        skip(self),
+        err(Debug)
+    )]
+    async fn purchase_ship(
+        &self,
+        shipyard_ship: &database::ShipyardShip,
+        assignment: &database::ShipAssignment,
+        fleet: &database::Fleet,
+        reservation: &database::ReservedFund,
+    ) -> Result<()> {
+        let purchase_ship_response = self
+            .context
+            .api
+            .purchase_ship(space_traders_client::models::PurchaseShipRequest {
+                ship_type: shipyard_ship.ship_type,
+                waypoint_symbol: shipyard_ship.waypoint_symbol.clone(),
+            })
+            .await?;
+
+        self.context
+            .budget_manager
+            .set_current_funds(purchase_ship_response.data.agent.credits);
+
+        self.context
+            .budget_manager
+            .use_reservation(
+                &self.context.database_pool,
+                reservation.id,
+                purchase_ship_response.data.transaction.price as i64,
+            )
+            .await?;
+
+        database::Agent::insert(
+            &self.context.database_pool,
+            &database::Agent::from(*purchase_ship_response.data.agent),
+        )
+        .await?;
+
+        let id = database::ShipyardTransaction::insert_new(
+            &self.context.database_pool,
+            &database::ShipyardTransaction::try_from(*purchase_ship_response.data.transaction)?,
+        )
+        .await?;
+
+        ship::MyShip::update_info_db(
+            (*purchase_ship_response.data.ship).clone(),
+            &self.context.database_pool,
+        )
+        .await?;
+
+        let mut ship_i = ship::MyShip::from_ship(
+            *purchase_ship_response.data.ship,
+            self.context.ship_manager.get_broadcaster(),
+        );
+
+        ship_i.active = true;
+        ship_i.purchase_id = Some(id);
+
+        let ship_info = ship_i
+            .apply_from_db_ship(self.context.database_pool.clone(), Some(assignment.id))
+            .await?;
+
+        ship_i.notify().await;
+
+        ship::ShipManager::add_ship(&self.context.ship_manager, ship_i).await;
+
+        {
+            let mut ship_g = self.context.ship_manager.get_mut(&ship_info.symbol).await;
+            let ship = ship_g
+                .value_mut()
+                .ok_or_else(|| crate::error::Error::General("Ship not found".into()))?;
+            ship.notify().await;
+        }
+
+        self.context
+            .budget_manager
+            .complete_reservation(&self.context.database_pool, reservation.id)
+            .await?;
+
+        self.context.ship_tasks.start_ship(ship_info.clone()).await;
+
+        Ok(())
     }
 
     #[tracing::instrument(
@@ -144,7 +431,7 @@ impl FleetManager {
 
         let mut open_possible_assignments = open_assignments
             .into_iter()
-            .filter(|assignment| ShipCapabilities::can_assign(ship_clone, assignment))
+            .filter(|assignment| ShipCapabilities::can_assign_ship(ship_clone, assignment))
             .collect::<Vec<_>>();
 
         // get fleets from the database and calculate the distance from the ship_system to the fleet system
@@ -221,6 +508,29 @@ impl FleetManager {
         } else {
             Ok(None)
         }
+    }
+
+    async fn re_generate_assignments(&mut self) -> Result<()> {
+        let fleets = database::Fleet::get_all(&self.context.database_pool).await?;
+
+        for fleet in fleets {
+            let current_assignments =
+                database::ShipAssignment::get_by_fleet_id(&self.context.database_pool, fleet.id)
+                    .await?;
+            let new_assignments =
+                super::assignment_management::generate_fleet_assignments(&fleet, &self.context)
+                    .await?;
+
+            let _erg = super::assignment_management::update_fleet_assignments(
+                &fleet,
+                current_assignments,
+                new_assignments,
+                &self.context,
+            )
+            .await;
+        }
+
+        Ok(())
     }
 }
 

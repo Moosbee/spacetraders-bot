@@ -49,8 +49,6 @@ use sqlx::postgres::PgPoolOptions;
 async fn main() -> anyhow::Result<()> {
     let (context, manager_token, managers) = setup_context().await?;
 
-    // run_conductor(context.clone()).await?;
-
     // let reg = setup_fleets(&context).await;
 
     // if let Err(errorr) = reg {

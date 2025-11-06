@@ -6,7 +6,7 @@ use tracing::instrument;
 
 use crate::{DatabaseConnector, DbPool, Result};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Fleet {
     pub id: i32,
     pub system_symbol: String,
@@ -662,7 +662,7 @@ impl Fleet {
     }
 }
 
-#[derive(serde::Deserialize, serde::Serialize, Debug, Clone, Copy, sqlx::Type)]
+#[derive(serde::Deserialize, serde::Serialize, Debug, Clone, Copy, sqlx::Type, PartialEq, Eq)]
 #[sqlx(type_name = "trade_mode")]
 #[allow(clippy::enum_variant_names)]
 pub enum TradeMode {
@@ -671,7 +671,7 @@ pub enum TradeMode {
     ProfitPerTrip,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default, sqlx::Type)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, sqlx::Type, PartialEq, Eq)]
 #[sqlx(type_name = "fleet_type")]
 pub enum FleetType {
     Trading,

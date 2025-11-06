@@ -10,6 +10,9 @@ pub enum FleetMessage {
         ship_clone: ship::MyShip,
         temp: bool,
     },
+    ReGenerateAssignments {
+        callback: tokio::sync::oneshot::Sender<()>,
+    },
 }
 
 pub type FleetManagerMessage = FleetMessage;

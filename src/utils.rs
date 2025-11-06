@@ -76,6 +76,7 @@ pub struct Config {
     pub trade_mode: database::TradeMode,
     pub trade_profit_threshold: i32,
 
+    pub ship_purchase_percentile: f32,
     pub ship_purchase_stop: bool,
     pub expand: bool,
     pub ship_purchase_amount: i32,

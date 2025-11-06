@@ -15,7 +15,7 @@ import PageTitle from "../features/PageTitle";
 import RoleRenderer from "../features/RoleRenderer/RoleRenderer";
 import Timer from "../features/Timer/Timer";
 import { ShipNavFlightMode, ShipNavStatus, ShipRole } from "../models/api";
-import RustShip, { SystemShipRoles } from "../models/ship";
+import RustShip from "../models/ship";
 import { useAppDispatch, useAppSelector } from "../redux/hooks";
 import {
   resetShips,
@@ -65,29 +65,12 @@ function Ships() {
         !shallowEqual(record, prevRecord),
     },
     {
-      title: "Role",
-      dataIndex: "role",
-      key: "role",
-      filters: Object.values(SystemShipRoles).map((role) => ({
-        text: role,
-        value: role,
-      })),
-      render: (role: SystemShipRoles, record) => (
-        <RoleRenderer role={role} status={record.status} />
-      ),
-      defaultFilteredValue: [
-        "Construction",
-        "Trader",
-        "TempTrader",
-        "Contract",
-        "Mining",
-        "Charter",
-        "Manuel",
-        "Transfer",
-      ],
-      onFilter: (value, record) => record.role === value,
+      title: "Status",
+      // dataIndex: "status",
+      key: "status",
+      render: (_role, record) => <RoleRenderer status={record.status} />,
       sorter: (a, b) => {
-        const num = a.role.localeCompare(b.role);
+        const num = a.status.type.localeCompare(b.status.type);
         if (num === 0) {
           if (a.status.type === "Mining" && b.status.type === "Mining") {
             const data_a = a.status.data ?? "";

@@ -96,7 +96,6 @@ export interface Condition {
 }
 
 interface RustShip {
-  role: SystemShipRoles;
   status: SystemShipRole;
   registration_role: ShipRole;
   symbol: string;

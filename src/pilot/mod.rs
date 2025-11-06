@@ -14,6 +14,7 @@ use tokio_util::sync::CancellationToken;
 use tracing::debug;
 use tracing::instrument;
 use trading::TradingPilot;
+use utils::WaypointCan;
 
 use crate::{
     error::{Error, Result},
@@ -183,6 +184,8 @@ impl Pilot {
                 return Ok(());
             }
 
+            self.fly_to_system(&fleet, &assignment).await?;
+
             match fleet.get_config()? {
                 database::FleetConfig::Trading(trading_config) => {
                     self.trading_pilot
@@ -265,6 +268,66 @@ impl Pilot {
             }
         }
 
+        Ok(())
+    }
+
+    async fn fly_to_system(
+        &self,
+        fleet: &database::Fleet,
+        assignment: &database::ShipAssignment,
+    ) -> crate::error::Result<()> {
+        let system = fleet.system_symbol.clone();
+
+        let mut erg = self.context.ship_manager.get_mut(&self.ship_symbol).await;
+        let ship = erg
+            .value_mut()
+            .ok_or(Error::General("Ship not found".to_string()))?;
+
+        if ship.nav.system_symbol == system {
+            return Ok(());
+        }
+
+        self.execute_fly_to_system(ship, fleet, assignment, system)
+            .await?;
+
+        Ok(())
+    }
+
+    #[instrument(level = "debug", name = "spacetraders::pilot::execute_fly_to_system", skip(self, ship), fields(self.ship_symbol = %self.ship_symbol), err(Debug))]
+    async fn execute_fly_to_system(
+        &self,
+        ship: &mut ship::MyShip,
+        fleet: &database::Fleet,
+        assignment: &database::ShipAssignment,
+        system_symbol: String,
+    ) -> crate::error::Result<()> {
+        ship.status = ship::ShipStatus::Transfer {
+            fleet_id: fleet.id,
+            assignment_id: assignment.id,
+            system_symbol: system_symbol.clone(),
+        };
+
+        let waypoints =
+            database::Waypoint::get_by_system(&self.context.database_pool, &system_symbol).await?;
+        let jump_gate = waypoints
+            .iter()
+            .find(|w| w.is_jump_gate())
+            .cloned()
+            .ok_or(Error::General("No jump gate found".to_string()))?;
+
+        let budget_manager = self.context.budget_manager.clone();
+
+        let update_funds_fn = move |amount| budget_manager.set_current_funds(amount);
+
+        ship.nav_to(
+            &jump_gate.symbol,
+            true,
+            database::TransactionReason::None,
+            &self.context.database_pool,
+            &self.context.api,
+            update_funds_fn,
+        )
+        .await?;
         Ok(())
     }
 }

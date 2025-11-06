@@ -2,11 +2,13 @@ use tracing::instrument;
 
 use crate::{DatabaseConnector, DbPool};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ShipAssignment {
     pub id: i64,
     pub fleet_id: i32,
-    pub priority: i32,  // lower numbers are higher priority
+    pub priority: i32, // lower numbers are higher priority
+    pub max_purchase_price: i32,
+    pub credits_threshold: i32,
     pub disabled: bool, // if true, ship should not be assigned to this assignment and currently assigned ships should be removed
     pub range_min: i32, // aka fuel capacity minimum, -1 means infinite
     pub cargo_min: i32,
@@ -29,6 +31,8 @@ impl ShipAssignment {
                   id,
                   fleet_id,
                   priority,
+                  max_purchase_price,
+                  credits_threshold,
                   disabled,
                   range_min,
                   cargo_min,
@@ -47,6 +51,37 @@ impl ShipAssignment {
         Ok(resp)
     }
 
+    pub async fn get_by_fleet_id(
+        database_pool: &DbPool,
+        fleet_id: i32,
+    ) -> crate::Result<Vec<ShipAssignment>> {
+        let resp = sqlx::query_as!(
+            ShipAssignment,
+            r#"
+                SELECT
+                  id,
+                  fleet_id,
+                  priority,
+                  max_purchase_price,
+                  credits_threshold,
+                  disabled,
+                  range_min,
+                  cargo_min,
+                  survey,
+                  extractor,
+                  siphon,
+                  warp_drive
+                FROM ship_assignment
+                WHERE fleet_id = $1
+            "#,
+            fleet_id
+        )
+        .fetch_all(&database_pool.database_pool)
+        .await?;
+
+        Ok(resp)
+    }
+
     pub async fn get_open_assignments(
         database_pool: &DbPool,
     ) -> crate::Result<Vec<ShipAssignment>> {
@@ -58,6 +93,8 @@ impl ShipAssignment {
                   sa.id,
                   sa.fleet_id,
                   sa.priority,
+                  max_purchase_price,
+                  credits_threshold,
                   sa.disabled,
                   sa.range_min,
                   sa.cargo_min,
@@ -83,6 +120,8 @@ impl ShipAssignment {
                 INSERT INTO ship_assignment (
                   fleet_id,
                   priority,
+                  max_purchase_price,
+                  credits_threshold,
                   disabled,
                   range_min,
                   cargo_min,
@@ -92,12 +131,14 @@ impl ShipAssignment {
                   warp_drive
                 )
                 VALUES (
-                  $1, $2, $3, $4, $5, $6, $7, $8, $9
+                  $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
                 )
                 RETURNING id
             "#,
             &item.fleet_id,
             &item.priority,
+            &item.max_purchase_price,
+            &item.credits_threshold,
             &item.disabled,
             &item.range_min,
             &item.cargo_min,
@@ -122,6 +163,8 @@ impl DatabaseConnector<ShipAssignment> for ShipAssignment {
                   id,
                   fleet_id,
                   priority,
+                  max_purchase_price,
+                  credits_threshold,
                   disabled,
                   range_min,
                   cargo_min,
@@ -131,12 +174,14 @@ impl DatabaseConnector<ShipAssignment> for ShipAssignment {
                   warp_drive
                 )
                 VALUES (
-                  $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
+                  $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12
                 )
                 ON CONFLICT (id) DO UPDATE SET
                   fleet_id = EXCLUDED.fleet_id,
                   disabled = EXCLUDED.disabled,
                   priority = EXCLUDED.priority,
+                  max_purchase_price = EXCLUDED.max_purchase_price,
+                  credits_threshold = EXCLUDED.credits_threshold,
                   range_min = EXCLUDED.range_min,
                   cargo_min = EXCLUDED.cargo_min,
                   survey = EXCLUDED.survey,
@@ -147,6 +192,8 @@ impl DatabaseConnector<ShipAssignment> for ShipAssignment {
             &item.id,
             &item.fleet_id,
             &item.priority,
+            &item.max_purchase_price,
+            &item.credits_threshold,
             &item.disabled,
             &item.range_min,
             &item.cargo_min,
@@ -166,6 +213,8 @@ impl DatabaseConnector<ShipAssignment> for ShipAssignment {
             ids,
             fleet_ids,
             priority_values,
+            max_purchase_price_values,
+            credits_threshold_values,
             disabled_values,
             range_min_values,
             cargo_min_values,
@@ -184,11 +233,15 @@ impl DatabaseConnector<ShipAssignment> for ShipAssignment {
             Vec<_>,
             Vec<_>,
             Vec<_>,
+            Vec<_>,
+            Vec<_>,
         ) = itertools::multiunzip(items.iter().map(|sa| {
             (
                 sa.id,
                 sa.fleet_id,
                 sa.priority,
+                sa.max_purchase_price,
+                sa.credits_threshold,
                 sa.disabled,
                 sa.range_min,
                 sa.cargo_min,
@@ -205,6 +258,8 @@ impl DatabaseConnector<ShipAssignment> for ShipAssignment {
                 id,
                 fleet_id,
                 priority,
+                max_purchase_price,
+                credits_threshold,
                 disabled,
                 range_min,
                 cargo_min,
@@ -217,6 +272,8 @@ impl DatabaseConnector<ShipAssignment> for ShipAssignment {
                 id,
                 fid,
                 pr,
+                mxpp,
+                ct,
                 dis,
                 rm,
                 cm,
@@ -228,17 +285,21 @@ impl DatabaseConnector<ShipAssignment> for ShipAssignment {
                 $1::bigint[],
                 $2::integer[],
                 $3::integer[],
-                $4::boolean[],
+                $4::integer[],
                 $5::integer[],
-                $6::integer[],
-                $7::boolean[],
-                $8::boolean[],
+                $6::boolean[],
+                $7::integer[],
+                $8::integer[],
                 $9::boolean[],
-                $10::boolean[]
-            ) AS t(id, fid, pr, dis, rm, cm, sur, ext, sip, wd)
+                $10::boolean[],
+                $11::boolean[],
+                $12::boolean[]
+            ) AS t(id, fid, pr, mxpp, ct, dis, rm, cm, sur, ext, sip, wd)
             ON CONFLICT (id) DO UPDATE
             SET fleet_id = EXCLUDED.fleet_id,
                 disabled = EXCLUDED.disabled,
+                max_purchase_price = EXCLUDED.max_purchase_price,
+                credits_threshold = EXCLUDED.credits_threshold,
                 priority = EXCLUDED.priority,
                 range_min = EXCLUDED.range_min,
                 cargo_min = EXCLUDED.cargo_min,
@@ -250,6 +311,8 @@ impl DatabaseConnector<ShipAssignment> for ShipAssignment {
             &ids,
             &fleet_ids,
             &priority_values,
+            &max_purchase_price_values,
+            &credits_threshold_values,
             &disabled_values,
             &range_min_values,
             &cargo_min_values,
@@ -272,6 +335,8 @@ impl DatabaseConnector<ShipAssignment> for ShipAssignment {
                   id,
                   fleet_id,
                   priority,
+                  max_purchase_price,
+                  credits_threshold,
                   disabled,
                   range_min,
                   cargo_min,

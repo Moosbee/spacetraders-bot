@@ -35,6 +35,7 @@ pub struct RustShip<T: Clone> {
     pub display_name: String,
     pub engine_speed: i32,
     pub active: bool,
+    pub purchase_id: Option<i64>,
     pub cooldown_expiration: Option<DateTime<Utc>>,
     pub cooldown: Option<i32>,
     // Navigation state
@@ -66,6 +67,7 @@ impl<T: Default + Clone> Default for RustShip<T> {
             status: Default::default(),
             active: false,
             is_clone: false,
+            purchase_id: None,
             cooldown: Default::default(),
             pubsub: Publisher::new(),
             broadcaster: Default::default(),
@@ -96,6 +98,7 @@ impl<T: Clone> Clone for RustShip<T> {
             symbol: self.symbol.clone(),
             active: self.active,
             is_clone: true,
+            purchase_id: self.purchase_id,
             engine_speed: self.engine_speed,
             cooldown_expiration: self.cooldown_expiration,
             cooldown: self.cooldown,
@@ -124,6 +127,7 @@ impl<T: Debug + Clone> Debug for RustShip<T> {
             .field("display_name", &self.display_name)
             .field("engine_speed", &self.engine_speed)
             .field("active", &self.active)
+            .field("purchase_id", &self.purchase_id)
             .field("cooldown_expiration", &self.cooldown_expiration)
             .field("nav", &self.nav)
             .field("cargo", &self.cargo)
@@ -255,7 +259,7 @@ impl<T: Clone> RustShip<T> {
     pub async fn apply_from_db_ship(
         &mut self,
         database_pool: database::DbPool,
-        purchase_id: Option<i64>,
+        assignment_id: Option<i64>,
     ) -> Result<database::ShipInfo> {
         self.mutate();
         let db_ship = database::ShipInfo::get_by_symbol(&database_pool, &self.symbol).await?;
@@ -273,11 +277,11 @@ impl<T: Clone> RustShip<T> {
                     self.display_name.clone()
                 };
                 let ship_info = database::ShipInfo {
-                    purchase_id,
+                    purchase_id: self.purchase_id,
                     symbol: self.symbol.clone(),
                     display_name,
                     active: self.active,
-                    assignment_id: None,
+                    assignment_id: assignment_id,
                     temp_assignment_id: None,
                 };
                 database::ShipInfo::insert(&database_pool, &ship_info).await?;
@@ -297,6 +301,7 @@ impl<T: Clone> RustShip<T> {
         self.active = ship_info.active;
         self.display_name = ship_info.display_name;
         self.symbol = ship_info.symbol;
+        self.purchase_id = ship_info.purchase_id;
         // if self.role != database::ShipInfoRole::TempTrader {
         //     self.role = ship_info.role;
         // }

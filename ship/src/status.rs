@@ -24,6 +24,11 @@ pub enum ShipStatus {
         waiting_for_manager: bool,
         on_sleep: bool,
     },
+    Transfer {
+        fleet_id: i32,
+        assignment_id: i64,
+        system_symbol: String,
+    },
     Contract {
         contract_id: Option<String>,
         run_id: Option<i32>,

@@ -31,6 +31,7 @@ mining_ships_per_waypoint = 12
 transport_capacity_per_waypoint = 80
 trade_mode = "ProfitPerHour"
 ship_purchase_stop = false
+ship_purchase_percentile = 25.0
 trade_profit_threshold = 200
 expand = true
 ship_purchase_amount = 5

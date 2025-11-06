@@ -1,14 +1,8 @@
 import { Link } from "react-router-dom";
-import { SystemShipRole, SystemShipRoles } from "../../models/ship";
+import { SystemShipRole } from "../../models/ship";
 import Timer from "../Timer/Timer";
 
-const RoleRenderer = ({
-  role,
-  status,
-}: {
-  role: SystemShipRoles;
-  status: SystemShipRole;
-}) => {
+const RoleRenderer = ({ status }: { status: SystemShipRole }) => {
   const renderContract = () => {
     if (status.type === "Contract" && status.data !== null) {
       const firstPart = status.data.contract_id?.slice(0, 3);
@@ -129,7 +123,7 @@ const RoleRenderer = ({
 
   return (
     <div>
-      <span>{role}</span>{" "}
+      <span>{status.type}</span>{" "}
       {renderContract() ||
         renderTrader() ||
         renderMining() ||

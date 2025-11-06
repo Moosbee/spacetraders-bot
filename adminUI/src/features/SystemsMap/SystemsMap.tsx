@@ -88,7 +88,7 @@ function drawSystems(
     const x = xOne * zoom * maxRatio + left;
     const y = yOne * zoom * maxRatio + top;
     if (x < 0 || x > width || y < 0 || y > height) continue;
-    const r = Math.min(Math.abs(zoom / 2), 10);
+    const r = Math.max(maxRatio / 3000, Math.min(Math.abs(zoom / 2) * 1, 10));
     if (system.has_my_ships) {
       context.beginPath();
       context.arc(x, y, r * 10.5, 0, 2 * Math.PI);
