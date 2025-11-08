@@ -1,6 +1,6 @@
 use space_traders_client::models;
 
-#[derive(Debug, Default, serde::Serialize, Clone)]
+#[derive(Debug, Default, serde::Serialize, Clone,async_graphql::SimpleObject)]
 pub struct MountState {
     pub mounts: Vec<models::ship_mount::Symbol>,
 }

@@ -18,7 +18,7 @@ use std::fmt::Debug;
 // pub mod navigation;
 // pub mod stats;
 
-#[derive(Default, serde::Serialize, Clone)]
+#[derive(Default, serde::Serialize, Clone, async_graphql::SimpleObject)]
 pub struct NavigationState {
     pub flight_mode: models::ShipNavFlightMode,
     pub status: models::ShipNavStatus,
@@ -41,7 +41,7 @@ impl Debug for NavigationState {
     }
 }
 
-#[derive(Debug, Default, serde::Serialize, Clone)]
+#[derive(Debug, Default, serde::Serialize, Clone, async_graphql::SimpleObject)]
 pub struct RouteState {
     pub arrival: DateTime<Utc>,
     pub departure_time: DateTime<Utc>,
@@ -51,7 +51,7 @@ pub struct RouteState {
     pub origin_system_symbol: String,
 }
 
-impl<T: Clone> RustShip<T> {
+impl<T: Clone + Send + Sync + async_graphql::OutputType> RustShip<T> {
     pub async fn navigate(
         &mut self,
         api: &space_traders_client::Api,

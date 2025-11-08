@@ -3,7 +3,8 @@ use std::sync::Arc;
 
 use database::DbPool;
 use serde::{Deserialize, Serialize};
-use ship::{ShipManager, ShipStatus};
+use ship::status::ShipStatus;
+use ship::ShipManager;
 use space_traders_client::models;
 use tokio::sync::RwLock;
 use utils::RunInfo;

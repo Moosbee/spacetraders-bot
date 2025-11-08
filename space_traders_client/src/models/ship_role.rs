@@ -13,7 +13,19 @@ use serde::{Deserialize, Serialize};
 
 /// ShipRole : The registered role of the ship
 /// The registered role of the ship
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    PartialEq,
+    Ord,
+    PartialOrd,
+    Hash,
+    Serialize,
+    Deserialize,
+    async_graphql::Enum,
+)]
 pub enum ShipRole {
     #[serde(rename = "FABRICATOR")]
     Fabricator,

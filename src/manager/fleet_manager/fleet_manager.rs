@@ -373,7 +373,6 @@ impl FleetManager {
             self.context.ship_manager.get_broadcaster(),
         );
 
-        ship_i.active = true;
         ship_i.purchase_id = Some(id);
 
         let ship_info = ship_i

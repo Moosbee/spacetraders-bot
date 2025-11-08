@@ -16,14 +16,36 @@ enum Mode {
     Purchase,
 }
 
-#[derive(Debug, Default, serde::Serialize, Clone)]
+#[derive(Debug, Default, serde::Serialize, Clone, async_graphql::SimpleObject)]
+#[graphql(complex)]
 pub struct CargoState {
     pub capacity: i32,
     pub units: i32,
+    #[graphql(skip)]
     pub inventory: HashMap<space_traders_client::models::TradeSymbol, i32>,
 }
 
-impl<T: Clone> RustShip<T> {
+#[derive(Debug, async_graphql::SimpleObject)]
+struct CargoVolume {
+    symbol: space_traders_client::models::TradeSymbol,
+    units: i32,
+}
+
+#[async_graphql::ComplexObject]
+impl CargoState {
+    async fn inventory(&self) -> Vec<CargoVolume> {
+        self.inventory
+            .clone()
+            .into_iter()
+            .map(|e| CargoVolume {
+                symbol: e.0,
+                units: e.1,
+            })
+            .collect()
+    }
+}
+
+impl<T: Clone + Send + Sync + async_graphql::OutputType> RustShip<T> {
     pub async fn purchase_cargo(
         &mut self,
         api: &space_traders_client::Api,

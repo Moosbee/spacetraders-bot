@@ -62,7 +62,7 @@ impl ContractPilot {
 
         self.count.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
 
-        ship.status = ship::ShipStatus::Contract {
+        ship.status.status = ship::AssignmentStatus::Contract {
             contract_id: Some(shipment.contract_id.clone()),
             run_id: Some(shipment.id),
             cycle: Some(self.count.load(std::sync::atomic::Ordering::SeqCst)),
@@ -119,7 +119,7 @@ impl ContractPilot {
             .complete_shipment(shipment, contract)
             .await?;
 
-        ship.status = ship::ShipStatus::Contract {
+        ship.status.status = ship::AssignmentStatus::Contract {
             contract_id: None,
             run_id: None,
             cycle: None,
@@ -140,6 +140,8 @@ impl ContractPilot {
             .await?;
         if temp_assignment.is_none() {
             tracing::warn!("No temp assignment available, skipping");
+            tokio::time::sleep(std::time::Duration::from_millis(60_000)).await;
+
             return Ok(());
         }
 
@@ -152,7 +154,7 @@ impl ContractPilot {
         shipment: &database::ContractShipment,
         reservation_id: Option<i64>,
     ) -> Result<()> {
-        ship.status = ship::ShipStatus::Contract {
+        ship.status.status = ship::AssignmentStatus::Contract {
             contract_id: Some(shipment.contract_id.clone()),
             run_id: Some(shipment.id),
             cycle: Some(self.count.load(std::sync::atomic::Ordering::SeqCst)),
@@ -176,7 +178,7 @@ impl ContractPilot {
         )
         .await?;
 
-        ship.status = ship::ShipStatus::Contract {
+        ship.status.status = ship::AssignmentStatus::Contract {
             contract_id: Some(shipment.contract_id.clone()),
             run_id: Some(shipment.id),
             cycle: Some(self.count.load(std::sync::atomic::Ordering::SeqCst)),
@@ -234,7 +236,7 @@ impl ContractPilot {
         space_traders_client::models::Contract,
         database::ContractShipment,
     )> {
-        ship.status = ship::ShipStatus::Contract {
+        ship.status.status = ship::AssignmentStatus::Contract {
             contract_id: Some(shipment.contract_id.clone()),
             run_id: Some(shipment.id),
             cycle: Some(self.count.load(std::sync::atomic::Ordering::SeqCst)),
@@ -258,7 +260,7 @@ impl ContractPilot {
         )
         .await?;
 
-        ship.status = ship::ShipStatus::Contract {
+        ship.status.status = ship::AssignmentStatus::Contract {
             contract_id: Some(shipment.contract_id.clone()),
             run_id: Some(shipment.id),
             cycle: Some(self.count.load(std::sync::atomic::Ordering::SeqCst)),

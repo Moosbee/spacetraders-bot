@@ -275,8 +275,8 @@ impl WaypointManager {
             .map(|s| s.1)
             .filter(|s| {
                 matches!(
-                    s.status,
-                    ship::ShipStatus::Mining {
+                    s.status.status,
+                    ship::AssignmentStatus::Mining {
                         assignment: ship::status::MiningShipAssignment::Extractor { .. }
                     }
                 )

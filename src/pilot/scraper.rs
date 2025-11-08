@@ -39,7 +39,7 @@ impl ScraperPilot {
             .ok_or(Error::General("Ship not found".to_string()))?;
 
         debug!("Requesting next scrap for ship: {:?}", ship.symbol);
-        ship.status = ship::ShipStatus::Scraper {
+        ship.status.status = ship::AssignmentStatus::Scraper {
             cycle: Some(self.count.load(std::sync::atomic::Ordering::Relaxed)),
             waiting_for_manager: true,
             waypoint_symbol: None,
@@ -90,7 +90,7 @@ impl ScraperPilot {
         self.count
             .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
 
-        ship.status = ship::ShipStatus::Scraper {
+        ship.status.status = ship::AssignmentStatus::Scraper {
             cycle: Some(self.count.load(std::sync::atomic::Ordering::Relaxed)),
             waiting_for_manager: false,
             waypoint_symbol: Some(waypoint_symbol.clone()),
@@ -178,7 +178,7 @@ impl ScraperPilot {
             .complete(ship.clone(), waypoint_symbol)
             .await?;
 
-        ship.status = ship::ShipStatus::Scraper {
+        ship.status.status = ship::AssignmentStatus::Scraper {
             cycle: Some(self.count.load(std::sync::atomic::Ordering::Relaxed)),
             waiting_for_manager: false,
             waypoint_symbol: None,
@@ -196,6 +196,8 @@ impl ScraperPilot {
             .await?;
         if temp_assignment.is_none() {
             tracing::warn!("No temp assignment available, skipping");
+            tokio::time::sleep(std::time::Duration::from_millis(60_000)).await;
+
             return Ok(());
         }
 

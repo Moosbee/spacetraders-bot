@@ -1,12 +1,15 @@
 use std::time::Duration;
 
 use futures::FutureExt;
+use std::convert::Infallible;
 use tokio_util::sync::CancellationToken;
 use tracing::instrument;
 
-use crate::{manager::Manager, utils::ConductorContext};
+use async_graphql::{http::GraphiQLSource, EmptyMutation, EmptySubscription, Schema};
+use async_graphql_warp::{GraphQLBadRequest, GraphQLResponse};
+use warp::{http::Response as HttpResponse, Filter, Rejection};
 
-use super::types::MyReceiver;
+use crate::{control_api::graphql::QueryRoot, manager::Manager, utils::ConductorContext};
 
 pub struct ControlApiServer {
     context: ConductorContext,
@@ -30,43 +33,6 @@ impl ControlApiServer {
         }
     }
 
-    fn setup_broadcast_channels(
-        &mut self,
-    ) -> anyhow::Result<(MyReceiver<ship::MyShip>, MyReceiver<database::Agent>)> {
-        let (ship_tx, ship_rx) = tokio::sync::broadcast::channel(16);
-
-        if let Some(mut incoming_ship_rx) = self.ship_rx.take() {
-            let ship_tx = ship_tx.clone();
-            // tokio::task::Builder::new()
-            //     .name("control_api_ship_broadcaster")
-            //     .spawn(async move {
-            //         while let Ok(ship) = incoming_ship_rx.recv().await {
-            //             if let Err(e) = ship_tx.send(ship.clone()) {
-            //                 tracing::error!("Failed to broadcast ship update: {}", e);
-            //             }
-            //         }
-            //     })
-            //     .unwrap();
-            tokio::task::spawn(async move {
-                while let Ok(ship) = incoming_ship_rx.recv().await {
-                    if let Err(e) = ship_tx.send(ship.clone()) {
-                        tracing::error!("Failed to broadcast ship update: {}", e);
-                    }
-                }
-            });
-        }
-
-        let agent_rx = MyReceiver(
-            self.context
-                .database_pool
-                .agent_broadcast_channel
-                .1
-                .resubscribe(),
-        );
-
-        Ok((MyReceiver(ship_rx), agent_rx))
-    }
-
     #[instrument(
         level = "info",
         name = "spacetraders::control_api::run_server",
@@ -79,14 +45,44 @@ impl ControlApiServer {
         }
 
         tokio::time::sleep(Duration::from_millis(config.control_start_sleep)).await;
+        let context = self.context.clone();
 
-        let (ship_rx, agent_rx) = self.setup_broadcast_channels()?;
-        let routes = crate::control_api::routes::build_routes(
-            self.context.clone(),
-            ship_rx,
-            agent_rx,
-            self.ship_cancellation_token.clone(),
+        let schema = Schema::build(QueryRoot, EmptyMutation, EmptySubscription)
+            .data(context)
+            .finish();
+
+        tracing::info!("GraphiQL IDE: {}", config.socket_address);
+
+        let graphql_post = async_graphql_warp::graphql(schema).and_then(
+            |(schema, request): (
+                Schema<QueryRoot, EmptyMutation, EmptySubscription>,
+                async_graphql::Request,
+            )| async move {
+                Ok::<_, Infallible>(GraphQLResponse::from(schema.execute(request).await))
+            },
         );
+
+        let graphiql = warp::path::end().and(warp::get()).map(|| {
+            HttpResponse::builder()
+                .header("content-type", "text/html")
+                .body(GraphiQLSource::build().endpoint("/").finish())
+        });
+
+        let routes = graphiql
+            .or(graphql_post)
+            .recover(|err: Rejection| async move {
+                if let Some(GraphQLBadRequest(err)) = err.find() {
+                    return Ok::<_, Infallible>(warp::reply::with_status(
+                        err.to_string(),
+                        warp::http::StatusCode::BAD_REQUEST,
+                    ));
+                }
+
+                Ok(warp::reply::with_status(
+                    "INTERNAL_SERVER_ERROR".to_string(),
+                    warp::http::StatusCode::INTERNAL_SERVER_ERROR,
+                ))
+            });
 
         tokio::select! {
             _ = self.cancellation_token.cancelled() => {

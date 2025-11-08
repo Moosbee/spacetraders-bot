@@ -39,7 +39,7 @@ impl SurveyPilot {
 
         tracing::Span::current().record("waypoint", &waypoint);
 
-        ship.status = ship::ShipStatus::Mining {
+        ship.status.status = ship::AssignmentStatus::Mining {
             assignment: MiningShipAssignment::Surveyor {
                 waypoint_symbol: Some(waypoint.clone()),
                 surveys: Some(self.count.load(std::sync::atomic::Ordering::Relaxed)),
@@ -84,7 +84,7 @@ impl SurveyPilot {
         self.count
             .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
 
-        ship.status = ship::ShipStatus::Mining {
+        ship.status.status = ship::AssignmentStatus::Mining {
             assignment: MiningShipAssignment::Surveyor {
                 waypoint_symbol: None,
                 surveys: Some(self.count.load(std::sync::atomic::Ordering::Relaxed)),
@@ -103,13 +103,13 @@ impl SurveyPilot {
             .await
             .into_values()
             .filter(|f| f.nav.system_symbol == ship.nav.system_symbol)
-            .filter(|f| matches!(&f.status, ship::ShipStatus::Mining { .. }))
+            .filter(|f| matches!(&f.status.status, ship::AssignmentStatus::Mining { .. }))
             .collect::<Vec<_>>();
 
         let surveyors = all_system_ships
             .iter()
-            .filter_map(|f| match &f.status {
-                ship::ShipStatus::Mining {
+            .filter_map(|f| match &f.status.status {
+                ship::AssignmentStatus::Mining {
                     assignment:
                         MiningShipAssignment::Surveyor {
                             waypoint_symbol, ..
@@ -121,8 +121,8 @@ impl SurveyPilot {
 
         let miners = all_system_ships
             .iter()
-            .filter_map(|f| match &f.status {
-                ship::ShipStatus::Mining {
+            .filter_map(|f| match &f.status.status {
+                ship::AssignmentStatus::Mining {
                     assignment:
                         MiningShipAssignment::Extractor {
                             waypoint_symbol, ..

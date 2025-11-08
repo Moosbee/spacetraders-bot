@@ -38,7 +38,7 @@ impl TradingPilot {
             .ok_or(Error::General("Ship not found".to_string()))?;
         debug!("Starting trading cycle for ship {}", ship.symbol);
 
-        ship.status = ship::ShipStatus::Trader {
+        ship.status.status = ship::AssignmentStatus::Trader {
             shipment_id: None,
             cycle: None,
             shipping_status: None,
@@ -59,7 +59,7 @@ impl TradingPilot {
 
         self.count.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
 
-        ship.status = ship::ShipStatus::Trader {
+        ship.status.status = ship::AssignmentStatus::Trader {
             shipment_id: Some(route.id),
             cycle: Some(self.count.load(std::sync::atomic::Ordering::SeqCst)),
             shipping_status: Some(ship::ShippingStatus::InTransitToPurchase),
@@ -73,7 +73,7 @@ impl TradingPilot {
 
         self.execute_trade(ship, &route, pilot).await?;
         let _completed_route = self.context.trade_manager.complete_trade(&route).await?;
-        ship.status = ship::ShipStatus::Trader {
+        ship.status.status = ship::AssignmentStatus::Trader {
             shipment_id: None,
             cycle: None,
             shipping_status: None,
@@ -89,7 +89,7 @@ impl TradingPilot {
         Ok(())
     }
     async fn wait(&self, ship: &mut ship::MyShip, pilot: &crate::pilot::Pilot) -> Result<()> {
-        ship.status = ship::ShipStatus::Trader {
+        ship.status.status = ship::AssignmentStatus::Trader {
             shipment_id: None,
             cycle: None,
             shipping_status: None,
@@ -138,7 +138,7 @@ impl TradingPilot {
             ship.symbol, route
         );
 
-        ship.status = ship::ShipStatus::Trader {
+        ship.status.status = ship::AssignmentStatus::Trader {
             shipment_id: Some(route.id),
             cycle: Some(self.count.load(std::sync::atomic::Ordering::SeqCst)),
             shipping_status: Some(ship::ShippingStatus::InTransitToPurchase),
@@ -168,7 +168,7 @@ impl TradingPilot {
             )
             .await?;
 
-            ship.status = ship::ShipStatus::Trader {
+            ship.status.status = ship::AssignmentStatus::Trader {
                 shipment_id: Some(route.id),
                 cycle: Some(self.count.load(std::sync::atomic::Ordering::SeqCst)),
                 shipping_status: Some(ship::ShippingStatus::Purchasing),
@@ -245,7 +245,7 @@ impl TradingPilot {
             ship.symbol, route
         );
 
-        ship.status = ship::ShipStatus::Trader {
+        ship.status.status = ship::AssignmentStatus::Trader {
             shipment_id: Some(route.id),
             cycle: Some(self.count.load(std::sync::atomic::Ordering::SeqCst)),
             shipping_status: Some(ship::ShippingStatus::InTransitToDelivery),
@@ -271,7 +271,7 @@ impl TradingPilot {
         )
         .await?;
 
-        ship.status = ship::ShipStatus::Trader {
+        ship.status.status = ship::AssignmentStatus::Trader {
             shipment_id: Some(route.id),
             cycle: Some(self.count.load(std::sync::atomic::Ordering::SeqCst)),
             shipping_status: Some(ship::ShippingStatus::Delivering),

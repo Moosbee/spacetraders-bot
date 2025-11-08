@@ -50,7 +50,7 @@ impl ExtractionPilot {
             }
         };
 
-        ship.status = ship::ShipStatus::Mining { assignment };
+        ship.status.status = ship::AssignmentStatus::Mining { assignment };
         if notify {
             ship.notify().await;
         }

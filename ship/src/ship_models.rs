@@ -12,13 +12,13 @@ use crate::{
 
 use super::ShipManager;
 
-#[derive(Debug, Default, serde::Serialize, Clone)]
+#[derive(Debug, Default, serde::Serialize, Clone, async_graphql::SimpleObject)]
 pub struct Condition {
     pub condition: f64,
     pub integrity: f64,
 }
 
-#[derive(Debug, Default, serde::Serialize, Clone)]
+#[derive(Debug, Default, serde::Serialize, Clone, async_graphql::SimpleObject)]
 pub struct ConditionState {
     pub engine: Condition,
     pub frame: Condition,
@@ -27,14 +27,13 @@ pub struct ConditionState {
 
 pub type MyShip = RustShip<ShipStatus>;
 
-#[derive(serde::Serialize)]
-pub struct RustShip<T: Clone> {
+#[derive(serde::Serialize, async_graphql::SimpleObject)]
+pub struct RustShip<T: Clone + Send + Sync + async_graphql::OutputType> {
     pub status: T,
     pub registration_role: ShipRole,
     pub symbol: String,
     pub display_name: String,
     pub engine_speed: i32,
-    pub active: bool,
     pub purchase_id: Option<i64>,
     pub cooldown_expiration: Option<DateTime<Utc>>,
     pub cooldown: Option<i32>,
@@ -54,18 +53,20 @@ pub struct RustShip<T: Clone> {
     // Conditions
     pub conditions: ConditionState,
     #[serde(skip)]
+    #[graphql(skip)]
     pub is_clone: bool,
     #[serde(skip)]
+    #[graphql(skip)]
     pub broadcaster: InterShipBroadcaster,
     #[serde(skip)]
+    #[graphql(skip)]
     pub pubsub: Publisher<ShipManager<T>, RustShip<T>>,
 }
 
-impl<T: Default + Clone> Default for RustShip<T> {
+impl<T: Default + Clone + Send + Sync + async_graphql::OutputType> Default for RustShip<T> {
     fn default() -> Self {
         Self {
             status: Default::default(),
-            active: false,
             is_clone: false,
             purchase_id: None,
             cooldown: Default::default(),
@@ -89,14 +90,13 @@ impl<T: Default + Clone> Default for RustShip<T> {
     }
 }
 
-impl<T: Clone> Clone for RustShip<T> {
+impl<T: Clone + Send + Sync + async_graphql::OutputType> Clone for RustShip<T> {
     fn clone(&self) -> Self {
         Self {
             status: self.status.clone(),
             registration_role: self.registration_role,
             display_name: self.display_name.clone(),
             symbol: self.symbol.clone(),
-            active: self.active,
             is_clone: true,
             purchase_id: self.purchase_id,
             engine_speed: self.engine_speed,
@@ -118,7 +118,7 @@ impl<T: Clone> Clone for RustShip<T> {
     }
 }
 
-impl<T: Debug + Clone> Debug for RustShip<T> {
+impl<T: Debug + Clone + Send + Sync + async_graphql::OutputType> Debug for RustShip<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("RustShip")
             .field("status", &self.status)
@@ -126,7 +126,6 @@ impl<T: Debug + Clone> Debug for RustShip<T> {
             .field("symbol", &self.symbol)
             .field("display_name", &self.display_name)
             .field("engine_speed", &self.engine_speed)
-            .field("active", &self.active)
             .field("purchase_id", &self.purchase_id)
             .field("cooldown_expiration", &self.cooldown_expiration)
             .field("nav", &self.nav)
@@ -141,13 +140,14 @@ impl<T: Debug + Clone> Debug for RustShip<T> {
     }
 }
 
-impl<T: Clone> From<&RustShip<T>> for database::ShipState {
+impl<T: Clone + Send + Sync + async_graphql::OutputType> From<&RustShip<T>>
+    for database::ShipState
+{
     fn from(value: &RustShip<T>) -> Self {
         Self {
             id: 0,
             symbol: value.symbol.clone(),
             display_name: value.display_name.clone(),
-            active: value.active,
             engine_speed: value.engine_speed,
 
             engine_condition: value.conditions.engine.condition,
@@ -208,7 +208,7 @@ impl<T: Clone> From<&RustShip<T>> for database::ShipState {
     }
 }
 
-impl<T: Clone> RustShip<T> {
+impl<T: Clone + Send + Sync + async_graphql::OutputType> RustShip<T> {
     pub fn update(&mut self, ship: models::Ship) {
         self.mutate();
         self.symbol = ship.symbol;
@@ -280,8 +280,8 @@ impl<T: Clone> RustShip<T> {
                     purchase_id: self.purchase_id,
                     symbol: self.symbol.clone(),
                     display_name,
-                    active: self.active,
-                    assignment_id: assignment_id,
+                    active: true,
+                    assignment_id,
                     temp_assignment_id: None,
                 };
                 database::ShipInfo::insert(&database_pool, &ship_info).await?;
@@ -298,7 +298,6 @@ impl<T: Clone> RustShip<T> {
 
     fn update_ship_info(&mut self, ship_info: database::ShipInfo) {
         self.mutate();
-        self.active = ship_info.active;
         self.display_name = ship_info.display_name;
         self.symbol = ship_info.symbol;
         self.purchase_id = ship_info.purchase_id;

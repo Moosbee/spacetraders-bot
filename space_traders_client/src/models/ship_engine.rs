@@ -65,9 +65,21 @@ impl ShipEngine {
 }
 /// The symbol of the engine.
 #[derive(
-    Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize, sqlx::Type,
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    PartialEq,
+    Ord,
+    PartialOrd,
+    Hash,
+    Serialize,
+    Deserialize,
+    sqlx::Type,
+    async_graphql::Enum,
 )]
 #[sqlx(type_name = "ship_engine_symbol")]
+#[graphql(name = "ShipEngineSymbol")]
 pub enum Symbol {
     #[serde(rename = "ENGINE_IMPULSE_DRIVE_I")]
     #[sqlx(rename = "ENGINE_IMPULSE_DRIVE_I")]

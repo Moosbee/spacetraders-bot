@@ -22,7 +22,7 @@ use crate::error::Result;
 
 use super::RustShip;
 
-impl<T: Clone> RustShip<T> {
+impl<T: Clone + Send + Sync + async_graphql::OutputType> RustShip<T> {
     pub async fn nav_to(
         &mut self,
         waypoint: &str,
@@ -166,7 +166,8 @@ impl<T: Clone> RustShip<T> {
     }
 }
 
-#[derive(Clone, Default, serde::Serialize)]
+#[derive(Clone, Default, serde::Serialize, async_graphql::SimpleObject)]
+#[graphql(complex)]
 pub struct AutopilotState {
     pub arrival: DateTime<Utc>,
     pub departure_time: DateTime<Utc>,
@@ -177,7 +178,15 @@ pub struct AutopilotState {
     pub distance: f64,
     pub fuel_cost: i32,
     pub travel_time: f64,
+    #[graphql(skip)]
     pub route: connection::Route,
+}
+
+#[async_graphql::ComplexObject]
+impl AutopilotState {
+    async fn route(&self) -> connection::RouteGQL {
+        self.route.clone().into()
+    }
 }
 
 impl Debug for AutopilotState {

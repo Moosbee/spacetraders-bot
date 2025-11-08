@@ -6,7 +6,7 @@ use space_traders_client::{
 
 use super::RustShip;
 
-impl<T: Clone> RustShip<T> {
+impl<T: Clone + Send + Sync + async_graphql::OutputType> RustShip<T> {
     pub fn is_on_cooldown(&self) -> bool {
         if self.cooldown_expiration.is_some() {
             let t = self.cooldown_expiration.unwrap();

@@ -75,9 +75,21 @@ impl ShipFrame {
 }
 /// Symbol of the frame.
 #[derive(
-    Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize, sqlx::Type,
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    PartialEq,
+    Ord,
+    PartialOrd,
+    Hash,
+    Serialize,
+    Deserialize,
+    sqlx::Type,
+    async_graphql::Enum,
 )]
 #[sqlx(type_name = "ship_frame_symbol")]
+#[graphql(name = "ShipFrameSymbol")]
 pub enum Symbol {
     #[serde(rename = "FRAME_PROBE")]
     #[sqlx(rename = "FRAME_PROBE")]

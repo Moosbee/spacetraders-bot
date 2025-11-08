@@ -8,7 +8,7 @@ use super::{
 };
 use crate::{RustShip, error::Result};
 
-impl<T: Clone> RustShip<T> {
+impl<T: Clone + Send + Sync + async_graphql::OutputType> RustShip<T> {
     pub async fn assemble_route(&self, connections: &[SimpleConnection]) -> Result<Route> {
         let simple = self.to_connection(connections);
 

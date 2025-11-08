@@ -53,9 +53,21 @@ impl ShipMount {
 }
 /// Symbol of this mount.
 #[derive(
-    Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize, sqlx::Type,
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    PartialEq,
+    Ord,
+    PartialOrd,
+    Hash,
+    Serialize,
+    Deserialize,
+    sqlx::Type,
+    async_graphql::Enum,
 )]
 #[sqlx(type_name = "ship_mount_symbol")]
+#[graphql(name = "ShipMountSymbol")]
 pub enum Symbol {
     #[serde(rename = "MOUNT_GAS_SIPHON_I")]
     #[sqlx(rename = "MOUNT_GAS_SIPHON_I")]

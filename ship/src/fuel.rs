@@ -1,4 +1,4 @@
-#[derive(Debug, Default, serde::Serialize, Clone)]
+#[derive(Debug, Default, serde::Serialize, Clone, async_graphql::SimpleObject)]
 pub struct FuelState {
     pub capacity: i32,
     pub current: i32,

@@ -301,7 +301,7 @@ impl Pilot {
         assignment: &database::ShipAssignment,
         system_symbol: String,
     ) -> crate::error::Result<()> {
-        ship.status = ship::ShipStatus::Transfer {
+        ship.status.status = ship::AssignmentStatus::Transfer {
             fleet_id: fleet.id,
             assignment_id: assignment.id,
             system_symbol: system_symbol.clone(),

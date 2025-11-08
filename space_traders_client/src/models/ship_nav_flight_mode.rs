@@ -13,7 +13,19 @@ use serde::{Deserialize, Serialize};
 
 /// ShipNavFlightMode : The ship's set speed when traveling between waypoints or systems.
 /// The ship's set speed when traveling between waypoints or systems.
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    PartialEq,
+    Ord,
+    PartialOrd,
+    Hash,
+    Serialize,
+    Deserialize,
+    async_graphql::Enum,
+)]
 pub enum ShipNavFlightMode {
     #[serde(rename = "DRIFT")]
     Drift,

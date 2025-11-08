@@ -479,7 +479,7 @@ impl MiningManager {
             .into_iter()
             .filter(|f| f.1.nav.waypoint_symbol == waypoint_symbol)
             .filter(|f| !f.1.nav.is_in_transit())
-            .filter(|f| matches!(&f.1.status, ship::ShipStatus::Mining { .. }))
+            .filter(|f| matches!(&f.1.status.status, ship::AssignmentStatus::Mining { .. }))
             .map(|f| f.1)
             .collect())
     }

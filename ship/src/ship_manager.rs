@@ -7,7 +7,7 @@ use utils::{Observer, Subject, safely_get_lock_mut_map};
 use super::{RustShip, my_ship_update};
 
 #[derive(Debug)]
-pub struct ShipManager<T: Clone> {
+pub struct ShipManager<T: Clone + Send + Sync + async_graphql::OutputType> {
     locked_ships: LockableHashMap<String, RustShip<T>>,
     copy: RwLock<HashMap<String, RustShip<T>>>,
     mpsc_tx: tokio::sync::broadcast::Sender<RustShip<T>>,
@@ -32,13 +32,13 @@ pub struct ShipManager<T: Clone> {
 pub type ShipGuard<'a, T> =
     <LockableHashMap<String, RustShip<T>> as Lockable<String, RustShip<T>>>::Guard<'a>;
 
-impl<T: Clone> PartialEq for ShipManager<T> {
+impl<T: Clone + Send + Sync + async_graphql::OutputType> PartialEq for ShipManager<T> {
     fn eq(&self, other: &Self) -> bool {
         self.id == other.id
     }
 }
 
-impl<T: Clone> Observer<RustShip<T>> for ShipManager<T> {
+impl<T: Clone + Send + Sync + async_graphql::OutputType> Observer<RustShip<T>> for ShipManager<T> {
     async fn update(&self, data: RustShip<T>) {
         let clone = data.clone();
         let symbol = clone.symbol.clone();
@@ -68,7 +68,7 @@ impl<T: Clone> Observer<RustShip<T>> for ShipManager<T> {
     }
 }
 
-impl<T: Clone> ShipManager<T> {
+impl<T: Clone + Send + Sync + async_graphql::OutputType> ShipManager<T> {
     pub fn new(broadcaster: my_ship_update::InterShipBroadcaster) -> Self {
         let (mpsc_tx, mpsc_rx) = tokio::sync::broadcast::channel(1000);
         Self {

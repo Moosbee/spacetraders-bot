@@ -13,7 +13,19 @@ use serde::{Deserialize, Serialize};
 
 /// ShipNavStatus : The current status of the ship
 /// The current status of the ship
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    PartialEq,
+    Ord,
+    PartialOrd,
+    Hash,
+    Serialize,
+    Deserialize,
+    async_graphql::Enum,
+)]
 pub enum ShipNavStatus {
     #[serde(rename = "IN_TRANSIT")]
     InTransit,

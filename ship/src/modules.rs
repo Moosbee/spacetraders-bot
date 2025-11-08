@@ -1,6 +1,6 @@
 use space_traders_client::models;
 
-#[derive(Debug, Default, serde::Serialize, Clone)]
+#[derive(Debug, Default, serde::Serialize, Clone, async_graphql::SimpleObject)]
 pub struct ModuleState {
     pub modules: Vec<models::ship_module::Symbol>,
 }

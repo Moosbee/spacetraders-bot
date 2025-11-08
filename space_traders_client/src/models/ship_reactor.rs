@@ -65,9 +65,21 @@ impl ShipReactor {
 }
 /// Symbol of the reactor.
 #[derive(
-    Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize, sqlx::Type,
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    PartialEq,
+    Ord,
+    PartialOrd,
+    Hash,
+    Serialize,
+    Deserialize,
+    sqlx::Type,
+    async_graphql::Enum,
 )]
 #[sqlx(type_name = "ship_reactor_symbol")]
+#[graphql(name = "ShipReactorSymbol")]
 pub enum Symbol {
     #[serde(rename = "REACTOR_SOLAR_I")]
     #[sqlx(rename = "REACTOR_SOLAR_I")]

@@ -66,7 +66,7 @@ impl ConstructionPilot {
 
         self.count.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
 
-        ship.status = ship::ShipStatus::Construction {
+        ship.status.status = ship::AssignmentStatus::Construction {
             cycle: Some(self.count.load(std::sync::atomic::Ordering::SeqCst)),
             shipment_id: Some(shipment.id),
             shipping_status: Some(ship::ShippingStatus::Unknown),
@@ -122,7 +122,7 @@ impl ConstructionPilot {
             .complete_shipment(shipment, contract)
             .await?;
 
-        ship.status = ship::ShipStatus::Construction {
+        ship.status.status = ship::AssignmentStatus::Construction {
             cycle: None,
             shipment_id: None,
             shipping_status: None,
@@ -135,9 +135,14 @@ impl ConstructionPilot {
     }
 
     async fn do_elsewhere(&self, ship: &mut ship::MyShip, pilot: &super::Pilot) -> Result<()> {
-        let temp_assignment = self.context.fleet_manager.get_new_temp_assignment(ship).await?;
+        let temp_assignment = self
+            .context
+            .fleet_manager
+            .get_new_temp_assignment(ship)
+            .await?;
         if temp_assignment.is_none() {
             warn!("No temp assignment available, skipping");
+            tokio::time::sleep(std::time::Duration::from_millis(60_000)).await;
             return Ok(());
         }
 
@@ -149,7 +154,7 @@ impl ConstructionPilot {
         ship: &mut ship::MyShip,
         shipment: &database::ConstructionShipment,
     ) -> Result<()> {
-        ship.status = ship::ShipStatus::Construction {
+        ship.status.status = ship::AssignmentStatus::Construction {
             cycle: Some(self.count.load(std::sync::atomic::Ordering::SeqCst)),
             shipment_id: Some(shipment.id),
             shipping_status: Some(ship::ShippingStatus::InTransitToPurchase),
@@ -172,7 +177,7 @@ impl ConstructionPilot {
         )
         .await?;
 
-        ship.status = ship::ShipStatus::Construction {
+        ship.status.status = ship::AssignmentStatus::Construction {
             cycle: Some(self.count.load(std::sync::atomic::Ordering::SeqCst)),
             shipment_id: Some(shipment.id),
             shipping_status: Some(ship::ShippingStatus::Purchasing),
@@ -226,7 +231,7 @@ impl ConstructionPilot {
         ship: &mut ship::MyShip,
         shipment: database::ConstructionShipment,
     ) -> Result<(models::Construction, database::ConstructionShipment)> {
-        ship.status = ship::ShipStatus::Construction {
+        ship.status.status = ship::AssignmentStatus::Construction {
             cycle: Some(self.count.load(std::sync::atomic::Ordering::SeqCst)),
             shipment_id: Some(shipment.id),
             shipping_status: Some(ship::ShippingStatus::InTransitToDelivery),
@@ -249,7 +254,7 @@ impl ConstructionPilot {
         )
         .await?;
 
-        ship.status = ship::ShipStatus::Construction {
+        ship.status.status = ship::AssignmentStatus::Construction {
             cycle: Some(self.count.load(std::sync::atomic::Ordering::SeqCst)),
             shipment_id: Some(shipment.id),
             shipping_status: Some(ship::ShippingStatus::Delivering),

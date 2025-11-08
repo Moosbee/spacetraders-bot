@@ -53,9 +53,21 @@ impl ShipModule {
 }
 /// The symbol of the module.
 #[derive(
-    Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize, sqlx::Type,
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    PartialEq,
+    Ord,
+    PartialOrd,
+    Hash,
+    Serialize,
+    Deserialize,
+    sqlx::Type,
+    async_graphql::Enum,
 )]
 #[sqlx(type_name = "ship_module_symbol")]
+#[graphql(name = "ShipModuleSymbol")]
 pub enum Symbol {
     #[serde(rename = "MODULE_MINERAL_PROCESSOR_I")]
     #[sqlx(rename = "MODULE_MINERAL_PROCESSOR_I")]

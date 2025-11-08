@@ -12,8 +12,8 @@ pub enum ActionType {
 
 impl ActionType {
     pub fn get_action(ship_clone: &ship::MyShip) -> Option<ActionType> {
-        match &ship_clone.status {
-            ship::ShipStatus::Mining {
+        match &ship_clone.status.status {
+            ship::AssignmentStatus::Mining {
                 assignment: mining_ship_assignment,
             } => match mining_ship_assignment {
                 ship::status::MiningShipAssignment::Transporter { .. } => None,

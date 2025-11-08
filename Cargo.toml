@@ -55,3 +55,5 @@ opentelemetry-otlp = { version = "0.12.0", features = ["tonic", "metrics"] }
 opentelemetry-semantic-conventions = { version = "0.11.0" }
 
 tracing-tracy = "0.11.4"
+async-graphql = "7.0.17"
+async-graphql-warp = "7.0.17"

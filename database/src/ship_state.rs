@@ -15,7 +15,6 @@ pub struct ShipState {
     // Basic ship identification
     pub symbol: String,
     pub display_name: String,
-    pub active: bool,
 
     // Performance
     pub engine_speed: i32,
@@ -88,7 +87,6 @@ impl ShipState {
                 INSERT INTO ship_state (
                   symbol,
                   display_name,
-                  active,
                   engine_speed,
                   engine_condition,
                   engine_integrity,
@@ -142,15 +140,15 @@ impl ShipState {
                   $11,
                   $12,
                   $13,
-                  $14,
-                  $15::jsonb,
-                  $16::ship_mount_symbol[],
-                  $17::ship_module_symbol[],
+                  $14::jsonb,
+                  $15::ship_mount_symbol[],
+                  $16::ship_module_symbol[],
+                  $17,
                   $18,
-                  $19,
-                  $20::ship_reactor_symbol,
-                  $21::ship_frame_symbol,
-                  $22::ship_engine_symbol,
+                  $19::ship_reactor_symbol,
+                  $20::ship_frame_symbol,
+                  $21::ship_engine_symbol,
+                  $22,
                   $23,
                   $24,
                   $25,
@@ -168,14 +166,12 @@ impl ShipState {
                   $37,
                   $38,
                   $39,
-                  $40,
-                  $41
+                  $40
                 )
                 RETURNING id;
             "#,
             &item.symbol,
             &item.display_name,
-            &item.active,
             &item.engine_speed,
             &item.engine_condition,
             &item.engine_integrity,
@@ -246,7 +242,6 @@ impl DatabaseConnector<ShipState> for ShipState {
                   id,
                   symbol,
                   display_name,
-                  active,
                   engine_speed,
                   engine_condition,
                   engine_integrity,

@@ -45,7 +45,7 @@ impl MiningPilot {
 
         self.assign_ships(ship).await;
 
-        if let ship::ShipStatus::Mining { assignment } = &ship.status {
+        if let ship::AssignmentStatus::Mining { assignment } = &ship.status.status {
             match assignment {
                 MiningShipAssignment::Extractor { .. } => {
                     self.run_extractor_ship_worker(ship, pilot).await?
@@ -68,7 +68,7 @@ impl MiningPilot {
     }
 
     async fn assign_ships(&self, ship: &mut ship::MyShip) {
-        ship.status = ship::ShipStatus::Mining {
+        ship.status.status = ship::AssignmentStatus::Mining {
             assignment: Self::get_ship_assignment(ship),
         };
 

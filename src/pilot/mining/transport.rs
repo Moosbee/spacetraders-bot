@@ -45,7 +45,7 @@ impl TransportPilot {
 
         let mut last_waypoint = ship.nav.waypoint_symbol.clone();
 
-        ship.status = ship::ShipStatus::Mining {
+        ship.status.status = ship::AssignmentStatus::Mining {
             assignment: MiningShipAssignment::Transporter {
                 state: TransporterState::Unknown,
                 waypoint_symbol: None,
@@ -83,7 +83,7 @@ impl TransportPilot {
 
             last_waypoint = next_mining_waypoint.clone();
 
-            ship.status = ship::ShipStatus::Mining {
+            ship.status.status = ship::AssignmentStatus::Mining {
                 assignment: MiningShipAssignment::Transporter {
                     state: TransporterState::InTransitToAsteroid,
                     waypoint_symbol: Some(next_mining_waypoint.clone()),
@@ -114,7 +114,7 @@ impl TransportPilot {
         self.sell_all_cargo(pilot, ship, &waypoints, last_waypoint)
             .await?;
 
-        ship.status = ship::ShipStatus::Mining {
+        ship.status.status = ship::AssignmentStatus::Mining {
             assignment: MiningShipAssignment::Transporter {
                 state: TransporterState::Unknown,
                 waypoint_symbol: None,
@@ -170,7 +170,7 @@ impl TransportPilot {
                 as f32
             > 0.95)
         {
-            ship.status = ship::ShipStatus::Mining {
+            ship.status.status = ship::AssignmentStatus::Mining {
                 assignment: MiningShipAssignment::Transporter {
                     state: TransporterState::WaitingForCargo,
                     waypoint_symbol: Some(ship.nav.waypoint_symbol.clone()),
@@ -187,7 +187,7 @@ impl TransportPilot {
                 msg = rec.recv() => msg,
             };
 
-            ship.status = ship::ShipStatus::Mining {
+            ship.status.status = ship::AssignmentStatus::Mining {
                 assignment: MiningShipAssignment::Transporter {
                     state: TransporterState::LoadingCargo,
                     waypoint_symbol: Some(ship.nav.waypoint_symbol.clone()),
@@ -302,7 +302,7 @@ impl TransportPilot {
                 break;
             }
 
-            ship.status = ship::ShipStatus::Mining {
+            ship.status.status = ship::AssignmentStatus::Mining {
                 assignment: MiningShipAssignment::Transporter {
                     state: TransporterState::InTransitToMarket,
                     waypoint_symbol: Some(mining_waypoint.clone()),
@@ -327,7 +327,7 @@ impl TransportPilot {
             )
             .await?;
 
-            ship.status = ship::ShipStatus::Mining {
+            ship.status.status = ship::AssignmentStatus::Mining {
                 assignment: MiningShipAssignment::Transporter {
                     state: TransporterState::SellingCargo,
                     waypoint_symbol: Some(mining_waypoint.clone()),

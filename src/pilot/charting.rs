@@ -40,7 +40,7 @@ impl ChartPilot {
 
         debug!("Requesting next chart for ship: {:?}", ship.symbol);
 
-        ship.status = ship::ShipStatus::Charting {
+        ship.status.status = ship::AssignmentStatus::Charting {
             cycle: Some(self.count.load(std::sync::atomic::Ordering::SeqCst)),
             waiting_for_manager: true,
             waypoint_symbol: None,
@@ -78,7 +78,7 @@ impl ChartPilot {
     ) -> std::result::Result<(), Error> {
         self.count.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
 
-        ship.status = ship::ShipStatus::Charting {
+        ship.status.status = ship::AssignmentStatus::Charting {
             cycle: Some(self.count.load(std::sync::atomic::Ordering::SeqCst)),
             waiting_for_manager: false,
             waypoint_symbol: Some(chart.clone()),
@@ -103,7 +103,7 @@ impl ChartPilot {
 
         self.context.chart_manager.complete_chart(chart).await?;
 
-        ship.status = ship::ShipStatus::Charting {
+        ship.status.status = ship::AssignmentStatus::Charting {
             cycle: Some(self.count.load(std::sync::atomic::Ordering::SeqCst)),
             waiting_for_manager: false,
             waypoint_symbol: None,
