@@ -14,7 +14,18 @@ use serde::{Deserialize, Serialize};
 /// SurveySize : The size of the deposit. This value indicates how much can be extracted from the survey before it is exhausted.
 /// The size of the deposit. This value indicates how much can be extracted from the survey before it is exhausted.
 #[derive(
-    Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize, sqlx::Type,
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    PartialEq,
+    Ord,
+    PartialOrd,
+    Hash,
+    Serialize,
+    Deserialize,
+    sqlx::Type,
+    async_graphql::Enum,
 )]
 #[sqlx(type_name = "survey_size")]
 pub enum SurveySize {

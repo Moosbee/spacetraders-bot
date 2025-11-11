@@ -14,7 +14,18 @@ use serde::{Deserialize, Serialize};
 /// SystemType : The type of system.
 /// The type of system.
 #[derive(
-    Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize, sqlx::Type,
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    PartialEq,
+    Ord,
+    PartialOrd,
+    Hash,
+    Serialize,
+    Deserialize,
+    sqlx::Type,
+    async_graphql::Enum,
 )]
 #[sqlx(type_name = "system_type")]
 pub enum SystemType {

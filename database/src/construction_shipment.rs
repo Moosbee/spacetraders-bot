@@ -3,7 +3,7 @@ use tracing::instrument;
 
 use super::{DatabaseConnector, DbPool, ShipmentStatus};
 
-#[derive(Debug, Clone, serde::Serialize)]
+#[derive(Debug, Clone, serde::Serialize, async_graphql::SimpleObject)]
 pub struct ConstructionShipment {
     pub id: i64,
     pub material_id: i64,
@@ -129,6 +129,157 @@ impl ConstructionShipment {
                 FROM construction_shipment
                 WHERE status = 'IN_TRANSIT'
             "#,
+        )
+        .fetch_all(database_pool.get_cache_pool())
+        .await?;
+        Ok(erg)
+    }
+
+    #[instrument(level = "trace", skip(database_pool))]
+    pub async fn get_by_waypoint(
+        database_pool: &DbPool,
+        waypoint_symbol: &str,
+    ) -> crate::Result<Vec<ConstructionShipment>> {
+        let erg = sqlx::query_as!(
+            ConstructionShipment,
+            r#"
+                SELECT
+                  id,
+                  material_id,
+                  construction_site_waypoint,
+                  ship_symbol,
+                  trade_symbol as "trade_symbol: models::TradeSymbol",
+                  units,
+                  purchase_waypoint,
+                  created_at,
+                  updated_at,
+                  status as "status: ShipmentStatus",
+                  reserved_fund
+                FROM construction_shipment
+                WHERE construction_site_waypoint = $1
+            "#,
+            waypoint_symbol
+        )
+        .fetch_all(database_pool.get_cache_pool())
+        .await?;
+        Ok(erg)
+    }
+
+    #[instrument(level = "trace", skip(database_pool))]
+    pub async fn get_by_system(
+        database_pool: &DbPool,
+        system_symbol: &str,
+    ) -> crate::Result<Vec<ConstructionShipment>> {
+        let erg = sqlx::query_as!(
+            ConstructionShipment,
+            r#"
+                SELECT
+                  id,
+                  material_id,
+                  construction_site_waypoint,
+                  ship_symbol,
+                  trade_symbol as "trade_symbol: models::TradeSymbol",
+                  units,
+                  purchase_waypoint,
+                  construction_shipment.created_at,
+                  construction_shipment.updated_at,
+                  status as "status: ShipmentStatus",
+                  reserved_fund
+                FROM construction_shipment JOIN waypoint ON construction_shipment.construction_site_waypoint = waypoint.symbol
+                WHERE waypoint.system_symbol = $1
+                
+            "#,
+            system_symbol
+        )
+        .fetch_all(database_pool.get_cache_pool())
+        .await?;
+        Ok(erg)
+    }
+
+    #[instrument(level = "trace", skip(database_pool))]
+    pub async fn get_by_trade_symbol(
+        database_pool: &DbPool,
+        trade_symbol: &models::TradeSymbol,
+    ) -> crate::Result<Vec<ConstructionShipment>> {
+        let erg = sqlx::query_as!(
+            ConstructionShipment,
+            r#"
+                SELECT
+                  id,
+                  material_id,
+                  construction_site_waypoint,
+                  ship_symbol,
+                  trade_symbol as "trade_symbol: models::TradeSymbol",
+                  units,
+                  purchase_waypoint,
+                  created_at,
+                  updated_at,
+                  status as "status: ShipmentStatus",
+                  reserved_fund
+                FROM construction_shipment
+                WHERE trade_symbol = $1
+            "#,
+            trade_symbol as &models::TradeSymbol
+        )
+        .fetch_all(database_pool.get_cache_pool())
+        .await?;
+        Ok(erg)
+    }
+
+    #[instrument(level = "trace", skip(database_pool))]
+    pub async fn get_by_material_id(
+        database_pool: &DbPool,
+        material_id: i64,
+    ) -> crate::Result<Vec<ConstructionShipment>> {
+        let erg = sqlx::query_as!(
+            ConstructionShipment,
+            r#"
+                SELECT
+                  id,
+                  material_id,
+                  construction_site_waypoint,
+                  ship_symbol,
+                  trade_symbol as "trade_symbol: models::TradeSymbol",
+                  units,
+                  purchase_waypoint,
+                  created_at,
+                  updated_at,
+                  status as "status: ShipmentStatus",
+                  reserved_fund
+                FROM construction_shipment
+                WHERE material_id = $1
+            "#,
+            material_id
+        )
+        .fetch_all(database_pool.get_cache_pool())
+        .await?;
+        Ok(erg)
+    }
+
+    #[instrument(level = "trace", skip(database_pool))]
+    pub async fn get_by_ship_symbol(
+        database_pool: &DbPool,
+        ship_symbol: &str,
+    ) -> crate::Result<Vec<ConstructionShipment>> {
+        let erg = sqlx::query_as!(
+            ConstructionShipment,
+            r#"
+                SELECT
+                  id,
+                  material_id,
+                  construction_site_waypoint,
+                  ship_symbol,
+                  trade_symbol as "trade_symbol: models::TradeSymbol",
+                  units,
+                  purchase_waypoint,
+                  created_at,
+                  updated_at,
+                  status as "status: ShipmentStatus",
+                  reserved_fund
+                FROM construction_shipment
+                WHERE ship_symbol = $1
+            "#,
+            ship_symbol
         )
         .fetch_all(database_pool.get_cache_pool())
         .await?;

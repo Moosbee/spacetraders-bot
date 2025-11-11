@@ -4,7 +4,7 @@ use tracing::instrument;
 
 use super::{ContractDelivery, DatabaseConnector, DbPool};
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, async_graphql::SimpleObject)]
 pub struct Contract {
     pub id: String,
     pub faction_symbol: String,
@@ -247,6 +247,34 @@ impl Contract {
         }
 
         Ok(())
+    }
+
+    #[instrument(level = "trace", skip(database_pool))]
+    pub async fn get_by_faction_symbol(
+        database_pool: &DbPool,
+        symbol: &String,
+    ) -> crate::Result<Vec<Contract>> {
+        let erg = sqlx::query_as!(
+            Contract,
+            r#"SELECT
+          id,
+          faction_symbol,
+          contract_type as "contract_type: models::contract::Type",
+          accepted,
+          fulfilled,
+          deadline_to_accept,
+          on_accepted,
+          on_fulfilled,
+          deadline,
+          updated_at,
+          created_at,
+          reserved_fund
+        FROM public.contract WHERE faction_symbol = $1"#,
+            &symbol
+        )
+        .fetch_all(database_pool.get_cache_pool())
+        .await?;
+        Ok(erg)
     }
 
     #[instrument(level = "trace", skip(database_pool))]

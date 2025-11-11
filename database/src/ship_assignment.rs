@@ -2,7 +2,7 @@ use tracing::instrument;
 
 use crate::{DatabaseConnector, DbPool};
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, async_graphql::SimpleObject)]
 pub struct ShipAssignment {
     pub id: i64,
     pub fleet_id: i32,
@@ -20,6 +20,7 @@ pub struct ShipAssignment {
 }
 
 impl ShipAssignment {
+    #[instrument(level = "trace", skip(database_pool))]
     pub async fn get_by_id(
         database_pool: &DbPool,
         id: i64,
@@ -51,6 +52,7 @@ impl ShipAssignment {
         Ok(resp)
     }
 
+    #[instrument(level = "trace", skip(database_pool))]
     pub async fn get_by_fleet_id(
         database_pool: &DbPool,
         fleet_id: i32,
@@ -82,6 +84,7 @@ impl ShipAssignment {
         Ok(resp)
     }
 
+    #[instrument(level = "trace", skip(database_pool))]
     pub async fn get_open_assignments(
         database_pool: &DbPool,
     ) -> crate::Result<Vec<ShipAssignment>> {
@@ -114,6 +117,7 @@ impl ShipAssignment {
         Ok(resp)
     }
 
+    #[instrument(level = "trace", skip(database_pool))]
     pub async fn insert_new(database_pool: &DbPool, item: &ShipAssignment) -> crate::Result<i64> {
         let erg = sqlx::query!(
             r#"

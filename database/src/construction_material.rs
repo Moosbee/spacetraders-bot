@@ -4,7 +4,7 @@ use tracing::instrument;
 
 use super::{DatabaseConnector, DbPool};
 
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, async_graphql::SimpleObject)]
 pub struct ConstructionMaterial {
     pub id: i64,
     pub waypoint_symbol: String,
@@ -40,6 +40,58 @@ impl ConstructionMaterial {
             created_at: Utc::now(),
             updated_at: Utc::now(),
         }
+    }
+
+    #[instrument(level = "trace", skip(database_pool))]
+    pub async fn get_by_trade_symbol(
+        database_pool: &DbPool,
+        trade_symbol: &models::TradeSymbol,
+    ) -> crate::Result<Vec<ConstructionMaterial>> {
+        let erg = sqlx::query_as!(
+            ConstructionMaterial,
+            r#"
+        SELECT
+          id,
+          waypoint_symbol,
+          trade_symbol as "trade_symbol: models::TradeSymbol",
+          required,
+          fulfilled,
+          created_at,
+          updated_at
+        FROM construction_material
+        WHERE trade_symbol = $1
+      "#,
+            *trade_symbol as models::TradeSymbol
+        )
+        .fetch_all(database_pool.get_cache_pool())
+        .await?;
+        Ok(erg)
+    }
+
+    #[instrument(level = "trace", skip(database_pool))]
+    pub async fn get_by_system(
+        database_pool: &DbPool,
+        system_symbol: &str,
+    ) -> crate::Result<Vec<ConstructionMaterial>> {
+        let erg = sqlx::query_as!(
+            ConstructionMaterial,
+            r#"
+        SELECT
+          id,
+          waypoint_symbol,
+          trade_symbol as "trade_symbol: models::TradeSymbol",
+          required,
+          fulfilled,
+          construction_material.created_at,
+          construction_material.updated_at
+        FROM construction_material JOIN waypoint ON construction_material.waypoint_symbol = waypoint.symbol
+        WHERE waypoint.system_symbol = $1
+      "#,
+      system_symbol
+        )
+        .fetch_all(database_pool.get_cache_pool())
+        .await?;
+        Ok(erg)
     }
 
     #[instrument(level = "trace", skip(database_pool))]

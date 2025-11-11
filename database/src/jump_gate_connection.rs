@@ -3,7 +3,15 @@ use tracing::instrument;
 
 use super::{DatabaseConnector, DbPool};
 
-#[derive(Clone, Default, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Clone,
+    Default,
+    Debug,
+    PartialEq,
+    serde::Serialize,
+    serde::Deserialize,
+    async_graphql::SimpleObject,
+)]
 pub struct JumpGateConnection {
     pub id: i64,
     pub from: String,

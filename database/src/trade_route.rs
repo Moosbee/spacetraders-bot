@@ -3,7 +3,7 @@ use tracing::instrument;
 
 use super::{DatabaseConnector, DbPool, ShipmentStatus};
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, async_graphql::SimpleObject)]
 pub struct TradeRoute {
     pub id: i32,
     pub symbol: models::TradeSymbol,
@@ -290,6 +290,32 @@ impl TradeRoute {
         let erg = erg.first().ok_or_else(|| sqlx::Error::RowNotFound)?;
 
         Ok(erg.id)
+    }
+
+    #[instrument(level = "trace", skip(database_pool))]
+    pub async fn get_by_id(database_pool: &DbPool, id: i32) -> crate::Result<Option<TradeRoute>> {
+        let erg = sqlx::query_as!(
+            TradeRoute,
+            r#"
+                SELECT 
+                  id,
+                  symbol as "symbol: models::TradeSymbol",
+                  ship_symbol,
+                  purchase_waypoint,
+                  sell_waypoint,
+                  status as "status: ShipmentStatus",
+                  trade_volume,
+                  predicted_purchase_price,
+                  predicted_sell_price,
+                  created_at,
+                  reserved_fund
+                 FROM trade_route WHERE id = $1
+            "#,
+            id
+        )
+        .fetch_optional(&database_pool.database_pool)
+        .await?;
+        Ok(erg)
     }
 
     #[instrument(level = "trace", skip(database_pool))]

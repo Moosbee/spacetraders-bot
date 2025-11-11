@@ -6,7 +6,7 @@ use tracing::instrument;
 
 use super::DatabaseConnector;
 
-#[derive(Clone, Debug, PartialEq, serde::Serialize)]
+#[derive(Clone, Debug, PartialEq, serde::Serialize, async_graphql::SimpleObject)]
 pub struct ShipyardTransaction {
     pub id: i64,
     pub waypoint_symbol: String,
@@ -54,6 +54,7 @@ impl ShipyardTransaction {
                 "timestamp"
             FROM shipyard_transaction
             WHERE waypoint_symbol = $1
+            order by "timestamp"
             "#,
             waypoint_symbol
         )
@@ -80,8 +81,61 @@ impl ShipyardTransaction {
                 "timestamp"
       from shipyard_transaction
       where waypoint_symbol like $1
+            order by "timestamp"
     "#,
             system_qr
+        )
+        .fetch_all(database_pool.get_cache_pool())
+        .await?;
+        Ok(erg)
+    }
+
+    #[instrument(level = "trace", skip(database_pool))]
+    pub async fn get_by_ship_type(
+        database_pool: &super::DbPool,
+        ship_type: models::ShipType,
+    ) -> crate::Result<Vec<ShipyardTransaction>> {
+        let erg = sqlx::query_as!(
+            ShipyardTransaction,
+            r#"
+            SELECT
+                id,
+                waypoint_symbol,
+                ship_type as "ship_type: models::ShipType",
+                price,
+                agent_symbol,
+                "timestamp"
+            FROM shipyard_transaction
+            WHERE ship_type = $1
+            order by "timestamp"
+            "#,
+            ship_type as models::ShipType
+        )
+        .fetch_all(database_pool.get_cache_pool())
+        .await?;
+        Ok(erg)
+    }
+
+    #[instrument(level = "trace", skip(database_pool))]
+    pub async fn get_by_agent(
+        database_pool: &super::DbPool,
+        agent_symbol: &str,
+    ) -> crate::Result<Vec<ShipyardTransaction>> {
+        let erg = sqlx::query_as!(
+            ShipyardTransaction,
+            r#"
+            SELECT
+                id,
+                waypoint_symbol,
+                ship_type as "ship_type: models::ShipType",
+                price,
+                agent_symbol,
+                "timestamp"
+            FROM shipyard_transaction
+            WHERE agent_symbol = $1
+            order by "timestamp"
+            "#,
+            agent_symbol
         )
         .fetch_all(database_pool.get_cache_pool())
         .await?;
@@ -209,6 +263,7 @@ impl DatabaseConnector<ShipyardTransaction> for ShipyardTransaction {
                 agent_symbol,
                 "timestamp"
             FROM shipyard_transaction
+            order by "timestamp"
             "#
         )
         .fetch_all(database_pool.get_cache_pool())

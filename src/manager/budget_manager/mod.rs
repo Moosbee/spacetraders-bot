@@ -6,7 +6,7 @@ use std::{
 use database::{DatabaseConnector, FundStatus, ReservedFund};
 use tokio::sync::Mutex;
 
-#[derive(Debug, Clone, serde::Serialize)]
+#[derive(Debug, Clone, serde::Serialize, async_graphql::SimpleObject)]
 pub struct BudgetInfo {
     pub current_funds: i64,
     pub iron_reserve: i64,
@@ -43,7 +43,8 @@ impl BudgetManager {
         let reserved_funds = self.reserved_funds.lock().await;
         let reserved_amount = Self::get_still_reserved_funds(reserved_funds.clone());
         let spendable =
-            self.current_funds.load(Ordering::SeqCst) - self.iron_reserve - reserved_amount;
+            (self.current_funds.load(Ordering::SeqCst) - self.iron_reserve - reserved_amount)
+                .max(0);
 
         BudgetInfo {
             current_funds: self.current_funds.load(Ordering::SeqCst),
@@ -75,10 +76,15 @@ impl BudgetManager {
         spendable >= amount
     }
 
-    pub async fn get_spendable_funds(&self) -> i64 {
+    pub async fn get_spendable_funds_with_remain(&self, remain: i64) -> i64 {
         let reserved_funds = self.reserved_funds.lock().await;
         let reserved_amount = Self::get_still_reserved_funds(reserved_funds.clone());
-        self.current_funds.load(Ordering::SeqCst) - self.iron_reserve - reserved_amount
+        (self.current_funds.load(Ordering::SeqCst) - remain - reserved_amount).max(0)
+    }
+
+    pub async fn get_spendable_funds(&self) -> i64 {
+        self.get_spendable_funds_with_remain(self.iron_reserve)
+            .await
     }
 
     pub async fn reserve_funds(

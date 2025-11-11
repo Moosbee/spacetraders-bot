@@ -11,10 +11,7 @@ use utils::get_system_symbol;
 
 use crate::{
     error::{Error, Result},
-    manager::{
-        construction_manager::message::ConstructionMessage,
-        Manager,
-    },
+    manager::{construction_manager::message::ConstructionMessage, Manager},
     utils::ConductorContext,
 };
 
@@ -265,21 +262,44 @@ impl ConstructionManager {
             return Ok(super::NextShipmentResp::ComeBackLater);
         }
 
-        let next_material: &database::ConstructionMaterial = construction_materials
-            .iter()
-            .min_by_key(|c| ((c.fulfilled as f64 / c.required as f64) * 10000.0) as i64)
-            .unwrap();
+        // let next_material: &database::ConstructionMaterial = construction_materials
+        //     .iter()
+        //     .min_by_key(|c| ((c.fulfilled as f64 / c.required as f64) * 10000.0) as i64)
+        //     .unwrap();
 
-        let trade_symbol = next_material.trade_symbol;
+        let mut materials = Vec::new();
 
-        let (purchase_volume, remaining) =
-            self.calculate_purchase_volume(&ship_clone, next_material, &trade_symbol);
-        debug!("Calculated purchase volume: {}", purchase_volume);
+        for material in construction_materials.iter() {
+            let trade_symbol = material.trade_symbol;
 
-        let purchase_symbol = self
-            .get_purchase_waypoint(&trade_symbol, &ship_clone.nav.system_symbol)
-            .await?;
-        debug!("Obtained purchase waypoint: {:?}", purchase_symbol);
+            let (purchase_volume, remaining) =
+                self.calculate_purchase_volume(&ship_clone, material, &trade_symbol);
+            debug!("Calculated purchase volume: {}", purchase_volume);
+
+            let purchase_symbol = self
+                .get_purchase_waypoint(&trade_symbol, &ship_clone.nav.system_symbol)
+                .await?;
+            debug!("Obtained purchase waypoint: {:?}", purchase_symbol);
+            let purchase_price = purchase_symbol.1.unwrap_or(10);
+
+            materials.push((
+                material.clone(),
+                trade_symbol,
+                purchase_symbol,
+                purchase_volume,
+                remaining,
+                purchase_volume * purchase_price,
+            ));
+        }
+
+        let (
+            next_material,
+            trade_symbol,
+            purchase_symbol,
+            purchase_volume,
+            remaining,
+            _total_price,
+        ) = materials.into_iter().min_by_key(|m| m.4).unwrap();
 
         let reservation = if let Some(purchase_price) = purchase_symbol.1 {
             debug!("Calculated purchase price: {}", purchase_price);
@@ -440,6 +460,7 @@ impl ConstructionManager {
         Ok(())
     }
 
+    /// returns purchase volume and remaining volume
     fn calculate_purchase_volume(
         &self,
         ship: &ship::MyShip,

@@ -6,7 +6,15 @@ use tracing::instrument;
 
 use crate::{DatabaseConnector, DbPool};
 
-#[derive(Clone, Default, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Clone,
+    Default,
+    Debug,
+    PartialEq,
+    serde::Serialize,
+    serde::Deserialize,
+    async_graphql::SimpleObject,
+)]
 pub struct ChartTransaction {
     pub id: i64,
     /// The symbol of the waypoint.
@@ -31,6 +39,33 @@ impl TryFrom<models::ChartTransaction> for ChartTransaction {
             total_price: item.total_price,
             timestamp,
         })
+    }
+}
+
+impl ChartTransaction {
+    #[instrument(level = "trace", skip(database_pool))]
+    pub async fn get_by_ship_symbol(
+        database_pool: &DbPool,
+        ship_symbol: &str,
+    ) -> crate::Result<Vec<ChartTransaction>> {
+        let erg = sqlx::query_as!(
+            ChartTransaction,
+            r#" 
+          SELECT
+            id,
+            waypoint_symbol,
+            ship_symbol,
+            total_price,
+            "timestamp"
+          FROM chart_transaction
+          WHERE ship_symbol = $1
+          order by "timestamp"
+        "#,
+            ship_symbol
+        )
+        .fetch_all(database_pool.get_cache_pool())
+        .await?;
+        Ok(erg)
     }
 }
 
@@ -118,6 +153,7 @@ impl DatabaseConnector<ChartTransaction> for ChartTransaction {
                 total_price,
                 "timestamp"
               FROM chart_transaction
+              order by "timestamp"
           "#
         )
         .fetch_all(database_pool.get_cache_pool())

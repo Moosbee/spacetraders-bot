@@ -66,9 +66,21 @@ impl MarketTransaction {
 }
 /// The type of transaction.
 #[derive(
-    Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize, sqlx::Type,
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    PartialEq,
+    Ord,
+    PartialOrd,
+    Hash,
+    Serialize,
+    Deserialize,
+    sqlx::Type,
+    async_graphql::Enum,
 )]
 #[sqlx(type_name = "market_transaction_type")]
+#[graphql(name = "MarketTransactionType")]
 pub enum Type {
     #[serde(rename = "PURCHASE")]
     #[sqlx(rename = "PURCHASE")]

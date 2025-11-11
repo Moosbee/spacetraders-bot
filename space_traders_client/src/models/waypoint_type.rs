@@ -14,7 +14,18 @@ use serde::{Deserialize, Serialize};
 /// WaypointType : The type of waypoint.
 /// The type of waypoint.
 #[derive(
-    Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize, sqlx::Type,
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    PartialEq,
+    Ord,
+    PartialOrd,
+    Hash,
+    Serialize,
+    Deserialize,
+    sqlx::Type,
+    async_graphql::Enum,
 )]
 #[sqlx(type_name = "waypoint_type")]
 pub enum WaypointType {

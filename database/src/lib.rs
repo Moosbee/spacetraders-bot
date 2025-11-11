@@ -53,6 +53,7 @@ pub use fleet::ConstructionConfig as ConstructionFleetConfig;
 pub use fleet::ContractConfig as ContractFleetConfig;
 pub use fleet::Fleet;
 pub use fleet::FleetConfig;
+pub use fleet::FleetType;
 pub use fleet::MiningConfig as MiningFleetConfig;
 pub use fleet::ScrapingConfig as ScrapingFleetConfig;
 pub use fleet::TradeMode;
@@ -66,12 +67,15 @@ pub use market_transaction::TransactionReason;
 pub use module_info::ModuleInfo;
 pub use mount_info::MountInfo;
 pub use reactor_info::ReactorInfo;
+pub use repair_transaction::RepairTransaction;
 pub use reserved_fund::FundStatus;
 pub use reserved_fund::ReservedFund;
 pub use route::Route;
+pub use scrap_transaction::ScrapTransaction;
 pub use ship_assignment::ShipAssignment;
 pub use ship_info::ShipInfo;
 pub use ship_jump::ShipJump;
+pub use ship_modification_transaction::ShipModificationTransaction;
 pub use ship_state::ShipState;
 pub use shipyard::Shipyard;
 pub use shipyard_ship::ShipyardShip;
@@ -159,4 +163,16 @@ pub trait DatabaseConnector<T> {
     #[allow(dead_code)]
     /// Get all items from the database.
     async fn get_all(database_pool: &DbPool) -> crate::Result<Vec<T>>;
+}
+
+#[allow(async_fn_in_trait)]
+pub trait DatabaseConnectorAsync {
+    type T;
+    type ID;
+    async fn insert_new(database_pool: &DbPool, item: &Self::T) -> crate::Result<Self::ID>;
+    async fn upsert(database_pool: &DbPool, item: &Self::T) -> crate::Result<()>;
+    async fn update(database_pool: &DbPool, item: &Self::T) -> crate::Result<()>;
+    async fn insert_bulk(database_pool: &DbPool, items: &[Self::T]) -> crate::Result<()>;
+    async fn get_all(database_pool: &DbPool) -> crate::Result<Vec<Self::T>>;
+    async fn get_by_id(database_pool: &DbPool, id: &Self::ID) -> crate::Result<Option<Self::T>>;
 }

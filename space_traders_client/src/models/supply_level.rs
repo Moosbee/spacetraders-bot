@@ -14,7 +14,18 @@ use serde::{Deserialize, Serialize};
 /// SupplyLevel : The supply level of a trade good.
 /// The supply level of a trade good.
 #[derive(
-    Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize, sqlx::Type,
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    PartialEq,
+    Ord,
+    PartialOrd,
+    Hash,
+    Serialize,
+    Deserialize,
+    sqlx::Type,
+    async_graphql::Enum,
 )]
 #[sqlx(type_name = "supply_level")]
 pub enum SupplyLevel {

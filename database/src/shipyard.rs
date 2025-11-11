@@ -3,7 +3,7 @@ use chrono::{DateTime, Utc};
 use space_traders_client::models;
 use tracing::instrument;
 
-#[derive(Clone, Debug, PartialEq, serde::Serialize)]
+#[derive(Clone, Debug, PartialEq, serde::Serialize, async_graphql::SimpleObject)]
 pub struct Shipyard {
     #[allow(dead_code)]
     pub id: i64,
@@ -68,6 +68,25 @@ impl Shipyard {
             waypoint_symbol
         )
         .fetch_optional(database_pool.get_cache_pool())
+        .await?;
+        Ok(erg)
+    }
+
+    #[instrument(level = "trace", skip(database_pool))]
+    pub async fn get_last(database_pool: &super::DbPool) -> crate::Result<Vec<Shipyard>> {
+        let erg = sqlx::query_as!(
+            Shipyard,
+            r#"
+            SELECT DISTINCT ON (waypoint_symbol)
+                id,
+                waypoint_symbol,
+                modifications_fee,
+                created_at
+            FROM shipyard
+            ORDER BY waypoint_symbol, created_at DESC
+            "#
+        )
+        .fetch_all(database_pool.get_cache_pool())
         .await?;
         Ok(erg)
     }

@@ -6,7 +6,7 @@ use tracing::instrument;
 
 use crate::{DatabaseConnector, DbPool};
 
-#[derive(Debug, Clone, serde::Serialize)]
+#[derive(Debug, Clone, serde::Serialize, async_graphql::SimpleObject)]
 pub struct Survey {
     pub ship_info_before: i64,
     pub ship_info_after: i64,
@@ -61,6 +61,122 @@ impl Survey {
     }
 
     #[instrument(level = "trace", skip(database_pool))]
+    pub async fn get_by_signature(
+        database_pool: &DbPool,
+        signature: &str,
+    ) -> crate::Result<Survey> {
+        let erg = sqlx::query_as!(
+            Survey,
+            r#"
+                SELECT
+                  signature,
+                  ship_info_before,
+                  ship_info_after,
+                  waypoint_symbol,
+                  deposits as "deposits: Vec<models::TradeSymbol>",
+                  expiration,
+                  size as "size: models::SurveySize",
+                  exhausted_since,
+                  created_at,
+                  updated_at
+                FROM surveys
+                WHERE signature = $1
+            "#,
+            signature
+        )
+        .fetch_one(database_pool.get_cache_pool())
+        .await?;
+        Ok(erg)
+    }
+
+    #[instrument(level = "trace", skip(database_pool))]
+    pub async fn get_by_waypoint_symbol(
+        database_pool: &DbPool,
+        waypoint_symbol: &str,
+    ) -> crate::Result<Vec<Survey>> {
+        let erg = sqlx::query_as!(
+            Survey,
+            r#"
+                SELECT
+                  signature,
+                  ship_info_before,
+                  ship_info_after,
+                  waypoint_symbol,
+                  deposits as "deposits: Vec<models::TradeSymbol>",
+                  expiration,
+                  size as "size: models::SurveySize",
+                  exhausted_since,
+                  created_at,
+                  updated_at
+                FROM surveys
+                WHERE waypoint_symbol = $1
+            "#,
+            waypoint_symbol
+        )
+        .fetch_all(database_pool.get_cache_pool())
+        .await?;
+        Ok(erg)
+    }
+
+    #[instrument(level = "trace", skip(database_pool))]
+    pub async fn get_by_system_symbol(
+        database_pool: &DbPool,
+        system_symbol: &str,
+    ) -> crate::Result<Vec<Survey>> {
+        let erg = sqlx::query_as!(
+            Survey,
+            r#"
+                SELECT
+                  signature,
+                  ship_info_before,
+                  ship_info_after,
+                  waypoint_symbol,
+                  deposits as "deposits: Vec<models::TradeSymbol>",
+                  expiration,
+                  size as "size: models::SurveySize",
+                  exhausted_since,
+                  created_at,
+                  updated_at
+                FROM surveys
+                WHERE waypoint_symbol IN (SELECT symbol FROM waypoint WHERE system_symbol = $1)
+            "#,
+            system_symbol
+        )
+        .fetch_all(database_pool.get_cache_pool())
+        .await?;
+        Ok(erg)
+    }
+
+    #[instrument(level = "trace", skip(database_pool))]
+    pub async fn get_by_size(
+        database_pool: &DbPool,
+        size: models::SurveySize,
+    ) -> crate::Result<Vec<Survey>> {
+        let erg = sqlx::query_as!(
+            Survey,
+            r#"
+                SELECT
+                  signature,
+                  ship_info_before,
+                  ship_info_after,
+                  waypoint_symbol,
+                  deposits as "deposits: Vec<models::TradeSymbol>",
+                  expiration,
+                  size as "size: models::SurveySize",
+                  exhausted_since,
+                  created_at,
+                  updated_at
+                FROM surveys
+                WHERE size = $1
+            "#,
+            size as models::SurveySize
+        )
+        .fetch_all(&database_pool.database_pool)
+        .await?;
+        Ok(erg)
+    }
+
+    #[instrument(level = "trace", skip(database_pool))]
     pub async fn get_working_for_waypoint(
         database_pool: &DbPool,
         waypoint_symbol: &str,
@@ -84,7 +200,7 @@ impl Survey {
             "#,
             waypoint_symbol
         )
-        .fetch_all(database_pool.get_cache_pool())
+        .fetch_all(&database_pool.database_pool)
         .await?;
         Ok(erg)
     }

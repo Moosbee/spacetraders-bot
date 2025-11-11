@@ -27,6 +27,7 @@ use strum_macros::EnumString;
     Deserialize,
     EnumString,
     sqlx::Type,
+    async_graphql::Enum,
 )]
 #[sqlx(type_name = "ship_type")]
 pub enum ShipType {

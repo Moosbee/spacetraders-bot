@@ -2,7 +2,7 @@ use tracing::instrument;
 
 use crate::DatabaseConnector;
 
-#[derive(Debug, Clone, serde::Serialize)]
+#[derive(Debug, Clone, serde::Serialize, async_graphql::SimpleObject)]
 pub struct ReservedFund {
     pub id: i64,
     pub amount: i64,
@@ -22,7 +22,16 @@ impl PartialEq for ReservedFund {
 }
 
 #[derive(
-    Debug, Clone, Copy, PartialEq, Eq, sqlx::Type, serde::Serialize, serde::Deserialize, Default,
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    sqlx::Type,
+    serde::Serialize,
+    serde::Deserialize,
+    Default,
+    async_graphql::Enum,
 )]
 #[sqlx(type_name = "fund_status")]
 pub enum FundStatus {

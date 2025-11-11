@@ -3,7 +3,7 @@ use tracing::instrument;
 
 use super::{DatabaseConnector, DbPool};
 
-#[derive(Debug, Clone, serde::Serialize)]
+#[derive(Debug, Clone, serde::Serialize, async_graphql::SimpleObject)]
 pub struct Agent {
     pub id: i64,
     pub symbol: String,

@@ -15,7 +15,18 @@ use strum_macros::EnumString;
 /// FactionSymbol : The symbol of the faction.
 /// The symbol of the faction.
 #[derive(
-    Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize, EnumString,
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    PartialEq,
+    Ord,
+    PartialOrd,
+    Hash,
+    Serialize,
+    Deserialize,
+    EnumString,
+    async_graphql::Enum,
 )]
 pub enum FactionSymbol {
     #[serde(rename = "COSMIC")]

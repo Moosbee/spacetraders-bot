@@ -1,4 +1,3 @@
-
 use database::DatabaseConnector;
 use space_traders_client::models;
 use tokio::select;
@@ -6,10 +5,7 @@ use tracing::debug;
 
 use crate::{
     error::Result,
-    manager::{
-        trade_manager::message::TradeMessage,
-        Manager,
-    },
+    manager::{trade_manager::message::TradeMessage, Manager},
     utils::ConductorContext,
 };
 
@@ -279,7 +275,7 @@ impl TradeManager {
             let reservation = self
                 .context
                 .budget_manager
-                .reserve_funds(&self.context.database_pool, total_expense)
+                .reserve_funds_with_remain(&self.context.database_pool, total_expense, 1_000)
                 .await?;
 
             next_route.reserved_fund = Some(reservation.id);

@@ -271,8 +271,14 @@ impl FleetManager {
             return Ok(());
         }
 
+        let mut used_shipyard_ships = HashSet::new();
+
         for (assignment, _shipyard_ships, purchasable_subset) in assignments {
             if let Some(shipyard_ship_worth) = purchasable_subset.first() {
+                if used_shipyard_ships.contains(&shipyard_ship_worth.shipyard_ship.ship_type) {
+                    continue;
+                }
+
                 let reservation = self
                     .context
                     .budget_manager
@@ -300,6 +306,8 @@ impl FleetManager {
                 } else {
                     reservation.unwrap()
                 };
+
+                used_shipyard_ships.insert(shipyard_ship_worth.shipyard_ship.ship_type);
 
                 self.purchase_ship(
                     shipyard_ship_worth.shipyard_ship,

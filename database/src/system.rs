@@ -3,7 +3,7 @@ use tracing::instrument;
 
 use super::DatabaseConnector;
 
-#[derive(Clone, Debug, PartialEq, serde::Serialize)]
+#[derive(Clone, Debug, PartialEq, serde::Serialize, async_graphql::SimpleObject)]
 pub struct System {
     pub symbol: String,
     pub sector_symbol: String,
@@ -72,6 +72,33 @@ impl RespSystem {
         .fetch_all(database_pool.get_cache_pool())
         .await?;
 
+        Ok(erg)
+    }
+}
+
+impl System {
+    #[instrument(level = "trace", skip(database_pool))]
+    pub async fn get_by_symbol(
+        database_pool: &super::DbPool,
+        symbol: &str,
+    ) -> crate::Result<Option<Self>> {
+        let erg = sqlx::query_as!(
+            System,
+            r#"
+            SELECT 
+                symbol,
+                sector_symbol,
+                system_type as "system_type: models::SystemType",
+                x,
+                y
+            FROM system
+            WHERE symbol = $1
+            LIMIT 1
+            "#,
+            symbol
+        )
+        .fetch_optional(&database_pool.database_pool)
+        .await?;
         Ok(erg)
     }
 }

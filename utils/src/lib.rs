@@ -187,7 +187,7 @@ impl WaypointCan for space_traders_client::models::Waypoint {
     }
 }
 
-#[derive(Debug, Clone, serde::Serialize)]
+#[derive(Debug, Clone, serde::Serialize, async_graphql::SimpleObject)]
 pub struct RunInfo {
     pub agent_symbol: String,
     pub headquarters: String,

@@ -628,6 +628,7 @@ checksum = "e8566979429cf69b49a5c740c60791108e86440e8be149bbea4fe54d2c32d6e2"
 name = "database"
 version = "0.1.0"
 dependencies = [
+ "async-graphql",
  "chrono",
  "itertools 0.14.0",
  "serde",
@@ -3787,6 +3788,7 @@ name = "utils"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "async-graphql",
  "async-recursion",
  "chrono",
  "dashmap 6.1.0",

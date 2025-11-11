@@ -1,5 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
+use async_graphql::Object;
 use serde::{Deserialize, Serialize};
 use space_traders_client::models;
 use tracing::instrument;
@@ -53,6 +54,32 @@ pub struct Fleet {
 
     // contract config
     contract_ship_count: Option<i32>,
+}
+
+#[Object]
+impl Fleet {
+    async fn id(&self) -> i32 {
+        self.id
+    }
+    async fn system_symbol(&self) -> String {
+        self.system_symbol.clone()
+    }
+
+    async fn fleet_type(&self) -> FleetType {
+        self.fleet_type
+    }
+
+    async fn active(&self) -> bool {
+        self.active
+    }
+
+    async fn created_at(&self) -> chrono::DateTime<chrono::Utc> {
+        self.created_at
+    }
+
+    async fn updated_at(&self) -> chrono::DateTime<chrono::Utc> {
+        self.updated_at
+    }
 }
 
 impl Default for Fleet {
@@ -280,6 +307,7 @@ impl Fleet {
         }
     }
 
+    #[instrument(level = "trace", skip(database_pool))]
     pub async fn insert_new(database_pool: &DbPool, item: &Fleet) -> crate::Result<i32> {
         let erg = sqlx::query!(
             r#"
@@ -362,6 +390,7 @@ impl Fleet {
         Ok(erg.id)
     }
 
+    #[instrument(level = "trace", skip(database_pool))]
     pub async fn get_by_ids(
         database_pool: &DbPool,
         ids: HashSet<i32>,
@@ -418,6 +447,7 @@ impl Fleet {
         Ok(resp)
     }
 
+    #[instrument(level = "trace", skip(database_pool))]
     pub async fn get_by_system(database_pool: &DbPool, system: &str) -> crate::Result<Vec<Fleet>> {
         let resp = sqlx::query_as!(
             Fleet,
@@ -460,6 +490,58 @@ impl Fleet {
                 WHERE system_symbol = $1
             "#,
             &system
+        )
+        .fetch_all(&database_pool.database_pool)
+        .await?;
+        Ok(resp)
+    }
+
+    #[instrument(level = "trace", skip(database_pool))]
+    pub async fn get_by_type(
+        database_pool: &DbPool,
+        fleet_type: FleetType,
+    ) -> crate::Result<Vec<Fleet>> {
+        let resp = sqlx::query_as!(
+            Fleet,
+            r#"
+                SELECT
+                  id,
+                  system_symbol,
+                  fleet_type as "fleet_type: FleetType",
+                  active,
+                  created_at,
+                  updated_at,
+                  market_blacklist as "market_blacklist: Vec<models::TradeSymbol>",
+                  market_prefer_list as "market_prefer_list: Vec<models::TradeSymbol>",
+                  purchase_multiplier,
+                  ship_market_ratio,
+                  min_cargo_space,
+                  trade_mode as "trade_mode: TradeMode",
+                  trade_profit_threshold,
+                  allowed_requests,
+                  notify_on_shipyard,
+                  mining_eject_list as "mining_eject_list: Vec<models::TradeSymbol>",
+                  mining_prefer_list as "mining_prefer_list: Vec<models::TradeSymbol>",
+                  ignore_engineered_asteroids,
+                  stop_all_unstable,
+                  mining_waypoints,
+                  unstable_since_timeout,
+                  syphon_waypoints,
+                  miners_per_waypoint,
+                  siphoners_per_waypoint,
+                  surveyors_per_waypoint,
+                  mining_transporters_per_waypoint,
+                  min_transporter_cargo_space,
+                  min_mining_cargo_space,
+                  min_siphon_cargo_space,
+                  charting_probe_count,
+                  construction_ship_count,
+                  construction_waypoint,
+                  contract_ship_count
+                FROM fleet
+                WHERE fleet_type = $1
+            "#,
+            fleet_type as FleetType
         )
         .fetch_all(&database_pool.database_pool)
         .await?;
@@ -662,7 +744,17 @@ impl Fleet {
     }
 }
 
-#[derive(serde::Deserialize, serde::Serialize, Debug, Clone, Copy, sqlx::Type, PartialEq, Eq)]
+#[derive(
+    serde::Deserialize,
+    serde::Serialize,
+    Debug,
+    Clone,
+    Copy,
+    sqlx::Type,
+    PartialEq,
+    Eq,
+    async_graphql::Enum,
+)]
 #[sqlx(type_name = "trade_mode")]
 #[allow(clippy::enum_variant_names)]
 pub enum TradeMode {
@@ -671,7 +763,18 @@ pub enum TradeMode {
     ProfitPerTrip,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default, sqlx::Type, PartialEq, Eq)]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    Serialize,
+    Deserialize,
+    Default,
+    sqlx::Type,
+    PartialEq,
+    Eq,
+    async_graphql::Enum,
+)]
 #[sqlx(type_name = "fleet_type")]
 pub enum FleetType {
     Trading,

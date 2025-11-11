@@ -64,9 +64,21 @@ impl Contract {
 }
 /// Type of contract.
 #[derive(
-    Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize, sqlx::Type,
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    PartialEq,
+    Ord,
+    PartialOrd,
+    Hash,
+    Serialize,
+    Deserialize,
+    sqlx::Type,
+    async_graphql::Enum,
 )]
 #[sqlx(type_name = "contract_type")]
+#[graphql(name = "ContractType")]
 pub enum Type {
     #[serde(rename = "PROCUREMENT")]
     #[sqlx(rename = "PROCUREMENT")]

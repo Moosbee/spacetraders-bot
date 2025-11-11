@@ -4,6 +4,7 @@ use tracing::instrument;
 
 use super::{DatabaseConnector, DbPool};
 
+#[derive(Debug, Clone, async_graphql::SimpleObject)]
 pub struct Extraction {
     #[allow(dead_code)]
     pub id: i64,
@@ -17,6 +18,215 @@ pub struct Extraction {
     pub survey: Option<String>,
     #[allow(dead_code)]
     pub created_at: DateTime<Utc>,
+}
+
+impl Extraction {
+    #[instrument(level = "trace", skip(database_pool))]
+    pub async fn get_by_id(database_pool: &DbPool, id: i64) -> crate::Result<Option<Extraction>> {
+        let erg = sqlx::query_as!(
+            Extraction,
+            r#"
+            SELECT
+              id,
+              ship_symbol,
+              waypoint_symbol,
+              ship_info_before,
+              ship_info_after,
+              siphon,
+              yield_symbol as "yield_symbol: models::TradeSymbol",
+              yield_units,
+              survey,
+              created_at
+            FROM extraction
+            WHERE id = $1
+            LIMIT 1
+        "#,
+            id
+        )
+        .fetch_optional(&database_pool.database_pool)
+        .await?;
+        Ok(erg)
+    }
+
+    #[instrument(level = "trace", skip(database_pool))]
+    pub async fn get_by_waypoint_symbol(
+        database_pool: &DbPool,
+        waypoint_symbol: &str,
+    ) -> crate::Result<Vec<Extraction>> {
+        let erg = sqlx::query_as!(
+            Extraction,
+            r#"
+            SELECT
+              id,
+              ship_symbol,
+              waypoint_symbol,
+              ship_info_before,
+              ship_info_after,
+              siphon,
+              yield_symbol as "yield_symbol: models::TradeSymbol",
+              yield_units,
+              survey,
+              created_at
+            FROM extraction
+            WHERE waypoint_symbol = $1
+            order by created_at
+        "#,
+            waypoint_symbol
+        )
+        .fetch_all(&database_pool.database_pool)
+        .await?;
+        Ok(erg)
+    }
+
+    #[instrument(level = "trace", skip(database_pool))]
+    pub async fn get_by_system_symbol(
+        database_pool: &DbPool,
+        system_symbol: &str,
+    ) -> crate::Result<Vec<Extraction>> {
+        let erg = sqlx::query_as!(
+            Extraction,
+            r#"
+            SELECT
+              id,
+              ship_symbol,
+              waypoint_symbol,
+              ship_info_before,
+              ship_info_after,
+              siphon,
+              yield_symbol as "yield_symbol: models::TradeSymbol",
+              yield_units,
+              survey,
+              extraction.created_at
+            FROM extraction JOIN waypoint ON extraction.waypoint_symbol = waypoint.symbol
+            WHERE waypoint.system_symbol = $1
+            order by created_at
+        "#,
+            system_symbol
+        )
+        .fetch_all(&database_pool.database_pool)
+        .await?;
+        Ok(erg)
+    }
+
+    #[instrument(level = "trace", skip(database_pool))]
+    pub async fn get_by_ship_symbol(
+        database_pool: &DbPool,
+        ship_symbol: &str,
+    ) -> crate::Result<Vec<Extraction>> {
+        let erg = sqlx::query_as!(
+            Extraction,
+            r#"
+            SELECT
+              id,
+              ship_symbol,
+              waypoint_symbol,
+              ship_info_before,
+              ship_info_after,
+              siphon,
+              yield_symbol as "yield_symbol: models::TradeSymbol",
+              yield_units,
+              survey,
+              created_at
+            FROM extraction
+            WHERE ship_symbol = $1
+            order by created_at
+        "#,
+            ship_symbol
+        )
+        .fetch_all(&database_pool.database_pool)
+        .await?;
+        Ok(erg)
+    }
+
+    #[instrument(level = "trace", skip(database_pool))]
+    pub async fn get_by_trade_symbol(
+        database_pool: &DbPool,
+        trade_symbol: &models::TradeSymbol,
+    ) -> crate::Result<Vec<Extraction>> {
+        let erg = sqlx::query_as!(
+            Extraction,
+            r#"
+            SELECT
+              id,
+              ship_symbol,
+              waypoint_symbol,
+              ship_info_before,
+              ship_info_after,
+              siphon,
+              yield_symbol as "yield_symbol: models::TradeSymbol",
+              yield_units,
+              survey,
+              created_at
+            FROM extraction
+            WHERE yield_symbol = $1
+            order by created_at
+        "#,
+            *trade_symbol as models::TradeSymbol
+        )
+        .fetch_all(&database_pool.database_pool)
+        .await?;
+        Ok(erg)
+    }
+
+    #[instrument(level = "trace", skip(database_pool))]
+    pub async fn get_by_siphon(
+        database_pool: &DbPool,
+        siphon: bool,
+    ) -> crate::Result<Vec<Extraction>> {
+        let erg = sqlx::query_as!(
+            Extraction,
+            r#"
+            SELECT
+              id,
+              ship_symbol,
+              waypoint_symbol,
+              ship_info_before,
+              ship_info_after,
+              siphon,
+              yield_symbol as "yield_symbol: models::TradeSymbol",
+              yield_units,
+              survey,
+              created_at
+            FROM extraction
+            WHERE siphon = $1
+            order by created_at
+        "#,
+            siphon
+        )
+        .fetch_all(&database_pool.database_pool)
+        .await?;
+        Ok(erg)
+    }
+
+    #[instrument(level = "trace", skip(database_pool))]
+    pub async fn get_by_survey_symbol(
+        database_pool: &DbPool,
+        survey_symbol: &str,
+    ) -> crate::Result<Vec<Extraction>> {
+        let erg = sqlx::query_as!(
+            Extraction,
+            r#"
+            SELECT
+              id,
+              ship_symbol,
+              waypoint_symbol,
+              ship_info_before,
+              ship_info_after,
+              siphon,
+              yield_symbol as "yield_symbol: models::TradeSymbol",
+              yield_units,
+              survey,
+              created_at
+            FROM extraction
+            WHERE survey = $1
+            order by created_at
+        "#,
+            survey_symbol
+        )
+        .fetch_all(&database_pool.database_pool)
+        .await?;
+        Ok(erg)
+    }
 }
 
 impl DatabaseConnector<Extraction> for Extraction {

@@ -4,7 +4,7 @@ use tracing::instrument;
 
 use super::DatabaseConnector;
 
-#[derive(Clone, Debug, PartialEq, serde::Serialize)]
+#[derive(Clone, Debug, PartialEq, serde::Serialize, async_graphql::SimpleObject)]
 pub struct ShipyardShip {
     #[allow(dead_code)]
     pub id: i64,
@@ -84,6 +84,82 @@ impl ShipyardShip {
             ORDER BY ship_type, created_at DESC
             "#,
             waypoint_symbol
+        )
+        .fetch_all(database_pool.get_cache_pool())
+        .await?;
+        Ok(erg)
+    }
+
+    #[instrument(level = "trace", skip(database_pool))]
+    pub async fn get_last_by_system(
+        database_pool: &super::DbPool,
+        system_symbol: &str,
+    ) -> crate::Result<Vec<ShipyardShip>> {
+        let erg = sqlx::query_as!(
+            ShipyardShip,
+            r#"
+            SELECT DISTINCT ON (waypoint_symbol, ship_type)
+                id,
+                waypoint_symbol,
+                ship_type as "ship_type: models::ShipType",
+                name,
+                supply as "supply: models::SupplyLevel",
+                activity as "activity: models::ActivityLevel",
+                purchase_price,
+                frame_type as "frame_type: models::ship_frame::Symbol",
+                frame_quality,
+                reactor_type as "reactor_type: models::ship_reactor::Symbol",
+                reactor_quality,
+                engine_type as "engine_type: models::ship_engine::Symbol",
+                engine_quality,
+                modules as "modules: Vec<models::ship_module::Symbol>",
+                mounts as "mounts: Vec<models::ship_mount::Symbol>",
+                crew_requirement,
+                crew_capacity,
+                shipyard_ship.created_at
+            FROM shipyard_ship JOIN waypoint ON shipyard_ship.waypoint_symbol = waypoint.symbol
+            WHERE waypoint.system_symbol = $1
+            ORDER BY waypoint_symbol, ship_type, shipyard_ship.created_at DESC
+            "#,
+            system_symbol
+        )
+        .fetch_all(database_pool.get_cache_pool())
+        .await?;
+        Ok(erg)
+    }
+
+    #[instrument(level = "trace", skip(database_pool))]
+    pub async fn get_last_by_ship_symbol(
+        database_pool: &super::DbPool,
+        ship_type: &models::ShipType,
+    ) -> crate::Result<Vec<ShipyardShip>> {
+        let erg = sqlx::query_as!(
+            ShipyardShip,
+            r#"
+            SELECT DISTINCT ON (waypoint_symbol, ship_type)
+                id,
+                waypoint_symbol,
+                ship_type as "ship_type: models::ShipType",
+                name,
+                supply as "supply: models::SupplyLevel",
+                activity as "activity: models::ActivityLevel",
+                purchase_price,
+                frame_type as "frame_type: models::ship_frame::Symbol",
+                frame_quality,
+                reactor_type as "reactor_type: models::ship_reactor::Symbol",
+                reactor_quality,
+                engine_type as "engine_type: models::ship_engine::Symbol",
+                engine_quality,
+                modules as "modules: Vec<models::ship_module::Symbol>",
+                mounts as "mounts: Vec<models::ship_mount::Symbol>",
+                crew_requirement,
+                crew_capacity,
+                created_at
+            FROM shipyard_ship
+            WHERE ship_type = $1
+            ORDER BY waypoint_symbol, ship_type, created_at DESC
+            "#,
+            *ship_type as models::ShipType
         )
         .fetch_all(database_pool.get_cache_pool())
         .await?;

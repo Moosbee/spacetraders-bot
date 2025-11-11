@@ -4,7 +4,16 @@ use tracing::instrument;
 use super::DatabaseConnector;
 
 #[derive(
-    Debug, Clone, Copy, PartialEq, Eq, sqlx::Type, serde::Serialize, serde::Deserialize, Default,
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    sqlx::Type,
+    serde::Serialize,
+    serde::Deserialize,
+    Default,
+    async_graphql::Enum,
 )]
 #[sqlx(type_name = "shipment_status")]
 pub enum ShipmentStatus {

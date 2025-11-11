@@ -6,7 +6,15 @@ use tracing::instrument;
 
 use super::{DatabaseConnector, DbPool};
 
-#[derive(Clone, Default, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Clone,
+    Default,
+    Debug,
+    PartialEq,
+    serde::Serialize,
+    serde::Deserialize,
+    async_graphql::SimpleObject,
+)]
 pub struct MarketTransaction {
     pub id: i64,
     /// The symbol of the waypoint.
@@ -102,14 +110,19 @@ impl MarketTransaction {
         }
     }
 
-    async fn get_by_contract(database_pool: &DbPool, contract: &str) -> crate::Result<Vec<Self>> {
+    #[instrument(level = "trace", skip(database_pool))]
+    pub async fn get_by_contract(
+        database_pool: &DbPool,
+        contract: &str,
+    ) -> crate::Result<Vec<Self>> {
         let erg = sqlx::query_as!(
             MarketTransaction,
             r#"
       select
         id,
         waypoint_symbol,
-        ship_symbol,trade_symbol as "trade_symbol: models::TradeSymbol",
+        ship_symbol,
+        trade_symbol as "trade_symbol: models::TradeSymbol",
         "type" as "type: models::market_transaction::Type",
         units,
         price_per_unit,
@@ -121,6 +134,7 @@ impl MarketTransaction {
         construction
       from market_transaction
       where contract = $1
+      order by "timestamp"
     "#,
             contract
         )
@@ -129,14 +143,19 @@ impl MarketTransaction {
         Ok(erg)
     }
 
-    async fn get_by_trade_route(database_pool: &DbPool, route: i32) -> crate::Result<Vec<Self>> {
+    #[instrument(level = "trace", skip(database_pool))]
+    pub async fn get_by_trade_route(
+        database_pool: &DbPool,
+        route: i32,
+    ) -> crate::Result<Vec<Self>> {
         let erg = sqlx::query_as!(
             MarketTransaction,
             r#"
       select 
         id,
         waypoint_symbol,
-        ship_symbol,trade_symbol as "trade_symbol: models::TradeSymbol",
+        ship_symbol,
+        trade_symbol as "trade_symbol: models::TradeSymbol",
         "type" as "type: models::market_transaction::Type",
         units,
         price_per_unit,
@@ -148,6 +167,7 @@ impl MarketTransaction {
         construction
       from market_transaction
       where trade_route = $1
+      order by "timestamp"
     "#,
             route
         )
@@ -156,7 +176,8 @@ impl MarketTransaction {
         Ok(erg)
     }
 
-    async fn get_by_mining_waypoint(
+    #[instrument(level = "trace", skip(database_pool))]
+    pub async fn get_by_mining_waypoint(
         database_pool: &DbPool,
         waypoint: &str,
     ) -> crate::Result<Vec<Self>> {
@@ -166,7 +187,8 @@ impl MarketTransaction {
       select 
         id,
         waypoint_symbol,
-        ship_symbol,trade_symbol as "trade_symbol: models::TradeSymbol",
+        ship_symbol,
+        trade_symbol as "trade_symbol: models::TradeSymbol",
         "type" as "type: models::market_transaction::Type",
         units,
         price_per_unit,
@@ -178,6 +200,7 @@ impl MarketTransaction {
         construction
       from market_transaction
       where mining = $1
+      order by "timestamp"
     "#,
             waypoint
         )
@@ -197,7 +220,8 @@ impl MarketTransaction {
       select 
         id,
         waypoint_symbol,
-        ship_symbol,trade_symbol as "trade_symbol: models::TradeSymbol",
+        ship_symbol,
+        trade_symbol as "trade_symbol: models::TradeSymbol",
         "type" as "type: models::market_transaction::Type",
         units,
         price_per_unit,
@@ -209,6 +233,7 @@ impl MarketTransaction {
         construction
       from market_transaction
       where waypoint_symbol = $1
+      order by "timestamp"
     "#,
             waypoint
         )
@@ -217,7 +242,8 @@ impl MarketTransaction {
         Ok(erg)
     }
 
-    async fn get_by_construction(
+    #[instrument(level = "trace", skip(database_pool))]
+    pub async fn get_by_construction(
         database_pool: &DbPool,
         construction: i64,
     ) -> crate::Result<Vec<MarketTransaction>> {
@@ -227,7 +253,8 @@ impl MarketTransaction {
       select 
         id,
         waypoint_symbol,
-        ship_symbol,trade_symbol as "trade_symbol: models::TradeSymbol",
+        ship_symbol,
+        trade_symbol as "trade_symbol: models::TradeSymbol",
         "type" as "type: models::market_transaction::Type",
         units,
         price_per_unit,
@@ -239,6 +266,7 @@ impl MarketTransaction {
         construction
       from market_transaction
       where construction = $1
+      order by "timestamp"
     "#,
             construction
         )
@@ -256,7 +284,8 @@ impl MarketTransaction {
       select 
         id,
         waypoint_symbol,
-        ship_symbol,trade_symbol as "trade_symbol: models::TradeSymbol",
+        ship_symbol,
+        trade_symbol as "trade_symbol: models::TradeSymbol",
         "type" as "type: models::market_transaction::Type",
         units,
         price_per_unit,
@@ -268,8 +297,105 @@ impl MarketTransaction {
         construction
       from market_transaction
       where waypoint_symbol like $1
+      order by "timestamp"
     "#,
             system_qr
+        )
+        .fetch_all(database_pool.get_cache_pool())
+        .await?;
+        Ok(erg)
+    }
+
+    #[instrument(level = "trace", skip(database_pool))]
+    pub async fn get_by_ship(database_pool: &DbPool, ship: &str) -> crate::Result<Vec<Self>> {
+        let erg = sqlx::query_as!(
+            MarketTransaction,
+            r#"
+      select 
+        id,
+        waypoint_symbol,
+        ship_symbol,
+        trade_symbol as "trade_symbol: models::TradeSymbol",
+        "type" as "type: models::market_transaction::Type",
+        units,
+        price_per_unit,
+        total_price,
+        "timestamp",
+        contract,
+        trade_route,
+        mining,
+        construction
+      from market_transaction
+      where ship_symbol = $1
+      order by "timestamp"
+    "#,
+            ship
+        )
+        .fetch_all(database_pool.get_cache_pool())
+        .await?;
+        Ok(erg)
+    }
+
+    #[instrument(level = "trace", skip(database_pool))]
+    pub async fn get_by_trade_symbol(
+        database_pool: &DbPool,
+        trade_symbol: models::TradeSymbol,
+    ) -> crate::Result<Vec<Self>> {
+        let erg = sqlx::query_as!(
+            MarketTransaction,
+            r#"
+      select 
+        id,
+        waypoint_symbol,
+        ship_symbol,
+        trade_symbol as "trade_symbol: models::TradeSymbol",
+        "type" as "type: models::market_transaction::Type",
+        units,
+        price_per_unit,
+        total_price,
+        "timestamp",
+        contract,
+        trade_route,
+        mining,
+        construction
+      from market_transaction
+      where trade_symbol = $1
+      order by "timestamp"
+    "#,
+            trade_symbol as models::TradeSymbol
+        )
+        .fetch_all(database_pool.get_cache_pool())
+        .await?;
+        Ok(erg)
+    }
+
+    #[instrument(level = "trace", skip(database_pool))]
+    pub async fn get_by_trade_type(
+        database_pool: &DbPool,
+        trade_type: models::market_transaction::Type,
+    ) -> crate::Result<Vec<Self>> {
+        let erg = sqlx::query_as!(
+            MarketTransaction,
+            r#"
+      select 
+        id,
+        waypoint_symbol,
+        ship_symbol,
+        trade_symbol as "trade_symbol: models::TradeSymbol",
+        "type" as "type: models::market_transaction::Type",
+        units,
+        price_per_unit,
+        total_price,
+        "timestamp",
+        contract,
+        trade_route,
+        mining,
+        construction
+      from market_transaction
+      where "type" = $1
+      order by "timestamp"
+    "#,
+            trade_type as models::market_transaction::Type
         )
         .fetch_all(database_pool.get_cache_pool())
         .await?;
@@ -321,7 +447,7 @@ impl TryFrom<models::MarketTransaction> for MarketTransaction {
 impl DatabaseConnector<MarketTransaction> for MarketTransaction {
     #[instrument(level = "trace", skip(database_pool))]
     async fn insert(database_pool: &DbPool, item: &MarketTransaction) -> crate::Result<()> {
-        let erg= sqlx::query!(
+        let _erg= sqlx::query!(
         r#"
             INSERT INTO market_transaction (waypoint_symbol, ship_symbol, trade_symbol, "type", units, price_per_unit, total_price, "timestamp", contract, trade_route, mining, construction)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
@@ -448,7 +574,8 @@ impl DatabaseConnector<MarketTransaction> for MarketTransaction {
       select 
         id,
         waypoint_symbol,
-        ship_symbol,trade_symbol as "trade_symbol: models::TradeSymbol",
+        ship_symbol,
+        trade_symbol as "trade_symbol: models::TradeSymbol",
         "type" as "type: models::market_transaction::Type",
         units,
         price_per_unit,
@@ -459,6 +586,7 @@ impl DatabaseConnector<MarketTransaction> for MarketTransaction {
         mining,
         construction
       from market_transaction
+      order by "timestamp"
     "#,
         )
         .fetch_all(database_pool.get_cache_pool())

@@ -193,7 +193,11 @@ impl TradingPilot {
                 )))?
                 .purchase_price;
 
-            let budget = self.context.budget_manager.get_spendable_funds().await; // todo: fix to include reservations
+            let budget = self
+                .context
+                .budget_manager
+                .get_spendable_funds_with_remain(1_000)
+                .await; // todo: fix to include reservations
             let max_buy_volume = (ship.cargo.capacity - ship.cargo.units).min(route.trade_volume);
             let trade_volume = if budget < (purchase_price * max_buy_volume).into() {
                 let trade_volume = (budget as f64 / purchase_price as f64).floor() as i32;

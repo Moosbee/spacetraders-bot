@@ -2,7 +2,7 @@ use tracing::instrument;
 
 use super::DatabaseConnector;
 
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, async_graphql::SimpleObject)]
 pub struct ShipInfo {
     pub symbol: String,
     pub display_name: String,
