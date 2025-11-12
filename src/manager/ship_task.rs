@@ -22,10 +22,7 @@ pub struct ShipTaskMessanger {
 
 impl ShipTaskMessanger {
     pub async fn start_ship(&self, ship_names: database::ShipInfo) {
-        tracing::debug!(
-           ship_names = ?ship_names,
-          "start_ship"
-        );
+    tracing::debug!(ship_names = ?ship_names, "Starting ship");
         let _erg = self.sender.send(ship_names).await;
     }
 }
@@ -65,10 +62,7 @@ impl ShipTaskHandler {
         tokio::time::sleep(std::time::Duration::from_millis(500)).await;
 
         while let Ok(ship_name) = self.receiver.try_recv() {
-            tracing::debug!(
-                ship_name = ?ship_name,
-                "ShipTaskHandler::await_all starting initial tasks",
-            );
+            tracing::debug!(ship_name = ?ship_name, "Starting initial ship task in await_all");
             let pilot = crate::pilot::Pilot::new(
                 self.context.clone(),
                 ship_name.symbol.clone(),
@@ -97,10 +91,7 @@ impl ShipTaskHandler {
                 ship_name = self.receiver.recv() => {
                     match ship_name {
                         Some(ship_name) => {
-                            tracing::debug!(
-                              ship_name = ?ship_name,
-                              "ShipTaskHandler::await_all starting new tasks",
-                            );
+                            tracing::debug!(ship_name = ?ship_name, "Starting new ship task in await_all");
                             let pilot = crate::pilot::Pilot::new(self.context.clone(), ship_name.symbol.clone(), self.ship_cancel_token.child_token());
                             // set.build_task()
                             //     .name(format!("ship-as-{}", ship_name.symbol).as_str())
@@ -128,30 +119,19 @@ impl ShipTaskHandler {
                     Some(finished_future) => {
                       match finished_future {
                         Ok((ship_name,Ok(erg))) => {
-                          tracing::debug!(
-                            ship_name = %ship_name,
-                            erg=?erg,
-                            "ShipTaskHandler::await_all: finished ship",
-                          );
+                          tracing::debug!(ship_name = %ship_name, erg = ?erg, "Finished ship in await_all");
                         }
                         Ok((ship_name,Err(e))) => {
-                          tracing::error!(
-                            ship_name,
-                            error = %e,
-                            backtrace = ?e.backtrace(),
-                            source = ?e.source(),
-                            root_cause = ?e.root_cause(),
-                              "Ship error",
-                          );
+                                                    tracing::error!(ship_name = %ship_name, error = %e, backtrace = ?e.backtrace(), source = ?e.source(), root_cause = ?e.root_cause(), "Ship error occurred");
                         }
                         Err(e) => {
-                            tracing::error!(error = format!("{:?}", e), "Ship Join error");
+                            tracing::error!(error = ?e, "Ship join error");
 
                         }
                       }
                     },
                     None => {
-                        tracing::debug!("ShipTaskHandler::await_all: finished_future is None");
+                        tracing::debug!("No finished future in await_all");
                         break;
                     }
                   }

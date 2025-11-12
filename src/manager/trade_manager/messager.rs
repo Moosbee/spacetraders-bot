@@ -1,4 +1,3 @@
-use tracing::debug;
 
 use crate::error::Error;
 
@@ -18,7 +17,7 @@ impl TradeManagerMessanger {
         &self,
         ship: &ship::MyShip,
     ) -> Result<Option<database::TradeRoute>, Error> {
-        debug!("Requesting next trade route for ship {}", ship.symbol);
+    tracing::debug!(ship_symbol = %ship.symbol, "Requesting next trade route for ship");
         let (sender, receiver) = tokio::sync::oneshot::channel();
 
         let message = TradeManagerMessage::RequestNextTradeRoute {
@@ -31,13 +30,13 @@ impl TradeManagerMessanger {
             .await
             .map_err(|e| Error::General(format!("Failed to send message: {}", e)))?;
 
-        debug!("Requested next trade route for ship {}", ship.symbol);
+    tracing::debug!(ship_symbol = %ship.symbol, "Requested next trade route for ship");
 
         let resp = receiver
             .await
             .map_err(|e| Error::General(format!("Failed to get trade get message: {}", e)))?;
 
-        debug!("Received trade route for ship {}: {:?}", ship.symbol, resp);
+    tracing::debug!(ship_symbol = %ship.symbol, resp = ?resp, "Received trade route for ship");
         resp
     }
 
@@ -45,7 +44,7 @@ impl TradeManagerMessanger {
         &self,
         trade_route: &database::TradeRoute,
     ) -> Result<database::TradeRoute, Error> {
-        debug!("Completing trade route: {}", trade_route.id);
+    tracing::debug!(trade_route_id = %trade_route.id, "Completing trade route");
         let (sender, receiver) = tokio::sync::oneshot::channel();
 
         let message = TradeManagerMessage::CompleteTradeRoute {
@@ -62,7 +61,7 @@ impl TradeManagerMessanger {
             .await
             .map_err(|e| Error::General(format!("Failed to get trade complete message: {}", e)))?;
 
-        debug!("Completed trade route: {:?}", resp);
+    tracing::debug!(resp = ?resp, "Completed trade route");
         resp
     }
 

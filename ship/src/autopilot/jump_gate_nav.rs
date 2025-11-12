@@ -5,7 +5,6 @@ use std::{
 };
 
 use database::DatabaseConnector;
-use log::debug;
 use priority_queue::PriorityQueue;
 
 use crate::error::Result;
@@ -114,7 +113,7 @@ impl JumpPathfinder {
         let mut to_visit: PriorityQueue<JumpConnection, Reverse<i64>> = PriorityQueue::new();
         let mut visited: HashMap<String, JumpConnection> = HashMap::new();
 
-        // info!("Finding route from {} to {}", from_system, to_system);
+    // tracing::info!(from_system = %from_system, to_system = %to_system, "Finding route");
 
         let start_conns = Self::get_connections(from_system, &mut unvisited);
         for conn in start_conns {
@@ -172,14 +171,14 @@ impl JumpPathfinder {
     ) -> Vec<JumpConnection> {
         let mut route = Vec::new();
         let mut current = to_string.clone();
-        debug!("Visited: {}", visited.len());
+    tracing::debug!(visited_count = %visited.len(), "Visited systems");
         while current != from {
             let connection = visited.get(&current).unwrap();
             route.push(connection.clone());
             current = connection.start_system.clone();
         }
         route.reverse();
-        debug!("Route: {:#?}", route);
+    tracing::debug!(route = ?route, "Route calculated");
         route
     }
 }

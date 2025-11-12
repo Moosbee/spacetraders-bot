@@ -23,7 +23,7 @@ pub async fn update_all_systems(
     for system in &all_systems {
         let erg = update_system(database_pool, api, &system.symbol, false).await;
         if let Err(e) = erg {
-            tracing::error!("Error updating system {}: {}", system.symbol, e);
+            tracing::error!(system = %system.symbol, error = ?e, "Error updating system");
         }
     }
 
@@ -47,7 +47,7 @@ pub async fn update_system(
         match waypoints {
             Ok(waypoints) => break waypoints,
             Err(e) => {
-                tracing::error!("Error getting waypoints: {}", e);
+                tracing::error!(error = ?e, "Error getting waypoints");
                 std::thread::sleep(std::time::Duration::from_millis(1000));
             }
         }

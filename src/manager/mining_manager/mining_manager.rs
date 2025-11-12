@@ -35,7 +35,7 @@ impl MiningManager {
         Arc<TransferManager>,
     ) {
         let (sender, receiver) = tokio::sync::mpsc::channel(1024);
-        debug!("Created MiningManager channel");
+    tracing::debug!("Created MiningManager channel");
         let transfer_manager = Arc::new(TransferManager::new());
 
         (
@@ -52,7 +52,7 @@ impl MiningManager {
         transfer_manager: Arc<TransferManager>,
         max_miners_per_waypoint: u32,
     ) -> Self {
-        debug!("Initializing new MiningManager");
+    tracing::debug!("Initializing new MiningManager");
         Self {
             cancel_token,
             receiver,
@@ -70,7 +70,7 @@ impl MiningManager {
         err(Debug)
     )]
     async fn run_mining_worker(&mut self) -> Result<()> {
-        debug!("Starting MiningManager worker");
+    tracing::debug!("Starting MiningManager worker");
         while !self.cancel_token.is_cancelled() {
             let message: Option<MiningMessage> = tokio::select! {
                 message = self.receiver.recv() => message,
@@ -78,7 +78,7 @@ impl MiningManager {
             };
             match message {
                 Some(message) => {
-                    debug!("Handling message: {}", message);
+                    tracing::debug!(message = %message, "Handling MiningManager message");
                     self.handle_message(message).await?;
                 }
                 None => {

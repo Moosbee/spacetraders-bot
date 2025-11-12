@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 
 use space_traders_client::models;
-use tracing::debug;
 
 use crate::{error::Error, utils::ConductorContext};
 
@@ -37,7 +36,7 @@ impl RouteCalculator {
         running_routes: &RoutesTracker,
         mode: database::TradeMode,
     ) -> Result<Option<database::TradeRoute>, Error> {
-        debug!("Getting new best route");
+    tracing::debug!("Getting new best route");
         let (trade_goods, market_trade) = self.fetch_market_data(&ship.nav.system_symbol).await?;
 
         let possible_trades = self.gen_all_possible_trades(&trade_goods, &market_trade);
@@ -76,8 +75,8 @@ impl RouteCalculator {
             .filter(|route| route.trip.total_profit > config.trade_profit_threshold)
             .collect::<Vec<_>>();
 
-        debug!("Routes: {}", routes.len());
-        // debug!("Routes: {:#?}", routes);
+    tracing::debug!(routes_len = %routes.len(), "Calculated routes");
+    // tracing::debug!(routes = ?routes, "Routes detail");
 
         let route = routes
             .into_iter()

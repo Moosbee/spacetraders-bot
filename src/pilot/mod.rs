@@ -39,7 +39,7 @@ impl Pilot {
         ship_symbol: String,
         cancellation_token: CancellationToken,
     ) -> Self {
-        debug!("Creating pilot for ship {}", ship_symbol);
+    debug!(ship_symbol, "Creating pilot for ship");
 
         Self {
             context: context.clone(),
@@ -63,7 +63,7 @@ impl Pilot {
         {
             let span = tracing::info_span!("spacetraders::pilot::pilot_ship_start", ship_symbol=%self.ship_symbol);
             let _enter = span.enter();
-            debug!("Starting pilot for ship {}", self.ship_symbol);
+            debug!(ship_symbol = %self.ship_symbol, "Starting pilot for ship");
         }
         tokio::time::sleep(std::time::Duration::from_millis(
             500 + rand::random::<u64>() % 500,
@@ -90,24 +90,18 @@ impl Pilot {
             let assignment = self.get_assignment(temp_assignment).await?;
 
             if let Some((assignment, fleet)) = assignment {
-                debug!(
-                    "Ship {} has temporary assignment {:?} in fleet {:?}",
-                    self.ship_symbol, assignment, fleet
-                );
+                debug!(ship_symbol = %self.ship_symbol, assignment = ?assignment, fleet = ?fleet, "Ship has temporary assignment in fleet");
                 return Ok((ship_info, Some((assignment, fleet, true))));
             }
         } else if let Some(assignment_id) = ship_info.assignment_id {
             let assignment = self.get_assignment(assignment_id).await?;
 
             if let Some((assignment, fleet)) = assignment {
-                debug!(
-                    "Ship {} has assignment {:?} in fleet {:?}",
-                    self.ship_symbol, assignment, fleet
-                );
+                debug!(ship_symbol = %self.ship_symbol, assignment = ?assignment, fleet = ?fleet, "Ship has assignment in fleet");
                 return Ok((ship_info, Some((assignment, fleet, false))));
             }
         } else {
-            debug!("Ship {} has no assignment", self.ship_symbol);
+            debug!(ship_symbol = %self.ship_symbol, "Ship has no assignment");
         }
         Ok((ship_info, None))
     }
@@ -134,7 +128,7 @@ impl Pilot {
     }
 
     async fn wait_for_activation(&self) -> Result<()> {
-        debug!("Waiting for activation");
+    debug!("Waiting for activation");
         todo!()
     }
 
@@ -143,22 +137,16 @@ impl Pilot {
         let (ship_info, assignment) = self.get_ship_assignment().await?;
 
         if !ship_info.active {
-            debug!("Ship {} is inactive, waiting", self.ship_symbol);
+            debug!(ship_symbol = %self.ship_symbol, "Ship is inactive, waiting");
             self.wait_for_activation().await?;
             return Ok(());
         }
 
         if let Some((assignment, fleet, is_temp)) = assignment {
-            debug!(
-                "Piloting ship {} with assignment {:?} in fleet {:?}",
-                self.ship_symbol, assignment, fleet
-            );
+                debug!(ship_symbol = %self.ship_symbol, assignment = ?assignment, fleet = ?fleet, "Piloting ship with assignment in fleet");
 
             if assignment.disabled {
-                debug!(
-                    "Assignment {} is disabled, unassigning ship {}",
-                    assignment.id, self.ship_symbol
-                );
+                debug!(assignment_id = assignment.id, ship_symbol = %self.ship_symbol, "Assignment is disabled, unassigning ship");
                 if is_temp {
                     database::ShipInfo::unassign_ship(
                         &self.context.database_pool,
@@ -176,10 +164,7 @@ impl Pilot {
             }
 
             if !ship_info.active || !fleet.active {
-                debug!(
-                    "Ship {} or fleet {} is inactive, waiting",
-                    self.ship_symbol, fleet.id
-                );
+                debug!(ship_symbol = %self.ship_symbol, fleet_id = fleet.id, "Ship or fleet is inactive, waiting");
                 self.wait_for_activation().await?;
                 return Ok(());
             }
@@ -218,10 +203,7 @@ impl Pilot {
                         .await?;
                 }
                 database::FleetConfig::Manuel => {
-                    debug!(
-                        "Fleet {} is manuel, ship {} piloting idle behavior",
-                        fleet.id, self.ship_symbol
-                    );
+                    debug!(fleet_id = fleet.id, ship_symbol = %self.ship_symbol, "Fleet is manuel, ship piloting idle behavior");
                     tokio::time::sleep(std::time::Duration::from_millis(
                         60_000 + rand::random::<u64>() % 1_000,
                     ))
@@ -230,10 +212,7 @@ impl Pilot {
             }
 
             if is_temp {
-                debug!(
-                    "Clearing temporary assignment for ship {}",
-                    self.ship_symbol
-                );
+                debug!(ship_symbol = %self.ship_symbol, "Clearing temporary assignment for ship");
                 database::ShipInfo::unassign_temp_ship(
                     &self.context.database_pool,
                     &self.ship_symbol,
@@ -241,10 +220,7 @@ impl Pilot {
                 .await?;
             }
         } else {
-            debug!(
-                "Ship {} has no assignment, piloting idle behavior",
-                self.ship_symbol
-            );
+            debug!(ship_symbol = %self.ship_symbol, "Ship has no assignment, piloting idle behavior");
             let ship_clone = self.context.ship_manager.get_clone(&ship_info.symbol);
             if let Some(ship_clone) = ship_clone {
                 let assignment_id = self
@@ -252,15 +228,9 @@ impl Pilot {
                     .fleet_manager
                     .get_new_assignment(&ship_clone)
                     .await?;
-                debug!(
-                    "Assigning ship {} to fleet {:?}",
-                    self.ship_symbol, assignment_id
-                );
+                debug!(ship_symbol = %self.ship_symbol, assignment_id = ?assignment_id, "Assigning ship to fleet");
             } else {
-                debug!(
-                    "Ship {} not found in ship manager, sleeping",
-                    self.ship_symbol
-                );
+                debug!(ship_symbol = %self.ship_symbol, "Ship not found in ship manager, sleeping");
                 tokio::time::sleep(std::time::Duration::from_millis(
                     60_000 + rand::random::<u64>() % 1_000,
                 ))

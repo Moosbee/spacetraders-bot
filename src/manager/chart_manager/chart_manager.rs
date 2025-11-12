@@ -1,8 +1,6 @@
 use std::collections::HashSet;
 
-use database::DatabaseConnector;
 use space_traders_client::models::{self};
-use tracing::debug;
 use utils::{distance_between_waypoints, WaypointCan};
 
 use crate::{
@@ -58,7 +56,7 @@ impl ChartManager {
                 message = self.receiver.recv() => message,
                 _ = self.cancel_token.cancelled() => None
             };
-            debug!("Received chartManager message: {:?}", message);
+            tracing::debug!(message = ?message, "Received chartManager message");
 
             match message {
                 Some(message) => {

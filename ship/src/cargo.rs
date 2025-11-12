@@ -4,7 +4,6 @@ use std::{
 };
 
 use database::DatabaseConnector;
-use log::debug;
 use space_traders_client::models::JettisonRequest;
 
 use crate::error;
@@ -392,7 +391,7 @@ impl CargoState {
         units: i32,
         trade_symbol: space_traders_client::models::TradeSymbol,
     ) -> Result<(), crate::error::Error> {
-        debug!("Handling cargo update: {:?} {:?}", units, trade_symbol);
+    tracing::debug!(units = %units, trade_symbol = ?trade_symbol, "Handling cargo update");
         let current_count = self.inventory.iter().map(|f| f.1).sum::<i32>();
         if (current_count + units) <= self.units {
             return Err("Not enough cargo".into());

@@ -1,7 +1,6 @@
 use dashmap::DashMap;
 use space_traders_client::models;
 use tokio::sync::mpsc;
-use tracing::debug;
 use utils::safely_get_map;
 
 #[derive(Debug)]
@@ -56,7 +55,7 @@ impl TransferManager {
         symbol: &str,
         sender: mpsc::Sender<TransportTransferRequest>,
     ) {
-        debug!("Adding transportation contact for symbol: {}", symbol);
+    tracing::debug!(symbol = %symbol, "Adding transportation contact");
         self.transportation_contacts
             .insert(symbol.to_string(), sender);
     }
@@ -80,13 +79,7 @@ impl TransferManager {
             None => false,
         };
 
-        debug!(
-            "Valid extractor {} valid: {} some {} is closed {:?}",
-            symbol,
-            is,
-            refi.is_some(),
-            refi.as_ref().map(|f| f.is_closed())
-        );
+        tracing::debug!(symbol = %symbol, valid = %is, has_contact = %refi.is_some(), is_closed = ?refi.as_ref().map(|f| f.is_closed()), "Valid extractor");
 
         is
     }
@@ -103,13 +96,7 @@ impl TransferManager {
             None => false,
         };
 
-        debug!(
-            "Valid transporter {} valid: {} some {} is closed {:?}",
-            symbol,
-            is,
-            refi.is_some(),
-            refi.as_ref().map(|f| f.is_closed())
-        );
+        tracing::debug!(symbol = %symbol, valid = %is, has_contact = %refi.is_some(), is_closed = ?refi.as_ref().map(|f| f.is_closed()), "Valid transporter");
 
         is
     }

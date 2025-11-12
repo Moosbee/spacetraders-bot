@@ -36,7 +36,6 @@ use tokio_stream::StreamExt;
 use tokio_util::sync::CancellationToken;
 
 use ::utils::{get_system_symbol, RunInfo, WaypointCan};
-use tracing::debug;
 use tracing::{instrument, Instrument};
 use tracing_subscriber::layer::SubscriberExt;
 use utils::ConductorContext;
@@ -60,7 +59,7 @@ async fn main() -> anyhow::Result<()> {
     let erg = start(context, manager_token, managers).await;
 
     if let Err(errror) = erg {
-        tracing::error!("Main error: {} {}", errror, errror);
+        tracing::error!(errror = ?errror, error = %errror, "Main error occurred");
     }
 
     Ok(())
@@ -139,15 +138,9 @@ async fn setup_context(
     let (api, database_pool) = setup_unauthed().await?;
 
     let my_agent = api.get_my_agent().await?;
-    tracing::info!(
-      my_agent=?my_agent,
-      "My agent"
-    );
+        tracing::info!(my_agent = ?my_agent, "Fetched agent info");
     let status = api.get_status().await?;
-    tracing::info!(
-      status=?status,
-      "Status"
-    );
+        tracing::info!(status = ?status, "Fetched status info");
 
     let run_info = RunInfo {
         agent_symbol: my_agent.data.symbol.clone(),
@@ -160,14 +153,14 @@ async fn setup_context(
 
     let ships = async {
         let ships = api.get_all_my_ships(20).await?;
-        tracing::info!(count = ships.len(), "Ships count");
+    tracing::info!(count = ships.len(), "Fetched ships count");
 
         let system_symbols = ships
             .iter()
             .map(|s| s.nav.system_symbol.clone())
             .collect::<HashSet<_>>();
 
-        tracing::debug!(count = system_symbols.len(), "Systems count");
+    tracing::debug!(count = system_symbols.len(), "Fetched systems count");
 
         for system_symbol in system_symbols {
             async {
@@ -176,7 +169,7 @@ async fn setup_context(
                     database::Waypoint::get_by_system(&database_pool, &system_symbol).await?;
 
                 if db_system.is_none() || waypoints.is_empty() {
-                    tracing::debug!(system=%system_symbol, "Updating system and waypoints");
+                    tracing::debug!(system = %system_symbol, "Updating system and waypoints");
                     // some systems have no waypoints, but we likely won't have ships there
                     scrapping_manager::utils::update_system(
                         &database_pool,
@@ -196,12 +189,7 @@ async fn setup_context(
                     let markets_len = markets.len();
                     scrapping_manager::utils::update_markets(markets, database_pool.clone())
                         .await?;
-                    tracing::debug!(
-                        system=%system_symbol,
-                        waypoints=?wps.len(),
-                        markets=?markets_len,
-                        "Updated markets"
-                    );
+                    tracing::debug!(system = %system_symbol, waypoints = wps.len(), markets = markets_len, "Updated markets");
                 }
                 Ok::<(), crate::error::Error>(())
             }
@@ -289,7 +277,7 @@ async fn setup_context(
         config: Arc::new(RwLock::new(config)),
     };
 
-    debug!("Context created");
+    tracing::debug!("Context created");
 
     let main_cancel_token = CancellationToken::new();
     let manager_cancel_token = main_cancel_token.child_token();
@@ -351,7 +339,7 @@ async fn setup_context(
         ship_cancel_token.clone(),
     );
 
-    debug!("Managers created");
+    tracing::debug!("Managers created");
 
     Ok((
         context,
@@ -476,12 +464,7 @@ async fn check_time() {
     let local_time: DateTime<Utc> = result.datetime().into_chrono_datetime().unwrap();
     let time_diff = (local_time - Utc::now()).abs();
 
-    tracing::info!(
-        "The local time is: {} and it should be: {} and the time diff is: {:?}",
-        Utc::now(),
-        local_time,
-        time_diff.to_std().unwrap()
-    );
+    tracing::info!(current_time = %Utc::now(), expected_time = %local_time, time_diff = ?time_diff.to_std().unwrap(), "Checked local time against NTP");
 
     if time_diff > chrono::Duration::milliseconds(1000) {
         panic!(
@@ -501,30 +484,30 @@ async fn start(
     manager_token: CancellationToken,
     managers: Vec<Box<dyn Manager>>,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    debug!("Start function started");
+    tracing::debug!("Start function started");
 
     // let _ = main_token.cancelled().await;
 
-    debug!("Starting managers and ships");
+    tracing::debug!("Starting managers and ships");
 
     let managers_handles = start_managers(managers).await?;
     start_ships(&context).await?;
 
-    debug!("Managers and ships started");
+    tracing::debug!("Managers and ships started");
 
     let manager_future = wait_managers(managers_handles);
 
-    debug!("Waiting for managers and ships to finish");
+    tracing::debug!("Waiting for managers and ships to finish");
 
     let erg = manager_future.await;
 
-    debug!("Managers and ships finished");
+    tracing::debug!("Managers and ships finished");
 
     if let Err(errror) = erg {
-        tracing::error!("Managers error: {} {:?}", errror, errror);
+        tracing::error!(errror = ?errror, error = %errror, "Managers error occurred");
     }
 
-    debug!("Start function finished");
+    tracing::debug!("Start function finished");
 
     Ok(())
 }
@@ -542,12 +525,12 @@ async fn start_managers(
     for mut manager in managers {
         let name = manager.get_name().to_string();
         let cancel_token = manager.get_cancel_token().clone();
-        debug!("Starting manager {}", name);
+    tracing::debug!(manager_name = %name, "Starting manager");
         let handle = tokio::task::spawn(async move {
             let erg = manager.run().await;
 
             if let Err(errror) = &erg {
-                tracing::error!("Managers error: {} {:?}", errror, errror);
+                tracing::error!(errror = ?errror, error = %errror, "Managers error occurred");
             }
 
             erg
@@ -558,7 +541,7 @@ async fn start_managers(
         //         let erg = manager.run().await;
 
         //         if let Err(errror) = &erg {
-        //             tracing::error!("Managers error: {} {:?}", errror, errror);
+    //             tracing::error!(errror = ?errror, "Managers error");
         //         }
 
         //         erg
@@ -574,13 +557,13 @@ async fn start_ships(context: &ConductorContext) -> Result<(), crate::error::Err
         database::ShipInfo::get_all(&context.database_pool).await?;
 
     let len = ship_names.len();
-    debug!("Starting {} ships", len);
+    tracing::debug!(ship_count = %len, "Starting ships");
 
     for ship in ship_names {
         context.ship_tasks.start_ship(ship).await;
     }
 
-    debug!("Started pilots for {} ships", len);
+    tracing::debug!(ship_count = %len, "Started pilots for ships");
 
     Ok(())
 }
@@ -593,21 +576,12 @@ async fn wait_managers(managers_handles: Vec<ManagersHandle>) -> Result<(), crat
         let manager_handle = handle.0;
         manager_futures.push(async move {
             let erg = manager_handle.await;
-            tracing::info!(
-                manager_name,
-                erg=?erg,
-                "Manager finished and joined"
-            );
+            tracing::info!(manager_name = %manager_name, erg = ?erg, "Manager finished and joined");
             if let Err(ref errror) = erg {
-                tracing::error!(manager_name, error = format!("{:?}", errror), "Join error");
+                tracing::error!(manager_name = %manager_name, error = ?errror, "Join error");
             } else if let Ok(r_erg) = erg {
                 if let Err(errror) = r_erg {
-                    tracing::error!(
-                        manager_name,
-                        error = format!("{:?}", errror),
-                        error = format!("{:?}", errror.source()),
-                        "Manager error",
-                    );
+                    tracing::error!(manager_name = %manager_name, error = ?errror, source = ?errror.source(), "Manager error occurred");
                 } else if let Ok(_res) = r_erg {
                 }
             }
@@ -616,10 +590,7 @@ async fn wait_managers(managers_handles: Vec<ManagersHandle>) -> Result<(), crat
     }
 
     while let Some(result) = manager_futures.next().await {
-        tracing::info!(
-          result=?result,
-          "Manager finished"
-        );
+                tracing::info!(result = ?result, "Manager finished");
     }
     Ok(())
 }

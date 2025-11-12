@@ -150,14 +150,14 @@ impl ScrappingManager {
 
         match agent_errs {
             Ok(Ok(_)) => {}
-            Ok(Err(err)) => tracing::error!("Failed to update agents: {}", err),
-            Err(err) => tracing::error!("JoinFailed to update agents: {}", err),
+            Ok(Err(err)) => tracing::error!(err = ?err, "Failed to update agents"),
+            Err(err) => tracing::error!(err = ?err, "JoinFailed to update agents"),
         }
 
         match system_errs {
             Ok(Ok(_)) => {}
-            Ok(Err(err)) => tracing::error!("Failed to update systems: {}", err),
-            Err(err) => tracing::error!("JoinFailed to update systems: {}", err),
+            Ok(Err(err)) => tracing::error!(err = ?err, "Failed to update systems"),
+            Err(err) => tracing::error!(err = ?err, "JoinFailed to update systems"),
         }
 
         Ok(())

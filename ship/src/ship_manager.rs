@@ -48,14 +48,10 @@ impl<T: Clone + Send + Sync + async_graphql::OutputType> Observer<RustShip<T>> f
             let mut map = match map {
                 Ok(m) => m,
                 Err(_e) => {
-                    log::warn!("Failed to update get ship: {} waiting", symbol);
+                    tracing::warn!(symbol = %symbol, "Failed to update get ship: waiting");
                     let start = std::time::Instant::now();
                     let map = self.copy.write().await;
-                    log::warn!(
-                        "Got update ship: {} waiting took {:?}",
-                        symbol,
-                        start.elapsed()
-                    );
+                    tracing::warn!(symbol = %symbol, elapsed = ?start.elapsed(), "Got update ship: waiting");
                     map
                 }
             };
@@ -63,7 +59,7 @@ impl<T: Clone + Send + Sync + async_graphql::OutputType> Observer<RustShip<T>> f
             map.insert(symbol, clone);
         }
         if let Err(e) = self.mpsc_tx.send(data) {
-            log::error!("Failed to broadcast ship update: {}", e);
+            tracing::error!(error = %e, "Failed to broadcast ship update");
         }
     }
 }
@@ -111,7 +107,7 @@ impl<T: Clone + Send + Sync + async_graphql::OutputType> ShipManager<T> {
             let map = match map {
                 Ok(m) => m,
                 Err(_) => {
-                    log::warn!("Failed to get all ships waiting");
+                    tracing::warn!("Failed to get all ships waiting");
                     self.copy.read().await
                 }
             };

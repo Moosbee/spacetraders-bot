@@ -102,11 +102,7 @@ impl BudgetManager {
         amount: i64,
         remain: i64,
     ) -> Result<ReservedFund, crate::error::Error> {
-        tracing::debug!(
-            "Attempting to reserve funds: {}, with remain: {}",
-            amount,
-            remain
-        );
+    tracing::debug!(amount = %amount, remain = %remain, "Attempting to reserve funds");
         let mut reserved_funds = self.reserved_funds.lock().await;
         let reserved_amount = Self::get_still_reserved_funds(reserved_funds.clone());
         let spendable = self.current_funds.load(Ordering::SeqCst) - remain - reserved_amount;
@@ -140,7 +136,7 @@ impl BudgetManager {
         reservation_id: i64,
     ) -> Result<(), crate::error::Error> {
         let mut reserved_funds = self.reserved_funds.lock().await;
-        tracing::debug!("Cancelling reservation id: {}", reservation_id);
+    tracing::debug!(reservation_id = %reservation_id, "Cancelling reservation");
 
         {
             let reserved_fund = reserved_funds
@@ -174,7 +170,7 @@ impl BudgetManager {
         increment_amount: i64,
     ) -> Result<(), crate::error::Error> {
         let mut reserved_funds = self.reserved_funds.lock().await;
-        tracing::debug!("Using reservation id: {}", reservation_id);
+    tracing::debug!(reservation_id = %reservation_id, "Using reservation");
 
         let reserved_fund = reserved_funds
             .get_mut(&reservation_id)
@@ -210,7 +206,7 @@ impl BudgetManager {
         actual_amount: i64,
     ) -> Result<(), crate::error::Error> {
         let mut reserved_funds = self.reserved_funds.lock().await;
-        tracing::debug!("Completing use of reservation id: {}", reservation_id);
+    tracing::debug!(reservation_id = %reservation_id, "Completing use of reservation");
 
         let reserved_fund = reserved_funds
             .get_mut(&reservation_id)
@@ -247,7 +243,7 @@ impl BudgetManager {
         reservation_id: i64,
     ) -> Result<(), crate::error::Error> {
         let mut reserved_funds = self.reserved_funds.lock().await;
-        tracing::debug!("Completing reservation id: {}", reservation_id);
+    tracing::debug!(reservation_id = %reservation_id, "Completing reservation");
 
         let reserved_fund = reserved_funds
             .get_mut(&reservation_id)

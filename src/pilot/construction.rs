@@ -39,7 +39,7 @@ impl ConstructionPilot {
             .value_mut()
             .ok_or(Error::General("Ship not found".to_string()))?;
 
-        debug!("Requesting next shipment for ship: {:?}", ship.symbol);
+    debug!(ship_symbol = %ship.symbol, "Requesting next shipment for ship");
 
         let shipment = self
             .context
@@ -47,7 +47,7 @@ impl ConstructionPilot {
             .next_shipment(ship.clone())
             .await?;
 
-        debug!("Next shipment: {:?}", shipment);
+    debug!(shipment = ?shipment, "Next shipment");
 
         // if (self.count.load(std::sync::atomic::Ordering::SeqCst) == 0) {
         //     self.count.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
@@ -77,7 +77,7 @@ impl ConstructionPilot {
 
         let storage_count = ship.cargo.get_amount(&shipment.trade_symbol);
 
-        debug!("Storage count: {}", storage_count);
+    debug!(storage_count, "Storage count");
 
         if storage_count != shipment.units {
             debug!("Purchasing cargo");
@@ -96,7 +96,7 @@ impl ConstructionPilot {
             }
         }
 
-        debug!("Delivering cargo");
+    debug!("Delivering cargo");
 
         let del_erg = self.deliver_cargo(ship, shipment.clone()).await;
 
@@ -115,7 +115,7 @@ impl ConstructionPilot {
 
         let (contract, shipment) = del_erg.unwrap();
 
-        debug!("Completing shipment");
+    debug!("Completing shipment");
 
         self.context
             .construction_manager
@@ -200,10 +200,7 @@ impl ConstructionPilot {
 
         let current_price = (market_trade.purchase_price * units_needed) as i64;
 
-        debug!(
-            "Purchasing units: {} should cost: {}",
-            units_needed, current_price
-        );
+        debug!(units_needed, current_price, "Purchasing units and cost");
 
         let cost = ship
             .purchase_cargo(
@@ -270,7 +267,7 @@ impl ConstructionPilot {
             .get_amount(&shipment.trade_symbol)
             .min(shipment.units);
 
-        debug!("Delivering units: {}", units_to_deliver);
+    debug!(units_to_deliver, "Delivering units");
 
         let response = ship
             .supply_construction(shipment.trade_symbol, units_to_deliver, &self.context.api)

@@ -1,5 +1,4 @@
 use space_traders_client::models;
-use tracing::debug;
 use utils::WaypointCan;
 
 use crate::utils::ConductorContext;
@@ -156,12 +155,7 @@ impl WaypointManager {
         waypoints: Vec<place_finder::FoundWaypointInfo>,
         action: ActionType,
     ) -> Result<String> {
-        debug!(
-            "Assigning to available waypoint {} waypoints {} {:?}",
-            waypoints.len(),
-            ship.symbol,
-            action
-        );
+        tracing::debug!(ship_symbol = %ship.symbol, waypoints_count = waypoints.len(), action = ?action, "Assigning to available waypoint");
         for waypoint in waypoints {
             if self.places.try_assign_on_way(
                 &ship.symbol,

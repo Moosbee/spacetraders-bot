@@ -253,10 +253,7 @@ impl ExtractionPilot {
     }
 
     fn has_space(&self, ship: &mut ship::MyShip) -> bool {
-        debug!(
-            "Checking space on ship: {} can store: {} units has: {}",
-            ship.symbol, ship.cargo.capacity, ship.cargo.units
-        );
+        debug!(ship_symbol = %ship.symbol, capacity = ship.cargo.capacity, units = ship.cargo.units, "Checking space on ship");
         ship.cargo.units < ship.cargo.capacity
     }
 
@@ -292,10 +289,7 @@ impl ExtractionPilot {
                         .filter(|f| prefer_list.contains(&f.0))
                         .map(|f| f.1)
                         .sum::<f64>();
-                    debug!(
-                        "Using survey {} on ship {} score {}",
-                        survey.signature, ship.symbol, score_a
-                    );
+                    debug!(survey_signature = %survey.signature, ship_symbol = %ship.symbol, score = score_a, "Using survey on ship");
 
                     let survey_erg = ship
                         .extract_with_survey(&self.context.api, &(&survey).into())
@@ -630,10 +624,7 @@ impl ExtractionPilot {
 
         let _erg = request.callback.send(transfer_result);
 
-        debug!(
-            "Handled transfer request for ship: {} to {}",
-            ship.symbol, request.to_symbol
-        );
+            debug!(ship_symbol = %ship.symbol, to_symbol = %request.to_symbol, "Handled transfer request for ship");
         Ok(())
     }
 

@@ -63,7 +63,7 @@ impl TransportPilot {
             > 0.95)
         {
             let next_mining_waypoint = self.get_next_mining_waypoint(ship).await;
-            debug!("Next transport mining waypoint: {:?}", next_mining_waypoint);
+            debug!(next_mining_waypoint = ?next_mining_waypoint, "Next transport mining waypoint");
             if next_mining_waypoint.is_err() {
                 let next_err = next_mining_waypoint.unwrap_err();
                 if let crate::error::Error::General(err_r) = &next_err {
@@ -107,7 +107,7 @@ impl TransportPilot {
             )
             .await?;
 
-            debug!("Navigated to waypoint: {}", next_mining_waypoint);
+            debug!(next_mining_waypoint = %next_mining_waypoint, "Navigated to waypoint");
 
             self.handle_cargo_loading(ship, pilot).await?;
         }
@@ -129,7 +129,7 @@ impl TransportPilot {
     async fn get_next_mining_waypoint(&self, ship: &mut ship::MyShip) -> Result<String> {
         let next_transport = self.context.mining_manager.get_next_transport(ship).await?;
 
-        debug!("Next transport mining waypoint: {}", next_transport);
+    debug!(next_transport = %next_transport, "Next transport mining waypoint");
 
         Ok(next_transport)
     }
@@ -139,7 +139,7 @@ impl TransportPilot {
         ship: &mut ship::MyShip,
         pilot: &crate::pilot::Pilot,
     ) -> Result<()> {
-        debug!("Initiating cargo loading for ship: {}", ship.symbol);
+    debug!(ship_symbol = %ship.symbol, "Initiating cargo loading for ship");
         // tell mining manager you have arrived
         // wait until storage is full or are told to leave
         //    in meantime, listen to mining manager and load cargo it tells you
@@ -150,17 +150,14 @@ impl TransportPilot {
             .mining_manager
             .transport_contact(&ship.symbol)
             .await?;
-        debug!("Transport contact established for ship: {}", ship.symbol);
+    debug!(ship_symbol = %ship.symbol, "Transport contact established for ship");
 
         let _erg = self
             .context
             .mining_manager
             .transport_arrived(&ship.symbol, &ship.nav.waypoint_symbol)
             .await?;
-        debug!(
-            "Transport arrived notification sent for ship: {}, waypoint: {}",
-            ship.symbol, ship.nav.waypoint_symbol
-        );
+        debug!(ship_symbol = %ship.symbol, waypoint_symbol = %ship.nav.waypoint_symbol, "Transport arrived notification sent");
 
         while !(ship.cargo.get_units_no_fuel() as f32
             / (ship.cargo.capacity
@@ -181,7 +178,7 @@ impl TransportPilot {
 
             let msg = tokio::select! {
                 _ = pilot.cancellation_token.cancelled() => {
-                    debug!("Cancellation token received for ship: {}", ship.symbol);
+                    debug!(ship_symbol = %ship.symbol, "Cancellation token received");
                     None
                 },
                 msg = rec.recv() => msg,
@@ -198,14 +195,11 @@ impl TransportPilot {
 
             match msg {
                 None => {
-                    debug!(
-                        "No more messages; shutting down transport for ship: {}",
-                        ship.symbol
-                    );
+                    debug!(ship_symbol = %ship.symbol, "No more messages; shutting down transport");
                     break;
                 }
                 Some(transfer_request) => {
-                    debug!("Received transfer request for ship: {}", ship.symbol);
+                    debug!(ship_symbol = %ship.symbol, "Received transfer request for ship");
                     let from = transfer_request.from_symbol.clone();
                     let to = transfer_request.to_symbol.clone();
                     let erg = self.handle_transfer_request(ship, transfer_request).await;
@@ -223,10 +217,7 @@ impl TransportPilot {
             }
         }
 
-        debug!(
-            "Finalizing cargo loading; shutting down transport for ship: {}",
-            ship.symbol
-        );
+        debug!(ship_symbol = %ship.symbol, "Finalizing cargo loading; shutting down transport");
         drop(rec);
 
         Ok(())
@@ -298,7 +289,7 @@ impl TransportPilot {
     ) -> Result<()> {
         while ship.cargo.get_units_no_fuel() > 0 {
             if pilot.cancellation_token.is_cancelled() {
-                tracing::info!("Transport cycle cancelled for {} ", ship.symbol);
+                tracing::info!(symbol = %ship.symbol, "Transport cycle cancelled");
                 break;
             }
 
@@ -430,10 +421,10 @@ impl TransportPilot {
             }
             let amount = ship.cargo.get_amount(&trade);
             if amount == 0 {
-                tracing::info!("Skipping {} as cargo is empty", trade);
+                tracing::info!(trade = ?trade, "Skipping trade as cargo is empty");
                 continue;
             }
-            debug!("Selling {} units of {} for {}", amount, trade, ship.symbol);
+            debug!(amount = amount, trade = ?trade, ship_symbol = %ship.symbol, "Selling units of trade for ship");
 
             let budget_manager = self.context.budget_manager.clone();
 

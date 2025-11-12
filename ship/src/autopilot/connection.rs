@@ -1,4 +1,4 @@
-use async_graphql::{Enum, SimpleObject, Union};
+use async_graphql::{SimpleObject, Union};
 use space_traders_client::models::{self, ShipNavFlightMode};
 use std::hash::Hash;
 

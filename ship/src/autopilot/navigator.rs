@@ -1,6 +1,6 @@
 use chrono::Utc;
 use database::DatabaseConnector;
-use log::{debug, warn};
+use log::warn;
 use space_traders_client::models::{self};
 use utils::get_system_symbol;
 
@@ -198,10 +198,7 @@ impl<T: Clone + Send + Sync + async_graphql::OutputType> RustShip<T> {
 
         self.ensure_undocked(api).await?;
 
-        debug!(
-            "Navigating from {} to {} waiting",
-            self.nav.waypoint_symbol, connection.end_symbol
-        );
+    tracing::debug!(waypoint = %self.nav.waypoint_symbol, end_symbol = %connection.end_symbol, "Navigating (warp) waiting");
 
         let start_id = self.snapshot(database_pool).await?;
 
@@ -268,10 +265,7 @@ impl<T: Clone + Send + Sync + async_graphql::OutputType> RustShip<T> {
 
         self.ensure_undocked(api).await?;
 
-        debug!(
-            "Navigating from {} to {} waiting",
-            self.nav.waypoint_symbol, connection.end_symbol
-        );
+    tracing::debug!(waypoint = %self.nav.waypoint_symbol, end_symbol = %connection.end_symbol, "Navigating (navigate) waiting");
 
         let start_id = self.snapshot(database_pool).await?;
 
@@ -280,7 +274,7 @@ impl<T: Clone + Send + Sync + async_graphql::OutputType> RustShip<T> {
         let end_id = self.snapshot(database_pool).await?;
 
         if !nav_data.data.events.is_empty() {
-            debug!("Nav Events: {:#?} ", nav_data.data.events);
+            tracing::debug!(events = ?nav_data.data.events, "Nav Events");
         }
 
         let rote = database::Route {
@@ -337,7 +331,7 @@ impl<T: Clone + Send + Sync + async_graphql::OutputType> RustShip<T> {
     }
 
     fn calculate_refuelments(&self, refuel: Refuel) -> RefuelRequirements {
-        debug!("Calculating refuel requirements: {:?}", refuel);
+    tracing::debug!(refuel = ?refuel, "Calculating refuel requirements");
 
         if self.fuel.capacity == 0 {
             return RefuelRequirements {

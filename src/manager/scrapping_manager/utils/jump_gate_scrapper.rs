@@ -38,7 +38,7 @@ pub async fn get_all_jump_gates(
                             break None;
                         }
                         err_count -= 1;
-                        tracing::warn!("JumpGate: {} Error: {:?}", waypoint.1, e);
+                        tracing::warn!(error = ?e, jump_gate = %waypoint.1, "JumpGate error");
                         if err_count <= 0 {
                             break None;
                         }
@@ -46,7 +46,7 @@ pub async fn get_all_jump_gates(
                     }
                     Err(e) => {
                         err_count -= 1;
-                        tracing::warn!("JumpGate: {} Error: {} {:?}", waypoint.1, e, e);
+                        tracing::warn!(error = ?e, jump_gate = %waypoint.1, "JumpGate error");
                         if err_count <= 0 {
                             break None;
                         }
@@ -77,7 +77,7 @@ pub async fn get_all_jump_gates(
                 }
             }
             Err(e) => {
-                tracing::warn!("JumpGate: Error: {}, {:?}", e, e);
+                tracing::warn!(error = ?e, "JumpGate error");
             }
         }
     }

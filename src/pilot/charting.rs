@@ -38,7 +38,7 @@ impl ChartPilot {
             .value_mut()
             .ok_or(Error::General("Ship not found".to_string()))?;
 
-        debug!("Requesting next chart for ship: {:?}", ship.symbol);
+    debug!(ship_symbol = %ship.symbol, "Requesting next chart for ship");
 
         ship.status.status = ship::AssignmentStatus::Charting {
             cycle: Some(self.count.load(std::sync::atomic::Ordering::SeqCst)),
@@ -49,7 +49,7 @@ impl ChartPilot {
 
         let chart = self.context.chart_manager.get_next(ship.clone()).await?;
 
-        debug!("Next chart: {:?}", chart);
+    debug!(chart = ?chart, "Next chart");
 
         let chart = match chart {
             NextChartResp::Next(chart) => chart,

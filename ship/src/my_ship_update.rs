@@ -1,9 +1,5 @@
-use chrono::Utc;
-use futures::FutureExt;
-use log::debug;
 use space_traders_client::models::{self, TradeSymbol};
 use tokio::{select, sync::broadcast};
-use utils::SendFuture;
 
 use crate::RustShip;
 
@@ -97,10 +93,7 @@ impl<T: Clone + Send + Sync + async_graphql::OutputType> RustShip<T> {
         if data.symbol != self.symbol {
             return;
         }
-        debug!(
-            "Handling update: {:?} for ship: {}",
-            data.update, self.symbol
-        );
+        tracing::debug!(update = ?data.update, symbol = %self.symbol, "Handling update for ship");
         let erg: std::result::Result<(), crate::error::Error> = match data.update {
             ShipUpdate::CargoChange(cargo_change) => self
                 .cargo
@@ -114,7 +107,7 @@ impl<T: Clone + Send + Sync + async_graphql::OutputType> RustShip<T> {
                         &transfer_request.target,
                     )
                     .await;
-                debug!("Transfer cargo: {:?} {}", erg, self.symbol);
+                    tracing::debug!(symbol = %self.symbol, result = ?erg, "Transferred cargo");
                 let _reg: std::result::Result<(), tokio::sync::mpsc::error::SendError<()>> =
                     transfer_request.callback.send(()).await;
                 erg.map(|_| ())
@@ -122,7 +115,7 @@ impl<T: Clone + Send + Sync + async_graphql::OutputType> RustShip<T> {
             ShipUpdate::None => Ok(()),
         };
         if let Err(e) = erg {
-            log::error!("Failed to handle update: {}", e);
+                tracing::error!(error = %e, symbol = %self.symbol, "Failed to handle ship update");
         }
         self.notify().await;
     }
@@ -163,7 +156,7 @@ impl<T: Clone + Send + Sync + async_graphql::OutputType> RustShip<T> {
                 units,
             }),
         };
-        debug!("Sending update event: {:#?}", update_event);
+    tracing::debug!(event = ?update_event, "Sending update event");
         self.broadcaster
             .sender
             .send(update_event)

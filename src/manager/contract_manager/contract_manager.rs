@@ -38,7 +38,7 @@ impl ContractManager {
         ContractManagerMessanger,
     ) {
         let (sender, receiver) = tokio::sync::mpsc::channel(1024);
-        debug!("Created ContractManager channel");
+    tracing::debug!("Created ContractManager channel");
 
         (receiver, ContractManagerMessanger::new(sender))
     }
@@ -48,7 +48,7 @@ impl ContractManager {
         context: ConductorContext,
         receiver: tokio::sync::mpsc::Receiver<ContractManagerMessage>,
     ) -> Self {
-        debug!("Creating new ContractManager");
+    tracing::debug!("Creating new ContractManager");
         Self {
             cancel_token,
             context,
@@ -66,11 +66,11 @@ impl ContractManager {
         err(Debug)
     )]
     async fn run_contract_worker(&mut self) -> Result<()> {
-        debug!("Starting contract worker");
+    tracing::debug!("Starting contract worker");
         let contracts = self.get_unfulfilled_contracts().await?;
 
         for contract in contracts.iter() {
-            debug!("Contract found: {}", contract.id);
+            tracing::debug!(contract_id = %contract.id, "Contract found");
             let in_db =
                 database::Contract::get_by_id(&self.context.database_pool, &contract.id).await?;
 
@@ -313,12 +313,7 @@ impl ContractManager {
                 ));
             }
             _ if shipments.len() > 1 => {
-                tracing::error!(
-                    length = shipments.len(),
-                    ship_symbol = ship_clone.symbol,
-                    "Ship already has {} shipments in transit",
-                    shipments.len()
-                );
+                tracing::error!(length = %shipments.len(), ship_symbol = %ship_clone.symbol, "Ship already has shipments in transit");
                 panic!("Ship already has {} shipments in transit", shipments.len());
             }
             _ => {} // This arm is not necessary in this case, but it's good practice to include it

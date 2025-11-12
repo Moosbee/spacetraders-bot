@@ -37,7 +37,7 @@ impl MiningManagerMessanger {
             callback: sender,
             is_syphon,
         });
-        debug!("Sending AssignWaypoint message for ship: {}", ship.symbol);
+    tracing::debug!(ship_symbol = %ship.symbol, "Sending AssignWaypoint message for ship");
         self.sender.send(message).await.map_err(|e| {
             crate::error::Error::General(format!("Failed to send AssignWaypoint message: {}", e))
         })?;
@@ -46,7 +46,7 @@ impl MiningManagerMessanger {
             crate::error::Error::General(format!("Failed to get AssignWaypoint message: {}", e))
         })??;
 
-        debug!("Received waypoint: {}", erg);
+    tracing::debug!(waypoint = %erg, "Received waypoint");
         Ok(erg)
     }
 
@@ -59,7 +59,7 @@ impl MiningManagerMessanger {
             callback: sender,
             is_syphon,
         });
-        debug!("Sending NotifyWaypoint message for ship: {}", ship.symbol);
+    tracing::debug!(ship_symbol = %ship.symbol, "Sending NotifyWaypoint message for ship");
         self.sender.send(message).await.map_err(|e| {
             crate::error::Error::General(format!("Failed to send NotifyWaypoint message: {}", e))
         })?;
@@ -68,7 +68,7 @@ impl MiningManagerMessanger {
             crate::error::Error::General(format!("Failed to get NotifyWaypoint message: {}", e))
         })??;
 
-        debug!("Received notification response for ship: {}", ship.symbol);
+    tracing::debug!(ship_symbol = %ship.symbol, "Received notification response for ship");
         Ok(erg)
     }
 
@@ -80,7 +80,7 @@ impl MiningManagerMessanger {
             ship_clone: ship.clone(),
             callback: sender,
         });
-        debug!("Sending UnassignWaypoint message for ship: {}", ship.symbol);
+    tracing::debug!(ship_symbol = %ship.symbol, "Sending UnassignWaypoint message for ship");
         self.sender.send(message).await.map_err(|e| {
             crate::error::Error::General(format!("Failed to send UnassignWaypoint message: {}", e))
         })?;
@@ -89,7 +89,7 @@ impl MiningManagerMessanger {
             crate::error::Error::General(format!("Failed to get UnassignWaypoint message: {}", e))
         })??;
 
-        debug!("Received unassignment response for ship: {}", ship.symbol);
+    tracing::debug!(ship_symbol = %ship.symbol, "Received unassignment response for ship");
         Ok(erg)
     }
 
@@ -102,7 +102,7 @@ impl MiningManagerMessanger {
                 ship_clone: ship.clone(),
                 callback: sender,
             });
-        debug!("Sending GetNextWaypoint message for ship: {}", ship.symbol);
+    tracing::debug!(ship_symbol = %ship.symbol, "Sending GetNextWaypoint message for ship");
         self.sender.send(message).await.map_err(|e| {
             crate::error::Error::General(format!("Failed to send GetNextWaypoint message: {}", e))
         })?;
@@ -111,7 +111,7 @@ impl MiningManagerMessanger {
             crate::error::Error::General(format!("Failed to get GetNextWaypoint message: {}", e))
         })??;
 
-        debug!("Received next transport waypoint: {}", erg);
+    tracing::debug!(waypoint = %erg, "Received next transport waypoint");
         Ok(erg)
     }
 
@@ -175,7 +175,7 @@ impl MiningManagerMessanger {
 
         self.transfer_manager.add_extractor_contact(symbol, sender);
 
-        debug!("Extractor contact established for symbol: {}", symbol);
+    tracing::debug!(symbol = %symbol, "Extractor contact established");
         Ok(receiver)
     }
 
@@ -193,7 +193,7 @@ impl MiningManagerMessanger {
         self.transfer_manager
             .add_transportation_contact(symbol, sender);
 
-        debug!("Transport contact established for symbol: {}", symbol);
+    tracing::debug!(symbol = %symbol, "Transport contact established");
         Ok(receiver)
     }
 

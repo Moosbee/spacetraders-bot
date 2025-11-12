@@ -51,7 +51,7 @@ impl ControlApiServer {
             .data(context)
             .finish();
 
-        tracing::info!("GraphiQL IDE: {}", config.socket_address);
+        tracing::info!(socket_address = %config.socket_address, "GraphiQL IDE available at address");
 
         let graphql_post = async_graphql_warp::graphql(schema).and_then(
             |(schema, request): (
@@ -86,7 +86,7 @@ impl ControlApiServer {
 
         tokio::select! {
             _ = self.cancellation_token.cancelled() => {
-                tracing::info!("Shutting down server via cancellation");
+                tracing::info!("Server is shutting down due to cancellation");
             },
             _ = warp::serve(routes).run(config.socket_address).fuse() => {
                 tracing::info!("Server shutdown completed");

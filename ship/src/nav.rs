@@ -1,5 +1,5 @@
 use chrono::{DateTime, Utc};
-use log::{debug, warn};
+use tracing::{debug, warn, error};
 use space_traders_client::{apis, models};
 
 use crate::error;
@@ -224,7 +224,7 @@ impl<T: Clone + Send + Sync + async_graphql::OutputType> RustShip<T> {
                         );
                     }
                     if e.status == 400 && e.content == "You can't slow down while in transit." {
-                        log::error!("Slow down while in transit");
+                        error!("Slow down while in transit");
                         count += 1;
                         continue;
                     }
@@ -245,20 +245,22 @@ impl<T: Clone + Send + Sync + async_graphql::OutputType> RustShip<T> {
     ) -> core::result::Result<(), apis::Error<apis::fleet_api::PatchShipNavError>> {
         self.mutate();
         if flight_mode != self.nav.flight_mode {
-            debug!("Changing flight mode to {:?}", flight_mode);
+            debug!(flight_mode = ?flight_mode, "Changing flight mode");
 
             let current_fuel = self.fuel.current;
 
             let erg = self.patch_ship_nav(api, flight_mode).await?;
 
             if !erg.data.events.is_empty() {
-                debug!("Patch Nav Events: {:#?}", erg.data.events);
+                debug!(events = ?erg.data.events, "Patch Nav Events");
             }
 
             if erg.data.fuel.current != current_fuel {
                 warn!(
-                    "Fuel changed from {} to {} {:?}",
-                    current_fuel, erg.data.fuel.current, erg.data.fuel.consumed
+                    current_fuel = %current_fuel,
+                    new_fuel = %erg.data.fuel.current,
+                    consumed = ?erg.data.fuel.consumed,
+                    "Fuel changed after changing flight mode"
                 );
             }
         }
