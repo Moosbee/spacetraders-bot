@@ -3,7 +3,7 @@ use tracing::instrument;
 
 use super::DatabaseConnector;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, async_graphql::SimpleObject)]
 pub struct Route {
     pub id: i32,
     pub ship_symbol: String,
@@ -16,6 +16,37 @@ pub struct Route {
     pub ship_info_before: Option<i64>,
     pub ship_info_after: Option<i64>,
     pub created_at: DateTime<Utc>,
+}
+
+impl Route {
+    pub async fn get_by_ship(
+        database_pool: &super::DbPool,
+        ship_symbol: &str,
+    ) -> crate::Result<Vec<Route>> {
+        let erg = sqlx::query_as!(
+            Route,
+            r#"
+                SELECT 
+                  id,
+                  ship_symbol,
+                  "from",
+                  "to",
+                  nav_mode,
+                  distance,
+                  fuel_cost,
+                  travel_time,
+                  ship_info_before,
+                  ship_info_after,
+                  created_at
+                FROM route
+                WHERE ship_symbol = $1
+            "#,
+            ship_symbol
+        )
+        .fetch_all(database_pool.get_cache_pool())
+        .await?;
+        Ok(erg)
+    }
 }
 
 impl DatabaseConnector<Route> for Route {

@@ -30,6 +30,54 @@ impl TryFrom<models::ScrapTransaction> for ScrapTransaction {
     }
 }
 
+impl ScrapTransaction {
+    pub async fn get_by_ship(
+        database_pool: &super::DbPool,
+        ship_symbol: &str,
+    ) -> crate::Result<Vec<ScrapTransaction>> {
+        let reg = sqlx::query_as!(
+            ScrapTransaction,
+            r#"
+        SELECT
+            id,
+            waypoint_symbol,
+            ship_symbol,
+            total_price,
+            "timestamp"
+        FROM scrap_transaction
+        WHERE ship_symbol = $1
+        "#,
+            ship_symbol
+        )
+        .fetch_all(database_pool.get_cache_pool())
+        .await?;
+        Ok(reg)
+    }
+
+    pub async fn get_by_waypoint(
+        database_pool: &super::DbPool,
+        waypoint_symbol: &str,
+    ) -> crate::Result<Vec<ScrapTransaction>> {
+        let reg = sqlx::query_as!(
+            ScrapTransaction,
+            r#"
+        SELECT
+            id,
+            waypoint_symbol,
+            ship_symbol,
+            total_price,
+            "timestamp"
+        FROM scrap_transaction
+        WHERE waypoint_symbol = $1
+        "#,
+            waypoint_symbol
+        )
+        .fetch_all(database_pool.get_cache_pool())
+        .await?;
+        Ok(reg)
+    }
+}
+
 impl DatabaseConnector<ScrapTransaction> for ScrapTransaction {
     #[instrument(level = "trace", skip(database_pool, item))]
     async fn insert(database_pool: &super::DbPool, item: &ScrapTransaction) -> crate::Result<()> {

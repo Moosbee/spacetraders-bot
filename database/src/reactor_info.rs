@@ -3,6 +3,7 @@ use tracing::instrument;
 
 use super::DatabaseConnector;
 
+#[derive(Debug, Clone, async_graphql::SimpleObject)]
 pub struct ReactorInfo {
     pub symbol: models::ship_reactor::Symbol,
     pub name: String,
@@ -24,6 +25,34 @@ impl From<models::ship_reactor::ShipReactor> for ReactorInfo {
             crew_required: value.requirements.crew,
             slots_required: value.requirements.slots,
         }
+    }
+}
+
+impl ReactorInfo {
+    pub async fn get_by_symbol(
+        database_pool: &super::DbPool,
+        symbol: &models::ship_reactor::Symbol,
+    ) -> crate::Result<ReactorInfo> {
+        let erg = sqlx::query_as!(
+            ReactorInfo,
+            r#"
+    SELECT
+        symbol as "symbol: models::ship_reactor::Symbol",
+        name,
+        description,
+        power_output,
+        power_required,
+        crew_required,
+        slots_required
+    FROM reactor_info
+    WHERE symbol = $1
+    LIMIT 1
+    "#,
+            *symbol as models::ship_reactor::Symbol
+        )
+        .fetch_one(database_pool.get_cache_pool())
+        .await?;
+        Ok(erg)
     }
 }
 

@@ -39,7 +39,7 @@ impl Pilot {
         ship_symbol: String,
         cancellation_token: CancellationToken,
     ) -> Self {
-    debug!(ship_symbol, "Creating pilot for ship");
+        debug!(ship_symbol, "Creating pilot for ship");
 
         Self {
             context: context.clone(),
@@ -128,7 +128,7 @@ impl Pilot {
     }
 
     async fn wait_for_activation(&self) -> Result<()> {
-    debug!("Waiting for activation");
+        debug!("Waiting for activation");
         todo!()
     }
 
@@ -143,7 +143,7 @@ impl Pilot {
         }
 
         if let Some((assignment, fleet, is_temp)) = assignment {
-                debug!(ship_symbol = %self.ship_symbol, assignment = ?assignment, fleet = ?fleet, "Piloting ship with assignment in fleet");
+            debug!(ship_symbol = %self.ship_symbol, assignment = ?assignment, fleet = ?fleet, "Piloting ship with assignment in fleet");
 
             if assignment.disabled {
                 debug!(assignment_id = assignment.id, ship_symbol = %self.ship_symbol, "Assignment is disabled, unassigning ship");
@@ -168,6 +168,9 @@ impl Pilot {
                 self.wait_for_activation().await?;
                 return Ok(());
             }
+
+            self.set_ship_assignment(&assignment, &fleet, is_temp)
+                .await?;
 
             self.fly_to_system(&fleet, &assignment).await?;
 
@@ -237,6 +240,30 @@ impl Pilot {
                 .await;
             }
         }
+
+        Ok(())
+    }
+
+    async fn set_ship_assignment(
+        &self,
+        assignment: &database::ShipAssignment,
+        fleet: &database::Fleet,
+        is_temp: bool,
+    ) -> Result<()> {
+        let mut erg = self.context.ship_manager.get_mut(&self.ship_symbol).await;
+        let ship = erg
+            .value_mut()
+            .ok_or(Error::General("Ship not found".to_string()))?;
+
+        if is_temp {
+            ship.status.temp_assignment_id = Some(assignment.id);
+            ship.status.temp_fleet_id = Some(fleet.id);
+        } else {
+            ship.status.assignment_id = Some(assignment.id);
+            ship.status.fleet_id = Some(fleet.id);
+        }
+
+        ship.notify().await;
 
         Ok(())
     }

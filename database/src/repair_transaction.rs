@@ -31,6 +31,54 @@ impl TryFrom<models::RepairTransaction> for RepairTransaction {
     }
 }
 
+impl RepairTransaction {
+    pub async fn get_by_ship(
+        database_pool: &super::DbPool,
+        ship_symbol: &str,
+    ) -> crate::Result<Vec<RepairTransaction>> {
+        let reg = sqlx::query_as!(
+            RepairTransaction,
+            r#"
+        SELECT
+            id,
+            waypoint_symbol,
+            ship_symbol,
+            total_price,
+            "timestamp"
+        FROM repair_transaction
+        WHERE ship_symbol = $1
+        "#,
+            ship_symbol
+        )
+        .fetch_all(database_pool.get_cache_pool())
+        .await?;
+        Ok(reg)
+    }
+
+    pub async fn get_by_waypoint(
+        database_pool: &super::DbPool,
+        waypoint_symbol: &str,
+    ) -> crate::Result<Vec<RepairTransaction>> {
+        let reg = sqlx::query_as!(
+            RepairTransaction,
+            r#"
+        SELECT
+            id,
+            waypoint_symbol,
+            ship_symbol,
+            total_price,
+            "timestamp"
+        FROM repair_transaction
+        WHERE waypoint_symbol = $1
+        "#,
+            waypoint_symbol
+        )
+        .fetch_all(database_pool.get_cache_pool())
+        .await?;
+        Ok(reg)
+    }
+}
+
 impl DatabaseConnector<RepairTransaction> for RepairTransaction {
     #[instrument(level = "trace", skip(database_pool, item))]
     async fn insert(database_pool: &super::DbPool, item: &RepairTransaction) -> crate::Result<()> {

@@ -3,7 +3,7 @@ use tracing::instrument;
 
 use super::DatabaseConnector;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, async_graphql::SimpleObject)]
 pub struct ModuleInfo {
     pub symbol: models::ship_module::Symbol,
     pub name: String,
@@ -27,6 +27,35 @@ impl From<models::ship_module::ShipModule> for ModuleInfo {
             crew_required: value.requirements.crew,
             slots_required: value.requirements.slots,
         }
+    }
+}
+
+impl ModuleInfo {
+    pub async fn get_by_id(
+        database_pool: &super::DbPool,
+        symbol: &models::ship_module::Symbol,
+    ) -> crate::Result<ModuleInfo> {
+        let erg = sqlx::query_as!(
+            ModuleInfo,
+            r#"
+                SELECT
+                    symbol as "symbol: models::ship_module::Symbol",
+                    name,
+                    description,
+                    range,
+                    capacity,
+                    power_required,
+                    crew_required,
+                    slots_required
+                FROM module_info
+                WHERE symbol = $1
+                LIMIT 1
+            "#,
+            *symbol as models::ship_module::Symbol
+        )
+        .fetch_one(database_pool.get_cache_pool())
+        .await?;
+        Ok(erg)
     }
 }
 

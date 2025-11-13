@@ -15,6 +15,10 @@ pub enum ShippingStatus {
 pub struct ShipStatus {
     pub waiting_for_manager: bool,
     pub waiting_for_api: bool,
+    pub fleet_id: Option<i32>,
+    pub temp_fleet_id: Option<i32>,
+    pub assignment_id: Option<i64>,
+    pub temp_assignment_id: Option<i64>,
     #[graphql(skip)]
     pub status: AssignmentStatus,
 }
@@ -23,6 +27,58 @@ pub struct ShipStatus {
 impl ShipStatus {
     async fn status(&self) -> AssignmentStatusGQL {
         self.status.clone().into()
+    }
+
+    async fn assignment<'ctx>(
+        &self,
+        ctx: &async_graphql::Context<'ctx>,
+    ) -> crate::Result<Option<database::ShipAssignment>> {
+        let database_pool = ctx.data::<database::DbPool>().unwrap();
+        if let Some(assignment) = self.assignment_id {
+            let erg = database::ShipAssignment::get_by_id(database_pool, assignment).await?;
+            Ok(erg)
+        } else {
+            Ok(None)
+        }
+    }
+
+    async fn temp_assignment<'ctx>(
+        &self,
+        ctx: &async_graphql::Context<'ctx>,
+    ) -> crate::Result<Option<database::ShipAssignment>> {
+        let database_pool = ctx.data::<database::DbPool>().unwrap();
+        if let Some(assignment) = self.temp_assignment_id {
+            let erg = database::ShipAssignment::get_by_id(database_pool, assignment).await?;
+            Ok(erg)
+        } else {
+            Ok(None)
+        }
+    }
+
+    async fn fleet<'ctx>(
+        &self,
+        ctx: &async_graphql::Context<'ctx>,
+    ) -> crate::Result<Option<database::Fleet>> {
+        let database_pool = ctx.data::<database::DbPool>().unwrap();
+        if let Some(fleet) = self.fleet_id {
+            let erg = database::Fleet::get_by_id(database_pool, fleet).await?;
+            Ok(erg)
+        } else {
+            Ok(None)
+        }
+    }
+
+    async fn temp_fleet<'ctx>(
+        &self,
+        ctx: &async_graphql::Context<'ctx>,
+    ) -> crate::Result<Option<database::Fleet>> {
+        let database_pool = ctx.data::<database::DbPool>().unwrap();
+        if let Some(fleet) = self.temp_fleet_id {
+            let erg = database::Fleet::get_by_id(database_pool, fleet).await?;
+            Ok(erg)
+        } else {
+            Ok(None)
+        }
     }
 }
 

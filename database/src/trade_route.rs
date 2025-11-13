@@ -343,6 +343,34 @@ impl TradeRoute {
         Ok(erg)
     }
 
+    pub async fn get_by_ship(
+        database_pool: &DbPool,
+        ship_symbol: &str,
+    ) -> crate::Result<Vec<TradeRoute>> {
+        let erg = sqlx::query_as!(
+            TradeRoute,
+            r#"
+                SELECT 
+                  id,
+                  symbol as "symbol: models::TradeSymbol",
+                  ship_symbol,
+                  purchase_waypoint,
+                  sell_waypoint,
+                  status as "status: ShipmentStatus",
+                  trade_volume,
+                  predicted_purchase_price,
+                  predicted_sell_price,
+                  created_at,
+                  reserved_fund
+                 FROM trade_route WHERE ship_symbol = $1
+            "#,
+            ship_symbol
+        )
+        .fetch_all(&database_pool.database_pool)
+        .await?;
+        Ok(erg)
+    }
+
     #[instrument(level = "trace", skip(database_pool))]
     pub async fn get_summarys(database_pool: &DbPool) -> crate::Result<Vec<TradeRouteSummary>> {
         let erg= sqlx::query_as!(

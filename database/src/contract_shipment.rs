@@ -26,7 +26,7 @@ pub enum ShipmentStatus {
     Delivered,
 }
 
-#[derive(Debug, Clone, serde::Serialize)]
+#[derive(Debug, Clone, serde::Serialize, async_graphql::SimpleObject)]
 pub struct ContractShipment {
     pub id: i32,
     pub contract_id: String,
@@ -299,7 +299,7 @@ impl ContractShipment {
     }
 
     #[instrument(level = "trace", skip(database_pool))]
-    pub async fn get_by_ship_symbol(
+    pub async fn get_by_ship(
         database_pool: &super::DbPool,
         ship_symbol: &str,
     ) -> crate::Result<Vec<ContractShipment>> {
@@ -321,6 +321,93 @@ impl ContractShipment {
             WHERE ship_symbol = $1
             "#,
             ship_symbol
+        )
+        .fetch_all(database_pool.get_cache_pool())
+        .await?;
+        Ok(erg)
+    }
+
+    #[instrument(level = "trace", skip(database_pool))]
+    pub async fn get_by_trade_symbol(
+        database_pool: &super::DbPool,
+        trade_symbol: &models::TradeSymbol,
+    ) -> crate::Result<Vec<ContractShipment>> {
+        let erg = sqlx::query_as!(
+            ContractShipment,
+            r#"
+            SELECT 
+                id,
+                contract_id,
+                ship_symbol,
+                trade_symbol as "trade_symbol: models::TradeSymbol",
+                units,
+                destination_symbol,
+                purchase_symbol,
+                created_at,
+                updated_at,
+                status as "status: ShipmentStatus"
+            FROM contract_shipment
+            WHERE trade_symbol = $1
+            "#,
+            *trade_symbol as models::TradeSymbol
+        )
+        .fetch_all(database_pool.get_cache_pool())
+        .await?;
+        Ok(erg)
+    }
+
+    #[instrument(level = "trace", skip(database_pool))]
+    pub async fn get_by_destination_symbol(
+        database_pool: &super::DbPool,
+        destination_symbol: &str,
+    ) -> crate::Result<Vec<ContractShipment>> {
+        let erg = sqlx::query_as!(
+            ContractShipment,
+            r#"
+            SELECT 
+                id,
+                contract_id,
+                ship_symbol,
+                trade_symbol as "trade_symbol: models::TradeSymbol",
+                units,
+                destination_symbol,
+                purchase_symbol,
+                created_at,
+                updated_at,
+                status as "status: ShipmentStatus"
+            FROM contract_shipment
+            WHERE destination_symbol = $1
+            "#,
+            destination_symbol
+        )
+        .fetch_all(database_pool.get_cache_pool())
+        .await?;
+        Ok(erg)
+    }
+
+    #[instrument(level = "trace", skip(database_pool))]
+    pub async fn get_by_source_symbol(
+        database_pool: &super::DbPool,
+        source_symbol: &str,
+    ) -> crate::Result<Vec<ContractShipment>> {
+        let erg = sqlx::query_as!(
+            ContractShipment,
+            r#"
+            SELECT 
+                id,
+                contract_id,
+                ship_symbol,
+                trade_symbol as "trade_symbol: models::TradeSymbol",
+                units,
+                destination_symbol,
+                purchase_symbol,
+                created_at,
+                updated_at,
+                status as "status: ShipmentStatus"
+            FROM contract_shipment
+            WHERE purchase_symbol = $1
+            "#,
+            source_symbol
         )
         .fetch_all(database_pool.get_cache_pool())
         .await?;

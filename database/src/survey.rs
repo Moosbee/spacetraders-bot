@@ -10,6 +10,7 @@ use crate::{DatabaseConnector, DbPool};
 pub struct Survey {
     pub ship_info_before: i64,
     pub ship_info_after: i64,
+    pub ship_symbol: String,
     pub signature: String,
     pub waypoint_symbol: String,
     pub deposits: Vec<models::TradeSymbol>,
@@ -25,6 +26,7 @@ impl Survey {
         value: models::Survey,
         ship_before: i64,
         ship_after: i64,
+        ship_symbol: String,
     ) -> crate::Result<Survey> {
         let deposits = value.deposits.iter().map(|f| f.symbol).collect::<Vec<_>>();
         let expiration = DateTime::<chrono::Utc>::from_str(&value.expiration)?;
@@ -32,6 +34,7 @@ impl Survey {
         Ok(Survey {
             ship_info_before: ship_before,
             ship_info_after: ship_after,
+            ship_symbol,
             signature: value.signature,
             waypoint_symbol: value.symbol,
             deposits,
@@ -72,6 +75,7 @@ impl Survey {
                   signature,
                   ship_info_before,
                   ship_info_after,
+                  ship_symbol,
                   waypoint_symbol,
                   deposits as "deposits: Vec<models::TradeSymbol>",
                   expiration,
@@ -101,6 +105,7 @@ impl Survey {
                   signature,
                   ship_info_before,
                   ship_info_after,
+                  ship_symbol,
                   waypoint_symbol,
                   deposits as "deposits: Vec<models::TradeSymbol>",
                   expiration,
@@ -130,6 +135,7 @@ impl Survey {
                   signature,
                   ship_info_before,
                   ship_info_after,
+                  ship_symbol,
                   waypoint_symbol,
                   deposits as "deposits: Vec<models::TradeSymbol>",
                   expiration,
@@ -159,6 +165,7 @@ impl Survey {
                   signature,
                   ship_info_before,
                   ship_info_after,
+                  ship_symbol,
                   waypoint_symbol,
                   deposits as "deposits: Vec<models::TradeSymbol>",
                   expiration,
@@ -170,6 +177,35 @@ impl Survey {
                 WHERE size = $1
             "#,
             size as models::SurveySize
+        )
+        .fetch_all(&database_pool.database_pool)
+        .await?;
+        Ok(erg)
+    }
+
+    pub async fn get_by_ship(
+        database_pool: &DbPool,
+        ship_symbol: &str,
+    ) -> crate::Result<Vec<Survey>> {
+        let erg = sqlx::query_as!(
+            Survey,
+            r#"
+                SELECT
+                  signature,
+                  ship_info_before,
+                  ship_info_after,
+                  ship_symbol,
+                  waypoint_symbol,
+                  deposits as "deposits: Vec<models::TradeSymbol>",
+                  expiration,
+                  size as "size: models::SurveySize",
+                  exhausted_since,
+                  created_at,
+                  updated_at
+                FROM surveys
+                WHERE ship_symbol = $1
+            "#,
+            ship_symbol
         )
         .fetch_all(&database_pool.database_pool)
         .await?;
@@ -188,6 +224,7 @@ impl Survey {
                   signature,
                   ship_info_before,
                   ship_info_after,
+                  ship_symbol,
                   waypoint_symbol,
                   deposits as "deposits: Vec<models::TradeSymbol>",
                   expiration,
@@ -251,6 +288,7 @@ impl DatabaseConnector<Survey> for Survey {
                   signature,
                   ship_info_before,
                   ship_info_after,
+                  ship_symbol,
                   waypoint_symbol,
                   deposits,
                   expiration,
@@ -258,10 +296,11 @@ impl DatabaseConnector<Survey> for Survey {
                   exhausted_since,
                   updated_at
                 )
-                VALUES ($1, $2, $3, $4, $5::trade_symbol[], $6, $7::survey_size, $8, NOW())
+                VALUES ($1, $2, $3, $4, $5, $6::trade_symbol[], $7, $8::survey_size, $9, NOW())
                 ON CONFLICT (signature) DO UPDATE SET
                   ship_info_before = EXCLUDED.ship_info_before,
                   ship_info_after = EXCLUDED.ship_info_after,
+                  ship_symbol = EXCLUDED.ship_symbol,
                   waypoint_symbol = EXCLUDED.waypoint_symbol,
                   deposits = EXCLUDED.deposits,
                   expiration = EXCLUDED.expiration,
@@ -272,6 +311,7 @@ impl DatabaseConnector<Survey> for Survey {
             &item.signature,
             &item.ship_info_before,
             &item.ship_info_after,
+            &item.ship_symbol,
             &item.waypoint_symbol,
             &item.deposits as &[models::TradeSymbol],
             &item.expiration,
@@ -300,6 +340,7 @@ impl DatabaseConnector<Survey> for Survey {
                   signature,
                   ship_info_before,
                   ship_info_after,
+                  ship_symbol,
                   waypoint_symbol,
                   deposits as "deposits: Vec<models::TradeSymbol>",
                   expiration,

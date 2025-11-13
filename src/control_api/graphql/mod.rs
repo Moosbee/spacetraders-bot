@@ -304,6 +304,76 @@ impl QueryRoot {
         Ok(contracts)
     }
 
+    async fn contract_deliveries<'ctx>(
+        &self,
+        ctx: &async_graphql::Context<'ctx>,
+        by: Option<ContractDeliveryBy>,
+    ) -> Result<Vec<database::ContractDelivery>> {
+        let context = ctx.data::<ConductorContext>()?;
+        let contract_deliveries = if let Some(by) = by {
+            match by {
+                ContractDeliveryBy::Contract(id) => {
+                    database::ContractDelivery::get_by_contract_id(&context.database_pool, &id)
+                        .await?
+                }
+                ContractDeliveryBy::TradeSymbol(symbol) => {
+                    database::ContractDelivery::get_by_trade_symbol(&context.database_pool, &symbol)
+                        .await?
+                }
+                ContractDeliveryBy::Waypoint(symbol) => {
+                    database::ContractDelivery::get_by_destination_symbol(
+                        &context.database_pool,
+                        &symbol,
+                    )
+                    .await?
+                }
+            }
+        } else {
+            database::ContractDelivery::get_all(&context.database_pool).await?
+        };
+        Ok(contract_deliveries)
+    }
+
+    async fn contract_shipments<'ctx>(
+        &self,
+        ctx: &async_graphql::Context<'ctx>,
+        by: Option<ContractShipmentBy>,
+    ) -> Result<Vec<database::ContractShipment>> {
+        let context = ctx.data::<ConductorContext>()?;
+        let contract_shipments = if let Some(by) = by {
+            match by {
+                ContractShipmentBy::Contract(id) => {
+                    database::ContractShipment::get_by_contract_id(&context.database_pool, &id)
+                        .await
+                }
+                ContractShipmentBy::TradeSymbol(symbol) => {
+                    database::ContractShipment::get_by_trade_symbol(&context.database_pool, &symbol)
+                        .await
+                }
+                ContractShipmentBy::SourceWaypoint(source_symbol) => {
+                    database::ContractShipment::get_by_source_symbol(
+                        &context.database_pool,
+                        &source_symbol,
+                    )
+                    .await
+                }
+                ContractShipmentBy::DestinationWaypoint(destination_symbol) => {
+                    database::ContractShipment::get_by_destination_symbol(
+                        &context.database_pool,
+                        &destination_symbol,
+                    )
+                    .await
+                }
+                ContractShipmentBy::ShipSymbol(symbol) => {
+                    database::ContractShipment::get_by_ship(&context.database_pool, &symbol).await
+                }
+            }
+        } else {
+            database::ContractShipment::get_all(&context.database_pool).await
+        }?;
+        Ok(contract_shipments)
+    }
+
     async fn extraction<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
@@ -339,11 +409,8 @@ impl QueryRoot {
                     .await
                 }
                 ExtractionBy::ShipSymbol(symbol) => {
-                    database::Extraction::get_by_ship_symbol(
-                        &context.database_pool,
-                        &symbol.to_string(),
-                    )
-                    .await
+                    database::Extraction::get_by_ship(&context.database_pool, &symbol.to_string())
+                        .await
                 }
                 ExtractionBy::TradeSymbol(symbol) => {
                     database::Extraction::get_by_trade_symbol(&context.database_pool, &symbol).await
@@ -445,6 +512,9 @@ impl QueryRoot {
                 }
                 SurveyBy::Size(size) => {
                     database::Survey::get_by_size(&context.database_pool, size).await
+                }
+                SurveyBy::ShipSymbol(ship_symbol) => {
+                    database::Survey::get_by_ship(&context.database_pool, &ship_symbol).await
                 }
             }
         } else {
@@ -644,7 +714,7 @@ impl QueryRoot {
                     .await
                 }
                 ConstructionShipmentBy::ShipSymbol(ship_symbol) => {
-                    database::ConstructionShipment::get_by_ship_symbol(
+                    database::ConstructionShipment::get_by_ship(
                         &context.database_pool,
                         &ship_symbol,
                     )
@@ -670,6 +740,22 @@ impl QueryRoot {
         };
         Ok(jump_gate_connections)
     }
+}
+
+#[derive(Debug, Clone, async_graphql::OneofObject)]
+enum ContractDeliveryBy {
+    Waypoint(String),
+    TradeSymbol(models::TradeSymbol),
+    Contract(String),
+}
+
+#[derive(Debug, Clone, async_graphql::OneofObject)]
+enum ContractShipmentBy {
+    SourceWaypoint(String),
+    DestinationWaypoint(String),
+    TradeSymbol(models::TradeSymbol),
+    Contract(String),
+    ShipSymbol(String),
 }
 
 #[derive(Debug, Clone, async_graphql::OneofObject)]
@@ -707,6 +793,7 @@ enum SurveyBy {
     Waypoint(String),
     System(String),
     Size(models::SurveySize),
+    ShipSymbol(String),
 }
 
 #[derive(Debug, Clone, async_graphql::OneofObject)]

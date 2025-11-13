@@ -3,7 +3,7 @@ use tracing::instrument;
 
 use super::DatabaseConnector;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, async_graphql::SimpleObject)]
 pub struct MountInfo {
     pub symbol: models::ship_mount::Symbol,
     pub name: String,
@@ -13,6 +13,35 @@ pub struct MountInfo {
     pub power_required: Option<i32>,
     pub crew_required: Option<i32>,
     pub slots_required: Option<i32>,
+}
+
+impl MountInfo {
+    pub async fn get_by_id(
+        database_pool: &super::DbPool,
+        symbol: &models::ship_mount::Symbol,
+    ) -> crate::Result<MountInfo> {
+        let erg = sqlx::query_as!(
+            MountInfo,
+            r#"
+            SELECT
+                symbol as "symbol: models::ship_mount::Symbol",
+                name,
+                description,
+                strength,
+                deposits as "deposits: Vec<models::TradeSymbol>",
+                power_required,
+                crew_required,
+                slots_required
+            FROM mount_info
+            WHERE symbol = $1
+            LIMIT 1
+        "#,
+            *symbol as models::ship_mount::Symbol
+        )
+        .fetch_one(database_pool.get_cache_pool())
+        .await?;
+        Ok(erg)
+    }
 }
 
 impl From<models::ship_mount::ShipMount> for MountInfo {

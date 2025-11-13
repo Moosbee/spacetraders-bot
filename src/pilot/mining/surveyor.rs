@@ -76,7 +76,7 @@ impl SurveyPilot {
             .data
             .surveys
             .into_iter()
-            .map(|f| database::Survey::from_model(f, ship_before, ship_after))
+            .map(|f| database::Survey::from_model(f, ship_before, ship_after, ship.symbol.clone()))
             .collect::<database::Result<Vec<_>, _>>()?;
 
         database::Survey::insert_bulk(&self.context.database_pool, &all_surveys).await?;

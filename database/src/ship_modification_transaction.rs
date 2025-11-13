@@ -35,6 +35,56 @@ impl TryFrom<models::ShipModificationTransaction> for ShipModificationTransactio
     }
 }
 
+impl ShipModificationTransaction {
+    pub async fn get_by_ship(
+        database_pool: &super::DbPool,
+        ship_symbol: &str,
+    ) -> crate::Result<Vec<ShipModificationTransaction>> {
+        let reg = sqlx::query_as!(
+            ShipModificationTransaction,
+            r#"
+      SELECT
+        id,
+        waypoint_symbol,
+        ship_symbol,
+        trade_symbol as "trade_symbol: models::TradeSymbol",
+        total_price,
+        "timestamp"
+      FROM ship_modification_transaction
+      WHERE ship_symbol = $1
+      "#,
+            ship_symbol
+        )
+        .fetch_all(database_pool.get_cache_pool())
+        .await?;
+        Ok(reg)
+    }
+
+    pub async fn get_by_waypoint(
+        database_pool: &super::DbPool,
+        waypoint_symbol: &str,
+    ) -> crate::Result<Vec<ShipModificationTransaction>> {
+        let reg = sqlx::query_as!(
+            ShipModificationTransaction,
+            r#"
+      SELECT
+        id,
+        waypoint_symbol,
+        ship_symbol,
+        trade_symbol as "trade_symbol: models::TradeSymbol",
+        total_price,
+        "timestamp"
+      FROM ship_modification_transaction
+      WHERE waypoint_symbol = $1
+      "#,
+            waypoint_symbol
+        )
+        .fetch_all(database_pool.get_cache_pool())
+        .await?;
+        Ok(reg)
+    }
+}
+
 impl DatabaseConnector<ShipModificationTransaction> for ShipModificationTransaction {
     #[instrument(level = "trace", skip(database_pool, item))]
     async fn insert(

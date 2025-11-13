@@ -142,6 +142,30 @@ impl ShipyardTransaction {
         Ok(erg)
     }
 
+    pub async fn get_by_id(
+        database_pool: &super::DbPool,
+        id: i64,
+    ) -> crate::Result<ShipyardTransaction> {
+        let erg = sqlx::query_as!(
+            ShipyardTransaction,
+            r#"
+            SELECT
+                id,
+                waypoint_symbol,
+                ship_type as "ship_type: models::ShipType",
+                price,
+                agent_symbol,
+                "timestamp"
+            FROM shipyard_transaction
+            WHERE id = $1
+            "#,
+            id
+        )
+        .fetch_one(database_pool.get_cache_pool())
+        .await?;
+        Ok(erg)
+    }
+
     pub async fn insert_new(
         database_pool: &super::DbPool,
         item: &ShipyardTransaction,

@@ -1,8 +1,4 @@
-use std::{
-    cmp::Ordering,
-    collections::HashMap,
-    str::FromStr,
-};
+use std::{cmp::Ordering, collections::HashMap, str::FromStr};
 
 use chrono::{DateTime, Utc};
 use database::DatabaseConnector;
@@ -11,10 +7,7 @@ use space_traders_client::models::{self};
 
 use crate::{
     error::{self, Error, Result},
-    manager::{
-        contract_manager::ContractShipmentMessage,
-        Manager,
-    },
+    manager::{contract_manager::ContractShipmentMessage, Manager},
     utils::ConductorContext,
 };
 
@@ -38,7 +31,7 @@ impl ContractManager {
         ContractManagerMessanger,
     ) {
         let (sender, receiver) = tokio::sync::mpsc::channel(1024);
-    tracing::debug!("Created ContractManager channel");
+        tracing::debug!("Created ContractManager channel");
 
         (receiver, ContractManagerMessanger::new(sender))
     }
@@ -48,7 +41,7 @@ impl ContractManager {
         context: ConductorContext,
         receiver: tokio::sync::mpsc::Receiver<ContractManagerMessage>,
     ) -> Self {
-    tracing::debug!("Creating new ContractManager");
+        tracing::debug!("Creating new ContractManager");
         Self {
             cancel_token,
             context,
@@ -66,7 +59,7 @@ impl ContractManager {
         err(Debug)
     )]
     async fn run_contract_worker(&mut self) -> Result<()> {
-    tracing::debug!("Starting contract worker");
+        tracing::debug!("Starting contract worker");
         let contracts = self.get_unfulfilled_contracts().await?;
 
         for contract in contracts.iter() {
@@ -292,7 +285,7 @@ impl ContractManager {
             .await?;
         }
 
-        let shipments = database::ContractShipment::get_by_ship_symbol(
+        let shipments = database::ContractShipment::get_by_ship(
             &self.context.database_pool,
             &ship_clone.symbol,
         )

@@ -2,7 +2,7 @@ use tracing::instrument;
 
 use crate::DatabaseConnector;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, async_graphql::SimpleObject)]
 pub struct ShipJump {
     pub id: i64,
     pub ship_symbol: String,
@@ -11,6 +11,33 @@ pub struct ShipJump {
     pub distance: i64,
     pub ship_before: i64,
     pub ship_after: i64,
+}
+
+impl ShipJump {
+    pub async fn get_by_ship(
+        database_pool: &super::DbPool,
+        ship_symbol: &str,
+    ) -> crate::Result<Vec<ShipJump>> {
+        let reg = sqlx::query_as!(
+            ShipJump,
+            r#"
+                SELECT
+                    id,
+                    ship_symbol,
+                    "from",
+                    "to",
+                    distance,
+                    ship_before,
+                    ship_after
+                FROM ship_jumps
+                WHERE ship_symbol = $1
+            "#,
+            ship_symbol
+        )
+        .fetch_all(&database_pool.database_pool)
+        .await?;
+        Ok(reg)
+    }
 }
 
 impl DatabaseConnector<ShipJump> for ShipJump {

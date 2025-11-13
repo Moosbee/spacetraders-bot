@@ -3,7 +3,7 @@ use tracing::instrument;
 
 use super::{DatabaseConnector, DbPool};
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, async_graphql::SimpleObject)]
 pub struct ContractDelivery {
     pub contract_id: String,
     pub trade_symbol: models::TradeSymbol,
@@ -49,6 +49,52 @@ impl ContractDelivery {
             WHERE contract_id = $1
         "#,
             contract_id
+        )
+        .fetch_all(database_pool.get_cache_pool())
+        .await?;
+        Ok(erg)
+    }
+
+    pub async fn get_by_trade_symbol(
+        database_pool: &DbPool,
+        trade_symbol: &models::TradeSymbol,
+    ) -> crate::Result<Vec<ContractDelivery>> {
+        let erg = sqlx::query_as!(
+            ContractDelivery,
+            r#"
+            SELECT 
+              contract_id,
+              trade_symbol as "trade_symbol: models::TradeSymbol",
+              destination_symbol,
+              units_required,
+              units_fulfilled
+            FROM contract_delivery
+            WHERE trade_symbol = $1
+        "#,
+            *trade_symbol as models::TradeSymbol
+        )
+        .fetch_all(database_pool.get_cache_pool())
+        .await?;
+        Ok(erg)
+    }
+
+    pub async fn get_by_destination_symbol(
+        database_pool: &DbPool,
+        destination_symbol: &str,
+    ) -> crate::Result<Vec<ContractDelivery>> {
+        let erg = sqlx::query_as!(
+            ContractDelivery,
+            r#"
+            SELECT 
+              contract_id,
+              trade_symbol as "trade_symbol: models::TradeSymbol",
+              destination_symbol,
+              units_required,
+              units_fulfilled
+            FROM contract_delivery
+            WHERE destination_symbol = $1
+        "#,
+            destination_symbol
         )
         .fetch_all(database_pool.get_cache_pool())
         .await?;

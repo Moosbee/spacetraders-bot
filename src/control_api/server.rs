@@ -46,9 +46,11 @@ impl ControlApiServer {
 
         tokio::time::sleep(Duration::from_millis(config.control_start_sleep)).await;
         let context = self.context.clone();
+        let database_pool = self.context.database_pool.clone();
 
         let schema = Schema::build(QueryRoot, EmptyMutation, EmptySubscription)
             .data(context)
+            .data(database_pool)
             .finish();
 
         tracing::info!(socket_address = %config.socket_address, "GraphiQL IDE available at address");
