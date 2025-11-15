@@ -35,7 +35,7 @@ impl<T: Clone + Send + Sync + async_graphql::OutputType> RustShip<T> {
         self.wait_for_arrival().await;
         self.nav.refresh_nav();
         self.nav.auto_pilot = None;
-        self.notify().await;
+        self.notify(true).await;
         Ok(())
     }
 
@@ -471,7 +471,7 @@ impl<T: Clone + Send + Sync + async_graphql::OutputType> RustShip<T> {
             origin_symbol,
             origin_system_symbol,
         });
-        self.notify().await;
+        self.notify(true).await;
         Ok(())
     }
 }

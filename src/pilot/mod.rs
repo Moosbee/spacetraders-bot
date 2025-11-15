@@ -263,7 +263,7 @@ impl Pilot {
             ship.status.fleet_id = Some(fleet.id);
         }
 
-        ship.notify().await;
+        ship.notify(true).await;
 
         Ok(())
     }

@@ -55,7 +55,18 @@ impl MarketTradeGood {
 }
 /// The type of trade good (export, import, or exchange).
 #[derive(
-    Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize, sqlx::Type,
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    PartialEq,
+    Ord,
+    PartialOrd,
+    Hash,
+    Serialize,
+    Deserialize,
+    sqlx::Type,
+    async_graphql::Enum,
 )]
 #[sqlx(type_name = "market_trade_good_type")]
 pub enum Type {

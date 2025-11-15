@@ -204,7 +204,7 @@ impl<T: Clone + Send + Sync + async_graphql::OutputType> RustShip<T> {
         };
 
         self.cargo.update(&trade_data.cargo);
-        self.notify().await;
+        self.notify(true).await;
 
         update_funds_fn(trade_data.agent.credits);
 
@@ -238,7 +238,7 @@ impl<T: Clone + Send + Sync + async_graphql::OutputType> RustShip<T> {
             .await?;
 
         self.cargo.update(&delivery_result.data.cargo);
-        self.notify().await;
+        self.notify(true).await;
 
         Ok(delivery_result)
     }
@@ -263,7 +263,7 @@ impl<T: Clone + Send + Sync + async_graphql::OutputType> RustShip<T> {
             .await?;
 
         self.cargo.update(&delivery_result.data.cargo);
-        self.notify().await;
+        self.notify(true).await;
 
         Ok(delivery_result)
     }
@@ -292,7 +292,7 @@ impl<T: Clone + Send + Sync + async_graphql::OutputType> RustShip<T> {
             .await?;
 
         self.cargo.update(&transfer_result.data.cargo);
-        self.notify().await;
+        self.notify(true).await;
 
         Ok(transfer_result)
     }
@@ -314,7 +314,7 @@ impl<T: Clone + Send + Sync + async_graphql::OutputType> RustShip<T> {
             )
             .await?;
         self.cargo.update(&jettison_data.data.cargo);
-        self.notify().await;
+        self.notify(true).await;
 
         Ok(())
     }

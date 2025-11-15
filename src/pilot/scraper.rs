@@ -46,7 +46,7 @@ impl ScraperPilot {
             scrap_date: None,
         };
 
-        ship.notify().await;
+        ship.notify(true).await;
 
         let scrap = self
             .context
@@ -97,7 +97,7 @@ impl ScraperPilot {
             scrap_date: Some(date),
         };
 
-        ship.notify().await;
+        ship.notify(true).await;
 
         if waypoint_symbol != ship.nav.waypoint_symbol {
             let budget_manager = self.context.budget_manager.clone();

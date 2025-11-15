@@ -217,6 +217,7 @@ pub struct UselessAssignment {
 }
 
 #[derive(Debug, Clone, serde::Serialize, Union)]
+#[graphql(name = "MiningShipAssignment")]
 pub enum MiningShipAssignmentGQL {
     Transporter(TransporterAssignment),
     Extractor(ExtractorAssignment),
@@ -286,6 +287,7 @@ pub struct ManuelStatus {
 }
 
 #[derive(Debug, Clone, Union)]
+#[graphql(name = "AssignmentStatus")]
 pub enum AssignmentStatusGQL {
     Construction(ConstructionStatus),
     Trader(TraderStatus),

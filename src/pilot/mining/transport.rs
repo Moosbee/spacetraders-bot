@@ -52,7 +52,7 @@ impl TransportPilot {
                 cycles: Some(self.count.load(std::sync::atomic::Ordering::Relaxed)),
             },
         };
-        ship.notify().await;
+        ship.notify(true).await;
 
         while !(ship.cargo.get_units_no_fuel() as f32
             / (ship.cargo.capacity
@@ -90,7 +90,7 @@ impl TransportPilot {
                     cycles: Some(self.count.load(std::sync::atomic::Ordering::Relaxed)),
                 },
             };
-            ship.notify().await;
+            ship.notify(true).await;
 
             let budget_manager = self.context.budget_manager.clone();
 
@@ -121,7 +121,7 @@ impl TransportPilot {
                 cycles: None,
             },
         };
-        ship.notify().await;
+        ship.notify(true).await;
 
         Ok(())
     }
@@ -129,7 +129,7 @@ impl TransportPilot {
     async fn get_next_mining_waypoint(&self, ship: &mut ship::MyShip) -> Result<String> {
         let next_transport = self.context.mining_manager.get_next_transport(ship).await?;
 
-    debug!(next_transport = %next_transport, "Next transport mining waypoint");
+        debug!(next_transport = %next_transport, "Next transport mining waypoint");
 
         Ok(next_transport)
     }
@@ -139,7 +139,7 @@ impl TransportPilot {
         ship: &mut ship::MyShip,
         pilot: &crate::pilot::Pilot,
     ) -> Result<()> {
-    debug!(ship_symbol = %ship.symbol, "Initiating cargo loading for ship");
+        debug!(ship_symbol = %ship.symbol, "Initiating cargo loading for ship");
         // tell mining manager you have arrived
         // wait until storage is full or are told to leave
         //    in meantime, listen to mining manager and load cargo it tells you
@@ -150,7 +150,7 @@ impl TransportPilot {
             .mining_manager
             .transport_contact(&ship.symbol)
             .await?;
-    debug!(ship_symbol = %ship.symbol, "Transport contact established for ship");
+        debug!(ship_symbol = %ship.symbol, "Transport contact established for ship");
 
         let _erg = self
             .context
@@ -174,7 +174,7 @@ impl TransportPilot {
                     cycles: Some(self.count.load(std::sync::atomic::Ordering::Relaxed)),
                 },
             };
-            ship.notify().await;
+            ship.notify(true).await;
 
             let msg = tokio::select! {
                 _ = pilot.cancellation_token.cancelled() => {
@@ -191,7 +191,7 @@ impl TransportPilot {
                     cycles: Some(self.count.load(std::sync::atomic::Ordering::Relaxed)),
                 },
             };
-            ship.notify().await;
+            ship.notify(true).await;
 
             match msg {
                 None => {
@@ -273,7 +273,7 @@ impl TransportPilot {
         ship.cargo
             .handle_cago_update(transfer.units, transfer.trade_symbol)?;
 
-        ship.notify().await;
+        ship.notify(true).await;
 
         let _erg = request.callback.send(());
 
@@ -300,7 +300,7 @@ impl TransportPilot {
                     cycles: Some(self.count.load(std::sync::atomic::Ordering::Relaxed)),
                 },
             };
-            ship.notify().await;
+            ship.notify(true).await;
             let (next_waypoint, trade_symbols) =
                 self.get_next_best_sell_waypoint(ship).await.unwrap();
 
@@ -325,7 +325,7 @@ impl TransportPilot {
                     cycles: Some(self.count.load(std::sync::atomic::Ordering::Relaxed)),
                 },
             };
-            ship.notify().await;
+            ship.notify(true).await;
 
             self.handle_cargo_selling(
                 ship,

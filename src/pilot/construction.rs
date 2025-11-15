@@ -73,7 +73,7 @@ impl ConstructionPilot {
             waiting_for_manager: false,
         };
 
-        ship.notify().await;
+        ship.notify(true).await;
 
         let storage_count = ship.cargo.get_amount(&shipment.trade_symbol);
 
@@ -129,7 +129,7 @@ impl ConstructionPilot {
             waiting_for_manager: false,
         };
 
-        ship.notify().await;
+        ship.notify(true).await;
 
         Ok(())
     }
@@ -161,7 +161,7 @@ impl ConstructionPilot {
             waiting_for_manager: false,
         };
 
-        ship.notify().await;
+        ship.notify(true).await;
 
         let budget_manager = self.context.budget_manager.clone();
 
@@ -184,7 +184,7 @@ impl ConstructionPilot {
             waiting_for_manager: false,
         };
 
-        ship.notify().await;
+        ship.notify(true).await;
 
         ship.ensure_docked(&self.context.api).await?;
 
@@ -235,7 +235,7 @@ impl ConstructionPilot {
             waiting_for_manager: false,
         };
 
-        ship.notify().await;
+        ship.notify(true).await;
 
         let budget_manager = self.context.budget_manager.clone();
 
@@ -258,7 +258,7 @@ impl ConstructionPilot {
             waiting_for_manager: false,
         };
 
-        ship.notify().await;
+        ship.notify(true).await;
 
         ship.ensure_docked(&self.context.api).await?;
 

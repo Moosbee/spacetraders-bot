@@ -40,7 +40,7 @@ impl<T: Clone + Send + Sync + async_graphql::OutputType> RustShip<T> {
 
         self.update_cooldown(&extraction.data.cooldown);
         self.cargo.update(&extraction.data.cargo);
-        self.notify().await;
+        self.notify(true).await;
 
         Ok(extraction)
     }
@@ -62,7 +62,7 @@ impl<T: Clone + Send + Sync + async_graphql::OutputType> RustShip<T> {
 
         self.update_cooldown(&extraction.data.cooldown);
         self.cargo.update(&extraction.data.cargo);
-        self.notify().await;
+        self.notify(true).await;
 
         Ok(extraction)
     }
@@ -79,7 +79,7 @@ impl<T: Clone + Send + Sync + async_graphql::OutputType> RustShip<T> {
 
         self.update_cooldown(&extraction.data.cooldown);
         self.cargo.update(&extraction.data.cargo);
-        self.notify().await;
+        self.notify(true).await;
 
         Ok(extraction)
     }
@@ -93,7 +93,7 @@ impl<T: Clone + Send + Sync + async_graphql::OutputType> RustShip<T> {
         let survey = api.create_survey(&self.symbol).await?;
 
         self.update_cooldown(&survey.data.cooldown);
-        self.notify().await;
+        self.notify(true).await;
 
         Ok(survey)
     }

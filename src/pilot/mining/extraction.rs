@@ -52,7 +52,7 @@ impl ExtractionPilot {
 
         ship.status.status = ship::AssignmentStatus::Mining { assignment };
         if notify {
-            ship.notify().await;
+            ship.notify(true).await;
         }
     }
 
@@ -498,7 +498,7 @@ impl ExtractionPilot {
             self.count.load(std::sync::atomic::Ordering::Relaxed)
         );
 
-        ship.notify().await;
+        ship.notify(true).await;
 
         debug!("Extracted on ship: {}", ship.symbol);
         Ok(())
@@ -624,7 +624,7 @@ impl ExtractionPilot {
 
         let _erg = request.callback.send(transfer_result);
 
-            debug!(ship_symbol = %ship.symbol, to_symbol = %request.to_symbol, "Handled transfer request for ship");
+        debug!(ship_symbol = %ship.symbol, to_symbol = %request.to_symbol, "Handled transfer request for ship");
         Ok(())
     }
 

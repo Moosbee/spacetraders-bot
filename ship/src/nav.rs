@@ -1,6 +1,6 @@
 use chrono::{DateTime, Utc};
-use tracing::{debug, warn, error};
 use space_traders_client::{apis, models};
+use tracing::{debug, error, warn};
 
 use crate::error;
 
@@ -19,6 +19,7 @@ use std::fmt::Debug;
 // pub mod stats;
 
 #[derive(Default, serde::Serialize, Clone, async_graphql::SimpleObject)]
+#[graphql(complex)]
 pub struct NavigationState {
     pub flight_mode: models::ShipNavFlightMode,
     pub status: models::ShipNavStatus,
@@ -42,6 +43,7 @@ impl Debug for NavigationState {
 }
 
 #[derive(Debug, Default, serde::Serialize, Clone, async_graphql::SimpleObject)]
+#[graphql(complex)]
 pub struct RouteState {
     pub arrival: DateTime<Utc>,
     pub departure_time: DateTime<Utc>,
@@ -70,7 +72,7 @@ impl<T: Clone + Send + Sync + async_graphql::OutputType> RustShip<T> {
         self.fuel.update(&nav_data.data.fuel);
         self.nav.update(&nav_data.data.nav);
 
-        self.notify().await;
+        self.notify(true).await;
 
         core::result::Result::Ok(nav_data)
     }
@@ -93,7 +95,7 @@ impl<T: Clone + Send + Sync + async_graphql::OutputType> RustShip<T> {
         self.nav.update(&jump_data.data.nav);
         self.update_cooldown(&jump_data.data.cooldown);
 
-        self.notify().await;
+        self.notify(true).await;
 
         Ok(jump_data)
     }
@@ -115,7 +117,7 @@ impl<T: Clone + Send + Sync + async_graphql::OutputType> RustShip<T> {
 
         self.nav.update(&warp_data.data.nav);
         self.fuel.update(&warp_data.data.fuel);
-        self.notify().await;
+        self.notify(true).await;
 
         core::result::Result::Ok(warp_data)
     }
@@ -130,7 +132,7 @@ impl<T: Clone + Send + Sync + async_graphql::OutputType> RustShip<T> {
         self.mutate();
         let dock_data = api.dock_ship(&self.symbol).await?;
         self.nav.update(&dock_data.data.nav);
-        self.notify().await;
+        self.notify(true).await;
 
         core::result::Result::Ok(dock_data)
     }
@@ -145,7 +147,7 @@ impl<T: Clone + Send + Sync + async_graphql::OutputType> RustShip<T> {
         self.mutate();
         let undock_data: models::OrbitShip200Response = api.orbit_ship(&self.symbol).await?;
         self.nav.update(&undock_data.data.nav);
-        self.notify().await;
+        self.notify(true).await;
 
         core::result::Result::Ok(undock_data)
     }
@@ -191,7 +193,7 @@ impl<T: Clone + Send + Sync + async_graphql::OutputType> RustShip<T> {
     //         .await?;
     //     self.nav.update(&ship_patch_data.data.nav);
     //     self.fuel.update(&ship_patch_data.data.fuel);
-    //     self.notify().await;
+    //     self.notify(true).await;
     //     core::result::Result::Ok(ship_patch_data)
     // }
 
@@ -234,7 +236,7 @@ impl<T: Clone + Send + Sync + async_graphql::OutputType> RustShip<T> {
         };
         self.nav.update(&ship_patch_data.data.nav);
         self.fuel.update(&ship_patch_data.data.fuel);
-        self.notify().await;
+        self.notify(true).await;
         core::result::Result::Ok(ship_patch_data)
     }
 
@@ -290,7 +292,7 @@ impl<T: Clone + Send + Sync + async_graphql::OutputType> RustShip<T> {
         if let Some(cargo) = refuel_data.data.cargo.as_ref() {
             self.cargo.update(cargo);
         }
-        self.notify().await;
+        self.notify(true).await;
 
         Ok(refuel_data)
     }
@@ -317,6 +319,69 @@ impl<T: Clone + Send + Sync + async_graphql::OutputType> RustShip<T> {
         }
         let t = t.try_into().unwrap();
         tokio::time::sleep(tokio::time::Duration::from_millis(t)).await;
+    }
+}
+
+#[async_graphql::ComplexObject]
+impl RouteState {
+    async fn destination_system<'ctx>(
+        &self,
+        ctx: &async_graphql::Context<'ctx>,
+    ) -> crate::Result<Option<database::System>> {
+        let database_pool = ctx.data::<database::DbPool>().unwrap();
+        let erg =
+            database::System::get_by_symbol(database_pool, &self.destination_system_symbol).await?;
+        Ok(erg)
+    }
+
+    async fn destination_waypoint<'ctx>(
+        &self,
+        ctx: &async_graphql::Context<'ctx>,
+    ) -> crate::Result<Option<database::Waypoint>> {
+        let database_pool = ctx.data::<database::DbPool>().unwrap();
+        let erg =
+            database::Waypoint::get_by_symbol(database_pool, &self.destination_symbol).await?;
+        Ok(erg)
+    }
+
+    async fn origin_system<'ctx>(
+        &self,
+        ctx: &async_graphql::Context<'ctx>,
+    ) -> crate::Result<Option<database::System>> {
+        let database_pool = ctx.data::<database::DbPool>().unwrap();
+        let erg =
+            database::System::get_by_symbol(database_pool, &self.origin_system_symbol).await?;
+        Ok(erg)
+    }
+
+    async fn origin_waypoint<'ctx>(
+        &self,
+        ctx: &async_graphql::Context<'ctx>,
+    ) -> crate::Result<Option<database::Waypoint>> {
+        let database_pool = ctx.data::<database::DbPool>().unwrap();
+        let erg = database::Waypoint::get_by_symbol(database_pool, &self.origin_symbol).await?;
+        Ok(erg)
+    }
+}
+
+#[async_graphql::ComplexObject]
+impl NavigationState {
+    async fn system<'ctx>(
+        &self,
+        ctx: &async_graphql::Context<'ctx>,
+    ) -> crate::Result<Option<database::System>> {
+        let database_pool = ctx.data::<database::DbPool>().unwrap();
+        let erg = database::System::get_by_symbol(database_pool, &self.system_symbol).await?;
+        Ok(erg)
+    }
+
+    async fn waypoint<'ctx>(
+        &self,
+        ctx: &async_graphql::Context<'ctx>,
+    ) -> crate::Result<Option<database::Waypoint>> {
+        let database_pool = ctx.data::<database::DbPool>().unwrap();
+        let erg = database::Waypoint::get_by_symbol(database_pool, &self.waypoint_symbol).await?;
+        Ok(erg)
     }
 }
 

@@ -74,7 +74,7 @@ impl MiningPilot {
 
         debug!("Assigning role {:?} to ship {}", ship.status, ship.symbol);
 
-        // ship.notify().await;
+        // ship.notify(true).await;
     }
 
     pub fn get_ship_assignment(ship: &ship::MyShip) -> MiningShipAssignment {

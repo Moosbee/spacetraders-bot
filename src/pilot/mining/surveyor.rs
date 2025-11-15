@@ -46,7 +46,7 @@ impl SurveyPilot {
             },
         };
 
-        ship.notify().await;
+        ship.notify(true).await;
 
         let budget_manager = self.context.budget_manager.clone();
 
@@ -91,7 +91,7 @@ impl SurveyPilot {
             },
         };
 
-        ship.notify().await;
+        ship.notify(true).await;
         Ok(())
     }
 

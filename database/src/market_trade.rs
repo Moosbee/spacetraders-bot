@@ -3,7 +3,9 @@ use tracing::instrument;
 
 use super::{DatabaseConnector, DbPool, MarketTradeGood};
 
-#[derive(Debug, Clone, sqlx::FromRow, PartialEq, Eq, serde::Serialize)]
+#[derive(
+    Debug, Clone, sqlx::FromRow, PartialEq, Eq, serde::Serialize, async_graphql::SimpleObject,
+)]
 pub struct MarketTrade {
     pub waypoint_symbol: String,
     pub symbol: models::TradeSymbol,

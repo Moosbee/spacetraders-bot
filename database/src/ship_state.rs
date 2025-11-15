@@ -352,7 +352,7 @@ impl ShipState {
     }
 
     #[instrument(level = "trace", skip(database_pool))]
-    pub async fn get_by_ship_symbol(
+    pub async fn get_by_ship(
         database_pool: &DbPool,
         ship_symbol: &str,
     ) -> crate::Result<Vec<ShipState>> {

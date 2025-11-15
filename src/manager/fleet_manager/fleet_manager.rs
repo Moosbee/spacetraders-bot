@@ -387,7 +387,7 @@ impl FleetManager {
             .apply_from_db_ship(self.context.database_pool.clone(), Some(assignment.id))
             .await?;
 
-        ship_i.notify().await;
+        ship_i.notify(true).await;
 
         ship::ShipManager::add_ship(&self.context.ship_manager, ship_i).await;
 
@@ -396,7 +396,7 @@ impl FleetManager {
             let ship = ship_g
                 .value_mut()
                 .ok_or_else(|| crate::error::Error::General("Ship not found".into()))?;
-            ship.notify().await;
+            ship.notify(true).await;
         }
 
         self.context

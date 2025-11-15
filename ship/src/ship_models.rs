@@ -351,30 +351,13 @@ impl<T: Clone + Send + Sync + async_graphql::OutputType> RustShip<T> {
         Ok(reg)
     }
 
-    async fn module_infos<'ctx>(
+    async fn ship_states<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
-    ) -> crate::Result<Vec<database::ModuleInfo>> {
+    ) -> crate::Result<Vec<database::ShipState>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let mut modules = Vec::new();
-        for module_symbol in self.modules.modules.iter() {
-            let erg = database::ModuleInfo::get_by_id(database_pool, module_symbol).await?;
-            modules.push(erg);
-        }
-        Ok(modules)
-    }
-
-    async fn mount_infos<'ctx>(
-        &self,
-        ctx: &async_graphql::Context<'ctx>,
-    ) -> crate::Result<Vec<database::MountInfo>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let mut mounts = Vec::new();
-        for mount_symbol in self.mounts.mounts.iter() {
-            let erg = database::MountInfo::get_by_id(database_pool, mount_symbol).await?;
-            mounts.push(erg);
-        }
-        Ok(mounts)
+        let reg = database::ShipState::get_by_ship(database_pool, &self.symbol).await?;
+        Ok(reg)
     }
 }
 
@@ -415,7 +398,7 @@ impl<T: Clone + Send + Sync + async_graphql::OutputType> RustShip<T> {
         }
     }
 
-    pub async fn notify(&self) {
+    pub async fn notify(&self, _loud: bool) {
         self.pubsub.notify_observers(self.clone()).await;
     }
 
@@ -461,7 +444,7 @@ impl<T: Clone + Send + Sync + async_graphql::OutputType> RustShip<T> {
 
         self.update_ship_info(ship_info.clone());
 
-        self.notify().await;
+        self.notify(true).await;
 
         Ok(ship_info)
     }

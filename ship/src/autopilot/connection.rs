@@ -1,6 +1,7 @@
 use async_graphql::{SimpleObject, Union};
 use space_traders_client::models::{self, ShipNavFlightMode};
 use std::hash::Hash;
+use utils::get_system_symbol;
 
 #[derive(Debug, Clone)]
 pub struct SimpleConnection {
@@ -78,7 +79,7 @@ pub struct NavigateConnection {
     pub end_is_marketplace: bool,
 }
 
-#[derive(Debug, Clone, serde::Serialize)]
+#[derive(Debug, Clone, serde::Serialize, SimpleObject)]
 pub struct Refuel {
     pub fuel_needed: i32,
     pub fuel_required: i32,
@@ -94,24 +95,10 @@ pub struct Route {
     pub total_api_requests: i32,
 }
 
-pub enum ConnectionTypeGQL {
-    JumpGate,
-    Warp,
-    Navigate,
-}
-
-impl From<ConnectionType> for ConnectionTypeGQL {
-    fn from(connection_type: ConnectionType) -> Self {
-        match connection_type {
-            ConnectionType::JumpGate => ConnectionTypeGQL::JumpGate,
-            ConnectionType::Warp { .. } => ConnectionTypeGQL::Warp,
-            ConnectionType::Navigate { .. } => ConnectionTypeGQL::Navigate,
-        }
-    }
-}
-
 // Connection variants as GraphQL objects
 #[derive(Debug, Clone, serde::Serialize, SimpleObject)]
+#[graphql(name = "JumpConnection")]
+#[graphql(complex)]
 pub struct JumpConnectionGQL {
     pub start_symbol: String,
     pub end_symbol: String,
@@ -119,64 +106,173 @@ pub struct JumpConnectionGQL {
     pub cooldown_time: f64,
 }
 
+#[async_graphql::ComplexObject]
+impl JumpConnectionGQL {
+    async fn start<'ctx>(
+        &self,
+        ctx: &async_graphql::Context<'ctx>,
+    ) -> crate::Result<Option<database::Waypoint>> {
+        let database_pool = ctx.data::<database::DbPool>().unwrap();
+        let erg = database::Waypoint::get_by_symbol(database_pool, &self.start_symbol).await?;
+        Ok(erg)
+    }
+
+    async fn start_system<'ctx>(
+        &self,
+        ctx: &async_graphql::Context<'ctx>,
+    ) -> crate::Result<Option<database::System>> {
+        let database_pool = ctx.data::<database::DbPool>().unwrap();
+        let system = get_system_symbol(&self.start_symbol);
+        let erg = database::System::get_by_symbol(database_pool, &system).await?;
+        Ok(erg)
+    }
+
+    async fn end<'ctx>(
+        &self,
+        ctx: &async_graphql::Context<'ctx>,
+    ) -> crate::Result<Option<database::Waypoint>> {
+        let database_pool = ctx.data::<database::DbPool>().unwrap();
+        let erg = database::Waypoint::get_by_symbol(database_pool, &self.end_symbol).await?;
+        Ok(erg)
+    }
+
+    async fn end_system<'ctx>(
+        &self,
+        ctx: &async_graphql::Context<'ctx>,
+    ) -> crate::Result<Option<database::System>> {
+        let database_pool = ctx.data::<database::DbPool>().unwrap();
+        let system = get_system_symbol(&self.end_symbol);
+        let erg = database::System::get_by_symbol(database_pool, &system).await?;
+        Ok(erg)
+    }
+}
+
 #[derive(Debug, Clone, serde::Serialize, SimpleObject)]
+#[graphql(name = "WarpConnection")]
+#[graphql(complex)]
 pub struct WarpConnectionGQL {
     pub start_symbol: String,
     pub end_symbol: String,
     pub nav_mode: ShipNavFlightMode,
     pub distance: f64,
     pub travel_time: f64,
-    pub refuel: RefuelGQL,
+    pub refuel: Refuel,
     pub start_is_marketplace: bool,
     pub end_is_marketplace: bool,
 }
 
+#[async_graphql::ComplexObject]
+impl WarpConnectionGQL {
+    async fn start<'ctx>(
+        &self,
+        ctx: &async_graphql::Context<'ctx>,
+    ) -> crate::Result<Option<database::Waypoint>> {
+        let database_pool = ctx.data::<database::DbPool>().unwrap();
+        let erg = database::Waypoint::get_by_symbol(database_pool, &self.start_symbol).await?;
+        Ok(erg)
+    }
+
+    async fn start_system<'ctx>(
+        &self,
+        ctx: &async_graphql::Context<'ctx>,
+    ) -> crate::Result<Option<database::System>> {
+        let database_pool = ctx.data::<database::DbPool>().unwrap();
+        let system = get_system_symbol(&self.start_symbol);
+        let erg = database::System::get_by_symbol(database_pool, &system).await?;
+        Ok(erg)
+    }
+
+    async fn end<'ctx>(
+        &self,
+        ctx: &async_graphql::Context<'ctx>,
+    ) -> crate::Result<Option<database::Waypoint>> {
+        let database_pool = ctx.data::<database::DbPool>().unwrap();
+        let erg = database::Waypoint::get_by_symbol(database_pool, &self.end_symbol).await?;
+        Ok(erg)
+    }
+
+    async fn end_system<'ctx>(
+        &self,
+        ctx: &async_graphql::Context<'ctx>,
+    ) -> crate::Result<Option<database::System>> {
+        let database_pool = ctx.data::<database::DbPool>().unwrap();
+        let system = get_system_symbol(&self.end_symbol);
+        let erg = database::System::get_by_symbol(database_pool, &system).await?;
+        Ok(erg)
+    }
+}
+
 #[derive(Debug, Clone, serde::Serialize, SimpleObject)]
+#[graphql(name = "NavigateConnection")]
+#[graphql(complex)]
 pub struct NavigateConnectionGQL {
     pub start_symbol: String,
     pub end_symbol: String,
     pub nav_mode: ShipNavFlightMode,
     pub distance: f64,
     pub travel_time: f64,
-    pub refuel: RefuelGQL,
+    pub refuel: Refuel,
     pub start_is_marketplace: bool,
     pub end_is_marketplace: bool,
 }
 
+#[async_graphql::ComplexObject]
+impl NavigateConnectionGQL {
+    async fn start<'ctx>(
+        &self,
+        ctx: &async_graphql::Context<'ctx>,
+    ) -> crate::Result<Option<database::Waypoint>> {
+        let database_pool = ctx.data::<database::DbPool>().unwrap();
+        let erg = database::Waypoint::get_by_symbol(database_pool, &self.start_symbol).await?;
+        Ok(erg)
+    }
+
+    async fn start_system<'ctx>(
+        &self,
+        ctx: &async_graphql::Context<'ctx>,
+    ) -> crate::Result<Option<database::System>> {
+        let database_pool = ctx.data::<database::DbPool>().unwrap();
+        let system = get_system_symbol(&self.start_symbol);
+        let erg = database::System::get_by_symbol(database_pool, &system).await?;
+        Ok(erg)
+    }
+
+    async fn end<'ctx>(
+        &self,
+        ctx: &async_graphql::Context<'ctx>,
+    ) -> crate::Result<Option<database::Waypoint>> {
+        let database_pool = ctx.data::<database::DbPool>().unwrap();
+        let erg = database::Waypoint::get_by_symbol(database_pool, &self.end_symbol).await?;
+        Ok(erg)
+    }
+
+    async fn end_system<'ctx>(
+        &self,
+        ctx: &async_graphql::Context<'ctx>,
+    ) -> crate::Result<Option<database::System>> {
+        let database_pool = ctx.data::<database::DbPool>().unwrap();
+        let system = get_system_symbol(&self.end_symbol);
+        let erg = database::System::get_by_symbol(database_pool, &system).await?;
+        Ok(erg)
+    }
+}
+
 #[derive(Debug, Clone, serde::Serialize, Union)]
+#[graphql(name = "ConcreteConnection")]
 pub enum ConcreteConnectionGQL {
     JumpGate(JumpConnectionGQL),
     Warp(WarpConnectionGQL),
     Navigate(NavigateConnectionGQL),
 }
 
-#[derive(Debug, Clone, serde::Serialize, SimpleObject)]
-pub struct RefuelGQL {
-    /// The amount of fuel in fuel units that needs to be in the Tanks to do the Current jump
-    pub fuel_needed: i32,
-    /// the amount of fuel trade units to be in the cargo hold, needed to reach the next Marketplace
-    pub fuel_required: i32,
-    pub start_is_marketplace: bool,
-}
-
 #[derive(Clone, Default, serde::Serialize, SimpleObject)]
+#[graphql(name = "AutopilotRoute")]
 pub struct RouteGQL {
     pub connections: Vec<ConcreteConnectionGQL>,
     pub total_distance: f64,
     pub total_fuel_cost: f64,
     pub total_travel_time: f64,
     pub total_api_requests: i32,
-}
-
-// Conversions
-impl From<Refuel> for RefuelGQL {
-    fn from(refuel: Refuel) -> Self {
-        RefuelGQL {
-            fuel_needed: refuel.fuel_needed,
-            fuel_required: refuel.fuel_required,
-            start_is_marketplace: refuel.start_is_marketplace,
-        }
-    }
 }
 
 impl From<JumpConnection> for JumpConnectionGQL {
@@ -198,7 +294,7 @@ impl From<WarpConnection> for WarpConnectionGQL {
             nav_mode: conn.nav_mode,
             distance: conn.distance,
             travel_time: conn.travel_time,
-            refuel: conn.refuel.into(),
+            refuel: conn.refuel,
             start_is_marketplace: conn.start_is_marketplace,
             end_is_marketplace: conn.end_is_marketplace,
         }
@@ -213,7 +309,7 @@ impl From<NavigateConnection> for NavigateConnectionGQL {
             nav_mode: conn.nav_mode,
             distance: conn.distance,
             travel_time: conn.travel_time,
-            refuel: conn.refuel.into(),
+            refuel: conn.refuel,
             start_is_marketplace: conn.start_is_marketplace,
             end_is_marketplace: conn.end_is_marketplace,
         }

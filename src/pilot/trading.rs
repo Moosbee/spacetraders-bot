@@ -46,7 +46,7 @@ impl TradingPilot {
             on_sleep: false,
         };
 
-        ship.notify().await;
+        ship.notify(true).await;
 
         let route = self.context.trade_manager.get_route(ship).await?;
 
@@ -67,7 +67,7 @@ impl TradingPilot {
             on_sleep: false,
         };
 
-        ship.notify().await;
+        ship.notify(true).await;
 
         tracing::Span::current().record("trade_route", format!("{:?}", route));
 
@@ -84,7 +84,7 @@ impl TradingPilot {
         //     ship.role = database::ShipInfoRole::Manuel;
         // }
 
-        ship.notify().await;
+        ship.notify(true).await;
 
         Ok(())
     }
@@ -96,7 +96,7 @@ impl TradingPilot {
             waiting_for_manager: false,
             on_sleep: true,
         };
-        ship.notify().await;
+        ship.notify(true).await;
         select! {
             _=pilot.cancellation_token.cancelled() => (),
             _=tokio::time::sleep(std::time::Duration::from_millis(60_000+ rand::random::<u64>() % 1_000)) => (),
@@ -146,7 +146,7 @@ impl TradingPilot {
             on_sleep: false,
         };
 
-        ship.notify().await;
+        ship.notify(true).await;
 
         if !ship.cargo.has(&route.symbol) {
             debug!(
@@ -176,7 +176,7 @@ impl TradingPilot {
                 on_sleep: false,
             };
 
-            ship.notify().await;
+            ship.notify(true).await;
 
             ship.ensure_docked(&self.context.api).await?;
 
@@ -257,7 +257,7 @@ impl TradingPilot {
             on_sleep: false,
         };
 
-        ship.notify().await;
+        ship.notify(true).await;
 
         debug!("Navigating to sell waypoint: {}", route.sell_waypoint);
 
@@ -283,7 +283,7 @@ impl TradingPilot {
             on_sleep: false,
         };
 
-        ship.notify().await;
+        ship.notify(true).await;
 
         ship.ensure_docked(&self.context.api).await?;
 

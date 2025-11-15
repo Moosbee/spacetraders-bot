@@ -107,7 +107,7 @@ impl<T: Clone + Send + Sync + async_graphql::OutputType> RustShip<T> {
                         &transfer_request.target,
                     )
                     .await;
-                    tracing::debug!(symbol = %self.symbol, result = ?erg, "Transferred cargo");
+                tracing::debug!(symbol = %self.symbol, result = ?erg, "Transferred cargo");
                 let _reg: std::result::Result<(), tokio::sync::mpsc::error::SendError<()>> =
                     transfer_request.callback.send(()).await;
                 erg.map(|_| ())
@@ -115,9 +115,9 @@ impl<T: Clone + Send + Sync + async_graphql::OutputType> RustShip<T> {
             ShipUpdate::None => Ok(()),
         };
         if let Err(e) = erg {
-                tracing::error!(error = %e, symbol = %self.symbol, "Failed to handle ship update");
+            tracing::error!(error = %e, symbol = %self.symbol, "Failed to handle ship update");
         }
-        self.notify().await;
+        self.notify(true).await;
     }
 
     // #[deprecated]
@@ -156,7 +156,7 @@ impl<T: Clone + Send + Sync + async_graphql::OutputType> RustShip<T> {
                 units,
             }),
         };
-    tracing::debug!(event = ?update_event, "Sending update event");
+        tracing::debug!(event = ?update_event, "Sending update event");
         self.broadcaster
             .sender
             .send(update_event)

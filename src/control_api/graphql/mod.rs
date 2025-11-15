@@ -261,6 +261,16 @@ impl QueryRoot {
         Ok(agent)
     }
 
+    async fn agent_history<'ctx>(
+        &self,
+        ctx: &async_graphql::Context<'ctx>,
+        symbol: String,
+    ) -> Result<Vec<database::Agent>> {
+        let context = ctx.data::<ConductorContext>()?;
+        let agent = database::Agent::get_by_symbol(&context.database_pool, &symbol).await?;
+        Ok(agent)
+    }
+
     async fn agents<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
@@ -590,7 +600,7 @@ impl QueryRoot {
                     database::ShipState::get_by_system(&context.database_pool, &system).await
                 }
                 ShipStateBy::ShipSymbol(symbol) => {
-                    database::ShipState::get_by_ship_symbol(&context.database_pool, &symbol).await
+                    database::ShipState::get_by_ship(&context.database_pool, &symbol).await
                 }
             }
         } else {
@@ -740,6 +750,79 @@ impl QueryRoot {
         };
         Ok(jump_gate_connections)
     }
+
+    async fn market_trades<'ctx>(
+        &self,
+        ctx: &async_graphql::Context<'ctx>,
+        by: Option<MarketTradeBy>,
+    ) -> Result<Vec<database::MarketTrade>> {
+        let context = ctx.data::<ConductorContext>()?;
+        let market_trades = if let Some(by) = by {
+            match by {
+                MarketTradeBy::Waypoint(waypoint) => {
+                    database::MarketTrade::get_last_by_waypoint(&context.database_pool, &waypoint)
+                        .await
+                }
+                MarketTradeBy::TradeSymbol(trade_symbol) => {
+                    database::MarketTrade::get_last_by_symbol(&context.database_pool, &trade_symbol)
+                        .await
+                }
+                MarketTradeBy::System(system) => {
+                    database::MarketTrade::get_last_by_system(&context.database_pool, &system).await
+                }
+            }
+        } else {
+            database::MarketTrade::get_last(&context.database_pool).await
+        }?;
+        Ok(market_trades)
+    }
+
+    async fn market_trade_goods<'ctx>(
+        &self,
+        ctx: &async_graphql::Context<'ctx>,
+        by: Option<MarketTradeGoodBy>,
+    ) -> Result<Vec<database::MarketTradeGood>> {
+        let context = ctx.data::<ConductorContext>()?;
+        let market_trade_goods = if let Some(by) = by {
+            match by {
+                MarketTradeGoodBy::Waypoint(waypoint) => {
+                    database::MarketTradeGood::get_last_by_waypoint(
+                        &context.database_pool,
+                        &waypoint,
+                    )
+                    .await
+                }
+                MarketTradeGoodBy::TradeSymbol(trade_symbol) => {
+                    database::MarketTradeGood::get_last_by_symbol(
+                        &context.database_pool,
+                        &trade_symbol,
+                    )
+                    .await
+                }
+                MarketTradeGoodBy::System(system) => {
+                    database::MarketTradeGood::get_last_by_system(&context.database_pool, &system)
+                        .await
+                }
+            }
+        } else {
+            database::MarketTradeGood::get_all(&context.database_pool).await
+        }?;
+        Ok(market_trade_goods)
+    }
+}
+
+#[derive(Debug, Clone, async_graphql::OneofObject)]
+enum MarketTradeGoodBy {
+    Waypoint(String),
+    TradeSymbol(models::TradeSymbol),
+    System(String),
+}
+
+#[derive(Debug, Clone, async_graphql::OneofObject)]
+enum MarketTradeBy {
+    Waypoint(String),
+    TradeSymbol(models::TradeSymbol),
+    System(String),
 }
 
 #[derive(Debug, Clone, async_graphql::OneofObject)]

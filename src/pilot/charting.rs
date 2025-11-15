@@ -45,7 +45,7 @@ impl ChartPilot {
             waiting_for_manager: true,
             waypoint_symbol: None,
         };
-        ship.notify().await;
+        ship.notify(true).await;
 
         let chart = self.context.chart_manager.get_next(ship.clone()).await?;
 
@@ -83,7 +83,7 @@ impl ChartPilot {
             waiting_for_manager: false,
             waypoint_symbol: Some(chart.clone()),
         };
-        ship.notify().await;
+        ship.notify(true).await;
 
         let budget_manager = self.context.budget_manager.clone();
 
@@ -108,7 +108,7 @@ impl ChartPilot {
             waiting_for_manager: false,
             waypoint_symbol: None,
         };
-        ship.notify().await;
+        ship.notify(true).await;
 
         Ok(())
     }

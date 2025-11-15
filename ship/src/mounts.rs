@@ -1,6 +1,7 @@
 use space_traders_client::models;
 
-#[derive(Debug, Default, serde::Serialize, Clone,async_graphql::SimpleObject)]
+#[derive(Debug, Default, serde::Serialize, Clone, async_graphql::SimpleObject)]
+#[graphql(complex)]
 pub struct MountState {
     pub mounts: Vec<models::ship_mount::Symbol>,
 }
@@ -40,5 +41,21 @@ impl MountState {
                 || m == &models::ship_mount::Symbol::SensorArrayIi
                 || m == &models::ship_mount::Symbol::SensorArrayIii
         })
+    }
+}
+
+#[async_graphql::ComplexObject]
+impl MountState {
+    async fn mount_infos<'ctx>(
+        &self,
+        ctx: &async_graphql::Context<'ctx>,
+    ) -> crate::Result<Vec<database::MountInfo>> {
+        let database_pool = ctx.data::<database::DbPool>().unwrap();
+        let mut mounts = Vec::new();
+        for mount_symbol in self.mounts.iter() {
+            let erg = database::MountInfo::get_by_id(database_pool, mount_symbol).await?;
+            mounts.push(erg);
+        }
+        Ok(mounts)
     }
 }
