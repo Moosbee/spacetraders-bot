@@ -6,6 +6,7 @@ use super::{DatabaseConnector, DbPool};
 #[derive(
     Debug, Clone, sqlx::FromRow, PartialEq, Eq, serde::Serialize, async_graphql::SimpleObject,
 )]
+#[graphql(complex)]
 pub struct MarketTradeGood {
     pub symbol: models::TradeSymbol,
     pub waypoint_symbol: String,
@@ -30,6 +31,31 @@ impl From<MarketTradeGood> for models::MarketTradeGood {
             trade_volume: val.trade_volume,
             r#type: val.r#type,
         }
+    }
+}
+
+#[async_graphql::ComplexObject]
+impl MarketTradeGood {
+    async fn waypoint(
+        &self,
+        ctx: &async_graphql::Context<'_>,
+    ) -> crate::Result<Option<crate::Waypoint>> {
+        let database_pool = ctx.data::<DbPool>().unwrap();
+        crate::Waypoint::get_by_symbol(database_pool, &self.waypoint_symbol).await
+    }
+
+    async fn history(
+        &self,
+        ctx: &async_graphql::Context<'_>,
+    ) -> crate::Result<Vec<crate::MarketTradeGood>> {
+        let database_pool = ctx.data::<DbPool>().unwrap();
+        let history = crate::MarketTradeGood::get_history_by_waypoint_and_trade_symbol(
+            database_pool,
+            &self.waypoint_symbol,
+            &self.symbol,
+        )
+        .await?;
+        Ok(history)
     }
 }
 
@@ -203,6 +229,38 @@ impl MarketTradeGood {
             ORDER BY created DESC
         "#,
             waypoint_symbol,
+        )
+        .fetch_all(database_pool.get_cache_pool())
+        .await?;
+        Ok(erg)
+    }
+
+    #[instrument(level = "trace", skip(database_pool))]
+    pub async fn get_history_by_waypoint_and_trade_symbol(
+        database_pool: &DbPool,
+        waypoint_symbol: &str,
+        trade_symbol: &models::TradeSymbol,
+    ) -> crate::Result<Vec<MarketTradeGood>> {
+        let erg = sqlx::query_as!(
+            MarketTradeGood,
+            r#"
+            SELECT
+                created_at,
+                created,
+                waypoint_symbol,
+                symbol as "symbol: models::TradeSymbol",
+                "type" as "type: models::market_trade_good::Type",
+                trade_volume,
+                supply as "supply: models::SupplyLevel",
+                activity as "activity: models::ActivityLevel",
+                purchase_price,
+                sell_price
+            FROM public.market_trade_good
+            WHERE waypoint_symbol = $1 AND symbol = $2
+            ORDER BY created DESC
+        "#,
+            waypoint_symbol,
+            *trade_symbol as models::TradeSymbol,
         )
         .fetch_all(database_pool.get_cache_pool())
         .await?;

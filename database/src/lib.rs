@@ -64,6 +64,7 @@ pub use market_trade::MarketTrade;
 pub use market_trade_good::MarketTradeGood;
 pub use market_transaction::MarketTransaction;
 pub use market_transaction::TransactionReason;
+pub use market_transaction::TransactionSummary;
 pub use module_info::ModuleInfo;
 pub use mount_info::MountInfo;
 pub use reactor_info::ReactorInfo;
@@ -175,4 +176,13 @@ pub trait DatabaseConnectorAsync {
     async fn insert_bulk(database_pool: &DbPool, items: &[Self::T]) -> crate::Result<()>;
     async fn get_all(database_pool: &DbPool) -> crate::Result<Vec<Self::T>>;
     async fn get_by_id(database_pool: &DbPool, id: &Self::ID) -> crate::Result<Option<Self::T>>;
+}
+
+#[allow(async_fn_in_trait)]
+pub trait ShipGetter {
+    type Ship: async_graphql::OutputType;
+    async fn get_ship(&self, symbol: &str) -> Option<Self::Ship>;
+    async fn get_ships(&self) -> Vec<Self::Ship>;
+    async fn get_ship_by_assignment(&self, assignment_id: i64) -> Option<Self::Ship>;
+    async fn get_ships_by_fleet(&self, fleet_id: i32) -> Vec<Self::Ship>;
 }

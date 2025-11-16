@@ -69,6 +69,9 @@ impl SurveyPilot {
         let ship_before = ship.snapshot(&self.context.database_pool).await?;
 
         let surveys = ship.survey(&self.context.api).await?;
+        if true {
+            ship.reload(&self.context.api).await?;
+        }
 
         let ship_after = ship.snapshot(&self.context.database_pool).await?;
 

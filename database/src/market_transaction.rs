@@ -15,6 +15,7 @@ use super::{DatabaseConnector, DbPool};
     serde::Deserialize,
     async_graphql::SimpleObject,
 )]
+#[graphql(complex)]
 pub struct MarketTransaction {
     pub id: i64,
     /// The symbol of the waypoint.
@@ -39,6 +40,39 @@ pub struct MarketTransaction {
     pub trade_route: Option<i32>,
     pub mining: Option<String>,
     pub construction: Option<i64>,
+}
+
+#[async_graphql::ComplexObject]
+impl MarketTransaction {
+    async fn waypoint<'ctx>(
+        &self,
+        ctx: &async_graphql::Context<'ctx>,
+    ) -> crate::Result<Option<crate::Waypoint>> {
+        let database_pool = ctx.data::<crate::DbPool>().unwrap();
+        let waypoint = crate::Waypoint::get_by_symbol(database_pool, &self.waypoint_symbol).await?;
+        Ok(waypoint)
+    }
+}
+
+#[derive(
+    Clone,
+    Default,
+    Debug,
+    PartialEq,
+    serde::Serialize,
+    serde::Deserialize,
+    async_graphql::SimpleObject,
+)]
+pub struct TransactionSummary {
+    pub sum: Option<i32>,
+    pub expenses: Option<i32>,
+    pub income: Option<i32>,
+    pub units: Option<i32>,
+    pub purchase_units: Option<i32>,
+    pub sell_units: Option<i32>,
+    pub transactions: Option<i32>,
+    pub purchase_transactions: Option<i32>,
+    pub sell_transactions: Option<i32>,
 }
 
 #[derive(Clone, Debug, PartialEq, Default, serde::Serialize, serde::Deserialize)]
@@ -401,6 +435,357 @@ impl MarketTransaction {
         .await?;
         Ok(erg)
     }
+
+    pub async fn get_transaction_summary(
+        database_pool: &DbPool,
+    ) -> crate::Result<TransactionSummary> {
+        let erg = sqlx::query_as!(
+            TransactionSummary,
+            r#"
+            select 
+              sum(market_transaction.total_price) as "sum: i32",
+              sum(
+                  CASE
+                    WHEN market_transaction.type = 'PURCHASE' THEN market_transaction.total_price
+                    ELSE 0
+                  END
+                ) as "expenses: i32",
+              sum(
+                  CASE
+                    WHEN market_transaction.type = 'PURCHASE' THEN 0
+                    ELSE market_transaction.total_price
+                  END
+                ) as "income: i32",
+              sum(market_transaction.units) as "units: i32",
+              sum(
+                  CASE
+                    WHEN market_transaction.type = 'PURCHASE' THEN market_transaction.units
+                    ELSE 0
+                  END
+                ) as "purchase_units: i32",
+              sum(
+                  CASE
+                    WHEN market_transaction.type = 'SELL' THEN market_transaction.units
+                    ELSE 0
+                  END
+                ) as "sell_units: i32",
+              count(market_transaction.id) as "transactions: i32",
+              count(
+                  CASE
+                    WHEN market_transaction.type = 'PURCHASE' THEN market_transaction.id
+                    ELSE NULL
+                  END
+                ) as "purchase_transactions: i32",
+              count(
+                  CASE
+                    WHEN market_transaction.type = 'SELL' THEN market_transaction.id
+                    ELSE NULL
+                  END
+              ) as "sell_transactions: i32"
+            from market_transaction
+            "#,
+        )
+        .fetch_one(database_pool.get_cache_pool())
+        .await?;
+        Ok(erg)
+    }
+
+    pub async fn get_transaction_summary_by_contract(
+        database_pool: &DbPool,
+        contract_id: &str,
+    ) -> crate::Result<TransactionSummary> {
+        let erg = sqlx::query_as!(
+            TransactionSummary,
+            r#"
+            select 
+              sum(market_transaction.total_price) as "sum: i32",
+              sum(
+                  CASE
+                    WHEN market_transaction.type = 'PURCHASE' THEN market_transaction.total_price
+                    ELSE 0
+                  END
+                ) as "expenses: i32",
+              sum(
+                  CASE
+                    WHEN market_transaction.type = 'PURCHASE' THEN 0
+                    ELSE market_transaction.total_price
+                  END
+                ) as "income: i32",
+              sum(market_transaction.units) as "units: i32",
+              sum(
+                  CASE
+                    WHEN market_transaction.type = 'PURCHASE' THEN market_transaction.units
+                    ELSE 0
+                  END
+                ) as "purchase_units: i32",
+              sum(
+                  CASE
+                    WHEN market_transaction.type = 'SELL' THEN market_transaction.units
+                    ELSE 0
+                  END
+                ) as "sell_units: i32",
+              count(market_transaction.id) as "transactions: i32",
+              count(
+                  CASE
+                    WHEN market_transaction.type = 'PURCHASE' THEN market_transaction.id
+                    ELSE NULL
+                  END
+                ) as "purchase_transactions: i32",
+              count(
+                  CASE
+                    WHEN market_transaction.type = 'SELL' THEN market_transaction.id
+                    ELSE NULL
+                  END
+              ) as "sell_transactions: i32"
+            from market_transaction
+            where contract = $1
+            "#,
+            contract_id
+        )
+        .fetch_one(database_pool.get_cache_pool())
+        .await?;
+        Ok(erg)
+    }
+
+    pub async fn get_transaction_summary_by_trade_route(
+        database_pool: &DbPool,
+        trade_route: i32,
+    ) -> crate::Result<TransactionSummary> {
+        let erg = sqlx::query_as!(
+            TransactionSummary,
+            r#"
+            select 
+              sum(market_transaction.total_price) as "sum: i32",
+              sum(
+                  CASE
+                    WHEN market_transaction.type = 'PURCHASE' THEN market_transaction.total_price
+                    ELSE 0
+                  END
+                ) as "expenses: i32",
+              sum(
+                  CASE
+                    WHEN market_transaction.type = 'PURCHASE' THEN 0
+                    ELSE market_transaction.total_price
+                  END
+                ) as "income: i32",
+              sum(market_transaction.units) as "units: i32",
+              sum(
+                  CASE
+                    WHEN market_transaction.type = 'PURCHASE' THEN market_transaction.units
+                    ELSE 0
+                  END
+                ) as "purchase_units: i32",
+              sum(
+                  CASE
+                    WHEN market_transaction.type = 'SELL' THEN market_transaction.units
+                    ELSE 0
+                  END
+                ) as "sell_units: i32",
+              count(market_transaction.id) as "transactions: i32",
+              count(
+                  CASE
+                    WHEN market_transaction.type = 'PURCHASE' THEN market_transaction.id
+                    ELSE NULL
+                  END
+                ) as "purchase_transactions: i32",
+              count(
+                  CASE
+                    WHEN market_transaction.type = 'SELL' THEN market_transaction.id
+                    ELSE NULL
+                  END
+              ) as "sell_transactions: i32"
+            from market_transaction
+            where trade_route = $1
+            "#,
+            trade_route
+        )
+        .fetch_one(database_pool.get_cache_pool())
+        .await?;
+        Ok(erg)
+    }
+
+    pub async fn get_transaction_summary_by_mining_waypoint(
+        database_pool: &DbPool,
+        mining_waypoint: &str,
+    ) -> crate::Result<TransactionSummary> {
+        let erg = sqlx::query_as!(
+            TransactionSummary,
+            r#"
+            select 
+              sum(market_transaction.total_price) as "sum: i32",
+              sum(
+                  CASE
+                    WHEN market_transaction.type = 'PURCHASE' THEN market_transaction.total_price
+                    ELSE 0
+                  END
+                ) as "expenses: i32",
+              sum(
+                  CASE
+                    WHEN market_transaction.type = 'PURCHASE' THEN 0
+                    ELSE market_transaction.total_price
+                  END
+                ) as "income: i32",
+              sum(market_transaction.units) as "units: i32",
+              sum(
+                  CASE
+                    WHEN market_transaction.type = 'PURCHASE' THEN market_transaction.units
+                    ELSE 0
+                  END
+                ) as "purchase_units: i32",
+              sum(
+                  CASE
+                    WHEN market_transaction.type = 'SELL' THEN market_transaction.units
+                    ELSE 0
+                  END
+                ) as "sell_units: i32",
+              count(market_transaction.id) as "transactions: i32",
+              count(
+                  CASE
+                    WHEN market_transaction.type = 'PURCHASE' THEN market_transaction.id
+                    ELSE NULL
+                  END
+                ) as "purchase_transactions: i32",
+              count(
+                  CASE
+                    WHEN market_transaction.type = 'SELL' THEN market_transaction.id
+                    ELSE NULL
+                  END
+              ) as "sell_transactions: i32"
+            from market_transaction
+            where mining = $1
+            "#,
+            mining_waypoint
+        )
+        .fetch_one(database_pool.get_cache_pool())
+        .await?;
+        Ok(erg)
+    }
+
+    pub async fn get_transaction_summary_by_construction(
+        database_pool: &DbPool,
+        construction: i64,
+    ) -> crate::Result<TransactionSummary> {
+        let erg = sqlx::query_as!(
+            TransactionSummary,
+            r#"
+            select 
+              sum(market_transaction.total_price) as "sum: i32",
+              sum(
+                  CASE
+                    WHEN market_transaction.type = 'PURCHASE' THEN market_transaction.total_price
+                    ELSE 0
+                  END
+                ) as "expenses: i32",
+              sum(
+                  CASE
+                    WHEN market_transaction.type = 'PURCHASE' THEN 0
+                    ELSE market_transaction.total_price
+                  END
+                ) as "income: i32",
+              sum(market_transaction.units) as "units: i32",
+              sum(
+                  CASE
+                    WHEN market_transaction.type = 'PURCHASE' THEN market_transaction.units
+                    ELSE 0
+                  END
+                ) as "purchase_units: i32",
+              sum(
+                  CASE
+                    WHEN market_transaction.type = 'SELL' THEN market_transaction.units
+                    ELSE 0
+                  END
+                ) as "sell_units: i32",
+              count(market_transaction.id) as "transactions: i32",
+              count(
+                  CASE
+                    WHEN market_transaction.type = 'PURCHASE' THEN market_transaction.id
+                    ELSE NULL
+                  END
+                ) as "purchase_transactions: i32",
+              count(
+                  CASE
+                    WHEN market_transaction.type = 'SELL' THEN market_transaction.id
+                    ELSE NULL
+                  END
+              ) as "sell_transactions: i32"
+            from market_transaction
+            where construction = $1
+            "#,
+            construction
+        )
+        .fetch_one(database_pool.get_cache_pool())
+        .await?;
+        Ok(erg)
+    }
+
+    pub async fn get_transaction_summary_by_ship(
+        database_pool: &DbPool,
+        ship: &str,
+    ) -> crate::Result<TransactionSummary> {
+        let erg = sqlx::query_as!(
+            TransactionSummary,
+            r#"
+            select 
+              sum(market_transaction.total_price) as "sum: i32",
+              sum(
+                  CASE
+                    WHEN market_transaction.type = 'PURCHASE' THEN market_transaction.total_price
+                    ELSE 0
+                  END
+                ) as "expenses: i32",
+              sum(
+                  CASE
+                    WHEN market_transaction.type = 'PURCHASE' THEN 0
+                    ELSE market_transaction.total_price
+                  END
+                ) as "income: i32",
+              sum(market_transaction.units) as "units: i32",
+              sum(
+                  CASE
+                    WHEN market_transaction.type = 'PURCHASE' THEN market_transaction.units
+                    ELSE 0
+                  END
+                ) as "purchase_units: i32",
+              sum(
+                  CASE
+                    WHEN market_transaction.type = 'SELL' THEN market_transaction.units
+                    ELSE 0
+                  END
+                ) as "sell_units: i32",
+              count(market_transaction.id) as "transactions: i32",
+              count(
+                  CASE
+                    WHEN market_transaction.type = 'PURCHASE' THEN market_transaction.id
+                    ELSE NULL
+                  END
+                ) as "purchase_transactions: i32",
+              count(
+                  CASE
+                    WHEN market_transaction.type = 'SELL' THEN market_transaction.id
+                    ELSE NULL
+                  END
+              ) as "sell_transactions: i32"
+            from market_transaction
+            where ship_symbol = $1
+            "#,
+            ship
+        )
+        .fetch_one(database_pool.get_cache_pool())
+        .await?;
+        Ok(erg)
+    }
+    //     pub struct TransactionSummary {
+    //     pub sum: i32,
+    //     pub expenses: i32,
+    //     pub income: i32,
+    //     pub profit: i32,
+    //     pub units: i32,
+    //     pub purchase_units: i32,
+    //     pub sell_units: i32,
+    //     pub transactions: i32,
+    //     pub purchase_transactions: i32,
+    //     pub sell_transactions: i32,
+    // }
 }
 
 impl From<MarketTransaction> for models::MarketTransaction {

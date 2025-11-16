@@ -362,6 +362,10 @@ impl ExtractionPilot {
                         }
                         Err(e) => return Err(e.into()),
                         Ok(erg) => {
+                            let now = chrono::Utc::now();
+                            if true {
+                                ship.reload(&self.context.api).await?;
+                            }
                             let after_state_id = ship.snapshot(&self.context.database_pool).await?;
 
                             let extraction = database::Extraction {
@@ -374,7 +378,7 @@ impl ExtractionPilot {
                                 yield_symbol: erg.data.extraction.r#yield.symbol,
                                 yield_units: erg.data.extraction.r#yield.units,
                                 survey: Some(survey.signature.clone()),
-                                created_at: chrono::Utc::now(),
+                                created_at: now,
                             };
 
                             database::Extraction::insert(&self.context.database_pool, &extraction)
@@ -433,6 +437,10 @@ impl ExtractionPilot {
                         }
                         Err(e) => return Err(e.into()),
                         Ok(erg) => {
+                            let now = chrono::Utc::now();
+                            if true {
+                                ship.reload(&self.context.api).await?;
+                            }
                             let after_state_id = ship.snapshot(&self.context.database_pool).await?;
 
                             let extraction = database::Extraction {
@@ -445,7 +453,7 @@ impl ExtractionPilot {
                                 yield_symbol: erg.data.extraction.r#yield.symbol,
                                 yield_units: erg.data.extraction.r#yield.units,
                                 survey: None,
-                                created_at: chrono::Utc::now(),
+                                created_at: now,
                             };
 
                             database::Extraction::insert(&self.context.database_pool, &extraction)
@@ -462,6 +470,10 @@ impl ExtractionPilot {
                 };
             }
             ActionType::Siphon => {
+                let now = chrono::Utc::now();
+                if true {
+                    ship.reload(&self.context.api).await?;
+                }
                 let erg = ship.siphon(&self.context.api).await?;
 
                 let after_state_id = ship.snapshot(&self.context.database_pool).await?;
@@ -477,7 +489,7 @@ impl ExtractionPilot {
 
                     yield_symbol: erg.data.siphon.r#yield.symbol,
                     yield_units: erg.data.siphon.r#yield.units,
-                    created_at: chrono::Utc::now(),
+                    created_at: now,
                 };
 
                 database::Extraction::insert(&self.context.database_pool, &extraction).await?;

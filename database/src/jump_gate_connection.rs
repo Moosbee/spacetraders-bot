@@ -12,12 +12,33 @@ use super::{DatabaseConnector, DbPool};
     serde::Deserialize,
     async_graphql::SimpleObject,
 )]
+#[graphql(complex)]
 pub struct JumpGateConnection {
     pub id: i64,
     pub from: String,
     pub to: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+}
+
+#[async_graphql::ComplexObject]
+impl JumpGateConnection {
+    async fn waypoint_from<'ctx>(
+        &self,
+        ctx: &async_graphql::Context<'ctx>,
+    ) -> crate::Result<Option<crate::Waypoint>> {
+        let database_pool = ctx.data::<DbPool>().unwrap();
+        let erg = crate::Waypoint::get_by_symbol(database_pool, &self.from).await?;
+        Ok(erg)
+    }
+
+    async fn waypoint_to<'ctx>(
+        &self,
+        ctx: &async_graphql::Context<'ctx>,
+    ) -> crate::Result<Option<crate::Waypoint>> {
+        let database_pool = ctx.data::<DbPool>().unwrap();
+        crate::Waypoint::get_by_symbol(database_pool, &self.to).await
+    }
 }
 
 impl JumpGateConnection {

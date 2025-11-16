@@ -28,6 +28,31 @@ pub struct ShipyardShip {
     pub created_at: DateTime<Utc>,
 }
 
+#[async_graphql::ComplexObject]
+impl ShipyardShip {
+    async fn waypoint(
+        &self,
+        ctx: &async_graphql::Context<'_>,
+    ) -> crate::Result<Option<crate::Waypoint>> {
+        let database_pool = ctx.data::<crate::DbPool>().unwrap();
+        crate::Waypoint::get_by_symbol(database_pool, &self.waypoint_symbol).await
+    }
+
+    async fn history(
+        &self,
+        ctx: &async_graphql::Context<'_>,
+    ) -> crate::Result<Vec<crate::ShipyardShip>> {
+        let database_pool = ctx.data::<crate::DbPool>().unwrap();
+        let history = crate::ShipyardShip::get_history_by_waypoint_and_ship_type(
+            database_pool,
+            &self.waypoint_symbol,
+            &self.ship_type,
+        )
+        .await?;
+        Ok(history)
+    }
+}
+
 impl ShipyardShip {
     pub fn with_waypoint(value: models::ShipyardShip, waypoint_symbol: &str) -> Self {
         Self {
@@ -193,6 +218,45 @@ impl ShipyardShip {
             FROM shipyard_ship
             ORDER BY waypoint_symbol, ship_type, created_at DESC
             "#
+        )
+        .fetch_all(database_pool.get_cache_pool())
+        .await?;
+        Ok(erg)
+    }
+
+    async fn get_history_by_waypoint_and_ship_type(
+        database_pool: &super::DbPool,
+        waypoint_symbol: &str,
+        ship_type: &models::ShipType,
+    ) -> crate::Result<Vec<ShipyardShip>> {
+        let erg = sqlx::query_as!(
+            ShipyardShip,
+            r#"
+            SELECT DISTINCT ON (ship_type)
+                id,
+                waypoint_symbol,
+                ship_type as "ship_type: models::ShipType",
+                name,
+                supply as "supply: models::SupplyLevel",
+                activity as "activity: models::ActivityLevel",
+                purchase_price,
+                frame_type as "frame_type: models::ship_frame::Symbol",
+                frame_quality,
+                reactor_type as "reactor_type: models::ship_reactor::Symbol",
+                reactor_quality,
+                engine_type as "engine_type: models::ship_engine::Symbol",
+                engine_quality,
+                modules as "modules: Vec<models::ship_module::Symbol>",
+                mounts as "mounts: Vec<models::ship_mount::Symbol>",
+                crew_requirement,
+                crew_capacity,
+                created_at
+            FROM shipyard_ship
+            WHERE waypoint_symbol = $1 AND ship_type = $2
+            ORDER BY ship_type, created_at DESC
+            "#,
+            waypoint_symbol,
+            *ship_type as models::ShipType
         )
         .fetch_all(database_pool.get_cache_pool())
         .await?;

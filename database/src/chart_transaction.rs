@@ -15,6 +15,7 @@ use crate::{DatabaseConnector, DbPool};
     serde::Deserialize,
     async_graphql::SimpleObject,
 )]
+#[graphql(complex)]
 pub struct ChartTransaction {
     pub id: i64,
     /// The symbol of the waypoint.
@@ -25,6 +26,18 @@ pub struct ChartTransaction {
     pub total_price: i32,
     /// The timestamp of the transaction.
     pub timestamp: DateTime<Utc>,
+}
+
+#[async_graphql::ComplexObject]
+impl ChartTransaction {
+    async fn waypoint<'ctx>(
+        &self,
+        ctx: &async_graphql::Context<'ctx>,
+    ) -> crate::Result<Option<crate::Waypoint>> {
+        let database_pool = ctx.data::<crate::DbPool>().unwrap();
+        let waypoint = crate::Waypoint::get_by_symbol(database_pool, &self.waypoint_symbol).await?;
+        Ok(waypoint)
+    }
 }
 
 impl TryFrom<models::ChartTransaction> for ChartTransaction {

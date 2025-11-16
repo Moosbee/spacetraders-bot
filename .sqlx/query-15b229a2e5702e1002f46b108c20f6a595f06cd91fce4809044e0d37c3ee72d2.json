@@ -1,0 +1,52 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n      select \n                id,\n                waypoint_symbol,\n                ship_type as \"ship_type: models::ShipType\",\n                price,\n                agent_symbol,\n                \"timestamp\"\n      from shipyard_transaction\n      where waypoint_symbol like $1\n            order by \"timestamp\"\n    ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "waypoint_symbol",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "ship_type: models::ShipType",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "price",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "agent_symbol",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 5,
+        "name": "timestamp",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "15b229a2e5702e1002f46b108c20f6a595f06cd91fce4809044e0d37c3ee72d2"
+}

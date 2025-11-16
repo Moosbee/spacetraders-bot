@@ -7,6 +7,7 @@ use tracing::instrument;
 use super::DatabaseConnector;
 
 #[derive(Debug, Clone, async_graphql::SimpleObject)]
+#[graphql(complex)]
 pub struct ScrapTransaction {
     pub id: i64,
     pub waypoint_symbol: String,
@@ -27,6 +28,18 @@ impl TryFrom<models::ScrapTransaction> for ScrapTransaction {
             total_price: item.total_price,
             timestamp,
         })
+    }
+}
+
+#[async_graphql::ComplexObject]
+impl ScrapTransaction {
+    async fn waypoint<'ctx>(
+        &self,
+        ctx: &async_graphql::Context<'ctx>,
+    ) -> crate::Result<Option<crate::Waypoint>> {
+        let database_pool = ctx.data::<crate::DbPool>().unwrap();
+        let waypoint = crate::Waypoint::get_by_symbol(database_pool, &self.waypoint_symbol).await?;
+        Ok(waypoint)
     }
 }
 

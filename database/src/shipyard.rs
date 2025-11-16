@@ -4,6 +4,7 @@ use space_traders_client::models;
 use tracing::instrument;
 
 #[derive(Clone, Debug, PartialEq, serde::Serialize, async_graphql::SimpleObject)]
+#[graphql(complex)]
 pub struct Shipyard {
     #[allow(dead_code)]
     pub id: i64,
@@ -11,6 +12,27 @@ pub struct Shipyard {
     pub modifications_fee: i32,
     #[allow(dead_code)]
     pub created_at: DateTime<Utc>,
+}
+
+#[async_graphql::ComplexObject]
+impl Shipyard {
+    async fn waypoint<'ctx>(
+        &self,
+        ctx: &async_graphql::Context<'ctx>,
+    ) -> crate::Result<Option<crate::Waypoint>> {
+        let database_pool = ctx.data::<crate::DbPool>().unwrap();
+        crate::Waypoint::get_by_symbol(database_pool, &self.waypoint_symbol).await
+    }
+
+    async fn history(
+        &self,
+        ctx: &async_graphql::Context<'_>,
+    ) -> crate::Result<Vec<crate::Shipyard>> {
+        let database_pool = ctx.data::<crate::DbPool>().unwrap();
+        let history =
+            crate::Shipyard::get_history_by_waypoint(database_pool, &self.waypoint_symbol).await?;
+        Ok(history)
+    }
 }
 
 impl From<&models::Shipyard> for Shipyard {
@@ -85,6 +107,29 @@ impl Shipyard {
             FROM shipyard
             ORDER BY waypoint_symbol, created_at DESC
             "#
+        )
+        .fetch_all(database_pool.get_cache_pool())
+        .await?;
+        Ok(erg)
+    }
+
+    async fn get_history_by_waypoint(
+        database_pool: &super::DbPool,
+        waypoint_symbol: &str,
+    ) -> crate::Result<Vec<Shipyard>> {
+        let erg = sqlx::query_as!(
+            Shipyard,
+            r#"
+            SELECT
+                id,
+                waypoint_symbol,
+                modifications_fee,
+                created_at
+            FROM shipyard
+            WHERE waypoint_symbol = $1
+            ORDER BY created_at DESC
+            "#,
+            waypoint_symbol
         )
         .fetch_all(database_pool.get_cache_pool())
         .await?;

@@ -2,9 +2,8 @@ use async_graphql::Object;
 use database::DatabaseConnector;
 use ship::MyShip;
 use space_traders_client::models;
-use utils::RunInfo;
 
-use crate::utils::ConductorContext;
+use crate::utils::{ConductorContext, RunInfo};
 
 type Result<T> = std::result::Result<T, GraphiQLError>;
 

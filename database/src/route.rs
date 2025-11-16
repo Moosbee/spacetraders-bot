@@ -4,6 +4,7 @@ use tracing::instrument;
 use super::DatabaseConnector;
 
 #[derive(Debug, Clone, PartialEq, async_graphql::SimpleObject)]
+#[graphql(complex)]
 pub struct Route {
     pub id: i32,
     pub ship_symbol: String,
@@ -16,6 +17,26 @@ pub struct Route {
     pub ship_info_before: Option<i64>,
     pub ship_info_after: Option<i64>,
     pub created_at: DateTime<Utc>,
+}
+
+#[async_graphql::ComplexObject]
+impl Route {
+    async fn waypoint_from<'ctx>(
+        &self,
+        ctx: &async_graphql::Context<'ctx>,
+    ) -> crate::Result<Option<crate::Waypoint>> {
+        let database_pool = ctx.data::<crate::DbPool>().unwrap();
+        let erg = crate::Waypoint::get_by_symbol(database_pool, &self.from).await?;
+        Ok(erg)
+    }
+
+    async fn waypoint_to<'ctx>(
+        &self,
+        ctx: &async_graphql::Context<'ctx>,
+    ) -> crate::Result<Option<crate::Waypoint>> {
+        let database_pool = ctx.data::<crate::DbPool>().unwrap();
+        crate::Waypoint::get_by_symbol(database_pool, &self.to).await
+    }
 }
 
 impl Route {

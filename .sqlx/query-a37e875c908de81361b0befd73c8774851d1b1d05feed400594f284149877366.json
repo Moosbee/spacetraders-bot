@@ -1,0 +1,43 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO system (\n                symbol,\n                sector_symbol,\n                system_type,\n                x,\n                y\n            )\n            SELECT * FROM UNNEST(\n                $1::character varying[],\n                $2::character varying[],\n                $3::system_type[],\n                $4::integer[],\n                $5::integer[]\n            )\n            ON CONFLICT (symbol) DO UPDATE\n            SET sector_symbol = EXCLUDED.sector_symbol,\n                system_type = EXCLUDED.system_type,\n                x = EXCLUDED.x,\n                y = EXCLUDED.y\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "VarcharArray",
+        "VarcharArray",
+        {
+          "Custom": {
+            "name": "system_type[]",
+            "kind": {
+              "Array": {
+                "Custom": {
+                  "name": "system_type",
+                  "kind": {
+                    "Enum": [
+                      "NEUTRON_STAR",
+                      "RED_STAR",
+                      "ORANGE_STAR",
+                      "BLUE_STAR",
+                      "YOUNG_STAR",
+                      "WHITE_DWARF",
+                      "BLACK_HOLE",
+                      "HYPERGIANT",
+                      "NEBULA",
+                      "UNSTABLE"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "Int4Array",
+        "Int4Array"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "a37e875c908de81361b0befd73c8774851d1b1d05feed400594f284149877366"
+}

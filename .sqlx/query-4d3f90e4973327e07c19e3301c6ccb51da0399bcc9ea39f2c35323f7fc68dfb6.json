@@ -1,0 +1,19 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO agent (symbol, account_id, headquarters, credits, starting_faction, ship_count)\n            select * from UNNEST($1::character varying[], $2::character varying[], $3::character varying[], $4::integer[], $5::character varying[], $6::integer[])\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "VarcharArray",
+        "VarcharArray",
+        "VarcharArray",
+        "Int4Array",
+        "VarcharArray",
+        "Int4Array"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "4d3f90e4973327e07c19e3301c6ccb51da0399bcc9ea39f2c35323f7fc68dfb6"
+}

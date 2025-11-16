@@ -50,7 +50,7 @@ pub async fn generate_fleet_assignments(
         database::FleetConfig::Contract(contract_config) => {
             generate_contract_fleet_assignments(fleet, &contract_config, context).await?
         }
-        database::FleetConfig::Manuel => vec![],
+        database::FleetConfig::Manuel(_) => vec![],
     };
     Ok(ships)
 }

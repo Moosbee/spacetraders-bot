@@ -1,0 +1,82 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                SELECT \n                  id,\n                  ship_symbol,\n                  \"from\",\n                  \"to\",\n                  nav_mode,\n                  distance,\n                  fuel_cost,\n                  travel_time,\n                  ship_info_before,\n                  ship_info_after,\n                  created_at\n                FROM route\n                WHERE ship_symbol = $1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "ship_symbol",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "from",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "to",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "nav_mode",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 5,
+        "name": "distance",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 6,
+        "name": "fuel_cost",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 7,
+        "name": "travel_time",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 8,
+        "name": "ship_info_before",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 9,
+        "name": "ship_info_after",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 10,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "be75982a43a7a5a2a414b6decfc14ce9ff49baca586b584b970836de1e1a7925"
+}

@@ -187,16 +187,6 @@ impl WaypointCan for space_traders_client::models::Waypoint {
     }
 }
 
-#[derive(Debug, Clone, serde::Serialize, async_graphql::SimpleObject)]
-pub struct RunInfo {
-    pub agent_symbol: String,
-    pub headquarters: String,
-    pub starting_faction: models::FactionSymbol,
-    pub reset_date: chrono::NaiveDate,
-    pub next_reset_date: chrono::DateTime<chrono::Utc>,
-    pub version: String,
-}
-
 // pub typed AgentUpdateFn = Fn(
 //     &RunInfo,
 //     &space_traders_client::models::Agent,
@@ -221,34 +211,4 @@ pub fn get_system_symbol(waypoint_symbol: &str) -> String {
 pub fn distance_between_waypoints(start: (i32, i32), end: (i32, i32)) -> f64 {
     (((end.0 as f64) - (start.0 as f64)).powi(2) + ((end.1 as f64) - (start.1 as f64)).powi(2))
         .sqrt()
-}
-
-impl WaypointCan for database::Waypoint {
-    fn is_marketplace(&self) -> bool {
-        self.traits
-            .contains(&models::WaypointTraitSymbol::Marketplace)
-            || self.has_marketplace
-    }
-
-    fn is_minable(&self) -> bool {
-        self.waypoint_type == models::WaypointType::Asteroid
-            || self.waypoint_type == models::WaypointType::AsteroidField
-            || self.waypoint_type == models::WaypointType::EngineeredAsteroid
-    }
-
-    fn is_sipherable(&self) -> bool {
-        self.waypoint_type == models::WaypointType::GasGiant
-    }
-
-    fn is_shipyard(&self) -> bool {
-        self.traits.contains(&models::WaypointTraitSymbol::Shipyard) || self.has_shipyard
-    }
-
-    fn is_jump_gate(&self) -> bool {
-        self.waypoint_type == models::WaypointType::JumpGate
-    }
-
-    fn is_charted(&self) -> bool {
-        self.charted_by.is_some() || self.charted_on.is_some()
-    }
 }

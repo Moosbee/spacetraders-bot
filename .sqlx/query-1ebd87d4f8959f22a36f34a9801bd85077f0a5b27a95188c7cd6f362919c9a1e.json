@@ -1,0 +1,244 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                SELECT \n                  symbol,\n                  system_symbol,\n                  created_at,\n                  x,\n                  y,\n                  type as \"waypoint_type: models::WaypointType\",\n                  traits as \"traits: Vec<models::WaypointTraitSymbol>\",\n                  is_under_construction,\n                  orbitals,\n                  orbits,\n                  faction,\n                  modifiers as \"modifiers: Vec<models::WaypointModifierSymbol>\",\n                  charted_by,\n                  charted_on,\n                  unstable_since,\n                  has_shipyard,\n                  has_marketplace\n                FROM waypoint\n                WHERE symbol = $1\n                LIMIT 1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "symbol",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "system_symbol",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 3,
+        "name": "x",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "y",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 5,
+        "name": "waypoint_type: models::WaypointType",
+        "type_info": {
+          "Custom": {
+            "name": "waypoint_type",
+            "kind": {
+              "Enum": [
+                "PLANET",
+                "GAS_GIANT",
+                "MOON",
+                "ORBITAL_STATION",
+                "JUMP_GATE",
+                "ASTEROID_FIELD",
+                "ASTEROID",
+                "ENGINEERED_ASTEROID",
+                "ASTEROID_BASE",
+                "NEBULA",
+                "DEBRIS_FIELD",
+                "GRAVITY_WELL",
+                "ARTIFICIAL_GRAVITY_WELL",
+                "FUEL_STATION"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "traits: Vec<models::WaypointTraitSymbol>",
+        "type_info": {
+          "Custom": {
+            "name": "waypoint_trait_symbol[]",
+            "kind": {
+              "Array": {
+                "Custom": {
+                  "name": "waypoint_trait_symbol",
+                  "kind": {
+                    "Enum": [
+                      "UNCHARTED",
+                      "UNDER_CONSTRUCTION",
+                      "MARKETPLACE",
+                      "SHIPYARD",
+                      "OUTPOST",
+                      "SCATTERED_SETTLEMENTS",
+                      "SPRAWLING_CITIES",
+                      "MEGA_STRUCTURES",
+                      "PIRATE_BASE",
+                      "OVERCROWDED",
+                      "HIGH_TECH",
+                      "CORRUPT",
+                      "BUREAUCRATIC",
+                      "TRADING_HUB",
+                      "INDUSTRIAL",
+                      "BLACK_MARKET",
+                      "RESEARCH_FACILITY",
+                      "MILITARY_BASE",
+                      "SURVEILLANCE_OUTPOST",
+                      "EXPLORATION_OUTPOST",
+                      "MINERAL_DEPOSITS",
+                      "COMMON_METAL_DEPOSITS",
+                      "PRECIOUS_METAL_DEPOSITS",
+                      "RARE_METAL_DEPOSITS",
+                      "METHANE_POOLS",
+                      "ICE_CRYSTALS",
+                      "EXPLOSIVE_GASES",
+                      "STRONG_MAGNETOSPHERE",
+                      "VIBRANT_AURORAS",
+                      "SALT_FLATS",
+                      "CANYONS",
+                      "PERPETUAL_DAYLIGHT",
+                      "PERPETUAL_OVERCAST",
+                      "DRY_SEABEDS",
+                      "MAGMA_SEAS",
+                      "SUPERVOLCANOES",
+                      "ASH_CLOUDS",
+                      "VAST_RUINS",
+                      "MUTATED_FLORA",
+                      "TERRAFORMED",
+                      "EXTREME_TEMPERATURES",
+                      "EXTREME_PRESSURE",
+                      "DIVERSE_LIFE",
+                      "SCARCE_LIFE",
+                      "FOSSILS",
+                      "WEAK_GRAVITY",
+                      "STRONG_GRAVITY",
+                      "CRUSHING_GRAVITY",
+                      "TOXIC_ATMOSPHERE",
+                      "CORROSIVE_ATMOSPHERE",
+                      "BREATHABLE_ATMOSPHERE",
+                      "THIN_ATMOSPHERE",
+                      "JOVIAN",
+                      "ROCKY",
+                      "VOLCANIC",
+                      "FROZEN",
+                      "SWAMP",
+                      "BARREN",
+                      "TEMPERATE",
+                      "JUNGLE",
+                      "OCEAN",
+                      "RADIOACTIVE",
+                      "MICRO_GRAVITY_ANOMALIES",
+                      "DEBRIS_CLUSTER",
+                      "DEEP_CRATERS",
+                      "SHALLOW_CRATERS",
+                      "UNSTABLE_COMPOSITION",
+                      "HOLLOWED_INTERIOR",
+                      "STRIPPED"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "is_under_construction",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 8,
+        "name": "orbitals",
+        "type_info": "VarcharArray"
+      },
+      {
+        "ordinal": 9,
+        "name": "orbits",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 10,
+        "name": "faction",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 11,
+        "name": "modifiers: Vec<models::WaypointModifierSymbol>",
+        "type_info": {
+          "Custom": {
+            "name": "waypoint_modifier_symbol[]",
+            "kind": {
+              "Array": {
+                "Custom": {
+                  "name": "waypoint_modifier_symbol",
+                  "kind": {
+                    "Enum": [
+                      "STRIPPED",
+                      "UNSTABLE",
+                      "RADIATION_LEAK",
+                      "CRITICAL_LIMIT",
+                      "CIVIL_UNREST"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "charted_by",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 13,
+        "name": "charted_on",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 14,
+        "name": "unstable_since",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 15,
+        "name": "has_shipyard",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 16,
+        "name": "has_marketplace",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      true,
+      true,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "1ebd87d4f8959f22a36f34a9801bd85077f0a5b27a95188c7cd6f362919c9a1e"
+}

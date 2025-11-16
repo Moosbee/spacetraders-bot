@@ -198,11 +198,16 @@ impl<T: Clone + Send + Sync + async_graphql::OutputType> RustShip<T> {
 
         self.ensure_undocked(api).await?;
 
-    tracing::debug!(waypoint = %self.nav.waypoint_symbol, end_symbol = %connection.end_symbol, "Navigating (warp) waiting");
+        tracing::debug!(waypoint = %self.nav.waypoint_symbol, end_symbol = %connection.end_symbol, "Navigating (warp) waiting");
 
         let start_id = self.snapshot(database_pool).await?;
 
         let nav_data = self.warp(api, &connection.end_symbol).await?;
+        let now = Utc::now();
+
+        if true {
+            self.reload(api).await?;
+        }
 
         let end_id = self.snapshot(database_pool).await?;
 
@@ -219,7 +224,7 @@ impl<T: Clone + Send + Sync + async_graphql::OutputType> RustShip<T> {
                 / 1000.0,
             ship_info_before: Some(start_id),
             ship_info_after: Some(end_id),
-            created_at: Utc::now(),
+            created_at: now,
         };
 
         database::Route::insert(database_pool, &rote).await?;
@@ -265,11 +270,15 @@ impl<T: Clone + Send + Sync + async_graphql::OutputType> RustShip<T> {
 
         self.ensure_undocked(api).await?;
 
-    tracing::debug!(waypoint = %self.nav.waypoint_symbol, end_symbol = %connection.end_symbol, "Navigating (navigate) waiting");
+        tracing::debug!(waypoint = %self.nav.waypoint_symbol, end_symbol = %connection.end_symbol, "Navigating (navigate) waiting");
 
         let start_id = self.snapshot(database_pool).await?;
 
         let nav_data = self.navigate(api, &connection.end_symbol).await?;
+        let now = Utc::now();
+        if true {
+            self.reload(api).await?;
+        }
 
         let end_id = self.snapshot(database_pool).await?;
 
@@ -290,7 +299,7 @@ impl<T: Clone + Send + Sync + async_graphql::OutputType> RustShip<T> {
                 / 1000.0,
             ship_info_before: Some(start_id),
             ship_info_after: Some(end_id),
-            created_at: Utc::now(),
+            created_at: now,
         };
 
         database::Route::insert(database_pool, &rote).await?;
@@ -331,7 +340,7 @@ impl<T: Clone + Send + Sync + async_graphql::OutputType> RustShip<T> {
     }
 
     fn calculate_refuelments(&self, refuel: Refuel) -> RefuelRequirements {
-    tracing::debug!(refuel = ?refuel, "Calculating refuel requirements");
+        tracing::debug!(refuel = ?refuel, "Calculating refuel requirements");
 
         if self.fuel.capacity == 0 {
             return RefuelRequirements {

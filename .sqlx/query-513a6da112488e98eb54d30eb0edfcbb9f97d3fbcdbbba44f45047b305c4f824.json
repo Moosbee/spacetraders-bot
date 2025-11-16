@@ -1,0 +1,61 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n              SELECT\n                id,\n                amount,\n                status as \"status: FundStatus\",\n                actual_amount,\n                created_at,\n                updated_at\n              FROM reserved_funds\n          ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "amount",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "status: FundStatus",
+        "type_info": {
+          "Custom": {
+            "name": "fund_status",
+            "kind": {
+              "Enum": [
+                "RESERVED",
+                "USED",
+                "CANCELLED"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "actual_amount",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 4,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 5,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "513a6da112488e98eb54d30eb0edfcbb9f97d3fbcdbbba44f45047b305c4f824"
+}

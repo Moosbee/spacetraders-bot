@@ -130,6 +130,36 @@ impl From<&Waypoint> for models::Waypoint {
     }
 }
 
+impl utils::WaypointCan for Waypoint {
+    fn is_marketplace(&self) -> bool {
+        self.traits
+            .contains(&models::WaypointTraitSymbol::Marketplace)
+            || self.has_marketplace
+    }
+
+    fn is_minable(&self) -> bool {
+        self.waypoint_type == models::WaypointType::Asteroid
+            || self.waypoint_type == models::WaypointType::AsteroidField
+            || self.waypoint_type == models::WaypointType::EngineeredAsteroid
+    }
+
+    fn is_sipherable(&self) -> bool {
+        self.waypoint_type == models::WaypointType::GasGiant
+    }
+
+    fn is_shipyard(&self) -> bool {
+        self.traits.contains(&models::WaypointTraitSymbol::Shipyard) || self.has_shipyard
+    }
+
+    fn is_jump_gate(&self) -> bool {
+        self.waypoint_type == models::WaypointType::JumpGate
+    }
+
+    fn is_charted(&self) -> bool {
+        self.charted_by.is_some() || self.charted_on.is_some()
+    }
+}
+
 impl Waypoint {
     #[instrument(level = "trace", skip(database_pool))]
     pub async fn get_hash_map(

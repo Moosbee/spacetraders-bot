@@ -1,0 +1,62 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT \n                symbol,\n                sector_symbol,\n                system_type as \"system_type: models::SystemType\",\n                x,\n                y\n            FROM system\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "symbol",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "sector_symbol",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "system_type: models::SystemType",
+        "type_info": {
+          "Custom": {
+            "name": "system_type",
+            "kind": {
+              "Enum": [
+                "NEUTRON_STAR",
+                "RED_STAR",
+                "ORANGE_STAR",
+                "BLUE_STAR",
+                "YOUNG_STAR",
+                "WHITE_DWARF",
+                "BLACK_HOLE",
+                "HYPERGIANT",
+                "NEBULA",
+                "UNSTABLE"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "x",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "y",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "8c2f2d305df41df8928f3a0fa7447d9027a69e9295d392f0e16eb89583400950"
+}

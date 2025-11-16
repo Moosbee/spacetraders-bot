@@ -1,0 +1,97 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                SELECT \n                    id,\n                    faction_symbol,\n                    contract_type as \"contract_type: models::contract::Type\",\n                    accepted,\n                    fulfilled,\n                    deadline_to_accept,\n                    on_accepted,\n                    on_fulfilled,\n                    deadline,\n                    updated_at,\n                    created_at,\n                    reserved_fund\n                FROM contract\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "faction_symbol",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "contract_type: models::contract::Type",
+        "type_info": {
+          "Custom": {
+            "name": "contract_type",
+            "kind": {
+              "Enum": [
+                "PROCUREMENT",
+                "TRANSPORT",
+                "SHUTTLE"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "accepted",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 4,
+        "name": "fulfilled",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 5,
+        "name": "deadline_to_accept",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 6,
+        "name": "on_accepted",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 7,
+        "name": "on_fulfilled",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 8,
+        "name": "deadline",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 9,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 10,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 11,
+        "name": "reserved_fund",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "2f9603df62ea8b529f3954b8a90fb57d0cc6830a2ff26a2e21df9c28def09146"
+}

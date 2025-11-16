@@ -205,7 +205,7 @@ impl Pilot {
                         .execute_pilot_circle(self, fleet, assignment, contract_config)
                         .await?;
                 }
-                database::FleetConfig::Manuel => {
+                database::FleetConfig::Manuel(_) => {
                     debug!(fleet_id = fleet.id, ship_symbol = %self.ship_symbol, "Fleet is manuel, ship piloting idle behavior");
                     tokio::time::sleep(std::time::Duration::from_millis(
                         60_000 + rand::random::<u64>() % 1_000,

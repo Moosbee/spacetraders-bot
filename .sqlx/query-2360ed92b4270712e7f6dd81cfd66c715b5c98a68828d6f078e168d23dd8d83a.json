@@ -1,0 +1,56 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO module_info (\n                symbol,\n                name,\n                description,\n                range,\n                capacity,\n                power_required,\n                crew_required,\n                slots_required\n            )\n            SELECT * FROM UNNEST(\n                $1::ship_module_symbol[],\n                $2::character varying[],\n                $3::character varying[],\n                $4::integer[],\n                $5::integer[],\n                $6::integer[],\n                $7::integer[],\n                $8::integer[]\n            )\n            ON CONFLICT (symbol) DO UPDATE\n            SET name = EXCLUDED.name,\n                description = EXCLUDED.description,\n                range = EXCLUDED.range,\n                capacity = EXCLUDED.capacity,\n                power_required = EXCLUDED.power_required,\n                crew_required = EXCLUDED.crew_required,\n                slots_required = EXCLUDED.slots_required\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        {
+          "Custom": {
+            "name": "ship_module_symbol[]",
+            "kind": {
+              "Array": {
+                "Custom": {
+                  "name": "ship_module_symbol",
+                  "kind": {
+                    "Enum": [
+                      "MODULE_MINERAL_PROCESSOR_I",
+                      "MODULE_GAS_PROCESSOR_I",
+                      "MODULE_CARGO_HOLD_I",
+                      "MODULE_CARGO_HOLD_II",
+                      "MODULE_CARGO_HOLD_III",
+                      "MODULE_CREW_QUARTERS_I",
+                      "MODULE_ENVOY_QUARTERS_I",
+                      "MODULE_PASSENGER_CABIN_I",
+                      "MODULE_MICRO_REFINERY_I",
+                      "MODULE_ORE_REFINERY_I",
+                      "MODULE_FUEL_REFINERY_I",
+                      "MODULE_SCIENCE_LAB_I",
+                      "MODULE_JUMP_DRIVE_I",
+                      "MODULE_JUMP_DRIVE_II",
+                      "MODULE_JUMP_DRIVE_III",
+                      "MODULE_WARP_DRIVE_I",
+                      "MODULE_WARP_DRIVE_II",
+                      "MODULE_WARP_DRIVE_III",
+                      "MODULE_SHIELD_GENERATOR_I",
+                      "MODULE_SHIELD_GENERATOR_II"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "VarcharArray",
+        "VarcharArray",
+        "Int4Array",
+        "Int4Array",
+        "Int4Array",
+        "Int4Array",
+        "Int4Array"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "2360ed92b4270712e7f6dd81cfd66c715b5c98a68828d6f078e168d23dd8d83a"
+}

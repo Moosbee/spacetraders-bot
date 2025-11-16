@@ -2,9 +2,10 @@ use chrono::{DateTime, Utc};
 use space_traders_client::models;
 use tracing::instrument;
 
-use super::{ContractDelivery, DatabaseConnector, DbPool};
+use super::{DatabaseConnector, DbPool};
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, async_graphql::SimpleObject)]
+#[graphql(complex)]
 pub struct Contract {
     pub id: String,
     pub faction_symbol: String,
@@ -37,6 +38,42 @@ pub struct ContractSummary {
     pub updated_at: DateTime<Utc>,
     pub created_at: DateTime<Utc>,
     pub reserved_fund: Option<i64>,
+}
+
+#[async_graphql::ComplexObject]
+impl Contract {
+    async fn deliveries<'ctx>(
+        &self,
+        ctx: &async_graphql::Context<'ctx>,
+    ) -> crate::Result<Vec<crate::ContractDelivery>> {
+        let database_pool = ctx.data::<crate::DbPool>().unwrap();
+        crate::ContractDelivery::get_by_contract_id(database_pool, &self.id).await
+    }
+
+    async fn shipments<'ctx>(
+        &self,
+        ctx: &async_graphql::Context<'ctx>,
+    ) -> crate::Result<Vec<crate::ContractShipment>> {
+        let database_pool = ctx.data::<crate::DbPool>().unwrap();
+        let erg = crate::ContractShipment::get_by_contract_id(database_pool, &self.id).await?;
+        Ok(erg)
+    }
+
+    async fn market_transactions<'ctx>(
+        &self,
+        ctx: &async_graphql::Context<'ctx>,
+    ) -> crate::Result<Vec<crate::MarketTransaction>> {
+        let database_pool = ctx.data::<crate::DbPool>().unwrap();
+        crate::MarketTransaction::get_by_contract(database_pool, &self.id).await
+    }
+
+    async fn market_transaction_summary<'ctx>(
+        &self,
+        ctx: &async_graphql::Context<'ctx>,
+    ) -> crate::Result<crate::TransactionSummary> {
+        let database_pool = ctx.data::<crate::DbPool>().unwrap();
+        crate::MarketTransaction::get_transaction_summary_by_contract(database_pool, &self.id).await
+    }
 }
 
 impl From<models::Contract> for Contract {
@@ -240,10 +277,11 @@ impl Contract {
             let deliveries: Vec<_> = deliveries
                 .iter()
                 .filter_map(|c| {
-                    ContractDelivery::from_contract_deliver_good(c.clone(), &contract_old.id).ok()
+                    crate::ContractDelivery::from_contract_deliver_good(c.clone(), &contract_old.id)
+                        .ok()
                 })
                 .collect();
-            ContractDelivery::insert_bulk(database_pool, &deliveries).await?;
+            crate::ContractDelivery::insert_bulk(database_pool, &deliveries).await?;
         }
 
         Ok(())

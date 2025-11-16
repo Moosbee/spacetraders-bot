@@ -7,7 +7,6 @@ use ship::status::ShipStatus;
 use ship::ShipManager;
 use space_traders_client::models;
 use tokio::sync::RwLock;
-use utils::RunInfo;
 
 use crate::manager::budget_manager::BudgetManager;
 use crate::manager::chart_manager::ChartManagerMessanger;
@@ -83,4 +82,29 @@ pub struct Config {
     pub ship_purchase_amount: i32,
 
     pub iron_reserve: i64,
+}
+
+#[derive(Debug, Clone, serde::Serialize, async_graphql::SimpleObject)]
+#[graphql(complex)]
+pub struct RunInfo {
+    pub agent_symbol: String,
+    pub headquarters: String,
+    pub starting_faction: models::FactionSymbol,
+    pub reset_date: chrono::NaiveDate,
+    pub next_reset_date: chrono::DateTime<chrono::Utc>,
+    pub version: String,
+}
+
+#[async_graphql::ComplexObject]
+impl RunInfo {
+    async fn agent<'ctx>(
+        &self,
+        ctx: &async_graphql::Context<'ctx>,
+    ) -> Result<database::Agent, crate::control_api::GraphiQLError> {
+        let database_pool = ctx.data::<database::DbPool>().unwrap();
+        let agent = database::Agent::get_last_by_symbol(database_pool, &self.agent_symbol)
+            .await?
+            .ok_or(crate::control_api::GraphiQLError::NotFound)?;
+        Ok(agent)
+    }
 }

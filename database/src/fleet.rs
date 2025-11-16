@@ -80,6 +80,26 @@ impl Fleet {
     async fn updated_at(&self) -> chrono::DateTime<chrono::Utc> {
         self.updated_at
     }
+
+    async fn config(&self) -> Result<FleetConfig> {
+        self.get_config()
+    }
+
+    async fn system<'ctx>(
+        &self,
+        ctx: &async_graphql::Context<'ctx>,
+    ) -> Result<Option<crate::System>> {
+        let database_pool = ctx.data::<DbPool>().unwrap();
+        crate::System::get_by_symbol(database_pool, &self.system_symbol).await
+    }
+
+    async fn assignments<'ctx>(
+        &self,
+        ctx: &async_graphql::Context<'ctx>,
+    ) -> Result<Vec<crate::ShipAssignment>> {
+        let database_pool = ctx.data::<DbPool>().unwrap();
+        crate::ShipAssignment::get_by_fleet_id(database_pool, self.id).await
+    }
 }
 
 impl Default for Fleet {
@@ -649,7 +669,7 @@ impl Fleet {
                 self.fleet_type = FleetType::Contract;
                 self.contract_ship_count = Some(cfg.contract_ship_count);
             }
-            FleetConfig::Manuel => {
+            FleetConfig::Manuel(_) => {
                 self.fleet_type = FleetType::Manuel;
             }
         }
@@ -681,7 +701,7 @@ impl Fleet {
                 self.get_contract_config()
                     .ok_or(crate::Error::IncompleteFleetConfig { fleet_id: self.id })?,
             )),
-            FleetType::Manuel => Ok(FleetConfig::Manuel),
+            FleetType::Manuel => Ok(FleetConfig::Manuel(ManuelConfig::default())),
         }
     }
 
@@ -787,7 +807,7 @@ pub enum FleetType {
     Contract,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, async_graphql::Union)]
 pub enum FleetConfig {
     Trading(TradingConfig),
     Scraping(ScrapingConfig),
@@ -795,11 +815,16 @@ pub enum FleetConfig {
     Charting(ChartingConfig),
     Construction(ConstructionConfig),
     Contract(ContractConfig),
-    #[default]
-    Manuel,
+    Manuel(ManuelConfig),
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+impl Default for FleetConfig {
+    fn default() -> Self {
+        FleetConfig::Manuel(ManuelConfig::default())
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, async_graphql::SimpleObject)]
 pub struct TradingConfig {
     pub market_blacklist: Vec<models::TradeSymbol>,
     pub market_prefer_list: Vec<models::TradeSymbol>,
@@ -810,14 +835,14 @@ pub struct TradingConfig {
     pub trade_profit_threshold: i32,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, async_graphql::SimpleObject)]
 pub struct ScrapingConfig {
     pub ship_market_ratio: f64,
     pub allowed_requests: i32,
     pub notify_on_shipyard: bool,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, async_graphql::SimpleObject)]
 pub struct MiningConfig {
     pub mining_eject_list: Vec<models::TradeSymbol>,
     pub mining_prefer_list: Vec<models::TradeSymbol>,
@@ -835,18 +860,23 @@ pub struct MiningConfig {
     pub min_siphon_cargo_space: i32,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, async_graphql::SimpleObject)]
 pub struct ChartingConfig {
     pub charting_probe_count: i32,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, async_graphql::SimpleObject)]
 pub struct ConstructionConfig {
     pub construction_ship_count: i32,
     pub construction_waypoint: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, async_graphql::SimpleObject)]
 pub struct ContractConfig {
     pub contract_ship_count: i32,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize, async_graphql::SimpleObject)]
+pub struct ManuelConfig {
+    pub config: String,
 }

@@ -35,7 +35,7 @@ use tokio::sync::{broadcast, RwLock};
 use tokio_stream::StreamExt;
 use tokio_util::sync::CancellationToken;
 
-use ::utils::{get_system_symbol, RunInfo, WaypointCan};
+use ::utils::{get_system_symbol, WaypointCan};
 use tracing::{instrument, Instrument};
 use tracing_subscriber::layer::SubscriberExt;
 use utils::ConductorContext;
@@ -44,14 +44,19 @@ use std::num::NonZeroU32;
 
 use sqlx::postgres::PgPoolOptions;
 
+use crate::utils::RunInfo;
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let (context, manager_token, managers) = setup_context().await?;
 
-    // let reg = setup_fleets(&context).await;
+    // let reg = setup_main_system_fleets(&context).await;
 
     // if let Err(errorr) = reg {
-    //     tracing::error!(error = format!("{:?}", errorr), "Join error");
+    //     tracing::error!(
+    //         error = format!("{:?}", errorr),
+    //         "setup_main_system_fleets error"
+    //     );
     // }
 
     // panic!("Finished");
@@ -138,9 +143,14 @@ async fn setup_context(
     let (api, database_pool) = setup_unauthed().await?;
 
     let my_agent = api.get_my_agent().await?;
-        tracing::info!(my_agent = ?my_agent, "Fetched agent info");
+    tracing::info!(my_agent = ?my_agent, "Fetched agent info");
+    database::Agent::insert(
+        &database_pool,
+        &database::Agent::from(*my_agent.data.clone()),
+    )
+    .await?;
     let status = api.get_status().await?;
-        tracing::info!(status = ?status, "Fetched status info");
+    tracing::info!(status = ?status, "Fetched status info");
 
     let run_info = RunInfo {
         agent_symbol: my_agent.data.symbol.clone(),
@@ -358,8 +368,8 @@ async fn setup_context(
     ))
 }
 
-#[instrument(name = "spacetraders::setup_fleets", skip(context))]
-async fn setup_fleets(
+#[instrument(name = "spacetraders::setup_main_system_fleets", skip(context))]
+async fn setup_main_system_fleets(
     context: &ConductorContext,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let main_system = { get_system_symbol(&context.run_info.read().await.headquarters) };
@@ -525,7 +535,7 @@ async fn start_managers(
     for mut manager in managers {
         let name = manager.get_name().to_string();
         let cancel_token = manager.get_cancel_token().clone();
-    tracing::debug!(manager_name = %name, "Starting manager");
+        tracing::debug!(manager_name = %name, "Starting manager");
         let handle = tokio::task::spawn(async move {
             let erg = manager.run().await;
 
@@ -541,7 +551,7 @@ async fn start_managers(
         //         let erg = manager.run().await;
 
         //         if let Err(errror) = &erg {
-    //             tracing::error!(errror = ?errror, "Managers error");
+        //             tracing::error!(errror = ?errror, "Managers error");
         //         }
 
         //         erg
@@ -590,7 +600,7 @@ async fn wait_managers(managers_handles: Vec<ManagersHandle>) -> Result<(), crat
     }
 
     while let Some(result) = manager_futures.next().await {
-                tracing::info!(result = ?result, "Manager finished");
+        tracing::info!(result = ?result, "Manager finished");
     }
     Ok(())
 }

@@ -233,6 +233,19 @@ impl<T: Clone + Send + Sync + async_graphql::OutputType> RustShip<T> {
         Ok(reg)
     }
 
+    async fn market_transaction_summary<'ctx>(
+        &self,
+        ctx: &async_graphql::Context<'ctx>,
+    ) -> crate::Result<database::TransactionSummary> {
+        let database_pool = ctx.data::<database::DbPool>().unwrap();
+        let reg = database::MarketTransaction::get_transaction_summary_by_ship(
+            database_pool,
+            &self.symbol,
+        )
+        .await?;
+        Ok(reg)
+    }
+
     async fn repair_transactions<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
@@ -407,6 +420,12 @@ impl<T: Clone + Send + Sync + async_graphql::OutputType> RustShip<T> {
         database_pool: database::DbPool,
     ) -> Result<database::ShipInfo> {
         self.apply_from_db_ship(database_pool, None).await
+    }
+
+    pub async fn reload(&mut self, api: &space_traders_client::Api) -> Result<()> {
+        let ship = api.get_my_ship(&self.symbol).await?;
+        self.update(*ship.data);
+        Ok(())
     }
 
     pub async fn apply_from_db_ship(
