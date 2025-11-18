@@ -37,6 +37,32 @@ impl ShipyardShipTypes {
         .await?;
         Ok(erg)
     }
+
+    pub async fn get_last_by_system(
+        database_pool: &super::DbPool,
+        system_symbol: &str,
+    ) -> crate::Result<Vec<ShipyardShipTypes>> {
+        let erg = sqlx::query_as!(
+            ShipyardShipTypes,
+            r#"
+            SELECT
+                id,
+                shipyard_id,
+                ship_type as "ship_type: models::ShipType",
+                shipyard_ship_types.created_at
+            FROM shipyard_ship_types
+            WHERE shipyard_id = (
+                SELECT DISTINCT ON (shipyard.waypoint_symbol) shipyard.id FROM shipyard JOIN waypoint ON shipyard.waypoint_symbol = waypoint.symbol
+                WHERE waypoint.system_symbol = $1
+                ORDER BY shipyard.waypoint_symbol, shipyard.created_at DESC
+            )
+            "#,
+            system_symbol
+        )
+        .fetch_all(database_pool.get_cache_pool())
+        .await?;
+        Ok(erg)
+    }
 }
 
 impl DatabaseConnector<ShipyardShipTypes> for ShipyardShipTypes {

@@ -33,6 +33,38 @@ impl Shipyard {
             crate::Shipyard::get_history_by_waypoint(database_pool, &self.waypoint_symbol).await?;
         Ok(history)
     }
+
+    async fn shipyard_ship_types(
+        &self,
+        ctx: &async_graphql::Context<'_>,
+    ) -> crate::Result<Vec<crate::ShipyardShipTypes>> {
+        let database_pool = ctx.data::<crate::DbPool>().unwrap();
+        let history =
+            crate::ShipyardShipTypes::get_last_by_waypoint(database_pool, &self.waypoint_symbol)
+                .await?;
+        Ok(history)
+    }
+
+    async fn shipyard_ships(
+        &self,
+        ctx: &async_graphql::Context<'_>,
+    ) -> crate::Result<Vec<crate::ShipyardShip>> {
+        let database_pool = ctx.data::<crate::DbPool>().unwrap();
+        let history =
+            crate::ShipyardShip::get_last_by_waypoint(database_pool, &self.waypoint_symbol).await?;
+        Ok(history)
+    }
+
+    async fn shipyard_transactions(
+        &self,
+        ctx: &async_graphql::Context<'_>,
+    ) -> crate::Result<Vec<crate::ShipyardTransaction>> {
+        let database_pool = ctx.data::<crate::DbPool>().unwrap();
+        let history =
+            crate::ShipyardTransaction::get_by_waypoint(database_pool, &self.waypoint_symbol)
+                .await?;
+        Ok(history)
+    }
 }
 
 impl From<&models::Shipyard> for Shipyard {

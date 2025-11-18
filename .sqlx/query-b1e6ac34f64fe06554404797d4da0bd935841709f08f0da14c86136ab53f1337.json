@@ -1,0 +1,46 @@
+{
+  "db_name": "PostgreSQL",
+  "query": " \n          SELECT\n            id,\n            waypoint_symbol,\n            ship_symbol,\n            total_price,\n            \"timestamp\"\n          FROM chart_transaction JOIN waypoint ON chart_transaction.waypoint_symbol = waypoint.symbol\n          WHERE waypoint.system_symbol = $1\n          order by \"timestamp\"\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "waypoint_symbol",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "ship_symbol",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "total_price",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "timestamp",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "b1e6ac34f64fe06554404797d4da0bd935841709f08f0da14c86136ab53f1337"
+}

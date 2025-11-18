@@ -95,6 +95,30 @@ impl ShipModificationTransaction {
         .await?;
         Ok(reg)
     }
+
+    pub async fn get_by_system(
+        database_pool: &super::DbPool,
+        symbol: &str,
+    ) -> crate::Result<Vec<ShipModificationTransaction>> {
+        let reg = sqlx::query_as!(
+            ShipModificationTransaction,
+            r#"
+      SELECT
+        id,
+        waypoint_symbol,
+        ship_symbol,
+        trade_symbol as "trade_symbol: models::TradeSymbol",
+        total_price,
+        "timestamp"
+      FROM ship_modification_transaction JOIN waypoint ON ship_modification_transaction.waypoint_symbol = waypoint.symbol
+      WHERE waypoint.system_symbol = $1
+      "#,
+            symbol
+        )
+        .fetch_all(database_pool.get_cache_pool())
+        .await?;
+        Ok(reg)
+    }
 }
 
 impl DatabaseConnector<ShipModificationTransaction> for ShipModificationTransaction {

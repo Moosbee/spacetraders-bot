@@ -4,12 +4,24 @@ use tracing::instrument;
 use super::{DatabaseConnector, DbPool};
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, async_graphql::SimpleObject)]
+#[graphql(complex)]
 pub struct ContractDelivery {
     pub contract_id: String,
     pub trade_symbol: models::TradeSymbol,
     pub destination_symbol: String,
     pub units_required: i32,
     pub units_fulfilled: i32,
+}
+
+#[async_graphql::ComplexObject]
+impl ContractDelivery {
+    async fn contract(
+        &self,
+        ctx: &async_graphql::Context<'_>,
+    ) -> crate::Result<Option<crate::Contract>> {
+        let database_pool = ctx.data::<crate::DbPool>().unwrap();
+        crate::Contract::get_by_id(database_pool, &self.contract_id).await
+    }
 }
 
 impl ContractDelivery {
@@ -95,6 +107,29 @@ impl ContractDelivery {
             WHERE destination_symbol = $1
         "#,
             destination_symbol
+        )
+        .fetch_all(database_pool.get_cache_pool())
+        .await?;
+        Ok(erg)
+    }
+
+    pub async fn get_by_system_symbol(
+        database_pool: &DbPool,
+        system_symbol: &str,
+    ) -> crate::Result<Vec<ContractDelivery>> {
+        let erg = sqlx::query_as!(
+            ContractDelivery,
+            r#"
+            SELECT 
+              contract_id,
+              trade_symbol as "trade_symbol: models::TradeSymbol",
+              destination_symbol,
+              units_required,
+              units_fulfilled
+            FROM contract_delivery JOIN waypoint ON contract_delivery.destination_symbol = waypoint.symbol
+            WHERE waypoint.system_symbol = $1
+        "#,
+            system_symbol
         )
         .fetch_all(database_pool.get_cache_pool())
         .await?;

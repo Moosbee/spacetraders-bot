@@ -4,6 +4,7 @@ use tracing::instrument;
 use super::DatabaseConnector;
 
 #[derive(Clone, Debug, PartialEq, serde::Serialize, async_graphql::SimpleObject)]
+#[graphql(complex)]
 pub struct System {
     pub symbol: String,
     pub sector_symbol: String,
@@ -11,6 +12,228 @@ pub struct System {
     pub x: i32,
     pub y: i32,
     // pub factions: Vec<String>,
+}
+
+#[async_graphql::ComplexObject]
+impl System {
+    async fn waypoints(
+        &self,
+        ctx: &async_graphql::Context<'_>,
+    ) -> crate::Result<Vec<crate::Waypoint>> {
+        let database_pool = ctx.data::<crate::DbPool>().unwrap();
+        crate::Waypoint::get_by_system(database_pool, &self.symbol).await
+    }
+
+    async fn market_transactions<'ctx>(
+        &self,
+        ctx: &async_graphql::Context<'ctx>,
+    ) -> crate::Result<Vec<crate::MarketTransaction>> {
+        let database_pool = ctx.data::<crate::DbPool>().unwrap();
+        let transactions =
+            crate::MarketTransaction::get_by_system(database_pool, &self.symbol).await?;
+        Ok(transactions)
+    }
+    async fn shipyard_transactions<'ctx>(
+        &self,
+        ctx: &async_graphql::Context<'ctx>,
+    ) -> crate::Result<Vec<crate::ShipyardTransaction>> {
+        let database_pool = ctx.data::<crate::DbPool>().unwrap();
+        let transactions =
+            crate::ShipyardTransaction::get_by_system(database_pool, &self.symbol).await?;
+        Ok(transactions)
+    }
+    async fn chart_transactions<'ctx>(
+        &self,
+        ctx: &async_graphql::Context<'ctx>,
+    ) -> crate::Result<Vec<crate::ChartTransaction>> {
+        let database_pool = ctx.data::<crate::DbPool>().unwrap();
+        let transactions =
+            crate::ChartTransaction::get_by_system(database_pool, &self.symbol).await?;
+        Ok(transactions)
+    }
+    async fn repair_transactions<'ctx>(
+        &self,
+        ctx: &async_graphql::Context<'ctx>,
+    ) -> crate::Result<Vec<crate::RepairTransaction>> {
+        let database_pool = ctx.data::<crate::DbPool>().unwrap();
+        let transactions =
+            crate::RepairTransaction::get_by_system(database_pool, &self.symbol).await?;
+        Ok(transactions)
+    }
+    async fn scrap_transactions<'ctx>(
+        &self,
+        ctx: &async_graphql::Context<'ctx>,
+    ) -> crate::Result<Vec<crate::ScrapTransaction>> {
+        let database_pool = ctx.data::<crate::DbPool>().unwrap();
+        let transactions =
+            crate::ScrapTransaction::get_by_system(database_pool, &self.symbol).await?;
+        Ok(transactions)
+    }
+    async fn ship_modification_transactions<'ctx>(
+        &self,
+        ctx: &async_graphql::Context<'ctx>,
+    ) -> crate::Result<Vec<crate::ShipModificationTransaction>> {
+        let database_pool = ctx.data::<crate::DbPool>().unwrap();
+        let transactions =
+            crate::ShipModificationTransaction::get_by_system(database_pool, &self.symbol).await?;
+        Ok(transactions)
+    }
+
+    async fn shipyard_ships(
+        &self,
+        ctx: &async_graphql::Context<'_>,
+    ) -> crate::Result<Vec<crate::ShipyardShip>> {
+        let database_pool = ctx.data::<crate::DbPool>().unwrap();
+        let history = crate::ShipyardShip::get_last_by_system(database_pool, &self.symbol).await?;
+        Ok(history)
+    }
+
+    async fn shipyard_ship_types(
+        &self,
+        ctx: &async_graphql::Context<'_>,
+    ) -> crate::Result<Vec<crate::ShipyardShipTypes>> {
+        let database_pool = ctx.data::<crate::DbPool>().unwrap();
+        let history =
+            crate::ShipyardShipTypes::get_last_by_system(database_pool, &self.symbol).await?;
+        Ok(history)
+    }
+
+    async fn market_trades(
+        &self,
+        ctx: &async_graphql::Context<'_>,
+    ) -> crate::Result<Vec<crate::MarketTrade>> {
+        let database_pool = ctx.data::<crate::DbPool>().unwrap();
+        let history = crate::MarketTrade::get_last_by_system(database_pool, &self.symbol).await?;
+        Ok(history)
+    }
+
+    async fn market_trade_goods(
+        &self,
+        ctx: &async_graphql::Context<'_>,
+    ) -> crate::Result<Vec<crate::MarketTradeGood>> {
+        let database_pool = ctx.data::<crate::DbPool>().unwrap();
+        let history =
+            crate::MarketTradeGood::get_last_by_system(database_pool, &self.symbol).await?;
+        Ok(history)
+    }
+
+    async fn fleets(&self, ctx: &async_graphql::Context<'_>) -> crate::Result<Vec<crate::Fleet>> {
+        let database_pool = ctx.data::<crate::DbPool>().unwrap();
+        let history = crate::Fleet::get_by_system(database_pool, &self.symbol).await?;
+        Ok(history)
+    }
+
+    async fn surveys(&self, ctx: &async_graphql::Context<'_>) -> crate::Result<Vec<crate::Survey>> {
+        let database_pool = ctx.data::<crate::DbPool>().unwrap();
+        let history = crate::Survey::get_by_system_symbol(database_pool, &self.symbol).await?;
+        Ok(history)
+    }
+
+    async fn extractions(
+        &self,
+        ctx: &async_graphql::Context<'_>,
+    ) -> crate::Result<Vec<crate::Extraction>> {
+        let database_pool = ctx.data::<crate::DbPool>().unwrap();
+        let history = crate::Extraction::get_by_system_symbol(database_pool, &self.symbol).await?;
+        Ok(history)
+    }
+
+    async fn construction_materials(
+        &self,
+        ctx: &async_graphql::Context<'_>,
+    ) -> crate::Result<Vec<crate::ConstructionMaterial>> {
+        let database_pool = ctx.data::<crate::DbPool>().unwrap();
+        let history =
+            crate::ConstructionMaterial::get_by_system(database_pool, &self.symbol).await?;
+        Ok(history)
+    }
+
+    async fn construction_shipments(
+        &self,
+        ctx: &async_graphql::Context<'_>,
+    ) -> crate::Result<Vec<crate::ConstructionShipment>> {
+        let database_pool = ctx.data::<crate::DbPool>().unwrap();
+        let history =
+            crate::ConstructionShipment::get_by_system(database_pool, &self.symbol).await?;
+        Ok(history)
+    }
+
+    async fn contract_deliveries(
+        &self,
+        ctx: &async_graphql::Context<'_>,
+    ) -> crate::Result<Vec<crate::ContractDelivery>> {
+        let database_pool = ctx.data::<crate::DbPool>().unwrap();
+        let history =
+            crate::ContractDelivery::get_by_system_symbol(database_pool, &self.symbol).await?;
+        Ok(history)
+    }
+
+    // async fn contract_shipments(
+    //     &self,
+    //     ctx: &async_graphql::Context<'_>,
+    // ) -> crate::Result<Vec<crate::ContractShipment>> {
+    //     let database_pool = ctx.data::<crate::DbPool>().unwrap();
+    //     let history =
+    //         crate::ContractShipment::get_by_system_symbol(database_pool, &self.symbol).await?;
+    //     Ok(history)
+    // }
+
+    async fn seen_agents(
+        &self,
+        ctx: &async_graphql::Context<'_>,
+    ) -> crate::Result<Vec<KnownAgent>> {
+        let database_pool = ctx.data::<crate::DbPool>().unwrap();
+        let system_market_transactions =
+            crate::MarketTransaction::get_by_system(database_pool, &self.symbol).await?;
+
+        let system_shipyard_transactions =
+            crate::ShipyardTransaction::get_by_system(database_pool, &self.symbol).await?;
+
+        let known_agents_iter = system_market_transactions
+            .iter()
+            .filter_map(|f| {
+                f.ship_symbol
+                    .chars()
+                    .rev()
+                    .collect::<String>()
+                    .split_once("-")
+                    .map(|f| f.1.chars().rev().collect::<String>())
+            })
+            .chain(
+                system_shipyard_transactions
+                    .iter()
+                    .map(|f| f.agent_symbol.clone()),
+            );
+
+        let known_agents = known_agents_iter
+            .fold(std::collections::HashMap::new(), |mut acc, f| {
+                acc.entry(f).and_modify(|e: &mut u32| *e += 1).or_insert(1);
+                acc
+            })
+            .into_iter()
+            .map(|f| KnownAgent {
+                symbol: f.0,
+                count: f.1,
+            })
+            .collect();
+        Ok(known_agents)
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, serde::Serialize, async_graphql::SimpleObject)]
+#[graphql(complex)]
+struct KnownAgent {
+    symbol: String,
+    count: u32,
+}
+
+#[async_graphql::ComplexObject]
+impl KnownAgent {
+    async fn agent(&self, ctx: &async_graphql::Context<'_>) -> crate::Result<Option<crate::Agent>> {
+        let database_pool = ctx.data::<crate::DbPool>().unwrap();
+        let agent = crate::Agent::get_last_by_symbol(database_pool, &self.symbol).await?;
+        Ok(agent)
+    }
 }
 
 impl From<System> for (i32, i32) {

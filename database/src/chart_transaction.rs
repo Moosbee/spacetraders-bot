@@ -80,6 +80,31 @@ impl ChartTransaction {
         .await?;
         Ok(erg)
     }
+
+    #[instrument(level = "trace", skip(database_pool))]
+    pub async fn get_by_system(
+        database_pool: &DbPool,
+        symbol: &str,
+    ) -> crate::Result<Vec<ChartTransaction>> {
+        let erg = sqlx::query_as!(
+            ChartTransaction,
+            r#" 
+          SELECT
+            id,
+            waypoint_symbol,
+            ship_symbol,
+            total_price,
+            "timestamp"
+          FROM chart_transaction JOIN waypoint ON chart_transaction.waypoint_symbol = waypoint.symbol
+          WHERE waypoint.system_symbol = $1
+          order by "timestamp"
+        "#,
+            symbol
+        )
+        .fetch_all(database_pool.get_cache_pool())
+        .await?;
+        Ok(erg)
+    }
 }
 
 impl DatabaseConnector<ChartTransaction> for ChartTransaction {

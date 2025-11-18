@@ -89,6 +89,29 @@ impl ScrapTransaction {
         .await?;
         Ok(reg)
     }
+
+    pub(crate) async fn get_by_system(
+        database_pool: &super::DbPool,
+        symbol: &str,
+    ) -> crate::Result<Vec<ScrapTransaction>> {
+        let reg = sqlx::query_as!(
+            ScrapTransaction,
+            r#"
+        SELECT
+            id,
+            waypoint_symbol,
+            ship_symbol,
+            total_price,
+            "timestamp"
+        FROM scrap_transaction JOIN waypoint ON scrap_transaction.waypoint_symbol = waypoint.symbol
+        WHERE waypoint.system_symbol = $1
+        "#,
+            symbol
+        )
+        .fetch_all(database_pool.get_cache_pool())
+        .await?;
+        Ok(reg)
+    }
 }
 
 impl DatabaseConnector<ScrapTransaction> for ScrapTransaction {
