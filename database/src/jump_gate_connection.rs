@@ -13,7 +13,6 @@ use super::{DatabaseConnector, DbPool};
     async_graphql::SimpleObject,
 )]
 #[graphql(name = "DBJumpGateConnection")]
-
 pub struct JumpGateConnection {
     pub id: i64,
     pub from: String,

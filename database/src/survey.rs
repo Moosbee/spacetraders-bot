@@ -8,7 +8,6 @@ use crate::{DatabaseConnector, DbPool};
 
 #[derive(Debug, Clone, serde::Serialize, async_graphql::SimpleObject)]
 #[graphql(name = "DBSurvey")]
-
 pub struct Survey {
     pub ship_info_before: i64,
     pub ship_info_after: i64,

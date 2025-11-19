@@ -5,7 +5,6 @@ use tracing::instrument;
 
 #[derive(Clone, Debug, PartialEq, serde::Serialize, async_graphql::SimpleObject)]
 #[graphql(name = "DBShipyard")]
-
 pub struct Shipyard {
     #[allow(dead_code)]
     pub id: i64,

@@ -5,7 +5,6 @@ use super::DatabaseConnector;
 
 #[derive(Debug, Clone, PartialEq, async_graphql::SimpleObject)]
 #[graphql(name = "DBRoute")]
-
 pub struct Route {
     pub id: i32,
     pub ship_symbol: String,

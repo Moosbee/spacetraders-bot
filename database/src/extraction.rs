@@ -6,7 +6,6 @@ use super::{DatabaseConnector, DbPool};
 
 #[derive(Debug, Clone, async_graphql::SimpleObject)]
 #[graphql(name = "DBExtraction")]
-
 pub struct Extraction {
     #[allow(dead_code)]
     pub id: i64,

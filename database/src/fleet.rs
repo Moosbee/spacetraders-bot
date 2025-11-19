@@ -1,6 +1,5 @@
 use std::collections::{HashMap, HashSet};
 
-use async_graphql::Object;
 use serde::{Deserialize, Serialize};
 use space_traders_client::models;
 use tracing::instrument;
@@ -82,10 +81,6 @@ pub struct Fleet {
     // contract config
     #[graphql(skip)]
     contract_ship_count: Option<i32>,
-}
-
-impl Fleet {
-
 }
 
 impl Default for Fleet {

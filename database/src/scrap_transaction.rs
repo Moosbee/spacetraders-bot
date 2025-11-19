@@ -8,7 +8,6 @@ use super::DatabaseConnector;
 
 #[derive(Debug, Clone, async_graphql::SimpleObject)]
 #[graphql(name = "DBScrapTransaction")]
-
 pub struct ScrapTransaction {
     pub id: i64,
     pub waypoint_symbol: String,

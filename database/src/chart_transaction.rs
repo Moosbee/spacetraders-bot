@@ -16,7 +16,6 @@ use crate::{DatabaseConnector, DbPool};
     async_graphql::SimpleObject,
 )]
 #[graphql(name = "DBChartTransaction")]
-
 pub struct ChartTransaction {
     pub id: i64,
     /// The symbol of the waypoint.

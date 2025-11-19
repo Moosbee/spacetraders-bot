@@ -4,7 +4,6 @@ use crate::{DatabaseConnector, DbPool};
 
 #[derive(Debug, Clone, PartialEq, Eq, async_graphql::SimpleObject)]
 #[graphql(name = "DBShipAssignment")]
-
 pub struct ShipAssignment {
     pub id: i64,
     pub fleet_id: i32,
