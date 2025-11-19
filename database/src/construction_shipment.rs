@@ -4,6 +4,7 @@ use tracing::instrument;
 use super::{DatabaseConnector, DbPool, ShipmentStatus};
 
 #[derive(Debug, Clone, serde::Serialize, async_graphql::SimpleObject)]
+#[graphql(name = "DBConstructionShipment")]
 pub struct ConstructionShipment {
     pub id: i64,
     pub material_id: i64,

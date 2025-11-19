@@ -3,6 +3,7 @@ use tracing::instrument;
 use crate::{DatabaseConnector, DbPool};
 
 #[derive(Debug, Clone, PartialEq, Eq, async_graphql::SimpleObject)]
+#[graphql(name = "DBShipAssignment")]
 #[graphql(complex)]
 pub struct ShipAssignment {
     pub id: i64,

@@ -6,6 +6,7 @@ use super::{DatabaseConnector, DbPool};
 #[derive(
     Debug, Clone, sqlx::FromRow, PartialEq, Eq, serde::Serialize, async_graphql::SimpleObject,
 )]
+#[graphql(name = "MarketTradeGood")]
 #[graphql(complex)]
 pub struct MarketTradeGood {
     pub symbol: models::TradeSymbol,

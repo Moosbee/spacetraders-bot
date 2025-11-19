@@ -12,6 +12,7 @@ use super::{DatabaseConnector, DbPool};
     serde::Deserialize,
     async_graphql::SimpleObject,
 )]
+#[graphql(name = "DBJumpGateConnection")]
 #[graphql(complex)]
 pub struct JumpGateConnection {
     pub id: i64,

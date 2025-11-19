@@ -28,6 +28,7 @@ pub enum ShipmentStatus {
 
 #[derive(Debug, Clone, serde::Serialize, async_graphql::SimpleObject)]
 #[graphql(complex)]
+#[graphql(name = "ContractShipment")]
 pub struct ContractShipment {
     pub id: i32,
     pub contract_id: String,

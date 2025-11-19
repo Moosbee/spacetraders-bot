@@ -6,6 +6,7 @@ use tracing::instrument;
 use super::{DatabaseConnector, DbPool};
 
 #[derive(Clone, Debug, Default, PartialEq, serde::Serialize, async_graphql::SimpleObject)]
+#[graphql(name = "Waypoint")]
 pub struct Waypoint {
     pub symbol: String,
     pub system_symbol: String,

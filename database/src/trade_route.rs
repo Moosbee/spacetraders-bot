@@ -4,6 +4,7 @@ use tracing::instrument;
 use super::{DatabaseConnector, DbPool, ShipmentStatus};
 
 #[derive(Debug, Clone, PartialEq, Eq, async_graphql::SimpleObject)]
+#[graphql(name = "DBTradeRoute")]
 pub struct TradeRoute {
     pub id: i32,
     pub symbol: models::TradeSymbol,

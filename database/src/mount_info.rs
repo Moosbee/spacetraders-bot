@@ -4,6 +4,7 @@ use tracing::instrument;
 use super::DatabaseConnector;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, async_graphql::SimpleObject)]
+#[graphql(name = "DBMountInfo")]
 pub struct MountInfo {
     pub symbol: models::ship_mount::Symbol,
     pub name: String,

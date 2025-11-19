@@ -56,7 +56,7 @@ pub struct Fleet {
     contract_ship_count: Option<i32>,
 }
 
-#[Object]
+#[Object(name = "Fleet")]
 impl Fleet {
     async fn id(&self) -> i32 {
         self.id

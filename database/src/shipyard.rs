@@ -4,6 +4,7 @@ use space_traders_client::models;
 use tracing::instrument;
 
 #[derive(Clone, Debug, PartialEq, serde::Serialize, async_graphql::SimpleObject)]
+#[graphql(name = "DBShipyard")]
 #[graphql(complex)]
 pub struct Shipyard {
     #[allow(dead_code)]

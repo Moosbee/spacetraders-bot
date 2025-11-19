@@ -5,6 +5,7 @@ use super::{DatabaseConnector, DbPool};
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, async_graphql::SimpleObject)]
 #[graphql(complex)]
+#[graphql(name = "DBContractDelivery")]
 pub struct ContractDelivery {
     pub contract_id: String,
     pub trade_symbol: models::TradeSymbol,

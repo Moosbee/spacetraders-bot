@@ -7,6 +7,7 @@ use tracing::instrument;
 use super::DatabaseConnector;
 
 #[derive(Debug, Clone, async_graphql::SimpleObject)]
+#[graphql(name = "ScrapTransaction")]
 #[graphql(complex)]
 pub struct ScrapTransaction {
     pub id: i64,

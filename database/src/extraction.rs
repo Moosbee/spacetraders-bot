@@ -5,6 +5,7 @@ use tracing::instrument;
 use super::{DatabaseConnector, DbPool};
 
 #[derive(Debug, Clone, async_graphql::SimpleObject)]
+#[graphql(name = "DBExtraction")]
 #[graphql(complex)]
 pub struct Extraction {
     #[allow(dead_code)]
