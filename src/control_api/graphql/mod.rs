@@ -1,3 +1,5 @@
+mod gql_models;
+
 use async_graphql::Object;
 use database::DatabaseConnector;
 use ship::MyShip;
@@ -545,9 +547,13 @@ impl QueryRoot {
     async fn trade_routes<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
-    ) -> Result<Vec<database::TradeRoute>> {
+    ) -> Result<Vec<gql_models::GQLTradeRoute>> {
         let context = ctx.data::<ConductorContext>()?;
-        let trade_routes = database::TradeRoute::get_all(&context.database_pool).await?;
+        let trade_routes = database::TradeRoute::get_all(&context.database_pool)
+            .await?
+            .into_iter()
+            .map(gql_models::GQLTradeRoute::from)
+            .collect();
         Ok(trade_routes)
     }
 
@@ -555,10 +561,11 @@ impl QueryRoot {
         &self,
         ctx: &async_graphql::Context<'ctx>,
         route_id: i32,
-    ) -> Result<database::TradeRoute> {
+    ) -> Result<gql_models::GQLTradeRoute> {
         let context = ctx.data::<ConductorContext>()?;
         let trade_route = database::TradeRoute::get_by_id(&context.database_pool, route_id)
             .await?
+            .map(gql_models::GQLTradeRoute::from)
             .ok_or(GraphiQLError::NotFound)?;
         Ok(trade_route)
     }

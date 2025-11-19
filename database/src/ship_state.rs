@@ -10,6 +10,7 @@ use super::{DatabaseConnector, DbPool};
 type CargoInv = HashMap<models::TradeSymbol, i32>;
 
 #[derive(Debug, Clone, async_graphql::SimpleObject)]
+#[graphql(name = "DBShipState")]
 #[graphql(complex)]
 pub struct ShipState {
     #[allow(dead_code)]

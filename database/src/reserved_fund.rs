@@ -3,6 +3,7 @@ use tracing::instrument;
 use crate::DatabaseConnector;
 
 #[derive(Debug, Clone, serde::Serialize, async_graphql::SimpleObject)]
+#[graphql(name = "DBReservedFund")]
 pub struct ReservedFund {
     pub id: i64,
     pub amount: i64,

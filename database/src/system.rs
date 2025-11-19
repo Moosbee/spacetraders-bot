@@ -4,6 +4,7 @@ use tracing::instrument;
 use super::DatabaseConnector;
 
 #[derive(Clone, Debug, PartialEq, serde::Serialize, async_graphql::SimpleObject)]
+#[graphql(name = "DBSystem")]
 pub struct System {
     pub symbol: String,
     pub sector_symbol: String,

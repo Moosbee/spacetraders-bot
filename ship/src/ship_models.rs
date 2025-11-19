@@ -292,14 +292,14 @@ impl<T: Clone + Send + Sync + async_graphql::OutputType> RustShip<T> {
         Ok(reg)
     }
 
-    async fn trade_routes<'ctx>(
-        &self,
-        ctx: &async_graphql::Context<'ctx>,
-    ) -> crate::Result<Vec<database::TradeRoute>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let reg = database::TradeRoute::get_by_ship(database_pool, &self.symbol).await?;
-        Ok(reg)
-    }
+    // async fn trade_routes<'ctx>(
+    //     &self,
+    //     ctx: &async_graphql::Context<'ctx>,
+    // ) -> crate::Result<Vec<database::TradeRoute>> {
+    //     let database_pool = ctx.data::<database::DbPool>().unwrap();
+    //     let reg = database::TradeRoute::get_by_ship(database_pool, &self.symbol).await?;
+    //     Ok(reg)
+    // }
 
     async fn surveys<'ctx>(
         &self,

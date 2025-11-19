@@ -15,6 +15,7 @@ use crate::{DatabaseConnector, DbPool};
     serde::Deserialize,
     async_graphql::SimpleObject,
 )]
+#[graphql(name = "DBChartTransaction")]
 #[graphql(complex)]
 pub struct ChartTransaction {
     pub id: i64,

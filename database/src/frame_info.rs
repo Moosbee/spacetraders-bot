@@ -4,6 +4,7 @@ use tracing::instrument;
 use super::DatabaseConnector;
 
 #[derive(Debug, Clone, async_graphql::SimpleObject)]
+#[graphql(name = "DBFrameInfo")]
 pub struct FrameInfo {
     pub symbol: models::ship_frame::Symbol,
     pub name: String,

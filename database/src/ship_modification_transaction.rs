@@ -7,6 +7,7 @@ use tracing::instrument;
 use super::DatabaseConnector;
 
 #[derive(Debug, Clone, async_graphql::SimpleObject)]
+#[graphql(name = "DBShipModificationTransaction")]
 pub struct ShipModificationTransaction {
     pub id: i64,
     pub waypoint_symbol: String,

@@ -4,6 +4,7 @@ use tracing::instrument;
 use super::DatabaseConnector;
 
 #[derive(Debug, Clone, PartialEq, async_graphql::SimpleObject)]
+#[graphql(name = "Route")]
 #[graphql(complex)]
 pub struct Route {
     pub id: i32,

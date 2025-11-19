@@ -16,6 +16,7 @@ use super::{DatabaseConnector, DbPool};
     async_graphql::SimpleObject,
 )]
 #[graphql(complex)]
+#[graphql(name = "MarketTransaction")]
 pub struct MarketTransaction {
     pub id: i64,
     /// The symbol of the waypoint.

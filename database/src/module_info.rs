@@ -4,6 +4,7 @@ use tracing::instrument;
 use super::DatabaseConnector;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, async_graphql::SimpleObject)]
+#[graphql(name = "ModuleInfo")]
 pub struct ModuleInfo {
     pub symbol: models::ship_module::Symbol,
     pub name: String,

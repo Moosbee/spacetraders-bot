@@ -4,6 +4,7 @@ use tracing::instrument;
 use super::DatabaseConnector;
 
 #[derive(Debug, Clone, async_graphql::SimpleObject)]
+#[graphql(name = "ReactorInfo")]
 pub struct ReactorInfo {
     pub symbol: models::ship_reactor::Symbol,
     pub name: String,

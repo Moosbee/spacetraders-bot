@@ -3,6 +3,7 @@ use tracing::instrument;
 use crate::DatabaseConnector;
 
 #[derive(Debug, Clone, PartialEq, Eq, async_graphql::SimpleObject)]
+#[graphql(name = "DBShipJump")]
 pub struct ShipJump {
     pub id: i64,
     pub ship_symbol: String,

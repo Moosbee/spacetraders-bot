@@ -7,6 +7,7 @@ use tracing::instrument;
 use super::DatabaseConnector;
 
 #[derive(Clone, Debug, PartialEq, serde::Serialize, async_graphql::SimpleObject)]
+#[graphql(name = "ShipyardTransaction")]
 #[graphql(complex)]
 pub struct ShipyardTransaction {
     pub id: i64,

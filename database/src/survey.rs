@@ -7,6 +7,7 @@ use tracing::instrument;
 use crate::{DatabaseConnector, DbPool};
 
 #[derive(Debug, Clone, serde::Serialize, async_graphql::SimpleObject)]
+#[graphql(name = "Survey")]
 #[graphql(complex)]
 pub struct Survey {
     pub ship_info_before: i64,
