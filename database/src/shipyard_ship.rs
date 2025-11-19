@@ -29,31 +29,6 @@ pub struct ShipyardShip {
     pub created_at: DateTime<Utc>,
 }
 
-#[async_graphql::ComplexObject]
-impl ShipyardShip {
-    async fn waypoint(
-        &self,
-        ctx: &async_graphql::Context<'_>,
-    ) -> crate::Result<Option<crate::Waypoint>> {
-        let database_pool = ctx.data::<crate::DbPool>().unwrap();
-        crate::Waypoint::get_by_symbol(database_pool, &self.waypoint_symbol).await
-    }
-
-    async fn history(
-        &self,
-        ctx: &async_graphql::Context<'_>,
-    ) -> crate::Result<Vec<crate::ShipyardShip>> {
-        let database_pool = ctx.data::<crate::DbPool>().unwrap();
-        let history = crate::ShipyardShip::get_history_by_waypoint_and_ship_type(
-            database_pool,
-            &self.waypoint_symbol,
-            &self.ship_type,
-        )
-        .await?;
-        Ok(history)
-    }
-}
-
 impl ShipyardShip {
     pub fn with_waypoint(value: models::ShipyardShip, waypoint_symbol: &str) -> Self {
         Self {

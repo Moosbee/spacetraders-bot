@@ -5,7 +5,7 @@ use tracing::instrument;
 use super::{DatabaseConnector, DbPool};
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, async_graphql::SimpleObject)]
-#[graphql(name = "ConstructionMaterial")]
+#[graphql(name = "DBConstructionMaterial")]
 pub struct ConstructionMaterial {
     pub id: i64,
     pub waypoint_symbol: String,

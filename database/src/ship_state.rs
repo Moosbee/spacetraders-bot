@@ -11,7 +11,7 @@ type CargoInv = HashMap<models::TradeSymbol, i32>;
 
 #[derive(Debug, Clone, async_graphql::SimpleObject)]
 #[graphql(name = "DBShipState")]
-#[graphql(complex)]
+
 pub struct ShipState {
     #[allow(dead_code)]
     pub id: i64,
@@ -81,13 +81,6 @@ pub struct ShipState {
 
     #[allow(dead_code)]
     pub created_at: DateTime<Utc>,
-}
-
-#[async_graphql::ComplexObject]
-impl ShipState {
-    async fn cargo_inventory(&self) -> HashMap<models::TradeSymbol, i32> {
-        self.cargo_inventory.0.clone()
-    }
 }
 
 impl ShipState {

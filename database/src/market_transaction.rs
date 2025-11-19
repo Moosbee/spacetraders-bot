@@ -15,8 +15,8 @@ use super::{DatabaseConnector, DbPool};
     serde::Deserialize,
     async_graphql::SimpleObject,
 )]
-#[graphql(complex)]
-#[graphql(name = "MarketTransaction")]
+
+#[graphql(name = "DBMarketTransaction")]
 pub struct MarketTransaction {
     pub id: i64,
     /// The symbol of the waypoint.
@@ -41,18 +41,6 @@ pub struct MarketTransaction {
     pub trade_route: Option<i32>,
     pub mining: Option<String>,
     pub construction: Option<i64>,
-}
-
-#[async_graphql::ComplexObject]
-impl MarketTransaction {
-    async fn waypoint<'ctx>(
-        &self,
-        ctx: &async_graphql::Context<'ctx>,
-    ) -> crate::Result<Option<crate::Waypoint>> {
-        let database_pool = ctx.data::<crate::DbPool>().unwrap();
-        let waypoint = crate::Waypoint::get_by_symbol(database_pool, &self.waypoint_symbol).await?;
-        Ok(waypoint)
-    }
 }
 
 #[derive(

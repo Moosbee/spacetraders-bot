@@ -5,7 +5,7 @@ use tracing::instrument;
 
 #[derive(Clone, Debug, PartialEq, serde::Serialize, async_graphql::SimpleObject)]
 #[graphql(name = "DBShipyard")]
-#[graphql(complex)]
+
 pub struct Shipyard {
     #[allow(dead_code)]
     pub id: i64,
@@ -13,59 +13,6 @@ pub struct Shipyard {
     pub modifications_fee: i32,
     #[allow(dead_code)]
     pub created_at: DateTime<Utc>,
-}
-
-#[async_graphql::ComplexObject]
-impl Shipyard {
-    async fn waypoint<'ctx>(
-        &self,
-        ctx: &async_graphql::Context<'ctx>,
-    ) -> crate::Result<Option<crate::Waypoint>> {
-        let database_pool = ctx.data::<crate::DbPool>().unwrap();
-        crate::Waypoint::get_by_symbol(database_pool, &self.waypoint_symbol).await
-    }
-
-    async fn history(
-        &self,
-        ctx: &async_graphql::Context<'_>,
-    ) -> crate::Result<Vec<crate::Shipyard>> {
-        let database_pool = ctx.data::<crate::DbPool>().unwrap();
-        let history =
-            crate::Shipyard::get_history_by_waypoint(database_pool, &self.waypoint_symbol).await?;
-        Ok(history)
-    }
-
-    async fn shipyard_ship_types(
-        &self,
-        ctx: &async_graphql::Context<'_>,
-    ) -> crate::Result<Vec<crate::ShipyardShipTypes>> {
-        let database_pool = ctx.data::<crate::DbPool>().unwrap();
-        let history =
-            crate::ShipyardShipTypes::get_last_by_waypoint(database_pool, &self.waypoint_symbol)
-                .await?;
-        Ok(history)
-    }
-
-    async fn shipyard_ships(
-        &self,
-        ctx: &async_graphql::Context<'_>,
-    ) -> crate::Result<Vec<crate::ShipyardShip>> {
-        let database_pool = ctx.data::<crate::DbPool>().unwrap();
-        let history =
-            crate::ShipyardShip::get_last_by_waypoint(database_pool, &self.waypoint_symbol).await?;
-        Ok(history)
-    }
-
-    async fn shipyard_transactions(
-        &self,
-        ctx: &async_graphql::Context<'_>,
-    ) -> crate::Result<Vec<crate::ShipyardTransaction>> {
-        let database_pool = ctx.data::<crate::DbPool>().unwrap();
-        let history =
-            crate::ShipyardTransaction::get_by_waypoint(database_pool, &self.waypoint_symbol)
-                .await?;
-        Ok(history)
-    }
 }
 
 impl From<&models::Shipyard> for Shipyard {

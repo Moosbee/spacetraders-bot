@@ -4,7 +4,7 @@ use tracing::instrument;
 use super::{DatabaseConnector, DbPool};
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, async_graphql::SimpleObject)]
-#[graphql(complex)]
+
 #[graphql(name = "DBContractDelivery")]
 pub struct ContractDelivery {
     pub contract_id: String,
@@ -12,17 +12,6 @@ pub struct ContractDelivery {
     pub destination_symbol: String,
     pub units_required: i32,
     pub units_fulfilled: i32,
-}
-
-#[async_graphql::ComplexObject]
-impl ContractDelivery {
-    async fn contract(
-        &self,
-        ctx: &async_graphql::Context<'_>,
-    ) -> crate::Result<Option<crate::Contract>> {
-        let database_pool = ctx.data::<crate::DbPool>().unwrap();
-        crate::Contract::get_by_id(database_pool, &self.contract_id).await
-    }
 }
 
 impl ContractDelivery {

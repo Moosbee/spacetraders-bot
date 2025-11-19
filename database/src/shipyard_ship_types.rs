@@ -5,7 +5,7 @@ use tracing::instrument;
 use super::DatabaseConnector;
 
 #[derive(Clone, Debug, PartialEq, serde::Serialize, async_graphql::SimpleObject)]
-#[graphql(name = "ShipyardShipTypes")]
+#[graphql(name = "DBShipyardShipTypes")]
 pub struct ShipyardShipTypes {
     #[allow(dead_code)]
     pub id: i64,

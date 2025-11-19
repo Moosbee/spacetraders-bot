@@ -27,8 +27,7 @@ pub enum ShipmentStatus {
 }
 
 #[derive(Debug, Clone, serde::Serialize, async_graphql::SimpleObject)]
-#[graphql(complex)]
-#[graphql(name = "ContractShipment")]
+#[graphql(name = "DBContractShipment")]
 pub struct ContractShipment {
     pub id: i32,
     pub contract_id: String,
@@ -40,33 +39,6 @@ pub struct ContractShipment {
     pub created_at: sqlx::types::chrono::DateTime<chrono::Utc>,
     pub updated_at: sqlx::types::chrono::DateTime<chrono::Utc>,
     pub status: ShipmentStatus,
-}
-
-#[async_graphql::ComplexObject]
-impl ContractShipment {
-    async fn contract<'ctx>(
-        &self,
-        ctx: &async_graphql::Context<'ctx>,
-    ) -> crate::Result<Option<super::Contract>> {
-        let database_pool = ctx.data::<super::DbPool>().unwrap();
-        super::Contract::get_by_id(database_pool, &self.contract_id).await
-    }
-
-    async fn destination_waypoint<'ctx>(
-        &self,
-        ctx: &async_graphql::Context<'ctx>,
-    ) -> crate::Result<Option<super::Waypoint>> {
-        let database_pool = ctx.data::<super::DbPool>().unwrap();
-        super::Waypoint::get_by_symbol(database_pool, &self.destination_symbol).await
-    }
-
-    async fn purchase_waypoint<'ctx>(
-        &self,
-        ctx: &async_graphql::Context<'ctx>,
-    ) -> crate::Result<Option<super::Waypoint>> {
-        let database_pool = ctx.data::<super::DbPool>().unwrap();
-        super::Waypoint::get_by_symbol(database_pool, &self.purchase_symbol).await
-    }
 }
 
 impl Default for ContractShipment {

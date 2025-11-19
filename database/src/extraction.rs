@@ -6,7 +6,7 @@ use super::{DatabaseConnector, DbPool};
 
 #[derive(Debug, Clone, async_graphql::SimpleObject)]
 #[graphql(name = "DBExtraction")]
-#[graphql(complex)]
+
 pub struct Extraction {
     #[allow(dead_code)]
     pub id: i64,
@@ -21,31 +21,6 @@ pub struct Extraction {
     pub survey: Option<String>,
     #[allow(dead_code)]
     pub created_at: DateTime<Utc>,
-}
-
-#[async_graphql::ComplexObject]
-impl Extraction {
-    async fn waypoint<'ctx>(
-        &self,
-        ctx: &async_graphql::Context<'ctx>,
-    ) -> crate::Result<Option<super::Waypoint>> {
-        let database_pool = ctx.data::<super::DbPool>().unwrap();
-        super::Waypoint::get_by_symbol(database_pool, &self.waypoint_symbol).await
-    }
-
-    #[graphql(name = "survey")]
-    async fn get_survey<'ctx>(
-        &self,
-        ctx: &async_graphql::Context<'ctx>,
-    ) -> crate::Result<Option<super::Survey>> {
-        let database_pool = ctx.data::<super::DbPool>().unwrap();
-        if let Some(survey) = &self.survey {
-            let erg = super::Survey::get_by_signature(database_pool, survey).await?;
-            Ok(Some(erg))
-        } else {
-            Ok(None)
-        }
-    }
 }
 
 impl Extraction {

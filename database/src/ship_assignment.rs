@@ -4,7 +4,7 @@ use crate::{DatabaseConnector, DbPool};
 
 #[derive(Debug, Clone, PartialEq, Eq, async_graphql::SimpleObject)]
 #[graphql(name = "DBShipAssignment")]
-#[graphql(complex)]
+
 pub struct ShipAssignment {
     pub id: i64,
     pub fleet_id: i32,
@@ -19,17 +19,6 @@ pub struct ShipAssignment {
     pub siphon: bool,
     pub warp_drive: bool,
     // pub refinery: bool,
-}
-
-#[async_graphql::ComplexObject]
-impl ShipAssignment {
-    async fn fleet<'ctx>(
-        &self,
-        ctx: &async_graphql::Context<'ctx>,
-    ) -> crate::Result<Option<crate::Fleet>> {
-        let database_pool = ctx.data::<DbPool>().unwrap();
-        crate::Fleet::get_by_id(database_pool, self.fleet_id).await
-    }
 }
 
 impl ShipAssignment {

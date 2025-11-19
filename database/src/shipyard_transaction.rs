@@ -7,8 +7,8 @@ use tracing::instrument;
 use super::DatabaseConnector;
 
 #[derive(Clone, Debug, PartialEq, serde::Serialize, async_graphql::SimpleObject)]
-#[graphql(name = "ShipyardTransaction")]
-#[graphql(complex)]
+#[graphql(name = "DBShipyardTransaction")]
+
 pub struct ShipyardTransaction {
     pub id: i64,
     pub waypoint_symbol: String,
@@ -35,27 +35,6 @@ impl TryFrom<models::ShipyardTransaction> for ShipyardTransaction {
             agent_symbol: item.agent_symbol,
             timestamp,
         })
-    }
-}
-
-#[async_graphql::ComplexObject]
-impl ShipyardTransaction {
-    async fn waypoint<'ctx>(
-        &self,
-        ctx: &async_graphql::Context<'ctx>,
-    ) -> crate::Result<Option<crate::Waypoint>> {
-        let database_pool = ctx.data::<crate::DbPool>().unwrap();
-        let waypoint = crate::Waypoint::get_by_symbol(database_pool, &self.waypoint_symbol).await?;
-        Ok(waypoint)
-    }
-
-    async fn agent<'ctx>(
-        &self,
-        ctx: &async_graphql::Context<'ctx>,
-    ) -> crate::Result<Option<crate::Agent>> {
-        let database_pool = ctx.data::<crate::DbPool>().unwrap();
-        let agent = crate::Agent::get_last_by_symbol(database_pool, &self.agent_symbol).await?;
-        Ok(agent)
     }
 }
 

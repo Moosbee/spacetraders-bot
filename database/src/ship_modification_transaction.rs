@@ -36,18 +36,6 @@ impl TryFrom<models::ShipModificationTransaction> for ShipModificationTransactio
     }
 }
 
-#[async_graphql::ComplexObject]
-impl ShipModificationTransaction {
-    async fn waypoint<'ctx>(
-        &self,
-        ctx: &async_graphql::Context<'ctx>,
-    ) -> crate::Result<Option<crate::Waypoint>> {
-        let database_pool = ctx.data::<crate::DbPool>().unwrap();
-        let waypoint = crate::Waypoint::get_by_symbol(database_pool, &self.waypoint_symbol).await?;
-        Ok(waypoint)
-    }
-}
-
 impl ShipModificationTransaction {
     pub async fn get_by_ship(
         database_pool: &super::DbPool,

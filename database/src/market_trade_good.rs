@@ -6,8 +6,8 @@ use super::{DatabaseConnector, DbPool};
 #[derive(
     Debug, Clone, sqlx::FromRow, PartialEq, Eq, serde::Serialize, async_graphql::SimpleObject,
 )]
-#[graphql(name = "MarketTradeGood")]
-#[graphql(complex)]
+#[graphql(name = "DBMarketTradeGood")]
+
 pub struct MarketTradeGood {
     pub symbol: models::TradeSymbol,
     pub waypoint_symbol: String,
@@ -32,31 +32,6 @@ impl From<MarketTradeGood> for models::MarketTradeGood {
             trade_volume: val.trade_volume,
             r#type: val.r#type,
         }
-    }
-}
-
-#[async_graphql::ComplexObject]
-impl MarketTradeGood {
-    async fn waypoint(
-        &self,
-        ctx: &async_graphql::Context<'_>,
-    ) -> crate::Result<Option<crate::Waypoint>> {
-        let database_pool = ctx.data::<DbPool>().unwrap();
-        crate::Waypoint::get_by_symbol(database_pool, &self.waypoint_symbol).await
-    }
-
-    async fn history(
-        &self,
-        ctx: &async_graphql::Context<'_>,
-    ) -> crate::Result<Vec<crate::MarketTradeGood>> {
-        let database_pool = ctx.data::<DbPool>().unwrap();
-        let history = crate::MarketTradeGood::get_history_by_waypoint_and_trade_symbol(
-            database_pool,
-            &self.waypoint_symbol,
-            &self.symbol,
-        )
-        .await?;
-        Ok(history)
     }
 }
 

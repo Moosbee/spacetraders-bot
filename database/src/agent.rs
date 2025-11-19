@@ -5,7 +5,7 @@ use super::{DatabaseConnector, DbPool};
 
 #[derive(Debug, Clone, serde::Serialize, async_graphql::SimpleObject)]
 #[graphql(name = "DBAgent")]
-#[graphql(complex)]
+
 pub struct Agent {
     pub id: i64,
     pub symbol: String,
@@ -16,34 +16,6 @@ pub struct Agent {
     pub ship_count: i32,
     #[allow(dead_code)]
     pub created_at: sqlx::types::chrono::DateTime<chrono::Utc>,
-}
-
-#[async_graphql::ComplexObject]
-impl Agent {
-    async fn history<'ctx>(&self, ctx: &async_graphql::Context<'ctx>) -> crate::Result<Vec<Agent>> {
-        let database_pool = ctx.data::<crate::DbPool>().unwrap();
-        let reg = Agent::get_by_symbol(database_pool, &self.symbol).await?;
-        Ok(reg)
-    }
-
-    async fn headquarters_waypoint<'ctx>(
-        &self,
-        ctx: &async_graphql::Context<'ctx>,
-    ) -> crate::Result<Option<crate::Waypoint>> {
-        let database_pool = ctx.data::<crate::DbPool>().unwrap();
-        let reg = crate::Waypoint::get_by_symbol(database_pool, &self.headquarters).await?;
-        Ok(reg)
-    }
-
-    async fn headquarters_system<'ctx>(
-        &self,
-        ctx: &async_graphql::Context<'ctx>,
-    ) -> crate::Result<Option<crate::System>> {
-        let database_pool = ctx.data::<crate::DbPool>().unwrap();
-        let system = utils::get_system_symbol(&self.headquarters);
-        let erg = crate::System::get_by_symbol(database_pool, &system).await?;
-        Ok(erg)
-    }
 }
 
 impl From<space_traders_client::models::Agent> for Agent {

@@ -7,8 +7,8 @@ use tracing::instrument;
 use crate::{DatabaseConnector, DbPool};
 
 #[derive(Debug, Clone, serde::Serialize, async_graphql::SimpleObject)]
-#[graphql(name = "Survey")]
-#[graphql(complex)]
+#[graphql(name = "DBSurvey")]
+
 pub struct Survey {
     pub ship_info_before: i64,
     pub ship_info_after: i64,
@@ -21,41 +21,6 @@ pub struct Survey {
     pub exhausted_since: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
-}
-
-#[derive(Debug, Clone, serde::Serialize, async_graphql::SimpleObject)]
-pub struct SurveyPercent {
-    pub symbol: models::TradeSymbol,
-    pub percent: f64,
-}
-
-#[async_graphql::ComplexObject]
-impl Survey {
-    async fn percent(&self) -> Vec<SurveyPercent> {
-        self.get_percent()
-            .iter()
-            .map(|f| SurveyPercent {
-                symbol: f.0,
-                percent: f.1,
-            })
-            .collect()
-    }
-
-    async fn waypoint<'ctx>(
-        &self,
-        ctx: &async_graphql::Context<'ctx>,
-    ) -> crate::Result<Option<super::Waypoint>> {
-        let database_pool = ctx.data::<super::DbPool>().unwrap();
-        super::Waypoint::get_by_symbol(database_pool, &self.waypoint_symbol).await
-    }
-
-    async fn extractions<'ctx>(
-        &self,
-        ctx: &async_graphql::Context<'ctx>,
-    ) -> crate::Result<Vec<super::Extraction>> {
-        let database_pool = ctx.data::<super::DbPool>().unwrap();
-        super::Extraction::get_by_survey_symbol(database_pool, &self.signature).await
-    }
 }
 
 impl Survey {

@@ -7,7 +7,8 @@ use tracing::instrument;
 
 use crate::{DatabaseConnector, DbPool, Result};
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, async_graphql::SimpleObject)]
+#[graphql(name = "DBFleet")]
 pub struct Fleet {
     pub id: i32,
     pub system_symbol: String,
@@ -17,89 +18,74 @@ pub struct Fleet {
     pub updated_at: chrono::DateTime<chrono::Utc>,
     // add the config...
     // trading config
+    #[graphql(skip)]
     market_blacklist: Option<Vec<models::TradeSymbol>>,
+    #[graphql(skip)]
     market_prefer_list: Option<Vec<models::TradeSymbol>>,
+    #[graphql(skip)]
     purchase_multiplier: Option<f64>,
+    #[graphql(skip)]
     ship_market_ratio: Option<f64>,
+    #[graphql(skip)]
     min_cargo_space: Option<i32>,
+    #[graphql(skip)]
     trade_mode: Option<TradeMode>,
+    #[graphql(skip)]
     trade_profit_threshold: Option<i32>,
 
     // scrapping config
+    #[graphql(skip)]
     allowed_requests: Option<i32>,
+    #[graphql(skip)]
     notify_on_shipyard: Option<bool>,
 
     // mining config
+    #[graphql(skip)]
     mining_eject_list: Option<Vec<models::TradeSymbol>>,
+    #[graphql(skip)]
     mining_prefer_list: Option<Vec<models::TradeSymbol>>,
+    #[graphql(skip)]
     ignore_engineered_asteroids: Option<bool>,
+    #[graphql(skip)]
     stop_all_unstable: Option<bool>,
+    #[graphql(skip)]
     mining_waypoints: Option<i32>,
+    #[graphql(skip)]
     unstable_since_timeout: Option<i32>,
+    #[graphql(skip)]
     syphon_waypoints: Option<i32>,
+    #[graphql(skip)]
     miners_per_waypoint: Option<i32>,
+    #[graphql(skip)]
     siphoners_per_waypoint: Option<i32>,
+    #[graphql(skip)]
     surveyors_per_waypoint: Option<i32>,
+    #[graphql(skip)]
     mining_transporters_per_waypoint: Option<i32>,
+    #[graphql(skip)]
     min_transporter_cargo_space: Option<i32>,
+    #[graphql(skip)]
     min_mining_cargo_space: Option<i32>,
+    #[graphql(skip)]
     min_siphon_cargo_space: Option<i32>,
 
     // charting config
+    #[graphql(skip)]
     charting_probe_count: Option<i32>,
 
     // construction config
+    #[graphql(skip)]
     construction_ship_count: Option<i32>,
+    #[graphql(skip)]
     construction_waypoint: Option<String>,
 
     // contract config
+    #[graphql(skip)]
     contract_ship_count: Option<i32>,
 }
 
-#[Object(name = "Fleet")]
 impl Fleet {
-    async fn id(&self) -> i32 {
-        self.id
-    }
-    async fn system_symbol(&self) -> String {
-        self.system_symbol.clone()
-    }
 
-    async fn fleet_type(&self) -> FleetType {
-        self.fleet_type
-    }
-
-    async fn active(&self) -> bool {
-        self.active
-    }
-
-    async fn created_at(&self) -> chrono::DateTime<chrono::Utc> {
-        self.created_at
-    }
-
-    async fn updated_at(&self) -> chrono::DateTime<chrono::Utc> {
-        self.updated_at
-    }
-
-    async fn config(&self) -> Result<FleetConfig> {
-        self.get_config()
-    }
-
-    async fn system<'ctx>(
-        &self,
-        ctx: &async_graphql::Context<'ctx>,
-    ) -> Result<Option<crate::System>> {
-        let database_pool = ctx.data::<DbPool>().unwrap();
-        crate::System::get_by_symbol(database_pool, &self.system_symbol).await
-    }
-
-    async fn assignments<'ctx>(
-        &self,
-        ctx: &async_graphql::Context<'ctx>,
-    ) -> Result<Vec<crate::ShipAssignment>> {
-        let database_pool = ctx.data::<DbPool>().unwrap();
-        crate::ShipAssignment::get_by_fleet_id(database_pool, self.id).await
-    }
 }
 
 impl Default for Fleet {
