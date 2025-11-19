@@ -79,7 +79,7 @@ impl ScrapTransaction {
         Ok(reg)
     }
 
-    pub(crate) async fn get_by_system(
+    pub async fn get_by_system(
         database_pool: &super::DbPool,
         symbol: &str,
     ) -> crate::Result<Vec<ScrapTransaction>> {

@@ -200,7 +200,7 @@ impl ShipyardShip {
         Ok(erg)
     }
 
-    async fn get_history_by_waypoint_and_ship_type(
+    pub async fn get_history_by_waypoint_and_ship_type(
         database_pool: &super::DbPool,
         waypoint_symbol: &str,
         ship_type: &models::ShipType,

@@ -93,7 +93,7 @@ impl Shipyard {
         Ok(erg)
     }
 
-    async fn get_history_by_waypoint(
+    pub async fn get_history_by_waypoint(
         database_pool: &super::DbPool,
         waypoint_symbol: &str,
     ) -> crate::Result<Vec<Shipyard>> {

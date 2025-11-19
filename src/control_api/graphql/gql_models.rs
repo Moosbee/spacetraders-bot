@@ -24,7 +24,7 @@ impl GQLAgent {
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Vec<database::Agent>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let reg = database::Agent::get_by_symbol(database_pool, &self.symbol).await?;
+        let reg = database::Agent::get_by_symbol(database_pool, &self.agent.symbol).await?;
         Ok(reg)
     }
 
@@ -33,7 +33,8 @@ impl GQLAgent {
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Option<database::Waypoint>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let reg = database::Waypoint::get_by_symbol(database_pool, &self.headquarters).await?;
+        let reg =
+            database::Waypoint::get_by_symbol(database_pool, &self.agent.headquarters).await?;
         Ok(reg)
     }
 
@@ -42,7 +43,7 @@ impl GQLAgent {
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Option<database::System>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let system = utils::get_system_symbol(&self.headquarters);
+        let system = utils::get_system_symbol(&self.agent.headquarters);
         let erg = database::System::get_by_symbol(database_pool, &system).await?;
         Ok(erg)
     }
@@ -69,11 +70,15 @@ impl GQLChartTransaction {
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Option<database::Waypoint>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let waypoint =
-            database::Waypoint::get_by_symbol(database_pool, &self.waypoint_symbol).await?;
+        let waypoint = database::Waypoint::get_by_symbol(
+            database_pool,
+            &self.chart_transaction.waypoint_symbol,
+        )
+        .await?;
         Ok(waypoint)
     }
 }
+
 #[derive(Debug, Clone, async_graphql::SimpleObject)]
 #[graphql(name = "ConstructionMaterial")]
 #[graphql(complex)]
@@ -91,6 +96,7 @@ impl From<database::ConstructionMaterial> for GQLConstructionMaterial {
 }
 #[async_graphql::ComplexObject]
 impl GQLConstructionMaterial {}
+
 #[derive(Debug, Clone, async_graphql::SimpleObject)]
 #[graphql(name = "ConstructionShipment")]
 #[graphql(complex)]
@@ -108,6 +114,7 @@ impl From<database::ConstructionShipment> for GQLConstructionShipment {
 }
 #[async_graphql::ComplexObject]
 impl GQLConstructionShipment {}
+
 #[derive(Debug, Clone, async_graphql::SimpleObject)]
 #[graphql(name = "Contract")]
 #[graphql(complex)]
@@ -128,7 +135,9 @@ impl GQLContract {
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Vec<database::ContractDelivery>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        database::ContractDelivery::get_by_contract_id(database_pool, &self.id).await
+        let erg = database::ContractDelivery::get_by_contract_id(database_pool, &self.contract.id)
+            .await?;
+        Ok(erg)
     }
 
     async fn shipments<'ctx>(
@@ -136,7 +145,8 @@ impl GQLContract {
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Vec<database::ContractShipment>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let erg = database::ContractShipment::get_by_contract_id(database_pool, &self.id).await?;
+        let erg = database::ContractShipment::get_by_contract_id(database_pool, &self.contract.id)
+            .await?;
         Ok(erg)
     }
 
@@ -145,7 +155,9 @@ impl GQLContract {
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Vec<database::MarketTransaction>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        database::MarketTransaction::get_by_contract(database_pool, &self.id).await
+        let erg =
+            database::MarketTransaction::get_by_contract(database_pool, &self.contract.id).await?;
+        Ok(erg)
     }
 
     async fn market_transaction_summary<'ctx>(
@@ -153,10 +165,15 @@ impl GQLContract {
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<database::TransactionSummary> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        database::MarketTransaction::get_transaction_summary_by_contract(database_pool, &self.id)
-            .await
+        let erg = database::MarketTransaction::get_transaction_summary_by_contract(
+            database_pool,
+            &self.contract.id,
+        )
+        .await?;
+        Ok(erg)
     }
 }
+
 #[derive(Debug, Clone, async_graphql::SimpleObject)]
 #[graphql(name = "ContractDelivery")]
 #[graphql(complex)]
@@ -179,7 +196,9 @@ impl GQLContractDelivery {
         ctx: &async_graphql::Context<'_>,
     ) -> Result<Option<database::Contract>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        database::Contract::get_by_id(database_pool, &self.contract_id).await
+        let erg = database::Contract::get_by_id(database_pool, &self.contract_delivery.contract_id)
+            .await?;
+        Ok(erg)
     }
 }
 
@@ -205,7 +224,9 @@ impl GQLContractShipment {
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Option<database::Contract>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        database::Contract::get_by_id(database_pool, &self.contract_id).await
+        let erg = database::Contract::get_by_id(database_pool, &self.contract_shipment.contract_id)
+            .await?;
+        Ok(erg)
     }
 
     async fn destination_waypoint<'ctx>(
@@ -213,7 +234,12 @@ impl GQLContractShipment {
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Option<database::Waypoint>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        database::Waypoint::get_by_symbol(database_pool, &self.destination_symbol).await
+        let erg = database::Waypoint::get_by_symbol(
+            database_pool,
+            &self.contract_shipment.destination_symbol,
+        )
+        .await?;
+        Ok(erg)
     }
 
     async fn purchase_waypoint<'ctx>(
@@ -221,7 +247,12 @@ impl GQLContractShipment {
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Option<database::Waypoint>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        database::Waypoint::get_by_symbol(database_pool, &self.purchase_symbol).await
+        let erg = database::Waypoint::get_by_symbol(
+            database_pool,
+            &self.contract_shipment.purchase_symbol,
+        )
+        .await?;
+        Ok(erg)
     }
 }
 
@@ -240,6 +271,7 @@ impl From<database::EngineInfo> for GQLEngineInfo {
 }
 #[async_graphql::ComplexObject]
 impl GQLEngineInfo {}
+
 #[derive(Debug, Clone, async_graphql::SimpleObject)]
 #[graphql(name = "Extraction")]
 #[graphql(complex)]
@@ -260,7 +292,10 @@ impl GQLExtraction {
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Option<database::Waypoint>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        database::Waypoint::get_by_symbol(database_pool, &self.waypoint_symbol).await
+        let erg =
+            database::Waypoint::get_by_symbol(database_pool, &self.extraction.waypoint_symbol)
+                .await?;
+        Ok(erg)
     }
 
     #[graphql(name = "survey")]
@@ -269,7 +304,7 @@ impl GQLExtraction {
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Option<database::Survey>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        if let Some(survey) = &self.survey {
+        if let Some(survey) = &self.extraction.survey {
             let erg = database::Survey::get_by_signature(database_pool, survey).await?;
             Ok(Some(erg))
         } else {
@@ -277,6 +312,7 @@ impl GQLExtraction {
         }
     }
 }
+
 #[derive(Debug, Clone, async_graphql::SimpleObject)]
 #[graphql(name = "Fleet")]
 #[graphql(complex)]
@@ -293,7 +329,8 @@ impl From<database::Fleet> for GQLFleet {
 #[async_graphql::ComplexObject]
 impl GQLFleet {
     async fn config(&self) -> Result<database::FleetConfig> {
-        self.get_config()
+        let erg = self.fleet.get_config()?;
+        Ok(erg)
     }
 
     async fn system<'ctx>(
@@ -301,7 +338,8 @@ impl GQLFleet {
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Option<database::System>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        database::System::get_by_symbol(database_pool, &self.system_symbol).await
+        let erg = database::System::get_by_symbol(database_pool, &self.fleet.system_symbol).await?;
+        Ok(erg)
     }
 
     async fn assignments<'ctx>(
@@ -309,9 +347,11 @@ impl GQLFleet {
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Vec<database::ShipAssignment>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        database::ShipAssignment::get_by_fleet_id(database_pool, self.id).await
+        let erg = database::ShipAssignment::get_by_fleet_id(database_pool, self.fleet.id).await?;
+        Ok(erg)
     }
 }
+
 #[derive(Debug, Clone, async_graphql::SimpleObject)]
 #[graphql(name = "FrameInfo")]
 #[graphql(complex)]
@@ -327,6 +367,7 @@ impl From<database::FrameInfo> for GQLFrameInfo {
 }
 #[async_graphql::ComplexObject]
 impl GQLFrameInfo {}
+
 #[derive(Debug, Clone, async_graphql::SimpleObject)]
 #[graphql(name = "JumpGateConnection")]
 #[graphql(complex)]
@@ -349,7 +390,8 @@ impl GQLJumpGateConnection {
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Option<database::Waypoint>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let erg = database::Waypoint::get_by_symbol(database_pool, &self.from).await?;
+        let erg = database::Waypoint::get_by_symbol(database_pool, &self.jump_gate_connection.from)
+            .await?;
         Ok(erg)
     }
 
@@ -358,7 +400,9 @@ impl GQLJumpGateConnection {
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Option<database::Waypoint>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        database::Waypoint::get_by_symbol(database_pool, &self.to).await
+        let erg =
+            database::Waypoint::get_by_symbol(database_pool, &self.jump_gate_connection.to).await?;
+        Ok(erg)
     }
 }
 
@@ -379,6 +423,7 @@ impl From<database::MarketTrade> for GQLMarketTrade {
 }
 #[async_graphql::ComplexObject]
 impl GQLMarketTrade {}
+
 #[derive(Debug, Clone, async_graphql::SimpleObject)]
 #[graphql(name = "MarketTradeGood")]
 #[graphql(complex)]
@@ -401,7 +446,12 @@ impl GQLMarketTradeGood {
         ctx: &async_graphql::Context<'_>,
     ) -> Result<Option<database::Waypoint>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        database::Waypoint::get_by_symbol(database_pool, &self.waypoint_symbol).await
+        let erg = database::Waypoint::get_by_symbol(
+            database_pool,
+            &self.market_trade_good.waypoint_symbol,
+        )
+        .await?;
+        Ok(erg)
     }
 
     async fn history(
@@ -411,8 +461,8 @@ impl GQLMarketTradeGood {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
         let history = database::MarketTradeGood::get_history_by_waypoint_and_trade_symbol(
             database_pool,
-            &self.waypoint_symbol,
-            &self.symbol,
+            &self.market_trade_good.waypoint_symbol,
+            &self.market_trade_good.symbol,
         )
         .await?;
         Ok(history)
@@ -441,8 +491,11 @@ impl GQLMarketTransaction {
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Option<database::Waypoint>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let waypoint =
-            database::Waypoint::get_by_symbol(database_pool, &self.waypoint_symbol).await?;
+        let waypoint = database::Waypoint::get_by_symbol(
+            database_pool,
+            &self.market_transaction.waypoint_symbol,
+        )
+        .await?;
         Ok(waypoint)
     }
 }
@@ -462,6 +515,7 @@ impl From<database::ModuleInfo> for GQLModuleInfo {
 }
 #[async_graphql::ComplexObject]
 impl GQLModuleInfo {}
+
 #[derive(Debug, Clone, async_graphql::SimpleObject)]
 #[graphql(name = "MountInfo")]
 #[graphql(complex)]
@@ -477,6 +531,7 @@ impl From<database::MountInfo> for GQLMountInfo {
 }
 #[async_graphql::ComplexObject]
 impl GQLMountInfo {}
+
 #[derive(Debug, Clone, async_graphql::SimpleObject)]
 #[graphql(name = "ReactorInfo")]
 #[graphql(complex)]
@@ -495,6 +550,7 @@ impl From<database::ReactorInfo> for GQLReactorInfo {
 
 #[async_graphql::ComplexObject]
 impl GQLReactorInfo {}
+
 #[derive(Debug, Clone, async_graphql::SimpleObject)]
 #[graphql(name = "RepairTransaction")]
 #[graphql(complex)]
@@ -517,8 +573,11 @@ impl GQLRepairTransaction {
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Option<database::Waypoint>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let waypoint =
-            database::Waypoint::get_by_symbol(database_pool, &self.waypoint_symbol).await?;
+        let waypoint = database::Waypoint::get_by_symbol(
+            database_pool,
+            &self.repair_transaction.waypoint_symbol,
+        )
+        .await?;
         Ok(waypoint)
     }
 }
@@ -561,7 +620,7 @@ impl GQLRoute {
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Option<database::Waypoint>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let erg = database::Waypoint::get_by_symbol(database_pool, &self.from).await?;
+        let erg = database::Waypoint::get_by_symbol(database_pool, &self.route.from).await?;
         Ok(erg)
     }
 
@@ -570,9 +629,11 @@ impl GQLRoute {
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Option<database::Waypoint>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        database::Waypoint::get_by_symbol(database_pool, &self.to).await
+        let erg = database::Waypoint::get_by_symbol(database_pool, &self.route.to).await?;
+        Ok(erg)
     }
 }
+
 #[derive(Debug, Clone, async_graphql::SimpleObject)]
 #[graphql(name = "ScrapTransaction")]
 #[graphql(complex)]
@@ -595,8 +656,11 @@ impl GQLScrapTransaction {
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Option<database::Waypoint>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let waypoint =
-            database::Waypoint::get_by_symbol(database_pool, &self.waypoint_symbol).await?;
+        let waypoint = database::Waypoint::get_by_symbol(
+            database_pool,
+            &self.scrap_transaction.waypoint_symbol,
+        )
+        .await?;
         Ok(waypoint)
     }
 }
@@ -623,7 +687,8 @@ impl GQLShipAssignment {
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Option<database::Fleet>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        database::Fleet::get_by_id(database_pool, self.fleet_id).await
+        let erg = database::Fleet::get_by_id(database_pool, self.ship_assignment.fleet_id).await?;
+        Ok(erg)
     }
 }
 
@@ -642,6 +707,7 @@ impl From<database::ShipInfo> for GQLShipInfo {
 }
 #[async_graphql::ComplexObject]
 impl GQLShipInfo {}
+
 #[derive(Debug, Clone, async_graphql::SimpleObject)]
 #[graphql(name = "ShipJump")]
 #[graphql(complex)]
@@ -657,6 +723,7 @@ impl From<database::ShipJump> for GQLShipJump {
 }
 #[async_graphql::ComplexObject]
 impl GQLShipJump {}
+
 #[derive(Debug, Clone, async_graphql::SimpleObject)]
 #[graphql(name = "ShipModificationTransaction")]
 #[graphql(complex)]
@@ -679,8 +746,11 @@ impl GQLShipModificationTransaction {
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Option<database::Waypoint>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let waypoint =
-            database::Waypoint::get_by_symbol(database_pool, &self.waypoint_symbol).await?;
+        let waypoint = database::Waypoint::get_by_symbol(
+            database_pool,
+            &self.ship_modification_transaction.waypoint_symbol,
+        )
+        .await?;
         Ok(waypoint)
     }
 }
@@ -704,6 +774,7 @@ impl GQLShipState {
         self.ship_state.cargo_inventory.0.clone()
     }
 }
+
 #[derive(Debug, Clone, async_graphql::SimpleObject)]
 #[graphql(name = "Shipyard")]
 #[graphql(complex)]
@@ -724,14 +795,18 @@ impl GQLShipyard {
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Option<database::Waypoint>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        database::Waypoint::get_by_symbol(database_pool, &self.waypoint_symbol).await
+        let erg = database::Waypoint::get_by_symbol(database_pool, &self.shipyard.waypoint_symbol)
+            .await?;
+        Ok(erg)
     }
 
     async fn history(&self, ctx: &async_graphql::Context<'_>) -> Result<Vec<database::Shipyard>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let history =
-            database::Shipyard::get_history_by_waypoint(database_pool, &self.waypoint_symbol)
-                .await?;
+        let history = database::Shipyard::get_history_by_waypoint(
+            database_pool,
+            &self.shipyard.waypoint_symbol,
+        )
+        .await?;
         Ok(history)
     }
 
@@ -740,9 +815,11 @@ impl GQLShipyard {
         ctx: &async_graphql::Context<'_>,
     ) -> Result<Vec<database::ShipyardShipTypes>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let history =
-            database::ShipyardShipTypes::get_last_by_waypoint(database_pool, &self.waypoint_symbol)
-                .await?;
+        let history = database::ShipyardShipTypes::get_last_by_waypoint(
+            database_pool,
+            &self.shipyard.waypoint_symbol,
+        )
+        .await?;
         Ok(history)
     }
 
@@ -751,9 +828,11 @@ impl GQLShipyard {
         ctx: &async_graphql::Context<'_>,
     ) -> Result<Vec<database::ShipyardShip>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let history =
-            database::ShipyardShip::get_last_by_waypoint(database_pool, &self.waypoint_symbol)
-                .await?;
+        let history = database::ShipyardShip::get_last_by_waypoint(
+            database_pool,
+            &self.shipyard.waypoint_symbol,
+        )
+        .await?;
         Ok(history)
     }
 
@@ -762,12 +841,15 @@ impl GQLShipyard {
         ctx: &async_graphql::Context<'_>,
     ) -> Result<Vec<database::ShipyardTransaction>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let history =
-            database::ShipyardTransaction::get_by_waypoint(database_pool, &self.waypoint_symbol)
-                .await?;
+        let history = database::ShipyardTransaction::get_by_waypoint(
+            database_pool,
+            &self.shipyard.waypoint_symbol,
+        )
+        .await?;
         Ok(history)
     }
 }
+
 #[derive(Debug, Clone, async_graphql::SimpleObject)]
 #[graphql(name = "ShipyardShip")]
 #[graphql(complex)]
@@ -790,7 +872,10 @@ impl GQLShipyardShip {
         ctx: &async_graphql::Context<'_>,
     ) -> Result<Option<database::Waypoint>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        database::Waypoint::get_by_symbol(database_pool, &self.waypoint_symbol).await
+        let erg =
+            database::Waypoint::get_by_symbol(database_pool, &self.shipyard_ship.waypoint_symbol)
+                .await?;
+        Ok(erg)
     }
 
     async fn history(
@@ -800,8 +885,8 @@ impl GQLShipyardShip {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
         let history = database::ShipyardShip::get_history_by_waypoint_and_ship_type(
             database_pool,
-            &self.waypoint_symbol,
-            &self.ship_type,
+            &self.shipyard_ship.waypoint_symbol,
+            &self.shipyard_ship.ship_type,
         )
         .await?;
         Ok(history)
@@ -848,8 +933,11 @@ impl GQLShipyardTransaction {
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Option<database::Waypoint>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let waypoint =
-            database::Waypoint::get_by_symbol(database_pool, &self.waypoint_symbol).await?;
+        let waypoint = database::Waypoint::get_by_symbol(
+            database_pool,
+            &self.shipyard_transaction.waypoint_symbol,
+        )
+        .await?;
         Ok(waypoint)
     }
 
@@ -858,7 +946,11 @@ impl GQLShipyardTransaction {
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Option<database::Agent>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let agent = database::Agent::get_last_by_symbol(database_pool, &self.agent_symbol).await?;
+        let agent = database::Agent::get_last_by_symbol(
+            database_pool,
+            &self.shipyard_transaction.agent_symbol,
+        )
+        .await?;
         Ok(agent)
     }
 }
@@ -879,7 +971,8 @@ impl From<database::Survey> for GQLSurvey {
 #[async_graphql::ComplexObject]
 impl GQLSurvey {
     async fn percent(&self) -> Vec<SurveyPercent> {
-        self.get_percent()
+        self.survey
+            .get_percent()
             .iter()
             .map(|f| SurveyPercent {
                 symbol: f.0,
@@ -893,7 +986,9 @@ impl GQLSurvey {
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Option<database::Waypoint>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        database::Waypoint::get_by_symbol(database_pool, &self.waypoint_symbol).await
+        let erg =
+            database::Waypoint::get_by_symbol(database_pool, &self.survey.waypoint_symbol).await?;
+        Ok(erg)
     }
 
     async fn extractions<'ctx>(
@@ -901,7 +996,9 @@ impl GQLSurvey {
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Vec<database::Extraction>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        database::Extraction::get_by_survey_symbol(database_pool, &self.signature).await
+        let erg = database::Extraction::get_by_survey_symbol(database_pool, &self.survey.signature)
+            .await?;
+        Ok(erg)
     }
 }
 
@@ -928,7 +1025,8 @@ impl From<database::System> for GQLSystem {
 impl GQLSystem {
     async fn waypoints(&self, ctx: &async_graphql::Context<'_>) -> Result<Vec<database::Waypoint>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        database::Waypoint::get_by_system(database_pool, &self.symbol).await
+        let erg = database::Waypoint::get_by_system(database_pool, &self.system.symbol).await?;
+        Ok(erg)
     }
 
     async fn market_transactions<'ctx>(
@@ -937,7 +1035,7 @@ impl GQLSystem {
     ) -> Result<Vec<database::MarketTransaction>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
         let transactions =
-            database::MarketTransaction::get_by_system(database_pool, &self.symbol).await?;
+            database::MarketTransaction::get_by_system(database_pool, &self.system.symbol).await?;
         Ok(transactions)
     }
     async fn shipyard_transactions<'ctx>(
@@ -946,7 +1044,8 @@ impl GQLSystem {
     ) -> Result<Vec<database::ShipyardTransaction>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
         let transactions =
-            database::ShipyardTransaction::get_by_system(database_pool, &self.symbol).await?;
+            database::ShipyardTransaction::get_by_system(database_pool, &self.system.symbol)
+                .await?;
         Ok(transactions)
     }
     async fn chart_transactions<'ctx>(
@@ -955,7 +1054,7 @@ impl GQLSystem {
     ) -> Result<Vec<database::ChartTransaction>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
         let transactions =
-            database::ChartTransaction::get_by_system(database_pool, &self.symbol).await?;
+            database::ChartTransaction::get_by_system(database_pool, &self.system.symbol).await?;
         Ok(transactions)
     }
     async fn repair_transactions<'ctx>(
@@ -964,7 +1063,7 @@ impl GQLSystem {
     ) -> Result<Vec<database::RepairTransaction>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
         let transactions =
-            database::RepairTransaction::get_by_system(database_pool, &self.symbol).await?;
+            database::RepairTransaction::get_by_system(database_pool, &self.system.symbol).await?;
         Ok(transactions)
     }
     async fn scrap_transactions<'ctx>(
@@ -973,7 +1072,7 @@ impl GQLSystem {
     ) -> Result<Vec<database::ScrapTransaction>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
         let transactions =
-            database::ScrapTransaction::get_by_system(database_pool, &self.symbol).await?;
+            database::ScrapTransaction::get_by_system(database_pool, &self.system.symbol).await?;
         Ok(transactions)
     }
     async fn ship_modification_transactions<'ctx>(
@@ -981,9 +1080,11 @@ impl GQLSystem {
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Vec<database::ShipModificationTransaction>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let transactions =
-            database::ShipModificationTransaction::get_by_system(database_pool, &self.symbol)
-                .await?;
+        let transactions = database::ShipModificationTransaction::get_by_system(
+            database_pool,
+            &self.system.symbol,
+        )
+        .await?;
         Ok(transactions)
     }
 
@@ -993,7 +1094,7 @@ impl GQLSystem {
     ) -> Result<Vec<database::ShipyardShip>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
         let history =
-            database::ShipyardShip::get_last_by_system(database_pool, &self.symbol).await?;
+            database::ShipyardShip::get_last_by_system(database_pool, &self.system.symbol).await?;
         Ok(history)
     }
 
@@ -1003,7 +1104,8 @@ impl GQLSystem {
     ) -> Result<Vec<database::ShipyardShipTypes>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
         let history =
-            database::ShipyardShipTypes::get_last_by_system(database_pool, &self.symbol).await?;
+            database::ShipyardShipTypes::get_last_by_system(database_pool, &self.system.symbol)
+                .await?;
         Ok(history)
     }
 
@@ -1013,7 +1115,7 @@ impl GQLSystem {
     ) -> Result<Vec<database::MarketTrade>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
         let history =
-            database::MarketTrade::get_last_by_system(database_pool, &self.symbol).await?;
+            database::MarketTrade::get_last_by_system(database_pool, &self.system.symbol).await?;
         Ok(history)
     }
 
@@ -1023,19 +1125,21 @@ impl GQLSystem {
     ) -> Result<Vec<database::MarketTradeGood>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
         let history =
-            database::MarketTradeGood::get_last_by_system(database_pool, &self.symbol).await?;
+            database::MarketTradeGood::get_last_by_system(database_pool, &self.system.symbol)
+                .await?;
         Ok(history)
     }
 
     async fn fleets(&self, ctx: &async_graphql::Context<'_>) -> Result<Vec<database::Fleet>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let history = database::Fleet::get_by_system(database_pool, &self.symbol).await?;
+        let history = database::Fleet::get_by_system(database_pool, &self.system.symbol).await?;
         Ok(history)
     }
 
     async fn surveys(&self, ctx: &async_graphql::Context<'_>) -> Result<Vec<database::Survey>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let history = database::Survey::get_by_system_symbol(database_pool, &self.symbol).await?;
+        let history =
+            database::Survey::get_by_system_symbol(database_pool, &self.system.symbol).await?;
         Ok(history)
     }
 
@@ -1045,7 +1149,7 @@ impl GQLSystem {
     ) -> Result<Vec<database::Extraction>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
         let history =
-            database::Extraction::get_by_system_symbol(database_pool, &self.symbol).await?;
+            database::Extraction::get_by_system_symbol(database_pool, &self.system.symbol).await?;
         Ok(history)
     }
 
@@ -1055,7 +1159,8 @@ impl GQLSystem {
     ) -> Result<Vec<database::ConstructionMaterial>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
         let history =
-            database::ConstructionMaterial::get_by_system(database_pool, &self.symbol).await?;
+            database::ConstructionMaterial::get_by_system(database_pool, &self.system.symbol)
+                .await?;
         Ok(history)
     }
 
@@ -1065,7 +1170,8 @@ impl GQLSystem {
     ) -> Result<Vec<database::ConstructionShipment>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
         let history =
-            database::ConstructionShipment::get_by_system(database_pool, &self.symbol).await?;
+            database::ConstructionShipment::get_by_system(database_pool, &self.system.symbol)
+                .await?;
         Ok(history)
     }
 
@@ -1075,7 +1181,8 @@ impl GQLSystem {
     ) -> Result<Vec<database::ContractDelivery>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
         let history =
-            database::ContractDelivery::get_by_system_symbol(database_pool, &self.symbol).await?;
+            database::ContractDelivery::get_by_system_symbol(database_pool, &self.system.symbol)
+                .await?;
         Ok(history)
     }
 
@@ -1092,10 +1199,11 @@ impl GQLSystem {
     async fn seen_agents(&self, ctx: &async_graphql::Context<'_>) -> Result<Vec<KnownAgent>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
         let system_market_transactions =
-            database::MarketTransaction::get_by_system(database_pool, &self.symbol).await?;
+            database::MarketTransaction::get_by_system(database_pool, &self.system.symbol).await?;
 
         let system_shipyard_transactions =
-            database::ShipyardTransaction::get_by_system(database_pool, &self.symbol).await?;
+            database::ShipyardTransaction::get_by_system(database_pool, &self.system.symbol)
+                .await?;
 
         let known_agents_iter = system_market_transactions
             .iter()
@@ -1159,6 +1267,7 @@ impl From<database::TradeRoute> for GQLTradeRoute {
 }
 #[async_graphql::ComplexObject]
 impl GQLTradeRoute {}
+
 #[derive(Debug, Clone, async_graphql::SimpleObject)]
 #[graphql(name = "Waypoint")]
 #[graphql(complex)]
