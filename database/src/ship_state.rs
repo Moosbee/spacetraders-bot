@@ -405,6 +405,64 @@ impl ShipState {
         .await?;
         Ok(erg)
     }
+
+    pub async fn get_by_id(database_pool: &DbPool, id: i64) -> crate::Result<Option<ShipState>> {
+        let erg = sqlx::query_as!(
+            ShipState,
+            r#"
+                SELECT
+                  id,
+                  symbol,
+                  display_name,
+                  engine_speed,
+                  engine_condition,
+                  engine_integrity,
+                  frame_condition,
+                  frame_integrity,
+                  reactor_condition,
+                  reactor_integrity,
+                  fuel_capacity,
+                  fuel_current,
+                  cargo_capacity,
+                  cargo_units,
+                  cargo_inventory as "cargo_inventory: sqlx::types::Json<CargoInv>",
+                  mounts as "mounts: Vec<models::ship_mount::Symbol>",
+                  modules as "modules: Vec<models::ship_module::Symbol>",
+                  reactor_symbol as "reactor_symbol: models::ship_reactor::Symbol",
+                  frame_symbol as "frame_symbol: models::ship_frame::Symbol",
+                  engine_symbol as "engine_symbol: models::ship_engine::Symbol",
+                  cooldown_expiration,
+                  cooldown,
+                  flight_mode,
+                  nav_status,
+                  system_symbol,
+                  waypoint_symbol,
+                  route_arrival,
+                  route_departure,
+                  route_destination_symbol,
+                  route_destination_system,
+                  route_origin_symbol,
+                  route_origin_system,
+                  auto_pilot_arrival,
+                  auto_pilot_departure_time,
+                  auto_pilot_destination_symbol,
+                  auto_pilot_destination_system_symbol,
+                  auto_pilot_origin_symbol,
+                  auto_pilot_origin_system_symbol,
+                  auto_pilot_distance,
+                  auto_pilot_fuel_cost,
+                  auto_pilot_travel_time,
+                  created_at
+                FROM ship_state
+                WHERE id = $1
+                LIMIT 1
+            "#,
+            id
+        )
+        .fetch_optional(database_pool.get_cache_pool())
+        .await?;
+        Ok(erg)
+    }
 }
 
 impl DatabaseConnector<ShipState> for ShipState {

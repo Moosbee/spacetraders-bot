@@ -19,13 +19,15 @@ use std::fmt::Debug;
 // pub mod stats;
 
 #[derive(Default, serde::Serialize, Clone, async_graphql::SimpleObject)]
-#[graphql(complex)]
+#[graphql(name = "ShipNavigationState")]
 pub struct NavigationState {
     pub flight_mode: models::ShipNavFlightMode,
     pub status: models::ShipNavStatus,
     pub system_symbol: String,
     pub waypoint_symbol: String,
+    #[graphql(skip)]
     pub route: RouteState,
+    #[graphql(skip)]
     pub auto_pilot: Option<AutopilotState>,
 }
 
@@ -43,7 +45,7 @@ impl Debug for NavigationState {
 }
 
 #[derive(Debug, Default, serde::Serialize, Clone, async_graphql::SimpleObject)]
-#[graphql(complex)]
+#[graphql(name = "ShipRouteState")]
 pub struct RouteState {
     pub arrival: DateTime<Utc>,
     pub departure_time: DateTime<Utc>,
@@ -53,7 +55,7 @@ pub struct RouteState {
     pub origin_system_symbol: String,
 }
 
-impl<T: Clone + Send + Sync + async_graphql::OutputType> RustShip<T> {
+impl<T: Clone + Send + Sync> RustShip<T> {
     pub async fn navigate(
         &mut self,
         api: &space_traders_client::Api,
@@ -319,69 +321,6 @@ impl<T: Clone + Send + Sync + async_graphql::OutputType> RustShip<T> {
         }
         let t = t.try_into().unwrap();
         tokio::time::sleep(tokio::time::Duration::from_millis(t)).await;
-    }
-}
-
-#[async_graphql::ComplexObject]
-impl RouteState {
-    async fn destination_system<'ctx>(
-        &self,
-        ctx: &async_graphql::Context<'ctx>,
-    ) -> crate::Result<Option<database::System>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let erg =
-            database::System::get_by_symbol(database_pool, &self.destination_system_symbol).await?;
-        Ok(erg)
-    }
-
-    async fn destination_waypoint<'ctx>(
-        &self,
-        ctx: &async_graphql::Context<'ctx>,
-    ) -> crate::Result<Option<database::Waypoint>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let erg =
-            database::Waypoint::get_by_symbol(database_pool, &self.destination_symbol).await?;
-        Ok(erg)
-    }
-
-    async fn origin_system<'ctx>(
-        &self,
-        ctx: &async_graphql::Context<'ctx>,
-    ) -> crate::Result<Option<database::System>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let erg =
-            database::System::get_by_symbol(database_pool, &self.origin_system_symbol).await?;
-        Ok(erg)
-    }
-
-    async fn origin_waypoint<'ctx>(
-        &self,
-        ctx: &async_graphql::Context<'ctx>,
-    ) -> crate::Result<Option<database::Waypoint>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let erg = database::Waypoint::get_by_symbol(database_pool, &self.origin_symbol).await?;
-        Ok(erg)
-    }
-}
-
-#[async_graphql::ComplexObject]
-impl NavigationState {
-    async fn system<'ctx>(
-        &self,
-        ctx: &async_graphql::Context<'ctx>,
-    ) -> crate::Result<Option<database::System>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let erg = database::System::get_by_symbol(database_pool, &self.system_symbol).await?;
-        Ok(erg)
-    }
-
-    async fn waypoint<'ctx>(
-        &self,
-        ctx: &async_graphql::Context<'ctx>,
-    ) -> crate::Result<Option<database::Waypoint>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let erg = database::Waypoint::get_by_symbol(database_pool, &self.waypoint_symbol).await?;
-        Ok(erg)
     }
 }
 

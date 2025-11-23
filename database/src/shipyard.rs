@@ -49,6 +49,28 @@ impl Shipyard {
         Ok(id)
     }
 
+    pub async fn get_by_id(
+        database_pool: &super::DbPool,
+        id: i64,
+    ) -> crate::Result<Option<Shipyard>> {
+        let erg = sqlx::query_as!(
+            Shipyard,
+            r#"
+            SELECT
+                id,
+                waypoint_symbol,
+                modifications_fee,
+                created_at
+            FROM shipyard
+            WHERE id = $1
+            "#,
+            id
+        )
+        .fetch_optional(database_pool.get_cache_pool())
+        .await?;
+        Ok(erg)
+    }
+
     #[instrument(level = "trace", skip(database_pool))]
     pub async fn get_last_by_waypoint(
         database_pool: &super::DbPool,

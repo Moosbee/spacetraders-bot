@@ -303,6 +303,38 @@ impl MarketTradeGood {
         Ok(row)
     }
 
+    pub async fn get_by_last_waypoint_and_trade_symbol(
+        database_pool: &DbPool,
+        waypoint_symbol: &str,
+        trade_symbol: &models::TradeSymbol,
+    ) -> crate::Result<Option<MarketTradeGood>> {
+        let erg = sqlx::query_as!(
+            MarketTradeGood,
+            r#"
+            SELECT
+                created_at,
+                created,
+                waypoint_symbol,
+                symbol as "symbol: models::TradeSymbol",
+                "type" as "type: models::market_trade_good::Type",
+                trade_volume,
+                supply as "supply: models::SupplyLevel",
+                activity as "activity: models::ActivityLevel",
+                purchase_price,
+                sell_price
+            FROM public.market_trade_good
+            WHERE waypoint_symbol = $1 AND symbol = $2
+            ORDER BY created DESC
+            LIMIT 1
+        "#,
+            waypoint_symbol,
+            *trade_symbol as models::TradeSymbol,
+        )
+        .fetch_optional(database_pool.get_cache_pool())
+        .await?;
+        Ok(erg)
+    }
+
     #[instrument(level = "trace", skip(database_pool))]
     pub async fn get_last(database_pool: &DbPool) -> crate::Result<Vec<MarketTradeGood>> {
         let erg = sqlx::query_as!(

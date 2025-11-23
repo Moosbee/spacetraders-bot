@@ -44,7 +44,7 @@ impl CargoState {
     }
 }
 
-impl<T: Clone + Send + Sync + async_graphql::OutputType> RustShip<T> {
+impl<T: Clone + Send + Sync> RustShip<T> {
     pub async fn purchase_cargo(
         &mut self,
         api: &space_traders_client::Api,
@@ -391,7 +391,7 @@ impl CargoState {
         units: i32,
         trade_symbol: space_traders_client::models::TradeSymbol,
     ) -> Result<(), crate::error::Error> {
-    tracing::debug!(units = %units, trade_symbol = ?trade_symbol, "Handling cargo update");
+        tracing::debug!(units = %units, trade_symbol = ?trade_symbol, "Handling cargo update");
         let current_count = self.inventory.iter().map(|f| f.1).sum::<i32>();
         if (current_count + units) <= self.units {
             return Err("Not enough cargo".into());

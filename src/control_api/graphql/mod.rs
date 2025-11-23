@@ -1,11 +1,14 @@
 mod gql_models;
+mod gql_ship;
 
 use async_graphql::Object;
 use database::DatabaseConnector;
-use ship::MyShip;
 use space_traders_client::models;
 
-use crate::utils::{ConductorContext, RunInfo};
+use crate::{
+    control_api::graphql::gql_models::GQLShip,
+    utils::{ConductorContext, RunInfo},
+};
 
 type Result<T> = std::result::Result<T, GraphiQLError>;
 
@@ -29,29 +32,31 @@ impl QueryRoot {
         &self,
         ctx: &async_graphql::Context<'ctx>,
         symbol: String,
-    ) -> Result<MyShip> {
+    ) -> Result<GQLShip> {
         let context = ctx.data::<ConductorContext>()?;
         let ship = context
             .ship_manager
             .get_clone(&symbol)
             .ok_or(GraphiQLError::NotFound)?;
-        Ok(ship)
+        Ok(ship.into())
     }
-    async fn ships<'ctx>(&self, ctx: &async_graphql::Context<'ctx>) -> Result<Vec<MyShip>> {
+
+    async fn ships<'ctx>(&self, ctx: &async_graphql::Context<'ctx>) -> Result<Vec<GQLShip>> {
         let context = ctx.data::<ConductorContext>()?;
         let ships = context
             .ship_manager
             .get_all_clone()
             .await
             .into_values()
-            .collect();
-        Ok(ships)
+            .collect::<Vec<_>>();
+        Ok(ships.into_iter().map(|s| s.into()).collect())
     }
+
     async fn market_transactions<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
         by: Option<MarketTransactionBy>,
-    ) -> Result<Vec<database::MarketTransaction>> {
+    ) -> Result<Vec<gql_models::GQLMarketTransaction>> {
         let context = ctx.data::<ConductorContext>()?;
         let transactions = if let Some(by) = by {
             match by {
@@ -119,14 +124,14 @@ impl QueryRoot {
         } else {
             database::MarketTransaction::get_all(&context.database_pool).await
         }?;
-        Ok(transactions)
+        Ok(transactions.into_iter().map(Into::into).collect())
     }
 
     async fn shipyard_transactions<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
         by: Option<ShipyardTransactionBy>,
-    ) -> Result<Vec<database::ShipyardTransaction>> {
+    ) -> Result<Vec<gql_models::GQLShipyardTransaction>> {
         let context = ctx.data::<ConductorContext>()?;
         let transactions = if let Some(by) = by {
             match by {
@@ -162,14 +167,14 @@ impl QueryRoot {
         } else {
             database::ShipyardTransaction::get_all(&context.database_pool).await
         }?;
-        Ok(transactions)
+        Ok(transactions.into_iter().map(Into::into).collect())
     }
 
     async fn chart_transactions<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
         ship_symbol: Option<String>,
-    ) -> Result<Vec<database::ChartTransaction>> {
+    ) -> Result<Vec<gql_models::GQLChartTransaction>> {
         let context = ctx.data::<ConductorContext>()?;
         let transactions = if let Some(ship_symbol) = ship_symbol {
             database::ChartTransaction::get_by_ship_symbol(&context.database_pool, &ship_symbol)
@@ -177,127 +182,127 @@ impl QueryRoot {
         } else {
             database::ChartTransaction::get_all(&context.database_pool).await?
         };
-        Ok(transactions)
+        Ok(transactions.into_iter().map(Into::into).collect())
     }
 
     async fn repair_transactions<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
-    ) -> Result<Vec<database::RepairTransaction>> {
+    ) -> Result<Vec<gql_models::GQLRepairTransaction>> {
         let context = ctx.data::<ConductorContext>()?;
         let transactions = database::RepairTransaction::get_all(&context.database_pool).await?;
-        Ok(transactions)
+        Ok(transactions.into_iter().map(Into::into).collect())
     }
 
     async fn scrap_transactions<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
-    ) -> Result<Vec<database::ScrapTransaction>> {
+    ) -> Result<Vec<gql_models::GQLScrapTransaction>> {
         let context = ctx.data::<ConductorContext>()?;
         let transactions = database::ScrapTransaction::get_all(&context.database_pool).await?;
-        Ok(transactions)
+        Ok(transactions.into_iter().map(Into::into).collect())
     }
 
     async fn ship_modification_transactions<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
-    ) -> Result<Vec<database::ShipModificationTransaction>> {
+    ) -> Result<Vec<gql_models::GQLShipModificationTransaction>> {
         let context = ctx.data::<ConductorContext>()?;
         let transactions =
             database::ShipModificationTransaction::get_all(&context.database_pool).await?;
-        Ok(transactions)
+        Ok(transactions.into_iter().map(Into::into).collect())
     }
 
     async fn waypoint<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
         symbol: String,
-    ) -> Result<database::Waypoint> {
+    ) -> Result<gql_models::GQLWaypoint> {
         let context = ctx.data::<ConductorContext>()?;
         let waypoint = database::Waypoint::get_by_symbol(&context.database_pool, &symbol)
             .await?
             .ok_or(GraphiQLError::NotFound)?;
-        Ok(waypoint)
+        Ok(waypoint.into())
     }
 
     async fn waypoints<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
-    ) -> Result<Vec<database::Waypoint>> {
+    ) -> Result<Vec<gql_models::GQLWaypoint>> {
         let context = ctx.data::<ConductorContext>()?;
         let waypoints = database::Waypoint::get_all(&context.database_pool).await?;
-        Ok(waypoints)
+        Ok(waypoints.into_iter().map(Into::into).collect())
     }
 
     async fn system<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
         symbol: String,
-    ) -> Result<database::System> {
+    ) -> Result<gql_models::GQLSystem> {
         let context = ctx.data::<ConductorContext>()?;
         let system = database::System::get_by_symbol(&context.database_pool, &symbol)
             .await?
             .ok_or(GraphiQLError::NotFound)?;
-        Ok(system)
+        Ok(system.into())
     }
 
     async fn systems<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
-    ) -> Result<Vec<database::System>> {
+    ) -> Result<Vec<gql_models::GQLSystem>> {
         let context = ctx.data::<ConductorContext>()?;
         let systems = database::System::get_all(&context.database_pool).await?;
-        Ok(systems)
+        Ok(systems.into_iter().map(Into::into).collect())
     }
 
     async fn agent<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
         symbol: String,
-    ) -> Result<database::Agent> {
+    ) -> Result<gql_models::GQLAgent> {
         let context = ctx.data::<ConductorContext>()?;
         let agent = database::Agent::get_last_by_symbol(&context.database_pool, &symbol)
             .await?
             .ok_or(GraphiQLError::NotFound)?;
-        Ok(agent)
+        Ok(agent.into())
     }
 
     async fn agent_history<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
         symbol: String,
-    ) -> Result<Vec<database::Agent>> {
+    ) -> Result<Vec<gql_models::GQLAgent>> {
         let context = ctx.data::<ConductorContext>()?;
         let agent = database::Agent::get_by_symbol(&context.database_pool, &symbol).await?;
-        Ok(agent)
+        Ok(agent.into_iter().map(Into::into).collect())
     }
 
     async fn agents<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
-    ) -> Result<Vec<database::Agent>> {
+    ) -> Result<Vec<gql_models::GQLAgent>> {
         let context = ctx.data::<ConductorContext>()?;
         let agents = database::Agent::get_last(&context.database_pool).await?;
-        Ok(agents)
+        Ok(agents.into_iter().map(Into::into).collect())
     }
 
     async fn contract<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
         symbol: String,
-    ) -> Result<database::Contract> {
+    ) -> Result<gql_models::GQLContract> {
         let context = ctx.data::<ConductorContext>()?;
         let contract = database::Contract::get_by_id(&context.database_pool, &symbol)
             .await?
             .ok_or(GraphiQLError::NotFound)?;
-        Ok(contract)
+        Ok(contract.into())
     }
 
     async fn contracts<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
         by: Option<ContractBy>,
-    ) -> Result<Vec<database::Contract>> {
+    ) -> Result<Vec<gql_models::GQLContract>> {
         let context = ctx.data::<ConductorContext>()?;
         let contracts = if let Some(by) = by {
             match by {
@@ -312,14 +317,14 @@ impl QueryRoot {
         } else {
             database::Contract::get_all(&context.database_pool).await?
         };
-        Ok(contracts)
+        Ok(contracts.into_iter().map(Into::into).collect())
     }
 
     async fn contract_deliveries<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
         by: Option<ContractDeliveryBy>,
-    ) -> Result<Vec<database::ContractDelivery>> {
+    ) -> Result<Vec<gql_models::GQLContractDelivery>> {
         let context = ctx.data::<ConductorContext>()?;
         let contract_deliveries = if let Some(by) = by {
             match by {
@@ -342,14 +347,14 @@ impl QueryRoot {
         } else {
             database::ContractDelivery::get_all(&context.database_pool).await?
         };
-        Ok(contract_deliveries)
+        Ok(contract_deliveries.into_iter().map(Into::into).collect())
     }
 
     async fn contract_shipments<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
         by: Option<ContractShipmentBy>,
-    ) -> Result<Vec<database::ContractShipment>> {
+    ) -> Result<Vec<gql_models::GQLContractShipment>> {
         let context = ctx.data::<ConductorContext>()?;
         let contract_shipments = if let Some(by) = by {
             match by {
@@ -382,26 +387,26 @@ impl QueryRoot {
         } else {
             database::ContractShipment::get_all(&context.database_pool).await
         }?;
-        Ok(contract_shipments)
+        Ok(contract_shipments.into_iter().map(Into::into).collect())
     }
 
     async fn extraction<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
         symbol: i64,
-    ) -> Result<database::Extraction> {
+    ) -> Result<gql_models::GQLExtraction> {
         let context = ctx.data::<ConductorContext>()?;
         let extraction = database::Extraction::get_by_id(&context.database_pool, symbol)
             .await?
             .ok_or(GraphiQLError::NotFound)?;
-        Ok(extraction)
+        Ok(extraction.into())
     }
 
     async fn extractions<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
         by: Option<ExtractionBy>,
-    ) -> Result<Vec<database::Extraction>> {
+    ) -> Result<Vec<gql_models::GQLExtraction>> {
         let context = ctx.data::<ConductorContext>()?;
         let extractions = if let Some(by) = by {
             match by {
@@ -440,14 +445,14 @@ impl QueryRoot {
         } else {
             database::Extraction::get_all(&context.database_pool).await
         }?;
-        Ok(extractions)
+        Ok(extractions.into_iter().map(Into::into).collect())
     }
 
     async fn fleets<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
         by: Option<FleetBy>,
-    ) -> Result<Vec<database::Fleet>> {
+    ) -> Result<Vec<gql_models::GQLFleet>> {
         let context = ctx.data::<ConductorContext>()?;
         let fleets = if let Some(by) = by {
             match by {
@@ -461,14 +466,14 @@ impl QueryRoot {
         } else {
             database::Fleet::get_all(&context.database_pool).await
         }?;
-        Ok(fleets)
+        Ok(fleets.into_iter().map(Into::into).collect())
     }
 
     async fn ship_assignments<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
         by: Option<ShipAssignmentBy>,
-    ) -> Result<Vec<database::ShipAssignment>> {
+    ) -> Result<Vec<gql_models::GQLShipAssignment>> {
         let context = ctx.data::<ConductorContext>()?;
         let ship_assignments = if let Some(by) = by {
             match by {
@@ -480,7 +485,7 @@ impl QueryRoot {
         } else {
             database::ShipAssignment::get_all(&context.database_pool).await
         }?;
-        Ok(ship_assignments)
+        Ok(ship_assignments.into_iter().map(Into::into).collect())
     }
 
     async fn budget<'ctx>(
@@ -496,17 +501,17 @@ impl QueryRoot {
     async fn reserved_funds<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
-    ) -> Result<Vec<database::ReservedFund>> {
+    ) -> Result<Vec<gql_models::GQLReservedFund>> {
         let context = ctx.data::<ConductorContext>()?;
         let reserved_funds = database::ReservedFund::get_all(&context.database_pool).await?;
-        Ok(reserved_funds)
+        Ok(reserved_funds.into_iter().map(Into::into).collect())
     }
 
     async fn surveys<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
         by: Option<SurveyBy>,
-    ) -> Result<Vec<database::Survey>> {
+    ) -> Result<Vec<gql_models::GQLSurvey>> {
         let context = ctx.data::<ConductorContext>()?;
         let surveys = if let Some(by) = by {
             match by {
@@ -531,17 +536,17 @@ impl QueryRoot {
         } else {
             database::Survey::get_all(&context.database_pool).await
         }?;
-        Ok(surveys)
+        Ok(surveys.into_iter().map(Into::into).collect())
     }
 
     async fn survey<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
         signature: String,
-    ) -> Result<database::Survey> {
+    ) -> Result<gql_models::GQLSurvey> {
         let context = ctx.data::<ConductorContext>()?;
         let survey = database::Survey::get_by_signature(&context.database_pool, &signature).await?;
-        Ok(survey)
+        Ok(survey.into())
     }
 
     async fn trade_routes<'ctx>(
@@ -549,12 +554,8 @@ impl QueryRoot {
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Vec<gql_models::GQLTradeRoute>> {
         let context = ctx.data::<ConductorContext>()?;
-        let trade_routes = database::TradeRoute::get_all(&context.database_pool)
-            .await?
-            .into_iter()
-            .map(gql_models::GQLTradeRoute::from)
-            .collect();
-        Ok(trade_routes)
+        let trade_routes = database::TradeRoute::get_all(&context.database_pool).await?;
+        Ok(trade_routes.into_iter().map(Into::into).collect())
     }
 
     async fn trade_route<'ctx>(
@@ -565,37 +566,36 @@ impl QueryRoot {
         let context = ctx.data::<ConductorContext>()?;
         let trade_route = database::TradeRoute::get_by_id(&context.database_pool, route_id)
             .await?
-            .map(gql_models::GQLTradeRoute::from)
             .ok_or(GraphiQLError::NotFound)?;
-        Ok(trade_route)
+        Ok(trade_route.into())
     }
 
     async fn ship_infos<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
-    ) -> Result<Vec<database::ShipInfo>> {
+    ) -> Result<Vec<gql_models::GQLShipInfo>> {
         let context = ctx.data::<ConductorContext>()?;
         let ship_info = database::ShipInfo::get_all(&context.database_pool).await?;
-        Ok(ship_info)
+        Ok(ship_info.into_iter().map(Into::into).collect())
     }
 
     async fn ship_info<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
         symbol: String,
-    ) -> Result<database::ShipInfo> {
+    ) -> Result<gql_models::GQLShipInfo> {
         let context = ctx.data::<ConductorContext>()?;
         let ship_info = database::ShipInfo::get_by_symbol(&context.database_pool, &symbol)
             .await?
             .ok_or(GraphiQLError::NotFound)?;
-        Ok(ship_info)
+        Ok(ship_info.into())
     }
 
     async fn ship_states<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
         by: Option<ShipStateBy>,
-    ) -> Result<Vec<database::ShipState>> {
+    ) -> Result<Vec<gql_models::GQLShipState>> {
         let context = ctx.data::<ConductorContext>()?;
         let ship_states = if let Some(by) = by {
             match by {
@@ -612,35 +612,35 @@ impl QueryRoot {
         } else {
             database::ShipState::get_all(&context.database_pool).await
         }?;
-        Ok(ship_states)
+        Ok(ship_states.into_iter().map(Into::into).collect())
     }
 
     async fn shipyards<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
-    ) -> Result<Vec<database::Shipyard>> {
+    ) -> Result<Vec<gql_models::GQLShipyard>> {
         let context = ctx.data::<ConductorContext>()?;
         let shipyards = database::Shipyard::get_last(&context.database_pool).await?;
-        Ok(shipyards)
+        Ok(shipyards.into_iter().map(Into::into).collect())
     }
 
     async fn shipyard<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
         symbol: String,
-    ) -> Result<database::Shipyard> {
+    ) -> Result<gql_models::GQLShipyard> {
         let context = ctx.data::<ConductorContext>()?;
         let shipyard = database::Shipyard::get_last_by_waypoint(&context.database_pool, &symbol)
             .await?
             .ok_or(GraphiQLError::NotFound)?;
-        Ok(shipyard)
+        Ok(shipyard.into())
     }
 
     async fn shipyard_ships<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
         by: Option<ShipyardShipBy>,
-    ) -> Result<Vec<database::ShipyardShip>> {
+    ) -> Result<Vec<gql_models::GQLShipyardShip>> {
         let context = ctx.data::<ConductorContext>()?;
         let shipyard_ships = if let Some(by) = by {
             match by {
@@ -660,14 +660,14 @@ impl QueryRoot {
         } else {
             database::ShipyardShip::get_last(&context.database_pool).await
         }?;
-        Ok(shipyard_ships)
+        Ok(shipyard_ships.into_iter().map(Into::into).collect())
     }
 
     async fn construction_materials<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
         by: Option<ConstructionMaterialBy>,
-    ) -> Result<Vec<database::ConstructionMaterial>> {
+    ) -> Result<Vec<gql_models::GQLConstructionMaterial>> {
         let context = ctx.data::<ConductorContext>()?;
         let construction_materials = if let Some(by) = by {
             match by {
@@ -693,19 +693,19 @@ impl QueryRoot {
         } else {
             database::ConstructionMaterial::get_all(&context.database_pool).await
         }?;
-        Ok(construction_materials)
+        Ok(construction_materials.into_iter().map(Into::into).collect())
     }
 
     async fn construction_shipments<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
         by: Option<ConstructionShipmentBy>,
-    ) -> Result<Vec<database::ConstructionShipment>> {
+    ) -> Result<Vec<gql_models::GQLConstructionShipment>> {
         let context = ctx.data::<ConductorContext>()?;
         let construction_shipments = if let Some(by) = by {
             match by {
                 ConstructionShipmentBy::Waypoint(waypoint) => {
-                    database::ConstructionShipment::get_by_waypoint(
+                    database::ConstructionShipment::get_by_destination_waypoint(
                         &context.database_pool,
                         &waypoint,
                     )
@@ -740,28 +740,28 @@ impl QueryRoot {
         } else {
             database::ConstructionShipment::get_all(&context.database_pool).await
         }?;
-        Ok(construction_shipments)
+        Ok(construction_shipments.into_iter().map(Into::into).collect())
     }
 
     async fn jump_gate_connections<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
         from: Option<String>,
-    ) -> Result<Vec<database::JumpGateConnection>> {
+    ) -> Result<Vec<gql_models::GQLJumpGateConnection>> {
         let context = ctx.data::<ConductorContext>()?;
         let jump_gate_connections = if let Some(from) = from {
             database::JumpGateConnection::get_all_from(&context.database_pool, &from).await?
         } else {
             database::JumpGateConnection::get_all(&context.database_pool).await?
         };
-        Ok(jump_gate_connections)
+        Ok(jump_gate_connections.into_iter().map(Into::into).collect())
     }
 
     async fn market_trades<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
         by: Option<MarketTradeBy>,
-    ) -> Result<Vec<database::MarketTrade>> {
+    ) -> Result<Vec<gql_models::GQLMarketTrade>> {
         let context = ctx.data::<ConductorContext>()?;
         let market_trades = if let Some(by) = by {
             match by {
@@ -780,14 +780,14 @@ impl QueryRoot {
         } else {
             database::MarketTrade::get_last(&context.database_pool).await
         }?;
-        Ok(market_trades)
+        Ok(market_trades.into_iter().map(Into::into).collect())
     }
 
     async fn market_trade_goods<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
         by: Option<MarketTradeGoodBy>,
-    ) -> Result<Vec<database::MarketTradeGood>> {
+    ) -> Result<Vec<gql_models::GQLMarketTradeGood>> {
         let context = ctx.data::<ConductorContext>()?;
         let market_trade_goods = if let Some(by) = by {
             match by {
@@ -813,7 +813,7 @@ impl QueryRoot {
         } else {
             database::MarketTradeGood::get_all(&context.database_pool).await
         }?;
-        Ok(market_trade_goods)
+        Ok(market_trade_goods.into_iter().map(Into::into).collect())
     }
 }
 

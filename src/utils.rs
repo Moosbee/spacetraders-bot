@@ -94,17 +94,3 @@ pub struct RunInfo {
     pub next_reset_date: chrono::DateTime<chrono::Utc>,
     pub version: String,
 }
-
-#[async_graphql::ComplexObject]
-impl RunInfo {
-    async fn agent<'ctx>(
-        &self,
-        ctx: &async_graphql::Context<'ctx>,
-    ) -> Result<database::Agent, crate::control_api::GraphiQLError> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let agent = database::Agent::get_last_by_symbol(database_pool, &self.agent_symbol)
-            .await?
-            .ok_or(crate::control_api::GraphiQLError::NotFound)?;
-        Ok(agent)
-    }
-}

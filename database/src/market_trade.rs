@@ -200,4 +200,53 @@ impl MarketTrade {
         .await?;
         Ok(row)
     }
+
+    pub async fn get_history_by_waypoint_and_trade_symbol(
+        database_pool: &DbPool,
+        waypoint_symbol: &str,
+        trade_symbol: &models::TradeSymbol,
+    ) -> crate::Result<Vec<MarketTrade>> {
+        let row: Vec<MarketTrade> = sqlx::query_as!(
+            MarketTrade,
+            r#"
+            SELECT
+            waypoint_symbol, 
+            symbol as "symbol: models::TradeSymbol",
+            "type" as "type: models::market_trade_good::Type",
+            created_at
+            FROM public.market_trade WHERE waypoint_symbol = $1 AND symbol = $2
+            ORDER BY created_at DESC
+    "#,
+            waypoint_symbol,
+            *trade_symbol as models::TradeSymbol
+        )
+        .fetch_all(database_pool.get_cache_pool())
+        .await?;
+        Ok(row)
+    }
+
+    pub async fn get_by_last_waypoint_and_trade_symbol(
+        database_pool: &DbPool,
+        waypoint_symbol: &str,
+        trade_symbol: &models::TradeSymbol,
+    ) -> crate::Result<Option<MarketTrade>> {
+        let erg = sqlx::query_as!(
+            MarketTrade,
+            r#"
+            SELECT
+            waypoint_symbol, 
+            symbol as "symbol: models::TradeSymbol",
+            "type" as "type: models::market_trade_good::Type",
+            created_at
+            FROM public.market_trade WHERE waypoint_symbol = $1 AND symbol = $2
+            ORDER BY created_at DESC
+            LIMIT 1
+    "#,
+            waypoint_symbol,
+            *trade_symbol as models::TradeSymbol
+        )
+        .fetch_optional(database_pool.get_cache_pool())
+        .await?;
+        Ok(erg)
+    }
 }

@@ -9,7 +9,9 @@ pub struct TradeRoute {
     pub id: i32,
     pub symbol: models::TradeSymbol,
     pub ship_symbol: String,
+    #[graphql(name = "PurchaseWaypointSymbol")]
     pub purchase_waypoint: String,
+    #[graphql(name = "SellWaypointSymbol")]
     pub sell_waypoint: String,
     pub status: ShipmentStatus,
     pub trade_volume: i32,
@@ -319,6 +321,34 @@ impl TradeRoute {
         Ok(erg)
     }
 
+    pub async fn get_by_reservation_id(
+        database_pool: &DbPool,
+        id: i64,
+    ) -> crate::Result<Vec<TradeRoute>> {
+        let erg = sqlx::query_as!(
+            TradeRoute,
+            r#"
+                SELECT 
+                  id,
+                  symbol as "symbol: models::TradeSymbol",
+                  ship_symbol,
+                  purchase_waypoint,
+                  sell_waypoint,
+                  status as "status: ShipmentStatus",
+                  trade_volume,
+                  predicted_purchase_price,
+                  predicted_sell_price,
+                  created_at,
+                  reserved_fund
+                 FROM trade_route WHERE reserved_fund = $1
+            "#,
+            id
+        )
+        .fetch_all(&database_pool.database_pool)
+        .await?;
+        Ok(erg)
+    }
+
     #[instrument(level = "trace", skip(database_pool))]
     pub async fn get_unfinished(database_pool: &DbPool) -> crate::Result<Vec<TradeRoute>> {
         let erg = sqlx::query_as!(
@@ -366,6 +396,62 @@ impl TradeRoute {
                  FROM trade_route WHERE ship_symbol = $1
             "#,
             ship_symbol
+        )
+        .fetch_all(&database_pool.database_pool)
+        .await?;
+        Ok(erg)
+    }
+
+    pub async fn get_by_purchase_waypoint(
+        database_pool: &DbPool,
+        waypoint_symbol: &str,
+    ) -> crate::Result<Vec<TradeRoute>> {
+        let erg = sqlx::query_as!(
+            TradeRoute,
+            r#"
+                SELECT 
+                  id,
+                  symbol as "symbol: models::TradeSymbol",
+                  ship_symbol,
+                  purchase_waypoint,
+                  sell_waypoint,
+                  status as "status: ShipmentStatus",
+                  trade_volume,
+                  predicted_purchase_price,
+                  predicted_sell_price,
+                  created_at,
+                  reserved_fund
+                 FROM trade_route WHERE purchase_waypoint = $1
+            "#,
+            waypoint_symbol
+        )
+        .fetch_all(&database_pool.database_pool)
+        .await?;
+        Ok(erg)
+    }
+
+    pub async fn get_by_sell_waypoint(
+        database_pool: &DbPool,
+        waypoint_symbol: &str,
+    ) -> crate::Result<Vec<TradeRoute>> {
+        let erg = sqlx::query_as!(
+            TradeRoute,
+            r#"
+                SELECT 
+                  id,
+                  symbol as "symbol: models::TradeSymbol",
+                  ship_symbol,
+                  purchase_waypoint,
+                  sell_waypoint,
+                  status as "status: ShipmentStatus",
+                  trade_volume,
+                  predicted_purchase_price,
+                  predicted_sell_price,
+                  created_at,
+                  reserved_fund
+                 FROM trade_route WHERE sell_waypoint = $1
+            "#,
+            waypoint_symbol
         )
         .fetch_all(&database_pool.database_pool)
         .await?;

@@ -16,13 +16,19 @@ mod simple_pathfinding;
 mod stats;
 mod utils;
 
+pub use connection::ConcreteConnection;
+pub use connection::JumpConnection;
+pub use connection::NavigateConnection;
+pub use connection::Refuel;
+pub use connection::Route;
 pub use connection::SimpleConnection;
+pub use connection::WarpConnection;
 
 use crate::error::Result;
 
 use super::RustShip;
 
-impl<T: Clone + Send + Sync + async_graphql::OutputType> RustShip<T> {
+impl<T: Clone + Send + Sync> RustShip<T> {
     pub async fn nav_to(
         &mut self,
         waypoint: &str,
@@ -167,7 +173,7 @@ impl<T: Clone + Send + Sync + async_graphql::OutputType> RustShip<T> {
 }
 
 #[derive(Clone, Default, serde::Serialize, async_graphql::SimpleObject)]
-#[graphql(complex)]
+#[graphql(name = "ShipAutopilotState")]
 pub struct AutopilotState {
     pub arrival: DateTime<Utc>,
     pub departure_time: DateTime<Utc>,
@@ -180,52 +186,6 @@ pub struct AutopilotState {
     pub travel_time: f64,
     #[graphql(skip)]
     pub route: connection::Route,
-}
-
-#[async_graphql::ComplexObject]
-impl AutopilotState {
-    async fn route(&self) -> connection::RouteGQL {
-        self.route.clone().into()
-    }
-
-    async fn destination_system<'ctx>(
-        &self,
-        ctx: &async_graphql::Context<'ctx>,
-    ) -> crate::Result<Option<database::System>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let erg =
-            database::System::get_by_symbol(database_pool, &self.destination_system_symbol).await?;
-        Ok(erg)
-    }
-
-    async fn destination_waypoint<'ctx>(
-        &self,
-        ctx: &async_graphql::Context<'ctx>,
-    ) -> crate::Result<Option<database::Waypoint>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let erg =
-            database::Waypoint::get_by_symbol(database_pool, &self.destination_symbol).await?;
-        Ok(erg)
-    }
-
-    async fn origin_system<'ctx>(
-        &self,
-        ctx: &async_graphql::Context<'ctx>,
-    ) -> crate::Result<Option<database::System>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let erg =
-            database::System::get_by_symbol(database_pool, &self.origin_system_symbol).await?;
-        Ok(erg)
-    }
-
-    async fn origin_waypoint<'ctx>(
-        &self,
-        ctx: &async_graphql::Context<'ctx>,
-    ) -> crate::Result<Option<database::Waypoint>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let erg = database::Waypoint::get_by_symbol(database_pool, &self.origin_symbol).await?;
-        Ok(erg)
-    }
 }
 
 impl Debug for AutopilotState {

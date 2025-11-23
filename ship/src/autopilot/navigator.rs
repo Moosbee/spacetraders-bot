@@ -10,7 +10,7 @@ use super::connection::{
     ConcreteConnection, JumpConnection, NavigateConnection, Refuel, Route, WarpConnection,
 };
 
-impl<T: Clone + Send + Sync + async_graphql::OutputType> RustShip<T> {
+impl<T: Clone + Send + Sync> RustShip<T> {
     pub async fn fly_route(
         &mut self,
         route: Route,

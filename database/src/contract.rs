@@ -304,6 +304,33 @@ impl Contract {
         Ok(erg)
     }
 
+    pub async fn get_by_reservation_id(
+        database_pool: &DbPool,
+        id: i64,
+    ) -> crate::Result<Vec<Contract>> {
+        let erg = sqlx::query_as!(
+            Contract,
+            r#"SELECT
+          id,
+          faction_symbol,
+          contract_type as "contract_type: models::contract::Type",
+          accepted,
+          fulfilled,
+          deadline_to_accept,
+          on_accepted,
+          on_fulfilled,
+          deadline,
+          updated_at,
+          created_at,
+          reserved_fund
+        FROM public.contract WHERE reserved_fund = $1"#,
+            id
+        )
+        .fetch_all(database_pool.get_cache_pool())
+        .await?;
+        Ok(erg)
+    }
+
     #[instrument(level = "trace", skip(database_pool))]
     pub async fn get_all_sm(database_pool: &DbPool) -> crate::Result<Vec<ContractSummary>> {
         let erg = sqlx::query_as!(

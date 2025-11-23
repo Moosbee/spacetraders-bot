@@ -28,8 +28,8 @@ pub struct ConditionState {
 pub type MyShip = RustShip<ShipStatus>;
 
 #[derive(serde::Serialize, async_graphql::SimpleObject)]
-#[graphql(complex)]
-pub struct RustShip<T: Clone + Send + Sync + async_graphql::OutputType> {
+pub struct RustShip<T: Clone + Send + Sync> {
+    #[graphql(skip)]
     pub status: T,
     pub registration_role: ShipRole,
     pub symbol: String,
@@ -39,14 +39,17 @@ pub struct RustShip<T: Clone + Send + Sync + async_graphql::OutputType> {
     pub cooldown_expiration: Option<DateTime<Utc>>,
     pub cooldown: Option<i32>,
     // Navigation state
+    #[graphql(skip)]
     pub nav: super::nav::NavigationState,
     // Cargo state
     pub cargo: CargoState,
     // Fuel state
     pub fuel: FuelState,
     // Mount state
+    #[graphql(skip)]
     pub mounts: MountState,
     // Modules state
+    #[graphql(skip)]
     pub modules: ModuleState,
     pub engine: models::ship_engine::Symbol,
     pub reactor: models::ship_reactor::Symbol,
@@ -64,7 +67,7 @@ pub struct RustShip<T: Clone + Send + Sync + async_graphql::OutputType> {
     pub pubsub: Publisher<ShipManager<T>, RustShip<T>>,
 }
 
-impl<T: Default + Clone + Send + Sync + async_graphql::OutputType> Default for RustShip<T> {
+impl<T: Default + Clone + Send + Sync> Default for RustShip<T> {
     fn default() -> Self {
         Self {
             status: Default::default(),
@@ -91,7 +94,7 @@ impl<T: Default + Clone + Send + Sync + async_graphql::OutputType> Default for R
     }
 }
 
-impl<T: Clone + Send + Sync + async_graphql::OutputType> Clone for RustShip<T> {
+impl<T: Clone + Send + Sync> Clone for RustShip<T> {
     fn clone(&self) -> Self {
         Self {
             status: self.status.clone(),
@@ -119,7 +122,7 @@ impl<T: Clone + Send + Sync + async_graphql::OutputType> Clone for RustShip<T> {
     }
 }
 
-impl<T: Debug + Clone + Send + Sync + async_graphql::OutputType> Debug for RustShip<T> {
+impl<T: Debug + Clone + Send + Sync> Debug for RustShip<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("RustShip")
             .field("status", &self.status)
@@ -141,9 +144,7 @@ impl<T: Debug + Clone + Send + Sync + async_graphql::OutputType> Debug for RustS
     }
 }
 
-impl<T: Clone + Send + Sync + async_graphql::OutputType> From<&RustShip<T>>
-    for database::ShipState
-{
+impl<T: Clone + Send + Sync> From<&RustShip<T>> for database::ShipState {
     fn from(value: &RustShip<T>) -> Self {
         Self {
             id: 0,
@@ -209,172 +210,7 @@ impl<T: Clone + Send + Sync + async_graphql::OutputType> From<&RustShip<T>>
     }
 }
 
-#[async_graphql::ComplexObject]
-impl<T: Clone + Send + Sync + async_graphql::OutputType> RustShip<T> {
-    async fn purchase_transaction<'ctx>(
-        &self,
-        ctx: &async_graphql::Context<'ctx>,
-    ) -> crate::Result<Option<database::ShipyardTransaction>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        if let Some(purchase_id) = self.purchase_id {
-            let erg = database::ShipyardTransaction::get_by_id(database_pool, purchase_id).await?;
-            Ok(Some(erg))
-        } else {
-            Ok(None)
-        }
-    }
-
-    async fn market_transactions<'ctx>(
-        &self,
-        ctx: &async_graphql::Context<'ctx>,
-    ) -> crate::Result<Vec<database::MarketTransaction>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let reg = database::MarketTransaction::get_by_ship(database_pool, &self.symbol).await?;
-        Ok(reg)
-    }
-
-    async fn market_transaction_summary<'ctx>(
-        &self,
-        ctx: &async_graphql::Context<'ctx>,
-    ) -> crate::Result<database::TransactionSummary> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let reg = database::MarketTransaction::get_transaction_summary_by_ship(
-            database_pool,
-            &self.symbol,
-        )
-        .await?;
-        Ok(reg)
-    }
-
-    async fn repair_transactions<'ctx>(
-        &self,
-        ctx: &async_graphql::Context<'ctx>,
-    ) -> crate::Result<Vec<database::RepairTransaction>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let reg = database::RepairTransaction::get_by_ship(database_pool, &self.symbol).await?;
-        Ok(reg)
-    }
-
-    async fn scrap_transactions<'ctx>(
-        &self,
-        ctx: &async_graphql::Context<'ctx>,
-    ) -> crate::Result<Vec<database::ScrapTransaction>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let reg = database::ScrapTransaction::get_by_ship(database_pool, &self.symbol).await?;
-        Ok(reg)
-    }
-
-    async fn ship_modification_transactions<'ctx>(
-        &self,
-        ctx: &async_graphql::Context<'ctx>,
-    ) -> crate::Result<Vec<database::ShipModificationTransaction>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let reg =
-            database::ShipModificationTransaction::get_by_ship(database_pool, &self.symbol).await?;
-        Ok(reg)
-    }
-
-    async fn construction_shipments<'ctx>(
-        &self,
-        ctx: &async_graphql::Context<'ctx>,
-    ) -> crate::Result<Vec<database::ConstructionShipment>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let reg = database::ConstructionShipment::get_by_ship(database_pool, &self.symbol).await?;
-        Ok(reg)
-    }
-
-    async fn contract_shipments<'ctx>(
-        &self,
-        ctx: &async_graphql::Context<'ctx>,
-    ) -> crate::Result<Vec<database::ContractShipment>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let reg = database::ContractShipment::get_by_ship(database_pool, &self.symbol).await?;
-        Ok(reg)
-    }
-
-    // async fn trade_routes<'ctx>(
-    //     &self,
-    //     ctx: &async_graphql::Context<'ctx>,
-    // ) -> crate::Result<Vec<database::TradeRoute>> {
-    //     let database_pool = ctx.data::<database::DbPool>().unwrap();
-    //     let reg = database::TradeRoute::get_by_ship(database_pool, &self.symbol).await?;
-    //     Ok(reg)
-    // }
-
-    async fn surveys<'ctx>(
-        &self,
-        ctx: &async_graphql::Context<'ctx>,
-    ) -> crate::Result<Vec<database::Survey>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let reg = database::Survey::get_by_ship(database_pool, &self.symbol).await?;
-        Ok(reg)
-    }
-
-    async fn extractions<'ctx>(
-        &self,
-        ctx: &async_graphql::Context<'ctx>,
-    ) -> crate::Result<Vec<database::Extraction>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let reg = database::Extraction::get_by_ship(database_pool, &self.symbol).await?;
-        Ok(reg)
-    }
-
-    async fn routes<'ctx>(
-        &self,
-        ctx: &async_graphql::Context<'ctx>,
-    ) -> crate::Result<Vec<database::Route>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let reg = database::Route::get_by_ship(database_pool, &self.symbol).await?;
-        Ok(reg)
-    }
-
-    async fn ship_jumps<'ctx>(
-        &self,
-        ctx: &async_graphql::Context<'ctx>,
-    ) -> crate::Result<Vec<database::ShipJump>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let reg = database::ShipJump::get_by_ship(database_pool, &self.symbol).await?;
-        Ok(reg)
-    }
-
-    async fn engine_info<'ctx>(
-        &self,
-        ctx: &async_graphql::Context<'ctx>,
-    ) -> crate::Result<database::EngineInfo> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let reg = database::EngineInfo::get_by_symbol(database_pool, &self.engine).await?;
-        Ok(reg)
-    }
-
-    async fn frame_info<'ctx>(
-        &self,
-        ctx: &async_graphql::Context<'ctx>,
-    ) -> crate::Result<database::FrameInfo> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let reg = database::FrameInfo::get_by_symbol(database_pool, &self.frame).await?;
-        Ok(reg)
-    }
-
-    async fn reactor_info<'ctx>(
-        &self,
-        ctx: &async_graphql::Context<'ctx>,
-    ) -> crate::Result<database::ReactorInfo> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let reg = database::ReactorInfo::get_by_symbol(database_pool, &self.reactor).await?;
-        Ok(reg)
-    }
-
-    async fn ship_states<'ctx>(
-        &self,
-        ctx: &async_graphql::Context<'ctx>,
-    ) -> crate::Result<Vec<database::ShipState>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let reg = database::ShipState::get_by_ship(database_pool, &self.symbol).await?;
-        Ok(reg)
-    }
-}
-
-impl<T: Clone + Send + Sync + async_graphql::OutputType> RustShip<T> {
+impl<T: Clone + Send + Sync> RustShip<T> {
     pub fn update(&mut self, ship: models::Ship) {
         self.mutate();
         self.symbol = ship.symbol;

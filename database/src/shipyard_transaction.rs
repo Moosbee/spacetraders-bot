@@ -167,6 +167,33 @@ impl ShipyardTransaction {
         Ok(erg)
     }
 
+    pub async fn get_by_waypoint_and_ship_type(
+        database_pool: &super::DbPool,
+        waypoint_symbol: &str,
+        ship_type: models::ShipType,
+    ) -> crate::Result<Vec<ShipyardTransaction>> {
+        let erg = sqlx::query_as!(
+            ShipyardTransaction,
+            r#"
+            SELECT
+                id,
+                waypoint_symbol,
+                ship_type as "ship_type: models::ShipType",
+                price,
+                agent_symbol,
+                "timestamp"
+            FROM shipyard_transaction
+            WHERE waypoint_symbol = $1 AND ship_type = $2
+            order by "timestamp"
+            "#,
+            waypoint_symbol,
+            ship_type as models::ShipType
+        )
+        .fetch_all(database_pool.get_cache_pool())
+        .await?;
+        Ok(erg)
+    }
+
     pub async fn insert_new(
         database_pool: &super::DbPool,
         item: &ShipyardTransaction,

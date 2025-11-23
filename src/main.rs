@@ -48,15 +48,18 @@ use crate::utils::RunInfo;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    // let schema = async_graphql::Schema::build(
+    //     control_api::QueryRoot,
+    //     async_graphql::EmptyMutation,
+    //     async_graphql::EmptySubscription,
+    // )
+    // .finish();
 
+    // println!("{}", schema.sdl());
 
-        let schema = async_graphql::Schema::build(control_api::QueryRoot, async_graphql::EmptyMutation, async_graphql::EmptySubscription)
-            .finish();
+    // tokio::time::sleep(std::time::Duration::from_millis(1000)).await;
 
-        println!("{}", schema.sdl());
-
-        panic!("Finished");
-
+    // panic!("Finished");
 
     let (context, manager_token, managers) = setup_context().await?;
 

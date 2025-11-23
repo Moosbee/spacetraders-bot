@@ -414,4 +414,36 @@ impl ContractShipment {
         .await?;
         Ok(erg)
     }
+
+    pub async fn get_by_contract_id_trade_symbol_destination_symbol(
+        database_pool: &super::DbPool,
+        contract_id: &str,
+        trade_symbol: &models::TradeSymbol,
+        destination_symbol: &str,
+    ) -> crate::Result<Vec<ContractShipment>> {
+        let erg = sqlx::query_as!(
+            ContractShipment,
+            r#"
+            SELECT 
+                id,
+                contract_id,
+                ship_symbol,
+                trade_symbol as "trade_symbol: models::TradeSymbol",
+                units,
+                destination_symbol,
+                purchase_symbol,
+                created_at,
+                updated_at,
+                status as "status: ShipmentStatus"
+            FROM contract_shipment
+            WHERE contract_id = $1 AND trade_symbol = $2 AND destination_symbol = $3
+            "#,
+            contract_id,
+            *trade_symbol as models::TradeSymbol,
+            destination_symbol
+        )
+        .fetch_all(database_pool.get_cache_pool())
+        .await?;
+        Ok(erg)
+    }
 }

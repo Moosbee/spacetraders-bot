@@ -43,6 +43,32 @@ impl ConstructionMaterial {
         }
     }
 
+    pub async fn get_by_id(
+        database_pool: &DbPool,
+        id: i64,
+    ) -> crate::Result<Option<ConstructionMaterial>> {
+        let erg = sqlx::query_as!(
+            ConstructionMaterial,
+            r#"
+            SELECT
+              id,
+              waypoint_symbol,
+              trade_symbol as "trade_symbol: models::TradeSymbol",
+              required,
+              fulfilled,
+              created_at,
+              updated_at
+            FROM construction_material
+            WHERE id = $1
+            LIMIT 1
+          "#,
+            id
+        )
+        .fetch_optional(database_pool.get_cache_pool())
+        .await?;
+        Ok(erg)
+    }
+
     #[instrument(level = "trace", skip(database_pool))]
     pub async fn get_by_trade_symbol(
         database_pool: &DbPool,

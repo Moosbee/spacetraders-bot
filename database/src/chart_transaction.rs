@@ -69,6 +69,31 @@ impl ChartTransaction {
         Ok(erg)
     }
 
+    pub async fn get_by_waypoint_symbol(
+        database_pool: &DbPool,
+        waypoint_symbol: &str,
+    ) -> crate::Result<Option<ChartTransaction>> {
+        let erg = sqlx::query_as!(
+            ChartTransaction,
+            r#" 
+          SELECT
+            id,
+            waypoint_symbol,
+            ship_symbol,
+            total_price,
+            "timestamp"
+          FROM chart_transaction
+          WHERE waypoint_symbol = $1
+          order by "timestamp"
+          LIMIT 1
+        "#,
+            waypoint_symbol
+        )
+        .fetch_optional(database_pool.get_cache_pool())
+        .await?;
+        Ok(erg)
+    }
+
     #[instrument(level = "trace", skip(database_pool))]
     pub async fn get_by_system(
         database_pool: &DbPool,

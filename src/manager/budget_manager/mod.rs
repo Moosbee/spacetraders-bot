@@ -7,11 +7,13 @@ use database::{DatabaseConnector, FundStatus, ReservedFund};
 use tokio::sync::Mutex;
 
 #[derive(Debug, Clone, serde::Serialize, async_graphql::SimpleObject)]
+#[graphql(complex)]
 pub struct BudgetInfo {
     pub current_funds: i64,
     pub iron_reserve: i64,
     pub reserved_amount: i64,
     pub spendable: i64,
+    #[graphql(skip)]
     pub reservations: Vec<ReservedFund>,
 }
 
@@ -102,7 +104,7 @@ impl BudgetManager {
         amount: i64,
         remain: i64,
     ) -> Result<ReservedFund, crate::error::Error> {
-    tracing::debug!(amount = %amount, remain = %remain, "Attempting to reserve funds");
+        tracing::debug!(amount = %amount, remain = %remain, "Attempting to reserve funds");
         let mut reserved_funds = self.reserved_funds.lock().await;
         let reserved_amount = Self::get_still_reserved_funds(reserved_funds.clone());
         let spendable = self.current_funds.load(Ordering::SeqCst) - remain - reserved_amount;
@@ -136,7 +138,7 @@ impl BudgetManager {
         reservation_id: i64,
     ) -> Result<(), crate::error::Error> {
         let mut reserved_funds = self.reserved_funds.lock().await;
-    tracing::debug!(reservation_id = %reservation_id, "Cancelling reservation");
+        tracing::debug!(reservation_id = %reservation_id, "Cancelling reservation");
 
         {
             let reserved_fund = reserved_funds
@@ -170,7 +172,7 @@ impl BudgetManager {
         increment_amount: i64,
     ) -> Result<(), crate::error::Error> {
         let mut reserved_funds = self.reserved_funds.lock().await;
-    tracing::debug!(reservation_id = %reservation_id, "Using reservation");
+        tracing::debug!(reservation_id = %reservation_id, "Using reservation");
 
         let reserved_fund = reserved_funds
             .get_mut(&reservation_id)
@@ -206,7 +208,7 @@ impl BudgetManager {
         actual_amount: i64,
     ) -> Result<(), crate::error::Error> {
         let mut reserved_funds = self.reserved_funds.lock().await;
-    tracing::debug!(reservation_id = %reservation_id, "Completing use of reservation");
+        tracing::debug!(reservation_id = %reservation_id, "Completing use of reservation");
 
         let reserved_fund = reserved_funds
             .get_mut(&reservation_id)
@@ -243,7 +245,7 @@ impl BudgetManager {
         reservation_id: i64,
     ) -> Result<(), crate::error::Error> {
         let mut reserved_funds = self.reserved_funds.lock().await;
-    tracing::debug!(reservation_id = %reservation_id, "Completing reservation");
+        tracing::debug!(reservation_id = %reservation_id, "Completing reservation");
 
         let reserved_fund = reserved_funds
             .get_mut(&reservation_id)

@@ -167,6 +167,46 @@ impl ShipyardShip {
         Ok(erg)
     }
 
+    pub async fn get_last_by_waypoint_and_ship_type(
+        database_pool: &super::DbPool,
+        waypoint_symbol: &str,
+        ship_type: &models::ShipType,
+    ) -> crate::Result<Option<ShipyardShip>> {
+        let erg = sqlx::query_as!(
+            ShipyardShip,
+            r#"
+            SELECT
+                id,
+                waypoint_symbol,
+                ship_type as "ship_type: models::ShipType",
+                name,
+                supply as "supply: models::SupplyLevel",
+                activity as "activity: models::ActivityLevel",
+                purchase_price,
+                frame_type as "frame_type: models::ship_frame::Symbol",
+                frame_quality,
+                reactor_type as "reactor_type: models::ship_reactor::Symbol",
+                reactor_quality,
+                engine_type as "engine_type: models::ship_engine::Symbol",
+                engine_quality,
+                modules as "modules: Vec<models::ship_module::Symbol>",
+                mounts as "mounts: Vec<models::ship_mount::Symbol>",
+                crew_requirement,
+                crew_capacity,
+                created_at
+            FROM shipyard_ship
+            WHERE waypoint_symbol = $1 AND ship_type = $2
+            ORDER BY created_at DESC
+            LIMIT 1
+            "#,
+            waypoint_symbol,
+            *ship_type as models::ShipType
+        )
+        .fetch_optional(database_pool.get_cache_pool())
+        .await?;
+        Ok(erg)
+    }
+
     #[instrument(level = "trace", skip(database_pool))]
     pub async fn get_last(database_pool: &super::DbPool) -> crate::Result<Vec<ShipyardShip>> {
         let erg = sqlx::query_as!(

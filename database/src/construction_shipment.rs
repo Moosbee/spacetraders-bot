@@ -12,6 +12,7 @@ pub struct ConstructionShipment {
     pub ship_symbol: String,
     pub trade_symbol: models::TradeSymbol,
     pub units: i32,
+    #[graphql(name = "purchaseSiteWaypoint")]
     pub purchase_waypoint: String,
     pub created_at: sqlx::types::chrono::DateTime<chrono::Utc>,
     pub updated_at: sqlx::types::chrono::DateTime<chrono::Utc>,
@@ -137,7 +138,7 @@ impl ConstructionShipment {
     }
 
     #[instrument(level = "trace", skip(database_pool))]
-    pub async fn get_by_waypoint(
+    pub async fn get_by_destination_waypoint(
         database_pool: &DbPool,
         waypoint_symbol: &str,
     ) -> crate::Result<Vec<ConstructionShipment>> {
@@ -158,6 +159,36 @@ impl ConstructionShipment {
                   reserved_fund
                 FROM construction_shipment
                 WHERE construction_site_waypoint = $1
+            "#,
+            waypoint_symbol
+        )
+        .fetch_all(database_pool.get_cache_pool())
+        .await?;
+        Ok(erg)
+    }
+
+    #[instrument(level = "trace", skip(database_pool))]
+    pub async fn get_by_source_waypoint(
+        database_pool: &DbPool,
+        waypoint_symbol: &str,
+    ) -> crate::Result<Vec<ConstructionShipment>> {
+        let erg = sqlx::query_as!(
+            ConstructionShipment,
+            r#"
+                SELECT
+                  id,
+                  material_id,
+                  construction_site_waypoint,
+                  ship_symbol,
+                  trade_symbol as "trade_symbol: models::TradeSymbol",
+                  units,
+                  purchase_waypoint,
+                  created_at,
+                  updated_at,
+                  status as "status: ShipmentStatus",
+                  reserved_fund
+                FROM construction_shipment
+                WHERE purchase_waypoint = $1
             "#,
             waypoint_symbol
         )
@@ -281,6 +312,32 @@ impl ConstructionShipment {
                 WHERE ship_symbol = $1
             "#,
             ship_symbol
+        )
+        .fetch_all(database_pool.get_cache_pool())
+        .await?;
+        Ok(erg)
+    }
+
+    pub async fn get_by_reservation_id(
+        database_pool: &DbPool,
+        id: i64,
+    ) -> crate::Result<Vec<ConstructionShipment>> {
+        let erg = sqlx::query_as!(
+            ConstructionShipment,
+            r#"SELECT
+                  id,
+                  material_id,
+                  construction_site_waypoint,
+                  ship_symbol,
+                  trade_symbol as "trade_symbol: models::TradeSymbol",
+                  units,
+                  purchase_waypoint,
+                  created_at,
+                  updated_at,
+                  status as "status: ShipmentStatus",
+                  reserved_fund
+                FROM construction_shipment WHERE reserved_fund = $1"#,
+            id
         )
         .fetch_all(database_pool.get_cache_pool())
         .await?;
