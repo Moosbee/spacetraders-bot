@@ -68,6 +68,27 @@ impl System {
         .await?;
         Ok(erg)
     }
+
+    #[instrument(level = "trace", skip(database_pool))]
+
+    pub async fn set_population_disabled_led(
+        database_pool: &super::DbPool,
+        symbol: &str,
+        disabled: bool,
+    ) -> crate::Result<()> {
+        sqlx::query!(
+            r#"
+            UPDATE system
+            SET population_disabled = $1
+            WHERE symbol = $2
+            "#,
+            disabled,
+            symbol
+        )
+        .execute(&database_pool.database_pool)
+        .await?;
+        Ok(())
+    }
 }
 
 impl DatabaseConnector<System> for System {

@@ -344,28 +344,37 @@ impl MutationRoot {
         system: String,
     ) -> super::Result<bool> {
         let context = ctx.data::<ConductorContext>()?;
-        todo!()
+        context
+            .fleet_manager
+            .populate_system(system)
+            .await
+            .map_err(|e| super::GraphiQLError::IO(e.to_string()))?;
+        Ok(true)
     }
 
-    // /// Blacklist a system from population. Currently a no-op placeholder returning true; implement persistence as needed.
-    // async fn blacklist_system<'ctx>(
-    //     &self,
-    //     _ctx: &Context<'ctx>,
-    //     _system: String,
-    // ) -> super::Result<bool> {
-    //     // TODO: implement persistent blacklist (database table) if desired
-    //     Ok(true)
-    // }
+    /// Blacklist a system from population
+    async fn blacklist_system<'ctx>(
+        &self,
+        ctx: &Context<'ctx>,
+        system: String,
+    ) -> super::Result<bool> {
+        let context = ctx.data::<ConductorContext>()?;
+        database::System::set_population_disabled_led(&context.database_pool, &system, true)
+            .await?;
+        Ok(true)
+    }
 
-    // /// Remove a system from the blacklist. Placeholder — implement persistence as needed.
-    // async fn deblacklist_system<'ctx>(
-    //     &self,
-    //     _ctx: &Context<'ctx>,
-    //     _system: String,
-    // ) -> super::Result<bool> {
-    //     // TODO: implement persistent blacklist removal
-    //     Ok(true)
-    // }
+    /// Remove a system from the blacklist
+    async fn deblacklist_system<'ctx>(
+        &self,
+        ctx: &Context<'ctx>,
+        system: String,
+    ) -> super::Result<bool> {
+        let context = ctx.data::<ConductorContext>()?;
+        database::System::set_population_disabled_led(&context.database_pool, &system, false)
+            .await?;
+        Ok(true)
+    }
 
     /// Force assign a ship a new assignment from the fleet manager.
     async fn force_assign_ship<'ctx>(
