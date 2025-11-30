@@ -2,7 +2,6 @@ use std::collections::{HashMap, HashSet};
 
 use database::DatabaseConnector;
 use itertools::Itertools;
-use space_traders_client::models::waypoint;
 use tracing::{debug, warn};
 
 use crate::{

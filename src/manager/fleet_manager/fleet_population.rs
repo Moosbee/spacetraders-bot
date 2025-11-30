@@ -2,7 +2,7 @@ use core::panic;
 use std::collections::HashSet;
 
 use database::DatabaseConnector;
-use space_traders_client::models::{self, market};
+use space_traders_client::models;
 use utils::WaypointCan;
 
 struct SystemFleets {
@@ -94,6 +94,23 @@ pub async fn populate_system(
             .cloned(),
     )
     .await?;
+
+    let fleets = database::Fleet::get_by_system(&context.database_pool, system_symbol).await?;
+
+    for fleet in fleets {
+        let current_assignments =
+            database::ShipAssignment::get_by_fleet_id(&context.database_pool, fleet.id).await?;
+        let new_assignments =
+            super::assignment_management::generate_fleet_assignments(&fleet, context).await?;
+
+        let assignments = super::assignment_management::fix_fleet_assignments(
+            current_assignments,
+            new_assignments,
+        )
+        .await?;
+
+        super::assignment_management::update_fleet_assignments(context, assignments).await?;
+    }
 
     Ok(())
 }
@@ -285,7 +302,7 @@ async fn generate_system_fleets(
         );
     }
 
-    todo!()
+    Ok(system_fleets)
 }
 
 async fn update_fleet(
@@ -322,5 +339,5 @@ pub async fn is_system_populated(
     system_symbol: &str,
 ) -> Result<bool, crate::error::Error> {
     let fleets = database::Fleet::get_by_system(database_pool, system_symbol).await?;
-    Ok(!fleets.is_empty())
+    Ok(fleets.len() >= 5) // if there are less than 5 fleets, the system is not fully populated
 }

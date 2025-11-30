@@ -10,6 +10,7 @@ use crate::apis::contracts_api::{
     AcceptContractError, DeliverContractError, FulfillContractError, GetContractError,
     GetContractsError,
 };
+use crate::apis::data_api::GetSupplyChainError;
 use crate::apis::factions_api::{GetFactionError, GetFactionsError};
 use crate::apis::fleet_api::{
     self, CreateChartError, CreateShipShipScanError, CreateShipSystemScanError,
@@ -119,6 +120,18 @@ impl Api {
             .await
         )?;
         Ok(*register_response.data)
+    }
+
+    pub async fn get_exports_to_imports(
+        &self,
+    ) -> Result<models::GetSupplyChain200Response, Error<GetSupplyChainError>> {
+        let result = rate_limit_retry!(
+            self,
+            50,
+            "get_exports_to_imports",
+            crate::apis::data_api::get_supply_chain(&self.configuration).await
+        )?;
+        Ok(result)
     }
 
     /// Fetch your agent's details.

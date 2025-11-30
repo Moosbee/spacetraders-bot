@@ -7,10 +7,12 @@ use super::DatabaseConnector;
 #[graphql(name = "DBSystem")]
 pub struct System {
     pub symbol: String,
+    pub constellation: Option<String>,
     pub sector_symbol: String,
     pub system_type: models::SystemType,
     pub x: i32,
     pub y: i32,
+    pub population_disabled: bool,
     // pub factions: Vec<String>,
 }
 
@@ -25,55 +27,17 @@ impl From<&System> for (i32, i32) {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, serde::Serialize)]
-pub struct RespSystem {
-    pub symbol: String,
-    pub sector_symbol: String,
-    pub system_type: models::SystemType,
-    pub x: i32,
-    pub y: i32,
-    pub waypoints: Option<i32>,
-    pub marketplaces: Option<i32>,
-    pub shipyards: Option<i32>,
-    pub has_my_ships: Option<bool>,
-}
-
 impl From<&models::System> for System {
     fn from(system: &models::System) -> Self {
         System {
+            constellation: system.constellation.clone(),
+            population_disabled: false,
             symbol: system.symbol.clone(),
             sector_symbol: system.sector_symbol.clone(),
             system_type: system.r#type,
             x: system.x,
             y: system.y,
         }
-    }
-}
-
-impl RespSystem {
-    #[instrument(level = "trace", skip(database_pool))]
-    pub async fn get_all(database_pool: &super::DbPool) -> crate::Result<Vec<RespSystem>> {
-        let erg = sqlx::query_as!(
-            RespSystem,
-            r#"
-            SELECT 
-                system.symbol,
-                system.sector_symbol,
-                system.system_type as "system_type: models::SystemType",
-                system.x,
-                system.y,
-            		count(waypoint.symbol) as "waypoints: i32",
-				      	sum(CASE when waypoint.has_shipyard THEN 1 ELSE 0 END) as "shipyards: i32",
-			      		sum(CASE when waypoint.has_marketplace THEN 1 ELSE 0 END) as "marketplaces: i32",
-            		false as "has_my_ships: bool"
-            FROM system left join waypoint on system.symbol = waypoint.system_symbol
-			group by system.symbol
-            "#
-        )
-        .fetch_all(database_pool.get_cache_pool())
-        .await?;
-
-        Ok(erg)
     }
 }
 
@@ -88,6 +52,8 @@ impl System {
             r#"
             SELECT 
                 symbol,
+                constellation,
+                population_disabled,
                 sector_symbol,
                 system_type as "system_type: models::SystemType",
                 x,
@@ -112,19 +78,25 @@ impl DatabaseConnector<System> for System {
                 INSERT INTO system (
                     symbol,
                     sector_symbol,
+                    constellation,
+                    population_disabled,
                     system_type,
                     x,
                     y
                 )
-                VALUES ($1, $2, $3, $4, $5)
+                VALUES ($1, $2, $3, $4, $5, $6, $7)
                 ON CONFLICT (symbol) DO UPDATE
                 SET sector_symbol = EXCLUDED.sector_symbol,
+                    constellation = EXCLUDED.constellation,
+                    population_disabled = EXCLUDED.population_disabled,
                     system_type = EXCLUDED.system_type,
                     x = EXCLUDED.x,
                     y = EXCLUDED.y
             "#,
             item.symbol,
             item.sector_symbol,
+            item.constellation,
+            item.population_disabled,
             item.system_type as models::SystemType,
             item.x,
             item.y
@@ -137,7 +109,9 @@ impl DatabaseConnector<System> for System {
 
     #[instrument(level = "trace", skip(database_pool, items))]
     async fn insert_bulk(database_pool: &super::DbPool, items: &[System]) -> crate::Result<()> {
-        let (symbols, sector_symbols, system_types, xs, ys): (
+        let (symbols, constellation, population_disableds, sector_symbols, system_types, xs, ys): (
+            Vec<_>,
+            Vec<_>,
             Vec<_>,
             Vec<_>,
             Vec<_>,
@@ -146,6 +120,8 @@ impl DatabaseConnector<System> for System {
         ) = itertools::multiunzip(items.iter().map(|s| {
             (
                 s.symbol.clone(),
+                s.constellation.clone(),
+                s.population_disabled,
                 s.sector_symbol.clone(),
                 s.system_type,
                 s.x,
@@ -157,6 +133,8 @@ impl DatabaseConnector<System> for System {
             r#"
             INSERT INTO system (
                 symbol,
+                constellation,
+                population_disabled,
                 sector_symbol,
                 system_type,
                 x,
@@ -165,17 +143,23 @@ impl DatabaseConnector<System> for System {
             SELECT * FROM UNNEST(
                 $1::character varying[],
                 $2::character varying[],
-                $3::system_type[],
-                $4::integer[],
-                $5::integer[]
+                $3::boolean[],
+                $4::character varying[],
+                $5::system_type[],
+                $6::integer[],
+                $7::integer[]
             )
             ON CONFLICT (symbol) DO UPDATE
             SET sector_symbol = EXCLUDED.sector_symbol,
+                constellation = EXCLUDED.constellation,
+                population_disabled = EXCLUDED.population_disabled,
                 system_type = EXCLUDED.system_type,
                 x = EXCLUDED.x,
                 y = EXCLUDED.y
             "#,
             &symbols,
+            &constellation as &[Option<String>],
+            &population_disableds,
             &sector_symbols,
             &system_types as &[models::SystemType],
             &xs,
@@ -194,6 +178,8 @@ impl DatabaseConnector<System> for System {
             r#"
             SELECT 
                 symbol,
+                constellation,
+                population_disabled,
                 sector_symbol,
                 system_type as "system_type: models::SystemType",
                 x,
@@ -219,6 +205,8 @@ impl System {
         SELECT 
             symbol,
             sector_symbol,
+            constellation,
+            population_disabled,
             system_type as "system_type: models::SystemType",
             x,
             y
