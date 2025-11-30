@@ -7,12 +7,12 @@ use crate::{DatabaseConnector, DbPool};
 pub struct ShipAssignment {
     pub id: i64,
     pub fleet_id: i32,
-    pub priority: i32, // lower numbers are higher priority
-    pub max_purchase_price: i32,
-    pub credits_threshold: i32,
+    pub priority: i32, // lower numbers are higher priority, distributed around 100 +- 50
+    pub max_purchase_price: i32, // between 900_000 and 20_000_000
+    pub credits_threshold: i32, // between 50_000 and 5_000_000
     pub disabled: bool, // if true, ship should not be assigned to this assignment and currently assigned ships should be removed
-    pub range_min: i32, // aka fuel capacity minimum, -1 means infinite
-    pub cargo_min: i32,
+    pub range_min: i32, // aka fuel capacity minimum, -1 means infinite, between -1 and 5000
+    pub cargo_min: i32, // minimum cargo space required, 0 means no requirement, between 0 and 1000
     pub survey: bool,
     pub extractor: bool,
     pub siphon: bool,
@@ -21,6 +21,83 @@ pub struct ShipAssignment {
 }
 
 impl ShipAssignment {
+    /// assignments can merge, ie updated without invalidation assigned ships when:
+    /// - they belong to the same fleet
+    /// - survey is the same
+    /// - extractor is the same
+    /// - siphon is the same
+    /// - warp_drive is the same
+    /// // - refinery is the same
+    /// - range may change, except from infinite to finite or vice versa
+    /// - cargo_min may change, but not from 0 to non-0 or vice versa
+    /// - max_purchase_price may change
+    /// - credits_threshold may change
+    /// - priority may change
+    /// - disabled may change
+    pub fn can_merge(&self, b: &ShipAssignment) -> bool {
+        if self.fleet_id != b.fleet_id {
+            return false;
+        }
+        if self.survey != b.survey {
+            return false;
+        }
+        if self.extractor != b.extractor {
+            return false;
+        }
+        if self.siphon != b.siphon {
+            return false;
+        }
+        if self.warp_drive != b.warp_drive {
+            return false;
+        }
+        // if self.refinery != b.refinery {
+        //     return false;
+        // }
+        if (self.range_min < 0 && b.range_min >= 0) || (self.range_min >= 0 && b.range_min < 0) {
+            return false;
+        }
+        if (self.cargo_min == 0 && b.cargo_min > 0) || (self.cargo_min > 0 && b.cargo_min == 0) {
+            return false;
+        }
+        true
+    }
+
+    /// calculates a score for merging two assignments, lower is better
+    /// if they perfectly match, the bes solution the score is 0.0
+    /// otherwise the score increases with the difference in modifiable fields
+    /// fields that cannot be merged return f32::INFINITY
+    /// priority difference is weighted highest
+    /// then range_min
+    /// then cargo_min
+    /// then max_purchase_price
+    /// then credits_threshold
+    pub fn merge_score(&self, b: &ShipAssignment) -> f32 {
+        const PRIORITY_MULTIPLIER: f32 = 0.04; // range ~100, highest priority
+        const RANGE_MULTIPLIER: f32 = 0.008; // range ~5000, second highest
+        const CARGO_MULTIPLIER: f32 = 0.004; // range ~1000, third
+        const MAX_PRICE_MULTIPLIER: f32 = 0.0000005; // range ~19_100_000, fourth
+        const CREDITS_MULTIPLIER: f32 = 0.0000002; // range ~4_950_000, lowest priority
+        let priority_diff = (self.priority - b.priority).abs() as f32 * PRIORITY_MULTIPLIER;
+        let range_diff = (self.range_min - b.range_min).abs() as f32 * RANGE_MULTIPLIER;
+        let cargo_diff = (self.cargo_min - b.cargo_min).abs() as f32 * CARGO_MULTIPLIER;
+        let max_price_diff =
+            (self.max_purchase_price - b.max_purchase_price).abs() as f32 * MAX_PRICE_MULTIPLIER;
+        let credits_diff =
+            (self.credits_threshold - b.credits_threshold).abs() as f32 * CREDITS_MULTIPLIER;
+        priority_diff + range_diff + cargo_diff + max_price_diff + credits_diff
+    }
+
+    /// merges the modifiable fields from other into self
+    pub fn merge_into(&mut self, other: &ShipAssignment) {
+        self.priority = other.priority;
+        self.max_purchase_price = other.max_purchase_price;
+        self.credits_threshold = other.credits_threshold;
+        // disabled is disabled, if any of the two is disabled
+        self.disabled = self.disabled || other.disabled;
+        self.range_min = other.range_min;
+        self.cargo_min = other.cargo_min;
+    }
+
     #[instrument(level = "trace", skip(database_pool))]
     pub async fn get_by_id(
         database_pool: &DbPool,
@@ -156,6 +233,19 @@ impl ShipAssignment {
         .await?;
 
         Ok(erg.id)
+    }
+
+    pub async fn delete_by_id(database_pool: &DbPool, id: i64) -> crate::Result<()> {
+        sqlx::query!(
+            r#"
+                DELETE FROM ship_assignment
+                WHERE id = $1
+            "#,
+            id
+        )
+        .execute(&database_pool.database_pool)
+        .await?;
+        Ok(())
     }
 }
 

@@ -1,9 +1,12 @@
 mod gql_models;
 mod gql_ship;
+pub mod mutations;
 
 use async_graphql::Object;
 use database::DatabaseConnector;
 use space_traders_client::models;
+use std::collections::HashMap;
+use utils::WaypointCan;
 
 use crate::{
     control_api::graphql::gql_models::GQLShip,
@@ -26,6 +29,15 @@ impl QueryRoot {
         let context = ctx.data::<ConductorContext>()?;
         let counter = context.api.get_limiter().get_counter();
         Ok(counter)
+    }
+
+    async fn config<'ctx>(
+        &self,
+        ctx: &async_graphql::Context<'ctx>,
+    ) -> Result<crate::utils::Config> {
+        let context = ctx.data::<ConductorContext>()?;
+        let config = context.config.read().await.clone();
+        Ok(config)
     }
 
     async fn ship<'ctx>(
@@ -757,6 +769,58 @@ impl QueryRoot {
         Ok(jump_gate_connections.into_iter().map(Into::into).collect())
     }
 
+    async fn jump_connections<'ctx>(
+        &self,
+        ctx: &async_graphql::Context<'ctx>,
+    ) -> Result<Vec<gql_models::GateConn>> {
+        let context = ctx.data::<ConductorContext>()?;
+        let connections = database::JumpGateConnection::get_all(&context.database_pool).await?;
+
+        let mut connection_map: HashMap<(String, String), gql_models::GateConn> = HashMap::new();
+
+        for connection in connections {
+            let mut pair = [connection.from.clone(), connection.to.clone()];
+            pair.sort(); // Ensure the pair is always in a consistent order
+            let entry = connection_map.entry((pair[0].clone(), pair[1].clone()));
+
+            let entry = entry.or_insert_with(|| gql_models::GateConn {
+                point_a_symbol: pair[0].clone(),
+                point_b_symbol: pair[1].clone(),
+                under_construction_a: false,
+                under_construction_b: false,
+                from_a: false,
+                from_b: false,
+            });
+            let is_from_a = connection.from == pair[0];
+            let is_from_b = connection.from == pair[1];
+            if is_from_a {
+                entry.from_a = true;
+            } else if is_from_b {
+                entry.from_b = true;
+            }
+        }
+
+        let gate_waypoints = database::Waypoint::get_all(&context.database_pool)
+            .await?
+            .into_iter()
+            .filter(|w| w.is_jump_gate())
+            .map(|w| (w.symbol.clone(), w))
+            .collect::<HashMap<_, _>>();
+
+        for connection in connection_map.values_mut() {
+            connection.under_construction_a = gate_waypoints
+                .get(&connection.point_a_symbol)
+                .map(|w| w.is_under_construction)
+                .unwrap_or(false);
+            connection.under_construction_b = gate_waypoints
+                .get(&connection.point_b_symbol)
+                .map(|w| w.is_under_construction)
+                .unwrap_or(false);
+        }
+
+        Ok(connection_map.into_values().collect())
+    }
+
     async fn market_trades<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
@@ -940,6 +1004,8 @@ pub enum GraphiQLError {
     GraphiQL(async_graphql::Error),
     #[error("Database error: {0}")]
     Database(#[from] database::Error),
+    #[error("IO error: {0}")]
+    IO(String),
 }
 
 impl From<async_graphql::Error> for GraphiQLError {

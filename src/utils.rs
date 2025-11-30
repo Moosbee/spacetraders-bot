@@ -35,9 +35,9 @@ pub struct ConductorContext {
     pub config: Arc<RwLock<Config>>,
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone, async_graphql::SimpleObject)]
 pub struct Config {
-    pub socket_address: SocketAddr,
+    pub socket_address: String,
     pub control_start_sleep: u64,
     pub control_active: bool,
 

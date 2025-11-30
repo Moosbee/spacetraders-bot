@@ -167,22 +167,14 @@ pub trait DatabaseConnector<T> {
 }
 
 #[allow(async_fn_in_trait)]
-pub trait DatabaseConnectorAsync {
-    type T;
+pub trait DatabaseConnectorAsync: std::marker::Sized {
     type ID;
-    async fn insert_new(database_pool: &DbPool, item: &Self::T) -> crate::Result<Self::ID>;
-    async fn upsert(database_pool: &DbPool, item: &Self::T) -> crate::Result<()>;
-    async fn update(database_pool: &DbPool, item: &Self::T) -> crate::Result<()>;
-    async fn insert_bulk(database_pool: &DbPool, items: &[Self::T]) -> crate::Result<()>;
-    async fn get_all(database_pool: &DbPool) -> crate::Result<Vec<Self::T>>;
-    async fn get_by_id(database_pool: &DbPool, id: &Self::ID) -> crate::Result<Option<Self::T>>;
-}
-
-#[allow(async_fn_in_trait)]
-pub trait ShipGetter {
-    type Ship: async_graphql::OutputType;
-    async fn get_ship(&self, symbol: &str) -> Option<Self::Ship>;
-    async fn get_ships(&self) -> Vec<Self::Ship>;
-    async fn get_ship_by_assignment(&self, assignment_id: i64) -> Option<Self::Ship>;
-    async fn get_ships_by_fleet(&self, fleet_id: i32) -> Vec<Self::Ship>;
+    async fn insert_new(database_pool: &DbPool, item: &Self) -> crate::Result<Self::ID>;
+    async fn upsert(database_pool: &DbPool, item: &Self) -> crate::Result<()>;
+    async fn update(database_pool: &DbPool, item: &Self) -> crate::Result<()>;
+    async fn insert_bulk(database_pool: &DbPool, items: &[Self]) -> crate::Result<()>;
+    async fn get_all(database_pool: &DbPool) -> crate::Result<Vec<Self>>;
+    async fn get_by_id(database_pool: &DbPool, id: &Self::ID) -> crate::Result<Option<Self>>;
+    async fn delete_by_id(database_pool: &DbPool, id: &Self::ID) -> crate::Result<()>;
+    fn set_id(&mut self, id: Self::ID);
 }

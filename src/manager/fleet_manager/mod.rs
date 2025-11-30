@@ -1,5 +1,6 @@
 pub mod assignment_management;
 mod fleet_manager;
+pub mod fleet_population;
 pub mod message;
 mod messanger;
 mod ship_capabilities;

@@ -2771,3 +2771,32 @@ impl GQLShip {
         Ok(GQLModules::from(self.ship.modules.clone()))
     }
 }
+
+#[derive(Debug, Clone, async_graphql::SimpleObject)]
+#[graphql(name = "GateConn")]
+#[graphql(complex)]
+pub struct GateConn {
+    pub under_construction_a: bool,
+    pub under_construction_b: bool,
+    pub point_a_symbol: String,
+    pub point_b_symbol: String,
+    pub from_a: bool,
+    pub from_b: bool,
+}
+
+#[async_graphql::ComplexObject]
+impl GateConn {
+    async fn point_a(&self, ctx: &async_graphql::Context<'_>) -> Result<Option<GQLWaypoint>> {
+        let database_pool = ctx.data::<database::DbPool>().unwrap();
+        let waypoint =
+            database::Waypoint::get_by_symbol(database_pool, &self.point_a_symbol).await?;
+        Ok(into_gql(waypoint))
+    }
+
+    async fn point_b(&self, ctx: &async_graphql::Context<'_>) -> Result<Option<GQLWaypoint>> {
+        let database_pool = ctx.data::<database::DbPool>().unwrap();
+        let waypoint =
+            database::Waypoint::get_by_symbol(database_pool, &self.point_b_symbol).await?;
+        Ok(into_gql(waypoint))
+    }
+}

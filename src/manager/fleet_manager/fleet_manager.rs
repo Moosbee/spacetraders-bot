@@ -2,6 +2,7 @@ use std::collections::{HashMap, HashSet};
 
 use database::DatabaseConnector;
 use itertools::Itertools;
+use space_traders_client::models::waypoint;
 use tracing::{debug, warn};
 
 use crate::{
@@ -104,7 +105,52 @@ impl FleetManager {
             crate::manager::fleet_manager::message::FleetMessage::ReGenerateAssignments {
                 callback,
             } => {
-                self.re_generate_assignments().await?;
+                self.re_generate_assignments(RegenFleetBy::All).await?;
+                callback.send(()).map_err(|e| {
+                    crate::error::Error::General(format!("Failed to send message: {:?}", e))
+                })?;
+            }
+            crate::manager::fleet_manager::message::FleetMessage::ReGenerateFleetAssignments {
+                callback,
+                fleet_id,
+            } => {
+                self.re_generate_assignments(RegenFleetBy::Fleet(fleet_id))
+                    .await?;
+                callback.send(()).map_err(|e| {
+                    crate::error::Error::General(format!("Failed to send message: {:?}", e))
+                })?;
+            }
+            crate::manager::fleet_manager::message::FleetMessage::ReGenerateSystemAssignments {
+                callback,
+                system_symbol,
+            } => {
+                self.re_generate_assignments(RegenFleetBy::System(system_symbol))
+                    .await?;
+                callback.send(()).map_err(|e| {
+                    crate::error::Error::General(format!("Failed to send message: {:?}", e))
+                })?;
+            }
+            crate::manager::fleet_manager::message::FleetMessage::PopulateSystem {
+                callback,
+                system_symbol,
+            } => {
+                crate::manager::fleet_manager::fleet_population::populate_system(
+                    &self.context,
+                    &system_symbol,
+                )
+                .await?;
+                self.re_generate_assignments(RegenFleetBy::System(system_symbol))
+                    .await?;
+                callback.send(()).map_err(|e| {
+                    crate::error::Error::General(format!("Failed to send message: {:?}", e))
+                })?;
+            }
+            crate::manager::fleet_manager::message::FleetMessage::PopulateFromJumpGate {
+                callback,
+                jump_gate_symbol,
+            } => {
+                self.handle_populate_from_jump_gate(&jump_gate_symbol)
+                    .await?;
                 callback.send(()).map_err(|e| {
                     crate::error::Error::General(format!("Failed to send message: {:?}", e))
                 })?;
@@ -517,8 +563,21 @@ impl FleetManager {
         }
     }
 
-    async fn re_generate_assignments(&mut self) -> Result<()> {
-        let fleets = database::Fleet::get_all(&self.context.database_pool).await?;
+    async fn re_generate_assignments(&mut self, by: RegenFleetBy) -> Result<()> {
+        let fleets = match by {
+            RegenFleetBy::All => database::Fleet::get_all(&self.context.database_pool).await?,
+            RegenFleetBy::System(system_symbol) => {
+                database::Fleet::get_by_system(&self.context.database_pool, &system_symbol).await?
+            }
+            RegenFleetBy::Fleet(fleet_id) => {
+                let fleet =
+                    database::Fleet::get_by_id(&self.context.database_pool, fleet_id).await?;
+                match fleet {
+                    Some(fleet) => vec![fleet],
+                    None => vec![],
+                }
+            }
+        };
 
         for fleet in fleets {
             let current_assignments =
@@ -528,17 +587,72 @@ impl FleetManager {
                 super::assignment_management::generate_fleet_assignments(&fleet, &self.context)
                     .await?;
 
-            let _erg = super::assignment_management::update_fleet_assignments(
-                &fleet,
+            let assignments = super::assignment_management::fix_fleet_assignments(
                 current_assignments,
                 new_assignments,
-                &self.context,
             )
-            .await;
+            .await?;
+
+            super::assignment_management::update_fleet_assignments(&self.context, assignments)
+                .await?;
         }
 
         Ok(())
     }
+
+    async fn handle_populate_from_jump_gate(&mut self, jump_gate_symbol: &str) -> Result<()> {
+        let waypoint =
+            database::Waypoint::get_by_symbol(&self.context.database_pool, jump_gate_symbol)
+                .await?;
+
+        if waypoint.is_none() {
+            return Err(crate::error::Error::General(format!(
+                "Waypoint {} not found in database",
+                jump_gate_symbol
+            )));
+        }
+
+        let system_symbol = utils::get_system_symbol(jump_gate_symbol);
+        crate::manager::fleet_manager::fleet_population::populate_system(
+            &self.context,
+            &system_symbol,
+        )
+        .await?;
+
+        if waypoint.unwrap().is_under_construction {
+            return Ok(());
+        }
+
+        let connections = database::JumpGateConnection::get_all_from(
+            &self.context.database_pool,
+            jump_gate_symbol,
+        )
+        .await?;
+
+        for gate in connections.iter() {
+            let waypoint =
+                database::Waypoint::get_by_symbol(&self.context.database_pool, &gate.to).await?;
+
+            if waypoint.map(|f| f.is_under_construction).unwrap_or(true) {
+                continue;
+            }
+
+            let system_symbol = utils::get_system_symbol(&gate.to);
+            crate::manager::fleet_manager::fleet_population::populate_system(
+                &self.context,
+                &system_symbol,
+            )
+            .await?;
+        }
+
+        Ok(())
+    }
+}
+
+enum RegenFleetBy {
+    System(String),
+    Fleet(i32),
+    All,
 }
 
 impl Manager for FleetManager {

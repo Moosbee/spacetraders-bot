@@ -8,6 +8,7 @@ mod open_telemetry;
 mod pilot;
 mod utils;
 
+use core::panic;
 use std::{collections::HashSet, env, error::Error, str::FromStr, sync::Arc, vec};
 
 use chrono::{DateTime, Utc};
@@ -36,7 +37,7 @@ use tokio_stream::StreamExt;
 use tokio_util::sync::CancellationToken;
 
 use ::utils::{get_system_symbol, WaypointCan};
-use tracing::{instrument, Instrument};
+use tracing::{info, instrument, Instrument};
 use tracing_subscriber::layer::SubscriberExt;
 use utils::ConductorContext;
 
@@ -63,6 +64,40 @@ async fn main() -> anyhow::Result<()> {
 
     let (context, manager_token, managers) = setup_context().await?;
 
+    // let fleets = database::Fleet::get_all(&context.database_pool).await?;
+
+    // for fleet in fleets {
+    //     let current_assignments =
+    //         database::ShipAssignment::get_by_fleet_id(&context.database_pool, fleet.id).await?;
+    //     let new_assignments =
+    //         manager::fleet_manager::assignment_management::generate_fleet_assignments(
+    //             &fleet, &context,
+    //         )
+    //         .await?;
+
+    //     tracing::info!(
+    //         fleet_id = %fleet.id,
+    //         current_assignments = ?current_assignments,
+    //         new_assignments = ?new_assignments,
+    //         "Updating fleet assignments");
+
+    //     let assignments = manager::fleet_manager::assignment_management::fix_fleet_assignments(
+    //         current_assignments,
+    //         new_assignments,
+    //     )
+    //     .await?;
+
+    //     info!(
+    //         fleet_id = %fleet.id,
+    //         assignments = ?assignments,
+    //         "Fixed fleet assignments"
+    //     );
+    // }
+
+    // tokio::time::sleep(std::time::Duration::from_millis(1000)).await;
+
+    // panic!("Finished");
+
     // let reg = setup_main_system_fleets(&context).await;
 
     // if let Err(errorr) = reg {
@@ -73,6 +108,23 @@ async fn main() -> anyhow::Result<()> {
     // }
 
     // panic!("Finished");
+
+    if manager::fleet_manager::fleet_population::is_system_populated(
+        &context.database_pool,
+        &get_system_symbol(&context.run_info.read().await.headquarters),
+    )
+    .await?
+    {
+        tracing::info!("Main system already populated");
+    } else {
+        tracing::info!("Populating main system fleets");
+        manager::fleet_manager::fleet_population::populate_system(
+            &context,
+            &get_system_symbol(&context.run_info.read().await.headquarters),
+        )
+        .await?;
+        tracing::info!("Populated main system fleets");
+    }
 
     let erg = start(context, manager_token, managers).await;
 

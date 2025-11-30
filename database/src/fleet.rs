@@ -308,6 +308,405 @@ impl Fleet {
         }
     }
 
+    /// Update basic fleet fields (system_symbol, active) when provided.
+    #[instrument(level = "trace", skip(database_pool))]
+    pub async fn update_basic(
+        database_pool: &DbPool,
+        id: i32,
+        system_symbol: Option<String>,
+        active: Option<bool>,
+    ) -> crate::Result<()> {
+        if let Some(sym) = system_symbol {
+            sqlx::query!(
+                r#"UPDATE fleet SET system_symbol = $1, updated_at = NOW() WHERE id = $2"#,
+                sym,
+                id
+            )
+            .execute(&database_pool.database_pool)
+            .await?;
+        }
+        if let Some(a) = active {
+            sqlx::query!(
+                r#"UPDATE fleet SET active = $1, updated_at = NOW() WHERE id = $2"#,
+                a,
+                id
+            )
+            .execute(&database_pool.database_pool)
+            .await?;
+        }
+        Ok(())
+    }
+
+    /// Update trading-related fields selectively. Only fields wrapped in Some() are updated.
+    #[allow(clippy::too_many_arguments)]
+    #[instrument(level = "trace", skip(database_pool))]
+    pub async fn update_trading_config(
+        database_pool: &DbPool,
+        id: i32,
+        market_blacklist: Option<Vec<models::TradeSymbol>>,
+        market_prefer_list: Option<Vec<models::TradeSymbol>>,
+        purchase_multiplier: Option<f64>,
+        ship_market_ratio: Option<f64>,
+        min_cargo_space: Option<i32>,
+        trade_mode: Option<TradeMode>,
+        trade_profit_threshold: Option<i32>,
+    ) -> crate::Result<()> {
+        let ft = FleetType::Trading;
+        if market_blacklist.is_some() {
+            sqlx::query!(
+                r#"UPDATE fleet SET market_blacklist = $1, fleet_type = $2::fleet_type, updated_at = NOW() WHERE id = $3"#,
+                &market_blacklist as &Option<Vec<models::TradeSymbol>>,
+                &ft as &FleetType,
+                id
+            )
+            .execute(&database_pool.database_pool)
+            .await?;
+        }
+        if market_prefer_list.is_some() {
+            sqlx::query!(
+                r#"UPDATE fleet SET market_prefer_list = $1, fleet_type = $2::fleet_type, updated_at = NOW() WHERE id = $3"#,
+                &market_prefer_list as &Option<Vec<models::TradeSymbol>>,
+                &ft as &FleetType,
+                id
+            )
+            .execute(&database_pool.database_pool)
+            .await?;
+        }
+        if purchase_multiplier.is_some() {
+            sqlx::query!(
+                r#"UPDATE fleet SET purchase_multiplier = $1, fleet_type = $2::fleet_type, updated_at = NOW() WHERE id = $3"#,
+                &purchase_multiplier as &Option<f64>,
+                &ft as &FleetType,
+                id
+            )
+            .execute(&database_pool.database_pool)
+            .await?;
+        }
+        if ship_market_ratio.is_some() {
+            sqlx::query!(
+                r#"UPDATE fleet SET ship_market_ratio = $1, fleet_type = $2::fleet_type, updated_at = NOW() WHERE id = $3"#,
+                &ship_market_ratio as &Option<f64>,
+                &ft as &FleetType,
+                id
+            )
+            .execute(&database_pool.database_pool)
+            .await?;
+        }
+        if min_cargo_space.is_some() {
+            sqlx::query!(
+                r#"UPDATE fleet SET min_cargo_space = $1, fleet_type = $2::fleet_type, updated_at = NOW() WHERE id = $3"#,
+                &min_cargo_space as &Option<i32>,
+                &ft as &FleetType,
+                id
+            )
+            .execute(&database_pool.database_pool)
+            .await?;
+        }
+        if trade_mode.is_some() {
+            sqlx::query!(
+                r#"UPDATE fleet SET trade_mode = $1::trade_mode, fleet_type = $2::fleet_type, updated_at = NOW() WHERE id = $3"#,
+                &trade_mode as &Option<TradeMode>,
+                &ft as &FleetType,
+                id
+            )
+            .execute(&database_pool.database_pool)
+            .await?;
+        }
+        if trade_profit_threshold.is_some() {
+            sqlx::query!(
+                r#"UPDATE fleet SET trade_profit_threshold = $1, fleet_type = $2::fleet_type, updated_at = NOW() WHERE id = $3"#,
+                &trade_profit_threshold as &Option<i32>,
+                &ft as &FleetType,
+                id
+            )
+            .execute(&database_pool.database_pool)
+            .await?;
+        }
+        Ok(())
+    }
+
+    /// Update scraping-related fields selectively.
+    #[instrument(level = "trace", skip(database_pool))]
+    pub async fn update_scraping_config(
+        database_pool: &DbPool,
+        id: i32,
+        ship_market_ratio: Option<f64>,
+        allowed_requests: Option<i32>,
+        notify_on_shipyard: Option<bool>,
+    ) -> crate::Result<()> {
+        let ft = FleetType::Scrapping;
+        if ship_market_ratio.is_some() {
+            sqlx::query!(
+                r#"UPDATE fleet SET ship_market_ratio = $1, fleet_type = $2::fleet_type, updated_at = NOW() WHERE id = $3"#,
+                &ship_market_ratio as &Option<f64>,
+                &ft as &FleetType,
+                id
+            )
+            .execute(&database_pool.database_pool)
+            .await?;
+        }
+        if allowed_requests.is_some() {
+            sqlx::query!(
+                r#"UPDATE fleet SET allowed_requests = $1, fleet_type = $2::fleet_type, updated_at = NOW() WHERE id = $3"#,
+                &allowed_requests as &Option<i32>,
+                &ft as &FleetType,
+                id
+            )
+            .execute(&database_pool.database_pool)
+            .await?;
+        }
+        if notify_on_shipyard.is_some() {
+            sqlx::query!(
+                r#"UPDATE fleet SET notify_on_shipyard = $1, fleet_type = $2::fleet_type, updated_at = NOW() WHERE id = $3"#,
+                &notify_on_shipyard as &Option<bool>,
+                &ft as &FleetType,
+                id
+            )
+            .execute(&database_pool.database_pool)
+            .await?;
+        }
+        Ok(())
+    }
+
+    /// Update mining-related fields selectively.
+    #[allow(clippy::too_many_arguments)]
+    #[instrument(level = "trace", skip(database_pool))]
+    pub async fn update_mining_config(
+        database_pool: &DbPool,
+        id: i32,
+        mining_eject_list: Option<Vec<models::TradeSymbol>>,
+        mining_prefer_list: Option<Vec<models::TradeSymbol>>,
+        ignore_engineered_asteroids: Option<bool>,
+        stop_all_unstable: Option<bool>,
+        unstable_since_timeout: Option<i32>,
+        mining_waypoints: Option<i32>,
+        syphon_waypoints: Option<i32>,
+        miners_per_waypoint: Option<i32>,
+        siphoners_per_waypoint: Option<i32>,
+        surveyers_per_waypoint: Option<i32>,
+        mining_transporters_per_waypoint: Option<i32>,
+        min_transporter_cargo_space: Option<i32>,
+        min_mining_cargo_space: Option<i32>,
+        min_siphon_cargo_space: Option<i32>,
+    ) -> crate::Result<()> {
+        let ft = FleetType::Mining;
+        if mining_eject_list.is_some() {
+            sqlx::query!(
+                r#"UPDATE fleet SET mining_eject_list = $1, fleet_type = $2::fleet_type, updated_at = NOW() WHERE id = $3"#,
+                &mining_eject_list as &Option<Vec<models::TradeSymbol>>,
+                &ft as &FleetType,
+                id
+            )
+            .execute(&database_pool.database_pool)
+            .await?;
+        }
+        if mining_prefer_list.is_some() {
+            sqlx::query!(
+                r#"UPDATE fleet SET mining_prefer_list = $1, fleet_type = $2::fleet_type, updated_at = NOW() WHERE id = $3"#,
+                &mining_prefer_list as &Option<Vec<models::TradeSymbol>>,
+                &ft as &FleetType,
+                id
+            )
+            .execute(&database_pool.database_pool)
+            .await?;
+        }
+        if ignore_engineered_asteroids.is_some() {
+            sqlx::query!(
+                r#"UPDATE fleet SET ignore_engineered_asteroids = $1, fleet_type = $2::fleet_type, updated_at = NOW() WHERE id = $3"#,
+                &ignore_engineered_asteroids as &Option<bool>,
+                &ft as &FleetType,
+                id
+            )
+            .execute(&database_pool.database_pool)
+            .await?;
+        }
+        if stop_all_unstable.is_some() {
+            sqlx::query!(
+                r#"UPDATE fleet SET stop_all_unstable = $1, fleet_type = $2::fleet_type, updated_at = NOW() WHERE id = $3"#,
+                &stop_all_unstable as &Option<bool>,
+                &ft as &FleetType,
+                id
+            )
+            .execute(&database_pool.database_pool)
+            .await?;
+        }
+        if unstable_since_timeout.is_some() {
+            sqlx::query!(
+                r#"UPDATE fleet SET unstable_since_timeout = $1, fleet_type = $2::fleet_type, updated_at = NOW() WHERE id = $3"#,
+                &unstable_since_timeout as &Option<i32>,
+                &ft as &FleetType,
+                id
+            )
+            .execute(&database_pool.database_pool)
+            .await?;
+        }
+        if mining_waypoints.is_some() {
+            sqlx::query!(
+                r#"UPDATE fleet SET mining_waypoints = $1, fleet_type = $2::fleet_type, updated_at = NOW() WHERE id = $3"#,
+                &mining_waypoints as &Option<i32>,
+                &ft as &FleetType,
+                id
+            )
+            .execute(&database_pool.database_pool)
+            .await?;
+        }
+        if syphon_waypoints.is_some() {
+            sqlx::query!(
+                r#"UPDATE fleet SET syphon_waypoints = $1, fleet_type = $2::fleet_type, updated_at = NOW() WHERE id = $3"#,
+                &syphon_waypoints as &Option<i32>,
+                &ft as &FleetType,
+                id
+            )
+            .execute(&database_pool.database_pool)
+            .await?;
+        }
+        if miners_per_waypoint.is_some() {
+            sqlx::query!(
+                r#"UPDATE fleet SET miners_per_waypoint = $1, fleet_type = $2::fleet_type, updated_at = NOW() WHERE id = $3"#,
+                &miners_per_waypoint as &Option<i32>,
+                &ft as &FleetType,
+                id
+            )
+            .execute(&database_pool.database_pool)
+            .await?;
+        }
+        if siphoners_per_waypoint.is_some() {
+            sqlx::query!(
+                r#"UPDATE fleet SET siphoners_per_waypoint = $1, fleet_type = $2::fleet_type, updated_at = NOW() WHERE id = $3"#,
+                &siphoners_per_waypoint as &Option<i32>,
+                &ft as &FleetType,
+                id
+            )
+            .execute(&database_pool.database_pool)
+            .await?;
+        }
+        if surveyers_per_waypoint.is_some() {
+            sqlx::query!(
+                r#"UPDATE fleet SET surveyors_per_waypoint = $1, fleet_type = $2::fleet_type, updated_at = NOW() WHERE id = $3"#,
+                &surveyers_per_waypoint as &Option<i32>,
+                &ft as &FleetType,
+                id
+            )
+            .execute(&database_pool.database_pool)
+            .await?;
+        }
+        if mining_transporters_per_waypoint.is_some() {
+            sqlx::query!(
+                r#"UPDATE fleet SET mining_transporters_per_waypoint = $1, fleet_type = $2::fleet_type, updated_at = NOW() WHERE id = $3"#,
+                &mining_transporters_per_waypoint as &Option<i32>,
+                &ft as &FleetType,
+                id
+            )
+            .execute(&database_pool.database_pool)
+            .await?;
+        }
+        if min_transporter_cargo_space.is_some() {
+            sqlx::query!(
+                r#"UPDATE fleet SET min_transporter_cargo_space = $1, fleet_type = $2::fleet_type, updated_at = NOW() WHERE id = $3"#,
+                &min_transporter_cargo_space as &Option<i32>,
+                &ft as &FleetType,
+                id
+            )
+            .execute(&database_pool.database_pool)
+            .await?;
+        }
+        if min_mining_cargo_space.is_some() {
+            sqlx::query!(
+                r#"UPDATE fleet SET min_mining_cargo_space = $1, fleet_type = $2::fleet_type, updated_at = NOW() WHERE id = $3"#,
+                &min_mining_cargo_space as &Option<i32>,
+                &ft as &FleetType,
+                id
+            )
+            .execute(&database_pool.database_pool)
+            .await?;
+        }
+        if min_siphon_cargo_space.is_some() {
+            sqlx::query!(
+                r#"UPDATE fleet SET min_siphon_cargo_space = $1, fleet_type = $2::fleet_type, updated_at = NOW() WHERE id = $3"#,
+                &min_siphon_cargo_space as &Option<i32>,
+                &ft as &FleetType,
+                id
+            )
+            .execute(&database_pool.database_pool)
+            .await?;
+        }
+        Ok(())
+    }
+
+    /// Update charting fields selectively.
+    #[instrument(level = "trace", skip(database_pool))]
+    pub async fn update_charting_config(
+        database_pool: &DbPool,
+        id: i32,
+        charting_probe_count: Option<i32>,
+    ) -> crate::Result<()> {
+        let ft = FleetType::Charting;
+        if charting_probe_count.is_some() {
+            sqlx::query!(
+                r#"UPDATE fleet SET charting_probe_count = $1, fleet_type = $2::fleet_type, updated_at = NOW() WHERE id = $3"#,
+                &charting_probe_count as &Option<i32>,
+                &ft as &FleetType,
+                id
+            )
+            .execute(&database_pool.database_pool)
+            .await?;
+        }
+        Ok(())
+    }
+
+    /// Update construction fields selectively.
+    #[instrument(level = "trace", skip(database_pool))]
+    pub async fn update_construction_config(
+        database_pool: &DbPool,
+        id: i32,
+        construction_ship_count: Option<i32>,
+        construction_waypoint: Option<String>,
+    ) -> crate::Result<()> {
+        let ft = FleetType::Construction;
+        if construction_ship_count.is_some() {
+            sqlx::query!(
+                r#"UPDATE fleet SET construction_ship_count = $1, fleet_type = $2::fleet_type, updated_at = NOW() WHERE id = $3"#,
+                &construction_ship_count as &Option<i32>,
+                &ft as &FleetType,
+                id
+            )
+            .execute(&database_pool.database_pool)
+            .await?;
+        }
+        if construction_waypoint.is_some() {
+            sqlx::query!(
+                r#"UPDATE fleet SET construction_waypoint = $1, fleet_type = $2::fleet_type, updated_at = NOW() WHERE id = $3"#,
+                &construction_waypoint as &Option<String>,
+                &ft as &FleetType,
+                id
+            )
+            .execute(&database_pool.database_pool)
+            .await?;
+        }
+        Ok(())
+    }
+
+    /// Update contract fields selectively.
+    #[instrument(level = "trace", skip(database_pool))]
+    pub async fn update_contract_config(
+        database_pool: &DbPool,
+        id: i32,
+        contract_ship_count: Option<i32>,
+    ) -> crate::Result<()> {
+        let ft = FleetType::Contract;
+        if contract_ship_count.is_some() {
+            sqlx::query!(
+                r#"UPDATE fleet SET contract_ship_count = $1, fleet_type = $2::fleet_type, updated_at = NOW() WHERE id = $3"#,
+                &contract_ship_count as &Option<i32>,
+                &ft as &FleetType,
+                id
+            )
+            .execute(&database_pool.database_pool)
+            .await?;
+        }
+        Ok(())
+    }
+
     #[instrument(level = "trace", skip(database_pool))]
     pub async fn insert_new(database_pool: &DbPool, item: &Fleet) -> crate::Result<i32> {
         let erg = sqlx::query!(
@@ -597,6 +996,57 @@ impl Fleet {
         Ok(resp)
     }
 
+    pub async fn delete_by_id(database_pool: &DbPool, id: i32) -> crate::Result<()> {
+        // Get all assignment IDs for this fleet
+        let assignments = sqlx::query!("SELECT id FROM ship_assignment WHERE fleet_id = $1", id)
+            .fetch_all(&database_pool.database_pool)
+            .await?;
+
+        let assignment_ids: Vec<i64> = assignments.iter().map(|a| a.id).collect();
+
+        // Set ship_info assignment references to NULL for all ships assigned to these assignments
+        if !assignment_ids.is_empty() {
+            sqlx::query!(
+                r#"
+                    UPDATE ship_info
+                    SET assignment_id = NULL
+                    WHERE assignment_id = ANY($1)
+                "#,
+                &assignment_ids
+            )
+            .execute(&database_pool.database_pool)
+            .await?;
+
+            sqlx::query!(
+                r#"
+                    UPDATE ship_info
+                    SET temp_assignment_id = NULL
+                    WHERE temp_assignment_id = ANY($1)
+                "#,
+                &assignment_ids
+            )
+            .execute(&database_pool.database_pool)
+            .await?;
+        }
+
+        // Delete all assignments for this fleet
+        sqlx::query!("DELETE FROM ship_assignment WHERE fleet_id = $1", id)
+            .execute(&database_pool.database_pool)
+            .await?;
+
+        // Delete the fleet
+        sqlx::query!(
+            r#"
+                DELETE FROM fleet
+                WHERE id = $1
+            "#,
+            id
+        )
+        .execute(&database_pool.database_pool)
+        .await?;
+        Ok(())
+    }
+
     pub fn with_config(mut self, config: FleetConfig) -> Self {
         self.set_config(config);
         self
@@ -788,7 +1238,9 @@ pub enum FleetType {
     Contract,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, async_graphql::Union)]
+#[derive(
+    Debug, Clone, Serialize, Deserialize, async_graphql::Union, async_graphql::OneofObject,
+)]
 pub enum FleetConfig {
     Trading(TradingConfig),
     Scraping(ScrapingConfig),
@@ -805,7 +1257,9 @@ impl Default for FleetConfig {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, async_graphql::SimpleObject)]
+#[derive(
+    Debug, Clone, Serialize, Deserialize, async_graphql::SimpleObject, async_graphql::InputObject,
+)]
 pub struct TradingConfig {
     pub market_blacklist: Vec<models::TradeSymbol>,
     pub market_prefer_list: Vec<models::TradeSymbol>,
@@ -816,14 +1270,18 @@ pub struct TradingConfig {
     pub trade_profit_threshold: i32,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, async_graphql::SimpleObject)]
+#[derive(
+    Debug, Clone, Serialize, Deserialize, async_graphql::SimpleObject, async_graphql::InputObject,
+)]
 pub struct ScrapingConfig {
     pub ship_market_ratio: f64,
     pub allowed_requests: i32,
     pub notify_on_shipyard: bool,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, async_graphql::SimpleObject)]
+#[derive(
+    Debug, Clone, Serialize, Deserialize, async_graphql::SimpleObject, async_graphql::InputObject,
+)]
 pub struct MiningConfig {
     pub mining_eject_list: Vec<models::TradeSymbol>,
     pub mining_prefer_list: Vec<models::TradeSymbol>,
@@ -841,23 +1299,37 @@ pub struct MiningConfig {
     pub min_siphon_cargo_space: i32,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, async_graphql::SimpleObject)]
+#[derive(
+    Debug, Clone, Serialize, Deserialize, async_graphql::SimpleObject, async_graphql::InputObject,
+)]
 pub struct ChartingConfig {
     pub charting_probe_count: i32,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, async_graphql::SimpleObject)]
+#[derive(
+    Debug, Clone, Serialize, Deserialize, async_graphql::SimpleObject, async_graphql::InputObject,
+)]
 pub struct ConstructionConfig {
     pub construction_ship_count: i32,
     pub construction_waypoint: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, async_graphql::SimpleObject)]
+#[derive(
+    Debug, Clone, Serialize, Deserialize, async_graphql::SimpleObject, async_graphql::InputObject,
+)]
 pub struct ContractConfig {
     pub contract_ship_count: i32,
 }
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize, async_graphql::SimpleObject)]
+#[derive(
+    Debug,
+    Clone,
+    Default,
+    Serialize,
+    Deserialize,
+    async_graphql::SimpleObject,
+    async_graphql::InputObject,
+)]
 pub struct ManuelConfig {
     pub config: String,
 }

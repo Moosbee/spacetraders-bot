@@ -7,7 +7,7 @@ use chrono::Utc;
 use database::DatabaseConnector;
 use space_traders_client::models::{self};
 use tracing::debug;
-use utils::get_system_symbol;
+use utils::{get_system_symbol, WaypointCan};
 
 use crate::{
     error::{Error, Result},
@@ -453,8 +453,14 @@ impl ConstructionManager {
                 .api
                 .get_waypoint(&system_waypoint, &waypoint)
                 .await?;
-            database::Waypoint::insert(&self.context.database_pool, &((&(*wp.data)).into()))
-                .await?;
+            let waypoint = (&(*wp.data)).into();
+            database::Waypoint::insert(&self.context.database_pool, &waypoint).await?;
+            if waypoint.is_jump_gate() {
+                self.context
+                    .fleet_manager
+                    .populate_from_jump_gate(waypoint.symbol)
+                    .await?;
+            }
         }
 
         Ok(())

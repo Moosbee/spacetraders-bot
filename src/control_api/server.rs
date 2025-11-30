@@ -86,11 +86,16 @@ impl ControlApiServer {
                 ))
             });
 
+        let socket_address: std::net::SocketAddr = config
+            .socket_address
+            .parse()
+            .expect("Invalid socket address");
+
         tokio::select! {
             _ = self.cancellation_token.cancelled() => {
                 tracing::info!("Server is shutting down due to cancellation");
             },
-            _ = warp::serve(routes).run(config.socket_address).fuse() => {
+            _ = warp::serve(routes).run(socket_address).fuse() => {
                 tracing::info!("Server shutdown completed");
             }
         }

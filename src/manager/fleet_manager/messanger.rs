@@ -85,4 +85,132 @@ impl FleetManagerMessanger {
             .map_err(|e| crate::error::Error::General(e.to_string()))?;
         Ok(erg)
     }
+
+    /// Ask the fleet manager to re-generate assignments for all fleets.
+    pub async fn regenerate_all_assignments(&self) -> Result<(), crate::error::Error> {
+        let (sender, receiver) = tokio::sync::oneshot::channel();
+        let erg = self
+            .sender
+            .send_timeout(
+                FleetManagerMessage::ReGenerateAssignments { callback: sender },
+                tokio::time::Duration::from_millis(5000),
+            )
+            .await;
+
+        if let Err(e) = erg {
+            match e {
+                tokio::sync::mpsc::error::SendTimeoutError::Timeout(_e) => return Ok(()),
+                tokio::sync::mpsc::error::SendTimeoutError::Closed(_e) => return Ok(()),
+            }
+        }
+
+        receiver
+            .await
+            .map_err(|e| crate::error::Error::General(e.to_string()))?;
+
+        Ok(())
+    }
+
+    /// Ask the fleet manager to re-generate assignments for all fleets.
+    pub async fn regenerate_system_assignments(
+        &self,
+        system_symbol: String,
+    ) -> Result<(), crate::error::Error> {
+        let (sender, receiver) = tokio::sync::oneshot::channel();
+        let erg = self
+            .sender
+            .send_timeout(
+                FleetManagerMessage::ReGenerateSystemAssignments {
+                    callback: sender,
+                    system_symbol,
+                },
+                tokio::time::Duration::from_millis(5000),
+            )
+            .await;
+
+        if let Err(e) = erg {
+            match e {
+                tokio::sync::mpsc::error::SendTimeoutError::Timeout(_e) => return Ok(()),
+                tokio::sync::mpsc::error::SendTimeoutError::Closed(_e) => return Ok(()),
+            }
+        }
+
+        receiver
+            .await
+            .map_err(|e| crate::error::Error::General(e.to_string()))?;
+
+        Ok(())
+    }
+
+    /// Ask the fleet manager to re-generate assignments for all fleets.
+    pub async fn regenerate_fleet_assignments(
+        &self,
+        fleet_id: i32,
+    ) -> Result<(), crate::error::Error> {
+        let (sender, receiver) = tokio::sync::oneshot::channel();
+        let erg = self
+            .sender
+            .send_timeout(
+                FleetManagerMessage::ReGenerateFleetAssignments {
+                    callback: sender,
+                    fleet_id,
+                },
+                tokio::time::Duration::from_millis(5000),
+            )
+            .await;
+
+        if let Err(e) = erg {
+            match e {
+                tokio::sync::mpsc::error::SendTimeoutError::Timeout(_e) => return Ok(()),
+                tokio::sync::mpsc::error::SendTimeoutError::Closed(_e) => return Ok(()),
+            }
+        }
+
+        receiver
+            .await
+            .map_err(|e| crate::error::Error::General(e.to_string()))?;
+
+        Ok(())
+    }
+
+    pub async fn populate_system(&self, system_symbol: String) -> Result<(), crate::error::Error> {
+        let (sender, receiver) = tokio::sync::oneshot::channel();
+        let erg = self.sender.try_send(FleetManagerMessage::PopulateSystem {
+            callback: sender,
+            system_symbol,
+        });
+        if let Err(e) = erg {
+            match e {
+                tokio::sync::mpsc::error::TrySendError::Full(_e) => return Ok(()),
+                tokio::sync::mpsc::error::TrySendError::Closed(_e) => return Ok(()),
+            }
+        }
+        receiver
+            .await
+            .map_err(|e| crate::error::Error::General(e.to_string()))?;
+        Ok(())
+    }
+
+    pub async fn populate_from_jump_gate(
+        &self,
+        jump_gate_symbol: String,
+    ) -> Result<(), crate::error::Error> {
+        let (sender, receiver) = tokio::sync::oneshot::channel();
+        let erg = self
+            .sender
+            .try_send(FleetManagerMessage::PopulateFromJumpGate {
+                callback: sender,
+                jump_gate_symbol,
+            });
+        if let Err(e) = erg {
+            match e {
+                tokio::sync::mpsc::error::TrySendError::Full(_e) => return Ok(()),
+                tokio::sync::mpsc::error::TrySendError::Closed(_e) => return Ok(()),
+            }
+        }
+        receiver
+            .await
+            .map_err(|e| crate::error::Error::General(e.to_string()))?;
+        Ok(())
+    }
 }

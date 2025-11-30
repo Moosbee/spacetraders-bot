@@ -13,6 +13,22 @@ pub enum FleetMessage {
     ReGenerateAssignments {
         callback: tokio::sync::oneshot::Sender<()>,
     },
+    ReGenerateFleetAssignments {
+        callback: tokio::sync::oneshot::Sender<()>,
+        fleet_id: i32,
+    },
+    ReGenerateSystemAssignments {
+        callback: tokio::sync::oneshot::Sender<()>,
+        system_symbol: String,
+    },
+    PopulateSystem {
+        callback: tokio::sync::oneshot::Sender<()>,
+        system_symbol: String,
+    },
+    PopulateFromJumpGate {
+        callback: tokio::sync::oneshot::Sender<()>,
+        jump_gate_symbol: String,
+    },
 }
 
 pub type FleetManagerMessage = FleetMessage;

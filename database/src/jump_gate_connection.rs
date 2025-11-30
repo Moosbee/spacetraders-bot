@@ -25,7 +25,7 @@ impl JumpGateConnection {
     #[instrument(level = "trace", skip(database_pool))]
     pub async fn get_all_from(
         database_pool: &DbPool,
-        from: &String,
+        from: &str,
     ) -> crate::Result<Vec<JumpGateConnection>> {
         let erg = sqlx::query_as!(
             JumpGateConnection,

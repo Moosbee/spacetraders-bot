@@ -3,7 +3,6 @@ use std::sync::Weak;
 
 use dashmap::DashMap;
 use lockable::{AsyncLimit, Lockable, LockableHashMap, SyncLimit};
-use space_traders_client::models;
 
 /// Trait representing an observer that can be updated
 pub trait Observer<K> {

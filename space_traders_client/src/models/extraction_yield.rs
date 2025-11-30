@@ -27,3 +27,20 @@ impl ExtractionYield {
         ExtractionYield { symbol, units }
     }
 }
+
+pub const EXTRACTABLE: &[models::TradeSymbol] = &[
+    models::TradeSymbol::AluminumOre,
+    models::TradeSymbol::SiliconCrystals,
+    models::TradeSymbol::CopperOre,
+    models::TradeSymbol::QuartzSand,
+    models::TradeSymbol::IceWater,
+    models::TradeSymbol::IronOre,
+    models::TradeSymbol::PreciousStones,
+    models::TradeSymbol::SilverOre,
+    models::TradeSymbol::GoldOre,
+    models::TradeSymbol::AmmoniaIce,
+    models::TradeSymbol::PlatinumOre,
+    models::TradeSymbol::Diamonds,
+    models::TradeSymbol::UraniteOre,
+    models::TradeSymbol::MeritiumOre,
+];

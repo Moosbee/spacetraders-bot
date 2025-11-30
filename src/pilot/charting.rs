@@ -3,6 +3,7 @@ use std::sync::{atomic::AtomicI32, Arc};
 use database::DatabaseConnector;
 use tracing::debug;
 use tracing::instrument;
+use utils::get_system_symbol;
 use utils::WaypointCan;
 
 use crate::{
@@ -38,7 +39,7 @@ impl ChartPilot {
             .value_mut()
             .ok_or(Error::General("Ship not found".to_string()))?;
 
-    debug!(ship_symbol = %ship.symbol, "Requesting next chart for ship");
+        debug!(ship_symbol = %ship.symbol, "Requesting next chart for ship");
 
         ship.status.status = ship::AssignmentStatus::Charting {
             cycle: Some(self.count.load(std::sync::atomic::Ordering::SeqCst)),
@@ -49,7 +50,7 @@ impl ChartPilot {
 
         let chart = self.context.chart_manager.get_next(ship.clone()).await?;
 
-    debug!(chart = ?chart, "Next chart");
+        debug!(chart = ?chart, "Next chart");
 
         let chart = match chart {
             NextChartResp::Next(chart) => chart,
@@ -216,11 +217,61 @@ impl ChartPilot {
 
             crate::manager::scrapping_manager::utils::update_jump_gate(
                 &self.context.database_pool,
-                *jump_gate.data,
+                (*jump_gate.data).clone(),
             )
-            .await?
+            .await?;
+
+            self.context
+                .fleet_manager
+                .populate_from_jump_gate(sql_waypoint.symbol.clone())
+                .await?;
         }
 
+        let (total_to_chart, marketplace_to_chart) = self
+            .get_still_to_chart_in_system(&sql_waypoint.system_symbol)
+            .await?;
+
+        // repopulate if it was the last marketplace to chart
+        if marketplace_to_chart == 0 && sql_waypoint.is_marketplace() {
+            self.context
+                .fleet_manager
+                .populate_system(sql_waypoint.system_symbol.clone())
+                .await?;
+        }
+
+        // repopulate if it was the last waypoint to chart
+        if total_to_chart == 0 {
+            self.context
+                .fleet_manager
+                .populate_system(sql_waypoint.system_symbol.clone())
+                .await?;
+        }
+
+        debug!(
+            total_to_chart,
+            marketplace_to_chart, "Waypoints still to chart in system"
+        );
+
         Ok(())
+    }
+
+    /// Returns the number of waypoints still to chart in the given system, first is the total remaining, second are the remaining marketplace waypoints
+    async fn get_still_to_chart_in_system(
+        &self,
+        system_symbol: &str,
+    ) -> std::result::Result<(usize, usize), Error> {
+        let waypoints_in_system =
+            database::Waypoint::get_by_system(&self.context.database_pool, system_symbol).await?;
+
+        let total_to_chart = waypoints_in_system
+            .iter()
+            .filter(|w| !w.is_charted())
+            .count();
+        let marketplace_to_chart = waypoints_in_system
+            .iter()
+            .filter(|w| !w.is_charted() && w.is_marketplace())
+            .count();
+
+        Ok((total_to_chart, marketplace_to_chart))
     }
 }
