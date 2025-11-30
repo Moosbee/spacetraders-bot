@@ -1,0 +1,31 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE fleet SET surveyors_per_waypoint = $1, fleet_type = $2::fleet_type, updated_at = NOW() WHERE id = $3",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4",
+        {
+          "Custom": {
+            "name": "fleet_type",
+            "kind": {
+              "Enum": [
+                "Trading",
+                "Scrapping",
+                "Mining",
+                "Charting",
+                "Construction",
+                "Manuel",
+                "Contract"
+              ]
+            }
+          }
+        },
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "c7e24c09daca8349882d76c9f4dba5af8237211a7fca7f0420d064f4b9387576"
+}

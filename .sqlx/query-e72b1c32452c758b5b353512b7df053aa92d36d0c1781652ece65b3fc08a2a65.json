@@ -1,0 +1,38 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                INSERT INTO system (\n                    symbol,\n                    sector_symbol,\n                    constellation,\n                    population_disabled,\n                    system_type,\n                    x,\n                    y\n                )\n                VALUES ($1, $2, $3, $4, $5, $6, $7)\n                ON CONFLICT (symbol) DO UPDATE\n                SET sector_symbol = EXCLUDED.sector_symbol,\n                    constellation = EXCLUDED.constellation,\n                    population_disabled = EXCLUDED.population_disabled,\n                    system_type = EXCLUDED.system_type,\n                    x = EXCLUDED.x,\n                    y = EXCLUDED.y\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Varchar",
+        "Varchar",
+        "Varchar",
+        "Bool",
+        {
+          "Custom": {
+            "name": "system_type",
+            "kind": {
+              "Enum": [
+                "NEUTRON_STAR",
+                "RED_STAR",
+                "ORANGE_STAR",
+                "BLUE_STAR",
+                "YOUNG_STAR",
+                "WHITE_DWARF",
+                "BLACK_HOLE",
+                "HYPERGIANT",
+                "NEBULA",
+                "UNSTABLE"
+              ]
+            }
+          }
+        },
+        "Int4",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "e72b1c32452c758b5b353512b7df053aa92d36d0c1781652ece65b3fc08a2a65"
+}

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT \n                symbol,\n                sector_symbol,\n                system_type as \"system_type: models::SystemType\",\n                x,\n                y\n            FROM system\n            WHERE symbol = $1\n            LIMIT 1\n            ",
+  "query": "\n            SELECT \n                symbol,\n                constellation,\n                population_disabled,\n                sector_symbol,\n                system_type as \"system_type: models::SystemType\",\n                x,\n                y\n            FROM system\n            ",
   "describe": {
     "columns": [
       {
@@ -10,11 +10,21 @@
       },
       {
         "ordinal": 1,
-        "name": "sector_symbol",
+        "name": "constellation",
         "type_info": "Varchar"
       },
       {
         "ordinal": 2,
+        "name": "population_disabled",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 3,
+        "name": "sector_symbol",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
         "name": "system_type: models::SystemType",
         "type_info": {
           "Custom": {
@@ -37,22 +47,22 @@
         }
       },
       {
-        "ordinal": 3,
+        "ordinal": 5,
         "name": "x",
         "type_info": "Int4"
       },
       {
-        "ordinal": 4,
+        "ordinal": 6,
         "name": "y",
         "type_info": "Int4"
       }
     ],
     "parameters": {
-      "Left": [
-        "Text"
-      ]
+      "Left": []
     },
     "nullable": [
+      false,
+      true,
       false,
       false,
       false,
@@ -60,5 +70,5 @@
       false
     ]
   },
-  "hash": "031a8f3fbd94be76c62106c64a297669e59b18225dd4b38b41eae22ce8410d86"
+  "hash": "fde54d48c4a631fa548a6b9a0450075e582d5860d787b785e39fcc688abc92d3"
 }

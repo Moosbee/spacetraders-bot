@@ -1,0 +1,31 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE fleet SET ignore_engineered_asteroids = $1, fleet_type = $2::fleet_type, updated_at = NOW() WHERE id = $3",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Bool",
+        {
+          "Custom": {
+            "name": "fleet_type",
+            "kind": {
+              "Enum": [
+                "Trading",
+                "Scrapping",
+                "Mining",
+                "Charting",
+                "Construction",
+                "Manuel",
+                "Contract"
+              ]
+            }
+          }
+        },
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "ed2404a841d8d0af960a659a79ec46d5c24372b72bc89856539fc029c3395666"
+}

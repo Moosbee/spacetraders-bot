@@ -1,0 +1,31 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE fleet SET stop_all_unstable = $1, fleet_type = $2::fleet_type, updated_at = NOW() WHERE id = $3",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Bool",
+        {
+          "Custom": {
+            "name": "fleet_type",
+            "kind": {
+              "Enum": [
+                "Trading",
+                "Scrapping",
+                "Mining",
+                "Charting",
+                "Construction",
+                "Manuel",
+                "Contract"
+              ]
+            }
+          }
+        },
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "c09ed643e901416d92fde44ca90b65fc966cf640ca2a9ab5dfc3b9836b5503af"
+}

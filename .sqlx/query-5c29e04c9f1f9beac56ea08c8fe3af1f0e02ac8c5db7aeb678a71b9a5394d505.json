@@ -1,0 +1,42 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE fleet SET trade_mode = $1::trade_mode, fleet_type = $2::fleet_type, updated_at = NOW() WHERE id = $3",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        {
+          "Custom": {
+            "name": "trade_mode",
+            "kind": {
+              "Enum": [
+                "ProfitPerHour",
+                "ProfitPerAPIRequest",
+                "ProfitPerTrip"
+              ]
+            }
+          }
+        },
+        {
+          "Custom": {
+            "name": "fleet_type",
+            "kind": {
+              "Enum": [
+                "Trading",
+                "Scrapping",
+                "Mining",
+                "Charting",
+                "Construction",
+                "Manuel",
+                "Contract"
+              ]
+            }
+          }
+        },
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "5c29e04c9f1f9beac56ea08c8fe3af1f0e02ac8c5db7aeb678a71b9a5394d505"
+}
