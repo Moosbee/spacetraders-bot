@@ -95,7 +95,7 @@ impl DatabaseConnector<ExportImportMapping> for ExportImportMapping {
                 SELECT
                     export_symbol as "export_symbol: models::TradeSymbol",
                     import_symbol as "import_symbol: models::TradeSymbol"
-                FROM ExportImportMapping
+                FROM ExportImportMapping;
             "#
         )
         .fetch_all(database_pool.get_cache_pool())

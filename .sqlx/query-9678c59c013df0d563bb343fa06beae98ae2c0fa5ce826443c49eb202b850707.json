@@ -1,0 +1,46 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT\n            id,\n            waypoint_symbol,\n            ship_symbol,\n            total_price,\n            \"timestamp\"\n        FROM repair_transaction\n        WHERE waypoint_symbol = $1\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "waypoint_symbol",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "ship_symbol",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "total_price",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "timestamp",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "9678c59c013df0d563bb343fa06beae98ae2c0fa5ce826443c49eb202b850707"
+}

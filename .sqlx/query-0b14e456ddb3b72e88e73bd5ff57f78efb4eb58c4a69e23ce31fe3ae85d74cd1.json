@@ -1,0 +1,86 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                SELECT\n                  sa.id,\n                  sa.fleet_id,\n                  sa.priority,\n                  max_purchase_price,\n                  credits_threshold,\n                  sa.disabled,\n                  sa.range_min,\n                  sa.cargo_min,\n                  sa.survey,\n                  sa.extractor,\n                  sa.siphon,\n                  sa.warp_drive\n                FROM ship_assignment sa\n                JOIN fleet f ON sa.fleet_id = f.id\n                left JOIN ship_info si ON (sa.id = si.assignment_id OR sa.id = si.temp_assignment_id)\n                WHERE sa.disabled = false AND f.active = true AND si.symbol IS NULL\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "fleet_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "priority",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 3,
+        "name": "max_purchase_price",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "credits_threshold",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 5,
+        "name": "disabled",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 6,
+        "name": "range_min",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 7,
+        "name": "cargo_min",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 8,
+        "name": "survey",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 9,
+        "name": "extractor",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 10,
+        "name": "siphon",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 11,
+        "name": "warp_drive",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "0b14e456ddb3b72e88e73bd5ff57f78efb4eb58c4a69e23ce31fe3ae85d74cd1"
+}

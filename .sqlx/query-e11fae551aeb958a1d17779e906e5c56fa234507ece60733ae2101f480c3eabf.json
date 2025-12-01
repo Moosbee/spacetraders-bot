@@ -1,0 +1,31 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE fleet SET construction_ship_count = $1, fleet_type = $2::fleet_type, updated_at = NOW() WHERE id = $3",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4",
+        {
+          "Custom": {
+            "name": "fleet_type",
+            "kind": {
+              "Enum": [
+                "Trading",
+                "Scrapping",
+                "Mining",
+                "Charting",
+                "Construction",
+                "Manuel",
+                "Contract"
+              ]
+            }
+          }
+        },
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "e11fae551aeb958a1d17779e906e5c56fa234507ece60733ae2101f480c3eabf"
+}

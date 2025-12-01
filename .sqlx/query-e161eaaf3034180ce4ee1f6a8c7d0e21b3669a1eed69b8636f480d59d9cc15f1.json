@@ -1,0 +1,84 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n    SELECT\n        symbol as \"symbol: models::ship_reactor::Symbol\",\n        name,\n        description,\n        power_output,\n        power_required,\n        crew_required,\n        slots_required\n    FROM reactor_info\n    WHERE symbol = $1\n    LIMIT 1\n    ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "symbol: models::ship_reactor::Symbol",
+        "type_info": {
+          "Custom": {
+            "name": "ship_reactor_symbol",
+            "kind": {
+              "Enum": [
+                "REACTOR_SOLAR_I",
+                "REACTOR_FUSION_I",
+                "REACTOR_FISSION_I",
+                "REACTOR_CHEMICAL_I",
+                "REACTOR_ANTIMATTER_I"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "description",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "power_output",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "power_required",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 5,
+        "name": "crew_required",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 6,
+        "name": "slots_required",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        {
+          "Custom": {
+            "name": "ship_reactor_symbol",
+            "kind": {
+              "Enum": [
+                "REACTOR_SOLAR_I",
+                "REACTOR_FUSION_I",
+                "REACTOR_FISSION_I",
+                "REACTOR_CHEMICAL_I",
+                "REACTOR_ANTIMATTER_I"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "e161eaaf3034180ce4ee1f6a8c7d0e21b3669a1eed69b8636f480d59d9cc15f1"
+}

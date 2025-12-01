@@ -1,0 +1,46 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                INSERT INTO frame_info (\n                    symbol,\n                    name,\n                    description,\n                    module_slots,\n                    mounting_points,\n                    fuel_capacity,\n                    power_required,\n                    crew_required,\n                    slots_required\n                )\n                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)\n                ON CONFLICT (symbol) DO UPDATE\n                SET name = EXCLUDED.name,\n                    description = EXCLUDED.description,\n                    module_slots = EXCLUDED.module_slots,\n                    mounting_points = EXCLUDED.mounting_points,\n                    fuel_capacity = EXCLUDED.fuel_capacity,\n                    power_required = EXCLUDED.power_required,\n                    crew_required = EXCLUDED.crew_required,\n                    slots_required = EXCLUDED.slots_required\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        {
+          "Custom": {
+            "name": "ship_frame_symbol",
+            "kind": {
+              "Enum": [
+                "FRAME_PROBE",
+                "FRAME_DRONE",
+                "FRAME_INTERCEPTOR",
+                "FRAME_RACER",
+                "FRAME_FIGHTER",
+                "FRAME_FRIGATE",
+                "FRAME_SHUTTLE",
+                "FRAME_EXPLORER",
+                "FRAME_MINER",
+                "FRAME_LIGHT_FREIGHTER",
+                "FRAME_HEAVY_FREIGHTER",
+                "FRAME_TRANSPORT",
+                "FRAME_DESTROYER",
+                "FRAME_CRUISER",
+                "FRAME_CARRIER",
+                "FRAME_BULK_FREIGHTER"
+              ]
+            }
+          }
+        },
+        "Varchar",
+        "Varchar",
+        "Int4",
+        "Int4",
+        "Int4",
+        "Int4",
+        "Int4",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "6a722e76645f18bf2cfa8926a0d5f9a5f2e486851c00ba9929933b2576fbb0fc"
+}

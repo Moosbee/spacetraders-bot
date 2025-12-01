@@ -1,0 +1,45 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO system (\n                symbol,\n                constellation,\n                population_disabled,\n                sector_symbol,\n                system_type,\n                x,\n                y\n            )\n            SELECT * FROM UNNEST(\n                $1::character varying[],\n                $2::character varying[],\n                $3::boolean[],\n                $4::character varying[],\n                $5::system_type[],\n                $6::integer[],\n                $7::integer[]\n            )\n            ON CONFLICT (symbol) DO UPDATE\n            SET sector_symbol = EXCLUDED.sector_symbol,\n                constellation = EXCLUDED.constellation,\n                population_disabled = EXCLUDED.population_disabled,\n                system_type = EXCLUDED.system_type,\n                x = EXCLUDED.x,\n                y = EXCLUDED.y\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "VarcharArray",
+        "VarcharArray",
+        "BoolArray",
+        "VarcharArray",
+        {
+          "Custom": {
+            "name": "system_type[]",
+            "kind": {
+              "Array": {
+                "Custom": {
+                  "name": "system_type",
+                  "kind": {
+                    "Enum": [
+                      "NEUTRON_STAR",
+                      "RED_STAR",
+                      "ORANGE_STAR",
+                      "BLUE_STAR",
+                      "YOUNG_STAR",
+                      "WHITE_DWARF",
+                      "BLACK_HOLE",
+                      "HYPERGIANT",
+                      "NEBULA",
+                      "UNSTABLE"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "Int4Array",
+        "Int4Array"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "0b6d46564bc7a25a5669a37f61fce6fda887de9c29129d588b3ba0e44fab4daf"
+}

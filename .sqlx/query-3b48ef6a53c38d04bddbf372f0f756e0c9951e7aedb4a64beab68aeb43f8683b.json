@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            insert into route (\n            ship_symbol,\n            \"from\",\n            \"to\",\n            distance,\n            nav_mode,\n            fuel_cost,\n            travel_time,\n            ship_info_before,\n            ship_info_after\n            )\n            values (\n            $1,\n            $2,\n            $3,\n            $4,\n            $5,\n            $6,\n            $7,\n            $8,\n            $9\n            )\n            on conflict (id) do nothing\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Varchar",
+        "Varchar",
+        "Varchar",
+        "Float8",
+        "Varchar",
+        "Int4",
+        "Float8",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "3b48ef6a53c38d04bddbf372f0f756e0c9951e7aedb4a64beab68aeb43f8683b"
+}

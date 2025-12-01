@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE system\n            SET population_disabled = $1\n            WHERE symbol = $2\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Bool",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "cc25c7c280f80cd4a94622d0fef397c6478ab6defa9e0315e40f57e64fd5c897"
+}

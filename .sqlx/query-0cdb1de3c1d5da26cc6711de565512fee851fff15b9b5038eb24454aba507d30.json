@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n                id,\n                waypoint_symbol,\n                modifications_fee,\n                created_at\n            FROM shipyard\n            WHERE id = $1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "waypoint_symbol",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "modifications_fee",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 3,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "0cdb1de3c1d5da26cc6711de565512fee851fff15b9b5038eb24454aba507d30"
+}
