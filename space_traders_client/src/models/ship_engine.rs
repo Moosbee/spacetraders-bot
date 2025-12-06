@@ -95,6 +95,17 @@ pub enum Symbol {
     HyperDriveI,
 }
 
+impl From<Symbol> for models::TradeSymbol {
+    fn from(val: Symbol) -> Self {
+        match val {
+            Symbol::ImpulseDriveI => models::TradeSymbol::EngineImpulseDriveI,
+            Symbol::IonDriveI => models::TradeSymbol::EngineIonDriveI,
+            Symbol::IonDriveIi => models::TradeSymbol::EngineIonDriveIi,
+            Symbol::HyperDriveI => models::TradeSymbol::EngineHyperDriveI,
+        }
+    }
+}
+
 impl Default for Symbol {
     fn default() -> Symbol {
         Self::ImpulseDriveI

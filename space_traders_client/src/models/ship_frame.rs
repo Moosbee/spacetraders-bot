@@ -141,6 +141,29 @@ pub enum Symbol {
     BulkFreighter,
 }
 
+impl From<Symbol> for models::TradeSymbol {
+    fn from(value: Symbol) -> Self {
+        match value {
+            Symbol::Probe => models::TradeSymbol::FrameProbe,
+            Symbol::Drone => models::TradeSymbol::FrameDrone,
+            Symbol::Interceptor => models::TradeSymbol::FrameInterceptor,
+            Symbol::Racer => models::TradeSymbol::FrameRacer,
+            Symbol::Fighter => models::TradeSymbol::FrameFighter,
+            Symbol::Frigate => models::TradeSymbol::FrameFrigate,
+            Symbol::Shuttle => models::TradeSymbol::FrameShuttle,
+            Symbol::Explorer => models::TradeSymbol::FrameExplorer,
+            Symbol::Miner => models::TradeSymbol::FrameMiner,
+            Symbol::LightFreighter => models::TradeSymbol::FrameLightFreighter,
+            Symbol::HeavyFreighter => models::TradeSymbol::FrameHeavyFreighter,
+            Symbol::Transport => models::TradeSymbol::FrameTransport,
+            Symbol::Destroyer => models::TradeSymbol::FrameDestroyer,
+            Symbol::Cruiser => models::TradeSymbol::FrameCruiser,
+            Symbol::Carrier => models::TradeSymbol::FrameCarrier,
+            Symbol::BulkFreighter => models::TradeSymbol::FrameBulkFreighter,
+        }
+    }
+}
+
 impl Default for Symbol {
     fn default() -> Symbol {
         Self::Probe

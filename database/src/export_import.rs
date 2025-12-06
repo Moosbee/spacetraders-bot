@@ -34,6 +34,48 @@ impl ExportImportMapping {
         }
         Ok(result)
     }
+
+    pub async fn get_imports_for_export(
+        database_pool: &DbPool,
+        export_symbol: models::TradeSymbol,
+    ) -> crate::Result<Vec<models::TradeSymbol>> {
+        let items = sqlx::query_as!(
+            ExportImportMapping,
+            r#"
+                SELECT
+                    export_symbol as "export_symbol: models::TradeSymbol",
+                    import_symbol as "import_symbol: models::TradeSymbol"
+                FROM ExportImportMapping
+                WHERE export_symbol = $1;
+            "#,
+            export_symbol as models::TradeSymbol
+        )
+        .fetch_all(database_pool.get_cache_pool())
+        .await?;
+
+        Ok(items.into_iter().map(|item| item.import_symbol).collect())
+    }
+
+    pub async fn get_exports_for_import(
+        database_pool: &DbPool,
+        import_symbol: models::TradeSymbol,
+    ) -> crate::Result<Vec<models::TradeSymbol>> {
+        let items = sqlx::query_as!(
+            ExportImportMapping,
+            r#"
+                SELECT
+                    export_symbol as "export_symbol: models::TradeSymbol",
+                    import_symbol as "import_symbol: models::TradeSymbol"
+                FROM ExportImportMapping
+                WHERE import_symbol = $1;
+            "#,
+            import_symbol as models::TradeSymbol
+        )
+        .fetch_all(database_pool.get_cache_pool())
+        .await?;
+
+        Ok(items.into_iter().map(|item| item.export_symbol).collect())
+    }
 }
 
 impl DatabaseConnector<ExportImportMapping> for ExportImportMapping {

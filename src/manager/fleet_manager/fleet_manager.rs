@@ -19,6 +19,7 @@ pub struct FleetManager {
     cancel_token: tokio_util::sync::CancellationToken,
     receiver: tokio::sync::mpsc::Receiver<FleetManagerMessage>,
     context: ConductorContext,
+    jump_gate: Option<ship::autopilot::jump_gate_nav::JumpPathfinder>,
 }
 
 impl FleetManager {
@@ -42,6 +43,7 @@ impl FleetManager {
             cancel_token,
             context,
             receiver,
+            jump_gate: None,
         }
     }
 
@@ -204,7 +206,9 @@ impl FleetManager {
                             ship_frame,
                         );
 
-                        ship_capabilities.capable(assignment)
+                        let capable=ship_capabilities.capable(assignment);
+                        debug!(capable, ship_capabilities=?ship_capabilities,assignment=?assignment,"Ship Compatibility");
+                        capable
                     } else {
                         false
                     }
@@ -246,15 +250,6 @@ impl FleetManager {
         )
         .await?;
 
-        let connections =
-            ship::autopilot::jump_gate_nav::generate_all_connections(&self.context.database_pool)
-                .await?
-                .into_iter()
-                .filter(|c| !c.under_construction_a && !c.under_construction_b)
-                .collect::<Vec<_>>();
-        let jump_gate: ship::autopilot::jump_gate_nav::JumpPathfinder =
-            ship::autopilot::jump_gate_nav::JumpPathfinder::new(connections);
-
         // per assignment calculate all the things
 
         let current_money = self.context.budget_manager.get_spendable_funds().await;
@@ -262,6 +257,8 @@ impl FleetManager {
         let antimatter_price = { self.context.config.read().await.antimatter_price as i64 };
 
         let percentile = { self.context.config.read().await.ship_purchase_percentile };
+
+        let jump_gate = self.get_jump_navigator().await?;
 
         let assignments = fulfillable_assignments
             .iter()
@@ -275,7 +272,7 @@ impl FleetManager {
                             assignment,
                             shipyard_ship,
                             fleets.get(&assignment.fleet_id)?,
-                            &jump_gate,
+                            jump_gate,
                             antimatter_price as i64,
                         ))
                     })
@@ -497,13 +494,9 @@ impl FleetManager {
         )
         .await?;
 
-        let connections =
-            ship::autopilot::jump_gate_nav::generate_all_connections(&self.context.database_pool)
-                .await?
-                .into_iter()
-                .filter(|c| !c.under_construction_a && !c.under_construction_b)
-                .collect::<Vec<_>>();
-        let jump_gate = ship::autopilot::jump_gate_nav::JumpPathfinder::new(connections);
+        debug!(open_possible_assignments=?open_possible_assignments,"possible assignments");
+
+        let jump_gate = self.get_jump_navigator().await?;
 
         let target_systems = fleets
             .iter()
@@ -517,6 +510,8 @@ impl FleetManager {
             .map(|end_system| (end_system, jump_gate.find_route(start_system, end_system)))
             .map(|f| (f.0.clone(), f.1.iter().map(|conn| conn.cost).sum::<f64>()))
             .collect::<HashMap<_, _>>();
+
+        debug!(conns=?conns,"Calculated all connections");
 
         // sort them based on priority, distance to system and "fitness" i.e. a ship with 130 cargo should be better assigned the one which needs 100 cargo than the one which needs 40 cargo
 
@@ -562,6 +557,29 @@ impl FleetManager {
         }
     }
 
+    async fn get_jump_navigator(
+        &mut self,
+    ) -> Result<&ship::autopilot::jump_gate_nav::JumpPathfinder> {
+        if self.jump_gate.is_none() {
+            let connections = ship::autopilot::jump_gate_nav::generate_all_connections(
+                &self.context.database_pool,
+            )
+            .await?
+            .into_iter()
+            .filter(|c| !c.under_construction_a && !c.under_construction_b)
+            .collect::<Vec<_>>();
+            let jump_gate: ship::autopilot::jump_gate_nav::JumpPathfinder =
+                ship::autopilot::jump_gate_nav::JumpPathfinder::new(connections);
+
+            self.jump_gate = Some(jump_gate);
+        }
+        if let Some(navigator) = &self.jump_gate {
+            Ok(navigator)
+        } else {
+            Err("No jump_gate after thing".into())
+        }
+    }
+
     async fn re_generate_assignments(&mut self, by: RegenFleetBy) -> Result<()> {
         let fleets = match by {
             RegenFleetBy::All => database::Fleet::get_all(&self.context.database_pool).await?,
@@ -600,6 +618,7 @@ impl FleetManager {
     }
 
     async fn handle_populate_from_jump_gate(&mut self, jump_gate_symbol: &str) -> Result<()> {
+        self.jump_gate = None;
         let waypoint =
             database::Waypoint::get_by_symbol(&self.context.database_pool, jump_gate_symbol)
                 .await?;

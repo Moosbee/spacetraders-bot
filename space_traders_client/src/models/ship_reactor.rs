@@ -98,6 +98,18 @@ pub enum Symbol {
     AntimatterI,
 }
 
+impl From<Symbol> for models::TradeSymbol {
+    fn from(value: Symbol) -> Self {
+        match value {
+            Symbol::SolarI => models::TradeSymbol::ReactorSolarI,
+            Symbol::FusionI => models::TradeSymbol::ReactorFusionI,
+            Symbol::FissionI => models::TradeSymbol::ReactorFissionI,
+            Symbol::ChemicalI => models::TradeSymbol::ReactorChemicalI,
+            Symbol::AntimatterI => models::TradeSymbol::ReactorAntimatterI,
+        }
+    }
+}
+
 impl Default for Symbol {
     fn default() -> Symbol {
         Self::SolarI

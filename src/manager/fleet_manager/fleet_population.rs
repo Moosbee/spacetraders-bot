@@ -339,5 +339,6 @@ pub async fn is_system_populated(
     system_symbol: &str,
 ) -> Result<bool, crate::error::Error> {
     let fleets = database::Fleet::get_by_system(database_pool, system_symbol).await?;
-    Ok(fleets.len() >= 5) // if there are less than 5 fleets, the system is not fully populated
+    let length = 1;
+    Ok(fleets.len() >= length) // if there are less than 5 fleets, the system is not fully populated
 }

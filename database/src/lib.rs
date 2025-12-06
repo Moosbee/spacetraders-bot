@@ -56,6 +56,7 @@ pub use fleet::ContractConfig as ContractFleetConfig;
 pub use fleet::Fleet;
 pub use fleet::FleetConfig;
 pub use fleet::FleetType;
+pub use fleet::ManuelConfig as ManuelFleetConfig;
 pub use fleet::MiningConfig as MiningFleetConfig;
 pub use fleet::ScrapingConfig as ScrapingFleetConfig;
 pub use fleet::TradeMode;

@@ -9,7 +9,11 @@ use async_graphql::{http::GraphiQLSource, EmptyMutation, EmptySubscription, Sche
 use async_graphql_warp::{GraphQLBadRequest, GraphQLResponse};
 use warp::{http::Response as HttpResponse, Filter, Rejection};
 
-use crate::{control_api::graphql::QueryRoot, manager::Manager, utils::ConductorContext};
+use crate::{
+    control_api::graphql::{mutations::MutationRoot, QueryRoot},
+    manager::Manager,
+    utils::ConductorContext,
+};
 
 pub struct ControlApiServer {
     context: ConductorContext,
@@ -48,7 +52,7 @@ impl ControlApiServer {
         let context = self.context.clone();
         let database_pool = self.context.database_pool.clone();
 
-        let schema = Schema::build(QueryRoot, EmptyMutation, EmptySubscription)
+        let schema = Schema::build(QueryRoot, MutationRoot, EmptySubscription)
             .data(context)
             .data(database_pool)
             .finish();
@@ -57,7 +61,7 @@ impl ControlApiServer {
 
         let graphql_post = async_graphql_warp::graphql(schema).and_then(
             |(schema, request): (
-                Schema<QueryRoot, EmptyMutation, EmptySubscription>,
+                Schema<QueryRoot, MutationRoot, EmptySubscription>,
                 async_graphql::Request,
             )| async move {
                 Ok::<_, Infallible>(GraphQLResponse::from(schema.execute(request).await))

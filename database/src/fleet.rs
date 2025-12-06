@@ -1241,6 +1241,7 @@ pub enum FleetType {
 #[derive(
     Debug, Clone, Serialize, Deserialize, async_graphql::Union, async_graphql::OneofObject,
 )]
+#[graphql(input_name = "InputTotalFleetConfig")]
 pub enum FleetConfig {
     Trading(TradingConfig),
     Scraping(ScrapingConfig),
@@ -1260,6 +1261,7 @@ impl Default for FleetConfig {
 #[derive(
     Debug, Clone, Serialize, Deserialize, async_graphql::SimpleObject, async_graphql::InputObject,
 )]
+#[graphql(input_name = "InputTotalTradingConfig")]
 pub struct TradingConfig {
     pub market_blacklist: Vec<models::TradeSymbol>,
     pub market_prefer_list: Vec<models::TradeSymbol>,
@@ -1273,6 +1275,7 @@ pub struct TradingConfig {
 #[derive(
     Debug, Clone, Serialize, Deserialize, async_graphql::SimpleObject, async_graphql::InputObject,
 )]
+#[graphql(input_name = "InputTotalScrappingConfig")]
 pub struct ScrapingConfig {
     pub ship_market_ratio: f64,
     pub allowed_requests: i32,
@@ -1282,6 +1285,7 @@ pub struct ScrapingConfig {
 #[derive(
     Debug, Clone, Serialize, Deserialize, async_graphql::SimpleObject, async_graphql::InputObject,
 )]
+#[graphql(input_name = "InputTotalMiningConfig")]
 pub struct MiningConfig {
     pub mining_eject_list: Vec<models::TradeSymbol>,
     pub mining_prefer_list: Vec<models::TradeSymbol>,
@@ -1302,6 +1306,7 @@ pub struct MiningConfig {
 #[derive(
     Debug, Clone, Serialize, Deserialize, async_graphql::SimpleObject, async_graphql::InputObject,
 )]
+#[graphql(input_name = "InputTotalChartingConfig")]
 pub struct ChartingConfig {
     pub charting_probe_count: i32,
 }
@@ -1309,6 +1314,7 @@ pub struct ChartingConfig {
 #[derive(
     Debug, Clone, Serialize, Deserialize, async_graphql::SimpleObject, async_graphql::InputObject,
 )]
+#[graphql(input_name = "InputTotalConstructionConfig")]
 pub struct ConstructionConfig {
     pub construction_ship_count: i32,
     pub construction_waypoint: String,
@@ -1317,6 +1323,7 @@ pub struct ConstructionConfig {
 #[derive(
     Debug, Clone, Serialize, Deserialize, async_graphql::SimpleObject, async_graphql::InputObject,
 )]
+#[graphql(input_name = "InputTotalContractConfig")]
 pub struct ContractConfig {
     pub contract_ship_count: i32,
 }
@@ -1330,6 +1337,7 @@ pub struct ContractConfig {
     async_graphql::SimpleObject,
     async_graphql::InputObject,
 )]
+#[graphql(input_name = "InputTotalManuelConfig")]
 pub struct ManuelConfig {
     pub config: String,
 }

@@ -10,7 +10,7 @@
 
 use crate::models;
 use serde::{Deserialize, Serialize};
-use strum_macros::EnumString;
+use strum_macros::{EnumIter, EnumString};
 
 /// TradeSymbol : The good's symbol.
 /// The good's symbol.
@@ -28,6 +28,7 @@ use strum_macros::EnumString;
     sqlx::Type,
     EnumString,
     async_graphql::Enum,
+    EnumIter,
 )]
 #[sqlx(type_name = "trade_symbol")]
 pub enum TradeSymbol {

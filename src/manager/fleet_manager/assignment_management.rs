@@ -411,11 +411,11 @@ async fn generate_charting_fleet_assignments(
             fleet_id: fleet.id,
             max_purchase_price: 1_000_000,
             credits_threshold: 100_000,
-            priority: DEFAULT_PRIORITY,
+            priority: DEFAULT_PRIORITY - 10,
             disabled: false,
             range_min: -1, // need infinite range for charting
             cargo_min: 0,  // to not need cargo for charting
-            survey: true,
+            survey: false,
             extractor: false,
             siphon: false,
             warp_drive: false,

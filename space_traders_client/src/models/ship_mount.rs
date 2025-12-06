@@ -154,6 +154,28 @@ pub enum Deposits {
     MeritiumOre,
 }
 
+impl From<Symbol> for models::TradeSymbol {
+    fn from(value: Symbol) -> Self {
+        match value {
+            Symbol::GasSiphonI => models::TradeSymbol::MountGasSiphonI,
+            Symbol::GasSiphonIi => models::TradeSymbol::MountGasSiphonIi,
+            Symbol::GasSiphonIii => models::TradeSymbol::MountGasSiphonIii,
+            Symbol::SurveyorI => models::TradeSymbol::MountSurveyorI,
+            Symbol::SurveyorIi => models::TradeSymbol::MountSurveyorIi,
+            Symbol::SurveyorIii => models::TradeSymbol::MountSurveyorIii,
+            Symbol::SensorArrayI => models::TradeSymbol::MountSensorArrayI,
+            Symbol::SensorArrayIi => models::TradeSymbol::MountSensorArrayIi,
+            Symbol::SensorArrayIii => models::TradeSymbol::MountSensorArrayIii,
+            Symbol::MiningLaserI => models::TradeSymbol::MountMiningLaserI,
+            Symbol::MiningLaserIi => models::TradeSymbol::MountMiningLaserIi,
+            Symbol::MiningLaserIii => models::TradeSymbol::MountMiningLaserIii,
+            Symbol::LaserCannonI => models::TradeSymbol::MountLaserCannonI,
+            Symbol::MissileLauncherI => models::TradeSymbol::MountMissileLauncherI,
+            Symbol::TurretI => models::TradeSymbol::MountTurretI,
+        }
+    }
+}
+
 impl Default for Deposits {
     fn default() -> Deposits {
         Self::QuartzSand

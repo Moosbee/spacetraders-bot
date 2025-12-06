@@ -225,7 +225,7 @@ impl MarketTrade {
         Ok(row)
     }
 
-    pub async fn get_by_last_waypoint_and_trade_symbol(
+    pub async fn get_last_by_waypoint_and_trade_symbol(
         database_pool: &DbPool,
         waypoint_symbol: &str,
         trade_symbol: &models::TradeSymbol,

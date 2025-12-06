@@ -86,7 +86,9 @@ impl MutationRoot {
             if let Some(v) = input.default_profit {
                 cfg.default_profit = v;
             }
-
+            if let Some(v) = input.max_update_interval {
+                cfg.max_update_interval = v;
+            }
             if let Some(v) = input.markup_percentage {
                 cfg.markup_percentage = v;
             }
@@ -337,19 +339,34 @@ impl MutationRoot {
         Ok(true)
     }
 
-    /// Repopulate a system with some default fleets (convenience helper). Creates a small manual fleet for the system.
+    /// Repopulate a system with fleets
     async fn repopulate_system_with_fleets<'ctx>(
         &self,
         ctx: &Context<'ctx>,
         system: String,
     ) -> super::Result<bool> {
         let context = ctx.data::<ConductorContext>()?;
-        context
+        let worked = context
             .fleet_manager
             .populate_system(system)
             .await
             .map_err(|e| super::GraphiQLError::IO(e.to_string()))?;
-        Ok(true)
+        Ok(worked)
+    }
+
+    /// Repopulate systems connecting to a jump gate with fleets
+    async fn repopulate_systems_with_fleets_from_jump_gate<'ctx>(
+        &self,
+        ctx: &Context<'ctx>,
+        jump_gate: String,
+    ) -> super::Result<bool> {
+        let context = ctx.data::<ConductorContext>()?;
+        let worked = context
+            .fleet_manager
+            .populate_from_jump_gate(jump_gate)
+            .await
+            .map_err(|e| super::GraphiQLError::IO(e.to_string()))?;
+        Ok(worked)
     }
 
     /// Blacklist a system from population
@@ -467,6 +484,8 @@ struct InputConfig {
     pub default_purchase_price: Option<i32>,
     pub default_sell_price: Option<i32>,
     pub default_profit: Option<i32>,
+
+    pub max_update_interval: Option<i32>,
 
     // Markup and margin percentages (as decimals)
     pub markup_percentage: Option<f32>,

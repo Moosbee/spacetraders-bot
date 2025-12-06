@@ -21,7 +21,7 @@ pub fn get_waypoint_time(
     // waypoint: &database::Waypoint,
     market_trade: &[database::MarketTrade],
     // market_trade_goods: &[database::MarketTradeGood],
-    max_update_interval: i64, // in seconds
+    max_update_interval: i32, // in seconds
 ) -> Result<chrono::DateTime<chrono::Utc>> {
     get_waypoint_time_with_weights(
         market_trade,
@@ -36,7 +36,7 @@ pub fn get_waypoint_time_with_weights(
     // waypoint: &database::Waypoint,
     market_trade: &[database::MarketTrade],
     // market_trade_goods: &[database::MarketTradeGood],
-    max_update_interval: i64, // in seconds
+    max_update_interval: i32, // in seconds
     export_weight: f64,
     import_weight: f64,
     exchange_weight: f64,

@@ -3,7 +3,6 @@ use std::sync::{atomic::AtomicI32, Arc};
 use database::DatabaseConnector;
 use tracing::debug;
 use tracing::instrument;
-use utils::get_system_symbol;
 use utils::WaypointCan;
 
 use crate::{
@@ -32,6 +31,7 @@ impl ChartPilot {
         pilot: &super::Pilot,
         fleet: database::Fleet,
         ship_assignment: database::ShipAssignment,
+        is_temp: bool,
         charting_config: database::ChartingFleetConfig,
     ) -> Result<()> {
         let mut erg = pilot.context.ship_manager.get_mut(&self.ship_symbol).await;
@@ -56,7 +56,7 @@ impl ChartPilot {
             NextChartResp::Next(chart) => chart,
             NextChartResp::NoChartsInSystem => {
                 debug!("No chart available, doing something else");
-                return self.do_elsewhere(ship, pilot).await;
+                return self.do_elsewhere(ship, pilot, is_temp).await;
             }
         };
 
@@ -118,10 +118,19 @@ impl ChartPilot {
         &self,
         ship: &mut ship::MyShip,
         pilot: &super::Pilot,
+        is_temp: bool,
     ) -> std::result::Result<(), Error> {
         // todo: when this happens disable the charting assignments
 
-        todo!()
+        if is_temp {
+            database::ShipInfo::unassign_ship(&self.context.database_pool, &pilot.ship_symbol)
+                .await?;
+        } else {
+            database::ShipInfo::unassign_temp_ship(&self.context.database_pool, &pilot.ship_symbol)
+                .await?;
+        }
+
+        Ok(())
     }
 
     async fn chart_waypoint(&self, ship: &mut ship::MyShip) -> std::result::Result<(), Error> {
@@ -179,6 +188,8 @@ impl ChartPilot {
         let sql_waypoint = (&waypoint).into();
 
         database::Waypoint::insert(&self.context.database_pool, &sql_waypoint).await?;
+
+        debug!(waypoint=?sql_waypoint, "Charted Waypoint");
 
         if sql_waypoint.is_marketplace() {
             let market = self

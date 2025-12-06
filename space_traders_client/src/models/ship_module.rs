@@ -131,6 +131,33 @@ pub enum Symbol {
     ShieldGeneratorIi,
 }
 
+impl From<Symbol> for models::TradeSymbol {
+    fn from(value: Symbol) -> Self {
+        match value {
+            Symbol::MineralProcessorI => models::TradeSymbol::ModuleMineralProcessorI,
+            Symbol::GasProcessorI => models::TradeSymbol::ModuleGasProcessorI,
+            Symbol::CargoHoldI => models::TradeSymbol::ModuleCargoHoldI,
+            Symbol::CargoHoldIi => models::TradeSymbol::ModuleCargoHoldIi,
+            Symbol::CargoHoldIii => models::TradeSymbol::ModuleCargoHoldIii,
+            Symbol::CrewQuartersI => models::TradeSymbol::ModuleCrewQuartersI,
+            Symbol::EnvoyQuartersI => models::TradeSymbol::ModuleEnvoyQuartersI,
+            Symbol::PassengerCabinI => models::TradeSymbol::ModulePassengerCabinI,
+            Symbol::MicroRefineryI => models::TradeSymbol::ModuleMicroRefineryI,
+            Symbol::OreRefineryI => models::TradeSymbol::ModuleOreRefineryI,
+            Symbol::FuelRefineryI => models::TradeSymbol::ModuleFuelRefineryI,
+            Symbol::ScienceLabI => models::TradeSymbol::ModuleScienceLabI,
+            Symbol::JumpDriveI => models::TradeSymbol::ModuleJumpDriveI,
+            Symbol::JumpDriveIi => models::TradeSymbol::ModuleJumpDriveIi,
+            Symbol::JumpDriveIii => models::TradeSymbol::ModuleJumpDriveIii,
+            Symbol::WarpDriveI => models::TradeSymbol::ModuleWarpDriveI,
+            Symbol::WarpDriveIi => models::TradeSymbol::ModuleWarpDriveIi,
+            Symbol::WarpDriveIii => models::TradeSymbol::ModuleWarpDriveIii,
+            Symbol::ShieldGeneratorI => models::TradeSymbol::ModuleShieldGeneratorI,
+            Symbol::ShieldGeneratorIi => models::TradeSymbol::ModuleShieldGeneratorIi,
+        }
+    }
+}
+
 impl Default for Symbol {
     fn default() -> Symbol {
         Self::MineralProcessorI

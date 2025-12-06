@@ -3,7 +3,7 @@ control_start_sleep = 0
 control_active = true
 scrapper_start_sleep = 1000
 scrap_agents = true
-update_all_systems = true
+update_all_systems = false
 max_miners_per_waypoint = 12
 mining_eject_list = ["ICE_WATER", "AMMONIA_ICE", "ALUMINUM_ORE", "SILVER_ORE"]
 mining_prefer_list = [
@@ -12,6 +12,8 @@ mining_prefer_list = [
   "IRON_ORE",
   "QUARTZ_SAND",
 ]
+# max_update_interval = 1800 #60 * 30
+max_update_interval = 600                             #60 * 10
 ignore_engineered_asteroids = true
 unstable_since_timeout = 10800
 stop_all_unstable = true

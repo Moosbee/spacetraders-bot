@@ -192,7 +192,7 @@ impl Pilot {
                 }
                 database::FleetConfig::Charting(charting_config) => {
                     self.chart_pilot
-                        .execute_pilot_circle(self, fleet, assignment, charting_config)
+                        .execute_pilot_circle(self, fleet, assignment, is_temp, charting_config)
                         .await?;
                 }
                 database::FleetConfig::Construction(construction_config) => {

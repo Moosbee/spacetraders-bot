@@ -160,6 +160,12 @@ impl GQLConstructionMaterial {
         .await?;
         Ok(into_gql_vec(erg))
     }
+
+    async fn trade_symbol_info(&self) -> TradeSymbolInfo {
+        TradeSymbolInfo {
+            symbol: self.construction_material.trade_symbol,
+        }
+    }
 }
 
 #[derive(Debug, Clone, async_graphql::SimpleObject)]
@@ -263,6 +269,26 @@ impl GQLConstructionShipment {
         )
         .await?;
         Ok(into_gql_vec(erg))
+    }
+
+    async fn purchase_market_trade_good(
+        &self,
+        ctx: &async_graphql::Context<'_>,
+    ) -> Result<Option<GQLMarketTradeGood>> {
+        let database_pool = ctx.data::<database::DbPool>().unwrap();
+        let market_trade_good = database::MarketTradeGood::get_by_last_waypoint_and_trade_symbol(
+            database_pool,
+            &self.construction_shipment.purchase_waypoint,
+            &self.construction_shipment.trade_symbol,
+        )
+        .await?;
+        Ok(into_gql(market_trade_good))
+    }
+
+    async fn trade_symbol_info(&self) -> TradeSymbolInfo {
+        TradeSymbolInfo {
+            symbol: self.construction_shipment.trade_symbol,
+        }
     }
 }
 
@@ -407,6 +433,12 @@ impl GQLContractDelivery {
         .await?;
         Ok(into_gql(erg))
     }
+
+    async fn trade_symbol_info(&self) -> TradeSymbolInfo {
+        TradeSymbolInfo {
+            symbol: self.contract_delivery.trade_symbol,
+        }
+    }
 }
 
 #[derive(Debug, Clone, async_graphql::SimpleObject)]
@@ -469,6 +501,25 @@ impl GQLContractShipment {
             .get_clone(&self.contract_shipment.ship_symbol);
         Ok(ship.map(|f| f.into()))
     }
+
+    async fn purchase_market_trade_good(
+        &self,
+        ctx: &async_graphql::Context<'_>,
+    ) -> Result<Option<GQLMarketTradeGood>> {
+        let database_pool = ctx.data::<database::DbPool>().unwrap();
+        let market_trade_good = database::MarketTradeGood::get_by_last_waypoint_and_trade_symbol(
+            database_pool,
+            &self.contract_shipment.purchase_symbol,
+            &self.contract_shipment.trade_symbol,
+        )
+        .await?;
+        Ok(into_gql(market_trade_good))
+    }
+    async fn trade_symbol_info(&self) -> TradeSymbolInfo {
+        TradeSymbolInfo {
+            symbol: self.contract_shipment.trade_symbol,
+        }
+    }
 }
 
 #[derive(Debug, Clone, async_graphql::SimpleObject)]
@@ -485,7 +536,13 @@ impl From<database::EngineInfo> for GQLEngineInfo {
     }
 }
 #[async_graphql::ComplexObject]
-impl GQLEngineInfo {}
+impl GQLEngineInfo {
+    async fn trade_symbol_info(&self) -> TradeSymbolInfo {
+        TradeSymbolInfo {
+            symbol: self.engine_info.symbol.into(),
+        }
+    }
+}
 
 #[derive(Debug, Clone, async_graphql::SimpleObject)]
 #[graphql(name = "Extraction")]
@@ -528,6 +585,11 @@ impl GQLExtraction {
         let context = ctx.data::<crate::utils::ConductorContext>().unwrap();
         let ship = context.ship_manager.get_clone(&self.extraction.ship_symbol);
         Ok(ship.map(|f| f.into()))
+    }
+    async fn trade_symbol_info(&self) -> TradeSymbolInfo {
+        TradeSymbolInfo {
+            symbol: self.extraction.yield_symbol,
+        }
     }
 }
 
@@ -612,7 +674,13 @@ impl From<database::FrameInfo> for GQLFrameInfo {
     }
 }
 #[async_graphql::ComplexObject]
-impl GQLFrameInfo {}
+impl GQLFrameInfo {
+    async fn trade_symbol_info(&self) -> TradeSymbolInfo {
+        TradeSymbolInfo {
+            symbol: self.frame_info.symbol.into(),
+        }
+    }
+}
 
 #[derive(Debug, Clone, async_graphql::SimpleObject)]
 #[graphql(name = "JumpGateConnection")]
@@ -708,6 +776,39 @@ impl GQLMarketTrade {
         Ok(erg.into_iter().map(|t| t.into()).collect())
     }
 
+    async fn maps(&self, ctx: &async_graphql::Context<'_>) -> Result<Vec<GQLMarketTrade>> {
+        let database_pool = ctx.data::<database::DbPool>().unwrap();
+        let maping = match self.market_trade.r#type {
+            models::market_trade_good::Type::Export => {
+                database::ExportImportMapping::get_imports_for_export(
+                    database_pool,
+                    self.market_trade.symbol,
+                )
+                .await?
+            }
+            models::market_trade_good::Type::Exchange => Vec::new(),
+            models::market_trade_good::Type::Import => {
+                database::ExportImportMapping::get_exports_for_import(
+                    database_pool,
+                    self.market_trade.symbol,
+                )
+                .await?
+            }
+        };
+
+        let market_trades = database::MarketTrade::get_last_by_waypoint(
+            database_pool,
+            &self.market_trade.waypoint_symbol,
+        )
+        .await?;
+
+        Ok(market_trades
+            .into_iter()
+            .filter(|t| maping.contains(&t.symbol))
+            .map(Into::into)
+            .collect())
+    }
+
     async fn market_trade_good(
         &self,
         ctx: &async_graphql::Context<'_>,
@@ -720,6 +821,12 @@ impl GQLMarketTrade {
         )
         .await?;
         Ok(into_gql(erg))
+    }
+
+    async fn trade_symbol_info(&self) -> TradeSymbolInfo {
+        TradeSymbolInfo {
+            symbol: self.market_trade.symbol,
+        }
     }
 }
 
@@ -780,7 +887,7 @@ impl GQLMarketTradeGood {
         ctx: &async_graphql::Context<'_>,
     ) -> Result<Option<GQLMarketTrade>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let erg = database::MarketTrade::get_by_last_waypoint_and_trade_symbol(
+        let erg = database::MarketTrade::get_last_by_waypoint_and_trade_symbol(
             database_pool,
             &self.market_trade_good.waypoint_symbol,
             &self.market_trade_good.symbol,
@@ -802,6 +909,44 @@ impl GQLMarketTradeGood {
             )
             .await?;
         Ok(erg.into())
+    }
+    async fn maps(&self, ctx: &async_graphql::Context<'_>) -> Result<Vec<GQLMarketTrade>> {
+        let database_pool = ctx.data::<database::DbPool>().unwrap();
+        let maping = match self.market_trade_good.r#type {
+            models::market_trade_good::Type::Export => {
+                database::ExportImportMapping::get_imports_for_export(
+                    database_pool,
+                    self.market_trade_good.symbol,
+                )
+                .await?
+            }
+            models::market_trade_good::Type::Exchange => Vec::new(),
+            models::market_trade_good::Type::Import => {
+                database::ExportImportMapping::get_exports_for_import(
+                    database_pool,
+                    self.market_trade_good.symbol,
+                )
+                .await?
+            }
+        };
+
+        let market_trades = database::MarketTrade::get_last_by_waypoint(
+            database_pool,
+            &self.market_trade_good.waypoint_symbol,
+        )
+        .await?;
+
+        Ok(market_trades
+            .into_iter()
+            .filter(|t| maping.contains(&t.symbol))
+            .map(Into::into)
+            .collect())
+    }
+
+    async fn trade_symbol_info(&self) -> TradeSymbolInfo {
+        TradeSymbolInfo {
+            symbol: self.market_trade_good.symbol,
+        }
     }
 }
 
@@ -907,6 +1052,12 @@ impl GQLMarketTransaction {
         .await?;
         Ok(into_gql(trade_good))
     }
+
+    async fn trade_symbol_info(&self) -> TradeSymbolInfo {
+        TradeSymbolInfo {
+            symbol: self.market_transaction.trade_symbol,
+        }
+    }
 }
 
 #[derive(Debug, Clone, async_graphql::SimpleObject)]
@@ -923,7 +1074,13 @@ impl From<database::ModuleInfo> for GQLModuleInfo {
     }
 }
 #[async_graphql::ComplexObject]
-impl GQLModuleInfo {}
+impl GQLModuleInfo {
+    async fn trade_symbol_info(&self) -> TradeSymbolInfo {
+        TradeSymbolInfo {
+            symbol: self.module_info.symbol.into(),
+        }
+    }
+}
 
 #[derive(Debug, Clone, async_graphql::SimpleObject)]
 #[graphql(name = "MountInfo")]
@@ -939,7 +1096,13 @@ impl From<database::MountInfo> for GQLMountInfo {
     }
 }
 #[async_graphql::ComplexObject]
-impl GQLMountInfo {}
+impl GQLMountInfo {
+    async fn trade_symbol_info(&self) -> TradeSymbolInfo {
+        TradeSymbolInfo {
+            symbol: self.mount_info.symbol.into(),
+        }
+    }
+}
 
 #[derive(Debug, Clone, async_graphql::SimpleObject)]
 #[graphql(name = "ReactorInfo")]
@@ -958,7 +1121,13 @@ impl From<database::ReactorInfo> for GQLReactorInfo {
 }
 
 #[async_graphql::ComplexObject]
-impl GQLReactorInfo {}
+impl GQLReactorInfo {
+    async fn trade_symbol_info(&self) -> TradeSymbolInfo {
+        TradeSymbolInfo {
+            symbol: self.reactor_info.symbol.into(),
+        }
+    }
+}
 
 #[derive(Debug, Clone, async_graphql::SimpleObject)]
 #[graphql(name = "RepairTransaction")]
@@ -1176,22 +1345,25 @@ impl GQLShipAssignment {
         Ok(into_gql(erg))
     }
 
-    async fn all_ship<'ctx>(&self, ctx: &async_graphql::Context<'ctx>) -> Result<Option<GQLShip>> {
+    async fn ship<'ctx>(&self, ctx: &async_graphql::Context<'ctx>) -> Result<Option<GQLShip>> {
         let context = ctx.data::<crate::utils::ConductorContext>().unwrap();
         let all_ships = context.ship_manager.get_all_clone().await;
         let ship = all_ships.into_values().find(|ship| {
-            ship.status.fleet_id == Some(self.ship_assignment.fleet_id)
-                || ship.status.temp_fleet_id == Some(self.ship_assignment.fleet_id)
+            ship.status.assignment_id == Some(self.ship_assignment.id)
+                || ship.status.temp_assignment_id == Some(self.ship_assignment.id)
         });
         Ok(ship.map(|f| f.into()))
     }
 
-    async fn ship<'ctx>(&self, ctx: &async_graphql::Context<'ctx>) -> Result<Option<GQLShip>> {
+    async fn permanent_ship<'ctx>(
+        &self,
+        ctx: &async_graphql::Context<'ctx>,
+    ) -> Result<Option<GQLShip>> {
         let context = ctx.data::<crate::utils::ConductorContext>().unwrap();
         let all_ships = context.ship_manager.get_all_clone().await;
         let ship = all_ships
             .into_values()
-            .find(|ship| ship.status.fleet_id == Some(self.ship_assignment.fleet_id));
+            .find(|ship| ship.status.assignment_id == Some(self.ship_assignment.id));
         Ok(ship.map(|f| f.into()))
     }
 
@@ -1200,7 +1372,7 @@ impl GQLShipAssignment {
         let all_ships = context.ship_manager.get_all_clone().await;
         let ship = all_ships
             .into_values()
-            .find(|ship| ship.status.temp_fleet_id == Some(self.ship_assignment.fleet_id));
+            .find(|ship| ship.status.temp_assignment_id == Some(self.ship_assignment.id));
         Ok(ship.map(|f| f.into()))
     }
 }
@@ -1377,6 +1549,12 @@ impl GQLShipModificationTransaction {
             .ship_manager
             .get_clone(&self.ship_modification_transaction.ship_symbol);
         Ok(ship.map(|f| f.into()))
+    }
+
+    async fn trade_symbol_info(&self) -> TradeSymbolInfo {
+        TradeSymbolInfo {
+            symbol: self.ship_modification_transaction.trade_symbol,
+        }
     }
 }
 
@@ -1707,6 +1885,12 @@ impl GQLShipyardShip {
         .await?;
         Ok(into_gql_vec(history))
     }
+
+    async fn trade_symbol_info(&self) -> TradeSymbolInfo {
+        TradeSymbolInfo {
+            symbol: self.shipyard_ship.ship_type.into(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, async_graphql::SimpleObject)]
@@ -1732,6 +1916,12 @@ impl GQLShipyardShipTypes {
             database::Shipyard::get_by_id(database_pool, self.shipyard_ship_types.shipyard_id)
                 .await?;
         Ok(into_gql(erg))
+    }
+
+    async fn trade_symbol_info(&self) -> TradeSymbolInfo {
+        TradeSymbolInfo {
+            symbol: self.shipyard_ship_types.ship_type.into(),
+        }
     }
 }
 
@@ -1796,6 +1986,12 @@ impl GQLShipyardTransaction {
             .into_values()
             .find(|ship| ship.purchase_id == Some(self.shipyard_transaction.id));
         Ok(ship.map(|f| f.into()))
+    }
+
+    async fn trade_symbol_info(&self) -> TradeSymbolInfo {
+        TradeSymbolInfo {
+            symbol: self.shipyard_transaction.ship_type.into(),
+        }
     }
 }
 
@@ -1873,9 +2069,19 @@ impl GQLSurvey {
 }
 
 #[derive(Debug, Clone, serde::Serialize, async_graphql::SimpleObject)]
+#[graphql(complex)]
 pub struct SurveyPercent {
     pub symbol: models::TradeSymbol,
     pub percent: f64,
+}
+
+#[async_graphql::ComplexObject]
+impl SurveyPercent {
+    async fn trade_symbol_info(&self) -> TradeSymbolInfo {
+        TradeSymbolInfo {
+            symbol: self.symbol,
+        }
+    }
 }
 
 #[derive(Debug, Clone, async_graphql::SimpleObject)]
@@ -2235,6 +2441,12 @@ impl GQLTradeRoute {
         .await?;
         Ok(into_gql(market_trade_good))
     }
+
+    async fn trade_symbol_info(&self) -> TradeSymbolInfo {
+        TradeSymbolInfo {
+            symbol: self.trade_route.symbol,
+        }
+    }
 }
 
 #[derive(Debug, Clone, async_graphql::SimpleObject)]
@@ -2520,6 +2732,63 @@ impl GQLWaypoint {
             database::Shipyard::get_last_by_waypoint(database_pool, &self.waypoint.symbol).await?;
         Ok(into_gql(reg)) // Added conversion
     }
+
+    async fn jump_gate_connections(
+        &self,
+        ctx: &async_graphql::Context<'_>,
+    ) -> Result<Vec<GQLJumpGateConnection>> {
+        let database_pool = ctx.data::<database::DbPool>().unwrap();
+        let connections =
+            database::JumpGateConnection::get_all_from(database_pool, &self.waypoint.symbol)
+                .await?;
+        Ok(into_gql_vec(connections))
+    }
+
+    async fn last_scrap(
+        &self,
+        ctx: &async_graphql::Context<'_>,
+    ) -> Result<Option<chrono::DateTime<chrono::Utc>>> {
+        let database_pool = ctx.data::<database::DbPool>().unwrap();
+        if !(self.waypoint.has_marketplace || self.waypoint.has_shipyard) {
+            return Ok(None);
+        }
+        let last_scrap =
+            database::MarketTradeGood::get_last_by_waypoint(database_pool, &self.waypoint.symbol)
+                .await?
+                .iter()
+                .max_by(|a, b| a.created_at.cmp(&b.created_at))
+                .map(|f| f.created_at)
+                .unwrap_or(chrono::DateTime::<chrono::Utc>::MIN_UTC);
+
+        Ok(Some(last_scrap))
+    }
+
+    async fn next_scrap(
+        &self,
+        ctx: &async_graphql::Context<'_>,
+    ) -> Result<Option<chrono::DateTime<chrono::Utc>>> {
+        let context = ctx.data::<crate::utils::ConductorContext>().unwrap();
+        if !(self.waypoint.has_marketplace || self.waypoint.has_shipyard) {
+            return Ok(None);
+        }
+        let market_trade_goods = database::MarketTradeGood::get_last_by_waypoint(
+            &context.database_pool,
+            &self.waypoint.symbol,
+        )
+        .await?;
+        let max_update_interval = { context.config.read().await.max_update_interval };
+
+        let next_time = crate::manager::scrapping_manager::priority_calculator::get_waypoint_time(
+            market_trade_goods
+                .into_iter()
+                .map(From::from)
+                .collect::<Vec<_>>()
+                .as_slice(),
+            max_update_interval,
+        )?;
+
+        Ok(Some(next_time))
+    }
 }
 
 #[async_graphql::ComplexObject]
@@ -2798,5 +3067,36 @@ impl GateConn {
         let waypoint =
             database::Waypoint::get_by_symbol(database_pool, &self.point_b_symbol).await?;
         Ok(into_gql(waypoint))
+    }
+}
+
+#[derive(Debug, Clone, async_graphql::SimpleObject)]
+#[graphql(complex)]
+pub struct TradeSymbolInfo {
+    pub symbol: models::TradeSymbol,
+}
+
+impl From<models::TradeSymbol> for TradeSymbolInfo {
+    fn from(symbol: models::TradeSymbol) -> Self {
+        TradeSymbolInfo { symbol }
+    }
+}
+
+#[async_graphql::ComplexObject]
+impl TradeSymbolInfo {
+    async fn requires(&self, ctx: &async_graphql::Context<'_>) -> Result<Vec<TradeSymbolInfo>> {
+        let database_pool = ctx.data::<database::DbPool>().unwrap();
+        let regs =
+            database::ExportImportMapping::get_imports_for_export(database_pool, self.symbol)
+                .await?;
+        Ok(into_gql_vec(regs))
+    }
+
+    async fn required_by(&self, ctx: &async_graphql::Context<'_>) -> Result<Vec<TradeSymbolInfo>> {
+        let database_pool = ctx.data::<database::DbPool>().unwrap();
+        let regs =
+            database::ExportImportMapping::get_exports_for_import(database_pool, self.symbol)
+                .await?;
+        Ok(into_gql_vec(regs))
     }
 }

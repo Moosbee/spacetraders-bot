@@ -5,7 +5,8 @@ pub mod mutations;
 use async_graphql::Object;
 use database::DatabaseConnector;
 use space_traders_client::models;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
+use strum::IntoEnumIterator;
 use utils::WaypointCan;
 
 use crate::{
@@ -261,9 +262,28 @@ impl QueryRoot {
     async fn systems<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
+        only_with_fleets_or_ships: Option<bool>,
     ) -> Result<Vec<gql_models::GQLSystem>> {
         let context = ctx.data::<ConductorContext>()?;
-        let systems = database::System::get_all(&context.database_pool).await?;
+        let all_systems = database::System::get_all(&context.database_pool).await?;
+
+        let systems = if only_with_fleets_or_ships.unwrap_or(false) {
+            let fleets = database::Fleet::get_all(&context.database_pool).await?;
+            let ships = context.ship_manager.get_all_clone().await;
+            let mut filter_systems = fleets
+                .iter()
+                .map(|f| f.system_symbol.clone())
+                .collect::<HashSet<_>>();
+            filter_systems.extend(ships.values().map(|f| f.nav.system_symbol.clone()));
+
+            all_systems
+                .into_iter()
+                .filter(|s| filter_systems.contains(&s.symbol))
+                .collect()
+        } else {
+            all_systems
+        };
+
         Ok(systems.into_iter().map(Into::into).collect())
     }
 
@@ -492,6 +512,9 @@ impl QueryRoot {
                 ShipAssignmentBy::Fleet(fleet_id) => {
                     database::ShipAssignment::get_by_fleet_id(&context.database_pool, fleet_id)
                         .await
+                }
+                ShipAssignmentBy::Open(_assigned) => {
+                    database::ShipAssignment::get_open_assignments(&context.database_pool).await
                 }
             }
         } else {
@@ -879,6 +902,11 @@ impl QueryRoot {
         }?;
         Ok(market_trade_goods.into_iter().map(Into::into).collect())
     }
+
+    async fn trade_symbol_infos(&self) -> Result<Vec<gql_models::TradeSymbolInfo>> {
+        let trade_symbol_infos = models::TradeSymbol::iter().map(Into::into).collect();
+        Ok(trade_symbol_infos)
+    }
 }
 
 #[derive(Debug, Clone, async_graphql::OneofObject)]
@@ -958,6 +986,7 @@ enum FleetBy {
 #[derive(Debug, Clone, async_graphql::OneofObject)]
 enum ShipAssignmentBy {
     Fleet(i32),
+    Open(bool),
 }
 
 #[derive(Debug, Clone, async_graphql::OneofObject)]

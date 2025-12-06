@@ -1,9 +1,10 @@
 use itertools::Itertools;
 use space_traders_client::models;
 
+#[derive(Debug, Clone)]
 pub struct ShipCapabilities {
     cargo: i32,
-    fuel: i32,
+    fuel: i32, // if it's 0 that means infinite range
     survey: i32,
     sensor: i32,
     extractor: i32,
@@ -47,8 +48,14 @@ impl ShipCapabilities {
     }
 
     pub fn capable(&self, assignment: &database::ShipAssignment) -> bool {
+        let has_range = if assignment.range_min == -1 {
+            self.fuel == 0
+        } else {
+            self.fuel >= assignment.range_min
+        };
+
         self.cargo >= assignment.cargo_min
-            && self.fuel >= assignment.range_min
+            && has_range
             && self.survey >= if assignment.survey { 1 } else { 0 }
             && self.extractor >= if assignment.extractor { 1 } else { 0 }
             && self.siphon >= if assignment.siphon { 1 } else { 0 }

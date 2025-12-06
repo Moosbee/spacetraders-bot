@@ -2882,6 +2882,7 @@ dependencies = [
  "ship",
  "space_traders_client",
  "sqlx",
+ "strum",
  "thiserror 2.0.6",
  "tokio",
  "tokio-stream",

@@ -146,7 +146,7 @@ impl FleetManagerMessanger {
     pub async fn regenerate_fleet_assignments(
         &self,
         fleet_id: i32,
-    ) -> Result<(), crate::error::Error> {
+    ) -> Result<bool, crate::error::Error> {
         let (sender, receiver) = tokio::sync::oneshot::channel();
         let erg = self
             .sender
@@ -161,8 +161,10 @@ impl FleetManagerMessanger {
 
         if let Err(e) = erg {
             match e {
-                tokio::sync::mpsc::error::SendTimeoutError::Timeout(_e) => return Ok(()),
-                tokio::sync::mpsc::error::SendTimeoutError::Closed(_e) => return Ok(()),
+                tokio::sync::mpsc::error::SendTimeoutError::Timeout(_e) => return Ok(false),
+                tokio::sync::mpsc::error::SendTimeoutError::Closed(_e) => {
+                    return Err(crate::error::Error::General("Channel Closed".to_string()))
+                }
             }
         }
 
@@ -170,10 +172,13 @@ impl FleetManagerMessanger {
             .await
             .map_err(|e| crate::error::Error::General(e.to_string()))?;
 
-        Ok(())
+        Ok(false)
     }
 
-    pub async fn populate_system(&self, system_symbol: String) -> Result<(), crate::error::Error> {
+    pub async fn populate_system(
+        &self,
+        system_symbol: String,
+    ) -> Result<bool, crate::error::Error> {
         let (sender, receiver) = tokio::sync::oneshot::channel();
         let erg = self.sender.try_send(FleetManagerMessage::PopulateSystem {
             callback: sender,
@@ -181,20 +186,22 @@ impl FleetManagerMessanger {
         });
         if let Err(e) = erg {
             match e {
-                tokio::sync::mpsc::error::TrySendError::Full(_e) => return Ok(()),
-                tokio::sync::mpsc::error::TrySendError::Closed(_e) => return Ok(()),
+                tokio::sync::mpsc::error::TrySendError::Full(_e) => return Ok(false),
+                tokio::sync::mpsc::error::TrySendError::Closed(_e) => {
+                    return Err(crate::error::Error::General("Channel Closed".to_string()))
+                }
             }
         }
         receiver
             .await
             .map_err(|e| crate::error::Error::General(e.to_string()))?;
-        Ok(())
+        Ok(true)
     }
 
     pub async fn populate_from_jump_gate(
         &self,
         jump_gate_symbol: String,
-    ) -> Result<(), crate::error::Error> {
+    ) -> Result<bool, crate::error::Error> {
         let (sender, receiver) = tokio::sync::oneshot::channel();
         let erg = self
             .sender
@@ -204,13 +211,15 @@ impl FleetManagerMessanger {
             });
         if let Err(e) = erg {
             match e {
-                tokio::sync::mpsc::error::TrySendError::Full(_e) => return Ok(()),
-                tokio::sync::mpsc::error::TrySendError::Closed(_e) => return Ok(()),
+                tokio::sync::mpsc::error::TrySendError::Full(_e) => return Ok(false),
+                tokio::sync::mpsc::error::TrySendError::Closed(_e) => {
+                    return Err(crate::error::Error::General("Channel Closed".to_string()))
+                }
             }
         }
         receiver
             .await
             .map_err(|e| crate::error::Error::General(e.to_string()))?;
-        Ok(())
+        Ok(true)
     }
 }

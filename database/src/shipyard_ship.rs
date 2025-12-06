@@ -248,7 +248,7 @@ impl ShipyardShip {
         let erg = sqlx::query_as!(
             ShipyardShip,
             r#"
-            SELECT DISTINCT ON (ship_type)
+            SELECT
                 id,
                 waypoint_symbol,
                 ship_type as "ship_type: models::ShipType",

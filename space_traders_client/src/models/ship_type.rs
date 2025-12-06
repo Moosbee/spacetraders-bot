@@ -105,6 +105,26 @@ impl std::fmt::Display for ShipType {
     }
 }
 
+impl From<ShipType> for models::TradeSymbol {
+    fn from(value: ShipType) -> Self {
+        match value {
+            ShipType::Probe => models::TradeSymbol::ShipProbe,
+            ShipType::MiningDrone => models::TradeSymbol::ShipMiningDrone,
+            ShipType::SiphonDrone => models::TradeSymbol::ShipSiphonDrone,
+            ShipType::Interceptor => models::TradeSymbol::ShipInterceptor,
+            ShipType::LightHauler => models::TradeSymbol::ShipLightHauler,
+            ShipType::CommandFrigate => models::TradeSymbol::ShipCommandFrigate,
+            ShipType::Explorer => models::TradeSymbol::ShipExplorer,
+            ShipType::HeavyFreighter => models::TradeSymbol::ShipHeavyFreighter,
+            ShipType::LightShuttle => models::TradeSymbol::ShipLightShuttle,
+            ShipType::OreHound => models::TradeSymbol::ShipOreHound,
+            ShipType::RefiningFreighter => models::TradeSymbol::ShipRefiningFreighter,
+            ShipType::Surveyor => models::TradeSymbol::ShipSurveyor,
+            ShipType::BulkFreighter => models::TradeSymbol::ShipBulkFreighter,
+        }
+    }
+}
+
 impl Default for ShipType {
     fn default() -> ShipType {
         Self::Probe

@@ -63,6 +63,8 @@ pub struct Config {
     pub default_sell_price: i32,
     pub default_profit: i32,
 
+    pub max_update_interval: i32,
+
     // Markup and margin percentages (as decimals)
     pub markup_percentage: f32,
     pub margin_percentage: f32,

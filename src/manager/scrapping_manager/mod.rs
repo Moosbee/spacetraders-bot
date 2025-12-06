@@ -1,6 +1,6 @@
 mod message;
 mod messanger;
-mod priority_calculator;
+pub mod priority_calculator;
 mod scrapping_manager;
 pub mod utils;
 

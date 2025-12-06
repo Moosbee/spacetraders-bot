@@ -11,10 +11,7 @@ use utils::{distance_between_waypoints, WaypointCan};
 
 use crate::{
     error::{Error, Result},
-    manager::{
-        scrapping_manager::priority_calculator,
-        Manager,
-    },
+    manager::{scrapping_manager::priority_calculator, Manager},
     utils::ConductorContext,
 };
 
@@ -26,7 +23,6 @@ pub struct ScrappingManager {
     context: ConductorContext,
     receiver: tokio::sync::mpsc::Receiver<ScrappingManagerMessage>,
     scrap_waypoints: HashMap<String, String>,
-    max_update_interval: i64, // in seconds
 }
 
 impl ScrappingManager {
@@ -49,10 +45,6 @@ impl ScrappingManager {
             context,
             receiver,
             scrap_waypoints: HashMap::new(),
-            // max_update_interval: 60 * 10,
-            // max_update_interval: 60 * 20,
-            // max_update_interval: 60 * 25,
-            max_update_interval: 60 * 30,
         }
     }
 
@@ -180,18 +172,6 @@ impl ScrappingManager {
         }
 
         Ok(())
-    }
-
-    pub async fn get_system(&self) -> Vec<String> {
-        let systems = self
-            .context
-            .ship_manager
-            .get_all_clone()
-            .await
-            .iter()
-            .map(|s| s.1.nav.system_symbol.clone())
-            .collect::<HashSet<_>>();
-        systems.into_iter().collect()
     }
 
     #[tracing::instrument(
@@ -400,13 +380,15 @@ impl ScrappingManager {
                 continue;
             }
 
+            let max_update_interval = { self.context.config.read().await.max_update_interval };
+
             let next_time = priority_calculator::get_waypoint_time(
                 market_trade_goods
                     .into_iter()
                     .map(From::from)
                     .collect::<Vec<_>>()
                     .as_slice(),
-                self.max_update_interval,
+                max_update_interval,
             )?;
 
             waypoints.push((wp, next_time));

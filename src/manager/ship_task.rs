@@ -22,7 +22,7 @@ pub struct ShipTaskMessanger {
 
 impl ShipTaskMessanger {
     pub async fn start_ship(&self, ship_names: database::ShipInfo) {
-    tracing::debug!(ship_names = ?ship_names, "Starting ship");
+        tracing::debug!(ship_names = ?ship_names, "Starting ship");
         let _erg = self.sender.send(ship_names).await;
     }
 }
@@ -126,6 +126,7 @@ impl ShipTaskHandler {
                         }
                         Err(e) => {
                             tracing::error!(error = ?e, "Ship join error");
+
 
                         }
                       }
