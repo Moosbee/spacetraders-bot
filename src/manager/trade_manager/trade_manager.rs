@@ -93,6 +93,7 @@ impl TradeManager {
         err(Debug)
     )]
     async fn handle_trade_message(&mut self, message: TradeManagerMessage) -> Result<()> {
+        self.context.trade_manager.set_busy(true);
         match message {
             TradeMessage::RequestNextTradeRoute {
                 ship_clone,
@@ -110,125 +111,11 @@ impl TradeManager {
                 debug!("Sending route: {:?}", route);
                 let _send = callback.send(route);
             }
-            TradeMessage::GetPossibleTrades { callback } => {
-                let trade_goods =
-                    database::MarketTradeGood::get_last(&self.context.database_pool).await?;
-                let market_trade =
-                    database::MarketTrade::get_last(&self.context.database_pool).await?;
-
-                let possible_trades = self
-                    .calculator
-                    .gen_all_possible_trades(&trade_goods, &market_trade);
-                callback.send(possible_trades).map_err(|e| {
-                    crate::error::Error::General(format!("Failed to send message: {:?}", e))
-                })?
-            }
         }
+        self.context.trade_manager.set_busy(false);
+
         Ok(())
     }
-
-    // #[tracing::instrument(
-    //     level = "info",
-    //     name = "spacetraders::manager::trade_manager::trade_manager::get_required_ships",
-    //     skip(all_ships, all_systems_hashmap, markets_per_ship)
-    // )]
-    // pub fn get_required_ships(
-    //     all_ships: &[ship::MyShip],
-    //     all_systems_hashmap: &HashMap<String, HashMap<String, database::Waypoint>>,
-    //     markets_per_ship: i64,
-    // ) -> Result<RequiredShips> {
-    //     // let all_ships = context
-    //     //     .ship_manager
-    //     //     .get_all_clone()
-    //     //     .await
-    //     //     .into_values()
-    //     //     .collect::<Vec<_>>();
-    //     // let all_systems_hashmap: HashMap<String, HashMap<String, database::Waypoint>> = database::Waypoint::get_hash_map(&context.database_pool).await?;
-
-    //     let mut systems: HashMap<String, Vec<String>> = HashMap::new();
-
-    //     for s in all_ships {
-    //         let system_str = match &s.role {
-    //             database::ShipInfoRole::Transfer => match &s.status {
-    //                 ship::ShipStatus::Transfer { system_symbol, .. } => {
-    //                     system_symbol.clone().unwrap_or_default()
-    //                 }
-    //                 _ => s.nav.system_symbol.clone(),
-    //             },
-    //             _ => s.nav.system_symbol.clone(),
-    //         };
-
-    //         let is_scrapper = s.role == database::ShipInfoRole::Scraper
-    //             || (s.role == database::ShipInfoRole::Transfer
-    //                 && match &s.status {
-    //                     ship::ShipStatus::Transfer { role, .. } => {
-    //                         role == &Some(database::ShipInfoRole::Scraper)
-    //                     }
-    //                     _ => false,
-    //                 });
-
-    //         let is_trader = s.role == database::ShipInfoRole::Trader
-    //             || (s.role == database::ShipInfoRole::Transfer
-    //                 && match &s.status {
-    //                     ship::ShipStatus::Transfer { role, .. } => {
-    //                         role == &Some(database::ShipInfoRole::Trader)
-    //                     }
-    //                     _ => false,
-    //                 });
-
-    //         let system = systems.get_mut(&system_str);
-    //         if let Some(system) = system {
-    //             if is_trader {
-    //                 system.push(s.symbol.clone());
-    //             }
-    //         } else if is_trader {
-    //             systems.insert(system_str, vec![s.symbol.clone()]);
-    //         } else if is_scrapper {
-    //             systems.insert(system_str, vec![]);
-    //         }
-    //     }
-
-    //     let mut required_ships = RequiredShips::new();
-
-    //     for (system, ships) in systems {
-    //         let waypoints = all_systems_hashmap
-    //             .get(&system)
-    //             .map(|s| s.values().filter(|w| w.is_marketplace()).count())
-    //             .unwrap_or(0);
-    //         let diff = ((waypoints as i64) / markets_per_ship) - (ships.len() as i64);
-    //         if diff <= 0 {
-    //             continue;
-    //         };
-
-    //         let mut sys_ships = (0..(diff as usize))
-    //             .map(|_| {
-    //                 (
-    //                     RequestedShipType::Transporter,
-    //                     Priority::Medium,
-    //                     Budget::High,
-    //                     database::ShipInfoRole::Trader,
-    //                 )
-    //             })
-    //             .collect::<Vec<_>>();
-
-    //         if ships.is_empty() && waypoints > 0 {
-    //             sys_ships.pop();
-    //             sys_ships.push((
-    //                 RequestedShipType::Transporter,
-    //                 Priority::High,
-    //                 Budget::High,
-    //                 database::ShipInfoRole::Trader,
-    //             ));
-    //         }
-
-    //         let before = required_ships.ships.insert(system, sys_ships);
-    //         if before.is_some() {
-    //             tracing::warn!("Trading Ship contains ships");
-    //         }
-    //     }
-
-    //     Ok(required_ships)
-    // }
 
     async fn request_next_trade_route(
         &mut self,

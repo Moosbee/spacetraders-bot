@@ -1,8 +1,4 @@
-use std::{
-    collections::{HashMap, HashSet},
-    time::Duration,
-    vec,
-};
+use std::{collections::HashMap, time::Duration, vec};
 
 use database::{DatabaseConnector, DbPool};
 use tracing::debug;
@@ -181,6 +177,8 @@ impl ScrappingManager {
         err(Debug)
     )]
     async fn handle_scrap_message(&mut self, message: super::message::ScrapMessage) -> Result<()> {
+        self.context.scrapping_manager.set_busy(true);
+
         match message {
             super::message::ScrapMessage::Next {
                 ship_clone,
@@ -211,6 +209,7 @@ impl ScrappingManager {
                     })?
             }
         }
+        self.context.scrapping_manager.set_busy(false);
 
         Ok(())
     }

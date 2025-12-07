@@ -98,13 +98,6 @@ pub async fn fix_fleet_assignments(
                         } else {
                             1_000_000.0
                         };
-                        debug!(
-                            current_assignment = ?ca,
-                            new_assignment = ?na,
-                            can_merge,
-                            score,
-                            "Calculated assignment match score"
-                        );
                         // AssignmentMatch {
                         //     current_assignment_index: ca,
                         //     new_assignment_index: na,

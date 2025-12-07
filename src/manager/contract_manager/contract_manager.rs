@@ -125,6 +125,8 @@ impl ContractManager {
     )]
     async fn handle_contract_message(&mut self, message: ContractManagerMessage) -> Result<()> {
         debug!("Handling contract message: {:?}", message);
+      self.context.contract_manager.set_busy(true);
+
         match message {
             ContractShipmentMessage::RequestNext {
                 ship_clone,
@@ -155,6 +157,7 @@ impl ContractManager {
                 callback.send(Ok(self.running_shipments.clone())).unwrap();
             }
         }
+      self.context.contract_manager.set_busy(false);
 
         Ok(())
     }

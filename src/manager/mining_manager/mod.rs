@@ -9,6 +9,7 @@ mod waypoint_manager;
 
 pub use mining_manager::MiningManager;
 pub use mining_manager_messanger::MiningManagerMessanger;
+pub use mining_places::AssignLevel;
 pub use place_finder::ActionType;
 pub use transfer_manager::ExtractorTransferRequest;
 pub use transfer_manager::TransferResult;

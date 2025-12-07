@@ -243,7 +243,7 @@ impl ChartPilot {
             .await?;
 
         // repopulate if it was the last marketplace to chart
-        if marketplace_to_chart == 0 && sql_waypoint.is_marketplace() {
+        if marketplace_to_chart <= 1 && sql_waypoint.is_marketplace() {
             self.context
                 .fleet_manager
                 .populate_system(sql_waypoint.system_symbol.clone())
@@ -251,7 +251,7 @@ impl ChartPilot {
         }
 
         // repopulate if it was the last waypoint to chart
-        if total_to_chart == 0 {
+        if total_to_chart <= 1 {
             self.context
                 .fleet_manager
                 .populate_system(sql_waypoint.system_symbol.clone())

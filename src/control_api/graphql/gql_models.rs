@@ -910,7 +910,7 @@ impl GQLMarketTradeGood {
             .await?;
         Ok(erg.into())
     }
-    async fn maps(&self, ctx: &async_graphql::Context<'_>) -> Result<Vec<GQLMarketTrade>> {
+    async fn maps(&self, ctx: &async_graphql::Context<'_>) -> Result<Vec<GQLMarketTradeGood>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
         let maping = match self.market_trade_good.r#type {
             models::market_trade_good::Type::Export => {
@@ -930,7 +930,7 @@ impl GQLMarketTradeGood {
             }
         };
 
-        let market_trades = database::MarketTrade::get_last_by_waypoint(
+        let market_trades = database::MarketTradeGood::get_last_by_waypoint(
             database_pool,
             &self.market_trade_good.waypoint_symbol,
         )
@@ -2847,6 +2847,22 @@ impl GQLShip {
         Ok(status.into())
     }
 
+    async fn possible_scraps(&self, ctx: &async_graphql::Context<'_>) -> Result<Vec<ScrapInfo>> {
+        let context = ctx.data::<crate::utils::ConductorContext>().unwrap();
+
+        let waypoints = context
+            .scrapping_manager
+            .get_info(self.ship.clone())
+            .await?;
+        Ok(waypoints
+            .into_iter()
+            .map(|f| ScrapInfo {
+                waypoint_symbol: f.0.clone(),
+                date: f.1,
+            })
+            .collect())
+    }
+
     async fn purchase_transaction<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
@@ -3098,5 +3114,269 @@ impl TradeSymbolInfo {
             database::ExportImportMapping::get_exports_for_import(database_pool, self.symbol)
                 .await?;
         Ok(into_gql_vec(regs))
+    }
+}
+
+pub struct ChartManagerInfo;
+impl ChartManagerInfo {
+    pub fn new() -> Self {
+        ChartManagerInfo
+    }
+}
+
+#[async_graphql::Object]
+impl ChartManagerInfo {
+    async fn busy(&self, ctx: &async_graphql::Context<'_>) -> Result<bool> {
+        let context = ctx.data::<crate::utils::ConductorContext>().unwrap();
+        Ok(context.chart_manager.is_busy())
+    }
+
+    async fn channel_state(
+        &self,
+        ctx: &async_graphql::Context<'_>,
+    ) -> Result<crate::utils::ChannelInfo> {
+        let context = ctx.data::<crate::utils::ConductorContext>().unwrap();
+        Ok(context.chart_manager.get_channel_state())
+    }
+}
+
+pub struct ConstructionManagerInfo;
+impl ConstructionManagerInfo {
+    pub fn new() -> Self {
+        ConstructionManagerInfo
+    }
+}
+
+#[async_graphql::Object]
+impl ConstructionManagerInfo {
+    async fn busy(&self, ctx: &async_graphql::Context<'_>) -> Result<bool> {
+        let context = ctx.data::<crate::utils::ConductorContext>().unwrap();
+        Ok(context.construction_manager.is_busy())
+    }
+
+    async fn channel_state(
+        &self,
+        ctx: &async_graphql::Context<'_>,
+    ) -> Result<crate::utils::ChannelInfo> {
+        let context = ctx.data::<crate::utils::ConductorContext>().unwrap();
+        Ok(context.construction_manager.get_channel_state())
+    }
+
+    async fn running_shipments(
+        &self,
+        ctx: &async_graphql::Context<'_>,
+    ) -> Result<Vec<GQLConstructionShipment>> {
+        let context = ctx.data::<crate::utils::ConductorContext>().unwrap();
+        let shipments = context.construction_manager.get_running_shipments().await?;
+        Ok(into_gql_vec(shipments))
+    }
+}
+
+pub struct ContractManagerInfo;
+impl ContractManagerInfo {
+    pub fn new() -> Self {
+        ContractManagerInfo
+    }
+}
+
+#[async_graphql::Object]
+impl ContractManagerInfo {
+    async fn busy(&self, ctx: &async_graphql::Context<'_>) -> Result<bool> {
+        let context = ctx.data::<crate::utils::ConductorContext>().unwrap();
+        Ok(context.contract_manager.is_busy())
+    }
+
+    async fn channel_state(
+        &self,
+        ctx: &async_graphql::Context<'_>,
+    ) -> Result<crate::utils::ChannelInfo> {
+        let context = ctx.data::<crate::utils::ConductorContext>().unwrap();
+        Ok(context.contract_manager.get_channel_state())
+    }
+
+    async fn running_shipments(
+        &self,
+        ctx: &async_graphql::Context<'_>,
+    ) -> Result<Vec<GQLContractShipment>> {
+        let context = ctx.data::<crate::utils::ConductorContext>().unwrap();
+        let shipments = context.contract_manager.get_running_shipments().await?;
+        Ok(into_gql_vec(shipments))
+    }
+}
+
+pub struct FleetManagerInfo;
+impl FleetManagerInfo {
+    pub fn new() -> Self {
+        FleetManagerInfo
+    }
+}
+
+#[async_graphql::Object]
+impl FleetManagerInfo {
+    async fn busy(&self, ctx: &async_graphql::Context<'_>) -> Result<bool> {
+        let context = ctx.data::<crate::utils::ConductorContext>().unwrap();
+        Ok(context.fleet_manager.is_busy())
+    }
+
+    async fn channel_state(
+        &self,
+        ctx: &async_graphql::Context<'_>,
+    ) -> Result<crate::utils::ChannelInfo> {
+        let context = ctx.data::<crate::utils::ConductorContext>().unwrap();
+        Ok(context.fleet_manager.get_channel_state())
+    }
+}
+
+pub struct MiningManagerInfo;
+impl MiningManagerInfo {
+    pub fn new() -> Self {
+        MiningManagerInfo
+    }
+}
+
+#[async_graphql::Object]
+impl MiningManagerInfo {
+    async fn busy(&self, ctx: &async_graphql::Context<'_>) -> Result<bool> {
+        let context = ctx.data::<crate::utils::ConductorContext>().unwrap();
+        Ok(context.mining_manager.is_busy())
+    }
+
+    async fn channel_state(
+        &self,
+        ctx: &async_graphql::Context<'_>,
+    ) -> Result<crate::utils::ChannelInfo> {
+        let context = ctx.data::<crate::utils::ConductorContext>().unwrap();
+        Ok(context.mining_manager.get_channel_state())
+    }
+
+    async fn get_assignments(
+        &self,
+        ctx: &async_graphql::Context<'_>,
+    ) -> Result<Vec<MiningAssignment>> {
+        let context = ctx.data::<crate::utils::ConductorContext>().unwrap();
+        let assignments = context.mining_manager.get_assignments().await?;
+        Ok(assignments
+            .into_iter()
+            .map(|f| MiningAssignment {
+                waypoint_symbol: f.0,
+                last_updated: f.1.get_last_updated(),
+                assigned_ships: f
+                    .1
+                    .ship_iter()
+                    .map(|f| AssignedShip {
+                        ship_symbol: f.0.clone(),
+                        level: *f.1,
+                    })
+                    .collect(),
+            })
+            .collect())
+    }
+}
+
+#[derive(Debug, Clone, async_graphql::SimpleObject)]
+struct MiningAssignment {
+    waypoint_symbol: String,
+    assigned_ships: Vec<AssignedShip>,
+    last_updated: chrono::DateTime<chrono::Utc>,
+}
+
+#[derive(Debug, Clone, async_graphql::SimpleObject)]
+struct AssignedShip {
+    pub ship_symbol: String,
+    pub level: crate::manager::mining_manager::AssignLevel,
+}
+
+#[async_graphql::ComplexObject]
+impl MiningAssignment {
+    async fn waypoint<'ctx>(
+        &self,
+        ctx: &async_graphql::Context<'ctx>,
+    ) -> Result<Option<GQLWaypoint>> {
+        let database_pool = ctx.data::<database::DbPool>().unwrap();
+        let waypoint =
+            database::Waypoint::get_by_symbol(database_pool, &self.waypoint_symbol).await?;
+        Ok(into_gql(waypoint))
+    }
+}
+
+#[async_graphql::ComplexObject]
+impl AssignedShip {
+    async fn ship(&self, ctx: &async_graphql::Context<'_>) -> Result<Option<GQLShip>> {
+        let context = ctx.data::<crate::utils::ConductorContext>().unwrap();
+        let ship = context.ship_manager.get_clone(&self.ship_symbol);
+        Ok(ship.map(|s| s.into()))
+    }
+}
+
+pub struct ScrappingManagerInfo;
+impl ScrappingManagerInfo {
+    pub fn new() -> Self {
+        ScrappingManagerInfo
+    }
+}
+
+#[async_graphql::Object]
+impl ScrappingManagerInfo {
+    async fn busy(&self, ctx: &async_graphql::Context<'_>) -> Result<bool> {
+        let context = ctx.data::<crate::utils::ConductorContext>().unwrap();
+        Ok(context.scrapping_manager.is_busy())
+    }
+
+    async fn channel_state(
+        &self,
+        ctx: &async_graphql::Context<'_>,
+    ) -> Result<crate::utils::ChannelInfo> {
+        let context = ctx.data::<crate::utils::ConductorContext>().unwrap();
+        Ok(context.scrapping_manager.get_channel_state())
+    }
+    async fn possible_scraps(
+        &self,
+        ctx: &async_graphql::Context<'_>,
+        ship_symbol: String,
+    ) -> Result<Vec<ScrapInfo>> {
+        let context = ctx.data::<crate::utils::ConductorContext>().unwrap();
+        let ship = context.ship_manager.get_clone(&ship_symbol);
+
+        if let Some(ship_clone) = ship {
+            let waypoints = context.scrapping_manager.get_info(ship_clone).await?;
+            Ok(waypoints
+                .into_iter()
+                .map(|f| ScrapInfo {
+                    waypoint_symbol: f.0.clone(),
+                    date: f.1,
+                })
+                .collect())
+        } else {
+            Ok(vec![])
+        }
+    }
+}
+
+#[derive(Debug, Clone, async_graphql::SimpleObject)]
+struct ScrapInfo {
+    waypoint_symbol: String,
+    date: chrono::DateTime<chrono::Utc>,
+}
+
+pub struct TradeManagerInfo;
+impl TradeManagerInfo {
+    pub fn new() -> Self {
+        TradeManagerInfo
+    }
+}
+
+#[async_graphql::Object]
+impl TradeManagerInfo {
+    async fn busy(&self, ctx: &async_graphql::Context<'_>) -> Result<bool> {
+        let context = ctx.data::<crate::utils::ConductorContext>().unwrap();
+        Ok(context.trade_manager.is_busy())
+    }
+
+    async fn channel_state(
+        &self,
+        ctx: &async_graphql::Context<'_>,
+    ) -> Result<crate::utils::ChannelInfo> {
+        let context = ctx.data::<crate::utils::ConductorContext>().unwrap();
+        Ok(context.trade_manager.get_channel_state())
     }
 }

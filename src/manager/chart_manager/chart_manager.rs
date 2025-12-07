@@ -76,6 +76,8 @@ impl ChartManager {
         err(Debug)
     )]
     async fn handle_chart_message(&mut self, message: super::messages::ChartMessage) -> Result<()> {
+        self.context.chart_manager.set_busy(true);
+
         match message {
             super::messages::ChartMessage::Next {
                 ship_clone,
@@ -94,6 +96,7 @@ impl ChartManager {
                 self.success_chart(waypoint_symbol)
             }
         }
+        self.context.chart_manager.set_busy(false);
 
         Ok(())
     }

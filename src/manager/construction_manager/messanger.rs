@@ -1,16 +1,20 @@
 use space_traders_client::models;
-
+use std::sync::{atomic::AtomicBool, Arc};
 
 use super::message::{self, ConstructionManagerMessage};
 
 #[derive(Debug, Clone)]
 pub struct ConstructionManagerMessanger {
     sender: tokio::sync::mpsc::Sender<ConstructionManagerMessage>,
+    busy: Arc<AtomicBool>,
 }
 
 impl ConstructionManagerMessanger {
     pub fn new(sender: tokio::sync::mpsc::Sender<ConstructionManagerMessage>) -> Self {
-        Self { sender }
+        Self {
+            sender,
+            busy: Arc::new(AtomicBool::new(false)),
+        }
     }
 
     #[tracing::instrument(skip(self, ship_clone), name = "ConstructionManagerMessanger::next_shipment", fields(ship = %ship_clone.symbol))]
@@ -105,5 +109,30 @@ impl ConstructionManagerMessanger {
         })??;
 
         Ok(resp)
+    }
+
+    pub fn is_busy(&self) -> bool {
+        self.busy.load(std::sync::atomic::Ordering::Relaxed)
+    }
+    pub fn set_busy(&self, busy: bool) -> bool {
+        self.busy.swap(busy, std::sync::atomic::Ordering::Relaxed)
+    }
+    pub fn get_channel_state(&self) -> crate::utils::ChannelInfo {
+        let state = if self.sender.is_closed() {
+            crate::utils::ChannelState::Closed
+        } else {
+            crate::utils::ChannelState::Open
+        };
+
+        let max_capacity = self.sender.max_capacity();
+        let free_capacity = self.sender.capacity();
+        let used_capacity = max_capacity - free_capacity;
+
+        crate::utils::ChannelInfo {
+            state,
+            total_capacity: max_capacity,
+            used_capacity,
+            free_capacity,
+        }
     }
 }

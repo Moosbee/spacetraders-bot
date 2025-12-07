@@ -9,7 +9,7 @@ use tracing::instrument;
 #[instrument(skip(waypoints))]
 pub async fn get_all_markets(
     api: &space_traders_client::Api,
-    waypoints: &[(String, String)],
+    waypoints: &[(String, String, bool)],
 ) -> crate::error::Result<Vec<models::Market>> {
     let mut market_handles = tokio::task::JoinSet::new();
 

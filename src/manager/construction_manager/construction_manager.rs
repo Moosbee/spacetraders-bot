@@ -123,6 +123,8 @@ impl ConstructionManager {
         &mut self,
         message: super::message::ConstructionMessage,
     ) -> Result<()> {
+        self.context.construction_manager.set_busy(true);
+
         match message {
             ConstructionMessage::RequestNextShipment {
                 ship_clone,
@@ -153,6 +155,7 @@ impl ConstructionManager {
                 callback.send(Ok(self.running_shipments.clone())).unwrap();
             }
         }
+        self.context.construction_manager.set_busy(false);
 
         Ok(())
     }

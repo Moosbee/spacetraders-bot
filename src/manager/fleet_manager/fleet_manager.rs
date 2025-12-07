@@ -27,7 +27,7 @@ impl FleetManager {
         tokio::sync::mpsc::Receiver<FleetManagerMessage>,
         FleetManagerMessanger,
     ) {
-        let (sender, receiver) = tokio::sync::mpsc::channel(24);
+        let (sender, receiver) = tokio::sync::mpsc::channel(1024);
         debug!("Created FleetManager channel");
 
         (receiver, FleetManagerMessanger::new(sender))
@@ -79,6 +79,8 @@ impl FleetManager {
         err(Debug)
     )]
     async fn handle_fleet_message(&mut self, message: super::message::FleetMessage) -> Result<()> {
+      self.context.fleet_manager.set_busy(true);
+
         match message {
             crate::manager::fleet_manager::message::FleetMessage::ScrapperAtShipyard {
                 waypoint_symbol,
@@ -157,6 +159,8 @@ impl FleetManager {
                 })?;
             }
         }
+      self.context.fleet_manager.set_busy(false);
+
 
         Ok(())
     }

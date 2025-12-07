@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::sync::{atomic::AtomicBool, Arc};
 
 use tracing::debug;
 
@@ -15,6 +15,7 @@ use crate::error::Result;
 pub struct MiningManagerMessanger {
     pub(crate) sender: tokio::sync::mpsc::Sender<MiningManagerMessage>,
     transfer_manager: Arc<TransferManager>,
+    busy: Arc<AtomicBool>,
 }
 
 impl MiningManagerMessanger {
@@ -25,6 +26,7 @@ impl MiningManagerMessanger {
         MiningManagerMessanger {
             sender,
             transfer_manager,
+            busy: Arc::new(AtomicBool::new(false)),
         }
     }
 
@@ -37,7 +39,7 @@ impl MiningManagerMessanger {
             callback: sender,
             is_syphon,
         });
-    tracing::debug!(ship_symbol = %ship.symbol, "Sending AssignWaypoint message for ship");
+        tracing::debug!(ship_symbol = %ship.symbol, "Sending AssignWaypoint message for ship");
         self.sender.send(message).await.map_err(|e| {
             crate::error::Error::General(format!("Failed to send AssignWaypoint message: {}", e))
         })?;
@@ -46,7 +48,7 @@ impl MiningManagerMessanger {
             crate::error::Error::General(format!("Failed to get AssignWaypoint message: {}", e))
         })??;
 
-    tracing::debug!(waypoint = %erg, "Received waypoint");
+        tracing::debug!(waypoint = %erg, "Received waypoint");
         Ok(erg)
     }
 
@@ -59,7 +61,7 @@ impl MiningManagerMessanger {
             callback: sender,
             is_syphon,
         });
-    tracing::debug!(ship_symbol = %ship.symbol, "Sending NotifyWaypoint message for ship");
+        tracing::debug!(ship_symbol = %ship.symbol, "Sending NotifyWaypoint message for ship");
         self.sender.send(message).await.map_err(|e| {
             crate::error::Error::General(format!("Failed to send NotifyWaypoint message: {}", e))
         })?;
@@ -68,7 +70,7 @@ impl MiningManagerMessanger {
             crate::error::Error::General(format!("Failed to get NotifyWaypoint message: {}", e))
         })??;
 
-    tracing::debug!(ship_symbol = %ship.symbol, "Received notification response for ship");
+        tracing::debug!(ship_symbol = %ship.symbol, "Received notification response for ship");
         Ok(erg)
     }
 
@@ -80,7 +82,7 @@ impl MiningManagerMessanger {
             ship_clone: ship.clone(),
             callback: sender,
         });
-    tracing::debug!(ship_symbol = %ship.symbol, "Sending UnassignWaypoint message for ship");
+        tracing::debug!(ship_symbol = %ship.symbol, "Sending UnassignWaypoint message for ship");
         self.sender.send(message).await.map_err(|e| {
             crate::error::Error::General(format!("Failed to send UnassignWaypoint message: {}", e))
         })?;
@@ -89,7 +91,7 @@ impl MiningManagerMessanger {
             crate::error::Error::General(format!("Failed to get UnassignWaypoint message: {}", e))
         })??;
 
-    tracing::debug!(ship_symbol = %ship.symbol, "Received unassignment response for ship");
+        tracing::debug!(ship_symbol = %ship.symbol, "Received unassignment response for ship");
         Ok(erg)
     }
 
@@ -102,7 +104,7 @@ impl MiningManagerMessanger {
                 ship_clone: ship.clone(),
                 callback: sender,
             });
-    tracing::debug!(ship_symbol = %ship.symbol, "Sending GetNextWaypoint message for ship");
+        tracing::debug!(ship_symbol = %ship.symbol, "Sending GetNextWaypoint message for ship");
         self.sender.send(message).await.map_err(|e| {
             crate::error::Error::General(format!("Failed to send GetNextWaypoint message: {}", e))
         })?;
@@ -111,7 +113,7 @@ impl MiningManagerMessanger {
             crate::error::Error::General(format!("Failed to get GetNextWaypoint message: {}", e))
         })??;
 
-    tracing::debug!(waypoint = %erg, "Received next transport waypoint");
+        tracing::debug!(waypoint = %erg, "Received next transport waypoint");
         Ok(erg)
     }
 
@@ -175,7 +177,7 @@ impl MiningManagerMessanger {
 
         self.transfer_manager.add_extractor_contact(symbol, sender);
 
-    tracing::debug!(symbol = %symbol, "Extractor contact established");
+        tracing::debug!(symbol = %symbol, "Extractor contact established");
         Ok(receiver)
     }
 
@@ -193,7 +195,7 @@ impl MiningManagerMessanger {
         self.transfer_manager
             .add_transportation_contact(symbol, sender);
 
-    tracing::debug!(symbol = %symbol, "Transport contact established");
+        tracing::debug!(symbol = %symbol, "Transport contact established");
         Ok(receiver)
     }
 
@@ -211,5 +213,30 @@ impl MiningManagerMessanger {
         callback.await.map_err(|e| {
             crate::error::Error::General(format!("Failed to get GetAssignments message: {}", e))
         })?
+    }
+
+    pub fn is_busy(&self) -> bool {
+        self.busy.load(std::sync::atomic::Ordering::Relaxed)
+    }
+    pub fn set_busy(&self, busy: bool) -> bool {
+        self.busy.swap(busy, std::sync::atomic::Ordering::Relaxed)
+    }
+    pub fn get_channel_state(&self) -> crate::utils::ChannelInfo {
+        let state = if self.sender.is_closed() {
+            crate::utils::ChannelState::Closed
+        } else {
+            crate::utils::ChannelState::Open
+        };
+
+        let max_capacity = self.sender.max_capacity();
+        let free_capacity = self.sender.capacity();
+        let used_capacity = max_capacity - free_capacity;
+
+        crate::utils::ChannelInfo {
+            state,
+            total_capacity: max_capacity,
+            used_capacity,
+            free_capacity,
+        }
     }
 }

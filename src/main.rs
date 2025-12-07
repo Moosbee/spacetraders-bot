@@ -64,51 +64,6 @@ async fn main() -> anyhow::Result<()> {
 
     let (context, manager_token, managers) = setup_context().await?;
 
-    // let fleets = database::Fleet::get_all(&context.database_pool).await?;
-
-    // for fleet in fleets {
-    //     let current_assignments =
-    //         database::ShipAssignment::get_by_fleet_id(&context.database_pool, fleet.id).await?;
-    //     let new_assignments =
-    //         manager::fleet_manager::assignment_management::generate_fleet_assignments(
-    //             &fleet, &context,
-    //         )
-    //         .await?;
-
-    //     tracing::info!(
-    //         fleet_id = %fleet.id,
-    //         current_assignments = ?current_assignments,
-    //         new_assignments = ?new_assignments,
-    //         "Updating fleet assignments");
-
-    //     let assignments = manager::fleet_manager::assignment_management::fix_fleet_assignments(
-    //         current_assignments,
-    //         new_assignments,
-    //     )
-    //     .await?;
-
-    //     info!(
-    //         fleet_id = %fleet.id,
-    //         assignments = ?assignments,
-    //         "Fixed fleet assignments"
-    //     );
-    // }
-
-    // tokio::time::sleep(std::time::Duration::from_millis(1000)).await;
-
-    // panic!("Finished");
-
-    // let reg = setup_main_system_fleets(&context).await;
-
-    // if let Err(errorr) = reg {
-    //     tracing::error!(
-    //         error = format!("{:?}", errorr),
-    //         "setup_main_system_fleets error"
-    //     );
-    // }
-
-    // panic!("Finished");
-
     let main_system = { get_system_symbol(&context.run_info.read().await.headquarters) };
 
     if manager::fleet_manager::fleet_population::is_system_populated(
@@ -256,13 +211,34 @@ async fn setup_context(
                         .await?
                         .into_iter()
                         .filter(|w| w.is_marketplace())
-                        .map(|w| (w.system_symbol, w.symbol))
+                        .map(|w| (w.system_symbol, w.symbol, w.is_under_construction))
                         .collect::<Vec<_>>();
 
                     let markets = scrapping_manager::utils::get_all_markets(&api, &wps).await?;
                     let markets_len = markets.len();
                     scrapping_manager::utils::update_markets(markets, database_pool.clone())
                         .await?;
+
+                      for waypoint in wps.iter().filter(|f|f.2){
+                                        let construction = api
+                    .get_construction(&waypoint.0, &waypoint.1)
+                    .await?;
+                tracing::debug!("Got construction: {:?}", construction);
+
+                let materials = construction
+                    .data
+                    .materials
+                    .iter()
+                    .map(|m| database::ConstructionMaterial::from(m, &waypoint.1))
+                    .collect::<Vec<_>>();
+
+                database::ConstructionMaterial::insert_bulk(
+                    &database_pool,
+                    &materials,
+                )
+                .await?;
+                      }
+                      
                     tracing::debug!(system = %system_symbol, waypoints = wps.len(), markets = markets_len, "Updated markets");
                 }
                 Ok::<(), crate::error::Error>(())

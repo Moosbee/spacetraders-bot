@@ -59,7 +59,7 @@ pub struct MiningPlaces {
     max_miners_per_waypoint: u32,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, async_graphql::Enum)]
 pub enum AssignLevel {
     /// Ship is at the waypoint but not active
     Inactive,

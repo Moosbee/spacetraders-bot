@@ -1,4 +1,3 @@
-use std::net::SocketAddr;
 use std::sync::Arc;
 
 use database::DbPool;
@@ -33,6 +32,22 @@ pub struct ConductorContext {
     pub budget_manager: Arc<BudgetManager>,
     pub run_info: Arc<RwLock<RunInfo>>,
     pub config: Arc<RwLock<Config>>,
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone, async_graphql::SimpleObject)]
+pub struct ChannelInfo {
+    pub state: ChannelState,
+    pub total_capacity: usize,
+    pub used_capacity: usize,
+    pub free_capacity: usize,
+}
+
+#[derive(
+    Deserialize, Serialize, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, async_graphql::Enum,
+)]
+pub enum ChannelState {
+    Open,
+    Closed,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone, async_graphql::SimpleObject)]

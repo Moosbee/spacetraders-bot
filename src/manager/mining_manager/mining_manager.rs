@@ -35,7 +35,7 @@ impl MiningManager {
         Arc<TransferManager>,
     ) {
         let (sender, receiver) = tokio::sync::mpsc::channel(1024);
-    tracing::debug!("Created MiningManager channel");
+        tracing::debug!("Created MiningManager channel");
         let transfer_manager = Arc::new(TransferManager::new());
 
         (
@@ -52,7 +52,7 @@ impl MiningManager {
         transfer_manager: Arc<TransferManager>,
         max_miners_per_waypoint: u32,
     ) -> Self {
-    tracing::debug!("Initializing new MiningManager");
+        tracing::debug!("Initializing new MiningManager");
         Self {
             cancel_token,
             receiver,
@@ -70,7 +70,7 @@ impl MiningManager {
         err(Debug)
     )]
     async fn run_mining_worker(&mut self) -> Result<()> {
-    tracing::debug!("Starting MiningManager worker");
+        tracing::debug!("Starting MiningManager worker");
         while !self.cancel_token.is_cancelled() {
             let message: Option<MiningMessage> = tokio::select! {
                 message = self.receiver.recv() => message,
@@ -99,6 +99,8 @@ impl MiningManager {
         err(Debug)
     )]
     async fn handle_message(&mut self, message: MiningManagerMessage) -> Result<()> {
+        self.context.mining_manager.set_busy(true);
+
         match message {
             MiningMessage::AssignWaypoint(message) => {
                 self.handle_assign_waypoint_message(message).await?;
@@ -111,181 +113,10 @@ impl MiningManager {
                 callback.send(Ok(places)).unwrap();
             }
         }
+        self.context.mining_manager.set_busy(false);
+
         Ok(())
     }
-
-    // #[tracing::instrument(
-    //     level = "info",
-    //     name = "spacetraders::manager::mining_manager::get_required_ships",
-    //     skip(context)
-    // )]
-    // pub async fn get_required_ships(context: &ConductorContext) -> Result<RequiredShips> {
-    //     let all_ships = context
-    //         .ship_manager
-    //         .get_all_clone()
-    //         .await
-    //         .into_values()
-    //         .filter(|ship| {
-    //             ship.role == database::ShipInfoRole::Mining
-    //                 || match &ship.status {
-    //                     ship::ShipStatus::Transfer { role, .. } => {
-    //                         role == &Some(database::ShipInfoRole::Mining)
-    //                     }
-    //                     _ => false,
-    //                 }
-    //         })
-    //         .map(|ship| {
-    //             let assignment = crate::pilot::mining::MiningPilot::get_ship_assignment(&ship);
-    //             let system = match &ship.role {
-    //                 database::ShipInfoRole::Transfer => match &ship.status {
-    //                     ship::ShipStatus::Transfer { system_symbol, .. } => {
-    //                         system_symbol.clone().unwrap_or_default()
-    //                     }
-    //                     _ => ship.nav.system_symbol.clone(),
-    //                 },
-    //                 _ => ship.nav.system_symbol.clone(),
-    //             };
-    //             (
-    //                 system,
-    //                 ship.symbol,
-    //                 ship.role,
-    //                 assignment,
-    //                 ship.cargo.capacity,
-    //             )
-    //         })
-    //         .collect::<Vec<_>>();
-
-    //     type MiningShip = (
-    //         String,
-    //         String,
-    //         database::ShipInfoRole,
-    //         ship::status::MiningShipAssignment,
-    //         i32,
-    //     );
-
-    //     let mut systems: HashMap<String, Vec<MiningShip>> = HashMap::new();
-
-    //     for s in all_ships {
-    //         let system = systems.get_mut(&s.0);
-
-    //         if let Some(system) = system {
-    //             system.push(s);
-    //         } else {
-    //             systems.insert(s.0.clone(), vec![s]);
-    //         }
-    //     }
-
-    //     let mut required_ships = RequiredShips::new();
-
-    //     // every waypoint can sustain around 8 mining ships, two waypoints per system and all possible gas giants
-    //     // per waypoint 8 ships, on asterioids 1 surveier, and per waypoint at least 1 transporter and 80 units of transport capacity
-
-    //     let config = { context.config.read().await.clone() };
-
-    //     for (system, ships) in systems {
-    //         let system_waypoints =
-    //             database::Waypoint::get_by_system(&context.database_pool, &system).await?;
-
-    //         let gas_count = system_waypoints
-    //             .iter()
-    //             .filter(|w| w.is_sipherable())
-    //             .count() as i32;
-    //         let asteroid_count = system_waypoints.iter().filter(|w| w.is_minable()).count() as i32;
-    //         let mining_ships_per_system = asteroid_count.min(config.mining_waypoints_per_system)
-    //             * config.mining_ships_per_waypoint;
-    //         let gas_ships_per_system = gas_count * config.mining_ships_per_waypoint;
-
-    //         let (mining_count, siphon_count, surveying_count, transport_count, transport_capacity) =
-    //             ships.iter().fold((0, 0, 0, 0, 0), |acc, s| match s.3 {
-    //                 ship::status::MiningShipAssignment::Transporter { .. } => {
-    //                     (acc.0, acc.1, acc.2, acc.3 + 1, acc.4 + s.4)
-    //                 }
-    //                 ship::status::MiningShipAssignment::Extractor { .. } => {
-    //                     (acc.0 + 1, acc.1, acc.2, acc.3, acc.4)
-    //                 }
-    //                 ship::status::MiningShipAssignment::Siphoner { .. } => {
-    //                     (acc.0, acc.1 + 1, acc.2, acc.3, acc.4)
-    //                 }
-    //                 ship::status::MiningShipAssignment::Surveyor { .. } => {
-    //                     (acc.0, acc.1, acc.2 + 1, acc.3, acc.4)
-    //                 }
-    //                 _ => acc,
-    //             });
-
-    //         let needed_mining_ships = (mining_ships_per_system - mining_count).max(0);
-    //         let needed_siphon_ships = (gas_ships_per_system - siphon_count).max(0);
-    //         let needed_surveying_ships =
-    //             (asteroid_count.min(config.mining_waypoints_per_system) - surveying_count).max(0);
-    //         let needed_transport_ships = ((asteroid_count.min(config.mining_waypoints_per_system)
-    //             + gas_count)
-    //             - transport_count)
-    //             + config.extra_mining_transporter.max(0);
-
-    //         let mut sys_ships = vec![
-    //             // (
-    //             //     RequestedShipType::Transporter,
-    //             //     Priority::Medium,
-    //             //     Budget::High,
-    //             // ),
-    //             // (RequestedShipType::Mining, Priority::Medium, Budget::High),
-    //             // (RequestedShipType::Siphon, Priority::Medium, Budget::High),
-    //         ];
-
-    //         for _ in 0..needed_mining_ships {
-    //             sys_ships.push((
-    //                 RequestedShipType::Mining,
-    //                 Priority::Medium,
-    //                 Budget::Medium,
-    //                 database::ShipInfoRole::Mining,
-    //             ));
-    //         }
-
-    //         for _ in 0..needed_siphon_ships {
-    //             sys_ships.push((
-    //                 RequestedShipType::Siphon,
-    //                 Priority::Medium,
-    //                 Budget::Medium,
-    //                 database::ShipInfoRole::Mining,
-    //             ));
-    //         }
-
-    //         for _ in 0..needed_surveying_ships {
-    //             sys_ships.push((
-    //                 RequestedShipType::Survey,
-    //                 Priority::Medium,
-    //                 Budget::Medium,
-    //                 database::ShipInfoRole::Mining,
-    //             ));
-    //         }
-
-    //         for _ in 0..needed_transport_ships {
-    //             sys_ships.push((
-    //                 RequestedShipType::Transporter,
-    //                 Priority::High,
-    //                 Budget::Medium,
-    //                 database::ShipInfoRole::Mining,
-    //             ));
-    //         }
-
-    //         if needed_transport_ships <= 0
-    //             && transport_capacity < config.transport_capacity_per_waypoint
-    //         {
-    //             sys_ships.push((
-    //                 RequestedShipType::Transporter,
-    //                 Priority::Medium,
-    //                 Budget::Medium,
-    //                 database::ShipInfoRole::Mining,
-    //             ));
-    //         }
-
-    //         let before = required_ships.ships.insert(system, sys_ships);
-    //         if before.is_some() {
-    //             log::warn!("Mining Ship contains ships");
-    //         }
-    //     }
-
-    //     Ok(required_ships)
-    // }
 
     async fn handle_assign_waypoint_message(
         &mut self,

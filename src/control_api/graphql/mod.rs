@@ -523,16 +523,6 @@ impl QueryRoot {
         Ok(ship_assignments.into_iter().map(Into::into).collect())
     }
 
-    async fn budget<'ctx>(
-        &self,
-        ctx: &async_graphql::Context<'ctx>,
-    ) -> Result<crate::manager::budget_manager::BudgetInfo> {
-        let context = ctx.data::<ConductorContext>()?;
-        let budget_info: crate::manager::budget_manager::BudgetInfo =
-            context.budget_manager.get_budget_info().await;
-        Ok(budget_info)
-    }
-
     async fn reserved_funds<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
@@ -906,6 +896,38 @@ impl QueryRoot {
     async fn trade_symbol_infos(&self) -> Result<Vec<gql_models::TradeSymbolInfo>> {
         let trade_symbol_infos = models::TradeSymbol::iter().map(Into::into).collect();
         Ok(trade_symbol_infos)
+    }
+
+    async fn budget<'ctx>(
+        &self,
+        ctx: &async_graphql::Context<'ctx>,
+    ) -> Result<crate::manager::budget_manager::BudgetInfo> {
+        let context = ctx.data::<ConductorContext>()?;
+        let budget_info: crate::manager::budget_manager::BudgetInfo =
+            context.budget_manager.get_budget_info().await;
+        Ok(budget_info)
+    }
+
+    async fn chart_manager(&self) -> gql_models::ChartManagerInfo {
+        gql_models::ChartManagerInfo::new()
+    }
+    async fn construction_manager(&self) -> gql_models::ConstructionManagerInfo {
+        gql_models::ConstructionManagerInfo::new()
+    }
+    async fn contract_manager(&self) -> gql_models::ContractManagerInfo {
+        gql_models::ContractManagerInfo::new()
+    }
+    async fn fleet_manager(&self) -> gql_models::FleetManagerInfo {
+        gql_models::FleetManagerInfo::new()
+    }
+    async fn mining_manager(&self) -> gql_models::MiningManagerInfo {
+        gql_models::MiningManagerInfo::new()
+    }
+    async fn scrapping_manager(&self) -> gql_models::ScrappingManagerInfo {
+        gql_models::ScrappingManagerInfo::new()
+    }
+    async fn trade_manager(&self) -> gql_models::TradeManagerInfo {
+        gql_models::TradeManagerInfo::new()
     }
 }
 

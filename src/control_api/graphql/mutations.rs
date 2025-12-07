@@ -520,67 +520,65 @@ pub enum InputFleetConfig {
 }
 
 impl InputFleetConfig {
-    pub fn into_fleet_config(self) -> database::FleetConfig {
-        match self {
+    pub fn into_fleet_config(self) -> Option<database::FleetConfig> {
+        Some(match self {
             InputFleetConfig::Trading(cfg) => {
                 database::FleetConfig::Trading(database::TradingFleetConfig {
-                    market_blacklist: cfg.market_blacklist.unwrap_or_default(),
-                    market_prefer_list: cfg.market_prefer_list.unwrap_or_default(),
-                    purchase_multiplier: cfg.purchase_multiplier.unwrap_or(1.0),
-                    ship_market_ratio: cfg.ship_market_ratio.unwrap_or(1.0),
-                    min_cargo_space: cfg.min_cargo_space.unwrap_or(0),
-                    trade_mode: cfg.trade_mode.unwrap_or(database::TradeMode::ProfitPerHour),
-                    trade_profit_threshold: cfg.trade_profit_threshold.unwrap_or(0),
+                    market_blacklist: cfg.market_blacklist?,
+                    market_prefer_list: cfg.market_prefer_list?,
+                    purchase_multiplier: cfg.purchase_multiplier?,
+                    ship_market_ratio: cfg.ship_market_ratio?,
+                    min_cargo_space: cfg.min_cargo_space?,
+                    trade_mode: cfg.trade_mode?,
+                    trade_profit_threshold: cfg.trade_profit_threshold?,
                 })
             }
             InputFleetConfig::Scraping(cfg) => {
                 database::FleetConfig::Scraping(database::ScrapingFleetConfig {
-                    ship_market_ratio: cfg.ship_market_ratio.unwrap_or(1.0),
-                    allowed_requests: cfg.allowed_requests.unwrap_or(0),
-                    notify_on_shipyard: cfg.notify_on_shipyard.unwrap_or(false),
+                    ship_market_ratio: cfg.ship_market_ratio?,
+                    allowed_requests: cfg.allowed_requests?,
+                    notify_on_shipyard: cfg.notify_on_shipyard?,
                 })
             }
             InputFleetConfig::Mining(cfg) => {
                 database::FleetConfig::Mining(database::MiningFleetConfig {
-                    mining_eject_list: cfg.mining_eject_list.unwrap_or_default(),
-                    mining_prefer_list: cfg.mining_prefer_list.unwrap_or_default(),
-                    ignore_engineered_asteroids: cfg.ignore_engineered_asteroids.unwrap_or(false),
-                    stop_all_unstable: cfg.stop_all_unstable.unwrap_or(false),
-                    unstable_since_timeout: cfg.unstable_since_timeout.unwrap_or(0),
-                    mining_waypoints: cfg.mining_waypoints.unwrap_or(0),
-                    syphon_waypoints: cfg.syphon_waypoints.unwrap_or(0),
-                    miners_per_waypoint: cfg.miners_per_waypoint.unwrap_or(0),
-                    siphoners_per_waypoint: cfg.siphoners_per_waypoint.unwrap_or(0),
-                    surveyers_per_waypoint: cfg.surveyers_per_waypoint.unwrap_or(0),
-                    mining_transporters_per_waypoint: cfg
-                        .mining_transporters_per_waypoint
-                        .unwrap_or(0),
-                    min_transporter_cargo_space: cfg.min_transporter_cargo_space.unwrap_or(0),
-                    min_mining_cargo_space: cfg.min_mining_cargo_space.unwrap_or(0),
-                    min_siphon_cargo_space: cfg.min_siphon_cargo_space.unwrap_or(0),
+                    mining_eject_list: cfg.mining_eject_list?,
+                    mining_prefer_list: cfg.mining_prefer_list?,
+                    ignore_engineered_asteroids: cfg.ignore_engineered_asteroids?,
+                    stop_all_unstable: cfg.stop_all_unstable?,
+                    unstable_since_timeout: cfg.unstable_since_timeout?,
+                    mining_waypoints: cfg.mining_waypoints?,
+                    syphon_waypoints: cfg.syphon_waypoints?,
+                    miners_per_waypoint: cfg.miners_per_waypoint?,
+                    siphoners_per_waypoint: cfg.siphoners_per_waypoint?,
+                    surveyers_per_waypoint: cfg.surveyers_per_waypoint?,
+                    mining_transporters_per_waypoint: cfg.mining_transporters_per_waypoint?,
+                    min_transporter_cargo_space: cfg.min_transporter_cargo_space?,
+                    min_mining_cargo_space: cfg.min_mining_cargo_space?,
+                    min_siphon_cargo_space: cfg.min_siphon_cargo_space?,
                 })
             }
             InputFleetConfig::Charting(cfg) => {
                 database::FleetConfig::Charting(database::ChartingFleetConfig {
-                    charting_probe_count: cfg.charting_probe_count.unwrap_or(0),
+                    charting_probe_count: cfg.charting_probe_count?,
                 })
             }
             InputFleetConfig::Construction(cfg) => {
                 database::FleetConfig::Construction(database::ConstructionFleetConfig {
-                    construction_ship_count: cfg.construction_ship_count.unwrap_or(0),
-                    construction_waypoint: cfg.construction_waypoint.unwrap_or_default(),
+                    construction_ship_count: cfg.construction_ship_count?,
+                    construction_waypoint: cfg.construction_waypoint?,
                 })
             }
             InputFleetConfig::Contract(cfg) => {
                 database::FleetConfig::Contract(database::ContractFleetConfig {
-                    contract_ship_count: cfg.contract_ship_count.unwrap_or(0),
+                    contract_ship_count: cfg.contract_ship_count?,
                 })
             }
             InputFleetConfig::Manuel(_cfg) => {
                 // ManuelConfig is not exported, return default
                 database::FleetConfig::Manuel(Default::default())
             }
-        }
+        })
     }
 }
 

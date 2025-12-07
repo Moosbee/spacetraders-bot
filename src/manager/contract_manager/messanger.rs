@@ -1,3 +1,4 @@
+use std::sync::{atomic::AtomicBool, Arc};
 use tracing::debug;
 
 use crate::{
@@ -10,11 +11,15 @@ use super::{message::ContractManagerMessage, NextShipmentResp};
 #[derive(Debug, Clone)]
 pub struct ContractManagerMessanger {
     pub sender: tokio::sync::mpsc::Sender<ContractManagerMessage>,
+    busy: Arc<AtomicBool>,
 }
 
 impl ContractManagerMessanger {
     pub fn new(sender: tokio::sync::mpsc::Sender<ContractManagerMessage>) -> Self {
-        Self { sender }
+        Self {
+            sender,
+            busy: Arc::new(AtomicBool::new(false)),
+        }
     }
 
     #[tracing::instrument(skip(self, ship), name = "ContractManagerMessanger::request_next_shipment", fields(ship = %ship.symbol))]
@@ -80,5 +85,49 @@ impl ContractManagerMessanger {
             .map_err(|e| Error::General(format!("Failed to send message: {}", e)))?;
 
         Ok(())
+    }
+
+    #[tracing::instrument(skip(self), name = "ContractManagerMessanger::get_running_shipments")]
+    pub async fn get_running_shipments(&self) -> Result<Vec<database::ContractShipment>> {
+        let (sender, receiver) = tokio::sync::oneshot::channel();
+
+        let message = ContractShipmentMessage::GetRunning { callback: sender };
+        self.sender
+            .send(message)
+            .await
+            .map_err(|e| Error::General(format!("Failed to send message: {}", e)))?;
+
+        let resp = receiver
+            .await
+            .map_err(|e| Error::General(format!("Failed to get contract fail message: {}", e)))?;
+
+        debug!("Got response: {:?}", resp);
+
+        resp
+    }
+
+    pub fn is_busy(&self) -> bool {
+        self.busy.load(std::sync::atomic::Ordering::Relaxed)
+    }
+    pub fn set_busy(&self, busy: bool) -> bool {
+        self.busy.swap(busy, std::sync::atomic::Ordering::Relaxed)
+    }
+    pub fn get_channel_state(&self) -> crate::utils::ChannelInfo {
+        let state = if self.sender.is_closed() {
+            crate::utils::ChannelState::Closed
+        } else {
+            crate::utils::ChannelState::Open
+        };
+
+        let max_capacity = self.sender.max_capacity();
+        let free_capacity = self.sender.capacity();
+        let used_capacity = max_capacity - free_capacity;
+
+        crate::utils::ChannelInfo {
+            state,
+            total_capacity: max_capacity,
+            used_capacity,
+            free_capacity,
+        }
     }
 }
