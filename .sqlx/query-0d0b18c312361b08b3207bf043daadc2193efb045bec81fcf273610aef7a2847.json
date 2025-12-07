@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT DISTINCT ON (ship_type)\n                id,\n                waypoint_symbol,\n                ship_type as \"ship_type: models::ShipType\",\n                name,\n                supply as \"supply: models::SupplyLevel\",\n                activity as \"activity: models::ActivityLevel\",\n                purchase_price,\n                frame_type as \"frame_type: models::ship_frame::Symbol\",\n                frame_quality,\n                reactor_type as \"reactor_type: models::ship_reactor::Symbol\",\n                reactor_quality,\n                engine_type as \"engine_type: models::ship_engine::Symbol\",\n                engine_quality,\n                modules as \"modules: Vec<models::ship_module::Symbol>\",\n                mounts as \"mounts: Vec<models::ship_mount::Symbol>\",\n                crew_requirement,\n                crew_capacity,\n                created_at\n            FROM shipyard_ship\n            WHERE waypoint_symbol = $1 AND ship_type = $2\n            ORDER BY ship_type, created_at DESC\n            ",
+  "query": "\n            SELECT\n                id,\n                waypoint_symbol,\n                ship_type as \"ship_type: models::ShipType\",\n                name,\n                supply as \"supply: models::SupplyLevel\",\n                activity as \"activity: models::ActivityLevel\",\n                purchase_price,\n                frame_type as \"frame_type: models::ship_frame::Symbol\",\n                frame_quality,\n                reactor_type as \"reactor_type: models::ship_reactor::Symbol\",\n                reactor_quality,\n                engine_type as \"engine_type: models::ship_engine::Symbol\",\n                engine_quality,\n                modules as \"modules: Vec<models::ship_module::Symbol>\",\n                mounts as \"mounts: Vec<models::ship_mount::Symbol>\",\n                crew_requirement,\n                crew_capacity,\n                created_at\n            FROM shipyard_ship\n            WHERE waypoint_symbol = $1 AND ship_type = $2\n            ORDER BY ship_type, created_at DESC\n            ",
   "describe": {
     "columns": [
       {
@@ -302,5 +302,5 @@
       false
     ]
   },
-  "hash": "7a99e854b55ba46ceefafd6c513e4ef2799bf592d4af651efb963ed921305be2"
+  "hash": "0d0b18c312361b08b3207bf043daadc2193efb045bec81fcf273610aef7a2847"
 }
