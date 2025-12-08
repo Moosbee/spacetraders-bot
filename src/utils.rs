@@ -107,7 +107,7 @@ pub struct RunInfo {
     pub agent_symbol: String,
     pub headquarters: String,
     pub starting_faction: models::FactionSymbol,
-    pub reset_date: chrono::NaiveDate,
+    pub reset_date: chrono::DateTime<chrono::Utc>,
     pub next_reset_date: chrono::DateTime<chrono::Utc>,
     pub version: String,
 }

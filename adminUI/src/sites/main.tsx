@@ -1,73 +1,332 @@
+import { useQuery } from "@apollo/client/react";
 import {
   Button,
-  Descriptions,
-  DescriptionsProps,
+  Card,
+  Col,
   Divider,
+  Flex,
   Popconfirm,
   Progress,
+  Row,
   Space,
+  Statistic,
+  theme,
 } from "antd";
 import { useEffect, useState } from "react";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Legend,
+  Pie,
+  PieChart,
+  Tooltip as RechartsTooltip,
+  ResponsiveContainer,
+  XAxis,
+  YAxis,
+} from "recharts";
 import { backendUrl } from "../data";
 import PageTitle from "../features/PageTitle";
-import { Info } from "../models/MainInfo";
+import { GET_MAIN_SITE_DATA } from "../graphql/queries";
+import { chartColors } from "../utils/chartColors";
 
 function Main() {
-  const [data, setData] = useState<Info>({
-    agent_symbol: "",
-    headquarters: "",
-    next_reset_date: "",
-    reset_date: "",
-    starting_faction: "",
-    version: "",
+  const { loading, error, data, dataState } = useQuery(GET_MAIN_SITE_DATA);
+  const {
+    token: { colorInfo, geekblue8, green8 },
+  } = theme.useToken();
+
+  if (loading || dataState != "complete") return <p>Loading...</p>;
+  if (error) return <p>Error: {error.message}</p>;
+
+  const fleetsByType: {
+    [key: string]: {
+      fleetCount: number;
+      inactiveFleetCount: number;
+      assignmentCount: number;
+      openAssignmentCount: number;
+    };
+  } = {};
+  data.fleets.forEach((fleet) => {
+    if (!fleetsByType[fleet.fleetType]) {
+      fleetsByType[fleet.fleetType] = {
+        fleetCount: 0,
+        assignmentCount: 0,
+        inactiveFleetCount: 0,
+        openAssignmentCount: 0,
+      };
+    }
+    fleetsByType[fleet.fleetType].fleetCount++;
+    if (!fleet.active) {
+      fleetsByType[fleet.fleetType].inactiveFleetCount++;
+    }
+    fleetsByType[fleet.fleetType].assignmentCount += fleet.assignments.length;
+    fleetsByType[fleet.fleetType].openAssignmentCount +=
+      fleet.assignments.filter((f) => !f.ship).length;
   });
 
-  useEffect(() => {
-    fetch(`http://${backendUrl}/insights/run/info`)
-      .then((response) => response.json())
-      .then((response) => {
-        console.log(response);
-        setData(response);
-      });
-  }, []);
-
-  const desc: DescriptionsProps["items"] = [
-    {
-      label: "Agent Symbol",
-      children: data.agent_symbol,
-    },
-    {
-      label: "Headquarters",
-      children: data.headquarters,
-    },
-    {
-      label: "Starting Faction",
-      children: data.starting_faction,
-    },
-    {
-      label: "Version",
-      children: data.version,
-    },
-    {
-      label: "Reset Date",
-      children: new Date(data.reset_date).toLocaleString(),
-    },
-    {
-      label: "Next Reset Date",
-      children: new Date(data.next_reset_date).toLocaleString(),
-    },
-  ];
+  const fleets = Object.entries(fleetsByType)
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([key, value]) => ({
+      name: key,
+      fleetCount: value.fleetCount,
+      assignmentCount: value.assignmentCount,
+      activeFleetCount: value.inactiveFleetCount,
+      openAssignmentCount: value.openAssignmentCount,
+    }));
 
   return (
     <div style={{ padding: "24px 24px" }}>
       <PageTitle title="Main" />
-      <h1>Main</h1>
-      <Divider />
-      <Descriptions column={2} items={desc} />
       <ShipNavProgress
-        start_time={data.reset_date}
-        end_time={data.next_reset_date}
+        start_time={data.runInfo.resetDate}
+        end_time={data.runInfo.nextResetDate}
       />
+      <Divider />
+      <Row gutter={16}>
+        <Col span={10}>
+          <Flex gap={16} vertical>
+            <Card variant="borderless">
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Statistic
+                    title="Symbol"
+                    value={data.runInfo.agent?.symbol}
+                  />
+                  <Statistic title="API Version" value={data.runInfo.version} />
+                </Col>
+                <Col span={12}>
+                  <Statistic
+                    title="Credits"
+                    value={data.runInfo.agent?.credits}
+                  />
+                  <Statistic
+                    title="Ships"
+                    value={data.runInfo.agent?.shipCount}
+                  />
+                </Col>
+              </Row>
+            </Card>
+            <Card variant="borderless">
+              <div className="overflow-hidden w-full">
+                <ul className="flex justify-around gap-4">
+                  {data.systems.map((system) => (
+                    <li key={system.symbol}>{system.symbol}</li>
+                  ))}
+                </ul>
+              </div>
+              <div className="overflow-hidden w-full">
+                <ul className="flex justify-around gap-4">
+                  {data.fleets.map((fleet) => (
+                    <li key={fleet.id} className="whitespace-nowrap">
+                      {fleet.fleetType}-{fleet.systemSymbol}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div className="overflow-hidden w-full">
+                <ul className="flex w-max justify-around gap-4 transition duration-1000 hover:-translate-x-full">
+                  {data.ships.map((ship) => (
+                    <li key={ship.symbol} className="whitespace-nowrap">
+                      {ship.symbol}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </Card>
+          </Flex>
+        </Col>
+        <Col span={6}>
+          <Card variant="borderless">
+            <Statistic title="Occupied Systems" value={data.systems.length} />
+            <Row>
+              <Col span={12}>
+                <Statistic
+                  title="Total Waypoints"
+                  value={data.systems
+                    .map((f) => f.waypoints.length)
+                    .reduce((total, current) => total + current)}
+                />
+              </Col>
+              <Col span={12}>
+                <Statistic
+                  title="Uncharted Waypoints"
+                  value={data.systems
+                    .map((f) => f.waypoints.filter((w) => !w.chartedBy).length)
+                    .reduce((total, current) => total + current)}
+                />
+              </Col>
+            </Row>
+            <Row>
+              <Col span={12}>
+                <Statistic
+                  title="Total Marketplaces"
+                  value={data.systems
+                    .map(
+                      (f) => f.waypoints.filter((m) => m.hasMarketplace).length
+                    )
+                    .reduce((total, current) => total + current)}
+                />
+              </Col>
+              <Col span={12}>
+                <Statistic
+                  title="Uncharted Marketplaces"
+                  value={data.systems
+                    .map(
+                      (f) =>
+                        f.waypoints
+                          .filter((w) => !w.chartedBy)
+                          .filter((m) => m.hasMarketplace).length
+                    )
+                    .reduce((total, current) => total + current)}
+                />
+              </Col>
+            </Row>
+            <Row>
+              <Col span={12}>
+                <Statistic
+                  title="Total Shipyards"
+                  value={data.systems
+                    .map((f) => f.waypoints.filter((m) => m.hasShipyard).length)
+                    .reduce((total, current) => total + current)}
+                />
+              </Col>
+              <Col span={12}>
+                <Statistic
+                  title="Uncharted Shipyards"
+                  value={data.systems
+                    .map(
+                      (f) =>
+                        f.waypoints
+                          .filter((w) => !w.chartedBy)
+                          .filter((m) => m.hasShipyard).length
+                    )
+                    .reduce((total, current) => total + current)}
+                />
+              </Col>
+            </Row>
+          </Card>
+        </Col>
+      </Row>
+      <Row gutter={16} style={{ marginTop: 16 }}>
+        <Col span={10}>
+          <Card variant="borderless" title="Construction">
+            <div style={{ width: "100%", height: 400 }}>
+              <ResponsiveContainer>
+                <BarChart
+                  data={
+                    data.runInfo.headquartersSystem?.constructionMaterials || []
+                  }
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="tradeSymbol" />
+                  <YAxis scale="linear" />
+                  <RechartsTooltip labelStyle={{ color: colorInfo }} />
+                  <Legend />
+                  <Bar dataKey="required" fill={geekblue8} isAnimationActive />
+                  <Bar dataKey="fulfilled" fill={green8} isAnimationActive />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </Card>
+        </Col>
+        <Col span={14}>
+          <Card variant="borderless" title="Fleets by Type">
+            <div className="flex justify-between">
+              <div>
+                <Statistic title="Total Fleets" value={data.fleets.length} />
+                <Statistic
+                  title="Total Assignments"
+                  value={data.fleets
+                    .map((f) => f.assignments.length)
+                    .reduce((prev, now) => prev + now)}
+                />
+                <Statistic
+                  title="Open Assignments"
+                  value={data.shipAssignments.length}
+                />
+              </div>
+
+              <div style={{ width: "80%", height: 400 }} className="">
+                <ResponsiveContainer>
+                  <PieChart>
+                    <Pie
+                      data={fleets}
+                      dataKey="fleetCount"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      outerRadius="40%"
+                      isAnimationActive
+                      // label={(entry) => `${entry.name}: ${entry.value}`}
+                    >
+                      {Object.entries(fleetsByType)
+                        .sort((a, b) => a[0].localeCompare(b[0]))
+                        .map((_, index) => (
+                          <Cell
+                            key={`cell-${index}`}
+                            fill={chartColors[index % chartColors.length]}
+                          />
+                        ))}
+                    </Pie>
+                    <Pie
+                      data={fleets}
+                      dataKey="assignmentCount"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      outerRadius="80%"
+                      innerRadius="60%"
+                      isAnimationActive
+                      label={(entry) =>
+                        `${entry.name}: ${entry.fleetCount} - ${entry.assignmentCount}`
+                      }
+                    >
+                      {Object.entries(fleetsByType)
+                        .sort((a, b) => a[0].localeCompare(b[0]))
+                        .map((_, index) => (
+                          <Cell
+                            key={`cell-${index}`}
+                            fill={chartColors[index % chartColors.length]}
+                          />
+                        ))}
+                    </Pie>
+                    <Legend
+                      content={() => {
+                        return (
+                          <div>
+                            <ul className="flex pt-5 gap-2 justify-around">
+                              {Object.entries(fleetsByType)
+                                .sort((a, b) => a[0].localeCompare(b[0]))
+                                .map(([key], index) => (
+                                  <li
+                                    key={index}
+                                    style={{
+                                      color:
+                                        chartColors[index % chartColors.length],
+                                    }}
+                                  >
+                                    {key}
+                                    <br />
+                                    Fleets: {fleetsByType[key].fleetCount}
+                                    <br />
+                                    Assignments:{" "}
+                                    {fleetsByType[key].assignmentCount}
+                                  </li>
+                                ))}
+                            </ul>
+                          </div>
+                        );
+                      }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </Card>
+        </Col>
+      </Row>
       <Divider />
       <Space>
         <Button
@@ -130,11 +389,17 @@ function ShipNavProgress({
   }, [end_time, start_time]);
 
   return (
-    <Progress
-      percent={percent}
-      size="small"
-      format={(value) => `${value?.toFixed(2)}%`}
-    />
+    <div className="">
+      <Progress
+        percent={percent}
+        size="small"
+        format={(value) => `${value?.toFixed(2)}%`}
+      />
+      <div className="flex justify-between">
+        <span>{new Date(start_time).toLocaleString()}</span>
+        <span>{new Date(end_time).toLocaleString()}</span>
+      </div>
+    </div>
   );
 }
 

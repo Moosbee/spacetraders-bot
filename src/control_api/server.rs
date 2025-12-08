@@ -5,7 +5,10 @@ use std::convert::Infallible;
 use tokio_util::sync::CancellationToken;
 use tracing::instrument;
 
-use async_graphql::{http::GraphiQLSource, EmptyMutation, EmptySubscription, Schema};
+use async_graphql::{
+    http::{GraphQLPlaygroundConfig, GraphiQLSource},
+    EmptySubscription, Schema,
+};
 use async_graphql_warp::{GraphQLBadRequest, GraphQLResponse};
 use warp::{http::Response as HttpResponse, Filter, Rejection};
 
@@ -57,6 +60,8 @@ impl ControlApiServer {
             .data(database_pool)
             .finish();
 
+        tokio::fs::write("schema.graphql", schema.sdl()).await?;
+
         tracing::info!(socket_address = %config.socket_address, "GraphiQL IDE available at address");
 
         let graphql_post = async_graphql_warp::graphql(schema).and_then(
@@ -74,9 +79,27 @@ impl ControlApiServer {
                 .body(GraphiQLSource::build().endpoint("/").finish())
         });
 
-        let routes = graphiql
-            .or(graphql_post)
-            .recover(|err: Rejection| async move {
+        let playground = warp::path("playground").and(warp::get()).map(|| {
+            HttpResponse::builder()
+                .header("content-type", "text/html")
+                .body(async_graphql::http::playground_source(
+                    GraphQLPlaygroundConfig::new("/"),
+                ))
+        });
+
+        let cors = warp::cors()
+            .allow_any_origin()
+            .allow_headers(vec![
+                "Access-Control-Allow-Origin",
+                "Origin",
+                "Accept",
+                "X-Requested-With",
+                "Content-Type",
+            ])
+            .allow_methods(&[warp::http::Method::GET, warp::http::Method::POST]);
+
+        let routes = graphiql.or(playground).or(graphql_post).with(cors).recover(
+            |err: Rejection| async move {
                 if let Some(GraphQLBadRequest(err)) = err.find() {
                     return Ok::<_, Infallible>(warp::reply::with_status(
                         err.to_string(),
@@ -88,7 +111,8 @@ impl ControlApiServer {
                     "INTERNAL_SERVER_ERROR".to_string(),
                     warp::http::StatusCode::INTERNAL_SERVER_ERROR,
                 ))
-            });
+            },
+        );
 
         let socket_address: std::net::SocketAddr = config
             .socket_address

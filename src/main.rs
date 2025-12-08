@@ -175,7 +175,7 @@ async fn setup_context(
         agent_symbol: my_agent.data.symbol.clone(),
         headquarters: my_agent.data.headquarters.clone(),
         starting_faction: models::FactionSymbol::from_str(&my_agent.data.starting_faction)?,
-        reset_date: status.reset_date.clone().parse()?,
+        reset_date: status.reset_date.clone().parse::<chrono::NaiveDate>()?.and_hms_opt(13, 0, 0).unwrap().and_local_timezone(chrono::Utc).unwrap(),
         next_reset_date: status.server_resets.next.clone().parse()?,
         version: status.version.clone(),
     };
