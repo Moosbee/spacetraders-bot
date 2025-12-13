@@ -45,6 +45,31 @@ impl JumpGateConnection {
         .await?;
         Ok(erg)
     }
+
+    #[instrument(level = "trace", skip(database_pool))]
+    pub async fn get_all_from_system(
+        database_pool: &DbPool,
+        system_from: &str,
+    ) -> crate::Result<Vec<JumpGateConnection>> {
+        let system_qr = format!("{}-%", system_from);
+        let erg = sqlx::query_as!(
+            JumpGateConnection,
+            r#"
+        SELECT
+          id,
+          waypoint_from as "from",
+          waypoint_to as "to",
+          created_at,
+          updated_at
+        FROM jump_gate_connections
+        WHERE waypoint_from LIKE $1
+      "#,
+            system_qr
+        )
+        .fetch_all(database_pool.get_cache_pool())
+        .await?;
+        Ok(erg)
+    }
 }
 
 impl DatabaseConnector<JumpGateConnection> for JumpGateConnection {

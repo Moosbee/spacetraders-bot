@@ -231,8 +231,10 @@ impl QueryRoot {
         ctx: &async_graphql::Context<'ctx>,
         symbol: String,
     ) -> Result<gql_models::GQLWaypoint> {
-        let context = ctx.data::<ConductorContext>()?;
-        let waypoint = database::Waypoint::get_by_symbol(&context.database_pool, &symbol)
+        let data_loader =
+            ctx.data::<async_graphql::dataloader::DataLoader<database::WaypointLoader>>()?;
+        let waypoint = data_loader
+            .load_one(symbol.clone())
             .await?
             .ok_or(GraphiQLError::NotFound)?;
         Ok(waypoint.into())
@@ -1055,6 +1057,8 @@ pub enum GraphiQLError {
     GraphiQL(async_graphql::Error),
     #[error("Database error: {0}")]
     Database(#[from] database::Error),
+    #[error("ArcDatabase error: {0}")]
+    ArcDatabase(#[from] std::sync::Arc<database::Error>),
     #[error("IO error: {0}")]
     IO(String),
 }
@@ -1064,3 +1068,5 @@ impl From<async_graphql::Error> for GraphiQLError {
         GraphiQLError::GraphiQL(value)
     }
 }
+
+// todo implement DataLoaders for, individual Waypoints, system waypoints, individual fleets, system fleets

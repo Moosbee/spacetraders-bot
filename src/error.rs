@@ -3,6 +3,8 @@ pub enum Error {
     #[error(transparent)]
     Database(#[from] database::Error),
     #[error(transparent)]
+    ArcDatabase(#[from] std::sync::Arc<database::Error>),
+    #[error(transparent)]
     Api(#[from] space_traders_client::apis::ApiError),
     #[error("Not enough funds: {remaining_funds} < {required_funds}")]
     NotEnoughFunds {
@@ -22,6 +24,9 @@ pub enum Error {
         fleet_id: i32,
         assignment_id: Option<i64>,
     },
+
+    #[error(transparent)]
+    ArcError(#[from] std::sync::Arc<Error>),
 }
 
 impl From<&str> for Error {

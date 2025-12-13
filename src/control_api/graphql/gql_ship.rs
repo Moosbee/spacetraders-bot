@@ -1,4 +1,4 @@
-use async_graphql::Union;
+use async_graphql::{dataloader::DataLoader, Union};
 use ship::{
     status::{ExtractorState, MiningShipAssignment, ShipStatus, TransporterState},
     AssignmentStatus, AutopilotState, ModuleState, MountState, NavigationState, RouteState,
@@ -244,9 +244,9 @@ impl ScraperStatus {
         &self,
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Option<gql_models::GQLWaypoint>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
+        let data_loader = ctx.data::<DataLoader<database::WaypointLoader>>().unwrap();
         if let Some(waypoint_symbol) = &self.waypoint_symbol {
-            let erg = database::Waypoint::get_by_symbol(database_pool, waypoint_symbol).await?;
+            let erg = data_loader.load_one(waypoint_symbol.to_string()).await?;
             Ok(erg.map(|f| f.into()))
         } else {
             Ok(None)
@@ -273,9 +273,9 @@ impl ChartingStatus {
         &self,
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Option<gql_models::GQLWaypoint>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
+        let data_loader = ctx.data::<DataLoader<database::WaypointLoader>>().unwrap();
         if let Some(waypoint_symbol) = &self.waypoint_symbol {
-            let erg = database::Waypoint::get_by_symbol(database_pool, waypoint_symbol).await?;
+            let erg = data_loader.load_one(waypoint_symbol.clone()).await?;
             Ok(erg.map(|f| f.into()))
         } else {
             Ok(None)
@@ -517,9 +517,10 @@ impl GQLNavigationState {
         &self,
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Option<gql_models::GQLWaypoint>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let erg =
-            database::Waypoint::get_by_symbol(database_pool, &self.nav.waypoint_symbol).await?;
+        let data_loader = ctx.data::<DataLoader<database::WaypointLoader>>().unwrap();
+        let erg = data_loader
+            .load_one(self.nav.waypoint_symbol.clone())
+            .await?;
         Ok(erg.map(|f| f.into()))
     }
 
@@ -563,8 +564,9 @@ impl GQLRouteState {
         &self,
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Option<gql_models::GQLWaypoint>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let erg = database::Waypoint::get_by_symbol(database_pool, &self.route.destination_symbol)
+        let data_loader = ctx.data::<DataLoader<database::WaypointLoader>>().unwrap();
+        let erg = data_loader
+            .load_one(self.route.destination_symbol.clone())
             .await?;
         Ok(erg.map(|f| f.into()))
     }
@@ -583,9 +585,10 @@ impl GQLRouteState {
         &self,
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Option<gql_models::GQLWaypoint>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let erg =
-            database::Waypoint::get_by_symbol(database_pool, &self.route.origin_symbol).await?;
+        let data_loader = ctx.data::<DataLoader<database::WaypointLoader>>().unwrap();
+        let erg = data_loader
+            .load_one(self.route.origin_symbol.clone())
+            .await?;
         Ok(erg.map(|f| f.into()))
     }
 }
@@ -627,10 +630,10 @@ impl GQLAutopilotState {
         &self,
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Option<gql_models::GQLWaypoint>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let erg =
-            database::Waypoint::get_by_symbol(database_pool, &self.auto_pilot.destination_symbol)
-                .await?;
+        let data_loader = ctx.data::<DataLoader<database::WaypointLoader>>().unwrap();
+        let erg = data_loader
+            .load_one(self.auto_pilot.destination_symbol.clone())
+            .await?;
         Ok(erg.map(|f| f.into()))
     }
 
@@ -649,8 +652,9 @@ impl GQLAutopilotState {
         &self,
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Option<gql_models::GQLWaypoint>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let erg = database::Waypoint::get_by_symbol(database_pool, &self.auto_pilot.origin_symbol)
+        let data_loader = ctx.data::<DataLoader<database::WaypointLoader>>().unwrap();
+        let erg = data_loader
+            .load_one(self.auto_pilot.origin_symbol.clone())
             .await?;
         Ok(erg.map(|f| f.into()))
     }
@@ -673,8 +677,8 @@ impl JumpConnectionGQL {
         &self,
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Option<gql_models::GQLWaypoint>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let erg = database::Waypoint::get_by_symbol(database_pool, &self.start_symbol).await?;
+        let data_loader = ctx.data::<DataLoader<database::WaypointLoader>>().unwrap();
+        let erg = data_loader.load_one(self.start_symbol.clone()).await?;
         Ok(erg.map(|f| f.into()))
     }
 
@@ -692,8 +696,8 @@ impl JumpConnectionGQL {
         &self,
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Option<gql_models::GQLWaypoint>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let erg = database::Waypoint::get_by_symbol(database_pool, &self.end_symbol).await?;
+        let data_loader = ctx.data::<DataLoader<database::WaypointLoader>>().unwrap();
+        let erg = data_loader.load_one(self.end_symbol.clone()).await?;
         Ok(erg.map(|f| f.into()))
     }
 
@@ -728,8 +732,8 @@ impl WarpConnectionGQL {
         &self,
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Option<gql_models::GQLWaypoint>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let erg = database::Waypoint::get_by_symbol(database_pool, &self.start_symbol).await?;
+        let data_loader = ctx.data::<DataLoader<database::WaypointLoader>>().unwrap();
+        let erg = data_loader.load_one(self.start_symbol.clone()).await?;
         Ok(erg.map(|f| f.into()))
     }
 
@@ -747,8 +751,8 @@ impl WarpConnectionGQL {
         &self,
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Option<gql_models::GQLWaypoint>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let erg = database::Waypoint::get_by_symbol(database_pool, &self.end_symbol).await?;
+        let data_loader = ctx.data::<DataLoader<database::WaypointLoader>>().unwrap();
+        let erg = data_loader.load_one(self.end_symbol.clone()).await?;
         Ok(erg.map(|f| f.into()))
     }
 
@@ -783,8 +787,8 @@ impl NavigateConnectionGQL {
         &self,
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Option<gql_models::GQLWaypoint>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let erg = database::Waypoint::get_by_symbol(database_pool, &self.start_symbol).await?;
+        let data_loader = ctx.data::<DataLoader<database::WaypointLoader>>().unwrap();
+        let erg = data_loader.load_one(self.start_symbol.clone()).await?;
         Ok(erg.map(|f| f.into()))
     }
 
@@ -802,8 +806,8 @@ impl NavigateConnectionGQL {
         &self,
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Option<gql_models::GQLWaypoint>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let erg = database::Waypoint::get_by_symbol(database_pool, &self.end_symbol).await?;
+        let data_loader = ctx.data::<DataLoader<database::WaypointLoader>>().unwrap();
+        let erg = data_loader.load_one(self.end_symbol.clone()).await?;
         Ok(erg.map(|f| f.into()))
     }
 

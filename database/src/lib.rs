@@ -54,7 +54,9 @@ pub use fleet::ChartingConfig as ChartingFleetConfig;
 pub use fleet::ConstructionConfig as ConstructionFleetConfig;
 pub use fleet::ContractConfig as ContractFleetConfig;
 pub use fleet::Fleet;
+pub use fleet::FleetBySystemLoader;
 pub use fleet::FleetConfig;
+pub use fleet::FleetLoader;
 pub use fleet::FleetType;
 pub use fleet::ManuelConfig as ManuelFleetConfig;
 pub use fleet::MiningConfig as MiningFleetConfig;
@@ -89,6 +91,8 @@ pub use survey::Survey;
 pub use system::System;
 pub use trade_route::TradeRoute;
 pub use waypoint::Waypoint;
+pub use waypoint::WaypointLoader;
+pub use waypoint::WaypointSystemLoader;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {

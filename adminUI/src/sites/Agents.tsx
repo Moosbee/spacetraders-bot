@@ -1,27 +1,22 @@
+import { useQuery } from "@apollo/client/react";
 import { Button, Space, Table, TableProps } from "antd";
-import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { backendUrl } from "../data";
 import MoneyDisplay from "../features/MonyDisplay";
 import PageTitle from "../features/PageTitle";
 import WaypointLink from "../features/WaypointLink";
-import { DbAgent } from "../models/Agent";
+import { GetAllAgentsQuery } from "../gql/graphql";
+import { GET_ALL_AGENTS } from "../graphql/queries";
 import { FactionSymbol } from "../models/api";
 
+type GQLAgent = GetAllAgentsQuery["agents"][number];
+
 function Agents() {
-  const [agents, setAgents] = useState<DbAgent[] | null>(null);
+  const { loading, error, data, dataState, refetch } = useQuery(GET_ALL_AGENTS);
 
-  useEffect(() => {
-    fetch(`http://${backendUrl}/agents`)
-      .then((response) => response.json())
-      .then((data) => {
-        console.log("agents", data);
+  if (dataState != "complete") return <p>Loading...</p>;
+  if (error) return <p>Error: {error.message}</p>;
 
-        setAgents(data);
-      });
-  }, []);
-
-  const columns: TableProps<DbAgent>["columns"] = [
+  const columns: TableProps<GQLAgent>["columns"] = [
     {
       title: "Agent Symbol",
       dataIndex: "symbol",
@@ -30,26 +25,6 @@ function Agents() {
         <Link to={`/agents/${symbol}`}>{symbol}</Link>
       ),
       sorter: (a, b) => a.symbol.localeCompare(b.symbol),
-    },
-    {
-      title: "Account ID",
-      dataIndex: "account_id",
-      key: "account_id",
-      render: (id?: string) => id || "N/A",
-      sorter: (a, b) => (a.account_id ?? "").localeCompare(b.account_id ?? ""),
-      filters: [
-        {
-          text: "Yes",
-          value: "Yes",
-        },
-        {
-          text: "No",
-          value: "No",
-        },
-      ],
-      onFilter: (value: boolean | React.Key, record) =>
-        (value === "No" && !record.account_id) ||
-        (value === "Yes" && !!record.account_id),
     },
     {
       title: "Headquarters",
@@ -70,28 +45,28 @@ function Agents() {
     },
     {
       title: "Starting Faction",
-      dataIndex: "starting_faction",
-      key: "starting_faction",
-      sorter: (a, b) => a.starting_faction.localeCompare(b.starting_faction),
+      dataIndex: "startingFaction",
+      key: "startingFaction",
+      sorter: (a, b) => a.startingFaction.localeCompare(b.startingFaction),
       filters: Object.values(FactionSymbol).map((f) => ({
         text: f,
         value: f,
       })),
-      onFilter: (value, record) => record.starting_faction === value,
+      onFilter: (value, record) => record.startingFaction === value,
     },
     {
       title: "Ship Count",
-      dataIndex: "ship_count",
-      key: "ship_count",
-      sorter: (a, b) => a.ship_count - b.ship_count,
+      dataIndex: "shipCount",
+      key: "shipCount",
+      sorter: (a, b) => a.shipCount - b.shipCount,
     },
     {
       title: "Last Updated",
-      dataIndex: "created_at",
-      key: "created_at",
+      dataIndex: "createdAt",
+      key: "createdAt",
       render: (date: string) => new Date(date).toLocaleString(),
       sorter: (a, b) =>
-        new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
     },
   ];
 
@@ -99,24 +74,21 @@ function Agents() {
     <div style={{ padding: "24px 24px" }}>
       <PageTitle title="Agents" />
       <Space>
-        <h1>Agents {agents?.length}</h1>
+        <h1 className="scroll-m-20 text-center text-3xl font-bold tracking-tight text-balance">
+          Agents {data.agents?.length}
+        </h1>
         <Button
           onClick={() => {
-            fetch(`http://${backendUrl}/agents`)
-              .then((response) => response.json())
-              .then((data) => {
-                console.log("agents", data);
-
-                setAgents(data);
-              });
+            refetch();
           }}
         >
           Refresh
         </Button>
       </Space>
       <Table
-        dataSource={agents || []}
+        dataSource={data.agents || []}
         columns={columns}
+        loading={loading}
         rowKey="id"
         pagination={{
           showSizeChanger: true,

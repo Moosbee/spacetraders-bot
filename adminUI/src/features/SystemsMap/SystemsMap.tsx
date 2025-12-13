@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { backendUrl } from "../../data";
-import { SQLSystem } from "../../models/SQLSystem";
+import { GetSystemMapDataQuery } from "../../gql/graphql";
 import { useAppSelector } from "../../redux/hooks";
 import { selectSelectedSystemSymbol } from "../../redux/slices/mapSlice";
-import { selectAllShipsArray } from "../../redux/slices/shipSlice";
 import { systemIcons } from "../../utils/waypointColors";
 import classes from "./SystemsMap.module.css";
+
+type GQLSystem = GetSystemMapDataQuery["systems"][number];
 
 function resizeCanvas(canvas: HTMLCanvasElement) {
   const { width, height } = canvas.getBoundingClientRect();
@@ -27,14 +27,14 @@ function resizeCanvas(canvas: HTMLCanvasElement) {
 
 function drawSystems(
   canvas: HTMLCanvasElement,
-  systems: Record<string, { system: SQLSystem; xOne: number; yOne: number }>,
+  systems: Record<string, { system: GQLSystem; xOne: number; yOne: number }>,
   jumpGates: {
-    under_construction_a: boolean;
-    under_construction_b: boolean;
-    point_a: string;
-    point_b: string;
-    from_a: boolean;
-    from_b: boolean;
+    underConstructionA: boolean;
+    underConstructionB: boolean;
+    pointASymbol: string;
+    pointBSymbol: string;
+    fromA: boolean;
+    fromB: boolean;
   }[],
   zoom: number,
   top: number,
@@ -54,13 +54,13 @@ function drawSystems(
   const maxRatio = Math.max(width, height);
 
   for (const {
-    under_construction_a,
-    under_construction_b,
-    point_a,
-    point_b,
+    underConstructionA,
+    underConstructionB,
+    pointASymbol,
+    pointBSymbol,
   } of jumpGates) {
-    const systemSymbolA = point_a.split("-", 2).join("-");
-    const systemSymbolB = point_b.split("-", 2).join("-");
+    const systemSymbolA = pointASymbol.split("-", 2).join("-");
+    const systemSymbolB = pointBSymbol.split("-", 2).join("-");
     const system_a = systems[systemSymbolA];
     const system_b = systems[systemSymbolB];
     if (!system_a || !system_b) continue;
@@ -73,7 +73,7 @@ function drawSystems(
       system_b?.xOne * zoom * maxRatio + left,
       system_b?.yOne * zoom * maxRatio + top
     );
-    if (under_construction_a || under_construction_b) {
+    if (underConstructionA || underConstructionB) {
       // context.strokeStyle = "#ff00000f";
       // context.strokeStyle = "#ff0000ff";
       context.strokeStyle = "#ff00003f";
@@ -89,16 +89,23 @@ function drawSystems(
     const y = yOne * zoom * maxRatio + top;
     if (x < 0 || x > width || y < 0 || y > height) continue;
     const r = Math.max(maxRatio / 3000, Math.min(Math.abs(zoom / 2) * 1, 10));
-    if (system.has_my_ships) {
+    if (system.ships.length > 0) {
       context.beginPath();
       context.arc(x, y, r * 10.5, 0, 2 * Math.PI);
       context.fillStyle = "#ffffff";
       context.fill();
     }
 
+    if (system.fleets.length > 0) {
+      context.beginPath();
+      context.arc(x, y, r * 5, 0, 2 * Math.PI);
+      context.fillStyle = "#6a7282";
+      context.fill();
+    }
+
     context.beginPath();
     context.arc(x, y, r, 0, 2 * Math.PI);
-    const color = systemIcons[system.system_type].color;
+    const color = systemIcons[system.systemType].color;
     context.fillStyle = color;
     context.fill();
     if (zoom > 10) {
@@ -115,79 +122,39 @@ function drawSystems(
 function SystemsMap({
   zoomMax = 1000,
   zoomMin = 0.01,
+  data,
 }: {
   zoomMax: number;
   zoomMin: number;
+  data: GetSystemMapDataQuery;
 }) {
-  const [systems, setSystems] = useState<SQLSystem[]>([]);
-  const [jumpGates, setJumpGates] = useState<
-    {
-      under_construction_a: boolean;
-      under_construction_b: boolean;
-      point_a: string;
-      point_b: string;
-      from_a: boolean;
-      from_b: boolean;
-    }[]
-  >([]);
-
-  useEffect(() => {
-    fetch(`http://${backendUrl}/systems`)
-      .then((response) => response.json())
-      .then((data) => {
-        console.log("systems", data);
-
-        setSystems(data);
-      });
-  }, []);
-
-  useEffect(() => {
-    fetch(`http://${backendUrl}/jumpGates`)
-      .then((response) => response.json())
-      .then((data) => {
-        console.log("jumpGates", data);
-
-        setJumpGates(data);
-      });
-  }, []);
-
   const selectedSystem = useAppSelector(selectSelectedSystemSymbol);
-  const ships = useAppSelector(selectAllShipsArray);
-
-  const systemWithShips = useMemo(() => {
-    const systemsSet = new Set<string>();
-    for (const ship of ships) {
-      systemsSet.add(ship.nav.system_symbol);
-    }
-    return systemsSet;
-  }, [ships]);
 
   const calcSystems: Record<
     string,
-    { system: SQLSystem; xOne: number; yOne: number }
+    { system: GQLSystem; xOne: number; yOne: number }
   > = useMemo(() => {
-    const [wpMinX, wpMinY, wpMaxX, wpMaxY] = calculateSystemBoundaries(systems);
+    const [wpMinX, wpMinY, wpMaxX, wpMaxY] = calculateSystemBoundaries(
+      data.systems
+    );
 
     const wp: Record<
       string,
-      { system: SQLSystem; xOne: number; yOne: number }
+      { system: GQLSystem; xOne: number; yOne: number }
     > = {};
 
-    for (const system of systems) {
-      if ((system.waypoints || 0) <= 1) continue;
+    for (const system of data.systems) {
+      if ((system.waypoints.length || 0) <= 1) continue;
       // if ((system.shipyards || 0) <= 1) continue;
       wp[system.symbol] = {
         system: system,
         xOne: (system.x - wpMinX) / (wpMaxX - wpMinX),
         yOne: (system.y - wpMinY) / (wpMaxY - wpMinY),
       };
-      if (systemWithShips.has(system.symbol)) {
-        wp[system.symbol].system.has_my_ships = true;
-      }
     }
 
     return wp;
-  }, [systems]);
+  }, [data.systems]);
 
   const [zoom, setZoom] = useState(1);
   const [top, setTop] = useState(0);
@@ -201,20 +168,27 @@ function SystemsMap({
       if (!ref.current) return;
 
       resizeCanvas(ref.current);
-      drawSystems(ref.current, calcSystems, jumpGates, zoom, top, left);
+      drawSystems(
+        ref.current,
+        calcSystems,
+        data.jumpConnections,
+        zoom,
+        top,
+        left
+      );
     });
     observe.observe(ref.current);
 
     return () => {
       observe.disconnect();
     };
-  }, [calcSystems, jumpGates, left, top, zoom]);
+  }, [calcSystems, data.jumpConnections, left, top, zoom]);
 
   useEffect(() => {
     const canvas = ref.current;
     if (!canvas) return;
-    drawSystems(canvas, calcSystems, jumpGates, zoom, top, left);
-  }, [calcSystems, jumpGates, left, top, zoom]);
+    drawSystems(canvas, calcSystems, data.jumpConnections, zoom, top, left);
+  }, [calcSystems, data.jumpConnections, left, top, zoom]);
 
   const onWheel = useCallback(
     (e: WheelEvent) => {
@@ -429,7 +403,7 @@ function SystemsMap({
   );
 }
 
-function calculateSystemBoundaries(systemssArr: SQLSystem[]) {
+function calculateSystemBoundaries(systemssArr: { x: number; y: number }[]) {
   let wpMinX = Infinity;
   let wpMinY = Infinity;
   let wpMaxX = -Infinity;

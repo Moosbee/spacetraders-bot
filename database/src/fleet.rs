@@ -1,5 +1,7 @@
 use std::collections::{HashMap, HashSet};
+use std::sync::Arc;
 
+use async_graphql::dataloader::Loader;
 use serde::{Deserialize, Serialize};
 use space_traders_client::models;
 use tracing::instrument;
@@ -120,6 +122,64 @@ impl Default for Fleet {
             construction_waypoint: None,
             contract_ship_count: None,
         }
+    }
+}
+
+pub struct FleetLoader(DbPool);
+
+impl FleetLoader {
+    pub fn new(database_pool: DbPool) -> Self {
+        Self(database_pool)
+    }
+}
+
+impl Loader<i32> for FleetLoader {
+    type Value = Fleet;
+    type Error = Arc<crate::Error>;
+
+    #[instrument(level = "trace", skip(self, keys))]
+    async fn load(&self, keys: &[i32]) -> Result<HashMap<i32, Self::Value>, Self::Error> {
+        let mut map: HashMap<i32, Fleet> = HashMap::new();
+
+        let fleets = Fleet::get_by_ids(&self.0, keys.iter().copied().collect()).await?;
+
+        for (id, fleet) in fleets {
+            map.insert(id, fleet);
+        }
+
+        Ok(map)
+    }
+}
+
+pub struct FleetBySystemLoader(DbPool);
+
+impl FleetBySystemLoader {
+    pub fn new(database_pool: DbPool) -> Self {
+        Self(database_pool)
+    }
+}
+
+impl Loader<String> for FleetBySystemLoader {
+    type Value = Vec<Fleet>;
+    type Error = Arc<crate::Error>;
+
+    #[instrument(level = "trace", skip(self, keys))]
+    async fn load(&self, keys: &[String]) -> Result<HashMap<String, Self::Value>, Self::Error> {
+        let mut map: HashMap<String, Vec<Fleet>> = HashMap::new();
+
+        let fleets = Fleet::get_by_systems(
+            &self.0,
+            &keys.iter().map(|k| k.as_str()).collect::<Vec<_>>(),
+        )
+        .await?;
+
+        for fleet in fleets {
+            map.entry(fleet.system_symbol.clone())
+                .or_default()
+                .push(fleet);
+        }
+
+        Ok(map)
     }
 }
 
@@ -890,6 +950,58 @@ impl Fleet {
                 WHERE system_symbol = $1
             "#,
             &system
+        )
+        .fetch_all(&database_pool.database_pool)
+        .await?;
+        Ok(resp)
+    }
+
+    #[instrument(level = "trace", skip(database_pool))]
+    pub async fn get_by_systems(
+        database_pool: &DbPool,
+        systems: &[&str],
+    ) -> crate::Result<Vec<Fleet>> {
+        let resp = sqlx::query_as!(
+            Fleet,
+            r#"
+                SELECT
+                  id,
+                  system_symbol,
+                  fleet_type as "fleet_type: FleetType",
+                  active,
+                  created_at,
+                  updated_at,
+                  market_blacklist as "market_blacklist: Vec<models::TradeSymbol>",
+                  market_prefer_list as "market_prefer_list: Vec<models::TradeSymbol>",
+                  purchase_multiplier,
+                  ship_market_ratio,
+                  min_cargo_space,
+                  trade_mode as "trade_mode: TradeMode",
+                  trade_profit_threshold,
+                  allowed_requests,
+                  notify_on_shipyard,
+                  mining_eject_list as "mining_eject_list: Vec<models::TradeSymbol>",
+                  mining_prefer_list as "mining_prefer_list: Vec<models::TradeSymbol>",
+                  ignore_engineered_asteroids,
+                  stop_all_unstable,
+                  mining_waypoints,
+                  unstable_since_timeout,
+                  syphon_waypoints,
+                  miners_per_waypoint,
+                  siphoners_per_waypoint,
+                  surveyors_per_waypoint,
+                  mining_transporters_per_waypoint,
+                  min_transporter_cargo_space,
+                  min_mining_cargo_space,
+                  min_siphon_cargo_space,
+                  charting_probe_count,
+                  construction_ship_count,
+                  construction_waypoint,
+                  contract_ship_count
+                FROM fleet
+                WHERE system_symbol = ANY($1)
+            "#,
+            &systems as &[&str]
         )
         .fetch_all(&database_pool.database_pool)
         .await?;

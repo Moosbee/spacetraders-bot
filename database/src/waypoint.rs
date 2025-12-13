@@ -1,7 +1,9 @@
-use std::{collections::HashMap, str::FromStr};
+use std::{collections::HashMap, str::FromStr, sync::Arc};
 
 use space_traders_client::models;
 use tracing::instrument;
+
+use async_graphql::dataloader::Loader;
 
 use super::{DatabaseConnector, DbPool};
 
@@ -161,6 +163,68 @@ impl utils::WaypointCan for Waypoint {
     }
 }
 
+pub struct WaypointSystemLoader(DbPool);
+
+impl WaypointSystemLoader {
+    pub fn new(database_pool: DbPool) -> Self {
+        Self(database_pool)
+    }
+}
+
+impl Loader<String> for WaypointSystemLoader {
+    type Value = Vec<Waypoint>;
+    type Error = Arc<crate::Error>;
+
+    #[instrument(level = "trace", skip(self, keys))]
+    async fn load(&self, keys: &[String]) -> Result<HashMap<String, Self::Value>, Self::Error> {
+        let mut map: HashMap<String, Vec<Waypoint>> = HashMap::new();
+
+        let waypoints = Waypoint::get_by_systems(
+            &self.0,
+            &keys.iter().map(|k| k.as_str()).collect::<Vec<_>>(),
+        )
+        .await?;
+
+        for waypoint in waypoints {
+            map.entry(waypoint.system_symbol.clone())
+                .or_default()
+                .push(waypoint);
+        }
+
+        Ok(map)
+    }
+}
+
+pub struct WaypointLoader(DbPool);
+
+impl WaypointLoader {
+    pub fn new(database_pool: DbPool) -> Self {
+        Self(database_pool)
+    }
+}
+
+impl Loader<String> for WaypointLoader {
+    type Value = Waypoint;
+    type Error = Arc<crate::Error>;
+
+    #[instrument(level = "trace", skip(self, keys))]
+    async fn load(&self, keys: &[String]) -> Result<HashMap<String, Self::Value>, Self::Error> {
+        let mut map: HashMap<String, Waypoint> = HashMap::new();
+
+        let waypoints = Waypoint::get_by_symbols(
+            &self.0,
+            &keys.iter().map(|k| k.as_str()).collect::<Vec<_>>(),
+        )
+        .await?;
+
+        for waypoint in waypoints {
+            map.insert(waypoint.symbol.clone(), waypoint);
+        }
+
+        Ok(map)
+    }
+}
+
 impl Waypoint {
     #[instrument(level = "trace", skip(database_pool))]
     pub async fn get_hash_map(
@@ -176,6 +240,42 @@ impl Waypoint {
         }
 
         Ok(map)
+    }
+
+    #[instrument(level = "trace", skip(database_pool))]
+    pub async fn get_by_systems(
+        database_pool: &DbPool,
+        system_symbols: &[&str],
+    ) -> crate::Result<Vec<Waypoint>> {
+        let erg = sqlx::query_as!(
+            Waypoint,
+            r#"
+                SELECT 
+                  symbol,
+                  system_symbol,
+                  created_at,
+                  x,
+                  y,
+                  type as "waypoint_type: models::WaypointType",
+                  traits as "traits: Vec<models::WaypointTraitSymbol>",
+                  is_under_construction,
+                  orbitals,
+                  orbits,
+                  faction,
+                  modifiers as "modifiers: Vec<models::WaypointModifierSymbol>",
+                  charted_by,
+                  charted_on,
+                  unstable_since,
+                  has_shipyard,
+                  has_marketplace
+                FROM waypoint
+                WHERE system_symbol = ANY($1)
+            "#,
+            system_symbols as &[&str]
+        )
+        .fetch_all(database_pool.get_cache_pool())
+        .await?;
+        Ok(erg)
     }
 
     #[instrument(level = "trace", skip(database_pool))]
@@ -247,6 +347,42 @@ impl Waypoint {
             symbol
         )
         .fetch_optional(database_pool.get_cache_pool())
+        .await?;
+        Ok(erg)
+    }
+
+    #[instrument(level = "trace", skip(database_pool))]
+    pub async fn get_by_symbols(
+        database_pool: &DbPool,
+        symbols: &[&str],
+    ) -> crate::Result<Vec<Waypoint>> {
+        let erg = sqlx::query_as!(
+            Waypoint,
+            r#"
+                SELECT 
+                  symbol,
+                  system_symbol,
+                  created_at,
+                  x,
+                  y,
+                  type as "waypoint_type: models::WaypointType",
+                  traits as "traits: Vec<models::WaypointTraitSymbol>",
+                  is_under_construction,
+                  orbitals,
+                  orbits,
+                  faction,
+                  modifiers as "modifiers: Vec<models::WaypointModifierSymbol>",
+                  charted_by,
+                  charted_on,
+                  unstable_since,
+                  has_shipyard,
+                  has_marketplace
+                FROM waypoint
+                WHERE symbol = ANY($1)
+            "#,
+            symbols as &[&str]
+        )
+        .fetch_all(database_pool.get_cache_pool())
         .await?;
         Ok(erg)
     }

@@ -99,6 +99,12 @@ impl From<crate::error::Error> for ServerError {
                 fleet_id,
                 assignment_id,
             } => ServerError::Server(format!("Fleet not found {} {:?}", fleet_id, assignment_id)),
+            crate::error::Error::ArcDatabase(error) => {
+                ServerError::Server(format!("Dataloader Database Problem: {:?}", error))
+            }
+            crate::error::Error::ArcError(error) => {
+                ServerError::Server(format!("Dataloader Problem: {:?}", error))
+            }
         }
     }
 }

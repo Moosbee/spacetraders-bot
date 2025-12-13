@@ -6,6 +6,7 @@ use tokio_util::sync::CancellationToken;
 use tracing::instrument;
 
 use async_graphql::{
+    dataloader::DataLoader,
     http::{GraphQLPlaygroundConfig, GraphiQLSource},
     EmptySubscription, Schema,
 };
@@ -57,6 +58,22 @@ impl ControlApiServer {
 
         let schema = Schema::build(QueryRoot, MutationRoot, EmptySubscription)
             .data(context)
+            .data(DataLoader::new(
+                database::WaypointSystemLoader::new(database_pool.clone()),
+                tokio::spawn,
+            ))
+            .data(DataLoader::new(
+                database::WaypointLoader::new(database_pool.clone()),
+                tokio::spawn,
+            ))
+            .data(DataLoader::new(
+                database::FleetBySystemLoader::new(database_pool.clone()),
+                tokio::spawn,
+            ))
+            .data(DataLoader::new(
+                database::FleetLoader::new(database_pool.clone()),
+                tokio::spawn,
+            ))
             .data(database_pool)
             .finish();
 
