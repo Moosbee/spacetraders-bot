@@ -1,38 +1,20 @@
+import { useQuery } from "@apollo/client/react";
 import { Button, Space, Table, TableProps } from "antd";
-import { useEffect, useState } from "react";
-import { backendUrl } from "../data";
 import PageTitle from "../features/PageTitle";
 import Timer from "../features/Timer/Timer";
-import { SurveySizeEnum, TradeSymbol } from "../models/api";
-import { Survey } from "../models/Survey";
+import { GetAllSurveysQuery, SurveySize, TradeSymbol } from "../gql/graphql";
+import { GET_ALL_SURVEYS } from "../graphql/queries";
+
+type GQLSurvey = GetAllSurveysQuery["surveys"][number];
 
 export default function Surveys() {
-  const [surveys, setSurveys] = useState<Survey[] | null>(null);
+  const { loading, error, data, dataState, refetch } =
+    useQuery(GET_ALL_SURVEYS);
 
-  useEffect(() => {
-    fetch(`http://${backendUrl}/surveys`)
-      .then((response) => response.json())
-      .then((data) => {
-        console.log("surveys", data);
+  if (dataState != "complete") return <p>Loading...</p>;
+  if (error) return <p>Error: {error.message}</p>;
 
-        setSurveys(data);
-      });
-  }, []);
-
-  // export interface Survey {
-  //   ship_info_before: number;
-  //   ship_info_after: number;
-  //   signature: string;
-  //   waypoint_symbol: string;
-  //   deposits: TradeSymbol[];
-  //   expiration: string;
-  //   size: SurveySizeEnum;
-  //   exhausted_since?: string;
-  //   created_at: string;
-  //   updated_at: string;
-  // }
-
-  const columns: TableProps<Survey>["columns"] = [
+  const columns: TableProps<GQLSurvey>["columns"] = [
     {
       title: "Signature",
       dataIndex: "signature",
@@ -42,7 +24,7 @@ export default function Surveys() {
         <span
           style={{
             color:
-              record.exhausted_since ||
+              record.exhaustedSince ||
               new Date(record.expiration).getTime() > Date.now()
                 ? "currentColor"
                 : "red",
@@ -65,12 +47,12 @@ export default function Surveys() {
       onFilter: (value, record) => {
         if (value === "valid") {
           return (
-            !record.exhausted_since &&
+            !record.exhaustedSince &&
             new Date(record.expiration).getTime() > Date.now()
           );
         } else {
           return (
-            !!record.exhausted_since ||
+            !!record.exhaustedSince ||
             new Date(record.expiration).getTime() < Date.now()
           );
         }
@@ -78,9 +60,9 @@ export default function Surveys() {
     },
     {
       title: "Waypoint Symbol",
-      dataIndex: "waypoint_symbol",
-      key: "waypoint_symbol",
-      sorter: (a, b) => a.waypoint_symbol.localeCompare(b.waypoint_symbol),
+      dataIndex: "waypointSymbol",
+      key: "waypointSymbol",
+      sorter: (a, b) => a.waypointSymbol.localeCompare(b.waypointSymbol),
     },
     {
       title: "Deposits",
@@ -122,7 +104,7 @@ export default function Surveys() {
       dataIndex: "size",
       key: "size",
       sorter: (a, b) => a.size.localeCompare(b.size),
-      filters: Object.values(SurveySizeEnum).map((size) => ({
+      filters: Object.values(SurveySize).map((size) => ({
         text: size,
         value: size,
       })),
@@ -143,28 +125,28 @@ export default function Surveys() {
     },
     {
       title: "Exhausted Since",
-      dataIndex: "exhausted_since",
-      key: "exhausted_since",
+      dataIndex: "exhaustedSince",
+      key: "exhaustedSince",
       sorter: (a, b) =>
-        (a.exhausted_since ? new Date(a.exhausted_since).getTime() : 0) -
-        (b.exhausted_since ? new Date(b.exhausted_since).getTime() : 0),
-      render: (exhausted_since) =>
-        exhausted_since ? new Date(exhausted_since).toLocaleString() : "N/A",
+        (a.exhaustedSince ? new Date(a.exhaustedSince).getTime() : 0) -
+        (b.exhaustedSince ? new Date(b.exhaustedSince).getTime() : 0),
+      render: (exhaustedSince) =>
+        exhaustedSince ? new Date(exhaustedSince).toLocaleString() : "N/A",
     },
     {
       title: "Created At",
-      dataIndex: "created_at",
-      key: "created_at",
-      sorter: (a, b) => a.created_at.localeCompare(b.created_at),
-      render: (created_at) => new Date(created_at).toLocaleString(),
+      dataIndex: "createdAt",
+      key: "createdAt",
+      sorter: (a, b) => a.createdAt.localeCompare(b.createdAt),
+      render: (createdAt) => new Date(createdAt).toLocaleString(),
       defaultSortOrder: "descend",
     },
     {
       title: "Updated At",
-      dataIndex: "updated_at",
-      key: "updated_at",
-      sorter: (a, b) => a.updated_at.localeCompare(b.updated_at),
-      render: (updated_at) => new Date(updated_at).toLocaleString(),
+      dataIndex: "updatedAt",
+      key: "updatedAt",
+      sorter: (a, b) => a.updatedAt.localeCompare(b.updatedAt),
+      render: (updatedAt) => new Date(updatedAt).toLocaleString(),
     },
   ];
 
@@ -172,23 +154,20 @@ export default function Surveys() {
     <div style={{ padding: "24px 24px" }}>
       <PageTitle title="surveys" />
       <Space>
-        <h1>surveys</h1>
+        <h1 className="scroll-m-20 text-center text-3xl font-bold tracking-tight text-balance">
+          Surveys {data.surveys.length}
+        </h1>
         <Button
           onClick={() => {
-            fetch(`http://${backendUrl}/surveys`)
-              .then((response) => response.json())
-              .then((data) => {
-                console.log("surveys", data);
-
-                setSurveys(data);
-              });
+            refetch();
           }}
         >
           Refresh
         </Button>
       </Space>
       <Table
-        dataSource={surveys || []}
+        loading={loading}
+        dataSource={data.surveys}
         columns={columns}
         rowKey="signature"
         pagination={{

@@ -213,3 +213,21 @@ export const GET_AGENT_HISTORY = graphql(/* GraphQL */ `
     }
   }
 `);
+
+export const GET_ALL_SURVEYS = graphql(/* GraphQL */ `
+  query GetAllSurveys {
+    surveys {
+      shipInfoBefore
+      updatedAt
+      shipInfoAfter
+      signature
+      signature
+      size
+      waypointSymbol
+      deposits
+      exhaustedSince
+      createdAt
+      expiration
+    }
+  }
+`);

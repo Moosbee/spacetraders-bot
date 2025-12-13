@@ -146,30 +146,60 @@ function Main() {
                         <Statistic
                           title="Chart"
                           value={data.chartManager.channelState.usedCapacity}
+                          suffix={
+                            <Spin
+                              spinning={data.chartManager.busy}
+                              size="small"
+                            />
+                          }
                         />
                       </Col>
                       <Col span={6}>
                         <Statistic
                           title="Fleet"
                           value={data.fleetManager.channelState.usedCapacity}
+                          suffix={
+                            <Spin
+                              spinning={data.fleetManager.busy}
+                              size="small"
+                            />
+                          }
                         />
                       </Col>
                       <Col span={6}>
                         <Statistic
                           title="Trade"
                           value={data.tradeManager.channelState.usedCapacity}
+                          suffix={
+                            <Spin
+                              spinning={data.tradeManager.busy}
+                              size="small"
+                            />
+                          }
                         />
                       </Col>
                       <Col span={6}>
                         <Statistic
                           title="Mining"
                           value={data.miningManager.channelState.usedCapacity}
+                          suffix={
+                            <Spin
+                              spinning={data.miningManager.busy}
+                              size="small"
+                            />
+                          }
                         />
                       </Col>
                       <Col span={6}>
                         <Statistic
                           title="Contract"
                           value={data.contractManager.channelState.usedCapacity}
+                          suffix={
+                            <Spin
+                              spinning={data.contractManager.busy}
+                              size="small"
+                            />
+                          }
                         />
                       </Col>
                       <Col span={6}>
@@ -178,6 +208,12 @@ function Main() {
                           value={
                             data.scrappingManager.channelState.usedCapacity
                           }
+                          suffix={
+                            <Spin
+                              spinning={data.scrappingManager.busy}
+                              size="small"
+                            />
+                          }
                         />
                       </Col>
                       <Col span={6}>
@@ -185,6 +221,12 @@ function Main() {
                           title="Construction"
                           value={
                             data.constructionManager.channelState.usedCapacity
+                          }
+                          suffix={
+                            <Spin
+                              spinning={data.constructionManager.busy}
+                              size="small"
+                            />
                           }
                         />
                       </Col>
