@@ -2,10 +2,10 @@ import { graphql } from "../gql/gql";
 
 export const GET_MAIN_SITE_DATA = graphql(/* GraphQL */ `
   query GetMainSiteData {
+    apiCounts
     runInfo {
       resetDate
       nextResetDate
-      version
       agent {
         symbol
         credits
@@ -25,7 +25,6 @@ export const GET_MAIN_SITE_DATA = graphql(/* GraphQL */ `
       symbol
       waypoints {
         symbol
-        waypointType
         chartedBy
         hasMarketplace
         hasShipyard
@@ -59,9 +58,60 @@ export const GET_MAIN_SITE_DATA = graphql(/* GraphQL */ `
       registrationRole
       status {
         assignmentId
+        tempAssignmentId
         status {
           __typename
         }
+      }
+      nav {
+        status
+        systemSymbol
+      }
+      cargo {
+        units
+      }
+      cooldownExpiration
+    }
+    chartManager {
+      busy
+      channelState {
+        usedCapacity
+      }
+    }
+    fleetManager {
+      busy
+      channelState {
+        usedCapacity
+      }
+    }
+    tradeManager {
+      busy
+      channelState {
+        usedCapacity
+      }
+    }
+    miningManager {
+      busy
+      channelState {
+        usedCapacity
+      }
+    }
+    contractManager {
+      busy
+      channelState {
+        usedCapacity
+      }
+    }
+    scrappingManager {
+      busy
+      channelState {
+        usedCapacity
+      }
+    }
+    constructionManager {
+      busy
+      channelState {
+        usedCapacity
       }
     }
   }
