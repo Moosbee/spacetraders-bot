@@ -2,7 +2,8 @@
   "client": {
     "service": {
       "name": "spacetraders",
-      "url": "http://127.0.0.1:8780/"
+      // "url": "http://127.0.0.1:8780/"
+      "localSchemaFile": "../schema.graphql"
     }
   }
 }

@@ -458,51 +458,119 @@ impl TradeRoute {
         Ok(erg)
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
-    pub async fn get_summarys(database_pool: &DbPool) -> crate::Result<Vec<TradeRouteSummary>> {
-        let erg= sqlx::query_as!(
-            TradeRouteSummary,
+    pub async fn get_by_waypoint(
+        database_pool: &DbPool,
+        waypoint_symbol: &str,
+    ) -> crate::Result<Vec<TradeRoute>> {
+        let erg = sqlx::query_as!(
+            TradeRoute,
             r#"
-                SELECT
-                trade_route.id,
-                symbol as "symbol: models::TradeSymbol",
-                trade_route.ship_symbol,
-                purchase_waypoint,
-                sell_waypoint,
-                status as "status: ShipmentStatus",
-                trade_volume,
-                predicted_purchase_price,
-                predicted_sell_price,
-                sum(market_transaction.total_price) as "sum: i32",
-                sum(
-                  CASE
-                    WHEN market_transaction.type = 'PURCHASE' THEN market_transaction.total_price
-                    ELSE 0
-                  END
-                ) as "expenses: i32",
-                sum(
-                  CASE
-                    WHEN market_transaction.type = 'PURCHASE' THEN 0
-                    ELSE market_transaction.total_price
-                  END
-                ) as "income: i32",
-                sum(
-                  CASE
-                    WHEN market_transaction.type = 'PURCHASE' THEN (market_transaction.total_price * -1)
-                    ELSE market_transaction.total_price
-                  END
-                ) as "profit: i32",
-                reserved_fund
-              FROM
-                public.trade_route
-              left join public.market_transaction ON market_transaction.trade_route = trade_route.id
-              group by
-                trade_route.id
-              ORDER BY
-                trade_route.id ASC;
-            "#
+                SELECT 
+                  id,
+                  symbol as "symbol: models::TradeSymbol",
+                  ship_symbol,
+                  purchase_waypoint,
+                  sell_waypoint,
+                  status as "status: ShipmentStatus",
+                  trade_volume,
+                  predicted_purchase_price,
+                  predicted_sell_price,
+                  created_at,
+                  reserved_fund
+                 FROM trade_route WHERE sell_waypoint = $1 OR purchase_waypoint = $1
+            "#,
+            waypoint_symbol
         )
-        .fetch_all(database_pool.get_cache_pool())
+        .fetch_all(&database_pool.database_pool)
+        .await?;
+        Ok(erg)
+    }
+
+    pub async fn get_by_purchase_system(
+        database_pool: &DbPool,
+        system_symbol: &str,
+    ) -> crate::Result<Vec<TradeRoute>> {
+        let system_qr = format!("{}-%", system_symbol);
+        let erg = sqlx::query_as!(
+            TradeRoute,
+            r#"
+                SELECT 
+                  id,
+                  symbol as "symbol: models::TradeSymbol",
+                  ship_symbol,
+                  purchase_waypoint,
+                  sell_waypoint,
+                  status as "status: ShipmentStatus",
+                  trade_volume,
+                  predicted_purchase_price,
+                  predicted_sell_price,
+                  created_at,
+                  reserved_fund
+                 FROM trade_route WHERE purchase_waypoint like $1
+            "#,
+            system_qr
+        )
+        .fetch_all(&database_pool.database_pool)
+        .await?;
+        Ok(erg)
+    }
+
+    pub async fn get_by_sell_system(
+        database_pool: &DbPool,
+        system_symbol: &str,
+    ) -> crate::Result<Vec<TradeRoute>> {
+        let system_qr = format!("{}-%", system_symbol);
+
+        let erg = sqlx::query_as!(
+            TradeRoute,
+            r#"
+                SELECT 
+                  id,
+                  symbol as "symbol: models::TradeSymbol",
+                  ship_symbol,
+                  purchase_waypoint,
+                  sell_waypoint,
+                  status as "status: ShipmentStatus",
+                  trade_volume,
+                  predicted_purchase_price,
+                  predicted_sell_price,
+                  created_at,
+                  reserved_fund
+                 FROM trade_route WHERE sell_waypoint like $1
+            "#,
+            system_qr
+        )
+        .fetch_all(&database_pool.database_pool)
+        .await?;
+        Ok(erg)
+    }
+
+    pub async fn get_by_system(
+        database_pool: &DbPool,
+        system_symbol: &str,
+    ) -> crate::Result<Vec<TradeRoute>> {
+        let system_qr = format!("{}-%", system_symbol);
+
+        let erg = sqlx::query_as!(
+            TradeRoute,
+            r#"
+                SELECT 
+                  id,
+                  symbol as "symbol: models::TradeSymbol",
+                  ship_symbol,
+                  purchase_waypoint,
+                  sell_waypoint,
+                  status as "status: ShipmentStatus",
+                  trade_volume,
+                  predicted_purchase_price,
+                  predicted_sell_price,
+                  created_at,
+                  reserved_fund
+                 FROM trade_route WHERE sell_waypoint like $1 OR purchase_waypoint like $1
+            "#,
+            system_qr
+        )
+        .fetch_all(&database_pool.database_pool)
         .await?;
         Ok(erg)
     }

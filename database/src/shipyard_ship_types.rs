@@ -52,7 +52,7 @@ impl ShipyardShipTypes {
                 ship_type as "ship_type: models::ShipType",
                 shipyard_ship_types.created_at
             FROM shipyard_ship_types
-            WHERE shipyard_id = (
+            WHERE shipyard_id = ANY(
                 SELECT DISTINCT ON (shipyard.waypoint_symbol) shipyard.id FROM shipyard JOIN waypoint ON shipyard.waypoint_symbol = waypoint.symbol
                 WHERE waypoint.system_symbol = $1
                 ORDER BY shipyard.waypoint_symbol, shipyard.created_at DESC

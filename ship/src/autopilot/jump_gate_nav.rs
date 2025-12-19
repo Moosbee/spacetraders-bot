@@ -101,19 +101,37 @@ impl Hash for JumpConnection {
 
 pub struct JumpPathfinder {
     all_connections: Vec<GateConnection>,
+    cache: HashMap<(String, String), Vec<JumpConnection>>,
 }
 
 impl JumpPathfinder {
     pub fn new(all_connections: Vec<GateConnection>) -> Self {
-        Self { all_connections }
+        Self {
+            all_connections,
+            cache: HashMap::new(),
+        }
     }
 
+    pub fn find_cached_route(&mut self, from_system: &str, to_system: &str) -> &[JumpConnection] {
+        if self
+            .cache
+            .contains_key(&(from_system.to_string(), to_system.to_string()))
+        {
+            let route = self.find_route(from_system, to_system);
+            self.cache
+                .insert((from_system.to_string(), to_system.to_string()), route);
+        }
+
+        self.cache
+            .get(&(from_system.to_string(), to_system.to_string()))
+            .expect("This should not be possible")
+    }
     pub fn find_route(&self, from_system: &str, to_system: &str) -> Vec<JumpConnection> {
         let mut unvisited: Vec<GateConnection> = self.all_connections.clone();
         let mut to_visit: PriorityQueue<JumpConnection, Reverse<i64>> = PriorityQueue::new();
         let mut visited: HashMap<String, JumpConnection> = HashMap::new();
 
-    // tracing::info!(from_system = %from_system, to_system = %to_system, "Finding route");
+        // tracing::info!(from_system = %from_system, to_system = %to_system, "Finding route");
 
         let start_conns = Self::get_connections(from_system, &mut unvisited);
         for conn in start_conns {
@@ -171,14 +189,14 @@ impl JumpPathfinder {
     ) -> Vec<JumpConnection> {
         let mut route = Vec::new();
         let mut current = to_string.clone();
-    tracing::debug!(visited_count = %visited.len(), "Visited systems");
+        tracing::debug!(visited_count = %visited.len(), "Visited systems");
         while current != from {
             let connection = visited.get(&current).unwrap();
             route.push(connection.clone());
             current = connection.start_system.clone();
         }
         route.reverse();
-    tracing::debug!(route = ?route, "Route calculated");
+        tracing::debug!(route = ?route, "Route calculated");
         route
     }
 }

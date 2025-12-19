@@ -1669,6 +1669,8 @@ type System {
 	constructionMaterials: [ConstructionMaterial!]!
 	constructionShipments: [ConstructionShipment!]!
 	contractDeliveries: [ContractDelivery!]!
+	jumpGateConnections: [JumpGateConnection!]!
+	tradeRoutes: [TradeRoute!]!
 	ships: [Ship!]!
 	seenAgents: [KnownAgent!]!
 }
@@ -1999,6 +2001,7 @@ type Waypoint {
 	extractions: [Extraction!]!
 	tradeRoutesFrom: [TradeRoute!]!
 	tradeRoutesTo: [TradeRoute!]!
+	tradeRoutes: [TradeRoute!]!
 	marketTrades: [MarketTrade!]!
 	marketTradeGoods: [MarketTradeGood!]!
 	shipyardShips: [ShipyardShip!]!

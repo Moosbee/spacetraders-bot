@@ -15,11 +15,11 @@ impl ShipWorth<'_> {
         assignment: &'a database::ShipAssignment,
         shipyard_ship: &'a database::ShipyardShip,
         fleet: &'a database::Fleet,
-        jump_gate: &ship::autopilot::jump_gate_nav::JumpPathfinder,
+        jump_gate: &mut ship::autopilot::jump_gate_nav::JumpPathfinder,
         antimatter_cost: i64,
     ) -> ShipWorth<'a> {
         let shipyard_system = get_system_symbol(&shipyard_ship.waypoint_symbol);
-        let route = jump_gate.find_route(&shipyard_system, &fleet.system_symbol);
+        let route = jump_gate.find_cached_route(&shipyard_system, &fleet.system_symbol);
         let (total_jumps, total_distance) = route
             .iter()
             .fold((0, 0.0), |acc, c| (acc.0 + 1, acc.1 + c.conn.distance));

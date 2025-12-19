@@ -232,10 +232,10 @@ impl ChartPilot {
             )
             .await?;
 
-            self.context
-                .fleet_manager
-                .populate_from_jump_gate(sql_waypoint.symbol.clone())
-                .await?;
+            // self.context
+            //     .fleet_manager
+            //     .populate_from_jump_gate(sql_waypoint.symbol.clone())
+            //     .await?;
         }
 
         let (total_to_chart, marketplace_to_chart) = self

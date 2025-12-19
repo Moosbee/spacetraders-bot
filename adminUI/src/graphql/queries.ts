@@ -231,3 +231,206 @@ export const GET_ALL_SURVEYS = graphql(/* GraphQL */ `
     }
   }
 `);
+
+export const GET_SYSTEM = graphql(/* GraphQL */ `
+  query GetSystem($systemSymbol: String!) {
+    system(symbol: $systemSymbol) {
+      symbol
+      sectorSymbol
+      constellation
+      systemType
+      x
+      y
+      populationDisabled
+      seenAgents {
+        symbol
+        count
+      }
+      fleets {
+        id
+        fleetType
+        active
+        assignments {
+          id
+          siphon
+          warpDrive
+          fleetId
+          priority
+          maxPurchasePrice
+          creditsThreshold
+          disabled
+          rangeMin
+          cargoMin
+          survey
+          extractor
+        }
+        createdAt
+        updatedAt
+      }
+      chartTransactions {
+        waypointSymbol
+        shipSymbol
+        totalPrice
+        timestamp
+      }
+      shipyardShips {
+        reactorQuality
+        engineType
+        engineQuality
+        modules
+        mounts
+        createdAt
+        waypointSymbol
+        shipType
+        name
+        supply
+        activity
+        purchasePrice
+        frameType
+        frameQuality
+        reactorType
+      }
+      shipyardShipTypes {
+        shipType
+        createdAt
+        shipyard {
+          modificationsFee
+          waypointSymbol
+        }
+      }
+      marketTrades {
+        waypointSymbol
+        symbol
+        createdAt
+        type
+        tradeSymbolInfo {
+          symbol
+          requires {
+            symbol
+          }
+          requiredBy {
+            symbol
+          }
+        }
+      }
+      marketTradeGoods {
+        symbol
+        waypointSymbol
+        type
+        tradeVolume
+        supply
+        activity
+        purchasePrice
+        sellPrice
+        createdAt
+      }
+      constructionMaterials {
+        waypointSymbol
+        tradeSymbol
+        required
+        fulfilled
+      }
+      jumpGateConnections {
+        from
+        to
+      }
+      waypoints {
+        symbol
+        faction
+        modifiers
+        chartedBy
+        chartedOn
+        hasShipyard
+        hasMarketplace
+        x
+        y
+        lastScrap
+        nextScrap
+        waypointType
+        traits
+        isUnderConstruction
+        orbitals
+        orbits
+      }
+      marketTransactions {
+        trade_route_id
+        mining_waypoint_symbol
+        construction_shipment_id
+        waypointSymbol
+        shipSymbol
+        tradeSymbol
+        type
+        units
+        pricePerUnit
+        totalPrice
+        timestamp
+        contract_id
+      }
+      contractDeliveries {
+        contractId
+        tradeSymbol
+        destinationSymbol
+        unitsRequired
+        unitsFulfilled
+        contract {
+          id
+          createdAt
+          reservedFund
+          factionSymbol
+          contractType
+          accepted
+          onFulfilled
+          deadline
+          marketTransactionSummary {
+            sum
+            expenses
+            income
+            units
+            purchaseUnits
+            sellUnits
+            purchaseTransactions
+            sellTransactions
+          }
+        }
+      }
+      tradeRoutes {
+        id
+        reservedFund
+        marketTransactionSummary {
+          sum
+          expenses
+          income
+          units
+          purchaseUnits
+          sellUnits
+          purchaseTransactions
+          sellTransactions
+        }
+        symbol
+        shipSymbol
+        PurchaseWaypointSymbol
+        SellWaypointSymbol
+        status
+        tradeVolume
+        predictedPurchasePrice
+        predictedSellPrice
+      }
+      ships {
+        symbol
+        nav {
+          waypointSymbol
+          status
+        }
+        status {
+          assignmentId
+          fleetId
+          tempAssignmentId
+          tempFleetId
+          status {
+            __typename
+          }
+        }
+      }
+    }
+  }
+`);

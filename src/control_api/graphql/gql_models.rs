@@ -2270,6 +2270,13 @@ impl GQLSystem {
     //     Ok(into_gql_vec(history)) // Added conversion
     // }
 
+    async fn trade_routes(&self, ctx: &async_graphql::Context<'_>) -> Result<Vec<GQLTradeRoute>> {
+        let database_pool = ctx.data::<database::DbPool>().unwrap();
+        let routes =
+            database::TradeRoute::get_by_system(database_pool, &self.system.symbol).await?;
+        Ok(into_gql_vec(routes))
+    }
+
     async fn ships(&self, ctx: &async_graphql::Context<'_>) -> Result<Vec<GQLShip>> {
         let context = ctx.data::<crate::utils::ConductorContext>().unwrap();
         let ships_map = context.ship_manager.get_all_clone().await;
@@ -2680,6 +2687,13 @@ impl GQLWaypoint {
         let routes =
             database::TradeRoute::get_by_sell_waypoint(database_pool, &self.waypoint.symbol)
                 .await?;
+        Ok(into_gql_vec(routes))
+    }
+
+    async fn trade_routes(&self, ctx: &async_graphql::Context<'_>) -> Result<Vec<GQLTradeRoute>> {
+        let database_pool = ctx.data::<database::DbPool>().unwrap();
+        let routes =
+            database::TradeRoute::get_by_waypoint(database_pool, &self.waypoint.symbol).await?;
         Ok(into_gql_vec(routes))
     }
 

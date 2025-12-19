@@ -1,3 +1,4 @@
+import { useQuery } from "@apollo/client/react";
 import {
   Button,
   Card,
@@ -5,126 +6,71 @@ import {
   Divider,
   Flex,
   List,
-  Popover,
   Space,
   Spin,
   Table,
   TableProps,
 } from "antd";
-import { useEffect, useMemo, useState } from "react";
-import { useDispatch } from "react-redux";
 import { Link, useParams } from "react-router-dom";
-import { backendUrl } from "../data";
 import PageTitle from "../features/PageTitle";
 import WaypointLink from "../features/WaypointLink";
 import {
-  MarketTradeGoodTypeEnum,
-  TradeSymbol,
+  GetSystemQuery,
   WaypointModifierSymbol,
   WaypointTraitSymbol,
   WaypointType,
-} from "../models/api";
-import { SystemResp } from "../models/SQLSystem";
-import { SQLWaypoint } from "../models/SQLWaypoint";
-import { useAppSelector } from "../redux/hooks";
-import { selectAllShipsArray } from "../redux/slices/shipSlice";
-import { selectSystem, setSystem } from "../redux/slices/systemSlice";
-import { message } from "../utils/antdMessage";
+} from "../gql/graphql";
+import { GET_SYSTEM } from "../graphql/queries";
 
 function System() {
   const { systemID } = useParams();
-  const system = useAppSelector((state) => selectSystem(state, systemID));
 
-  const dispatch = useDispatch();
+  const { loading, error, data, dataState, refetch } = useQuery(GET_SYSTEM, {
+    variables: { systemSymbol: systemID || "" },
+  });
 
-  const [loading, setLoading] = useState(false);
+  // if (dataState != "complete") return <p>Loading...</p>;
+  if (error) return <p>Error: {error.message}</p>;
 
-  const [knownAgents, setKnownAgents] = useState<Record<string, number>>({});
+  const system = data?.system;
 
-  useEffect(() => {
-    fetch(`http://${backendUrl}/systems/${systemID}`)
-      .then((response) => response.json())
-      .then((data: SystemResp) => {
-        const system = data.system;
-        const waypoints_date = data.waypoints;
-        console.log("System Data:", data);
-        setKnownAgents(data.known_agents);
-        const waypoints = waypoints_date.map((waypoint) => {
-          const sql_wp = waypoint.waypoint;
-
-          sql_wp.trade_goods = waypoint.trade_goods.map((good) => {
-            return {
-              symbol: good.symbol,
-              type: good.type,
-            };
-          });
-
-          return sql_wp;
-        });
-        dispatch(setSystem({ system, waypoints }));
-      });
-  }, [dispatch, systemID]);
-
-  const ships = useAppSelector(selectAllShipsArray);
-
-  const onSystemsShips = useMemo(() => {
-    return ships.filter((ship) => ship.nav.system_symbol === systemID);
-  }, [systemID, ships]);
-
-  const Waypoints = system?.waypoints || [];
+  type GQLWaypoint = GetSystemQuery["system"]["waypoints"][number];
 
   const items = [
     {
       label: "Symbol",
       key: "symbol",
-      children: system?.system?.symbol,
+      children: system?.symbol,
     },
     {
       label: "Sector Symbol",
       key: "sectorSymbol",
-      children: system?.system?.sector_symbol,
+      children: system?.sectorSymbol,
     },
     {
       key: "reload",
       children: (
-        <Button
-          onClick={() => {
-            fetch(`http://${backendUrl}/systems/${systemID}`)
-              .then((response) => response.json())
-              .then((data: SystemResp) => {
-                const system = data.system;
-                const waypoints_date = data.waypoints;
-                console.log("System Data:", data);
-                setKnownAgents(data.known_agents);
-                const waypoints = waypoints_date.map((waypoint) => {
-                  const sql_wp = waypoint.waypoint;
-
-                  sql_wp.trade_goods = waypoint.trade_goods.map((good) => {
-                    return {
-                      symbol: good.symbol,
-                      type: good.type,
-                    };
-                  });
-
-                  return sql_wp;
-                });
-                dispatch(setSystem({ system, waypoints }));
-              });
-          }}
-        >
-          Reload
-        </Button>
+        <>
+          <Button
+            onClick={() => {
+              refetch();
+            }}
+          >
+            Reload
+          </Button>
+          <Spin spinning={loading || dataState !== "complete"} />
+        </>
       ),
     },
     {
       label: "System Type",
       key: "systemType",
-      children: system?.system?.system_type,
+      children: system?.systemType,
     },
     {
-      label: "Waypoints",
-      key: "Waypoints",
-      children: system?.waypoints?.length,
+      label: "Fleets",
+      key: "Fleets",
+      children: system?.fleets.length,
     },
     {
       key: "Map",
@@ -133,12 +79,12 @@ function System() {
     {
       label: "X Coordinate",
       key: "x",
-      children: system?.system?.x,
+      children: system?.x,
     },
     {
       label: "Y Coordinate",
       key: "y",
-      children: system?.system?.y,
+      children: system?.y,
     },
 
     {
@@ -147,45 +93,43 @@ function System() {
         <>
           <Button
             onClick={() => {
-              setLoading(true);
-              fetch(`http://${backendUrl}/systems/${systemID}/request`, {
-                method: "POST",
-              })
-                .then((response) => response.json())
-                .then((data: SystemResp) => {
-                  const system = data.system;
-                  const waypoints_date = data.waypoints;
-                  const elapsed = (data as unknown as { took: number }).took;
-
-                  setLoading(false);
-
-                  message.success(`Request completed in ${elapsed} ms`);
-
-                  const waypoints = waypoints_date.map((waypoint) => {
-                    const sql_wp = waypoint.waypoint;
-
-                    sql_wp.trade_goods = waypoint.trade_goods.map((good) => {
-                      return {
-                        symbol: good.symbol,
-                        type: good.type,
-                      };
-                    });
-
-                    return sql_wp;
-                  });
-                  dispatch(setSystem({ system, waypoints }));
-                });
+              alert("Todo");
             }}
           >
             Request
           </Button>
-          <Spin spinning={loading} />
+          <Spin spinning={loading || dataState !== "complete"} />
         </>
       ),
     },
+    {
+      label: "Waypoints",
+      key: "waypoints",
+      children: `${system?.waypoints.filter((wp) => wp.chartedOn).length}/${
+        system?.waypoints.length
+      }`,
+    },
+    {
+      label: "Marketplaces",
+      key: "marketplaces",
+      children: `${
+        system?.waypoints
+          .filter((wp) => wp.hasMarketplace)
+          .filter((wp) => wp.chartedOn).length
+      }/${system?.waypoints.filter((wp) => wp.hasMarketplace).length}`,
+    },
+    {
+      label: "Shipyards",
+      key: "shipyards",
+      children: `${
+        system?.waypoints
+          .filter((wp) => wp.hasShipyard)
+          .filter((wp) => wp.chartedOn).length
+      }/${system?.waypoints.filter((wp) => wp.hasShipyard).length}`,
+    },
   ];
 
-  const columns: TableProps<SQLWaypoint>["columns"] = [
+  const columns: TableProps<GQLWaypoint>["columns"] = [
     {
       title: "Symbol",
       dataIndex: "symbol",
@@ -197,23 +141,14 @@ function System() {
     },
     {
       title: "Type",
-      dataIndex: "waypoint_type",
-      key: "waypoint_type",
-      sorter: (a, b) => a.waypoint_type.localeCompare(b.waypoint_type),
+      dataIndex: "waypointType",
+      key: "waypointType",
+      sorter: (a, b) => a.waypointType.localeCompare(b.waypointType),
       filters: Object.values(WaypointType).map((type) => ({
         text: type,
         value: type,
       })),
-      onFilter: (value, record) => record.waypoint_type === value,
-    },
-    {
-      title: "System Symbol",
-      dataIndex: "system_symbol",
-      key: "system_symbol",
-      render: (system_symbol) => (
-        <Link to={`/system/${system_symbol}`}>{system_symbol}</Link>
-      ),
-      sorter: (a, b) => a.system_symbol.localeCompare(b.system_symbol),
+      onFilter: (value, record) => record.waypointType === value,
     },
     {
       title: "Pos X",
@@ -231,12 +166,12 @@ function System() {
       title: "Orbitals",
       dataIndex: "orbitals",
       key: "orbitals",
-      render: (orbitals: string[], record) =>
+      render: (orbitals: string[]) =>
         orbitals.length > 0 ? (
           <Flex gap={1} vertical>
             {orbitals.map((symbol) => (
               <WaypointLink waypoint={symbol} key={symbol}>
-                {symbol.replace(record.system_symbol + "-", "")}
+                {symbol.replace(system?.symbol + "-", "")}
               </WaypointLink>
             ))}
           </Flex>
@@ -249,10 +184,10 @@ function System() {
       title: "Orbits",
       dataIndex: "orbits",
       key: "orbits",
-      render: (orbits: string, record) =>
+      render: (orbits: string) =>
         orbits ? (
           <WaypointLink waypoint={orbits}>
-            {orbits.replace(record.system_symbol + "-", "")}
+            {orbits.replace(system?.symbol + "-", "")}
           </WaypointLink>
         ) : (
           "N/A"
@@ -306,125 +241,124 @@ function System() {
       onFilter: (value, record) =>
         record.modifiers?.some((m) => m === value) ?? false,
     },
-    {
-      title: "Trade Goods",
-      dataIndex: "trade_goods",
-      key: "trade_goods",
-      render: (
-        trade_goods:
-          | {
-              symbol: TradeSymbol;
-              type: MarketTradeGoodTypeEnum;
-            }[]
-          | undefined
-      ) =>
-        trade_goods && trade_goods.length > 0 ? (
-          <>
-            {/* <Flex gap={1} vertical>
-              {trade_goods.map((trade_good) => (
-                <span>
-                  {trade_good.type.slice(0, 3)} {trade_good.symbol}
-                </span>
-              ))}
-            </Flex> */}
-            <Popover
-              content={
-                <Flex gap={1} vertical>
-                  {trade_goods.map((trade_good) => (
-                    <span key={trade_good.symbol}>
-                      {trade_good.type.slice(0, 3)} {trade_good.symbol}
-                    </span>
-                  ))}
-                </Flex>
-              }
-            >
-              <Flex gap={1} vertical>
-                {trade_goods.filter((t) => t.type === "EXCHANGE").length >
-                  0 && (
-                  <span>
-                    EXCHANGE{" "}
-                    {trade_goods.filter((t) => t.type === "EXCHANGE").length}
-                  </span>
-                )}
-                {trade_goods.filter((t) => t.type === "IMPORT").length > 0 && (
-                  <span>
-                    IMPORT{" "}
-                    {trade_goods.filter((t) => t.type === "IMPORT").length}
-                  </span>
-                )}
-                {trade_goods.filter((t) => t.type === "EXPORT").length > 0 && (
-                  <span>
-                    EXPORT{" "}
-                    {trade_goods.filter((t) => t.type === "EXPORT").length}
-                  </span>
-                )}
-              </Flex>
-            </Popover>
-          </>
-        ) : (
-          "None"
-        ),
-      sorter: (a, b) =>
-        (a.trade_goods?.length ?? 0) - (b.trade_goods?.length ?? 0),
-      filters: Object.values(TradeSymbol).map((trade_good) => ({
-        text: trade_good,
-        value: trade_good,
-      })),
-      onFilter: (value, record) =>
-        record.trade_goods?.some((t) => t.symbol === value) ?? false,
-    },
+    // {
+    //   title: "Trade Goods",
+    //   dataIndex: "trade_goods",
+    //   key: "trade_goods",
+    //   render: (
+    //     trade_goods:
+    //       | {
+    //           symbol: TradeSymbol;
+    //           type: MarketTradeGoodTypeEnum;
+    //         }[]
+    //       | undefined
+    //   ) =>
+    //     trade_goods && trade_goods.length > 0 ? (
+    //       <>
+    //         {/* <Flex gap={1} vertical>
+    //           {trade_goods.map((trade_good) => (
+    //             <span>
+    //               {trade_good.type.slice(0, 3)} {trade_good.symbol}
+    //             </span>
+    //           ))}
+    //         </Flex> */}
+    //         <Popover
+    //           content={
+    //             <Flex gap={1} vertical>
+    //               {trade_goods.map((trade_good) => (
+    //                 <span key={trade_good.symbol}>
+    //                   {trade_good.type.slice(0, 3)} {trade_good.symbol}
+    //                 </span>
+    //               ))}
+    //             </Flex>
+    //           }
+    //         >
+    //           <Flex gap={1} vertical>
+    //             {trade_goods.filter((t) => t.type === "EXCHANGE").length >
+    //               0 && (
+    //               <span>
+    //                 EXCHANGE{" "}
+    //                 {trade_goods.filter((t) => t.type === "EXCHANGE").length}
+    //               </span>
+    //             )}
+    //             {trade_goods.filter((t) => t.type === "IMPORT").length > 0 && (
+    //               <span>
+    //                 IMPORT{" "}
+    //                 {trade_goods.filter((t) => t.type === "IMPORT").length}
+    //               </span>
+    //             )}
+    //             {trade_goods.filter((t) => t.type === "EXPORT").length > 0 && (
+    //               <span>
+    //                 EXPORT{" "}
+    //                 {trade_goods.filter((t) => t.type === "EXPORT").length}
+    //               </span>
+    //             )}
+    //           </Flex>
+    //         </Popover>
+    //       </>
+    //     ) : (
+    //       "None"
+    //     ),
+    //   sorter: (a, b) =>
+    //     (a.trade_goods?.length ?? 0) - (b.trade_goods?.length ?? 0),
+    //   filters: Object.values(TradeSymbol).map((trade_good) => ({
+    //     text: trade_good,
+    //     value: trade_good,
+    //   })),
+    //   onFilter: (value, record) =>
+    //     record.trade_goods?.some((t) => t.symbol === value) ?? false,
+    // },
     {
       title: "Chart by",
-      dataIndex: "charted_by",
-      key: "charted_by",
-      render: (charted_by) => (charted_by ? charted_by : "N/A"), // Display chart symbol or "N/A"
-      sorter: (a, b) => (a.charted_by ?? "").localeCompare(b.charted_by ?? ""),
+      dataIndex: "chartedBy",
+      key: "chartedBy",
+      render: (chartedBy) => (chartedBy ? chartedBy : "N/A"), // Display chart symbol or "N/A"
+      sorter: (a, b) => (a.chartedBy ?? "").localeCompare(b.chartedBy ?? ""),
     },
     {
       title: "Chart on",
-      dataIndex: "charted_on",
-      key: "charted_on",
-      render: (charted_on) =>
-        charted_on ? new Date(charted_on).toLocaleString() : "N/A", // Display chart symbol or "N/A"
-      sorter: (a, b) => (a.charted_on ?? "").localeCompare(b.charted_on ?? ""),
+      dataIndex: "chartedOn",
+      key: "chartedOn",
+      render: (chartedOn) =>
+        chartedOn ? new Date(chartedOn).toLocaleString() : "N/A", // Display chart symbol or "N/A"
+      sorter: (a, b) => (a.chartedOn ?? "").localeCompare(b.chartedOn ?? ""),
     },
     {
       title: "Construction",
-      dataIndex: "is_under_construction",
-      key: "is_under_construction",
+      dataIndex: "isUnderConstruction",
+      key: "isUnderConstruction",
       render: (value) => (value ? "Yes" : "No"), // Render boolean as "Yes" or "No"
       sorter: (a, b) =>
-        (a.is_under_construction ? 1 : 0) - (b.is_under_construction ? 1 : 0),
+        (a.isUnderConstruction ? 1 : 0) - (b.isUnderConstruction ? 1 : 0),
       filters: [
         { text: "Yes", value: true },
         { text: "No", value: false },
       ],
-      onFilter: (value, record) => record.is_under_construction === value,
+      onFilter: (value, record) => record.isUnderConstruction === value,
     },
     {
       title: "Has Shipyard",
-      dataIndex: "has_shipyard",
-      key: "has_shipyard",
+      dataIndex: "hasShipyard",
+      key: "hasShipyard",
       render: (value) => (value ? "Yes" : "No"), // Render boolean as "Yes" or "No"
-      sorter: (a, b) => (a.has_shipyard ? 1 : 0) - (b.has_shipyard ? 1 : 0),
+      sorter: (a, b) => (a.hasShipyard ? 1 : 0) - (b.hasShipyard ? 1 : 0),
       filters: [
         { text: "Yes", value: true },
         { text: "No", value: false },
       ],
-      onFilter: (value, record) => record.has_shipyard === value,
+      onFilter: (value, record) => record.hasShipyard === value,
     },
     {
       title: "Has Market",
-      dataIndex: "has_marketplace",
-      key: "has_marketplace",
+      dataIndex: "hasMarketplace",
+      key: "hasMarketplace",
       render: (value) => (value ? "Yes" : "No"), // Render boolean as "Yes" or "No"
-      sorter: (a, b) =>
-        (a.has_marketplace ? 1 : 0) - (b.has_marketplace ? 1 : 0),
+      sorter: (a, b) => (a.hasMarketplace ? 1 : 0) - (b.hasMarketplace ? 1 : 0),
       filters: [
         { text: "Yes", value: true },
         { text: "No", value: false },
       ],
-      onFilter: (value, record) => record.has_marketplace === value,
+      onFilter: (value, record) => record.hasMarketplace === value,
     },
   ];
 
@@ -437,11 +371,13 @@ function System() {
         <Card size="small" title="Known Agents">
           <List
             size="small"
-            dataSource={Object.entries(knownAgents).sort((a, b) => b[1] - a[1])}
+            dataSource={[...(system?.seenAgents || [])].sort(
+              (a, b) => b.count - a.count
+            )}
             renderItem={(agent) => (
               <List.Item>
-                <Link to={`/agents/${agent[0]}`}>
-                  {agent[0]} ({agent[1]})
+                <Link to={`/agents/${agent.symbol}`}>
+                  {agent.symbol} ({agent.count})
                 </Link>
               </List.Item>
             )}
@@ -451,11 +387,13 @@ function System() {
           <List
             size="small"
             style={{ maxHeight: "200px", overflowY: "auto" }}
-            dataSource={onSystemsShips}
+            dataSource={system?.ships}
             renderItem={(ship) => (
               <List.Item>
                 <Link to={`/ships/${ship.symbol}`}>
-                  {ship.symbol} ({ship.role})
+                  {ship.symbol} ({ship.status.status.__typename}) (
+                  {ship.status.tempAssignmentId || ship.status.assignmentId}) (
+                  {ship.status.tempFleetId || ship.status.fleetId})
                 </Link>
               </List.Item>
             )}
@@ -466,7 +404,7 @@ function System() {
       <Table
         size="small"
         columns={columns}
-        dataSource={Waypoints || []}
+        dataSource={system?.waypoints || []}
         rowKey={(row) => row.symbol}
         pagination={{
           showTotal: (total, range) => `${range[0]}-${range[1]} of ${total}`,

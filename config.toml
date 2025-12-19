@@ -2,11 +2,16 @@ socket_address = "127.0.0.1:8780"
 control_start_sleep = 0
 control_active = true
 scrapper_start_sleep = 1000
-scrap_agents = true
-update_all_systems = true
+scrap_agents = false
+update_all_systems = false
 max_miners_per_waypoint = 12
 mining_eject_list = ["ICE_WATER", "AMMONIA_ICE", "ALUMINUM_ORE", "SILVER_ORE"]
-mining_prefer_list = ["SILICON_CRYSTALS", "COPPER_ORE", "IRON_ORE", "QUARTZ_SAND"]
+mining_prefer_list = [
+  "SILICON_CRYSTALS",
+  "COPPER_ORE",
+  "IRON_ORE",
+  "QUARTZ_SAND",
+]
 # max_update_interval = 1800 #60 * 30
 max_update_interval = 1800
 ignore_engineered_asteroids = true

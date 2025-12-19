@@ -20,6 +20,36 @@ pub struct ShipAssignment {
     // pub refinery: bool,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct SimpleShipRequirement {
+    pub max_purchase_price: i32,
+    pub credits_threshold: i32,
+    pub disabled: bool,
+    pub range_min: i32,
+    pub cargo_min: i32,
+    pub survey: bool,
+    pub extractor: bool,
+    pub siphon: bool,
+    pub warp_drive: bool,
+    // pub refinery: bool,
+}
+
+impl From<ShipAssignment> for SimpleShipRequirement {
+    fn from(value: ShipAssignment) -> Self {
+        Self {
+            max_purchase_price: value.max_purchase_price,
+            credits_threshold: value.credits_threshold,
+            disabled: value.disabled,
+            range_min: value.range_min,
+            cargo_min: value.cargo_min,
+            survey: value.survey,
+            extractor: value.extractor,
+            siphon: value.siphon,
+            warp_drive: value.warp_drive,
+        }
+    }
+}
+
 impl ShipAssignment {
     /// assignments can merge, ie updated without invalidation assigned ships when:
     /// - they belong to the same fleet
@@ -27,7 +57,7 @@ impl ShipAssignment {
     /// - extractor is the same
     /// - siphon is the same
     /// - warp_drive is the same
-    /// // - refinery is the same
+    /// # - refinery is the same
     /// - range may change, except from infinite to finite or vice versa
     /// - cargo_min may change, but not from 0 to non-0 or vice versa
     /// - max_purchase_price may change

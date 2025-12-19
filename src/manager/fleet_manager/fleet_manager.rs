@@ -79,7 +79,7 @@ impl FleetManager {
         err(Debug)
     )]
     async fn handle_fleet_message(&mut self, message: super::message::FleetMessage) -> Result<()> {
-      self.context.fleet_manager.set_busy(true);
+        self.context.fleet_manager.set_busy(true);
 
         match message {
             crate::manager::fleet_manager::message::FleetMessage::ScrapperAtShipyard {
@@ -159,8 +159,7 @@ impl FleetManager {
                 })?;
             }
         }
-      self.context.fleet_manager.set_busy(false);
-
+        self.context.fleet_manager.set_busy(false);
 
         Ok(())
     }
@@ -210,8 +209,8 @@ impl FleetManager {
                             ship_frame,
                         );
 
-                        let capable=ship_capabilities.capable(assignment);
-                        debug!(capable, ship_capabilities=?ship_capabilities,assignment=?assignment,"Ship Compatibility");
+                        let capable = ship_capabilities.capable(assignment);
+                        // debug!(capable, ship_capabilities=?ship_capabilities,assignment=?assignment,"Ship Compatibility");
                         capable
                     } else {
                         false
@@ -263,6 +262,11 @@ impl FleetManager {
         let percentile = { self.context.config.read().await.ship_purchase_percentile };
 
         let jump_gate = self.get_jump_navigator().await?;
+
+        debug!(
+            all_shipyard_ships_length = all_shipyard_ships.len(),
+            current_money, "Information collected"
+        );
 
         let assignments = fulfillable_assignments
             .iter()
@@ -563,7 +567,7 @@ impl FleetManager {
 
     async fn get_jump_navigator(
         &mut self,
-    ) -> Result<&ship::autopilot::jump_gate_nav::JumpPathfinder> {
+    ) -> Result<&mut ship::autopilot::jump_gate_nav::JumpPathfinder> {
         if self.jump_gate.is_none() {
             let connections = ship::autopilot::jump_gate_nav::generate_all_connections(
                 &self.context.database_pool,
@@ -577,7 +581,7 @@ impl FleetManager {
 
             self.jump_gate = Some(jump_gate);
         }
-        if let Some(navigator) = &self.jump_gate {
+        if let Some(navigator) = &mut self.jump_gate {
             Ok(navigator)
         } else {
             Err("No jump_gate after thing".into())
