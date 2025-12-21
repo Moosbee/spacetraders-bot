@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n                SELECT\n                trade_route.id,\n                symbol as \"symbol: models::TradeSymbol\",\n                trade_route.ship_symbol,\n                purchase_waypoint,\n                sell_waypoint,\n                status as \"status: ShipmentStatus\",\n                trade_volume,\n                predicted_purchase_price,\n                predicted_sell_price,\n                sum(market_transaction.total_price) as \"sum: i32\",\n                sum(\n                  CASE\n                    WHEN market_transaction.type = 'PURCHASE' THEN market_transaction.total_price\n                    ELSE 0\n                  END\n                ) as \"expenses: i32\",\n                sum(\n                  CASE\n                    WHEN market_transaction.type = 'PURCHASE' THEN 0\n                    ELSE market_transaction.total_price\n                  END\n                ) as \"income: i32\",\n                sum(\n                  CASE\n                    WHEN market_transaction.type = 'PURCHASE' THEN (market_transaction.total_price * -1)\n                    ELSE market_transaction.total_price\n                  END\n                ) as \"profit: i32\",\n                reserved_fund\n              FROM\n                public.trade_route\n              left join public.market_transaction ON market_transaction.trade_route = trade_route.id\n              group by\n                trade_route.id\n              ORDER BY\n                trade_route.id ASC;\n            ",
+  "query": "\n                SELECT \n                  id,\n                  symbol as \"symbol: models::TradeSymbol\",\n                  ship_symbol,\n                  purchase_waypoint,\n                  sell_waypoint,\n                  status as \"status: ShipmentStatus\",\n                  trade_volume,\n                  predicted_purchase_price,\n                  predicted_sell_price,\n                  created_at,\n                  reserved_fund\n                 FROM trade_route WHERE purchase_waypoint like $1\n            ",
   "describe": {
     "columns": [
       {
@@ -214,32 +214,19 @@
       },
       {
         "ordinal": 9,
-        "name": "sum: i32",
-        "type_info": "Int8"
+        "name": "created_at",
+        "type_info": "Timestamptz"
       },
       {
         "ordinal": 10,
-        "name": "expenses: i32",
-        "type_info": "Int8"
-      },
-      {
-        "ordinal": 11,
-        "name": "income: i32",
-        "type_info": "Int8"
-      },
-      {
-        "ordinal": 12,
-        "name": "profit: i32",
-        "type_info": "Int8"
-      },
-      {
-        "ordinal": 13,
         "name": "reserved_fund",
         "type_info": "Int8"
       }
     ],
     "parameters": {
-      "Left": []
+      "Left": [
+        "Text"
+      ]
     },
     "nullable": [
       false,
@@ -251,12 +238,9 @@
       false,
       false,
       false,
-      null,
-      null,
-      null,
-      null,
+      false,
       true
     ]
   },
-  "hash": "01650eae2c94d43f6cb7647d1f97c2aa233b3a570232e0b28008b0f89f4185e4"
+  "hash": "3d4c53a9044c62ce0c82cb3358fb0132adb47d7fa1ff6720fd1cb66c12876141"
 }

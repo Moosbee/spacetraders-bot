@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeSet, HashMap, HashSet};
 
 use database::DatabaseConnector;
 use itertools::Itertools;
@@ -254,60 +254,23 @@ impl FleetManager {
 
         // per assignment calculate all the things
 
-        let current_money = self.context.budget_manager.get_spendable_funds().await;
-
-        let antimatter_price = { self.context.config.read().await.antimatter_price as i64 };
-
-        let percentile = { self.context.config.read().await.ship_purchase_percentile };
-
-        let jump_gate = self.get_jump_navigator().await?;
-
         debug!(
             all_shipyard_ships_length = all_shipyard_ships.len(),
-            current_money, "Information collected"
+            "Information collected"
         );
 
-        let assignments = fulfillable_assignments
-            .iter()
-            .map(|assignment| {
-                let shipyard_ships = all_shipyard_ships
-                    .iter()
-                    .filter(|(_shipyard_ship, capability)| capability.capable(assignment))
-                    .map(|(shipyard_ship, _)| shipyard_ship)
-                    .filter_map(|shipyard_ship| {
-                        Some(ShipWorth::new(
-                            assignment,
-                            shipyard_ship,
-                            fleets.get(&assignment.fleet_id)?,
-                            jump_gate,
-                            antimatter_price as i64,
-                        ))
-                    })
-                    .filter(|sh| {
-                        sh.total_price < (sh.assignment.max_purchase_price as i64)
-                            && current_money - sh.total_price
-                                > (sh.assignment.credits_threshold as i64)
-                    })
-                    .sorted_by(|a, b| a.partial_cmp(b).unwrap())
-                    .collect::<Vec<_>>();
-
-                let purchasable_subset = shipyard_ships
-                    .iter()
-                    .take(((shipyard_ships.len() as f32) * (percentile / 100.0)).ceil() as usize)
-                    .filter(|sh| sh.shipyard_ship.waypoint_symbol == waypoint_symbol)
-                    .cloned()
-                    .collect::<Vec<_>>();
-
-                (assignment, shipyard_ships, purchasable_subset)
-            })
-            .sorted_by(|a, b| a.0.priority.cmp(&b.0.priority))
-            .collect::<Vec<_>>();
+        let assignments = self
+            .calculate_local_global_prices(
+                &fulfillable_assignments,
+                &all_shipyard_ships,
+                &fleets,
+                waypoint_symbol,
+            )
+            .await?;
 
         let assignments = assignments
             .iter()
-            .filter(|(_assignment, _shipyard_ships, purchasable_subset)| {
-                !purchasable_subset.is_empty()
-            })
+            .filter(|comparison| !comparison.purchasable_subset.is_empty())
             .collect::<Vec<_>>();
 
         debug!(
@@ -322,8 +285,8 @@ impl FleetManager {
 
         let mut used_shipyard_ships = HashSet::new();
 
-        for (assignment, _shipyard_ships, purchasable_subset) in assignments {
-            if let Some(shipyard_ship_worth) = purchasable_subset.first() {
+        for assignment_comparison in assignments {
+            if let Some(shipyard_ship_worth) = assignment_comparison.purchasable_subset.first() {
                 if used_shipyard_ships.contains(&shipyard_ship_worth.shipyard_ship.ship_type) {
                     continue;
                 }
@@ -334,7 +297,7 @@ impl FleetManager {
                     .reserve_funds_with_remain(
                         &self.context.database_pool,
                         shipyard_ship_worth.total_price,
-                        assignment.credits_threshold as i64,
+                        assignment_comparison.assignment.credits_threshold as i64,
                     )
                     .await;
 
@@ -360,7 +323,7 @@ impl FleetManager {
 
                 self.purchase_ship(
                     shipyard_ship_worth.shipyard_ship,
-                    assignment,
+                    assignment_comparison.assignment,
                     shipyard_ship_worth.fleet,
                     &reservation,
                 )
@@ -671,6 +634,104 @@ impl FleetManager {
         }
 
         Ok(())
+    }
+
+    #[tracing::instrument(
+        level = "info",
+        name = "spacetraders::manager::fleet_manager::calculate_local_global_prices",
+        skip(self),
+        err(Debug)
+    )]
+    async fn calculate_local_global_prices<'a>(
+        &mut self,
+        fulfillable_assignments: &'a [database::ShipAssignment],
+        all_shipyard_ships: &'a [(database::ShipyardShip, ShipCapabilities)],
+        fleets: &'a HashMap<i32, database::Fleet>,
+        waypoint_symbol: &'a str,
+    ) -> Result<BTreeSet<AssignmentPriceComparison<'a>>> {
+        let current_money = self.context.budget_manager.get_spendable_funds().await;
+
+        let antimatter_price = { self.context.config.read().await.antimatter_price as i64 };
+
+        let percentile = { self.context.config.read().await.ship_purchase_percentile };
+
+        let jump_gate = self.get_jump_navigator().await?;
+
+        let assignments = fulfillable_assignments
+            .iter()
+            .map(|assignment| {
+                let shipyard_ships = all_shipyard_ships
+                    .iter()
+                    .filter(|(_shipyard_ship, capability)| capability.capable(assignment))
+                    .map(|(shipyard_ship, _)| shipyard_ship)
+                    .filter_map(|shipyard_ship| {
+                        Some(ShipWorth::new(
+                            assignment,
+                            shipyard_ship,
+                            fleets.get(&assignment.fleet_id)?,
+                            jump_gate,
+                            antimatter_price,
+                        ))
+                    })
+                    .filter(|sh| {
+                        sh.total_price < (sh.assignment.max_purchase_price as i64)
+                            && current_money - sh.total_price
+                                > (sh.assignment.credits_threshold as i64)
+                    })
+                    .collect::<BTreeSet<_>>();
+
+                let purchasable_subset = shipyard_ships
+                    .iter()
+                    .take(((shipyard_ships.len() as f32) * (percentile / 100.0)).ceil() as usize)
+                    .filter(|sh| sh.shipyard_ship.waypoint_symbol == waypoint_symbol)
+                    .cloned()
+                    .collect::<Vec<_>>();
+
+                AssignmentPriceComparison {
+                    assignment,
+                    global_price: shipyard_ships,
+                    purchasable_subset,
+                    waypoint_symbol,
+                }
+            })
+            // .sorted_by(|a, b| a.cmp(b))
+            .collect::<BTreeSet<_>>();
+
+        Ok(assignments)
+    }
+}
+
+#[derive(Debug, Clone)]
+struct AssignmentPriceComparison<'a> {
+    assignment: &'a database::ShipAssignment,
+    global_price: BTreeSet<ShipWorth<'a>>,
+    purchasable_subset: Vec<ShipWorth<'a>>,
+    waypoint_symbol: &'a str,
+}
+
+impl Eq for AssignmentPriceComparison<'_> {}
+
+impl PartialEq for AssignmentPriceComparison<'_> {
+    fn eq(&self, other: &Self) -> bool {
+        self.assignment.priority == other.assignment.priority
+            && self.assignment.id == other.assignment.id
+            && self.waypoint_symbol == other.waypoint_symbol
+    }
+}
+
+impl Ord for AssignmentPriceComparison<'_> {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.assignment
+            .priority
+            .cmp(&other.assignment.priority)
+            .then_with(|| self.assignment.id.cmp(&other.assignment.id))
+            .then_with(|| self.waypoint_symbol.cmp(other.waypoint_symbol))
+    }
+}
+
+impl PartialOrd for AssignmentPriceComparison<'_> {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
     }
 }
 

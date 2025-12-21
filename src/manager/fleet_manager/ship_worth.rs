@@ -36,13 +36,19 @@ impl ShipWorth<'_> {
     }
 }
 
+impl Eq for ShipWorth<'_> {}
+
+impl Ord for ShipWorth<'_> {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.assignment
+            .priority
+            .cmp(&other.assignment.priority)
+            .then_with(|| self.total_price.cmp(&other.total_price))
+    }
+}
+
 impl PartialOrd for ShipWorth<'_> {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(
-            self.assignment
-                .priority
-                .cmp(&other.assignment.priority)
-                .then_with(|| self.total_price.cmp(&other.total_price)),
-        )
+        Some(self.cmp(other))
     }
 }

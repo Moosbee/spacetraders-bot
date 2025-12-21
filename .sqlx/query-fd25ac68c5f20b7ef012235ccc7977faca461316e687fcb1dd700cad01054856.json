@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT\n                id,\n                shipyard_id,\n                ship_type as \"ship_type: models::ShipType\",\n                shipyard_ship_types.created_at\n            FROM shipyard_ship_types\n            WHERE shipyard_id = (\n                SELECT DISTINCT ON (shipyard.waypoint_symbol) shipyard.id FROM shipyard JOIN waypoint ON shipyard.waypoint_symbol = waypoint.symbol\n                WHERE waypoint.system_symbol = $1\n                ORDER BY shipyard.waypoint_symbol, shipyard.created_at DESC\n            )\n            ",
+  "query": "\n            SELECT\n                id,\n                shipyard_id,\n                ship_type as \"ship_type: models::ShipType\",\n                shipyard_ship_types.created_at\n            FROM shipyard_ship_types\n            WHERE shipyard_id = ANY(\n                SELECT DISTINCT ON (shipyard.waypoint_symbol) shipyard.id FROM shipyard JOIN waypoint ON shipyard.waypoint_symbol = waypoint.symbol\n                WHERE waypoint.system_symbol = $1\n                ORDER BY shipyard.waypoint_symbol, shipyard.created_at DESC\n            )\n            ",
   "describe": {
     "columns": [
       {
@@ -57,5 +57,5 @@
       false
     ]
   },
-  "hash": "786576795e1e9aacb5dd2977e1a7890071f23d2195ded1bc90dfb529b3035c09"
+  "hash": "fd25ac68c5f20b7ef012235ccc7977faca461316e687fcb1dd700cad01054856"
 }
