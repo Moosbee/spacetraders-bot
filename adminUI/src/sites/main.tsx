@@ -144,6 +144,12 @@ function Main() {
                     <Row gutter={16}>
                       <Col span={6}>
                         <Statistic
+                          valueStyle={{
+                            color:
+                              data.chartManager.channelState.state === "CLOSED"
+                                ? "red"
+                                : "currentColor",
+                          }}
                           title="Chart"
                           value={data.chartManager.channelState.usedCapacity}
                           suffix={
@@ -156,6 +162,12 @@ function Main() {
                       </Col>
                       <Col span={6}>
                         <Statistic
+                          valueStyle={{
+                            color:
+                              data.fleetManager.channelState.state === "CLOSED"
+                                ? "red"
+                                : "currentColor",
+                          }}
                           title="Fleet"
                           value={data.fleetManager.channelState.usedCapacity}
                           suffix={
@@ -168,6 +180,12 @@ function Main() {
                       </Col>
                       <Col span={6}>
                         <Statistic
+                          valueStyle={{
+                            color:
+                              data.tradeManager.channelState.state === "CLOSED"
+                                ? "red"
+                                : "currentColor",
+                          }}
                           title="Trade"
                           value={data.tradeManager.channelState.usedCapacity}
                           suffix={
@@ -180,6 +198,12 @@ function Main() {
                       </Col>
                       <Col span={6}>
                         <Statistic
+                          valueStyle={{
+                            color:
+                              data.miningManager.channelState.state === "CLOSED"
+                                ? "red"
+                                : "currentColor",
+                          }}
                           title="Mining"
                           value={data.miningManager.channelState.usedCapacity}
                           suffix={
@@ -192,6 +216,13 @@ function Main() {
                       </Col>
                       <Col span={6}>
                         <Statistic
+                          valueStyle={{
+                            color:
+                              data.contractManager.channelState.state ===
+                              "CLOSED"
+                                ? "red"
+                                : "currentColor",
+                          }}
                           title="Contract"
                           value={data.contractManager.channelState.usedCapacity}
                           suffix={
@@ -205,6 +236,13 @@ function Main() {
                       <Col span={6}>
                         <Statistic
                           title="Scrapping"
+                          valueStyle={{
+                            color:
+                              data.scrappingManager.channelState.state ===
+                              "CLOSED"
+                                ? "red"
+                                : "currentColor",
+                          }}
                           value={
                             data.scrappingManager.channelState.usedCapacity
                           }
@@ -219,6 +257,13 @@ function Main() {
                       <Col span={6}>
                         <Statistic
                           title="Construction"
+                          valueStyle={{
+                            color:
+                              data.constructionManager.channelState.state ===
+                              "CLOSED"
+                                ? "red"
+                                : "currentColor",
+                          }}
                           value={
                             data.constructionManager.channelState.usedCapacity
                           }

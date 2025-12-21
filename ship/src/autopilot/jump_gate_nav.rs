@@ -7,6 +7,8 @@ use std::{
 use database::DatabaseConnector;
 use priority_queue::PriorityQueue;
 
+use tracing::debug;
+
 use crate::error::Result;
 
 #[derive(Clone, Debug)]
@@ -113,10 +115,14 @@ impl JumpPathfinder {
     }
 
     pub fn find_cached_route(&mut self, from_system: &str, to_system: &str) -> &[JumpConnection] {
-        if self
+        if !self
             .cache
             .contains_key(&(from_system.to_string(), to_system.to_string()))
         {
+            debug!(
+                key = ?(from_system.to_string(), to_system.to_string()),
+                "Jump Route Cache miss"
+            );
             let route = self.find_route(from_system, to_system);
             self.cache
                 .insert((from_system.to_string(), to_system.to_string()), route);
@@ -124,7 +130,12 @@ impl JumpPathfinder {
 
         self.cache
             .get(&(from_system.to_string(), to_system.to_string()))
-            .expect("This should not be possible")
+            .unwrap_or_else(|| {
+                panic!(
+                    "We should have importet the route in the cache(find_cached_route) key: {:?}",
+                    &(from_system.to_string(), to_system.to_string())
+                )
+            })
     }
     pub fn find_route(&self, from_system: &str, to_system: &str) -> Vec<JumpConnection> {
         let mut unvisited: Vec<GateConnection> = self.all_connections.clone();

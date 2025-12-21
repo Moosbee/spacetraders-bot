@@ -167,7 +167,8 @@ impl FleetManager {
     #[tracing::instrument(
         level = "info",
         name = "spacetraders::manager::fleet_manager::handle_scrapper_at_shipyard",
-        skip(self)
+        skip(self),
+        err(Debug)
     )]
     async fn handle_scrapper_at_shipyard(
         &mut self,
@@ -209,9 +210,7 @@ impl FleetManager {
                             ship_frame,
                         );
 
-                        let capable = ship_capabilities.capable(assignment);
-                        // debug!(capable, ship_capabilities=?ship_capabilities,assignment=?assignment,"Ship Compatibility");
-                        capable
+                        ship_capabilities.capable(assignment)
                     } else {
                         false
                     }
@@ -220,9 +219,9 @@ impl FleetManager {
             .collect::<Vec<_>>();
 
         debug!(
-            "Got {} fulfillable assignments from {} open assignments",
-            fulfillable_assignments.len(),
-            assignments_count
+            fulfillable_assignments_count = fulfillable_assignments.len(),
+            assignments_count = assignments_count,
+            "Got fulfill assignments from open assignments",
         );
 
         // get for those assignments all other shipyard and shipyard_ships

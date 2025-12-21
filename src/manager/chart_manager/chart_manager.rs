@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 
 use space_traders_client::models::{self};
+use tracing::debug;
 use utils::{distance_between_waypoints, WaypointCan};
 
 use crate::{
@@ -147,6 +148,8 @@ impl ChartManager {
         });
 
         let waypoint = system.first().map(|w| w.symbol.clone());
+
+        debug!(waypoint, "Next Chart found");
 
         if let Some(waypoint) = waypoint {
             self.running_charts.insert(waypoint.clone());

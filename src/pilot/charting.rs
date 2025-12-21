@@ -122,6 +122,11 @@ impl ChartPilot {
     ) -> std::result::Result<(), Error> {
         // todo: when this happens disable the charting assignments
 
+        self.context
+            .fleet_manager
+            .populate_system(ship.nav.system_symbol.clone())
+            .await?;
+
         if is_temp {
             database::ShipInfo::unassign_ship(&self.context.database_pool, &pilot.ship_symbol)
                 .await?;
@@ -232,10 +237,10 @@ impl ChartPilot {
             )
             .await?;
 
-            // self.context
-            //     .fleet_manager
-            //     .populate_from_jump_gate(sql_waypoint.symbol.clone())
-            //     .await?;
+            self.context
+                .fleet_manager
+                .populate_from_jump_gate(sql_waypoint.symbol.clone())
+                .await?;
         }
 
         let (total_to_chart, marketplace_to_chart) = self
