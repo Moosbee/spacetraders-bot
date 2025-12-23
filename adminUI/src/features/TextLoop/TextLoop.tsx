@@ -1,7 +1,7 @@
 import styles from "./TextLoop.module.css";
 
 type Props = {
-  texts: string[];
+  texts: React.ReactNode[];
   /** duration of one full cycle in seconds (default 6) */
   duration?: number;
   direction?: "left-to-right" | "right-to-left";

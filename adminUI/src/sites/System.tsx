@@ -1,3 +1,10 @@
+import {
+  DownloadOutlined,
+  NodeIndexOutlined,
+  SortDescendingOutlined,
+  TruckOutlined,
+  UploadOutlined,
+} from "@ant-design/icons";
 import { useQuery } from "@apollo/client/react";
 import {
   Button,
@@ -6,16 +13,19 @@ import {
   Divider,
   Flex,
   List,
+  Popover,
   Space,
   Spin,
   Table,
   TableProps,
 } from "antd";
 import { Link, useParams } from "react-router-dom";
+import MoneyDisplay from "../features/MonyDisplay";
 import PageTitle from "../features/PageTitle";
 import WaypointLink from "../features/WaypointLink";
 import {
   GetSystemQuery,
+  TradeSymbol,
   WaypointModifierSymbol,
   WaypointTraitSymbol,
   WaypointType,
@@ -206,11 +216,17 @@ function System() {
       dataIndex: "traits",
       key: "traits",
       render: (traits) => (
-        <Flex gap={1} vertical>
-          {traits.map((trait: WaypointTraitSymbol) => (
-            <span key={trait}>{trait}</span>
-          ))}
-        </Flex>
+        <Popover
+          title={
+            <Flex gap={1} vertical>
+              {traits.map((trait: WaypointTraitSymbol) => (
+                <span key={trait}>{trait}</span>
+              ))}
+            </Flex>
+          }
+        >
+          {traits.length}
+        </Popover>
       ), // List names of traits
       sorter: (a, b) => a.traits.length - b.traits.length,
       filters: Object.values(WaypointTraitSymbol).map((trait) => ({
@@ -241,73 +257,213 @@ function System() {
       onFilter: (value, record) =>
         record.modifiers?.some((m) => m === value) ?? false,
     },
-    // {
-    //   title: "Trade Goods",
-    //   dataIndex: "trade_goods",
-    //   key: "trade_goods",
-    //   render: (
-    //     trade_goods:
-    //       | {
-    //           symbol: TradeSymbol;
-    //           type: MarketTradeGoodTypeEnum;
-    //         }[]
-    //       | undefined
-    //   ) =>
-    //     trade_goods && trade_goods.length > 0 ? (
-    //       <>
-    //         {/* <Flex gap={1} vertical>
-    //           {trade_goods.map((trade_good) => (
-    //             <span>
-    //               {trade_good.type.slice(0, 3)} {trade_good.symbol}
-    //             </span>
-    //           ))}
-    //         </Flex> */}
-    //         <Popover
-    //           content={
-    //             <Flex gap={1} vertical>
-    //               {trade_goods.map((trade_good) => (
-    //                 <span key={trade_good.symbol}>
-    //                   {trade_good.type.slice(0, 3)} {trade_good.symbol}
-    //                 </span>
-    //               ))}
-    //             </Flex>
-    //           }
-    //         >
-    //           <Flex gap={1} vertical>
-    //             {trade_goods.filter((t) => t.type === "EXCHANGE").length >
-    //               0 && (
-    //               <span>
-    //                 EXCHANGE{" "}
-    //                 {trade_goods.filter((t) => t.type === "EXCHANGE").length}
-    //               </span>
-    //             )}
-    //             {trade_goods.filter((t) => t.type === "IMPORT").length > 0 && (
-    //               <span>
-    //                 IMPORT{" "}
-    //                 {trade_goods.filter((t) => t.type === "IMPORT").length}
-    //               </span>
-    //             )}
-    //             {trade_goods.filter((t) => t.type === "EXPORT").length > 0 && (
-    //               <span>
-    //                 EXPORT{" "}
-    //                 {trade_goods.filter((t) => t.type === "EXPORT").length}
-    //               </span>
-    //             )}
-    //           </Flex>
-    //         </Popover>
-    //       </>
-    //     ) : (
-    //       "None"
-    //     ),
-    //   sorter: (a, b) =>
-    //     (a.trade_goods?.length ?? 0) - (b.trade_goods?.length ?? 0),
-    //   filters: Object.values(TradeSymbol).map((trade_good) => ({
-    //     text: trade_good,
-    //     value: trade_good,
-    //   })),
-    //   onFilter: (value, record) =>
-    //     record.trade_goods?.some((t) => t.symbol === value) ?? false,
-    // },
+    {
+      title: "Trade Goods",
+      dataIndex: "marketTrades",
+      key: "marketTrades",
+      render: (marketTrades: GQLWaypoint["marketTrades"]) =>
+        marketTrades && marketTrades.length > 0 ? (
+          <>
+            {/* <Flex gap={1} vertical>
+              {marketTrades.map((trade_good) => (
+                <span>
+                  {trade_good.type.slice(0, 3)} {trade_good.symbol}
+                </span>
+              ))}
+            </Flex> */}
+            <Popover
+              content={
+                <Flex gap={1} vertical>
+                  {marketTrades.filter((t) => t.type === "EXCHANGE").length >
+                    0 && <span className="font-bold">EXCHANGE</span>}
+                  {marketTrades
+                    .filter((t) => t.type === "EXCHANGE")
+                    .map((trade_good) => (
+                      <Flex justify="space-between" key={trade_good.symbol}>
+                        <span>{trade_good.symbol}</span>
+                        <Flex gap={1} justify="end">
+                          <span className="text-nowrap">
+                            <UploadOutlined />{" "}
+                            <MoneyDisplay
+                              amount={
+                                trade_good.marketTradeGood?.purchasePrice || 0
+                              }
+                            />
+                          </span>
+                          |
+                          <span className="text-nowrap">
+                            <DownloadOutlined />{" "}
+                            <MoneyDisplay
+                              amount={
+                                trade_good.marketTradeGood?.sellPrice || 0
+                              }
+                            />
+                          </span>
+                          |
+                          <span className="text-nowrap">
+                            <TruckOutlined />{" "}
+                            {trade_good.marketTradeGood?.tradeVolume}
+                          </span>
+                          |
+                          <span>
+                            {trade_good.marketTradeGood?.supply.slice(0, 3)}
+                          </span>
+                        </Flex>
+                      </Flex>
+                    ))}
+                  {marketTrades.filter((t) => t.type === "IMPORT").length >
+                    0 && <span className="font-bold">IMPORT</span>}
+
+                  {marketTrades
+                    .filter((t) => t.type === "IMPORT")
+                    .map((trade_good) => (
+                      <Flex justify="space-between" key={trade_good.symbol}>
+                        <span>{trade_good.symbol}</span>
+                        <Flex gap={1} justify="end">
+                          <span className="text-nowrap">
+                            <UploadOutlined />{" "}
+                            <MoneyDisplay
+                              amount={
+                                trade_good.marketTradeGood?.purchasePrice || 0
+                              }
+                            />
+                          </span>
+                          |
+                          <span className="font-bold text-nowrap">
+                            <DownloadOutlined />{" "}
+                            <MoneyDisplay
+                              amount={
+                                trade_good.marketTradeGood?.sellPrice || 0
+                              }
+                            />
+                          </span>
+                          |
+                          <span className="text-nowrap">
+                            <TruckOutlined />{" "}
+                            {trade_good.marketTradeGood?.tradeVolume}
+                          </span>
+                          |
+                          <span>
+                            {trade_good.marketTradeGood?.supply.slice(0, 3)}
+                          </span>
+                        </Flex>
+                      </Flex>
+                    ))}
+                  {marketTrades.filter((t) => t.type === "EXPORT").length >
+                    0 && <span className="font-bold">EXPORT</span>}
+
+                  {marketTrades
+                    .filter((t) => t.type === "EXPORT")
+                    .map((trade_good) => (
+                      <Flex justify="space-between" key={trade_good.symbol}>
+                        <span>{trade_good.symbol}</span>
+                        <Flex gap={1} justify="end">
+                          <span className="text-nowrap font-bold">
+                            <UploadOutlined />{" "}
+                            <MoneyDisplay
+                              amount={
+                                trade_good.marketTradeGood?.purchasePrice || 0
+                              }
+                            />
+                          </span>
+                          |
+                          <span className="text-nowrap">
+                            <DownloadOutlined />{" "}
+                            <MoneyDisplay
+                              amount={
+                                trade_good.marketTradeGood?.sellPrice || 0
+                              }
+                            />
+                          </span>
+                          |
+                          <span className="text-nowrap">
+                            <TruckOutlined />{" "}
+                            {trade_good.marketTradeGood?.tradeVolume}
+                          </span>
+                          |
+                          <span>
+                            {trade_good.marketTradeGood?.supply.slice(0, 3)}
+                          </span>
+                        </Flex>
+                      </Flex>
+                    ))}
+                  {marketTrades.filter((t) => t.type === "EXPORT").length >
+                    0 && <span className="font-bold">MAPPING</span>}
+                  <div className="flex flex-col">
+                    {marketTrades
+                      .filter((t) => t.type === "EXPORT")
+                      .map((trade_good) => (
+                        <div
+                          key={trade_good.symbol}
+                          className={`flex justify-between border-t-2 border-t-current`}
+                        >
+                          <div className="flex flex-col">
+                            {trade_good.tradeSymbolInfo.requires.map((t) => (
+                              <div
+                                className={`${
+                                  marketTrades.some(
+                                    (e) =>
+                                      e.type === "IMPORT" &&
+                                      e.symbol == t.symbol
+                                  )
+                                    ? "text-current"
+                                    : "text-red-700"
+                                }`}
+                              >
+                                {t.symbol}
+                              </div>
+                            ))}
+                          </div>
+                          <div className="flex items-center">
+                            {trade_good.symbol}
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                </Flex>
+              }
+            >
+              <Flex gap={1} flex={1} vertical>
+                {marketTrades.filter((t) => t.type === "EXCHANGE").length >
+                  0 && (
+                  <Flex justify="space-between">
+                    <span>EXCHANGE</span>
+                    <span>
+                      {marketTrades.filter((t) => t.type === "EXCHANGE").length}
+                    </span>
+                  </Flex>
+                )}
+                {marketTrades.filter((t) => t.type === "IMPORT").length > 0 && (
+                  <Flex justify="space-between">
+                    <span>IMPORT</span>
+                    <span>
+                      {marketTrades.filter((t) => t.type === "IMPORT").length}
+                    </span>
+                  </Flex>
+                )}
+                {marketTrades.filter((t) => t.type === "EXPORT").length > 0 && (
+                  <Flex justify="space-between">
+                    <span>EXPORT</span>
+                    <span>
+                      {marketTrades.filter((t) => t.type === "EXPORT").length}
+                    </span>
+                  </Flex>
+                )}
+              </Flex>
+            </Popover>
+          </>
+        ) : (
+          "None"
+        ),
+      sorter: (a, b) =>
+        (a.marketTrades?.length ?? 0) - (b.marketTrades?.length ?? 0),
+      filters: Object.values(TradeSymbol).map((trade_good) => ({
+        text: trade_good,
+        value: trade_good,
+      })),
+      onFilter: (value, record) =>
+        record.marketTrades?.some((t) => t.symbol === value) ?? false,
+    },
     {
       title: "Chart by",
       dataIndex: "chartedBy",
@@ -390,11 +546,82 @@ function System() {
             dataSource={system?.ships}
             renderItem={(ship) => (
               <List.Item>
-                <Link to={`/ships/${ship.symbol}`}>
-                  {ship.symbol} ({ship.status.status.__typename}) (
-                  {ship.status.tempAssignmentId || ship.status.assignmentId}) (
-                  {ship.status.tempFleetId || ship.status.fleetId})
-                </Link>
+                <Popover
+                  title={
+                    <Flex flex={1}>
+                      {ship.symbol} {ship.nav.status} {ship.nav.waypointSymbol}
+                    </Flex>
+                  }
+                >
+                  <Link to={`/ships/${ship.symbol}`}>
+                    {ship.symbol} (
+                    {ship.status.status.__typename.replace("Status", "")}) (
+                    {ship.status.tempAssignmentId || ship.status.assignmentId})
+                    ({ship.status.tempFleetId || ship.status.fleetId})
+                  </Link>
+                </Popover>
+              </List.Item>
+            )}
+          />
+        </Card>
+        <Card size="small" title="Fleets in System">
+          <List
+            size="small"
+            style={{ maxHeight: "200px", overflowY: "auto" }}
+            dataSource={system?.fleets}
+            renderItem={(fleet) => (
+              <List.Item>
+                <Popover
+                  title={
+                    <Flex flex={1} vertical>
+                      {fleet.assignments.map((asgmt) => (
+                        <Flex key={asgmt.id} justify="space-between">
+                          {asgmt.id} {asgmt.disabled ? "D" : "A"}|
+                          <SortDescendingOutlined /> {asgmt.priority}|
+                          <NodeIndexOutlined /> {asgmt.rangeMin}|
+                          <TruckOutlined /> {asgmt.cargoMin}|
+                          {asgmt.extractor && "E|"}
+                          {asgmt.siphon && "SI|"}
+                          {asgmt.survey && "SU|"}
+                          {asgmt.warpDrive && "W|"}
+                        </Flex>
+                      ))}
+                    </Flex>
+                  }
+                >
+                  <Link to={`/fleets/${fleet.id}`}>
+                    {fleet.fleetType}_{fleet.id} ({fleet.active ? "A" : "I"}) (
+                    {fleet.assignments.length})
+                  </Link>
+                </Popover>
+              </List.Item>
+            )}
+          />
+        </Card>
+        <Card size="small" title="Gate Connections">
+          {system?.jumpGateConnections &&
+            system?.jumpGateConnections.length && (
+              <List
+                size="small"
+                style={{ maxHeight: "200px", overflowY: "auto" }}
+                dataSource={[
+                  ...new Set(system?.jumpGateConnections.map((e) => e.from)),
+                ]}
+                renderItem={(wp) => (
+                  <List.Item>
+                    <WaypointLink waypoint={wp}>{wp}</WaypointLink>
+                  </List.Item>
+                )}
+              />
+            )}
+          <Divider dashed size="small" />
+          <List
+            size="small"
+            style={{ maxHeight: "200px", overflowY: "auto" }}
+            dataSource={system?.jumpGateConnections}
+            renderItem={(wp) => (
+              <List.Item>
+                <WaypointLink waypoint={wp.to}>{wp.to}</WaypointLink>
               </List.Item>
             )}
           />

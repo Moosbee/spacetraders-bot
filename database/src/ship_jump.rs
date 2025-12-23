@@ -15,6 +15,7 @@ pub struct ShipJump {
 }
 
 impl ShipJump {
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_ship(
         database_pool: &super::DbPool,
         ship_symbol: &str,
@@ -42,7 +43,7 @@ impl ShipJump {
 }
 
 impl DatabaseConnector<ShipJump> for ShipJump {
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     async fn insert(database_pool: &super::DbPool, item: &ShipJump) -> crate::Result<()> {
         sqlx::query!(
             r#"
@@ -119,7 +120,7 @@ impl DatabaseConnector<ShipJump> for ShipJump {
         Ok(())
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     async fn get_all(database_pool: &super::DbPool) -> crate::Result<Vec<ShipJump>> {
         let results = sqlx::query_as!(
             ShipJump,

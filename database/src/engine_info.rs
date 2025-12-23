@@ -157,7 +157,7 @@ impl DatabaseConnector<EngineInfo> for EngineInfo {
         Ok(())
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     async fn get_all(database_pool: &super::DbPool) -> crate::Result<Vec<EngineInfo>> {
         let erg = sqlx::query_as!(
             EngineInfo,

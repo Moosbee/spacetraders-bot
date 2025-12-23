@@ -128,7 +128,7 @@ impl ShipAssignment {
         self.cargo_min = other.cargo_min;
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_id(
         database_pool: &DbPool,
         id: i64,
@@ -160,7 +160,7 @@ impl ShipAssignment {
         Ok(resp)
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_fleet_id(
         database_pool: &DbPool,
         fleet_id: i32,
@@ -192,7 +192,7 @@ impl ShipAssignment {
         Ok(resp)
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_open_assignments(
         database_pool: &DbPool,
     ) -> crate::Result<Vec<ShipAssignment>> {
@@ -225,7 +225,7 @@ impl ShipAssignment {
         Ok(resp)
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn insert_new(database_pool: &DbPool, item: &ShipAssignment) -> crate::Result<i64> {
         let erg = sqlx::query!(
             r#"
@@ -265,6 +265,7 @@ impl ShipAssignment {
         Ok(erg.id)
     }
 
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn delete_by_id(database_pool: &DbPool, id: i64) -> crate::Result<()> {
         sqlx::query!(
             r#"
@@ -280,7 +281,7 @@ impl ShipAssignment {
 }
 
 impl DatabaseConnector<ShipAssignment> for ShipAssignment {
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     async fn insert(database_pool: &DbPool, item: &ShipAssignment) -> crate::Result<()> {
         sqlx::query!(
             r#"
@@ -451,7 +452,7 @@ impl DatabaseConnector<ShipAssignment> for ShipAssignment {
         Ok(())
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     async fn get_all(database_pool: &DbPool) -> crate::Result<Vec<ShipAssignment>> {
         let result = sqlx::query_as!(
             ShipAssignment,

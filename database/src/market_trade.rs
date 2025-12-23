@@ -37,7 +37,7 @@ impl From<MarketTradeGood> for MarketTrade {
 }
 
 impl DatabaseConnector<MarketTrade> for MarketTrade {
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     async fn insert(database_pool: &DbPool, item: &MarketTrade) -> crate::Result<()> {
         sqlx::query!(
             r#"
@@ -92,7 +92,7 @@ impl DatabaseConnector<MarketTrade> for MarketTrade {
         Ok(())
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     async fn get_all(database_pool: &DbPool) -> crate::Result<Vec<MarketTrade>> {
         let erg = sqlx::query_as!(
             MarketTrade,
@@ -112,7 +112,7 @@ impl DatabaseConnector<MarketTrade> for MarketTrade {
 }
 
 impl MarketTrade {
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_last_by_symbol(
         database_pool: &DbPool,
         trade_symbol: &models::TradeSymbol,
@@ -135,7 +135,7 @@ impl MarketTrade {
         Ok(row)
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_last_by_waypoint(
         database_pool: &DbPool,
         waypoint_symbol: &str,
@@ -158,7 +158,7 @@ impl MarketTrade {
         Ok(row)
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_last(database_pool: &DbPool) -> crate::Result<Vec<MarketTrade>> {
         let row: Vec<MarketTrade> = sqlx::query_as!(
             MarketTrade,
@@ -177,7 +177,7 @@ impl MarketTrade {
         Ok(row)
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_last_by_system(
         database_pool: &DbPool,
         system_symbol: &str,
@@ -220,7 +220,7 @@ impl MarketTrade {
             waypoint_symbol,
             *trade_symbol as models::TradeSymbol
         )
-        .fetch_all(database_pool.get_cache_pool())
+        .fetch_all(&database_pool.database_pool)
         .await?;
         Ok(row)
     }
@@ -245,7 +245,7 @@ impl MarketTrade {
             waypoint_symbol,
             *trade_symbol as models::TradeSymbol
         )
-        .fetch_optional(database_pool.get_cache_pool())
+        .fetch_optional(&database_pool.database_pool)
         .await?;
         Ok(erg)
     }

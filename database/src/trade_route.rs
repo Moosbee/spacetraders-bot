@@ -82,7 +82,7 @@ impl std::fmt::Display for TradeRoute {
 }
 
 impl DatabaseConnector<TradeRoute> for TradeRoute {
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     async fn insert(database_pool: &DbPool, item: &TradeRoute) -> crate::Result<()> {
         sqlx::query!(
             r#"
@@ -219,7 +219,7 @@ impl DatabaseConnector<TradeRoute> for TradeRoute {
         Ok(())
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     async fn get_all(database_pool: &DbPool) -> crate::Result<Vec<TradeRoute>> {
         let erg = sqlx::query_as!(
             TradeRoute,
@@ -246,7 +246,7 @@ impl DatabaseConnector<TradeRoute> for TradeRoute {
 }
 
 impl TradeRoute {
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn insert_new(database_pool: &DbPool, item: &TradeRoute) -> crate::Result<i32> {
         struct Erg {
             id: i32,
@@ -295,7 +295,7 @@ impl TradeRoute {
         Ok(erg.id)
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_id(database_pool: &DbPool, id: i32) -> crate::Result<Option<TradeRoute>> {
         let erg = sqlx::query_as!(
             TradeRoute,
@@ -321,6 +321,7 @@ impl TradeRoute {
         Ok(erg)
     }
 
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_reservation_id(
         database_pool: &DbPool,
         id: i64,
@@ -349,7 +350,7 @@ impl TradeRoute {
         Ok(erg)
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_unfinished(database_pool: &DbPool) -> crate::Result<Vec<TradeRoute>> {
         let erg = sqlx::query_as!(
             TradeRoute,
@@ -374,6 +375,7 @@ impl TradeRoute {
         Ok(erg)
     }
 
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_ship(
         database_pool: &DbPool,
         ship_symbol: &str,
@@ -402,6 +404,7 @@ impl TradeRoute {
         Ok(erg)
     }
 
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_purchase_waypoint(
         database_pool: &DbPool,
         waypoint_symbol: &str,
@@ -430,6 +433,7 @@ impl TradeRoute {
         Ok(erg)
     }
 
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_sell_waypoint(
         database_pool: &DbPool,
         waypoint_symbol: &str,
@@ -458,6 +462,7 @@ impl TradeRoute {
         Ok(erg)
     }
 
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_waypoint(
         database_pool: &DbPool,
         waypoint_symbol: &str,
@@ -486,6 +491,7 @@ impl TradeRoute {
         Ok(erg)
     }
 
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_purchase_system(
         database_pool: &DbPool,
         system_symbol: &str,
@@ -515,6 +521,7 @@ impl TradeRoute {
         Ok(erg)
     }
 
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_sell_system(
         database_pool: &DbPool,
         system_symbol: &str,
@@ -545,6 +552,7 @@ impl TradeRoute {
         Ok(erg)
     }
 
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_system(
         database_pool: &DbPool,
         system_symbol: &str,

@@ -171,7 +171,7 @@ impl DatabaseConnector<ScrapTransaction> for ScrapTransaction {
         Ok(())
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     async fn get_all(database_pool: &super::DbPool) -> crate::Result<Vec<ScrapTransaction>> {
         let erg = sqlx::query_as!(
             ScrapTransaction,

@@ -48,7 +48,7 @@ impl From<space_traders_client::models::PublicAgent> for Agent {
 }
 
 impl Agent {
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_last(database_pool: &DbPool) -> crate::Result<Vec<Agent>> {
         let erg= sqlx::query_as! {
         Agent,
@@ -64,7 +64,7 @@ impl Agent {
         Ok(erg)
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_last_by_symbol(
         database_pool: &DbPool,
         symbol: &str,
@@ -85,7 +85,7 @@ impl Agent {
         Ok(erg)
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_symbol(database_pool: &DbPool, symbol: &str) -> crate::Result<Vec<Agent>> {
         let erg = sqlx::query_as!(
             Agent,
@@ -111,7 +111,7 @@ impl Agent {
 }
 
 impl DatabaseConnector<Agent> for Agent {
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     async fn insert(database_pool: &DbPool, item: &Agent) -> crate::Result<()> {
         sqlx::query!(
             r#"
@@ -184,7 +184,7 @@ impl DatabaseConnector<Agent> for Agent {
         Ok(())
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     async fn get_all(database_pool: &DbPool) -> crate::Result<Vec<Agent>> {
         let erg= sqlx::query_as!(
             Agent,

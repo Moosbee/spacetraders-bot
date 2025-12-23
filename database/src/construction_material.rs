@@ -69,7 +69,7 @@ impl ConstructionMaterial {
         Ok(erg)
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_trade_symbol(
         database_pool: &DbPool,
         trade_symbol: &models::TradeSymbol,
@@ -95,7 +95,7 @@ impl ConstructionMaterial {
         Ok(erg)
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_system(
         database_pool: &DbPool,
         system_symbol: &str,
@@ -121,7 +121,7 @@ impl ConstructionMaterial {
         Ok(erg)
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_waypoint(
         database_pool: &DbPool,
         waypoint_symbol: &str,
@@ -147,7 +147,7 @@ impl ConstructionMaterial {
         Ok(erg)
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_unfulfilled(
         database_pool: &DbPool,
     ) -> crate::Result<Vec<ConstructionMaterial>> {
@@ -171,7 +171,7 @@ impl ConstructionMaterial {
         Ok(erg)
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_summary(
         database_pool: &DbPool,
     ) -> crate::Result<Vec<ConstructionMaterialSummary>> {
@@ -216,7 +216,7 @@ impl ConstructionMaterial {
 }
 
 impl DatabaseConnector<ConstructionMaterial> for ConstructionMaterial {
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     async fn insert(database_pool: &DbPool, item: &ConstructionMaterial) -> crate::Result<()> {
         sqlx::query!(
             r#"
@@ -292,7 +292,7 @@ impl DatabaseConnector<ConstructionMaterial> for ConstructionMaterial {
         Ok(())
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     async fn get_all(database_pool: &DbPool) -> crate::Result<Vec<ConstructionMaterial>> {
         let erg = sqlx::query_as!(
             ConstructionMaterial,

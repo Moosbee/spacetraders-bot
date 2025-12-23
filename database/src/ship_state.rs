@@ -220,7 +220,7 @@ impl ShipState {
         Ok(id.id)
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_waypoint(
         database_pool: &DbPool,
         waypoint: &str,
@@ -282,7 +282,7 @@ impl ShipState {
         Ok(erg)
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_system(
         database_pool: &DbPool,
         system: &str,
@@ -344,7 +344,7 @@ impl ShipState {
         Ok(erg)
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_ship(
         database_pool: &DbPool,
         ship_symbol: &str,
@@ -406,6 +406,7 @@ impl ShipState {
         Ok(erg)
     }
 
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_id(database_pool: &DbPool, id: i64) -> crate::Result<Option<ShipState>> {
         let erg = sqlx::query_as!(
             ShipState,
@@ -480,7 +481,7 @@ impl DatabaseConnector<ShipState> for ShipState {
         Ok(())
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     async fn get_all(database_pool: &DbPool) -> crate::Result<Vec<ShipState>> {
         let erg = sqlx::query_as!(
             ShipState,

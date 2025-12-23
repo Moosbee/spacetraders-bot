@@ -319,17 +319,17 @@ export const GET_SYSTEM = graphql(/* GraphQL */ `
             symbol
           }
         }
-      }
-      marketTradeGoods {
-        symbol
-        waypointSymbol
-        type
-        tradeVolume
-        supply
-        activity
-        purchasePrice
-        sellPrice
-        createdAt
+        marketTradeGood {
+          symbol
+          waypointSymbol
+          type
+          tradeVolume
+          supply
+          activity
+          purchasePrice
+          sellPrice
+          createdAt
+        }
       }
       constructionMaterials {
         waypointSymbol
@@ -358,6 +358,26 @@ export const GET_SYSTEM = graphql(/* GraphQL */ `
         isUnderConstruction
         orbitals
         orbits
+        marketTrades {
+          symbol
+          type
+          tradeSymbolInfo {
+            symbol
+            requires {
+              symbol
+            }
+            requiredBy {
+              symbol
+            }
+          }
+          marketTradeGood {
+            tradeVolume
+            supply
+            activity
+            purchasePrice
+            sellPrice
+          }
+        }
       }
       marketTransactions {
         trade_route_id

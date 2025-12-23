@@ -108,7 +108,7 @@ pub struct ShipInfo {
 // }
 
 impl ShipInfo {
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_symbol(
         database_pool: &super::DbPool,
         symbol: &str,
@@ -128,6 +128,7 @@ impl ShipInfo {
         Ok(erg)
     }
 
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn unassign_ship(
         database_pool: &super::DbPool,
         ship_symbol: &str,
@@ -143,6 +144,7 @@ impl ShipInfo {
         Ok(())
     }
 
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn unassign_temp_ship(
         database_pool: &super::DbPool,
         ship_symbol: &str,
@@ -160,7 +162,7 @@ impl ShipInfo {
 }
 
 impl DatabaseConnector<ShipInfo> for ShipInfo {
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     async fn insert(database_pool: &super::DbPool, item: &ShipInfo) -> crate::Result<()> {
         sqlx::query!(
             r#"
@@ -251,7 +253,7 @@ impl DatabaseConnector<ShipInfo> for ShipInfo {
         Ok(())
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     async fn get_all(database_pool: &super::DbPool) -> crate::Result<Vec<ShipInfo>> {
         let erg = sqlx::query_as! {
             ShipInfo,

@@ -23,7 +23,7 @@ pub struct Extraction {
 }
 
 impl Extraction {
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_id(database_pool: &DbPool, id: i64) -> crate::Result<Option<Extraction>> {
         let erg = sqlx::query_as!(
             Extraction,
@@ -50,7 +50,7 @@ impl Extraction {
         Ok(erg)
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_waypoint_symbol(
         database_pool: &DbPool,
         waypoint_symbol: &str,
@@ -80,7 +80,7 @@ impl Extraction {
         Ok(erg)
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_system_symbol(
         database_pool: &DbPool,
         system_symbol: &str,
@@ -110,7 +110,7 @@ impl Extraction {
         Ok(erg)
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_ship(
         database_pool: &DbPool,
         ship_symbol: &str,
@@ -140,7 +140,7 @@ impl Extraction {
         Ok(erg)
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_trade_symbol(
         database_pool: &DbPool,
         trade_symbol: &models::TradeSymbol,
@@ -170,7 +170,7 @@ impl Extraction {
         Ok(erg)
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_siphon(
         database_pool: &DbPool,
         siphon: bool,
@@ -200,7 +200,7 @@ impl Extraction {
         Ok(erg)
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_survey_symbol(
         database_pool: &DbPool,
         survey_symbol: &str,
@@ -359,7 +359,7 @@ impl DatabaseConnector<Extraction> for Extraction {
         Ok(())
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     async fn get_all(database_pool: &DbPool) -> crate::Result<Vec<Extraction>> {
         let erg = sqlx::query_as!(
             Extraction,

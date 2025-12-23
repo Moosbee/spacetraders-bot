@@ -59,7 +59,7 @@ impl Default for ContractShipment {
 }
 
 impl DatabaseConnector<ContractShipment> for ContractShipment {
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     async fn insert(database_pool: &super::DbPool, item: &ContractShipment) -> crate::Result<()> {
         sqlx::query!(
             r#"
@@ -182,7 +182,7 @@ impl DatabaseConnector<ContractShipment> for ContractShipment {
         Ok(())
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     async fn get_all(database_pool: &super::DbPool) -> crate::Result<Vec<ContractShipment>> {
         let erg = sqlx::query_as!(
             ContractShipment,
@@ -208,7 +208,7 @@ impl DatabaseConnector<ContractShipment> for ContractShipment {
 }
 
 impl ContractShipment {
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn insert_new(
         database_pool: &super::DbPool,
         item: &ContractShipment,
@@ -241,7 +241,7 @@ impl ContractShipment {
         Ok(id.id)
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_contract_id(
         database_pool: &super::DbPool,
         contract_id: &str,
@@ -270,7 +270,7 @@ impl ContractShipment {
         Ok(erg)
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_id(
         database_pool: &super::DbPool,
         id: i32,
@@ -299,7 +299,7 @@ impl ContractShipment {
         Ok(erg)
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_ship(
         database_pool: &super::DbPool,
         ship_symbol: &str,
@@ -328,7 +328,7 @@ impl ContractShipment {
         Ok(erg)
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_trade_symbol(
         database_pool: &super::DbPool,
         trade_symbol: &models::TradeSymbol,
@@ -357,7 +357,7 @@ impl ContractShipment {
         Ok(erg)
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_destination_symbol(
         database_pool: &super::DbPool,
         destination_symbol: &str,
@@ -386,7 +386,7 @@ impl ContractShipment {
         Ok(erg)
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_source_symbol(
         database_pool: &super::DbPool,
         source_symbol: &str,

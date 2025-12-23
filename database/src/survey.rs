@@ -64,7 +64,7 @@ impl Survey {
         vecs
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_signature(
         database_pool: &DbPool,
         signature: &str,
@@ -94,7 +94,7 @@ impl Survey {
         Ok(erg)
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_waypoint_symbol(
         database_pool: &DbPool,
         waypoint_symbol: &str,
@@ -124,7 +124,7 @@ impl Survey {
         Ok(erg)
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_system_symbol(
         database_pool: &DbPool,
         system_symbol: &str,
@@ -154,7 +154,7 @@ impl Survey {
         Ok(erg)
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_size(
         database_pool: &DbPool,
         size: models::SurveySize,
@@ -184,6 +184,7 @@ impl Survey {
         Ok(erg)
     }
 
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_ship(
         database_pool: &DbPool,
         ship_symbol: &str,
@@ -213,7 +214,7 @@ impl Survey {
         Ok(erg)
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_working_for_waypoint(
         database_pool: &DbPool,
         waypoint_symbol: &str,
@@ -281,7 +282,7 @@ impl From<&Survey> for models::Survey {
 }
 
 impl DatabaseConnector<Survey> for Survey {
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     async fn insert(database_pool: &DbPool, item: &Survey) -> crate::Result<()> {
         sqlx::query!(
             r#"
@@ -332,7 +333,7 @@ impl DatabaseConnector<Survey> for Survey {
         Ok(())
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     async fn get_all(database_pool: &DbPool) -> crate::Result<Vec<Survey>> {
         let erg = sqlx::query_as!(
             Survey,

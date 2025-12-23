@@ -37,6 +37,7 @@ impl TryFrom<models::ShipModificationTransaction> for ShipModificationTransactio
 }
 
 impl ShipModificationTransaction {
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_ship(
         database_pool: &super::DbPool,
         ship_symbol: &str,
@@ -61,6 +62,7 @@ impl ShipModificationTransaction {
         Ok(reg)
     }
 
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_waypoint(
         database_pool: &super::DbPool,
         waypoint_symbol: &str,
@@ -85,6 +87,7 @@ impl ShipModificationTransaction {
         Ok(reg)
     }
 
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_system(
         database_pool: &super::DbPool,
         symbol: &str,
@@ -189,7 +192,7 @@ impl DatabaseConnector<ShipModificationTransaction> for ShipModificationTransact
         Ok(())
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     async fn get_all(
         database_pool: &super::DbPool,
     ) -> crate::Result<Vec<ShipModificationTransaction>> {

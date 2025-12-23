@@ -44,7 +44,7 @@ impl TryFrom<models::ChartTransaction> for ChartTransaction {
 }
 
 impl ChartTransaction {
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_ship_symbol(
         database_pool: &DbPool,
         ship_symbol: &str,
@@ -94,7 +94,7 @@ impl ChartTransaction {
         Ok(erg)
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_system(
         database_pool: &DbPool,
         symbol: &str,
@@ -121,7 +121,7 @@ impl ChartTransaction {
 }
 
 impl DatabaseConnector<ChartTransaction> for ChartTransaction {
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     async fn insert(database_pool: &DbPool, item: &ChartTransaction) -> crate::Result<()> {
         sqlx::query!(
             r#"
@@ -192,7 +192,7 @@ impl DatabaseConnector<ChartTransaction> for ChartTransaction {
         Ok(())
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     async fn get_all(database_pool: &DbPool) -> crate::Result<Vec<ChartTransaction>> {
         let erg = sqlx::query_as!(
             ChartTransaction,

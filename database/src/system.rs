@@ -42,7 +42,7 @@ impl From<&models::System> for System {
 }
 
 impl System {
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_symbol(
         database_pool: &super::DbPool,
         symbol: &str,
@@ -69,7 +69,7 @@ impl System {
         Ok(erg)
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
 
     pub async fn set_population_disabled_led(
         database_pool: &super::DbPool,
@@ -92,7 +92,7 @@ impl System {
 }
 
 impl DatabaseConnector<System> for System {
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     async fn insert(database_pool: &super::DbPool, item: &System) -> crate::Result<()> {
         sqlx::query!(
             r#"
@@ -192,7 +192,7 @@ impl DatabaseConnector<System> for System {
         Ok(())
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     async fn get_all(database_pool: &super::DbPool) -> crate::Result<Vec<System>> {
         let erg = sqlx::query_as!(
             System,
@@ -215,7 +215,7 @@ impl DatabaseConnector<System> for System {
 }
 
 impl System {
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_id(
         database_pool: &super::DbPool,
         id: &String,

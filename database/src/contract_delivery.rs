@@ -4,7 +4,6 @@ use tracing::instrument;
 use super::{DatabaseConnector, DbPool};
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, async_graphql::SimpleObject)]
-
 #[graphql(name = "DBContractDelivery")]
 pub struct ContractDelivery {
     pub contract_id: String,
@@ -33,7 +32,7 @@ impl ContractDelivery {
         })
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_contract_id(
         database_pool: &DbPool,
         contract_id: &str,
@@ -128,7 +127,7 @@ impl ContractDelivery {
 }
 
 impl DatabaseConnector<ContractDelivery> for ContractDelivery {
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     async fn insert(database_pool: &DbPool, item: &ContractDelivery) -> crate::Result<()> {
         sqlx::query!(
             r#"
@@ -197,7 +196,7 @@ impl DatabaseConnector<ContractDelivery> for ContractDelivery {
         Ok(())
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     async fn get_all(database_pool: &DbPool) -> crate::Result<Vec<ContractDelivery>> {
         let erg = sqlx::query_as!(
             ContractDelivery,

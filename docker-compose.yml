@@ -17,20 +17,20 @@ services:
       -c max_wal_senders=10
       -c max_replication_slots=10
 
-  # readyset:
-  #   image: readysettech/readyset:latest #https://readyset.io/docs/get-started/cache#0-creating-a-cache
-  #   container_name: spacetraders-readyset
-  #   # restart: unless-stopped
-  #   environment:
-  #     UPSTREAM_DB_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
-  #     LISTEN_ADDRESS: 0.0.0.0:5433
-  #   volumes:
-  #     - ./readyset_data:/readyset.db/
-  #   ports:
-  #     - 5433:5433  # ReadySet PostgreSQL protocol port
-  #     - 6034:6034  # ReadySet HTTP metrics/control port
-  #   depends_on:
-  #     - postgres
+  readyset:
+    image: readysettech/readyset:latest #https://readyset.io/docs/get-started/cache#0-creating-a-cache
+    container_name: spacetraders-readyset
+    # restart: unless-stopped
+    environment:
+      UPSTREAM_DB_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      LISTEN_ADDRESS: 0.0.0.0:5433
+    volumes:
+      - ./readyset_data:/readyset.db/
+    ports:
+      - 5433:5433  # ReadySet PostgreSQL protocol port
+      - 6034:6034  # ReadySet HTTP metrics/control port
+    depends_on:
+      - postgres
   
   jaeger:
     image: jaegertracing/all-in-one:1.47

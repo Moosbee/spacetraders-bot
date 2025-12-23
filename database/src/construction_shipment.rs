@@ -39,7 +39,7 @@ pub struct ConstructionShipmentSummary {
 }
 
 impl ConstructionShipment {
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn insert_new(
         database_pool: &DbPool,
         next_shipment: &ConstructionShipment,
@@ -78,7 +78,7 @@ impl ConstructionShipment {
         Ok(id.id)
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_id(
         database_pool: &DbPool,
         id: i64,
@@ -109,7 +109,7 @@ impl ConstructionShipment {
         Ok(erg)
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_all_in_transit(
         database_pool: &DbPool,
     ) -> crate::Result<Vec<ConstructionShipment>> {
@@ -137,7 +137,7 @@ impl ConstructionShipment {
         Ok(erg)
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_destination_waypoint(
         database_pool: &DbPool,
         waypoint_symbol: &str,
@@ -167,7 +167,7 @@ impl ConstructionShipment {
         Ok(erg)
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_source_waypoint(
         database_pool: &DbPool,
         waypoint_symbol: &str,
@@ -197,7 +197,7 @@ impl ConstructionShipment {
         Ok(erg)
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_system(
         database_pool: &DbPool,
         system_symbol: &str,
@@ -228,7 +228,7 @@ impl ConstructionShipment {
         Ok(erg)
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_trade_symbol(
         database_pool: &DbPool,
         trade_symbol: &models::TradeSymbol,
@@ -258,7 +258,7 @@ impl ConstructionShipment {
         Ok(erg)
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_material_id(
         database_pool: &DbPool,
         material_id: i64,
@@ -288,7 +288,7 @@ impl ConstructionShipment {
         Ok(erg)
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_ship(
         database_pool: &DbPool,
         ship_symbol: &str,
@@ -344,7 +344,7 @@ impl ConstructionShipment {
         Ok(erg)
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_summary(
         database_pool: &DbPool,
     ) -> crate::Result<Vec<ConstructionShipmentSummary>> {
@@ -392,7 +392,7 @@ impl ConstructionShipment {
 }
 
 impl DatabaseConnector<ConstructionShipment> for ConstructionShipment {
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     async fn insert(database_pool: &DbPool, item: &ConstructionShipment) -> crate::Result<()> {
         sqlx::query!(
             r#"
@@ -542,7 +542,7 @@ impl DatabaseConnector<ConstructionShipment> for ConstructionShipment {
         Ok(())
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     async fn get_all(database_pool: &DbPool) -> crate::Result<Vec<ConstructionShipment>> {
         let erg = sqlx::query_as!(
             ConstructionShipment,

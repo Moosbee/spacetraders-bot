@@ -184,7 +184,7 @@ impl Loader<String> for FleetBySystemLoader {
 }
 
 impl DatabaseConnector<Fleet> for Fleet {
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     async fn insert(database_pool: &DbPool, item: &Fleet) -> crate::Result<()> {
         sqlx::query!(
             r#"
@@ -307,7 +307,7 @@ impl DatabaseConnector<Fleet> for Fleet {
         Ok(())
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     async fn get_all(database_pool: &DbPool) -> crate::Result<Vec<Fleet>> {
         let result = sqlx::query_as!(
             Fleet,
@@ -369,7 +369,7 @@ impl Fleet {
     }
 
     /// Update basic fleet fields (system_symbol, active) when provided.
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn update_basic(
         database_pool: &DbPool,
         id: i32,
@@ -399,7 +399,7 @@ impl Fleet {
 
     /// Update trading-related fields selectively. Only fields wrapped in Some() are updated.
     #[allow(clippy::too_many_arguments)]
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn update_trading_config(
         database_pool: &DbPool,
         id: i32,
@@ -486,7 +486,7 @@ impl Fleet {
     }
 
     /// Update scraping-related fields selectively.
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn update_scraping_config(
         database_pool: &DbPool,
         id: i32,
@@ -530,7 +530,7 @@ impl Fleet {
 
     /// Update mining-related fields selectively.
     #[allow(clippy::too_many_arguments)]
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn update_mining_config(
         database_pool: &DbPool,
         id: i32,
@@ -694,7 +694,7 @@ impl Fleet {
     }
 
     /// Update charting fields selectively.
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn update_charting_config(
         database_pool: &DbPool,
         id: i32,
@@ -715,7 +715,7 @@ impl Fleet {
     }
 
     /// Update construction fields selectively.
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn update_construction_config(
         database_pool: &DbPool,
         id: i32,
@@ -747,7 +747,7 @@ impl Fleet {
     }
 
     /// Update contract fields selectively.
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn update_contract_config(
         database_pool: &DbPool,
         id: i32,
@@ -767,7 +767,7 @@ impl Fleet {
         Ok(())
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn insert_new(database_pool: &DbPool, item: &Fleet) -> crate::Result<i32> {
         let erg = sqlx::query!(
             r#"
@@ -850,7 +850,7 @@ impl Fleet {
         Ok(erg.id)
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_ids(
         database_pool: &DbPool,
         ids: HashSet<i32>,
@@ -907,7 +907,7 @@ impl Fleet {
         Ok(resp)
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_system(database_pool: &DbPool, system: &str) -> crate::Result<Vec<Fleet>> {
         let resp = sqlx::query_as!(
             Fleet,
@@ -956,7 +956,7 @@ impl Fleet {
         Ok(resp)
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_systems(
         database_pool: &DbPool,
         systems: &[&str],
@@ -1008,7 +1008,7 @@ impl Fleet {
         Ok(resp)
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_type(
         database_pool: &DbPool,
         fleet_type: FleetType,
@@ -1060,6 +1060,7 @@ impl Fleet {
         Ok(resp)
     }
 
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_id(database_pool: &DbPool, id: i32) -> crate::Result<Option<Fleet>> {
         let resp = sqlx::query_as!(
             Fleet,
@@ -1108,6 +1109,7 @@ impl Fleet {
         Ok(resp)
     }
 
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn delete_by_id(database_pool: &DbPool, id: i32) -> crate::Result<()> {
         // Get all assignment IDs for this fleet
         let assignments = sqlx::query!("SELECT id FROM ship_assignment WHERE fleet_id = $1", id)

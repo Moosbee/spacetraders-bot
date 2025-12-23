@@ -51,7 +51,7 @@ impl Route {
 }
 
 impl DatabaseConnector<Route> for Route {
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     async fn insert(database_pool: &super::DbPool, item: &Route) -> crate::Result<()> {
         sqlx::query!(
             r#"
@@ -104,7 +104,7 @@ impl DatabaseConnector<Route> for Route {
         Ok(())
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     async fn get_all(database_pool: &super::DbPool) -> crate::Result<Vec<Route>> {
         let erg = sqlx::query_as!(
             Route,

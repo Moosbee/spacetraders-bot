@@ -115,7 +115,7 @@ impl MarketTransaction {
         }
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_reason(
         database_pool: &DbPool,
         reason: TransactionReason,
@@ -137,6 +137,7 @@ impl MarketTransaction {
         }
     }
 
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_waypoint_and_trade_symbol(
         database_pool: &DbPool,
         waypoint: &str,
@@ -171,7 +172,7 @@ impl MarketTransaction {
         Ok(erg)
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_contract(
         database_pool: &DbPool,
         contract: &str,
@@ -204,7 +205,7 @@ impl MarketTransaction {
         Ok(erg)
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_trade_route(
         database_pool: &DbPool,
         route: i32,
@@ -237,7 +238,7 @@ impl MarketTransaction {
         Ok(erg)
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_mining_waypoint(
         database_pool: &DbPool,
         waypoint: &str,
@@ -270,7 +271,7 @@ impl MarketTransaction {
         Ok(erg)
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_waypoint(
         database_pool: &DbPool,
         waypoint: &str,
@@ -303,7 +304,7 @@ impl MarketTransaction {
         Ok(erg)
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_construction(
         database_pool: &DbPool,
         construction: i64,
@@ -336,7 +337,7 @@ impl MarketTransaction {
         Ok(erg)
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_system(database_pool: &DbPool, system: &str) -> crate::Result<Vec<Self>> {
         let system_qr = format!("{}-%", system);
         let erg = sqlx::query_as!(
@@ -367,7 +368,7 @@ impl MarketTransaction {
         Ok(erg)
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_ship(database_pool: &DbPool, ship: &str) -> crate::Result<Vec<Self>> {
         let erg = sqlx::query_as!(
             MarketTransaction,
@@ -397,7 +398,7 @@ impl MarketTransaction {
         Ok(erg)
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_trade_symbol(
         database_pool: &DbPool,
         trade_symbol: models::TradeSymbol,
@@ -430,7 +431,7 @@ impl MarketTransaction {
         Ok(erg)
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_trade_type(
         database_pool: &DbPool,
         trade_type: models::market_transaction::Type,
@@ -1020,7 +1021,7 @@ impl TryFrom<models::MarketTransaction> for MarketTransaction {
 }
 
 impl DatabaseConnector<MarketTransaction> for MarketTransaction {
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     async fn insert(database_pool: &DbPool, item: &MarketTransaction) -> crate::Result<()> {
         let _erg= sqlx::query!(
         r#"
@@ -1141,7 +1142,7 @@ impl DatabaseConnector<MarketTransaction> for MarketTransaction {
         Ok(())
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     async fn get_all(database_pool: &DbPool) -> crate::Result<Vec<MarketTransaction>> {
         let erg = sqlx::query_as!(
             MarketTransaction,

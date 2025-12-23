@@ -52,7 +52,7 @@ impl MarketTradeGood {
 }
 
 impl DatabaseConnector<MarketTradeGood> for MarketTradeGood {
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     async fn insert(database_pool: &DbPool, item: &MarketTradeGood) -> crate::Result<()> {
         sqlx::query!(
             r#"
@@ -153,7 +153,7 @@ impl DatabaseConnector<MarketTradeGood> for MarketTradeGood {
         Ok(())
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     async fn get_all(database_pool: &DbPool) -> crate::Result<Vec<MarketTradeGood>> {
         let erg = sqlx::query_as!(
             MarketTradeGood,
@@ -180,7 +180,7 @@ impl DatabaseConnector<MarketTradeGood> for MarketTradeGood {
 }
 
 impl MarketTradeGood {
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_waypoint(
         database_pool: &DbPool,
         waypoint_symbol: &str,
@@ -210,7 +210,7 @@ impl MarketTradeGood {
         Ok(erg)
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_history_by_waypoint_and_trade_symbol(
         database_pool: &DbPool,
         waypoint_symbol: &str,
@@ -237,12 +237,12 @@ impl MarketTradeGood {
             waypoint_symbol,
             *trade_symbol as models::TradeSymbol,
         )
-        .fetch_all(database_pool.get_cache_pool())
+        .fetch_all(&database_pool.database_pool)
         .await?;
         Ok(erg)
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_last_by_waypoint(
         database_pool: &DbPool,
         waypoint_symbol: &str,
@@ -272,7 +272,7 @@ impl MarketTradeGood {
         Ok(erg)
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_last_by_symbol(
         database_pool: &DbPool,
         trade_symbol: &models::TradeSymbol,
@@ -330,12 +330,12 @@ impl MarketTradeGood {
             waypoint_symbol,
             *trade_symbol as models::TradeSymbol,
         )
-        .fetch_optional(database_pool.get_cache_pool())
+        .fetch_optional(&database_pool.database_pool)
         .await?;
         Ok(erg)
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_last(database_pool: &DbPool) -> crate::Result<Vec<MarketTradeGood>> {
         let erg = sqlx::query_as!(
             MarketTradeGood,
@@ -360,7 +360,7 @@ impl MarketTradeGood {
         Ok(erg)
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_last_by_system(
         database_pool: &DbPool,
         system_symbol: &str,

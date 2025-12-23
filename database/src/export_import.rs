@@ -50,7 +50,7 @@ impl ExportImportMapping {
             "#,
             export_symbol as models::TradeSymbol
         )
-        .fetch_all(database_pool.get_cache_pool())
+        .fetch_all(&database_pool.database_pool)
         .await?;
 
         Ok(items.into_iter().map(|item| item.import_symbol).collect())
@@ -71,7 +71,7 @@ impl ExportImportMapping {
             "#,
             import_symbol as models::TradeSymbol
         )
-        .fetch_all(database_pool.get_cache_pool())
+        .fetch_all(&database_pool.database_pool)
         .await?;
 
         Ok(items.into_iter().map(|item| item.export_symbol).collect())
@@ -79,7 +79,7 @@ impl ExportImportMapping {
 }
 
 impl DatabaseConnector<ExportImportMapping> for ExportImportMapping {
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     async fn insert(database_pool: &DbPool, item: &ExportImportMapping) -> crate::Result<()> {
         sqlx::query!(
             r#"
@@ -129,7 +129,7 @@ impl DatabaseConnector<ExportImportMapping> for ExportImportMapping {
         Ok(())
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     async fn get_all(database_pool: &DbPool) -> crate::Result<Vec<ExportImportMapping>> {
         let items = sqlx::query_as!(
             ExportImportMapping,

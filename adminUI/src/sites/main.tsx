@@ -14,6 +14,7 @@ import {
   theme,
 } from "antd";
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import {
   Bar,
   BarChart,
@@ -281,22 +282,30 @@ function Main() {
               </Row>
               <Card variant="borderless">
                 <div className="overflow-hidden w-full">
-                  <ul className="flex justify-around gap-4">
+                  <div className="flex justify-around gap-4">
                     {data.systems.length <= 6 ? (
                       <>
                         {data.systems.map((system) => (
-                          <li key={system.symbol}>{system.symbol}</li>
+                          <span key={system.symbol}>
+                            <Link to={`system/${system.symbol}`}>
+                              {system.symbol}
+                            </Link>
+                          </span>
                         ))}
                       </>
                     ) : (
                       <>
                         <TextLoop
-                          texts={data.systems.map((system) => system.symbol)}
+                          texts={data.systems.map((system) => (
+                            <Link to={`system/${system.symbol}`}>
+                              {system.symbol}
+                            </Link>
+                          ))}
                           duration={data.systems.length * 1}
                         />
                       </>
                     )}
-                  </ul>
+                  </div>
                 </div>
                 <div className="overflow-hidden w-full">
                   <ul className="flex justify-around gap-4">
@@ -313,7 +322,7 @@ function Main() {
                         <TextLoop
                           texts={data.fleets.map(
                             (fleet) =>
-                              `${fleet.fleetType}-${fleet.systemSymbol}`
+                              `${fleet.fleetType}_${fleet.id}_${fleet.systemSymbol}`
                           )}
                           duration={data.fleets.length * 3}
                         />

@@ -22,7 +22,7 @@ pub struct JumpGateConnection {
 }
 
 impl JumpGateConnection {
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_all_from(
         database_pool: &DbPool,
         from: &str,
@@ -46,7 +46,7 @@ impl JumpGateConnection {
         Ok(erg)
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_all_from_system(
         database_pool: &DbPool,
         system_from: &str,
@@ -73,7 +73,7 @@ impl JumpGateConnection {
 }
 
 impl DatabaseConnector<JumpGateConnection> for JumpGateConnection {
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     async fn insert(database_pool: &DbPool, item: &JumpGateConnection) -> crate::Result<()> {
         sqlx::query!(
             r#"
@@ -128,7 +128,7 @@ impl DatabaseConnector<JumpGateConnection> for JumpGateConnection {
         Ok(())
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     async fn get_all(database_pool: &DbPool) -> crate::Result<Vec<JumpGateConnection>> {
         let erg = sqlx::query_as!(
             JumpGateConnection,

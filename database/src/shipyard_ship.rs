@@ -53,7 +53,7 @@ impl ShipyardShip {
         }
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_last_by_waypoint(
         database_pool: &super::DbPool,
         waypoint_symbol: &str,
@@ -91,7 +91,7 @@ impl ShipyardShip {
         Ok(erg)
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_last_by_system(
         database_pool: &super::DbPool,
         system_symbol: &str,
@@ -129,7 +129,7 @@ impl ShipyardShip {
         Ok(erg)
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_last_by_ship_symbol(
         database_pool: &super::DbPool,
         ship_type: &models::ShipType,
@@ -207,7 +207,7 @@ impl ShipyardShip {
         Ok(erg)
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_last(database_pool: &super::DbPool) -> crate::Result<Vec<ShipyardShip>> {
         let erg = sqlx::query_as!(
             ShipyardShip,
@@ -281,7 +281,7 @@ impl ShipyardShip {
 }
 
 impl DatabaseConnector<ShipyardShip> for ShipyardShip {
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     async fn insert(database_pool: &super::DbPool, item: &ShipyardShip) -> crate::Result<()> {
         sqlx::query!(
             r#"
@@ -357,7 +357,7 @@ impl DatabaseConnector<ShipyardShip> for ShipyardShip {
         Ok(())
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     async fn get_all(database_pool: &super::DbPool) -> crate::Result<Vec<ShipyardShip>> {
         let erg = sqlx::query_as!(
             ShipyardShip,

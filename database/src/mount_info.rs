@@ -63,7 +63,7 @@ impl From<models::ship_mount::ShipMount> for MountInfo {
 }
 
 impl DatabaseConnector<MountInfo> for MountInfo {
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     async fn insert(database_pool: &super::DbPool, item: &MountInfo) -> crate::Result<()> {
         let deposits = item.deposits.clone();
         sqlx::query!(
@@ -110,7 +110,7 @@ impl DatabaseConnector<MountInfo> for MountInfo {
         Ok(())
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     async fn get_all(database_pool: &super::DbPool) -> crate::Result<Vec<MountInfo>> {
         let erg = sqlx::query_as!(
             MountInfo,

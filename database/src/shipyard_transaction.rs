@@ -38,7 +38,7 @@ impl TryFrom<models::ShipyardTransaction> for ShipyardTransaction {
 }
 
 impl ShipyardTransaction {
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_waypoint(
         database_pool: &super::DbPool,
         waypoint_symbol: &str,
@@ -64,7 +64,7 @@ impl ShipyardTransaction {
         Ok(erg)
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_system(
         database_pool: &super::DbPool,
         system: &str,
@@ -91,7 +91,7 @@ impl ShipyardTransaction {
         Ok(erg)
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_ship_type(
         database_pool: &super::DbPool,
         ship_type: models::ShipType,
@@ -117,7 +117,7 @@ impl ShipyardTransaction {
         Ok(erg)
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_agent(
         database_pool: &super::DbPool,
         agent_symbol: &str,
@@ -224,7 +224,7 @@ impl ShipyardTransaction {
 }
 
 impl DatabaseConnector<ShipyardTransaction> for ShipyardTransaction {
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     async fn insert(
         database_pool: &super::DbPool,
         item: &ShipyardTransaction,
@@ -302,7 +302,7 @@ impl DatabaseConnector<ShipyardTransaction> for ShipyardTransaction {
         Ok(())
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     async fn get_all(database_pool: &super::DbPool) -> crate::Result<Vec<ShipyardTransaction>> {
         let erg = sqlx::query_as!(
             ShipyardTransaction,

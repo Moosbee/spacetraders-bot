@@ -46,7 +46,7 @@ pub enum FundStatus {
 }
 
 impl ReservedFund {
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn insert_new(
         database_pool: &crate::DbPool,
         funds: ReservedFund,
@@ -68,7 +68,7 @@ impl ReservedFund {
         Ok(id)
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_id(
         database_pool: &crate::DbPool,
         id: &i64,
@@ -93,7 +93,7 @@ impl ReservedFund {
         Ok(result)
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_status(
         database_pool: &crate::DbPool,
         status: FundStatus,
@@ -120,7 +120,7 @@ impl ReservedFund {
 }
 
 impl DatabaseConnector<ReservedFund> for ReservedFund {
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     async fn insert(database_pool: &crate::DbPool, item: &ReservedFund) -> crate::Result<()> {
         sqlx::query!(
             r#"
@@ -202,7 +202,7 @@ impl DatabaseConnector<ReservedFund> for ReservedFund {
         Ok(())
     }
 
-    #[instrument(level = "trace", skip(database_pool))]
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     async fn get_all(database_pool: &crate::DbPool) -> crate::Result<Vec<ReservedFund>> {
         let result = sqlx::query_as!(
             ReservedFund,
