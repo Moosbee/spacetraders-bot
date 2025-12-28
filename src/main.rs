@@ -90,23 +90,36 @@ async fn main() -> anyhow::Result<()> {
 }
 
 async fn setup_unauthed() -> Result<(space_traders_client::Api, database::DbPool), anyhow::Error> {
-    dotenvy::dotenv()?;
+    let _erg=dotenvy::dotenv();
 
     // console_subscriber::init();
 
+    println!("Spacetraders Starting 1");
+    let otel_endpoint = env::var("OTEL_ENDPOINT").ok();
+
     global::set_text_map_propagator(TraceContextPropagator::new());
-    let tracer = open_telemetry::init_trace().unwrap();
-    let telemetry = tracing_opentelemetry::layer().with_tracer(tracer);
+    let telemetry=if let Some(otel_endpoint)=otel_endpoint{
+      let tracer = open_telemetry::init_trace(otel_endpoint).unwrap();
+      let telemetry = tracing_opentelemetry::layer().with_tracer(tracer);
+      Some(telemetry)
+    }else{
+      None
+    };
     let fmt_tracer = tracing_subscriber::fmt::layer();
 
     // let tracing_tracy = tracing_tracy::TracyLayer::default();
 
     let subscriber = tracing_subscriber::registry()
         .with(tracing_subscriber::filter::EnvFilter::from_default_env())
-        .with(fmt_tracer)
-        // .with(tracing_tracy)
-        .with(telemetry);
-    tracing::subscriber::set_global_default(subscriber).unwrap();
+        .with(fmt_tracer);
+        // .with(tracing_tracy);
+
+    if let Some(telemetry)=telemetry{
+      let subscriber=subscriber.with(telemetry);
+      tracing::subscriber::set_global_default(subscriber).unwrap();
+    }else{
+      tracing::subscriber::set_global_default(subscriber).unwrap();
+    }
 
     // let env = Env::default()
     //     .filter_or("RUST_LOG", "info")
@@ -115,6 +128,8 @@ async fn setup_unauthed() -> Result<(space_traders_client::Api, database::DbPool
     // env_logger::Builder::from_env(env)
     //     .target(Target::Stdout)
     //     .init();
+
+    tracing::info!("Spacetraders Starting 2");
 
     check_time().await;
 

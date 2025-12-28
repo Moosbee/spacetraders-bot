@@ -3,7 +3,7 @@ use opentelemetry::trace::TraceError;
 use opentelemetry::{runtime, KeyValue};
 use opentelemetry_otlp::WithExportConfig;
 
-pub fn init_trace() -> Result<trace::Tracer, TraceError> {
+pub fn init_trace(otel_endpoint: String) -> Result<trace::Tracer, TraceError> {
     // Use an AlwaysOn sampler during debugging so short-lived child spans
     // are exported to Jaeger reliably. For production you may want to
     // switch back to a ratio or parent-based sampler.
@@ -24,7 +24,7 @@ pub fn init_trace() -> Result<trace::Tracer, TraceError> {
 
                     ..Default::default()
                 })
-                .with_endpoint("http://localhost:4317"),
+                .with_endpoint(otel_endpoint),
         )
         .with_trace_config(cfg)
         .install_batch(runtime::Tokio)

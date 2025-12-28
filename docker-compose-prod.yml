@@ -1,0 +1,76 @@
+services:
+  spacetraders:
+    container_name: spacetraders
+    build: .
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      - READYSET_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@readyset:5433/${POSTGRES_DB}
+    ports:
+     - 8780:8780
+    volumes:
+      - ./config.toml:/usr/src/app/config.toml
+    depends_on:
+      - postgres
+      # - readyset
+      - jaeger
+
+  postgres:
+    image: postgres:14-alpine
+    container_name: spacetraders-postgres
+    # restart: unless-stopped
+    ports:
+      - 5432:5432
+    volumes:
+      - ./db:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_DB=${POSTGRES_DB}
+    command: >
+      postgres
+      -c wal_level=logical
+      -c max_wal_senders=10
+      -c max_replication_slots=10
+
+  readyset:
+    image: readysettech/readyset:latest #https://readyset.io/docs/get-started/cache#0-creating-a-cache
+    container_name: spacetraders-readyset
+    # restart: unless-stopped
+    environment:
+      UPSTREAM_DB_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      LISTEN_ADDRESS: 0.0.0.0:5433
+    volumes:
+      - ./readyset_data:/readyset.db/
+    ports:
+      - 5433:5433  # ReadySet PostgreSQL protocol port
+      - 6034:6034  # ReadySet HTTP metrics/control port
+    depends_on:
+      - postgres
+  
+  jaeger:
+    image: jaegertracing/all-in-one:1.47
+    container_name: jaeger
+    environment:
+      - COLLECTOR_ZIPKIN_HOST_PORT=:9411
+      - COLLECTOR_OTLP_ENABLED=true
+      - OTEL_BSP_MAX_QUEUE_SIZE=8192
+      - OTEL_BSP_SCHEDULE_DELAY=100
+      - SPAN_STORAGE_TYPE=badger
+      - BADGER_EPHEMERAL=false
+      - BADGER_DIRECTORY_VALUE=/badger/data
+      - BADGER_DIRECTORY_KEY=/badger/key
+    ports:
+      - "6831:6831/udp"  # Jaeger compact Thrift protocol (UDP)
+      - "6832:6832/udp"  # Jaeger binary Thrift protocol (UDP)
+      - "5778:5778"      # Jaeger agent HTTP management port
+      - "16686:16686"    # Jaeger query UI port
+      - "4317:4317"      # Jaeger gRPC HTTP collector port
+      - "4318:4318"      # Jaeger gRPC HTTP collector port (encrypted)
+      - "14250:14250"    # Jaeger gRPC tracing port
+      - "14268:14268"    # Jaeger gRPC HTTP internal service communication port
+      - "14269:14269"    # Jaeger gRPC HTTP internal service communication port (encrypted)
+      - "9411:9411"      # Zipkin collector port
+    volumes:
+      - ./jaeger_data:/badger

@@ -1,0 +1,8 @@
+config.toml
+/target
+.env
+/db
+/jaeger_data
+/readyset_data
+log.txt
+log*.txt
