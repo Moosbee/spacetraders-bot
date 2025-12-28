@@ -1032,6 +1032,7 @@ type QueryRoot {
 	marketTrades(by: MarketTradeBy): [MarketTrade!]!
 	marketTradeGoods(by: MarketTradeGoodBy): [MarketTradeGood!]!
 	tradeSymbolInfos: [TradeSymbolInfo!]!
+	shipRoutes: [Route!]!
 	budget: BudgetInfo!
 	chartManager: ChartManagerInfo!
 	constructionManager: ConstructionManagerInfo!

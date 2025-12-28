@@ -1,3 +1,6 @@
+use std::{collections::HashMap, sync::Arc};
+
+use async_graphql::dataloader::Loader;
 use tracing::instrument;
 
 use crate::{DatabaseConnector, DbPool};
@@ -193,6 +196,38 @@ impl ShipAssignment {
     }
 
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
+    pub async fn get_by_fleet_ids(
+        database_pool: &DbPool,
+        fleet_ids: &[i32],
+    ) -> crate::Result<Vec<ShipAssignment>> {
+        let resp = sqlx::query_as!(
+            ShipAssignment,
+            r#"
+                SELECT
+                  id,
+                  fleet_id,
+                  priority,
+                  max_purchase_price,
+                  credits_threshold,
+                  disabled,
+                  range_min,
+                  cargo_min,
+                  survey,
+                  extractor,
+                  siphon,
+                  warp_drive
+                FROM ship_assignment
+                WHERE fleet_id = ANY($1)
+            "#,
+            &fleet_ids as &[i32]
+        )
+        .fetch_all(&database_pool.database_pool)
+        .await?;
+
+        Ok(resp)
+    }
+
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_open_assignments(
         database_pool: &DbPool,
     ) -> crate::Result<Vec<ShipAssignment>> {
@@ -277,6 +312,32 @@ impl ShipAssignment {
         .execute(&database_pool.database_pool)
         .await?;
         Ok(())
+    }
+}
+
+pub struct AssignmentsByFleetLoader(DbPool);
+
+impl AssignmentsByFleetLoader {
+    pub fn new(database_pool: DbPool) -> Self {
+        Self(database_pool)
+    }
+}
+
+impl Loader<i32> for AssignmentsByFleetLoader {
+    type Value = Vec<ShipAssignment>;
+    type Error = Arc<crate::Error>;
+
+    #[instrument(level = "trace", skip(self, keys))]
+    async fn load(&self, keys: &[i32]) -> Result<HashMap<i32, Self::Value>, Self::Error> {
+        let mut map: HashMap<i32, Vec<ShipAssignment>> = HashMap::new();
+
+        let assignments = ShipAssignment::get_by_fleet_ids(&self.0, keys).await?;
+
+        for assignment in assignments {
+            map.entry(assignment.fleet_id).or_default().push(assignment);
+        }
+
+        Ok(map)
     }
 }
 

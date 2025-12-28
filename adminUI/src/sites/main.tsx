@@ -133,8 +133,8 @@ function Main() {
                           value={data.runInfo.agent?.credits}
                         />
                         <Statistic
-                          title="Ships"
-                          value={data.runInfo.agent?.shipCount}
+                          title="Reserved Credits"
+                          value={data.budget.reservedAmount}
                         />
                       </Col>
                     </Row>

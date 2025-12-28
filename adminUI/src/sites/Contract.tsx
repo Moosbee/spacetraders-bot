@@ -4,7 +4,7 @@ import { useParams } from "react-router-dom";
 import { backendUrl } from "../data";
 import MoneyDisplay from "../features/MonyDisplay";
 import PageTitle from "../features/PageTitle";
-import TransactionTable from "../features/TransactionTable/TransactionTable";
+import TransactionTable from "../features/TransactionTableOld/TransactionTable";
 import WaypointLink from "../features/WaypointLink";
 import { ContractDeliverable, ContractResponse } from "../models/SQLContract";
 

@@ -9,11 +9,15 @@ import { useQuery } from "@apollo/client/react";
 import {
   Button,
   Card,
+  Col,
   Descriptions,
+  DescriptionsProps,
   Divider,
   Flex,
   List,
   Popover,
+  Progress,
+  Row,
   Space,
   Spin,
   Table,
@@ -22,15 +26,26 @@ import {
 import { Link, useParams } from "react-router-dom";
 import MoneyDisplay from "../features/MonyDisplay";
 import PageTitle from "../features/PageTitle";
+import Timer from "../features/Timer/Timer";
+import TransactionTable from "../features/TransactionTable/TransactionTable";
 import WaypointLink from "../features/WaypointLink";
 import {
+  ActivityLevel,
   GetSystemQuery,
+  ShipType,
+  SupplyLevel,
   TradeSymbol,
   WaypointModifierSymbol,
   WaypointTraitSymbol,
   WaypointType,
 } from "../gql/graphql";
 import { GET_SYSTEM } from "../graphql/queries";
+import { useAppDispatch, useAppSelector } from "../redux/hooks";
+import {
+  selectSelectedSystemSymbol,
+  setSelectedSystemSymbol,
+} from "../redux/slices/mapSlice";
+import { systemIcons } from "../utils/waypointColors";
 
 function System() {
   const { systemID } = useParams();
@@ -39,6 +54,10 @@ function System() {
     variables: { systemSymbol: systemID || "" },
   });
 
+  const selectedSystem = useAppSelector(selectSelectedSystemSymbol);
+
+  const dispatch = useAppDispatch();
+
   // if (dataState != "complete") return <p>Loading...</p>;
   if (error) return <p>Error: {error.message}</p>;
 
@@ -46,21 +65,57 @@ function System() {
 
   type GQLWaypoint = GetSystemQuery["system"]["waypoints"][number];
 
-  const items = [
+  const color = systemIcons[system?.systemType || "BLACK_HOLE"].color;
+  const waypointIcon = systemIcons[system?.systemType || "BLACK_HOLE"].icon;
+
+  const items: DescriptionsProps["items"] = [
     {
       label: "Symbol",
       key: "symbol",
-      children: system?.symbol,
-    },
-    {
-      label: "Sector Symbol",
-      key: "sectorSymbol",
-      children: system?.sectorSymbol,
-    },
-    {
-      key: "reload",
       children: (
-        <>
+        <button
+          onClick={() => {
+            if (selectedSystem === system?.symbol) {
+              dispatch(setSelectedSystemSymbol(undefined));
+              return;
+            }
+            dispatch(setSelectedSystemSymbol(system?.symbol));
+          }}
+          className="cursor-pointer flex justify-between w-full py-2"
+        >
+          <div
+            style={{
+              color: color,
+            }}
+            className="h-6 w-6 flex justify-center items-center text-xl"
+          >
+            <span
+              className="absolute"
+              style={{
+                boxShadow:
+                  selectedSystem == system?.symbol
+                    ? "0px 0px calc(0.8 * 1.25rem) calc(0.6 * 1.25rem) color-mix(in srgb, currentColor 80%, #fff 20%)"
+                    : "",
+              }}
+            ></span>
+            {waypointIcon}
+          </div>
+          {system?.symbol}
+        </button>
+      ),
+    },
+    {
+      key: "constellation",
+      label: "Constellation",
+      children: system?.constellation || "N/A",
+    },
+    {
+      span: "filled",
+      key: "reload",
+      label: <Link to={`/map/system/${systemID}`}>Map</Link>,
+      children: (
+        <span className="flex justify-evenly items-center">
+          <Spin spinning={loading || dataState !== "complete"} />
           <Button
             onClick={() => {
               refetch();
@@ -68,9 +123,13 @@ function System() {
           >
             Reload
           </Button>
-          <Spin spinning={loading || dataState !== "complete"} />
-        </>
+        </span>
       ),
+    },
+    {
+      label: "Sector Symbol",
+      key: "sectorSymbol",
+      children: system?.sectorSymbol,
     },
     {
       label: "System Type",
@@ -83,8 +142,9 @@ function System() {
       children: system?.fleets.length,
     },
     {
-      key: "Map",
-      children: <Link to={`/map/system/${systemID}`}>Map</Link>,
+      label: "Population Disabled",
+      key: "populationDisabled",
+      children: system?.populationDisabled ? "Yes" : "No",
     },
     {
       label: "X Coordinate",
@@ -95,22 +155,6 @@ function System() {
       label: "Y Coordinate",
       key: "y",
       children: system?.y,
-    },
-
-    {
-      key: "request",
-      children: (
-        <>
-          <Button
-            onClick={() => {
-              alert("Todo");
-            }}
-          >
-            Request
-          </Button>
-          <Spin spinning={loading || dataState !== "complete"} />
-        </>
-      ),
     },
     {
       label: "Waypoints",
@@ -205,13 +249,6 @@ function System() {
       sorter: (a, b) => (a.orbits ?? "").localeCompare(b.orbits ?? ""),
     },
     {
-      title: "Faction",
-      dataIndex: "faction",
-      key: "faction",
-      render: (faction) => (faction ? faction : "N/A"), // Display faction symbol or "N/A"
-      sorter: (a, b) => (a.faction ?? "").localeCompare(b.faction ?? ""),
-    },
-    {
       title: "Traits",
       dataIndex: "traits",
       key: "traits",
@@ -256,6 +293,54 @@ function System() {
       })),
       onFilter: (value, record) =>
         record.modifiers?.some((m) => m === value) ?? false,
+    },
+    {
+      title: "Scrap",
+      key: "nextScrap",
+      render: (_, record) =>
+        record.nextScrap && record.lastScrap ? (
+          <Popover
+            title={
+              <span>
+                {new Date(record.lastScrap).toLocaleString()} -{" "}
+                {Math.floor(
+                  (new Date(record.nextScrap).getTime() -
+                    new Date(record.lastScrap).getTime()) /
+                    1000 /
+                    60
+                )}
+                min{" "}
+                {Math.floor(
+                  ((new Date(record.nextScrap).getTime() -
+                    new Date(record.lastScrap).getTime()) /
+                    1000) %
+                    60
+                )}
+                s - {new Date(record.nextScrap).toLocaleString()}
+              </span>
+            }
+          >
+            T <Timer time={record.nextScrap} />
+          </Popover>
+        ) : (
+          "N/A"
+        ), // Display chart symbol or "N/A"
+      sorter: (a, b, sortOrder) =>
+        (a.nextScrap ?? (sortOrder == "ascend" ? "9" : "0")).localeCompare(
+          b.nextScrap ?? (sortOrder == "ascend" ? "9" : "0")
+        ),
+    },
+    {
+      title: "Has Market",
+      dataIndex: "hasMarketplace",
+      key: "hasMarketplace",
+      render: (value) => (value ? "Yes" : "No"), // Render boolean as "Yes" or "No"
+      sorter: (a, b) => (a.hasMarketplace ? 1 : 0) - (b.hasMarketplace ? 1 : 0),
+      filters: [
+        { text: "Yes", value: true },
+        { text: "No", value: false },
+      ],
+      onFilter: (value, record) => record.hasMarketplace === value,
     },
     {
       title: "Trade Goods",
@@ -394,7 +479,7 @@ function System() {
                       .filter((t) => t.type === "EXPORT")
                       .map((trade_good) => (
                         <div
-                          key={trade_good.symbol}
+                          key={trade_good.symbol + "EXPORT" + trade_good.type}
                           className={`flex justify-between border-t-2 border-t-current`}
                         >
                           <div className="flex flex-col">
@@ -465,19 +550,51 @@ function System() {
         record.marketTrades?.some((t) => t.symbol === value) ?? false,
     },
     {
-      title: "Chart by",
-      dataIndex: "chartedBy",
-      key: "chartedBy",
-      render: (chartedBy) => (chartedBy ? chartedBy : "N/A"), // Display chart symbol or "N/A"
-      sorter: (a, b) => (a.chartedBy ?? "").localeCompare(b.chartedBy ?? ""),
+      title: "Has Shipyard",
+      dataIndex: "hasShipyard",
+      key: "hasShipyard",
+      render: (value) => (value ? "Yes" : "No"), // Render boolean as "Yes" or "No"
+      sorter: (a, b) => (a.hasShipyard ? 1 : 0) - (b.hasShipyard ? 1 : 0),
+      filters: [
+        { text: "Yes", value: true },
+        { text: "No", value: false },
+      ],
+      onFilter: (value, record) => record.hasShipyard === value,
     },
     {
-      title: "Chart on",
-      dataIndex: "chartedOn",
-      key: "chartedOn",
-      render: (chartedOn) =>
-        chartedOn ? new Date(chartedOn).toLocaleString() : "N/A", // Display chart symbol or "N/A"
-      sorter: (a, b) => (a.chartedOn ?? "").localeCompare(b.chartedOn ?? ""),
+      title: "Shipyard Ships",
+      dataIndex: "shipyardShips",
+      key: "shipyardShips",
+      render: (value: GQLWaypoint["shipyardShips"]) => (
+        <Popover
+          title={
+            <Flex gap={1} vertical>
+              {value.map((ship) => (
+                <Flex justify="space-between" gap={4}>
+                  <span>{ship.shipType}</span>{" "}
+                  <span>
+                    <MoneyDisplay amount={ship.purchasePrice} />{" "}
+                    <span className="font-mono">{ship.supply.slice(0, 3)}</span>
+                  </span>
+                </Flex>
+              ))}
+            </Flex>
+          }
+        >
+          Ships {value.length}
+        </Popover>
+      ),
+      sorter: (a, b) =>
+        (a.shipyardShips.length ?? 0) - (b.shipyardShips.length ?? 0),
+      filters: [
+        ...[...new Set(system?.shipyardShips.map((ship) => ship.shipType))].map(
+          (sh) => ({
+            text: sh,
+            value: sh,
+          })
+        ),
+      ],
+      onFilter: (value, record) => record.hasShipyard === value,
     },
     {
       title: "Construction",
@@ -493,28 +610,32 @@ function System() {
       onFilter: (value, record) => record.isUnderConstruction === value,
     },
     {
-      title: "Has Shipyard",
-      dataIndex: "hasShipyard",
-      key: "hasShipyard",
-      render: (value) => (value ? "Yes" : "No"), // Render boolean as "Yes" or "No"
-      sorter: (a, b) => (a.hasShipyard ? 1 : 0) - (b.hasShipyard ? 1 : 0),
-      filters: [
-        { text: "Yes", value: true },
-        { text: "No", value: false },
-      ],
-      onFilter: (value, record) => record.hasShipyard === value,
+      title: "Charted",
+      key: "charted",
+      render: (_, record) =>
+        record.chartedBy && record.chartedOn ? (
+          <Popover
+            title={
+              <span>
+                {record.chartedBy}
+                <br />
+                {new Date(record.chartedOn).toLocaleString()}
+              </span>
+            }
+          >
+            {record.chartedBy.split("-")[0]}
+          </Popover>
+        ) : (
+          "N/A"
+        ), // Display chart symbol or "N/A"
+      sorter: (a, b) => (a.chartedBy ?? "").localeCompare(b.chartedBy ?? ""),
     },
     {
-      title: "Has Market",
-      dataIndex: "hasMarketplace",
-      key: "hasMarketplace",
-      render: (value) => (value ? "Yes" : "No"), // Render boolean as "Yes" or "No"
-      sorter: (a, b) => (a.hasMarketplace ? 1 : 0) - (b.hasMarketplace ? 1 : 0),
-      filters: [
-        { text: "Yes", value: true },
-        { text: "No", value: false },
-      ],
-      onFilter: (value, record) => record.hasMarketplace === value,
+      title: "Faction",
+      dataIndex: "faction",
+      key: "faction",
+      render: (faction) => (faction ? faction : "N/A"), // Display faction symbol or "N/A"
+      sorter: (a, b) => (a.faction ?? "").localeCompare(b.faction ?? ""),
     },
   ];
 
@@ -524,6 +645,7 @@ function System() {
       <h2>System {systemID}</h2>
       <Space>
         <Descriptions bordered column={3} items={items} />
+
         <Card size="small" title="Known Agents">
           <List
             size="small"
@@ -539,6 +661,7 @@ function System() {
             )}
           />
         </Card>
+
         <Card size="small" title="Ships in System">
           <List
             size="small"
@@ -549,7 +672,8 @@ function System() {
                 <Popover
                   title={
                     <Flex flex={1}>
-                      {ship.symbol} {ship.nav.status} {ship.nav.waypointSymbol}
+                      {ship.symbol} {ship.fuel.capacity} {ship.cargo.capacity}{" "}
+                      {ship.nav.status} {ship.nav.waypointSymbol}
                     </Flex>
                   }
                 >
@@ -628,8 +752,128 @@ function System() {
         </Card>
       </Space>
       <Divider />
+      <Descriptions
+        bordered
+        column={5}
+        items={[
+          {
+            label: "Chart Reward",
+            children: (
+              <span>
+                <MoneyDisplay
+                  amount={
+                    system?.chartTransactions
+                      .map((s) => s.totalPrice)
+                      .reduce((r, e) => {
+                        return r + e;
+                      }) || 0
+                  }
+                />
+              </span>
+            ),
+          },
+        ]}
+      />
+
+      <Divider />
+      {(system?.constructionMaterials || []).length > 0 && (
+        <>
+          <Table
+            size="small"
+            columns={[
+              {
+                title: "Waypoint",
+                dataIndex: "waypointSymbol",
+                key: "waypointSymbol",
+                sorter: (a, b) =>
+                  a.waypointSymbol.localeCompare(b.waypointSymbol),
+              },
+              {
+                title: "trade Symbol",
+                dataIndex: "tradeSymbol",
+                key: "tradeSymbol",
+                sorter: (a, b) => a.tradeSymbol.localeCompare(b.tradeSymbol),
+              },
+              {
+                title: "required",
+                dataIndex: "required",
+                key: "required",
+                sorter: (a, b) => a.required - b.required,
+                align: "right",
+              },
+              {
+                title: "fulfilled",
+                dataIndex: "fulfilled",
+                key: "fulfilled",
+                sorter: (a, b) => a.fulfilled - b.fulfilled,
+                align: "right",
+              },
+              {
+                title: "Transactions",
+                key: "purchaseTransactions",
+                render: (_, record) => (
+                  <span>
+                    {(
+                      record.marketTransactionSummary.purchaseTransactions || 0
+                    ).toLocaleString()}
+                  </span>
+                ),
+                sorter: (a, b) =>
+                  (a.marketTransactionSummary.purchaseTransactions || 0) -
+                  (b.marketTransactionSummary.purchaseTransactions || 0),
+                align: "right",
+              },
+              {
+                title: "Units",
+                key: "purchaseUnits",
+                render: (_, record) => (
+                  <span>
+                    {(
+                      record.marketTransactionSummary.purchaseUnits || 0
+                    ).toLocaleString()}
+                  </span>
+                ),
+                sorter: (a, b) =>
+                  (a.marketTransactionSummary.purchaseUnits || 0) -
+                  (b.marketTransactionSummary.purchaseUnits || 0),
+                align: "right",
+              },
+              {
+                title: "expenses",
+                key: "expenses",
+                render: (_, record) => (
+                  <MoneyDisplay
+                    amount={record.marketTransactionSummary.expenses || 0}
+                  />
+                ),
+                sorter: (a, b) =>
+                  (a.marketTransactionSummary.expenses || 0) -
+                  (b.marketTransactionSummary.expenses || 0),
+                align: "right",
+              },
+              {
+                title: "Percent",
+                dataIndex: "",
+                key: "percent",
+                render: (_, record) => (
+                  <>
+                    <Progress
+                      percent={(record.fulfilled / record.required) * 100}
+                      size={"small"}
+                    />
+                  </>
+                ),
+              },
+            ]}
+            dataSource={system?.constructionMaterials || []}
+            rowKey={(row) => row.waypointSymbol + row.tradeSymbol}
+            pagination={false}
+          />
+          <Divider />
+        </>
+      )}
       <Table
-        size="small"
+        size="middle"
         columns={columns}
         dataSource={system?.waypoints || []}
         rowKey={(row) => row.symbol}
@@ -637,6 +881,310 @@ function System() {
           showTotal: (total, range) => `${range[0]}-${range[1]} of ${total}`,
         }}
       />
+      <Divider />
+      <Row gutter={10}>
+        <Col span={15}>
+          <TransactionTable
+            transactions={system?.marketTransactions || []}
+            reasons={{
+              contract: false,
+              construction_shipment_id: false,
+              mining: false,
+              trade_route_id: false,
+            }}
+            size="small"
+          />
+        </Col>
+        <Col span={9}>
+          <Table
+            size="small"
+            columns={[
+              {
+                title: "Waypoint",
+                dataIndex: "waypointSymbol",
+                key: "waypointSymbol",
+                render: (symbol: string | undefined) =>
+                  symbol ? (
+                    <WaypointLink waypoint={symbol}>{symbol}</WaypointLink>
+                  ) : (
+                    "N/A"
+                  ),
+                sorter: (a, b) =>
+                  (a.waypointSymbol || "").localeCompare(
+                    b.waypointSymbol || ""
+                  ),
+
+                filters: [
+                  ...new Set(
+                    system?.chartTransactions.map((t) => t.waypointSymbol || "")
+                  ),
+                ].map((t) => ({
+                  text: t,
+                  value: t,
+                })),
+                onFilter: (value, record) => record.waypointSymbol === value,
+              },
+              {
+                title: "Ship",
+                dataIndex: "shipSymbol",
+                key: "shipSymbol",
+                render: (symbol: string) => (
+                  <Link to={`/ships/${symbol}`}>{symbol}</Link>
+                ),
+                sorter: (a, b) =>
+                  (a.shipSymbol || "").localeCompare(b.shipSymbol || ""),
+                filters: [
+                  ...new Set(
+                    system?.chartTransactions.map((t) => t.shipSymbol || "")
+                  ),
+                ].map((t) => ({
+                  text: t,
+                  value: t,
+                })),
+                onFilter: (value, record) => record.shipSymbol === value,
+              },
+              {
+                title: "Total Price",
+                dataIndex: "totalPrice",
+                key: "totalPrice",
+                render: (value) => <MoneyDisplay amount={value} />,
+                align: "right",
+                sorter: (a, b) => (a.totalPrice ?? 0) - (b.totalPrice ?? 0),
+              },
+              {
+                title: "Timestamp",
+                dataIndex: "timestamp",
+                key: "timestamp",
+                render: (value) => new Date(value).toLocaleString(),
+                align: "right",
+                sorter: (a, b) =>
+                  new Date(a.timestamp ?? 0).getTime() -
+                  new Date(b.timestamp ?? 0).getTime(),
+                defaultSortOrder: "descend",
+              },
+            ]}
+            dataSource={system?.chartTransactions || []}
+            rowKey={(row) => row.waypointSymbol}
+            pagination={{
+              showSizeChanger: true,
+              pageSizeOptions: ["10", "20", "50", "100", "200", "500", "1000"],
+              defaultPageSize: 10,
+              showTotal: (total, range) =>
+                `${range[0]}-${range[1]} of ${total}`,
+            }}
+          />
+        </Col>
+        <Col span={15}>
+          <Table
+            size="small"
+            columns={[
+              {
+                title: "Waypoint",
+                dataIndex: "waypointSymbol",
+                key: "waypointSymbol",
+                render: (symbol: string | undefined) =>
+                  symbol ? (
+                    <WaypointLink waypoint={symbol}>{symbol}</WaypointLink>
+                  ) : (
+                    "N/A"
+                  ),
+                sorter: (a, b) =>
+                  (a.waypointSymbol || "").localeCompare(
+                    b.waypointSymbol || ""
+                  ),
+
+                filters: [
+                  ...new Set(
+                    system?.shipyardShips.map((t) => t.waypointSymbol || "")
+                  ),
+                ].map((t) => ({
+                  text: t,
+                  value: t,
+                })),
+                onFilter: (value, record) => record.waypointSymbol === value,
+              },
+              {
+                title: "Ship Type",
+                dataIndex: "shipType",
+                key: "shipType",
+                render: (shipType, record) => (
+                  <Popover
+                    title={
+                      <Flex vertical>
+                        <Flex justify="space-between" gap={10}>
+                          <span>Frame:</span> {record.frameType}
+                        </Flex>
+                        <Flex justify="space-between" gap={10}>
+                          <span>Engine:</span> {record.engineType}
+                        </Flex>
+                        <Flex justify="space-between" gap={10}>
+                          <span>Reactor:</span> {record.reactorType}
+                        </Flex>
+                        <Flex justify="space-between" gap={10}>
+                          <span>Mounts:</span> {record.mounts.join(", ")}
+                        </Flex>
+                        <Flex justify="space-between" gap={10}>
+                          <span>Modules:</span> {record.modules.join(", ")}
+                        </Flex>
+                      </Flex>
+                    }
+                  >
+                    {shipType}
+                  </Popover>
+                ),
+                sorter: (a, b) => a.shipType.localeCompare(b.shipType),
+                filters: Object.values(ShipType).map((shipType) => ({
+                  text: shipType,
+                  value: shipType,
+                })),
+                onFilter: (value, record) => record.shipType === value,
+              },
+              {
+                title: "Purchase Price",
+                dataIndex: "purchasePrice",
+                key: "purchasePrice",
+                align: "right",
+                render: (price: number) => <MoneyDisplay amount={price} />,
+                sorter: (a, b) => a.purchasePrice - b.purchasePrice,
+              },
+              {
+                title: "Supply Level",
+                dataIndex: "supply",
+                key: "supply",
+                filters: Object.values(SupplyLevel).map((supply) => ({
+                  text: supply,
+                  value: supply,
+                })),
+                onFilter: (value, record) => record.supply === value,
+                sorter: (a, b) => a.supply.localeCompare(b.supply),
+              },
+              {
+                title: "Activity",
+                dataIndex: "activity",
+                key: "activity",
+                sorter: (a, b) =>
+                  (a.activity ?? "").localeCompare(b.activity ?? ""),
+                filters: Object.values(ActivityLevel).map((activity) => ({
+                  text: activity,
+                  value: activity,
+                })),
+              },
+              {
+                title: "Created At",
+                dataIndex: "createdAt",
+                key: "createdAt",
+                render: (date: string) => (
+                  <span>{new Date(date).toLocaleString()}</span>
+                ),
+              },
+            ]}
+            dataSource={system?.shipyardShips || []}
+            rowKey={(row) => row.waypointSymbol + row.shipType}
+            pagination={{
+              showSizeChanger: true,
+              pageSizeOptions: ["10", "20", "50", "100", "200", "500", "1000"],
+              defaultPageSize: 10,
+              showTotal: (total, range) =>
+                `${range[0]}-${range[1]} of ${total}`,
+            }}
+          />
+        </Col>
+        <Col span={9}>
+          <Table
+            size="small"
+            columns={[
+              {
+                title: "Waypoint",
+                dataIndex: "waypointSymbol",
+                key: "waypointSymbol",
+                render: (symbol: string | undefined) =>
+                  symbol ? (
+                    <WaypointLink waypoint={symbol}>{symbol}</WaypointLink>
+                  ) : (
+                    "N/A"
+                  ),
+                sorter: (a, b) =>
+                  (a.waypointSymbol || "").localeCompare(
+                    b.waypointSymbol || ""
+                  ),
+
+                filters: [
+                  ...new Set(
+                    system?.shipyardTransactions.map(
+                      (t) => t.waypointSymbol || ""
+                    )
+                  ),
+                ].map((t) => ({
+                  text: t,
+                  value: t,
+                })),
+                onFilter: (value, record) => record.waypointSymbol === value,
+              },
+              {
+                title: "Agent",
+                dataIndex: "agentSymbol",
+                key: "agentSymbol",
+                render: (symbol: string) => (
+                  <Link to={`/ships/${symbol}`}>{symbol}</Link>
+                ),
+                sorter: (a, b) =>
+                  (a.agentSymbol || "").localeCompare(b.agentSymbol || ""),
+                filters: [
+                  ...new Set(
+                    system?.shipyardTransactions.map((t) => t.agentSymbol || "")
+                  ),
+                ].map((t) => ({
+                  text: t,
+                  value: t,
+                })),
+                onFilter: (value, record) => record.agentSymbol === value,
+              },
+              {
+                title: "Ship Type",
+                dataIndex: "shipType",
+                key: "shipType",
+                sorter: (a, b) =>
+                  (a.shipType || "").localeCompare(b.shipType || ""),
+                filters: Object.values(ShipType)
+                  .sort((a, b) => a.localeCompare(b))
+                  .map((type) => ({
+                    text: type,
+                    value: type,
+                  })),
+                onFilter: (value, record) => record.shipType === value,
+              },
+              {
+                title: "Price",
+                dataIndex: "price",
+                key: "price",
+                render: (value) => <MoneyDisplay amount={value} />,
+                align: "right",
+                sorter: (a, b) => (a.price ?? 0) - (b.price ?? 0),
+              },
+              {
+                title: "Timestamp",
+                dataIndex: "timestamp",
+                key: "timestamp",
+                render: (value) => new Date(value).toLocaleString(),
+                align: "right",
+                sorter: (a, b) =>
+                  new Date(a.timestamp ?? 0).getTime() -
+                  new Date(b.timestamp ?? 0).getTime(),
+                defaultSortOrder: "descend",
+              },
+            ]}
+            dataSource={system?.shipyardTransactions || []}
+            rowKey={(row) => row.id}
+            pagination={{
+              showSizeChanger: true,
+              pageSizeOptions: ["10", "20", "50", "100", "200", "500", "1000"],
+              defaultPageSize: 10,
+              showTotal: (total, range) =>
+                `${range[0]}-${range[1]} of ${total}`,
+            }}
+          />
+        </Col>
+      </Row>
     </div>
   );
 }

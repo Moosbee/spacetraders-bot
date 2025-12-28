@@ -1,5 +1,6 @@
 use std::time::Duration;
 
+use database::AssignmentsByFleetLoader;
 use futures::FutureExt;
 use std::convert::Infallible;
 use tokio_util::sync::CancellationToken;
@@ -14,7 +15,7 @@ use async_graphql_warp::{GraphQLBadRequest, GraphQLResponse};
 use warp::{http::Response as HttpResponse, Filter, Rejection};
 
 use crate::{
-    control_api::graphql::{mutations::MutationRoot, QueryRoot},
+    control_api::graphql::{mutations::MutationRoot, AllShipLoader, QueryRoot},
     manager::Manager,
     utils::ConductorContext,
 };
@@ -57,7 +58,6 @@ impl ControlApiServer {
         let database_pool = self.context.database_pool.clone();
 
         let schema = Schema::build(QueryRoot, MutationRoot, EmptySubscription)
-            .data(context)
             .data(DataLoader::new(
                 database::WaypointSystemLoader::new(database_pool.clone()),
                 tokio::spawn,
@@ -74,6 +74,15 @@ impl ControlApiServer {
                 database::FleetLoader::new(database_pool.clone()),
                 tokio::spawn,
             ))
+            .data(DataLoader::new(
+                AllShipLoader::new(context.clone()),
+                tokio::spawn,
+            ))
+            .data(DataLoader::new(
+                AssignmentsByFleetLoader::new(database_pool.clone()),
+                tokio::spawn,
+            ))
+            .data(context)
             .data(database_pool)
             .finish();
 

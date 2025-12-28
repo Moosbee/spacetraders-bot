@@ -78,6 +78,7 @@ pub use reserved_fund::FundStatus;
 pub use reserved_fund::ReservedFund;
 pub use route::Route;
 pub use scrap_transaction::ScrapTransaction;
+pub use ship_assignment::AssignmentsByFleetLoader;
 pub use ship_assignment::ShipAssignment;
 pub use ship_assignment::SimpleShipRequirement;
 pub use ship_info::ShipInfo;

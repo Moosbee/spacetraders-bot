@@ -14,7 +14,7 @@ import { Link, useParams } from "react-router-dom";
 import MoneyDisplay from "../features/MonyDisplay";
 import PageTitle from "../features/PageTitle";
 import Timer from "../features/Timer/Timer";
-import TransactionTable from "../features/TransactionTable/TransactionTable";
+import TransactionTable from "../features/TransactionTableOld/TransactionTable";
 import WaypointLink from "../features/WaypointLink";
 
 import { backendUrl } from "../data";

@@ -3,6 +3,12 @@ import { graphql } from "../gql/gql";
 export const GET_MAIN_SITE_DATA = graphql(/* GraphQL */ `
   query GetMainSiteData {
     apiCounts
+    budget {
+      currentFunds
+      ironReserve
+      reservedAmount
+      spendable
+    }
     runInfo {
       resetDate
       nextResetDate
@@ -297,14 +303,6 @@ export const GET_SYSTEM = graphql(/* GraphQL */ `
         frameQuality
         reactorType
       }
-      shipyardShipTypes {
-        shipType
-        createdAt
-        shipyard {
-          modificationsFee
-          waypointSymbol
-        }
-      }
       marketTrades {
         waypointSymbol
         symbol
@@ -336,6 +334,11 @@ export const GET_SYSTEM = graphql(/* GraphQL */ `
         tradeSymbol
         required
         fulfilled
+        marketTransactionSummary {
+          expenses
+          purchaseUnits
+          purchaseTransactions
+        }
       }
       jumpGateConnections {
         from
@@ -378,11 +381,15 @@ export const GET_SYSTEM = graphql(/* GraphQL */ `
             sellPrice
           }
         }
+        shipyardShips {
+          shipType
+          supply
+          activity
+          purchasePrice
+        }
       }
       marketTransactions {
-        trade_route_id
-        mining_waypoint_symbol
-        construction_shipment_id
+        id
         waypointSymbol
         shipSymbol
         tradeSymbol
@@ -392,6 +399,14 @@ export const GET_SYSTEM = graphql(/* GraphQL */ `
         totalPrice
         timestamp
         contract_id
+      }
+      shipyardTransactions {
+        id
+        waypointSymbol
+        shipType
+        price
+        agentSymbol
+        timestamp
       }
       contractDeliveries {
         contractId
@@ -448,6 +463,12 @@ export const GET_SYSTEM = graphql(/* GraphQL */ `
           waypointSymbol
           status
         }
+        fuel {
+          capacity
+        }
+        cargo {
+          capacity
+        }
         status {
           assignmentId
           fleetId
@@ -457,6 +478,22 @@ export const GET_SYSTEM = graphql(/* GraphQL */ `
             __typename
           }
         }
+      }
+    }
+  }
+`);
+
+export const GET_CHART_TRANSACTIONS = graphql(/* GraphQL */ `
+  query GetChartTransactions {
+    chartTransactions {
+      waypointSymbol
+      shipSymbol
+      totalPrice
+      timestamp
+      waypoint {
+        symbol
+        waypointType
+        traits
       }
     }
   }

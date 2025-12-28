@@ -9,6 +9,8 @@ use std::collections::{HashMap, HashSet};
 use strum::IntoEnumIterator;
 use utils::WaypointCan;
 
+pub use gql_ship::AllShipLoader;
+
 use crate::{
     control_api::graphql::gql_models::GQLShip,
     utils::{ConductorContext, RunInfo},
@@ -898,6 +900,16 @@ impl QueryRoot {
     async fn trade_symbol_infos(&self) -> Result<Vec<gql_models::TradeSymbolInfo>> {
         let trade_symbol_infos = models::TradeSymbol::iter().map(Into::into).collect();
         Ok(trade_symbol_infos)
+    }
+
+    async fn ship_routes<'ctx>(
+        &self,
+        ctx: &async_graphql::Context<'ctx>,
+    ) -> Result<Vec<gql_models::GQLRoute>> {
+        // Changed return type to GQLRoute
+        let database_pool = ctx.data::<database::DbPool>().unwrap();
+        let reg = database::Route::get_all(database_pool).await?;
+        Ok(reg.into_iter().map(Into::into).collect()) // Added conversion
     }
 
     async fn budget<'ctx>(

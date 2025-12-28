@@ -8,6 +8,7 @@ import { selectDarkMode } from "./redux/slices/configSlice";
 import Agent from "./sites/Agent";
 import Agents from "./sites/Agents";
 import BulkActions from "./sites/BulkActions";
+import ChartTransactions from "./sites/ChartTransactions";
 import { ConfigScreen } from "./sites/Config";
 import ConstructionMaterials from "./sites/ConstructionMaterials";
 import ConstructionShipments from "./sites/ConstructionShipments";
@@ -104,6 +105,11 @@ function MyApp() {
                       path="/transactions/market"
                       element={<MarketTransactions />}
                     />
+                    <Route
+                      path="/transactions/chart"
+                      element={<ChartTransactions />}
+                    />
+
                     <Route path="/agents/:agentID" element={<Agent />} />
                     <Route path="/agents" element={<Agents />} />
 

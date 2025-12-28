@@ -211,7 +211,7 @@ async fn generate_trading_fleet_assignments(
     //     database::MarketTradeGood::get_last_by_system(&context.database_pool, &fleet.system_symbol)
     //         .await?;
 
-    let ship_counts = (waypoints as f64 * trading_config.ship_market_ratio).floor() as u32;
+    let ship_counts = (waypoints as f64 * trading_config.ship_market_ratio).ceil() as u32;
 
     let min_range = 300; // todo get minimum range to get to every waypoint in the system using cruse, see percolation theory and minimum spanning tree and Kruskal's algorithm
 

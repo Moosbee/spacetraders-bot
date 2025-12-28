@@ -621,8 +621,10 @@ impl GQLFleet {
     }
 
     async fn all_ships<'ctx>(&self, ctx: &async_graphql::Context<'ctx>) -> Result<Vec<GQLShip>> {
-        let context = ctx.data::<crate::utils::ConductorContext>().unwrap();
-        let all_ships = context.ship_manager.get_all_clone().await;
+        // let context = ctx.data::<crate::utils::ConductorContext>().unwrap();
+        // let all_ships = context.ship_manager.get_all_clone().await;
+        let ship_loader = ctx.data::<DataLoader<super::AllShipLoader>>().unwrap();
+        let all_ships = ship_loader.load_one(()).await?.unwrap();
         let ships = all_ships
             .into_values()
             .filter(|ship| {
@@ -633,8 +635,8 @@ impl GQLFleet {
         Ok(ships.into_iter().map(|s| s.into()).collect())
     }
     async fn ships<'ctx>(&self, ctx: &async_graphql::Context<'ctx>) -> Result<Vec<GQLShip>> {
-        let context = ctx.data::<crate::utils::ConductorContext>().unwrap();
-        let all_ships = context.ship_manager.get_all_clone().await;
+        let ship_loader = ctx.data::<DataLoader<super::AllShipLoader>>().unwrap();
+        let all_ships = ship_loader.load_one(()).await?.unwrap();
         let ships = all_ships
             .into_values()
             .filter(|ship| ship.status.fleet_id == Some(self.fleet.id))
@@ -642,8 +644,8 @@ impl GQLFleet {
         Ok(ships.into_iter().map(|s| s.into()).collect())
     }
     async fn temp_ships<'ctx>(&self, ctx: &async_graphql::Context<'ctx>) -> Result<Vec<GQLShip>> {
-        let context = ctx.data::<crate::utils::ConductorContext>().unwrap();
-        let all_ships = context.ship_manager.get_all_clone().await;
+        let ship_loader = ctx.data::<DataLoader<super::AllShipLoader>>().unwrap();
+        let all_ships = ship_loader.load_one(()).await?.unwrap();
         let ships = all_ships
             .into_values()
             .filter(|ship| ship.status.temp_fleet_id == Some(self.fleet.id))
@@ -1326,14 +1328,16 @@ impl From<database::ShipAssignment> for GQLShipAssignment {
 #[async_graphql::ComplexObject]
 impl GQLShipAssignment {
     async fn fleet<'ctx>(&self, ctx: &async_graphql::Context<'ctx>) -> Result<Option<GQLFleet>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let erg = database::Fleet::get_by_id(database_pool, self.ship_assignment.fleet_id).await?;
+        // let database_pool = ctx.data::<database::DbPool>().unwrap();
+        // let erg = database::Fleet::get_by_id(database_pool, self.ship_assignment.fleet_id).await?;
+        let fleet_loader = ctx.data::<DataLoader<database::FleetLoader>>().unwrap();
+        let erg = fleet_loader.load_one(self.ship_assignment.fleet_id).await?;
         Ok(into_gql(erg))
     }
 
     async fn ship<'ctx>(&self, ctx: &async_graphql::Context<'ctx>) -> Result<Option<GQLShip>> {
-        let context = ctx.data::<crate::utils::ConductorContext>().unwrap();
-        let all_ships = context.ship_manager.get_all_clone().await;
+        let ship_loader = ctx.data::<DataLoader<super::AllShipLoader>>().unwrap();
+        let all_ships = ship_loader.load_one(()).await?.unwrap();
         let ship = all_ships.into_values().find(|ship| {
             ship.status.assignment_id == Some(self.ship_assignment.id)
                 || ship.status.temp_assignment_id == Some(self.ship_assignment.id)
@@ -1345,8 +1349,8 @@ impl GQLShipAssignment {
         &self,
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Option<GQLShip>> {
-        let context = ctx.data::<crate::utils::ConductorContext>().unwrap();
-        let all_ships = context.ship_manager.get_all_clone().await;
+        let ship_loader = ctx.data::<DataLoader<super::AllShipLoader>>().unwrap();
+        let all_ships = ship_loader.load_one(()).await?.unwrap();
         let ship = all_ships
             .into_values()
             .find(|ship| ship.status.assignment_id == Some(self.ship_assignment.id));
@@ -1354,8 +1358,8 @@ impl GQLShipAssignment {
     }
 
     async fn temp_ship<'ctx>(&self, ctx: &async_graphql::Context<'ctx>) -> Result<Option<GQLShip>> {
-        let context = ctx.data::<crate::utils::ConductorContext>().unwrap();
-        let all_ships = context.ship_manager.get_all_clone().await;
+        let ship_loader = ctx.data::<DataLoader<super::AllShipLoader>>().unwrap();
+        let all_ships = ship_loader.load_one(()).await?.unwrap();
         let ship = all_ships
             .into_values()
             .find(|ship| ship.status.temp_assignment_id == Some(self.ship_assignment.id));
@@ -1961,9 +1965,9 @@ impl GQLShipyardTransaction {
     }
 
     async fn ship(&self, ctx: &async_graphql::Context<'_>) -> Result<Option<GQLShip>> {
-        let context = ctx.data::<crate::utils::ConductorContext>().unwrap();
-        let ships = context.ship_manager.get_all_clone().await;
-        let ship = ships
+        let ship_loader = ctx.data::<DataLoader<super::AllShipLoader>>().unwrap();
+        let all_ships = ship_loader.load_one(()).await?.unwrap();
+        let ship = all_ships
             .into_values()
             .find(|ship| ship.purchase_id == Some(self.shipyard_transaction.id));
         Ok(ship.map(|f| f.into()))
@@ -2278,9 +2282,9 @@ impl GQLSystem {
     }
 
     async fn ships(&self, ctx: &async_graphql::Context<'_>) -> Result<Vec<GQLShip>> {
-        let context = ctx.data::<crate::utils::ConductorContext>().unwrap();
-        let ships_map = context.ship_manager.get_all_clone().await;
-        Ok(ships_map
+        let ship_loader = ctx.data::<DataLoader<super::AllShipLoader>>().unwrap();
+        let all_ships = ship_loader.load_one(()).await?.unwrap();
+        Ok(all_ships
             .into_values()
             .filter(|ship| ship.nav.system_symbol == self.system.symbol)
             .map(|ship| ship.into())
@@ -2481,9 +2485,9 @@ impl GQLWaypoint {
     }
 
     async fn ships(&self, ctx: &async_graphql::Context<'_>) -> Result<Vec<GQLShip>> {
-        let context = ctx.data::<crate::utils::ConductorContext>().unwrap();
-        let ships_map = context.ship_manager.get_all_clone().await;
-        Ok(ships_map
+        let ship_loader = ctx.data::<DataLoader<super::AllShipLoader>>().unwrap();
+        let all_ships = ship_loader.load_one(()).await?.unwrap();
+        Ok(all_ships
             .into_values()
             .filter(|ship| ship.nav.waypoint_symbol == self.waypoint.symbol)
             .map(|ship| ship.into())

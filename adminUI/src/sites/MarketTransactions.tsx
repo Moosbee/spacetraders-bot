@@ -2,7 +2,7 @@ import { Button, Space } from "antd";
 import { useEffect, useState } from "react";
 import { backendUrl } from "../data";
 import PageTitle from "../features/PageTitle";
-import TransactionTable from "../features/TransactionTable/TransactionTable";
+import TransactionTable from "../features/TransactionTableOld/TransactionTable";
 import { Transaction } from "../models/Transaction";
 
 function MarketTransactions() {

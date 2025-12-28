@@ -9,7 +9,7 @@ mod pilot;
 mod utils;
 
 use core::panic;
-use std::{collections::HashSet, env, error::Error, str::FromStr, sync::Arc, vec};
+use std::{collections::HashSet, env, error::Error, str::FromStr, sync::Arc, time::Duration, vec};
 
 use chrono::{DateTime, Utc};
 use database::DatabaseConnector;
@@ -122,14 +122,16 @@ async fn setup_unauthed() -> Result<(space_traders_client::Api, database::DbPool
     let database_url = env::var("DATABASE_URL").unwrap();
     let readyset_url = env::var("READYSET_URL").ok();
     let database_pool = PgPoolOptions::new()
-        .max_connections(5)
+        .max_connections(20)
+        .acquire_timeout(Duration::from_secs(120))
         .connect(&database_url)
         .await?;
 
     let readyset_pool = if let Some(readyset_url) = readyset_url {
         Some(
             PgPoolOptions::new()
-                .max_connections(5)
+                .max_connections(20)
+        .acquire_timeout(Duration::from_secs(120)) 
                 .connect(&readyset_url)
                 .await?,
         )

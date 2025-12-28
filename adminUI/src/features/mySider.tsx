@@ -4,6 +4,7 @@ import {
   DeliveredProcedureOutlined,
   DollarOutlined,
   FileTextOutlined,
+  FormOutlined,
   GlobalOutlined,
   HomeOutlined,
   InfoCircleOutlined,
@@ -99,6 +100,11 @@ const items: MenuItem[] = [
         label: <Link to="/transactions/market">Market Transactions</Link>,
         key: "transactions/market",
         icon: <DeliveredProcedureOutlined />,
+      },
+      {
+        label: <Link to="/transactions/chart">Chart Transactions</Link>,
+        key: "transactions/chart",
+        icon: <FormOutlined />,
       },
       {
         label: <Link to="/reservedFunds">Reserved Funds</Link>,

@@ -1,61 +1,88 @@
 import { Table, TableProps } from "antd";
 import { Link } from "react-router-dom";
-import { MarketTransactionTypeEnum, TradeSymbol } from "../../models/api";
-import { Transaction } from "../../models/Transaction";
+import {
+  MarketTransaction,
+  MarketTransactionType,
+  TradeSymbol,
+} from "../../gql/graphql";
 import MoneyDisplay from "../MonyDisplay";
 import WaypointLink from "../WaypointLink";
 
 function TransactionTable({
   transactions,
-  reasons = { contract: true, trade_route: true, mining: true },
+  size,
+  reasons = {
+    contract: true,
+    trade_route_id: true,
+    mining: true,
+    construction_shipment_id: true,
+  },
 }: {
-  transactions: Transaction[];
-  reasons?: { contract: boolean; trade_route: boolean; mining: boolean };
+  size?: TableProps["size"];
+  transactions: Partial<MarketTransaction>[];
+  reasons?: {
+    contract: boolean;
+    trade_route_id: boolean;
+    mining: boolean;
+    construction_shipment_id: boolean;
+  };
 }) {
-  const columns: TableProps<Transaction>["columns"] = [
+  const columns: TableProps<Partial<MarketTransaction>>["columns"] = [
     {
       title: "Waypoint",
-      dataIndex: "waypoint_symbol",
-      key: "waypoint_symbol",
-      render: (symbol: string) => (
-        <WaypointLink waypoint={symbol}>{symbol}</WaypointLink>
-      ),
-      sorter: (a, b) => a.waypoint_symbol.localeCompare(b.waypoint_symbol),
+      dataIndex: "waypointSymbol",
+      key: "waypointSymbol",
+      render: (symbol: string | undefined) =>
+        symbol ? (
+          <WaypointLink waypoint={symbol}>{symbol}</WaypointLink>
+        ) : (
+          "N/A"
+        ),
+      sorter: (a, b) =>
+        (a.waypointSymbol || "").localeCompare(b.waypointSymbol || ""),
 
-      filters: [...new Set(transactions.map((t) => t.waypoint_symbol))].map(
+      filters: [
+        ...new Set(transactions.map((t) => t.waypointSymbol || "")),
+      ].map((t) => ({
+        text: t,
+        value: t,
+      })),
+      onFilter: (value, record) => record.waypointSymbol === value,
+    },
+    {
+      title: "Ship",
+      dataIndex: "shipSymbol",
+      key: "shipSymbol",
+      render: (symbol: string) => <Link to={`/ships/${symbol}`}>{symbol}</Link>,
+      sorter: (a, b) => (a.shipSymbol || "").localeCompare(b.shipSymbol || ""),
+      filters: [...new Set(transactions.map((t) => t.shipSymbol || ""))].map(
         (t) => ({
           text: t,
           value: t,
         })
       ),
-      onFilter: (value, record) => record.waypoint_symbol === value,
-    },
-    {
-      title: "Ship",
-      dataIndex: "ship_symbol",
-      key: "ship_symbol",
-      render: (symbol: string) => <Link to={`/ships/${symbol}`}>{symbol}</Link>,
-      sorter: (a, b) => a.ship_symbol.localeCompare(b.ship_symbol),
+      onFilter: (value, record) => record.shipSymbol === value,
     },
     {
       title: "Trade Symbol",
-      dataIndex: "trade_symbol",
-      key: "trade_symbol",
-      sorter: (a, b) => a.trade_symbol.localeCompare(b.trade_symbol),
+      dataIndex: "tradeSymbol",
+      key: "tradeSymbol",
+      sorter: (a, b) =>
+        (a.tradeSymbol || "").localeCompare(b.tradeSymbol || ""),
       filters: Object.values(TradeSymbol)
         .sort((a, b) => a.localeCompare(b))
         .map((type) => ({
           text: type,
           value: type,
         })),
-      onFilter: (value, record) => record.trade_symbol === value,
+      onFilter: (value, record) => record.tradeSymbol === value,
     },
     {
       title: "Transaction Type",
       dataIndex: "type",
       key: "type",
-      sorter: (a, b) => a.type.localeCompare(b.type),
-      filters: Object.values(MarketTransactionTypeEnum).map((type) => ({
+      sorter: (a, b) => (a.type || "").localeCompare(b.type || ""),
+      filters: Object.values(MarketTransactionType).map((type) => ({
         text: type,
         value: type,
       })),
@@ -66,23 +93,23 @@ function TransactionTable({
       dataIndex: "units",
       key: "units",
       align: "right",
-      sorter: (a, b) => a.units - b.units,
+      sorter: (a, b) => (a.units ?? 0) - (b.units ?? 0),
     },
     {
       title: "Price Per Unit",
-      dataIndex: "price_per_unit",
-      key: "price_per_unit",
+      dataIndex: "pricePerUnit",
+      key: "pricePerUnit",
       render: (value) => <MoneyDisplay amount={value} />,
       align: "right",
-      sorter: (a, b) => a.price_per_unit - b.price_per_unit,
+      sorter: (a, b) => (a.pricePerUnit ?? 0) - (b.pricePerUnit ?? 0),
     },
     {
       title: "Total Price",
-      dataIndex: "total_price",
-      key: "total_price",
+      dataIndex: "totalPrice",
+      key: "totalPrice",
       render: (value) => <MoneyDisplay amount={value} />,
       align: "right",
-      sorter: (a, b) => a.total_price - b.total_price,
+      sorter: (a, b) => (a.totalPrice ?? 0) - (b.totalPrice ?? 0),
     },
     {
       title: "Timestamp",
@@ -91,7 +118,8 @@ function TransactionTable({
       render: (value) => new Date(value).toLocaleString(),
       align: "right",
       sorter: (a, b) =>
-        new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
+        new Date(a.timestamp ?? 0).getTime() -
+        new Date(b.timestamp ?? 0).getTime(),
       defaultSortOrder: "descend",
     },
 
@@ -99,11 +127,13 @@ function TransactionTable({
       ? [
           {
             title: "Contract",
-            dataIndex: "contract",
-            key: "contract",
+            dataIndex: "contract_id",
+            key: "contract_id",
             render: (text: string | null) => text || "N/A", // Display "N/A" if null
-            sorter: (a: Transaction, b: Transaction) =>
-              (a.contract ?? "").localeCompare(b.contract ?? ""),
+            sorter: (
+              a: Partial<MarketTransaction>,
+              b: Partial<MarketTransaction>
+            ) => (a.contract_id ?? "").localeCompare(b.contract_id ?? ""),
             filters: [
               {
                 text: "Yes",
@@ -114,21 +144,26 @@ function TransactionTable({
                 value: "No",
               },
             ],
-            onFilter: (value: boolean | React.Key, record: Transaction) =>
-              (value === "No" && !record.contract) ||
-              (value === "Yes" && !!record.contract),
+            onFilter: (
+              value: boolean | React.Key,
+              record: Partial<MarketTransaction>
+            ) =>
+              (value === "No" && !record.contract_id) ||
+              (value === "Yes" && !!record.contract_id),
           },
         ]
       : []),
-    ...(reasons?.trade_route
+    ...(reasons?.trade_route_id
       ? [
           {
             title: "Trade Route",
-            dataIndex: "trade_route",
-            key: "trade_route",
+            dataIndex: "trade_route_id",
+            key: "trade_route_id",
             render: (value: number | null) => (value !== null ? value : "N/A"), // Display "N/A" if null
-            sorter: (a: Transaction, b: Transaction) =>
-              (a.trade_route ?? 0) - (b.trade_route ?? 0),
+            sorter: (
+              a: Partial<MarketTransaction>,
+              b: Partial<MarketTransaction>
+            ) => (a.trade_route_id ?? 0) - (b.trade_route_id ?? 0),
             filters: [
               {
                 text: "Yes",
@@ -139,9 +174,12 @@ function TransactionTable({
                 value: "No",
               },
             ],
-            onFilter: (value: boolean | React.Key, record: Transaction) =>
-              (value === "No" && !record.trade_route) ||
-              (value === "Yes" && !!record.trade_route),
+            onFilter: (
+              value: boolean | React.Key,
+              record: Partial<MarketTransaction>
+            ) =>
+              (value === "No" && !record.trade_route_id) ||
+              (value === "Yes" && !!record.trade_route_id),
           },
         ]
       : []),
@@ -150,11 +188,16 @@ function TransactionTable({
       ? [
           {
             title: "Mining",
-            dataIndex: "mining",
-            key: "mining",
+            dataIndex: "mining_waypoint_symbol",
+            key: "mining_waypoint_symbol",
             render: (text: string | null) => text || "N/A", // Display "N/A" if null
-            sorter: (a: Transaction, b: Transaction) =>
-              (a.mining ?? "").localeCompare(b.mining ?? ""),
+            sorter: (
+              a: Partial<MarketTransaction>,
+              b: Partial<MarketTransaction>
+            ) =>
+              (a.mining_waypoint_symbol ?? "").localeCompare(
+                b.mining_waypoint_symbol ?? ""
+              ),
             filters: [
               {
                 text: "Yes",
@@ -165,18 +208,52 @@ function TransactionTable({
                 value: "No",
               },
             ],
-            onFilter: (value: boolean | React.Key, record: Transaction) =>
-              (value === "No" && !record.mining) ||
-              (value === "Yes" && !!record.mining),
+            onFilter: (
+              value: boolean | React.Key,
+              record: Partial<MarketTransaction>
+            ) =>
+              (value === "No" && !record.mining_waypoint_symbol) ||
+              (value === "Yes" && !!record.mining_waypoint_symbol),
+          },
+        ]
+      : []),
+    ...(reasons?.construction_shipment_id
+      ? [
+          {
+            title: "Construction Shipment",
+            dataIndex: "construction_shipment_id",
+            key: "construction_shipment_id",
+            render: (value: number | null) => (value !== null ? value : "N/A"), // Display "N/A" if null
+            sorter: (
+              a: Partial<MarketTransaction>,
+              b: Partial<MarketTransaction>
+            ) =>
+              (a.construction_shipment_id ?? 0) -
+              (b.construction_shipment_id ?? 0),
+            filters: [
+              {
+                text: "Yes",
+                value: "Yes",
+              },
+              {
+                text: "No",
+                value: "No",
+              },
+            ],
+            onFilter: (
+              value: boolean | React.Key,
+              record: Partial<MarketTransaction>
+            ) =>
+              (value === "No" && !record.construction_shipment_id) ||
+              (value === "Yes" && !!record.construction_shipment_id),
           },
         ]
       : []),
   ];
   return (
     <Table
-      rowKey={(id) =>
-        id.timestamp + id.ship_symbol + id.waypoint_symbol + id.trade_symbol
-      }
+      rowKey={(id) => "L" + id.id}
+      size={size}
       dataSource={transactions}
       columns={columns}
       pagination={{
