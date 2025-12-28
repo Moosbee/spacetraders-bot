@@ -90,20 +90,19 @@ async fn main() -> anyhow::Result<()> {
 }
 
 async fn setup_unauthed() -> Result<(space_traders_client::Api, database::DbPool), anyhow::Error> {
-    let _erg=dotenvy::dotenv();
+    let _erg = dotenvy::dotenv();
 
     // console_subscriber::init();
 
-    println!("Spacetraders Starting 1");
     let otel_endpoint = env::var("OTEL_ENDPOINT").ok();
 
     global::set_text_map_propagator(TraceContextPropagator::new());
-    let telemetry=if let Some(otel_endpoint)=otel_endpoint{
-      let tracer = open_telemetry::init_trace(otel_endpoint).unwrap();
-      let telemetry = tracing_opentelemetry::layer().with_tracer(tracer);
-      Some(telemetry)
-    }else{
-      None
+    let telemetry = if let Some(otel_endpoint) = otel_endpoint {
+        let tracer = open_telemetry::init_trace(otel_endpoint).unwrap();
+        let telemetry = tracing_opentelemetry::layer().with_tracer(tracer);
+        Some(telemetry)
+    } else {
+        None
     };
     let fmt_tracer = tracing_subscriber::fmt::layer();
 
@@ -112,13 +111,13 @@ async fn setup_unauthed() -> Result<(space_traders_client::Api, database::DbPool
     let subscriber = tracing_subscriber::registry()
         .with(tracing_subscriber::filter::EnvFilter::from_default_env())
         .with(fmt_tracer);
-        // .with(tracing_tracy);
+    // .with(tracing_tracy);
 
-    if let Some(telemetry)=telemetry{
-      let subscriber=subscriber.with(telemetry);
-      tracing::subscriber::set_global_default(subscriber).unwrap();
-    }else{
-      tracing::subscriber::set_global_default(subscriber).unwrap();
+    if let Some(telemetry) = telemetry {
+        let subscriber = subscriber.with(telemetry);
+        tracing::subscriber::set_global_default(subscriber).unwrap();
+    } else {
+        tracing::subscriber::set_global_default(subscriber).unwrap();
     }
 
     // let env = Env::default()
@@ -128,8 +127,6 @@ async fn setup_unauthed() -> Result<(space_traders_client::Api, database::DbPool
     // env_logger::Builder::from_env(env)
     //     .target(Target::Stdout)
     //     .init();
-
-    tracing::info!("Spacetraders Starting 2");
 
     check_time().await;
 
@@ -146,7 +143,7 @@ async fn setup_unauthed() -> Result<(space_traders_client::Api, database::DbPool
         Some(
             PgPoolOptions::new()
                 .max_connections(20)
-        .acquire_timeout(Duration::from_secs(120)) 
+                .acquire_timeout(Duration::from_secs(120))
                 .connect(&readyset_url)
                 .await?,
         )
@@ -158,6 +155,8 @@ async fn setup_unauthed() -> Result<(space_traders_client::Api, database::DbPool
         space_traders_client::Api::new(access_token, 500, NonZeroU32::new(2).unwrap());
 
     let database_pool = database::DbPool::new(database_pool, readyset_pool);
+
+    sqlx::migrate!().run(&database_pool.database_pool).await?;
 
     // database::ShipInfo::insert(
     //     &database_pool,
@@ -192,7 +191,14 @@ async fn setup_context(
         agent_symbol: my_agent.data.symbol.clone(),
         headquarters: my_agent.data.headquarters.clone(),
         starting_faction: models::FactionSymbol::from_str(&my_agent.data.starting_faction)?,
-        reset_date: status.reset_date.clone().parse::<chrono::NaiveDate>()?.and_hms_opt(13, 0, 0).unwrap().and_local_timezone(chrono::Utc).unwrap(),
+        reset_date: status
+            .reset_date
+            .clone()
+            .parse::<chrono::NaiveDate>()?
+            .and_hms_opt(13, 0, 0)
+            .unwrap()
+            .and_local_timezone(chrono::Utc)
+            .unwrap(),
         next_reset_date: status.server_resets.next.clone().parse()?,
         version: status.version.clone(),
     };

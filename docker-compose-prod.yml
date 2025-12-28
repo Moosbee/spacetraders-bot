@@ -7,6 +7,7 @@ services:
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       - READYSET_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@readyset:5433/${POSTGRES_DB}
+      - OTEL_ENDPOINT=http://jaeger:4317
     ports:
      - 8780:8780
     volumes:
