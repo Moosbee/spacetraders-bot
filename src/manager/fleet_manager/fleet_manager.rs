@@ -1,6 +1,6 @@
 use std::collections::{BTreeSet, HashMap, HashSet};
 
-use database::DatabaseConnector;
+use database::DatabaseConnectorAsync;
 use itertools::Itertools;
 use tracing::{debug, warn};
 
@@ -183,21 +183,31 @@ impl FleetManager {
         let ships_purchasable = database::ShipyardShip::get_last_by_waypoint(
             &self.context.database_pool,
             waypoint_symbol,
+            database::PaginatedQuery::unpaged(),
         )
-        .await?;
+        .await?
+        .items;
 
-        let open_assignments =
-            database::ShipAssignment::get_open_assignments(&self.context.database_pool).await?;
+        let open_assignments = database::ShipAssignment::get_open_assignments(
+            &self.context.database_pool,
+            database::PaginatedQuery::unpaged(),
+        )
+        .await?
+        .items;
 
         let assignments_count = open_assignments.len();
 
         // get all the open assignments that can be fulfilled from this shipyard
 
-        let ship_frames = database::FrameInfo::get_all(&self.context.database_pool)
-            .await?
-            .into_iter()
-            .map(|f| (f.symbol, f))
-            .collect::<HashMap<_, _>>();
+        let ship_frames = database::FrameInfo::get_all(
+            &self.context.database_pool,
+            database::PaginatedQuery::unpaged(),
+        )
+        .await?
+        .items
+        .into_iter()
+        .map(|f| (f.symbol, f))
+        .collect::<HashMap<_, _>>();
 
         let fulfillable_assignments = open_assignments
             .into_iter()
@@ -226,22 +236,24 @@ impl FleetManager {
 
         // get for those assignments all other shipyard and shipyard_ships
 
-        let all_shipyard_ships = database::ShipyardShip::get_last(&self.context.database_pool)
-            .await?
-            .into_iter()
-            .filter_map(|shipyard_ship| {
-                let ship_frame = ship_frames.get(&shipyard_ship.frame_type);
-                if let Some(ship_frame) = ship_frame {
-                    let ship_capabilities = ShipCapabilities::get_shipyard_ship_capabilities(
-                        &shipyard_ship,
-                        ship_frame,
-                    );
-                    Some((shipyard_ship, ship_capabilities))
-                } else {
-                    None
-                }
-            })
-            .collect::<Vec<_>>();
+        let all_shipyard_ships = database::ShipyardShip::get_last_paginated(
+            &self.context.database_pool,
+            database::PaginatedQuery::unpaged(),
+        )
+        .await?
+        .items
+        .into_iter()
+        .filter_map(|shipyard_ship| {
+            let ship_frame = ship_frames.get(&shipyard_ship.frame_type);
+            if let Some(ship_frame) = ship_frame {
+                let ship_capabilities =
+                    ShipCapabilities::get_shipyard_ship_capabilities(&shipyard_ship, ship_frame);
+                Some((shipyard_ship, ship_capabilities))
+            } else {
+                None
+            }
+        })
+        .collect::<Vec<_>>();
 
         let fleets = database::Fleet::get_by_ids(
             &self.context.database_pool,
@@ -370,7 +382,7 @@ impl FleetManager {
             )
             .await?;
 
-        database::Agent::insert(
+        database::Agent::upsert(
             &self.context.database_pool,
             &database::Agent::from(*purchase_ship_response.data.agent),
         )
@@ -443,8 +455,12 @@ impl FleetManager {
 
         // get all "open" assignments from the database, i.e. assignments that are not yet assigned to a ship, that are not disabled and where the fleet is activated
 
-        let open_assignments =
-            database::ShipAssignment::get_open_assignments(&self.context.database_pool).await?;
+        let open_assignments = database::ShipAssignment::get_open_assignments(
+            &self.context.database_pool,
+            database::PaginatedQuery::unpaged(),
+        )
+        .await?
+        .items;
 
         // filter assignments based on ship capabilities (e.g. required cargo space, required fuel, required equipment, ...)
 
@@ -507,7 +523,7 @@ impl FleetManager {
         if let Some(best_assignment) = best_assignment {
             // assign it to the ship
             let mut ship_info =
-                database::ShipInfo::get_by_symbol(&self.context.database_pool, &ship_clone.symbol)
+                database::ShipInfo::get_by_id(&self.context.database_pool, &ship_clone.symbol)
                     .await?
                     .ok_or(crate::error::Error::General(
                         "No ship info found".to_string(),
@@ -519,7 +535,7 @@ impl FleetManager {
                 ship_info.assignment_id = Some(best_assignment.id);
             }
 
-            database::ShipInfo::insert(&self.context.database_pool, &ship_info).await?;
+            database::ShipInfo::upsert(&self.context.database_pool, &ship_info).await?;
 
             Ok(Some(best_assignment.id))
         } else {
@@ -552,9 +568,22 @@ impl FleetManager {
 
     async fn re_generate_assignments(&mut self, by: RegenFleetBy) -> Result<()> {
         let fleets = match by {
-            RegenFleetBy::All => database::Fleet::get_all(&self.context.database_pool).await?,
+            RegenFleetBy::All => {
+                database::Fleet::get_all(
+                    &self.context.database_pool,
+                    database::PaginatedQuery::unpaged(),
+                )
+                .await?
+                .items
+            }
             RegenFleetBy::System(system_symbol) => {
-                database::Fleet::get_by_system(&self.context.database_pool, &system_symbol).await?
+                database::Fleet::get_by_system(
+                    &self.context.database_pool,
+                    &system_symbol,
+                    database::PaginatedQuery::unpaged(),
+                )
+                .await?
+                .items
             }
             RegenFleetBy::Fleet(fleet_id) => {
                 let fleet =
@@ -567,9 +596,13 @@ impl FleetManager {
         };
 
         for fleet in fleets {
-            let current_assignments =
-                database::ShipAssignment::get_by_fleet_id(&self.context.database_pool, fleet.id)
-                    .await?;
+            let current_assignments = database::ShipAssignment::get_by_fleet_id(
+                &self.context.database_pool,
+                fleet.id,
+                database::PaginatedQuery::unpaged(),
+            )
+            .await?
+            .items;
             let new_assignments =
                 super::assignment_management::generate_fleet_assignments(&fleet, &self.context)
                     .await?;
@@ -589,9 +622,9 @@ impl FleetManager {
 
     async fn handle_populate_from_jump_gate(&mut self, jump_gate_symbol: &str) -> Result<()> {
         self.jump_gate = None;
+        let jump_gate_symbol = jump_gate_symbol.to_string();
         let waypoint =
-            database::Waypoint::get_by_symbol(&self.context.database_pool, jump_gate_symbol)
-                .await?;
+            database::Waypoint::get_by_id(&self.context.database_pool, &jump_gate_symbol).await?;
 
         if waypoint.is_none() {
             return Err(crate::error::Error::General(format!(
@@ -600,7 +633,7 @@ impl FleetManager {
             )));
         }
 
-        let system_symbol = utils::get_system_symbol(jump_gate_symbol);
+        let system_symbol = utils::get_system_symbol(&jump_gate_symbol);
         crate::manager::fleet_manager::fleet_population::populate_system(
             &self.context,
             &system_symbol,
@@ -613,13 +646,15 @@ impl FleetManager {
 
         let connections = database::JumpGateConnection::get_all_from(
             &self.context.database_pool,
-            jump_gate_symbol,
+            &jump_gate_symbol,
+            database::PaginatedQuery::unpaged(),
         )
-        .await?;
+        .await?
+        .items;
 
         for gate in connections.iter() {
             let waypoint =
-                database::Waypoint::get_by_symbol(&self.context.database_pool, &gate.to).await?;
+                database::Waypoint::get_by_id(&self.context.database_pool, &gate.to).await?;
 
             if waypoint.map(|f| f.is_under_construction).unwrap_or(true) {
                 continue;

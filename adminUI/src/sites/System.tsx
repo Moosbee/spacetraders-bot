@@ -31,7 +31,6 @@ import TransactionTable from "../features/TransactionTable/TransactionTable";
 import WaypointLink from "../features/WaypointLink";
 import {
   ActivityLevel,
-  GetSystemQuery,
   ShipType,
   SupplyLevel,
   TradeSymbol,
@@ -61,9 +60,45 @@ function System() {
   // if (dataState != "complete") return <p>Loading...</p>;
   if (error) return <p>Error: {error.message}</p>;
 
-  const system = data?.system;
+  const system = data?.system
+    ? {
+        ...data.system,
+        fleets: data.system.fleets.items.map((fleet) => ({
+          ...fleet,
+          assignments: fleet.assignments.items,
+        })),
+        chartTransactions: data.system.chartTransactions.items,
+        shipyardShips: data.system.shipyardShips.items,
+        marketTrades: data.system.marketTrades.items.map((trade) => ({
+          ...trade,
+          tradeSymbolInfo: {
+            ...trade.tradeSymbolInfo,
+            requires: trade.tradeSymbolInfo.requires.items,
+            requiredBy: trade.tradeSymbolInfo.requiredBy.items,
+          },
+        })),
+        constructionMaterials: data.system.constructionMaterials.items,
+        jumpGateConnections: data.system.jumpGateConnections.items,
+        waypoints: data.system.waypoints.items.map((waypoint) => ({
+          ...waypoint,
+          marketTrades: waypoint.marketTrades.items.map((trade) => ({
+            ...trade,
+            tradeSymbolInfo: {
+              ...trade.tradeSymbolInfo,
+              requires: trade.tradeSymbolInfo.requires.items,
+              requiredBy: trade.tradeSymbolInfo.requiredBy.items,
+            },
+          })),
+          shipyardShips: waypoint.shipyardShips.items,
+        })),
+        marketTransactions: data.system.marketTransactions.items,
+        shipyardTransactions: data.system.shipyardTransactions.items,
+        contractDeliveries: data.system.contractDeliveries.items,
+        tradeRoutes: data.system.tradeRoutes.items,
+      }
+    : undefined;
 
-  type GQLWaypoint = GetSystemQuery["system"]["waypoints"][number];
+  type GQLWaypoint = NonNullable<typeof system>["waypoints"][number];
 
   const color = systemIcons[system?.systemType || "BLACK_HOLE"].color;
   const waypointIcon = systemIcons[system?.systemType || "BLACK_HOLE"].icon;
@@ -307,14 +342,14 @@ function System() {
                   (new Date(record.nextScrap).getTime() -
                     new Date(record.lastScrap).getTime()) /
                     1000 /
-                    60
+                    60,
                 )}
                 min{" "}
                 {Math.floor(
                   ((new Date(record.nextScrap).getTime() -
                     new Date(record.lastScrap).getTime()) /
                     1000) %
-                    60
+                    60,
                 )}
                 s - {new Date(record.nextScrap).toLocaleString()}
               </span>
@@ -327,7 +362,7 @@ function System() {
         ), // Display chart symbol or "N/A"
       sorter: (a, b, sortOrder) =>
         (a.nextScrap ?? (sortOrder == "ascend" ? "9" : "0")).localeCompare(
-          b.nextScrap ?? (sortOrder == "ascend" ? "9" : "0")
+          b.nextScrap ?? (sortOrder == "ascend" ? "9" : "0"),
         ),
     },
     {
@@ -489,7 +524,7 @@ function System() {
                                   marketTrades.some(
                                     (e) =>
                                       e.type === "IMPORT" &&
-                                      e.symbol == t.symbol
+                                      e.symbol == t.symbol,
                                   )
                                     ? "text-current"
                                     : "text-red-700"
@@ -591,7 +626,7 @@ function System() {
           (sh) => ({
             text: sh,
             value: sh,
-          })
+          }),
         ),
       ],
       onFilter: (value, record) => record.hasShipyard === value,
@@ -650,7 +685,7 @@ function System() {
           <List
             size="small"
             dataSource={[...(system?.seenAgents || [])].sort(
-              (a, b) => b.count - a.count
+              (a, b) => b.count - a.count,
             )}
             renderItem={(agent) => (
               <List.Item>
@@ -911,12 +946,14 @@ function System() {
                   ),
                 sorter: (a, b) =>
                   (a.waypointSymbol || "").localeCompare(
-                    b.waypointSymbol || ""
+                    b.waypointSymbol || "",
                   ),
 
                 filters: [
                   ...new Set(
-                    system?.chartTransactions.map((t) => t.waypointSymbol || "")
+                    system?.chartTransactions.map(
+                      (t) => t.waypointSymbol || "",
+                    ),
                   ),
                 ].map((t) => ({
                   text: t,
@@ -935,7 +972,7 @@ function System() {
                   (a.shipSymbol || "").localeCompare(b.shipSymbol || ""),
                 filters: [
                   ...new Set(
-                    system?.chartTransactions.map((t) => t.shipSymbol || "")
+                    system?.chartTransactions.map((t) => t.shipSymbol || ""),
                   ),
                 ].map((t) => ({
                   text: t,
@@ -990,12 +1027,12 @@ function System() {
                   ),
                 sorter: (a, b) =>
                   (a.waypointSymbol || "").localeCompare(
-                    b.waypointSymbol || ""
+                    b.waypointSymbol || "",
                   ),
 
                 filters: [
                   ...new Set(
-                    system?.shipyardShips.map((t) => t.waypointSymbol || "")
+                    system?.shipyardShips.map((t) => t.waypointSymbol || ""),
                   ),
                 ].map((t) => ({
                   text: t,
@@ -1105,14 +1142,14 @@ function System() {
                   ),
                 sorter: (a, b) =>
                   (a.waypointSymbol || "").localeCompare(
-                    b.waypointSymbol || ""
+                    b.waypointSymbol || "",
                   ),
 
                 filters: [
                   ...new Set(
                     system?.shipyardTransactions.map(
-                      (t) => t.waypointSymbol || ""
-                    )
+                      (t) => t.waypointSymbol || "",
+                    ),
                   ),
                 ].map((t) => ({
                   text: t,
@@ -1131,7 +1168,9 @@ function System() {
                   (a.agentSymbol || "").localeCompare(b.agentSymbol || ""),
                 filters: [
                   ...new Set(
-                    system?.shipyardTransactions.map((t) => t.agentSymbol || "")
+                    system?.shipyardTransactions.map(
+                      (t) => t.agentSymbol || "",
+                    ),
                   ),
                 ].map((t) => ({
                   text: t,

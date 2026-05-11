@@ -10,16 +10,21 @@ import { GET_CHART_TRANSACTIONS } from "../graphql/queries";
 
 function ChartTransactions() {
   const { loading, error, data, refetch } = useQuery(
-    GET_CHART_TRANSACTIONS
+    GET_CHART_TRANSACTIONS,
     // { pollInterval: 3600000 }
   );
 
   const [traitToPriceMap, setTraitToPriceMap] = useState(
-    Object.values(WaypointTraitSymbol).reduce((val, type) => {
-      val[type] = 0;
-      return val;
-    }, {} as Record<WaypointTraitSymbol, number>)
+    Object.values(WaypointTraitSymbol).reduce(
+      (val, type) => {
+        val[type] = 0;
+        return val;
+      },
+      {} as Record<WaypointTraitSymbol, number>,
+    ),
   );
+
+  const chartTransactions = data?.chartTransactions.items || [];
 
   const calculatePrices = useCallback(() => {
     const newTraitToPriceMap: Record<WaypointTraitSymbol, number> = {
@@ -38,7 +43,7 @@ function ChartTransactions() {
 
     // Collect all unique traits
     const traitsSet = new Set<WaypointTraitSymbol>();
-    data?.chartTransactions.forEach((t) => {
+    chartTransactions.forEach((t) => {
       if (t.waypoint) {
         t.waypoint.traits.forEach((trait) => traitsSet.add(trait));
       }
@@ -51,7 +56,7 @@ function ChartTransactions() {
     const A: number[][] = [];
     const b: number[] = [];
 
-    data?.chartTransactions.forEach((transaction) => {
+    chartTransactions.forEach((transaction) => {
       if (!transaction.waypoint) return;
 
       // Create a row with coefficients for each trait
@@ -82,17 +87,15 @@ function ChartTransactions() {
     });
 
     setTraitToPriceMap(newTraitToPriceMap);
-  }, [data, traitToPriceMap]);
+  }, [chartTransactions, traitToPriceMap]);
 
   if (error) return <p>Error: {error.message}</p>;
 
   return (
     <div style={{ padding: "24px 24px" }}>
-      <PageTitle
-        title={`Chart Transactions ${data?.chartTransactions.length}`}
-      />
+      <PageTitle title={`Chart Transactions ${chartTransactions.length}`} />
       <Space>
-        <h1>Chart Transactions {data?.chartTransactions.length}</h1>
+        <h1>Chart Transactions {chartTransactions.length}</h1>
         <Button
           onClick={() => {
             refetch();
@@ -114,7 +117,7 @@ function ChartTransactions() {
           <Table
             rowKey={(id) => id.waypointSymbol}
             loading={loading}
-            dataSource={data?.chartTransactions || []}
+            dataSource={chartTransactions}
             columns={[
               {
                 title: "Waypoint",
@@ -128,14 +131,12 @@ function ChartTransactions() {
                   ),
                 sorter: (a, b) =>
                   (a.waypointSymbol || "").localeCompare(
-                    b.waypointSymbol || ""
+                    b.waypointSymbol || "",
                   ),
 
                 filters: [
                   ...new Set(
-                    (data?.chartTransactions || []).map(
-                      (t) => t.waypointSymbol || ""
-                    )
+                    chartTransactions.map((t) => t.waypointSymbol || ""),
                   ),
                 ].map((t) => ({
                   text: t,
@@ -153,11 +154,7 @@ function ChartTransactions() {
                 sorter: (a, b) =>
                   (a.shipSymbol || "").localeCompare(b.shipSymbol || ""),
                 filters: [
-                  ...new Set(
-                    (data?.chartTransactions || []).map(
-                      (t) => t.shipSymbol || ""
-                    )
-                  ),
+                  ...new Set(chartTransactions.map((t) => t.shipSymbol || "")),
                 ].map((t) => ({
                   text: t,
                   value: t,
@@ -170,7 +167,7 @@ function ChartTransactions() {
                 render: (_, record) => record.waypoint?.waypointType,
                 sorter: (a, b) =>
                   (a.waypoint?.waypointType ?? "").localeCompare(
-                    b.waypoint?.waypointType ?? ""
+                    b.waypoint?.waypointType ?? "",
                   ),
                 filters: Object.values(WaypointType).map((t) => ({
                   text: t,

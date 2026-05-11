@@ -3,7 +3,7 @@ use crate::{
     utils::ConductorContext,
 };
 use async_graphql::{Context, Object};
-use database::DatabaseConnector;
+use database::DatabaseConnectorAsync;
 use space_traders_client::models;
 
 pub struct MutationRoot;
@@ -402,7 +402,7 @@ impl MutationRoot {
         temp: bool,
     ) -> super::Result<GQLShipInfo> {
         let context = ctx.data::<ConductorContext>()?;
-        let mut ship = database::ShipInfo::get_by_symbol(&context.database_pool, &ship_symbol)
+        let mut ship = database::ShipInfo::get_by_id(&context.database_pool, &ship_symbol)
             .await?
             .ok_or(super::GraphiQLError::NotFound)?;
         if temp {
@@ -410,7 +410,11 @@ impl MutationRoot {
         } else {
             ship.assignment_id = Some(assignment_id);
         }
-        database::ShipInfo::insert(&context.database_pool, &ship).await?;
+        database::ShipInfo::upsert(
+            &context.database_pool,
+            &ship,
+        )
+        .await?;
         Ok(ship.into())
     }
 
@@ -422,10 +426,14 @@ impl MutationRoot {
     ) -> super::Result<bool> {
         let context = ctx.data::<ConductorContext>()?;
         if let Some(mut info) =
-            database::ShipInfo::get_by_symbol(&context.database_pool, &ship_symbol).await?
+            database::ShipInfo::get_by_id(&context.database_pool, &ship_symbol).await?
         {
             info.active = false;
-            database::ShipInfo::insert(&context.database_pool, &info).await?;
+            database::ShipInfo::upsert(
+                &context.database_pool,
+                &info,
+            )
+            .await?;
             Ok(true)
         } else {
             Err(super::GraphiQLError::NotFound)
@@ -440,10 +448,14 @@ impl MutationRoot {
     ) -> super::Result<bool> {
         let context = ctx.data::<ConductorContext>()?;
         if let Some(mut info) =
-            database::ShipInfo::get_by_symbol(&context.database_pool, &ship_symbol).await?
+            database::ShipInfo::get_by_id(&context.database_pool, &ship_symbol).await?
         {
             info.active = true;
-            database::ShipInfo::insert(&context.database_pool, &info).await?;
+            database::ShipInfo::upsert(
+                &context.database_pool,
+                &info,
+            )
+            .await?;
             Ok(true)
         } else {
             Err(super::GraphiQLError::NotFound)

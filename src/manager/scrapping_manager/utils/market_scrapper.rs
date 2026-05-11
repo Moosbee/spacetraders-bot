@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use database::DatabaseConnector;
+use database::DatabaseConnectorAsync;
 use log::debug;
 use space_traders_client::models;
 use tokio::time::sleep;
@@ -123,9 +123,21 @@ pub async fn update_markets(
         })
         .flatten()
         .collect();
-    database::MarketTrade::insert_bulk(&database_pool, &market_trades).await?;
-    database::MarketTradeGood::insert_bulk(&database_pool, &market_goods).await?;
-    database::MarketTransaction::insert_bulk(&database_pool, &market_transactions).await?;
+    database::MarketTrade::insert_bulk(
+        &database_pool,
+        &market_trades,
+    )
+    .await?;
+    database::MarketTradeGood::insert_bulk(
+        &database_pool,
+        &market_goods,
+    )
+    .await?;
+    database::MarketTransaction::insert_bulk(
+        &database_pool,
+        &market_transactions,
+    )
+    .await?;
 
     Ok(())
 }
@@ -190,7 +202,10 @@ pub async fn update_market(market: models::Market, database_pool: &database::DbP
     .flatten()
     .cloned()
     .collect::<Vec<_>>();
-    database::MarketTrade::insert_bulk(database_pool, &market_trades)
+    database::MarketTrade::insert_bulk(
+        database_pool,
+        &market_trades,
+    )
         .await
         .unwrap();
 }

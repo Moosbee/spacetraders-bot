@@ -19,7 +19,7 @@ const work = () => {
   console.log("Websocket worker working started");
 
   let websocket: WebSocket | undefined;
-  let reconnectTimeoutId: number | undefined;
+  let reconnectTimeoutId: ReturnType<typeof setTimeout> | undefined;
 
   let wasConnected = false;
   let is_connected = false;
@@ -96,7 +96,7 @@ const work = () => {
                 starting_faction: wsObject.data.data.starting_faction,
                 ship_count: wsObject.data.data.ship_count,
                 created_at: wsObject.data.data.created_at,
-              })
+              }),
             );
           break;
         default:

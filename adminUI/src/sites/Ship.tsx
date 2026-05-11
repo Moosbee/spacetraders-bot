@@ -51,12 +51,12 @@ function Ship() {
             {
               label: "Role",
               key: "role",
-              children: ship.role,
+              children: ship.status.type,
             },
             {
               label: "Status",
               key: "status",
-              children: <RoleRenderer role={ship.role} status={ship.status} />,
+              children: <RoleRenderer status={ship.status} />,
             },
             {
               label: "Registration Role",
@@ -202,7 +202,7 @@ function Ship() {
                         ship.nav.auto_pilot.destination_system_symbol
                           ? ship.nav.auto_pilot.origin_symbol.replace(
                               ship.nav.auto_pilot.origin_system_symbol + "-",
-                              ""
+                              "",
                             )
                           : ship.nav.auto_pilot.origin_symbol}{" "}
                         -{">"}{" "}
@@ -211,7 +211,7 @@ function Ship() {
                           ? ship.nav.auto_pilot.destination_symbol.replace(
                               ship.nav.auto_pilot.destination_system_symbol +
                                 "-",
-                              ""
+                              "",
                             )
                           : ship.nav.auto_pilot.destination_symbol}
                         <br />
@@ -342,8 +342,8 @@ function ShipNavProgress({
           ((new Date().getTime() - new Date(departure_time).getTime()) /
             (new Date(arrival).getTime() -
               new Date(departure_time).getTime())) *
-            10000
-        ) / 100
+            10000,
+        ) / 100,
       );
     }, 100);
 

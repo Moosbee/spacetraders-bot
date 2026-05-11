@@ -12,7 +12,7 @@ use core::panic;
 use std::{collections::HashSet, env, error::Error, str::FromStr, sync::Arc, time::Duration, vec};
 
 use chrono::{DateTime, Utc};
-use database::DatabaseConnector;
+use database::DatabaseConnectorAsync;
 use manager::{
     chart_manager::ChartManager,
     construction_manager::ConstructionManager,
@@ -179,7 +179,7 @@ async fn setup_context(
 
     let my_agent = api.get_my_agent().await?;
     tracing::info!(my_agent = ?my_agent, "Fetched agent info");
-    database::Agent::insert(
+    database::Agent::upsert(
         &database_pool,
         &database::Agent::from(*my_agent.data.clone()),
     )
@@ -216,9 +216,19 @@ async fn setup_context(
 
         for system_symbol in system_symbols {
             async {
-                let db_system = database::System::get_by_id(&database_pool, &system_symbol).await?;
-                let waypoints =
-                    database::Waypoint::get_by_system(&database_pool, &system_symbol).await?;
+                let db_system =
+                    database::System::get_by_id(
+                        &database_pool,
+                        &system_symbol,
+                    )
+                    .await?;
+                let waypoints = database::Waypoint::get_by_system(
+                    &database_pool,
+                    &system_symbol,
+                    database::PaginatedQuery::unpaged(),
+                )
+                .await?
+                .items;
 
                 if db_system.is_none() || waypoints.is_empty() {
                     tracing::debug!(system = %system_symbol, "Updating system and waypoints");
@@ -230,8 +240,13 @@ async fn setup_context(
                         true,
                     )
                     .await?;
-                    let wps = database::Waypoint::get_by_system(&database_pool, &system_symbol)
+                    let wps = database::Waypoint::get_by_system(
+                        &database_pool,
+                        &system_symbol,
+                        database::PaginatedQuery::unpaged(),
+                    )
                         .await?
+                        .items
                         .into_iter()
                         .filter(|w| w.is_marketplace())
                         .map(|w| (w.system_symbol, w.symbol, w.is_under_construction))
@@ -321,7 +336,11 @@ async fn setup_context(
         "Generated export-import mappings"
     );
 
-    database::ExportImportMapping::insert_bulk(&database_pool, &mappings).await?;
+    database::ExportImportMapping::insert_bulk(
+        &database_pool,
+        &mappings,
+    )
+    .await?;
 
     tracing::info!("Inserted export-import mappings into the database");
 
@@ -539,8 +558,12 @@ async fn start_managers(
 }
 
 async fn start_ships(context: &ConductorContext) -> Result<(), crate::error::Error> {
-    let ship_names: Vec<database::ShipInfo> =
-        database::ShipInfo::get_all(&context.database_pool).await?;
+    let ship_names: Vec<database::ShipInfo> = database::ShipInfo::get_all(
+        &context.database_pool,
+        database::PaginatedQuery::unpaged(),
+    )
+    .await?
+    .items;
 
     let len = ship_names.len();
     tracing::debug!(ship_count = %len, "Starting ships");

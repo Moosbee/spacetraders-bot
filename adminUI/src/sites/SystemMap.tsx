@@ -9,11 +9,20 @@ function SysMap() {
   if (dataState != "complete") return <p>Loading...</p>;
   if (error) return <p>Error: {error.message}</p>;
 
+  const mapData = {
+    systems: data.systems.items.map((system) => ({
+      ...system,
+      waypoints: system.waypoints.items,
+      fleets: system.fleets.items,
+    })),
+    jumpConnections: data.jumpConnections.items,
+  };
+
   return (
     <div style={{ width: "100%", height: "100%", position: "relative" }}>
       <PageTitle title={`Systems Map`} />
       {/* <MapHolder zoomMax={10000}> */}
-      <SystemsMap zoomMax={10000} zoomMin={0.5} data={data} />
+      <SystemsMap zoomMax={10000} zoomMin={0.5} data={mapData} />
       {/* </MapHolder> */}
     </div>
   );

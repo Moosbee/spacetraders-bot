@@ -55,8 +55,10 @@ impl PlaceFinder {
         let sql_waypoints = database::Waypoint::get_by_system(
             &self.context.database_pool,
             &ship_clone.nav.system_symbol,
+            database::PaginatedQuery::unpaged(),
         )
-        .await?;
+        .await?
+        .items;
         let waypoints: Vec<FoundWaypointInfo> = self.get_best_waypoints(&sql_waypoints, filter_fn);
 
         let possible_waypoints: Vec<FoundWaypointInfo> = waypoints

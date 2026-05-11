@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use chrono::DateTime;
-use database::DatabaseConnector;
+use database::DatabaseConnectorAsync;
 use space_traders_client::models;
 use tokio::time::sleep;
 use tracing::debug;
@@ -112,7 +112,11 @@ pub async fn update_jump_gate(
         })
         .collect::<Vec<database::JumpGateConnection>>();
 
-    database::JumpGateConnection::insert_bulk(database_pool, &connections).await?;
+    database::JumpGateConnection::insert_bulk(
+        database_pool,
+        &connections,
+    )
+    .await?;
 
     Ok(())
 }

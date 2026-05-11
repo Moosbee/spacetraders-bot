@@ -3,7 +3,9 @@ use std::str::FromStr;
 use space_traders_client::models;
 use tracing::instrument;
 
-use super::{DatabaseConnector, DbPool};
+use super::{
+    run_paginated_query, DatabaseConnectorAsync, DbPool, PaginatedQuery, PaginatedResult,
+};
 
 #[derive(Clone, Debug, sqlx::FromRow)]
 pub struct ExportImportMapping {
@@ -38,49 +40,134 @@ impl ExportImportMapping {
     pub async fn get_imports_for_export(
         database_pool: &DbPool,
         export_symbol: models::TradeSymbol,
-    ) -> crate::Result<Vec<models::TradeSymbol>> {
-        let items = sqlx::query_as!(
-            ExportImportMapping,
-            r#"
-                SELECT
-                    export_symbol as "export_symbol: models::TradeSymbol",
-                    import_symbol as "import_symbol: models::TradeSymbol"
-                FROM ExportImportMapping
-                WHERE export_symbol = $1;
-            "#,
-            export_symbol as models::TradeSymbol
-        )
-        .fetch_all(&database_pool.database_pool)
-        .await?;
+        query: PaginatedQuery,
+    ) -> crate::Result<PaginatedResult<models::TradeSymbol>> {
+        run_paginated_query(
+            query,
+            |page_size, offset| async move {
+                let items = sqlx::query_as!(
+                    ExportImportMapping,
+                    r#"
+                        SELECT
+                            export_symbol as "export_symbol: models::TradeSymbol",
+                            import_symbol as "import_symbol: models::TradeSymbol"
+                        FROM ExportImportMapping
+                        WHERE export_symbol = $1
+                        LIMIT $2 OFFSET $3;
+                    "#,
+                    export_symbol as models::TradeSymbol,
+                    page_size,
+                    offset
+                )
+                .fetch_all(&database_pool.database_pool)
+                .await?;
 
-        Ok(items.into_iter().map(|item| item.import_symbol).collect())
+                Ok(items.into_iter().map(|item| item.import_symbol).collect())
+            },
+            || async move {
+                let items = sqlx::query_as!(
+                    ExportImportMapping,
+                    r#"
+                        SELECT
+                            export_symbol as "export_symbol: models::TradeSymbol",
+                            import_symbol as "import_symbol: models::TradeSymbol"
+                        FROM ExportImportMapping
+                        WHERE export_symbol = $1;
+                    "#,
+                    export_symbol as models::TradeSymbol
+                )
+                .fetch_all(&database_pool.database_pool)
+                .await?;
+
+                Ok(items.into_iter().map(|item| item.import_symbol).collect())
+            },
+            || async move {
+                let count = sqlx::query!(
+                    r#"
+                    SELECT COUNT(*) as "count!"
+                    FROM ExportImportMapping
+                    WHERE export_symbol = $1
+                    "#,
+                    export_symbol as models::TradeSymbol
+                )
+                .fetch_one(&database_pool.database_pool)
+                .await?;
+                Ok(count.count)
+            },
+        )
+        .await
     }
 
     pub async fn get_exports_for_import(
         database_pool: &DbPool,
         import_symbol: models::TradeSymbol,
-    ) -> crate::Result<Vec<models::TradeSymbol>> {
-        let items = sqlx::query_as!(
-            ExportImportMapping,
-            r#"
-                SELECT
-                    export_symbol as "export_symbol: models::TradeSymbol",
-                    import_symbol as "import_symbol: models::TradeSymbol"
-                FROM ExportImportMapping
-                WHERE import_symbol = $1;
-            "#,
-            import_symbol as models::TradeSymbol
-        )
-        .fetch_all(&database_pool.database_pool)
-        .await?;
+        query: PaginatedQuery,
+    ) -> crate::Result<PaginatedResult<models::TradeSymbol>> {
+        run_paginated_query(
+            query,
+            |page_size, offset| async move {
+                let items = sqlx::query_as!(
+                    ExportImportMapping,
+                    r#"
+                        SELECT
+                            export_symbol as "export_symbol: models::TradeSymbol",
+                            import_symbol as "import_symbol: models::TradeSymbol"
+                        FROM ExportImportMapping
+                        WHERE import_symbol = $1
+                        LIMIT $2 OFFSET $3;
+                    "#,
+                    import_symbol as models::TradeSymbol,
+                    page_size,
+                    offset
+                )
+                .fetch_all(&database_pool.database_pool)
+                .await?;
 
-        Ok(items.into_iter().map(|item| item.export_symbol).collect())
+                Ok(items.into_iter().map(|item| item.export_symbol).collect())
+            },
+            || async move {
+                let items = sqlx::query_as!(
+                    ExportImportMapping,
+                    r#"
+                        SELECT
+                            export_symbol as "export_symbol: models::TradeSymbol",
+                            import_symbol as "import_symbol: models::TradeSymbol"
+                        FROM ExportImportMapping
+                        WHERE import_symbol = $1;
+                    "#,
+                    import_symbol as models::TradeSymbol
+                )
+                .fetch_all(&database_pool.database_pool)
+                .await?;
+
+                Ok(items.into_iter().map(|item| item.export_symbol).collect())
+            },
+            || async move {
+                let count = sqlx::query!(
+                    r#"
+                    SELECT COUNT(*) as "count!"
+                    FROM ExportImportMapping
+                    WHERE import_symbol = $1
+                    "#,
+                    import_symbol as models::TradeSymbol
+                )
+                .fetch_one(&database_pool.database_pool)
+                .await?;
+                Ok(count.count)
+            },
+        )
+        .await
     }
 }
 
-impl DatabaseConnector<ExportImportMapping> for ExportImportMapping {
+impl DatabaseConnectorAsync for ExportImportMapping {
+    type ID = (models::TradeSymbol, models::TradeSymbol);
+
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
-    async fn insert(database_pool: &DbPool, item: &ExportImportMapping) -> crate::Result<()> {
+    async fn insert_new(
+        database_pool: &DbPool,
+        item: &ExportImportMapping,
+    ) -> crate::Result<Self::ID> {
         sqlx::query!(
             r#"
                 INSERT INTO ExportImportMapping (
@@ -95,7 +182,19 @@ impl DatabaseConnector<ExportImportMapping> for ExportImportMapping {
         )
         .execute(&database_pool.database_pool)
         .await?;
+
+        Ok((item.export_symbol, item.import_symbol))
+    }
+
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
+    async fn upsert(database_pool: &DbPool, item: &ExportImportMapping) -> crate::Result<()> {
+        let _ = Self::insert_new(database_pool, item).await?;
         Ok(())
+    }
+
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
+    async fn update(database_pool: &DbPool, item: &ExportImportMapping) -> crate::Result<()> {
+        Self::upsert(database_pool, item).await
     }
 
     #[instrument(level = "trace", skip(database_pool, items))]
@@ -130,18 +229,95 @@ impl DatabaseConnector<ExportImportMapping> for ExportImportMapping {
     }
 
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
-    async fn get_all(database_pool: &DbPool) -> crate::Result<Vec<ExportImportMapping>> {
-        let items = sqlx::query_as!(
+    async fn get_all(
+        database_pool: &DbPool,
+        query: PaginatedQuery,
+    ) -> crate::Result<PaginatedResult<ExportImportMapping>> {
+        run_paginated_query(
+            query,
+            |page_size, offset| async move {
+                let items = sqlx::query_as!(
+                    ExportImportMapping,
+                    r#"
+                        SELECT
+                            export_symbol as "export_symbol: models::TradeSymbol",
+                            import_symbol as "import_symbol: models::TradeSymbol"
+                        FROM ExportImportMapping
+                        LIMIT $1 OFFSET $2;
+                    "#,
+                    page_size,
+                    offset
+                )
+                .fetch_all(database_pool.get_cache_pool())
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let items = sqlx::query_as!(
+                    ExportImportMapping,
+                    r#"
+                        SELECT
+                            export_symbol as "export_symbol: models::TradeSymbol",
+                            import_symbol as "import_symbol: models::TradeSymbol"
+                        FROM ExportImportMapping;
+                    "#
+                )
+                .fetch_all(database_pool.get_cache_pool())
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let count = sqlx::query!(
+                    r#"
+                    SELECT COUNT(*) as "count!"
+                    FROM ExportImportMapping
+                    "#
+                )
+                .fetch_one(database_pool.get_cache_pool())
+                .await?;
+                Ok(count.count)
+            },
+        )
+        .await
+    }
+
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
+    async fn get_by_id(database_pool: &DbPool, id: &Self::ID) -> crate::Result<Option<Self>> {
+        let item = sqlx::query_as!(
             ExportImportMapping,
             r#"
                 SELECT
                     export_symbol as "export_symbol: models::TradeSymbol",
                     import_symbol as "import_symbol: models::TradeSymbol"
-                FROM ExportImportMapping;
-            "#
+                FROM ExportImportMapping
+                WHERE export_symbol = $1 AND import_symbol = $2
+                LIMIT 1;
+            "#,
+            id.0 as models::TradeSymbol,
+            id.1 as models::TradeSymbol
         )
-        .fetch_all(database_pool.get_cache_pool())
+        .fetch_optional(&database_pool.database_pool)
         .await?;
-        Ok(items)
+        Ok(item)
+    }
+
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
+    async fn delete_by_id(database_pool: &DbPool, id: &Self::ID) -> crate::Result<()> {
+        sqlx::query!(
+            r#"
+                DELETE FROM ExportImportMapping
+                WHERE export_symbol = $1 AND import_symbol = $2;
+            "#,
+            id.0 as models::TradeSymbol,
+            id.1 as models::TradeSymbol
+        )
+        .execute(&database_pool.database_pool)
+        .await?;
+        Ok(())
+    }
+
+    fn set_id(&mut self, id: Self::ID) {
+        self.export_symbol = id.0;
+        self.import_symbol = id.1;
     }
 }

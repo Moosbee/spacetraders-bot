@@ -13,7 +13,13 @@ function Systems() {
   if (dataState != "complete") return <p>Loading...</p>;
   if (error) return <p>Error: {error.message}</p>;
 
-  type SystemInfo = (typeof data)["systems"][number];
+  const systems = data.systems.items.map((system) => ({
+    ...system,
+    waypoints: system.waypoints.items,
+    fleets: system.fleets.items,
+  }));
+
+  type SystemInfo = (typeof systems)[number];
 
   const columns: TableProps<SystemInfo>["columns"] = [
     {
@@ -35,11 +41,11 @@ function Systems() {
       dataIndex: "sectorSymbol",
       key: "sectorSymbol",
       sorter: (a, b) => a.sectorSymbol.localeCompare(b.sectorSymbol),
-      filters: [...new Set(data.systems?.map((s) => s.sectorSymbol) || [])].map(
+      filters: [...new Set(systems?.map((s) => s.sectorSymbol) || [])].map(
         (s) => ({
           text: s,
           value: s,
-        })
+        }),
       ),
       onFilter: (value, record) => record.sectorSymbol === value,
     },
@@ -75,10 +81,13 @@ function Systems() {
               {Object.entries(
                 system.waypoints
                   .map((wp) => wp.waypointType)
-                  .reduce((curr, wp) => {
-                    curr[wp] = (curr[wp] || 0) + 1;
-                    return curr;
-                  }, {} as Record<WaypointType, number>)
+                  .reduce(
+                    (curr, wp) => {
+                      curr[wp] = (curr[wp] || 0) + 1;
+                      return curr;
+                    },
+                    {} as Record<WaypointType, number>,
+                  ),
               ).map((item) => (
                 <Flex gap={6} justify="space-between" key={item[0]}>
                   <span>{item[0]}</span>
@@ -192,7 +201,7 @@ function Systems() {
       <Spin spinning={loading}>
         <Space>
           <h1 className="scroll-m-20 text-center text-3xl font-bold tracking-tight text-balance">
-            Systems {data.systems.length}
+            Systems {systems.length}
           </h1>
           <Button
             onClick={() => {
@@ -203,7 +212,7 @@ function Systems() {
           </Button>
         </Space>
         <Table
-          dataSource={data.systems || []}
+          dataSource={systems || []}
           columns={columns}
           rowKey="id"
           pagination={{

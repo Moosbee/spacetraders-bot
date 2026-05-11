@@ -22,24 +22,24 @@ import { message } from "../../utils/antdMessage";
 
 function ShipControl({ ship }: { ship: RustShip }) {
   const system = useAppSelector((state) =>
-    selectSystem(state, ship.nav.system_symbol)
+    selectSystem(state, ship.nav.system_symbol),
   );
   const waypoints = system?.waypoints || [];
 
   const dispatch = useDispatch();
 
   const [navWaypointSymbol, setNavWaypointSymbol] = useState<string>(
-    ship.nav.waypoint_symbol
+    ship.nav.waypoint_symbol,
   );
 
   const [jumpWaypointSymbol, setJumpWaypointSymbol] = useState<string>(
-    ship.nav.waypoint_symbol
+    ship.nav.waypoint_symbol,
   );
 
-  const [role, setRole] = useState<string>(ship.role);
+  const [role, setRole] = useState<string>(ship.status.type);
   const [active, setActive] = useState<boolean>(ship.active);
   const [tradeSymbol, setTradeSymbol] = useState<TradeSymbol | undefined>(
-    undefined
+    undefined,
   );
   const [tradeAmount, setTradeAmount] = useState<number>(0);
   return (
@@ -68,7 +68,7 @@ function ShipControl({ ship }: { ship: RustShip }) {
                       console.log("denden", data);
                       setRole(data.role);
                       message.success(
-                        `Role changed to ${data.role} for ${ship.symbol}`
+                        `Role changed to ${data.role} for ${ship.symbol}`,
                       );
                     });
                 }}
@@ -80,7 +80,7 @@ function ShipControl({ ship }: { ship: RustShip }) {
                     value: role,
                   }))}
               />
-              <Spin spinning={role !== ship.role} />
+              <Spin spinning={role !== ship.status.type} />
             </Space>
           ),
         },
@@ -96,7 +96,7 @@ function ShipControl({ ship }: { ship: RustShip }) {
                     `http://${backendUrl}/ship/${ship.symbol}/toggleActivation`,
                     {
                       method: "POST",
-                    }
+                    },
                   )
                     .then((response) => response.json())
                     .then((data: ShipInfo) => {
@@ -116,7 +116,7 @@ function ShipControl({ ship }: { ship: RustShip }) {
           key: "toggleOrbit",
           children: (
             <Button
-              disabled={!(ship.role == "Manuel")}
+              disabled={!(ship.status.type == "Manuel")}
               onClick={() => {
                 fetch(`http://${backendUrl}/ship/${ship.symbol}/toggleOrbit`, {
                   method: "POST",
@@ -141,7 +141,7 @@ function ShipControl({ ship }: { ship: RustShip }) {
           children: (
             <Space>
               <AutoComplete
-                disabled={!(ship.role == "Manuel")}
+                disabled={!(ship.status.type == "Manuel")}
                 value={navWaypointSymbol}
                 onChange={setNavWaypointSymbol}
                 style={{ minWidth: "8rem" }}
@@ -154,7 +154,7 @@ function ShipControl({ ship }: { ship: RustShip }) {
               <Button
                 disabled={
                   !(
-                    ship.role == "Manuel" &&
+                    ship.status.type == "Manuel" &&
                     navWaypointSymbol !== "" &&
                     navWaypointSymbol !== ship.nav.waypoint_symbol
                   )
@@ -169,7 +169,7 @@ function ShipControl({ ship }: { ship: RustShip }) {
                     .then((data) => {
                       console.log("denden", data);
                       message.success(
-                        `Started navigation to ${navWaypointSymbol}`
+                        `Started navigation to ${navWaypointSymbol}`,
                       );
                     });
                 }}
@@ -186,7 +186,7 @@ function ShipControl({ ship }: { ship: RustShip }) {
           children: (
             <Space>
               <Input
-                disabled={!(ship.role == "Manuel")}
+                disabled={!(ship.status.type == "Manuel")}
                 value={jumpWaypointSymbol}
                 onChange={(e) => setJumpWaypointSymbol(e.target.value)}
                 style={{ minWidth: "8rem" }}
@@ -194,7 +194,7 @@ function ShipControl({ ship }: { ship: RustShip }) {
               <Button
                 disabled={
                   !(
-                    ship.role == "Manuel" &&
+                    ship.status.type == "Manuel" &&
                     jumpWaypointSymbol !== "" &&
                     jumpWaypointSymbol !== ship.nav.waypoint_symbol
                   )
@@ -211,7 +211,7 @@ function ShipControl({ ship }: { ship: RustShip }) {
                     .then((data) => {
                       console.log("denden", data);
                       message.success(
-                        `Started jumped to ${jumpWaypointSymbol}`
+                        `Started jumped to ${jumpWaypointSymbol}`,
                       );
                     });
                 }}
@@ -228,7 +228,7 @@ function ShipControl({ ship }: { ship: RustShip }) {
           children: (
             <Space>
               <Select
-                disabled={!(ship.role == "Manuel")}
+                disabled={!(ship.status.type == "Manuel")}
                 style={{ minWidth: "8rem" }}
                 options={Object.values(TradeSymbol).map((w) => ({
                   label: w,
@@ -239,7 +239,7 @@ function ShipControl({ ship }: { ship: RustShip }) {
                 onChange={setTradeSymbol}
               />
               <InputNumber
-                disabled={!(ship.role == "Manuel")}
+                disabled={!(ship.status.type == "Manuel")}
                 min={0}
                 max={ship.cargo.capacity - ship.cargo.units}
                 value={tradeAmount}
@@ -248,7 +248,7 @@ function ShipControl({ ship }: { ship: RustShip }) {
                 style={{ width: "4rem" }}
               />
               <Button
-                disabled={!(ship.role == "Manuel")}
+                disabled={!(ship.status.type == "Manuel")}
                 onClick={() => {
                   fetch(
                     `http://${backendUrl}/ship/${ship.symbol}/purchaseCargo`,
@@ -256,13 +256,13 @@ function ShipControl({ ship }: { ship: RustShip }) {
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
                       body: JSON.stringify({ tradeSymbol, units: tradeAmount }),
-                    }
+                    },
                   )
                     .then((response) => response.json())
                     .then((data) => {
                       console.log("denden", data);
                       message.success(
-                        `Purchased ${tradeAmount} ${tradeSymbol}`
+                        `Purchased ${tradeAmount} ${tradeSymbol}`,
                       );
                     });
                 }}
@@ -278,7 +278,7 @@ function ShipControl({ ship }: { ship: RustShip }) {
           span: 2,
           children: (
             <Button
-              disabled={!(ship.role == "Manuel")}
+              disabled={!(ship.status.type == "Manuel")}
               onClick={() => {
                 fetch(`http://${backendUrl}/ship/${ship.symbol}/chart`, {
                   method: "POST",

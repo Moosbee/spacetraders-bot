@@ -1,7 +1,7 @@
 use std::{cmp::Ordering, collections::HashMap, str::FromStr};
 
 use chrono::{DateTime, Utc};
-use database::DatabaseConnector;
+use database::DatabaseConnectorAsync;
 use log::debug;
 use space_traders_client::models::{self};
 
@@ -125,7 +125,7 @@ impl ContractManager {
     )]
     async fn handle_contract_message(&mut self, message: ContractManagerMessage) -> Result<()> {
         debug!("Handling contract message: {:?}", message);
-      self.context.contract_manager.set_busy(true);
+        self.context.contract_manager.set_busy(true);
 
         match message {
             ContractShipmentMessage::RequestNext {
@@ -157,7 +157,7 @@ impl ContractManager {
                 callback.send(Ok(self.running_shipments.clone())).unwrap();
             }
         }
-      self.context.contract_manager.set_busy(false);
+        self.context.contract_manager.set_busy(false);
 
         Ok(())
     }
@@ -245,7 +245,7 @@ impl ContractManager {
             )
             .await?;
 
-            database::Agent::insert(
+            database::Agent::upsert(
                 &self.context.database_pool,
                 &database::Agent::from(*fulfill_contract_data.data.agent),
             )
@@ -281,7 +281,7 @@ impl ContractManager {
             )
             .await?;
 
-            database::Agent::insert(
+            database::Agent::upsert(
                 &self.context.database_pool,
                 &database::Agent::from(*resp.data.agent),
             )
@@ -291,8 +291,10 @@ impl ContractManager {
         let shipments = database::ContractShipment::get_by_ship(
             &self.context.database_pool,
             &ship_clone.symbol,
+            database::PaginatedQuery::unpaged(),
         )
         .await?
+        .items
         .into_iter()
         .filter(|s| s.contract_id == self.current_contract.as_ref().unwrap().id)
         .filter(|s| s.status == database::ShipmentStatus::InTransit)
@@ -474,7 +476,7 @@ impl ContractManager {
 
         shipment.status = database::ShipmentStatus::Failed;
 
-        database::ContractShipment::insert(&self.context.database_pool, &shipment).await?;
+        database::ContractShipment::upsert(&self.context.database_pool, &shipment).await?;
 
         Ok(())
     }
@@ -503,7 +505,7 @@ impl ContractManager {
 
         shipment.status = database::ShipmentStatus::Delivered;
 
-        database::ContractShipment::insert(&self.context.database_pool, &shipment).await?;
+        database::ContractShipment::upsert(&self.context.database_pool, &shipment).await?;
 
         if self.can_fulfill_trade(&contract) {
             tracing::info!(contract_id = &contract.id, "Can Fulfilled contract");
@@ -519,7 +521,7 @@ impl ContractManager {
             )
             .await?;
 
-            database::Agent::insert(
+            database::Agent::upsert(
                 &self.context.database_pool,
                 &database::Agent::from(*fulfill_contract_data.data.agent),
             )
@@ -529,8 +531,10 @@ impl ContractManager {
                 let transactions = database::MarketTransaction::get_by_reason(
                     &self.context.database_pool,
                     database::TransactionReason::Contract(contract.id.clone()),
+                    database::PaginatedQuery::unpaged(),
                 )
-                .await?;
+                .await?
+                .items;
                 let funds = transactions
                     .iter()
                     .filter(|t| t.r#type == models::market_transaction::Type::Purchase)
@@ -579,8 +583,12 @@ impl ContractManager {
             "Checking procurement viability for deliveries: {:?}",
             deliveries
         );
-        let market_trade_goods =
-            database::MarketTrade::get_last(&self.context.database_pool).await?;
+        let market_trade_goods = database::MarketTrade::get_last(
+            &self.context.database_pool,
+            database::PaginatedQuery::unpaged(),
+        )
+        .await?
+        .items;
 
         for delivery in deliveries {
             if delivery.units_required <= delivery.units_fulfilled {
@@ -669,19 +677,28 @@ impl ContractManager {
             "Getting purchase waypoint for trade symbol: {:?}",
             trade_symbol
         );
-        let market_trades =
-            database::MarketTrade::get_last_by_symbol(&self.context.database_pool, trade_symbol)
-                .await?
-                .into_iter()
-                .filter(|t| t.waypoint_symbol.starts_with(system_symbol))
-                .collect::<Vec<_>>();
+        let market_trades = database::MarketTrade::get_last_by_symbol(
+            &self.context.database_pool,
+            trade_symbol,
+            database::PaginatedQuery::unpaged(),
+        )
+        .await?
+        .items
+        .into_iter()
+        .filter(|t| t.waypoint_symbol.starts_with(system_symbol))
+        .collect::<Vec<_>>();
         let market_trade_goods: HashMap<(models::TradeSymbol, String), database::MarketTradeGood> =
-            database::MarketTradeGood::get_last_by_symbol(&self.context.database_pool, trade_symbol)
-                .await?
-                .into_iter()
-                .filter(|t| t.waypoint_symbol.starts_with(system_symbol))
-                .map(|t| ((t.symbol, t.waypoint_symbol.clone()), t))
-                .collect::<HashMap<_, _>>();
+            database::MarketTradeGood::get_last_by_symbol(
+                &self.context.database_pool,
+                trade_symbol,
+                database::PaginatedQuery::unpaged(),
+            )
+            .await?
+            .items
+            .into_iter()
+            .filter(|t| t.waypoint_symbol.starts_with(system_symbol))
+            .map(|t| ((t.symbol, t.waypoint_symbol.clone()), t))
+            .collect::<HashMap<_, _>>();
 
         let mut trades = market_trades
             .into_iter()

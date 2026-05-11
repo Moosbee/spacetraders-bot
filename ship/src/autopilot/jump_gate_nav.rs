@@ -4,7 +4,7 @@ use std::{
     hash::Hash,
 };
 
-use database::DatabaseConnector;
+use database::DatabaseConnectorAsync;
 use priority_queue::PriorityQueue;
 
 use tracing::debug;
@@ -215,7 +215,10 @@ impl JumpPathfinder {
 pub async fn generate_all_connections(
     database_pool: &database::DbPool,
 ) -> Result<Vec<GateConnection>> {
-    let all_connections = database::JumpGateConnection::get_all(database_pool).await?;
+    let all_connections =
+        database::JumpGateConnection::get_all(database_pool, database::PaginatedQuery::unpaged())
+            .await?
+            .items;
 
     let mut connection_map: HashMap<(String, String), GateConnection> = HashMap::new();
 
@@ -252,7 +255,11 @@ pub async fn generate_all_connections(
         .flat_map(|k| [k.0.clone(), k.1.clone()])
         .collect::<HashSet<_>>()
     {
-        let wp = database::Waypoint::get_by_symbol(database_pool, &waypoint).await?;
+        let wp = database::Waypoint::get_by_id(
+            database_pool,
+            &waypoint,
+        )
+        .await?;
         if let Some(wp) = wp {
             waypoints.insert(waypoint, wp);
         }
@@ -260,7 +267,11 @@ pub async fn generate_all_connections(
 
     let mut systems = HashMap::new();
     for waypoint in waypoints.values() {
-        let system = database::System::get_by_id(database_pool, &waypoint.system_symbol).await?;
+        let system = database::System::get_by_id(
+            database_pool,
+            &waypoint.system_symbol,
+        )
+        .await?;
         if let Some(system) = system {
             systems.insert(waypoint.system_symbol.clone(), system);
         }

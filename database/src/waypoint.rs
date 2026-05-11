@@ -5,7 +5,7 @@ use tracing::instrument;
 
 use async_graphql::dataloader::Loader;
 
-use super::{DatabaseConnector, DbPool};
+use super::{DatabaseConnectorAsync, DbPool, PaginatedQuery, PaginatedResult, run_paginated_query};
 
 #[derive(Clone, Debug, Default, PartialEq, serde::Serialize, async_graphql::SimpleObject)]
 #[graphql(name = "DBWaypoint")]
@@ -230,7 +230,9 @@ impl Waypoint {
     pub async fn get_hash_map(
         database_pool: &DbPool,
     ) -> crate::Result<HashMap<String, HashMap<String, Waypoint>>> {
-        let erg = Waypoint::get_all(database_pool).await?;
+        let erg = Waypoint::get_all(database_pool, PaginatedQuery::unpaged())
+            .await?
+            .items;
 
         let mut map: HashMap<String, HashMap<String, Waypoint>> = HashMap::new();
         for waypoint in erg {
@@ -282,73 +284,96 @@ impl Waypoint {
     pub async fn get_by_system(
         database_pool: &DbPool,
         system_symbol: &str,
-    ) -> crate::Result<Vec<Waypoint>> {
-        let erg = sqlx::query_as!(
-            Waypoint,
-            r#"
-                SELECT 
-                  symbol,
-                  system_symbol,
-                  created_at,
-                  x,
-                  y,
-                  type as "waypoint_type: models::WaypointType",
-                  traits as "traits: Vec<models::WaypointTraitSymbol>",
-                  is_under_construction,
-                  orbitals,
-                  orbits,
-                  faction,
-                  modifiers as "modifiers: Vec<models::WaypointModifierSymbol>",
-                  charted_by,
-                  charted_on,
-                  unstable_since,
-                  has_shipyard,
-                  has_marketplace
-                FROM waypoint
-                WHERE system_symbol = $1
-            "#,
-            system_symbol
-        )
-        .fetch_all(database_pool.get_cache_pool())
-        .await?;
-        Ok(erg)
-    }
+        query: PaginatedQuery,
+    ) -> crate::Result<PaginatedResult<Waypoint>> {
+        let system_symbol_page = system_symbol.to_string();
+        let system_symbol_all = system_symbol.to_string();
+        let system_symbol_count = system_symbol.to_string();
 
-    #[instrument(level = "trace", skip(database_pool), err(Debug))]
-    pub async fn get_by_symbol(
-        database_pool: &DbPool,
-        symbol: &str,
-    ) -> crate::Result<Option<Waypoint>> {
-        let erg = sqlx::query_as!(
-            Waypoint,
-            r#"
-                SELECT 
-                  symbol,
-                  system_symbol,
-                  created_at,
-                  x,
-                  y,
-                  type as "waypoint_type: models::WaypointType",
-                  traits as "traits: Vec<models::WaypointTraitSymbol>",
-                  is_under_construction,
-                  orbitals,
-                  orbits,
-                  faction,
-                  modifiers as "modifiers: Vec<models::WaypointModifierSymbol>",
-                  charted_by,
-                  charted_on,
-                  unstable_since,
-                  has_shipyard,
-                  has_marketplace
-                FROM waypoint
-                WHERE symbol = $1
-                LIMIT 1
-            "#,
-            symbol
+        run_paginated_query(
+            query,
+            move |limit, offset| async move {
+                let erg = sqlx::query_as!(
+                    Waypoint,
+                    r#"
+                        SELECT 
+                          symbol,
+                          system_symbol,
+                          created_at,
+                          x,
+                          y,
+                          type as "waypoint_type: models::WaypointType",
+                          traits as "traits: Vec<models::WaypointTraitSymbol>",
+                          is_under_construction,
+                          orbitals,
+                          orbits,
+                          faction,
+                          modifiers as "modifiers: Vec<models::WaypointModifierSymbol>",
+                          charted_by,
+                          charted_on,
+                          unstable_since,
+                          has_shipyard,
+                          has_marketplace
+                        FROM waypoint
+                        WHERE system_symbol = $1
+                        ORDER BY symbol
+                        LIMIT $2 OFFSET $3
+                    "#,
+                    &system_symbol_page,
+                    limit,
+                    offset
+                )
+                .fetch_all(database_pool.get_cache_pool())
+                .await?;
+                Ok(erg)
+            },
+            move || async move {
+                let erg = sqlx::query_as!(
+                    Waypoint,
+                    r#"
+                        SELECT 
+                          symbol,
+                          system_symbol,
+                          created_at,
+                          x,
+                          y,
+                          type as "waypoint_type: models::WaypointType",
+                          traits as "traits: Vec<models::WaypointTraitSymbol>",
+                          is_under_construction,
+                          orbitals,
+                          orbits,
+                          faction,
+                          modifiers as "modifiers: Vec<models::WaypointModifierSymbol>",
+                          charted_by,
+                          charted_on,
+                          unstable_since,
+                          has_shipyard,
+                          has_marketplace
+                        FROM waypoint
+                        WHERE system_symbol = $1
+                        ORDER BY symbol
+                    "#,
+                    &system_symbol_all,
+                )
+                .fetch_all(database_pool.get_cache_pool())
+                .await?;
+                Ok(erg)
+            },
+            move || async move {
+                let erg = sqlx::query!(
+                    r#"
+                        SELECT COUNT(*) as count
+                        FROM waypoint
+                        WHERE system_symbol = $1
+                    "#,
+                    &system_symbol_count,
+                )
+                .fetch_one(database_pool.get_cache_pool())
+                .await?;
+                Ok(erg.count.unwrap_or(0))
+            },
         )
-        .fetch_optional(database_pool.get_cache_pool())
-        .await?;
-        Ok(erg)
+        .await
     }
 
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
@@ -388,9 +413,11 @@ impl Waypoint {
     }
 }
 
-impl DatabaseConnector<Waypoint> for Waypoint {
+impl DatabaseConnectorAsync for Waypoint {
+    type ID = String;
+
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
-    async fn insert(database_pool: &DbPool, item: &Waypoint) -> crate::Result<()> {
+    async fn insert_new(database_pool: &DbPool, item: &Waypoint) -> crate::Result<Self::ID> {
         sqlx::query!(
             r#"
                 INSERT INTO waypoint (
@@ -465,20 +492,117 @@ impl DatabaseConnector<Waypoint> for Waypoint {
         .execute(&database_pool.database_pool)
         .await?;
 
+        Ok(item.symbol.clone())
+    }
+
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
+    async fn upsert(database_pool: &DbPool, item: &Waypoint) -> crate::Result<()> {
+        let _ = Self::insert_new(database_pool, item).await?;
+
         Ok(())
+    }
+
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
+    async fn update(database_pool: &DbPool, item: &Waypoint) -> crate::Result<()> {
+        Self::upsert(database_pool, item).await
     }
 
     #[instrument(level = "trace", skip(database_pool, items))]
     async fn insert_bulk(database_pool: &DbPool, items: &[Waypoint]) -> crate::Result<()> {
         for item in items {
-            Self::insert(database_pool, item).await?;
+            Self::upsert(database_pool, item).await?;
         }
 
         Ok(())
     }
 
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
-    async fn get_all(database_pool: &DbPool) -> crate::Result<Vec<Waypoint>> {
+    async fn get_all(
+        database_pool: &DbPool,
+        query: PaginatedQuery,
+    ) -> crate::Result<PaginatedResult<Waypoint>> {
+        run_paginated_query(
+            query,
+            |limit, offset| async move {
+                let erg = sqlx::query_as!(
+                    Waypoint,
+                    r#"
+                        SELECT 
+                          symbol,
+                          system_symbol,
+                          created_at,
+                          x,
+                          y,
+                          type as "waypoint_type: models::WaypointType",
+                          traits as "traits: Vec<models::WaypointTraitSymbol>",
+                          is_under_construction,
+                          orbitals,
+                          orbits,
+                          faction,
+                          modifiers as "modifiers: Vec<models::WaypointModifierSymbol>",
+                          charted_by,
+                          charted_on,
+                          unstable_since,
+                          has_shipyard,
+                          has_marketplace
+                        FROM waypoint
+                        ORDER BY symbol
+                        LIMIT $1 OFFSET $2
+                    "#,
+                    limit,
+                    offset
+                )
+                .fetch_all(database_pool.get_cache_pool())
+                .await?;
+                Ok(erg)
+            },
+            || async move {
+                let erg = sqlx::query_as!(
+                    Waypoint,
+                    r#"
+                        SELECT 
+                          symbol,
+                          system_symbol,
+                          created_at,
+                          x,
+                          y,
+                          type as "waypoint_type: models::WaypointType",
+                          traits as "traits: Vec<models::WaypointTraitSymbol>",
+                          is_under_construction,
+                          orbitals,
+                          orbits,
+                          faction,
+                          modifiers as "modifiers: Vec<models::WaypointModifierSymbol>",
+                          charted_by,
+                          charted_on,
+                          unstable_since,
+                          has_shipyard,
+                          has_marketplace
+                        FROM waypoint
+                        ORDER BY symbol
+                    "#
+                )
+                .fetch_all(database_pool.get_cache_pool())
+                .await?;
+                Ok(erg)
+            },
+            || async move {
+                let erg = sqlx::query!(
+                    r#"
+                        SELECT COUNT(*) as count
+                        FROM waypoint
+                    "#
+                )
+                .fetch_one(database_pool.get_cache_pool())
+                .await?;
+                Ok(erg.count.unwrap_or(0))
+            },
+        )
+        .await
+    }
+
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
+    async fn get_by_id(database_pool: &DbPool, id: &Self::ID) -> crate::Result<Option<Self>> {
         let erg = sqlx::query_as!(
             Waypoint,
             r#"
@@ -501,10 +625,32 @@ impl DatabaseConnector<Waypoint> for Waypoint {
                   has_shipyard,
                   has_marketplace
                 FROM waypoint
-            "#
+                WHERE symbol = $1
+                LIMIT 1
+            "#,
+            id
         )
-        .fetch_all(database_pool.get_cache_pool())
+        .fetch_optional(database_pool.get_cache_pool())
         .await?;
         Ok(erg)
+    }
+
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
+    async fn delete_by_id(database_pool: &DbPool, id: &Self::ID) -> crate::Result<()> {
+        sqlx::query!(
+            r#"
+                DELETE FROM waypoint
+                WHERE symbol = $1
+            "#,
+            id,
+        )
+        .execute(&database_pool.database_pool)
+        .await?;
+
+        Ok(())
+    }
+
+    fn set_id(&mut self, id: Self::ID) {
+        self.symbol = id;
     }
 }

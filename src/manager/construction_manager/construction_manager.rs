@@ -4,7 +4,7 @@ use std::{
 };
 
 use chrono::Utc;
-use database::DatabaseConnector;
+use database::{DatabaseConnectorAsync, PaginatedQuery};
 use space_traders_client::models::{self};
 use tracing::debug;
 use utils::{get_system_symbol, WaypointCan};
@@ -66,11 +66,16 @@ impl ConstructionManager {
             .collect::<HashSet<_>>();
 
         for system in systems_to_search_for_construction.iter() {
-            let waypoints = database::Waypoint::get_by_system(&self.context.database_pool, system)
-                .await?
-                .into_iter()
-                .filter(|w| w.is_under_construction)
-                .collect::<Vec<_>>();
+            let waypoints = database::Waypoint::get_by_system(
+                &self.context.database_pool,
+                system,
+                database::PaginatedQuery::unpaged(),
+            )
+            .await?
+            .items
+            .into_iter()
+            .filter(|w| w.is_under_construction)
+            .collect::<Vec<_>>();
 
             for waypoint in waypoints.iter() {
                 let construction = self
@@ -223,8 +228,12 @@ impl ConstructionManager {
         &mut self,
         ship_clone: ship::MyShip,
     ) -> std::result::Result<super::NextShipmentResp, crate::error::Error> {
-        let shipments =
-            database::ConstructionShipment::get_all_in_transit(&self.context.database_pool).await?;
+        let shipments = database::ConstructionShipment::get_all_in_transit(
+            &self.context.database_pool,
+            PaginatedQuery::unpaged(),
+        )
+        .await?
+        .items;
         let running_shipments = shipments
             .iter()
             .filter(|s| s.status == database::ShipmentStatus::InTransit)
@@ -239,8 +248,12 @@ impl ConstructionManager {
             return Ok(super::NextShipmentResp::Shipment((**next_shipment).clone()));
         }
 
-        let construction_materials =
-            database::ConstructionMaterial::get_unfulfilled(&self.context.database_pool).await?;
+        let construction_materials = database::ConstructionMaterial::get_unfulfilled(
+            &self.context.database_pool,
+            PaginatedQuery::unpaged(),
+        )
+        .await?
+        .items;
 
         let construction_materials = construction_materials
             .into_iter()
@@ -358,7 +371,7 @@ impl ConstructionManager {
                 .await?;
 
         let sql_shipment =
-            database::ConstructionShipment::get_by_id(&self.context.database_pool, id)
+            database::ConstructionShipment::get_by_id(&self.context.database_pool, &id)
                 .await?
                 .ok_or(crate::error::Error::General(format!(
                     "Failed to get shipment by id: {}",
@@ -394,7 +407,7 @@ impl ConstructionManager {
                 .await?;
         }
 
-        database::ConstructionShipment::insert(&self.context.database_pool, &shipment).await?;
+        database::ConstructionShipment::upsert(&self.context.database_pool, &shipment).await?;
 
         Ok(())
     }
@@ -426,8 +439,10 @@ impl ConstructionManager {
             let transactions = database::MarketTransaction::get_by_reason(
                 &self.context.database_pool,
                 database::TransactionReason::Construction(shipment.id),
+                database::PaginatedQuery::unpaged(),
             )
-            .await?;
+            .await?
+            .items;
             let funds = transactions
                 .iter()
                 .filter(|t| t.r#type == models::market_transaction::Type::Purchase)
@@ -441,7 +456,7 @@ impl ConstructionManager {
 
         shipment.status = database::ShipmentStatus::Delivered;
 
-        database::ConstructionShipment::insert(&self.context.database_pool, &shipment).await?;
+        database::ConstructionShipment::upsert(&self.context.database_pool, &shipment).await?;
 
         let waypoint = shipment.construction_site_waypoint.clone();
 
@@ -457,7 +472,11 @@ impl ConstructionManager {
                 .get_waypoint(&system_waypoint, &waypoint)
                 .await?;
             let waypoint = (&(*wp.data)).into();
-            database::Waypoint::insert(&self.context.database_pool, &waypoint).await?;
+            database::Waypoint::upsert(
+                &self.context.database_pool,
+                &waypoint,
+            )
+            .await?;
             if waypoint.is_jump_gate() {
                 self.context
                     .fleet_manager
@@ -493,19 +512,28 @@ impl ConstructionManager {
             "Getting purchase waypoint for trade symbol: {:?}",
             trade_symbol
         );
-        let market_trades =
-            database::MarketTrade::get_last_by_symbol(&self.context.database_pool, trade_symbol)
-                .await?
-                .into_iter()
-                .filter(|t| t.waypoint_symbol.starts_with(system_symbol))
-                .collect::<Vec<_>>();
+        let market_trades = database::MarketTrade::get_last_by_symbol(
+            &self.context.database_pool,
+            trade_symbol,
+            database::PaginatedQuery::unpaged(),
+        )
+        .await?
+        .items
+        .into_iter()
+        .filter(|t| t.waypoint_symbol.starts_with(system_symbol))
+        .collect::<Vec<_>>();
         let market_trade_goods: HashMap<(models::TradeSymbol, String), database::MarketTradeGood> =
-            database::MarketTradeGood::get_last_by_symbol(&self.context.database_pool, trade_symbol)
-                .await?
-                .into_iter()
-                .filter(|t| t.waypoint_symbol.starts_with(system_symbol))
-                .map(|t| ((t.symbol, t.waypoint_symbol.clone()), t))
-                .collect::<HashMap<_, _>>();
+            database::MarketTradeGood::get_last_by_symbol(
+                &self.context.database_pool,
+                trade_symbol,
+                database::PaginatedQuery::unpaged(),
+            )
+            .await?
+            .items
+            .into_iter()
+            .filter(|t| t.waypoint_symbol.starts_with(system_symbol))
+            .map(|t| ((t.symbol, t.waypoint_symbol.clone()), t))
+            .collect::<HashMap<_, _>>();
 
         let mut trades = market_trades
             .into_iter()

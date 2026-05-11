@@ -5,7 +5,7 @@ import Timer from "../features/Timer/Timer";
 import { GetAllSurveysQuery, SurveySize, TradeSymbol } from "../gql/graphql";
 import { GET_ALL_SURVEYS } from "../graphql/queries";
 
-type GQLSurvey = GetAllSurveysQuery["surveys"][number];
+type GQLSurvey = GetAllSurveysQuery["surveys"]["items"][number];
 
 export default function Surveys() {
   const { loading, error, data, dataState, refetch } =
@@ -13,6 +13,8 @@ export default function Surveys() {
 
   if (dataState != "complete") return <p>Loading...</p>;
   if (error) return <p>Error: {error.message}</p>;
+
+  const surveys = data.surveys.items;
 
   const columns: TableProps<GQLSurvey>["columns"] = [
     {
@@ -155,7 +157,7 @@ export default function Surveys() {
       <PageTitle title="surveys" />
       <Space>
         <h1 className="scroll-m-20 text-center text-3xl font-bold tracking-tight text-balance">
-          Surveys {data.surveys.length}
+          Surveys {surveys.length}
         </h1>
         <Button
           onClick={() => {
@@ -167,7 +169,7 @@ export default function Surveys() {
       </Space>
       <Table
         loading={loading}
-        dataSource={data.surveys}
+        dataSource={surveys}
         columns={columns}
         rowKey="signature"
         pagination={{

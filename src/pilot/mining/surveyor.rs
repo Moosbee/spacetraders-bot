@@ -3,7 +3,7 @@ use std::{
     sync::{atomic::AtomicI32, Arc},
 };
 
-use database::DatabaseConnector;
+use database::DatabaseConnectorAsync;
 use ship::status::MiningShipAssignment;
 use tracing::instrument;
 
@@ -82,7 +82,11 @@ impl SurveyPilot {
             .map(|f| database::Survey::from_model(f, ship_before, ship_after, ship.symbol.clone()))
             .collect::<database::Result<Vec<_>, _>>()?;
 
-        database::Survey::insert_bulk(&self.context.database_pool, &all_surveys).await?;
+        database::Survey::insert_bulk(
+            &self.context.database_pool,
+            &all_surveys,
+        )
+        .await?;
 
         self.count
             .fetch_add(1, std::sync::atomic::Ordering::Relaxed);

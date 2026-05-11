@@ -9,9 +9,9 @@ import "./index.css";
 import MyApp from "./MyApp.tsx";
 import { persistor, store } from "./redux/store.ts";
 
-const promise = await Notification.requestPermission();
-
-console.log("Notification permission:", promise);
+void Notification.requestPermission().then((permission) => {
+  console.log("Notification permission:", permission);
+});
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
@@ -24,5 +24,5 @@ createRoot(document.getElementById("root")!).render(
         </PersistGate>
       </Provider>
     </ApolloProvider>
-  </StrictMode>
+  </StrictMode>,
 );

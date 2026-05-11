@@ -1,6 +1,8 @@
 use tracing::instrument;
 
-use super::DatabaseConnector;
+use super::{
+    run_paginated_query, DatabaseConnectorAsync, PaginatedQuery, PaginatedResult,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, async_graphql::SimpleObject)]
 #[graphql(name = "DBShipInfo")]
@@ -109,26 +111,6 @@ pub struct ShipInfo {
 
 impl ShipInfo {
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
-    pub async fn get_by_symbol(
-        database_pool: &super::DbPool,
-        symbol: &str,
-    ) -> crate::Result<Option<ShipInfo>> {
-        let erg = sqlx::query_as!(
-            ShipInfo,
-            r#"
-        SELECT symbol, display_name, active, assignment_id, temp_assignment_id, purchase_id
-        FROM ship_info WHERE symbol = $1
-        LIMIT 1
-      "#,
-            symbol
-        )
-        .fetch_optional(&database_pool.database_pool)
-        .await?;
-
-        Ok(erg)
-    }
-
-    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn unassign_ship(
         database_pool: &super::DbPool,
         ship_symbol: &str,
@@ -161,9 +143,11 @@ impl ShipInfo {
     }
 }
 
-impl DatabaseConnector<ShipInfo> for ShipInfo {
+impl DatabaseConnectorAsync for ShipInfo {
+    type ID = String;
+
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
-    async fn insert(database_pool: &super::DbPool, item: &ShipInfo) -> crate::Result<()> {
+    async fn insert_new(database_pool: &super::DbPool, item: &ShipInfo) -> crate::Result<Self::ID> {
         sqlx::query!(
             r#"
               INSERT INTO public.ship_info(
@@ -198,7 +182,18 @@ impl DatabaseConnector<ShipInfo> for ShipInfo {
         .execute(&database_pool.database_pool)
         .await?;
 
+        Ok(item.symbol.clone())
+    }
+
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
+    async fn upsert(database_pool: &super::DbPool, item: &ShipInfo) -> crate::Result<()> {
+        let _ = Self::insert_new(database_pool, item).await?;
         Ok(())
+    }
+
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
+    async fn update(database_pool: &super::DbPool, item: &ShipInfo) -> crate::Result<()> {
+        Self::upsert(database_pool, item).await
     }
 
     #[instrument(level = "trace", skip(database_pool, items))]
@@ -254,23 +249,101 @@ impl DatabaseConnector<ShipInfo> for ShipInfo {
     }
 
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
-    async fn get_all(database_pool: &super::DbPool) -> crate::Result<Vec<ShipInfo>> {
-        let erg = sqlx::query_as! {
+    async fn get_all(
+        database_pool: &super::DbPool,
+        query: PaginatedQuery,
+    ) -> crate::Result<PaginatedResult<ShipInfo>> {
+        run_paginated_query(
+            query,
+            |page_size, offset| async move {
+                let items = sqlx::query_as! {
+                    ShipInfo,
+                    r#"
+                        SELECT 
+                            symbol,
+                            display_name,
+                            active,
+                            assignment_id,
+                            temp_assignment_id,
+                            purchase_id
+                        FROM ship_info
+                        LIMIT $1 OFFSET $2
+                    "#,
+                    page_size,
+                    offset
+                }
+                .fetch_all(&database_pool.database_pool)
+                .await?;
+
+                Ok(items)
+            },
+            || async move {
+                let items = sqlx::query_as! {
+                    ShipInfo,
+                    r#"
+                        SELECT 
+                            symbol,
+                            display_name,
+                            active,
+                            assignment_id,
+                            temp_assignment_id,
+                            purchase_id
+                        FROM ship_info
+                    "#
+                }
+                .fetch_all(&database_pool.database_pool)
+                .await?;
+
+                Ok(items)
+            },
+            || async move {
+                let count = sqlx::query!(
+                    r#"
+                    SELECT COUNT(*) as "count!"
+                    FROM ship_info
+                    "#
+                )
+                .fetch_one(&database_pool.database_pool)
+                .await?;
+
+                Ok(count.count)
+            },
+        )
+        .await
+    }
+
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
+    async fn get_by_id(database_pool: &super::DbPool, id: &Self::ID) -> crate::Result<Option<Self>> {
+        let erg = sqlx::query_as!(
             ShipInfo,
             r#"
-                SELECT 
-                    symbol,
-                    display_name,
-                    active,
-                    assignment_id,
-                    temp_assignment_id,
-                    purchase_id
-                FROM ship_info
-            "#
-        }
-        .fetch_all(&database_pool.database_pool)
+        SELECT symbol, display_name, active, assignment_id, temp_assignment_id, purchase_id
+        FROM ship_info WHERE symbol = $1
+        LIMIT 1
+      "#,
+            id
+        )
+        .fetch_optional(&database_pool.database_pool)
         .await?;
 
         Ok(erg)
+    }
+
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
+    async fn delete_by_id(database_pool: &super::DbPool, id: &Self::ID) -> crate::Result<()> {
+        sqlx::query!(
+            r#"
+            DELETE FROM ship_info
+            WHERE symbol = $1
+            "#,
+            id
+        )
+        .execute(&database_pool.database_pool)
+        .await?;
+        Ok(())
+    }
+
+    fn set_id(&mut self, id: Self::ID) {
+        self.symbol = id;
     }
 }

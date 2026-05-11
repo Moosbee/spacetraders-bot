@@ -1,7 +1,7 @@
 use core::panic;
 use std::collections::HashSet;
 
-use database::DatabaseConnector;
+use database::DatabaseConnectorAsync;
 use space_traders_client::models;
 use utils::WaypointCan;
 
@@ -26,8 +26,13 @@ pub async fn populate_system(
     //     .await?;
 
     let system_fleets = generate_system_fleets(context, system_symbol).await?;
-    let current_fleets =
-        database::Fleet::get_by_system(&context.database_pool, system_symbol).await?; // we can assume that there is a maximum of one fleet per type per system
+    let current_fleets = database::Fleet::get_by_system(
+        &context.database_pool,
+        system_symbol,
+        database::PaginatedQuery::unpaged(),
+    )
+    .await?
+    .items; // we can assume that there is a maximum of one fleet per type per system
 
     // Match scrapping fleet
     update_fleet(
@@ -95,11 +100,22 @@ pub async fn populate_system(
     )
     .await?;
 
-    let fleets = database::Fleet::get_by_system(&context.database_pool, system_symbol).await?;
+    let fleets = database::Fleet::get_by_system(
+        &context.database_pool,
+        system_symbol,
+        database::PaginatedQuery::unpaged(),
+    )
+    .await?
+    .items;
 
     for fleet in fleets {
-        let current_assignments =
-            database::ShipAssignment::get_by_fleet_id(&context.database_pool, fleet.id).await?;
+        let current_assignments = database::ShipAssignment::get_by_fleet_id(
+            &context.database_pool,
+            fleet.id,
+            database::PaginatedQuery::unpaged(),
+        )
+        .await?
+        .items;
         let new_assignments =
             super::assignment_management::generate_fleet_assignments(&fleet, context).await?;
 
@@ -119,8 +135,13 @@ async fn generate_system_fleets(
     context: &crate::utils::ConductorContext,
     system_symbol: &str,
 ) -> Result<SystemFleets, crate::error::Error> {
-    let waypoints =
-        database::Waypoint::get_by_system(&context.database_pool, system_symbol).await?;
+    let waypoints = database::Waypoint::get_by_system(
+        &context.database_pool,
+        system_symbol,
+        database::PaginatedQuery::unpaged(),
+    )
+    .await?
+    .items;
 
     let headquarters_waypoint = { context.run_info.read().await.headquarters.clone() };
 
@@ -132,9 +153,13 @@ async fn generate_system_fleets(
         .iter()
         .any(|w| w.is_marketplace() && !w.is_charted());
 
-    let constructions =
-        database::ConstructionMaterial::get_by_system(&context.database_pool, system_symbol)
-            .await?;
+    let constructions = database::ConstructionMaterial::get_by_system(
+        &context.database_pool,
+        system_symbol,
+        database::PaginatedQuery::unpaged(),
+    )
+    .await?
+    .items;
 
     let open_construction_site = constructions
         .iter()
@@ -315,7 +340,11 @@ async fn update_fleet(
         (Some(mut new), Some(old)) => {
             // update old with new
             new.id = old.id;
-            database::Fleet::insert(&context.database_pool, &new).await?;
+            database::Fleet::upsert(
+                &context.database_pool,
+                &new,
+            )
+            .await?;
         }
         (Some(new), None) => {
             // insert new
@@ -324,7 +353,11 @@ async fn update_fleet(
         (None, Some(mut old)) => {
             // deactivate old
             old.active = false;
-            database::Fleet::insert(&context.database_pool, &old).await?;
+            database::Fleet::upsert(
+                &context.database_pool,
+                &old,
+            )
+            .await?;
         }
         (None, None) => {
             // do nothing
@@ -338,7 +371,13 @@ pub async fn is_system_populated(
     database_pool: &database::DbPool,
     system_symbol: &str,
 ) -> Result<bool, crate::error::Error> {
-    let fleets = database::Fleet::get_by_system(database_pool, system_symbol).await?;
+    let fleets = database::Fleet::get_by_system(
+        database_pool,
+        system_symbol,
+        database::PaginatedQuery::unpaged(),
+    )
+    .await?
+    .items;
     let length = 1;
     Ok(fleets.len() >= length) // if there are less than 5 fleets, the system is not fully populated
 }

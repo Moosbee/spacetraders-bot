@@ -1,4 +1,4 @@
-use database::DatabaseConnector;
+use database::DatabaseConnectorAsync;
 
 pub async fn update_all_agents(
     api: &space_traders_client::Api,

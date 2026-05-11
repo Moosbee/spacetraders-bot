@@ -25,8 +25,13 @@ impl Pathfinder {
         let start_system = get_system_symbol(start_symbol);
         let end_system = get_system_symbol(end_symbol);
         if start_system == end_system {
-            let system = database::Waypoint::get_by_system(&self.database_pool, &start_system)
+            let system = database::Waypoint::get_by_system(
+                &self.database_pool,
+                &start_system,
+                database::PaginatedQuery::unpaged(),
+            )
                 .await?
+                .items
                 .into_iter()
                 .map(|w| (w.symbol.clone(), w))
                 .collect::<HashMap<_, _>>();
@@ -46,9 +51,13 @@ impl Pathfinder {
             let mut route = vec![];
             let start = conns.first().unwrap();
             let start_end = start.conn.get_other_system(&start.end_system).0;
-            let system =
-                database::Waypoint::get_by_system(&self.database_pool, &start.start_system)
+            let system = database::Waypoint::get_by_system(
+                &self.database_pool,
+                &start.start_system,
+                database::PaginatedQuery::unpaged(),
+            )
                     .await?
+                    .items
                     .into_iter()
                     .map(|w| (w.symbol.clone(), w))
                     .collect::<HashMap<_, _>>();
@@ -73,8 +82,13 @@ impl Pathfinder {
 
             let end = conns.last().unwrap();
             let end_end = end.conn.get_other_system(&end.start_system).0;
-            let system = database::Waypoint::get_by_system(&self.database_pool, &end.end_system)
+            let system = database::Waypoint::get_by_system(
+                &self.database_pool,
+                &end.end_system,
+                database::PaginatedQuery::unpaged(),
+            )
                 .await?
+                .items
                 .into_iter()
                 .map(|w| (w.symbol.clone(), w))
                 .collect::<HashMap<_, _>>();

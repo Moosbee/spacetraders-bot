@@ -3,7 +3,7 @@ use std::{
     ops::{AddAssign, SubAssign},
 };
 
-use database::DatabaseConnector;
+use database::DatabaseConnectorAsync;
 use space_traders_client::models::JettisonRequest;
 
 use crate::error;
@@ -119,8 +119,10 @@ impl<T: Clone + Send + Sync> RustShip<T> {
         let market_info = database::MarketTradeGood::get_last_by_waypoint(
             database_pool,
             &self.nav.waypoint_symbol,
+            database::PaginatedQuery::unpaged(),
         )
-        .await?;
+        .await?
+        .items;
         let market_info = if market_info.is_empty() {
             tokio::time::sleep(std::time::Duration::from_secs(1)).await;
             self.update_market(api, database_pool).await?;
@@ -128,8 +130,10 @@ impl<T: Clone + Send + Sync> RustShip<T> {
             database::MarketTradeGood::get_last_by_waypoint(
                 database_pool,
                 &self.nav.waypoint_symbol,
+                database::PaginatedQuery::unpaged(),
             )
             .await
+            .map(|result| result.items)
         } else {
             sqlx::Result::Ok(market_info)
         };
@@ -208,12 +212,20 @@ impl<T: Clone + Send + Sync> RustShip<T> {
 
         update_funds_fn(trade_data.agent.credits);
 
-        database::Agent::insert(database_pool, &database::Agent::from(*trade_data.agent)).await?;
+        database::Agent::upsert(
+            database_pool,
+            &database::Agent::from(*trade_data.agent),
+        )
+        .await?;
 
         let transaction: database::MarketTransaction =
             database::MarketTransaction::try_from(trade_data.transaction.as_ref().clone())?
                 .with(reason);
-        database::MarketTransaction::insert(database_pool, &transaction).await?;
+        database::MarketTransaction::upsert(
+            database_pool,
+            &transaction,
+        )
+        .await?;
 
         Ok(transaction)
     }

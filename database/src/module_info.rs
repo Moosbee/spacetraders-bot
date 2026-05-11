@@ -1,7 +1,7 @@
 use space_traders_client::models;
 use tracing::instrument;
 
-use super::DatabaseConnector;
+use super::{run_paginated_query, DatabaseConnectorAsync, PaginatedQuery, PaginatedResult};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, async_graphql::SimpleObject)]
 #[graphql(name = "DBModuleInfo")]
@@ -60,9 +60,17 @@ impl ModuleInfo {
     }
 }
 
-impl DatabaseConnector<ModuleInfo> for ModuleInfo {
+impl DatabaseConnectorAsync for ModuleInfo {
+    type ID = models::ship_module::Symbol;
+
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
-    async fn insert(database_pool: &super::DbPool, item: &ModuleInfo) -> crate::Result<()> {
+    async fn insert_new(database_pool: &super::DbPool, item: &ModuleInfo) -> crate::Result<Self::ID> {
+        Self::upsert(database_pool, item).await?;
+        Ok(item.symbol)
+    }
+
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
+    async fn upsert(database_pool: &super::DbPool, item: &ModuleInfo) -> crate::Result<()> {
         sqlx::query!(
             r#"
                 INSERT INTO module_info (
@@ -97,6 +105,11 @@ impl DatabaseConnector<ModuleInfo> for ModuleInfo {
         .execute(&database_pool.database_pool)
         .await?;
         Ok(())
+    }
+
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
+    async fn update(database_pool: &super::DbPool, item: &ModuleInfo) -> crate::Result<()> {
+        Self::upsert(database_pool, item).await
     }
 
     #[instrument(level = "trace", skip(database_pool, items))]
@@ -178,24 +191,118 @@ impl DatabaseConnector<ModuleInfo> for ModuleInfo {
     }
 
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
-    async fn get_all(database_pool: &super::DbPool) -> crate::Result<Vec<ModuleInfo>> {
-        let erg = sqlx::query_as!(
+    async fn get_all(
+        database_pool: &super::DbPool,
+        query: PaginatedQuery,
+    ) -> crate::Result<PaginatedResult<ModuleInfo>> {
+        run_paginated_query(
+            query,
+            |page_size, offset| async move {
+                let items = sqlx::query_as!(
+                    ModuleInfo,
+                    r#"
+                        SELECT
+                            symbol as "symbol: models::ship_module::Symbol",
+                            name,
+                            description,
+                            range,
+                            capacity,
+                            power_required,
+                            crew_required,
+                            slots_required
+                        FROM module_info
+                        ORDER BY symbol ASC
+                        LIMIT $1 OFFSET $2
+                    "#,
+                    page_size,
+                    offset
+                )
+                .fetch_all(database_pool.get_cache_pool())
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let items = sqlx::query_as!(
+                    ModuleInfo,
+                    r#"
+                        SELECT
+                            symbol as "symbol: models::ship_module::Symbol",
+                            name,
+                            description,
+                            range,
+                            capacity,
+                            power_required,
+                            crew_required,
+                            slots_required
+                        FROM module_info
+                        ORDER BY symbol ASC
+                    "#
+                )
+                .fetch_all(database_pool.get_cache_pool())
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let count = sqlx::query!(
+                    r#"
+                        SELECT COUNT(*) as "count!"
+                        FROM module_info
+                    "#
+                )
+                .fetch_one(database_pool.get_cache_pool())
+                .await?;
+                Ok(count.count)
+            },
+        )
+        .await
+    }
+
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
+    async fn get_by_id(
+        database_pool: &super::DbPool,
+        id: &Self::ID,
+    ) -> crate::Result<Option<Self>> {
+        let item = sqlx::query_as!(
             ModuleInfo,
             r#"
-            SELECT
-                symbol as "symbol: models::ship_module::Symbol",
-                name,
-                description,
-                range,
-                capacity,
-                power_required,
-                crew_required,
-                slots_required
-            FROM module_info
-            "#
+                SELECT
+                    symbol as "symbol: models::ship_module::Symbol",
+                    name,
+                    description,
+                    range,
+                    capacity,
+                    power_required,
+                    crew_required,
+                    slots_required
+                FROM module_info
+                WHERE symbol = $1
+                LIMIT 1
+            "#,
+            *id as models::ship_module::Symbol
         )
-        .fetch_all(database_pool.get_cache_pool())
+        .fetch_optional(database_pool.get_cache_pool())
         .await?;
-        Ok(erg)
+        Ok(item)
+    }
+
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
+    async fn delete_by_id(
+        database_pool: &super::DbPool,
+        id: &Self::ID,
+    ) -> crate::Result<()> {
+        sqlx::query!(
+            r#"
+                DELETE FROM module_info
+                WHERE symbol = $1
+            "#,
+            *id as models::ship_module::Symbol
+        )
+        .execute(&database_pool.database_pool)
+        .await?;
+        Ok(())
+    }
+
+    fn set_id(&mut self, id: Self::ID) {
+        self.symbol = id;
     }
 }

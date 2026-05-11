@@ -8,6 +8,7 @@ mod trading;
 use charting::ChartPilot;
 use construction::ConstructionPilot;
 use contract::ContractPilot;
+use database::DatabaseConnectorAsync;
 use mining::MiningPilot;
 use scraper::ScraperPilot;
 use tokio_util::sync::CancellationToken;
@@ -82,7 +83,7 @@ impl Pilot {
         Option<(database::ShipAssignment, database::Fleet, bool)>,
     )> {
         let ship_info_res =
-            database::ShipInfo::get_by_symbol(&self.context.database_pool, &self.ship_symbol).await;
+            database::ShipInfo::get_by_id(&self.context.database_pool, &self.ship_symbol).await;
 
         let ship_info = ship_info_res?.ok_or(Error::General("Ship not found".to_string()))?;
 
@@ -304,8 +305,13 @@ impl Pilot {
             system_symbol: system_symbol.clone(),
         };
 
-        let waypoints =
-            database::Waypoint::get_by_system(&self.context.database_pool, &system_symbol).await?;
+        let waypoints = database::Waypoint::get_by_system(
+            &self.context.database_pool,
+            &system_symbol,
+            database::PaginatedQuery::unpaged(),
+        )
+        .await?
+        .items;
         let jump_gate = waypoints
             .iter()
             .find(|w| w.is_jump_gate())

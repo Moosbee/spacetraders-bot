@@ -4,7 +4,9 @@ use chrono::{DateTime, Utc};
 use space_traders_client::models::{self};
 use tracing::instrument;
 
-use super::{DatabaseConnector, DbPool};
+use super::{
+  run_paginated_query, DatabaseConnectorAsync, DbPool, PaginatedQuery, PaginatedResult,
+};
 
 #[derive(
     Clone,
@@ -119,20 +121,21 @@ impl MarketTransaction {
     pub async fn get_by_reason(
         database_pool: &DbPool,
         reason: TransactionReason,
-    ) -> crate::Result<Vec<MarketTransaction>> {
+      query: PaginatedQuery,
+    ) -> crate::Result<PaginatedResult<MarketTransaction>> {
         match reason {
             TransactionReason::Contract(contract) => {
-                MarketTransaction::get_by_contract(database_pool, &contract).await
+          MarketTransaction::get_by_contract(database_pool, &contract, query).await
             }
-            TransactionReason::None => MarketTransaction::get_all(database_pool).await,
+        TransactionReason::None => MarketTransaction::get_all(database_pool, query).await,
             TransactionReason::TradeRoute(route) => {
-                MarketTransaction::get_by_trade_route(database_pool, route).await
+          MarketTransaction::get_by_trade_route(database_pool, route, query).await
             }
             TransactionReason::MiningWaypoint(waypoint) => {
-                MarketTransaction::get_by_mining_waypoint(database_pool, &waypoint).await
+          MarketTransaction::get_by_mining_waypoint(database_pool, &waypoint, query).await
             }
             TransactionReason::Construction(construction) => {
-                MarketTransaction::get_by_construction(database_pool, construction).await
+          MarketTransaction::get_by_construction(database_pool, construction, query).await
             }
         }
     }
@@ -142,326 +145,847 @@ impl MarketTransaction {
         database_pool: &DbPool,
         waypoint: &str,
         trade_symbol: models::TradeSymbol,
-    ) -> crate::Result<Vec<MarketTransaction>> {
-        let erg = sqlx::query_as!(
+      query: PaginatedQuery,
+    ) -> crate::Result<PaginatedResult<MarketTransaction>> {
+      run_paginated_query(
+        query,
+        |page_size, offset| async move {
+          let items = sqlx::query_as!(
             MarketTransaction,
             r#"
-      select 
-        id,
-        waypoint_symbol,
-        ship_symbol,
-        trade_symbol as "trade_symbol: models::TradeSymbol",
-        "type" as "type: models::market_transaction::Type",
-        units,
-        price_per_unit,
-        total_price,
-        "timestamp",
-        contract,
-        trade_route,
-        mining,
-        construction
-      from market_transaction
-      where waypoint_symbol = $1 and trade_symbol = $2
-      order by "timestamp"
-    "#,
+          select 
+          id,
+          waypoint_symbol,
+          ship_symbol,
+          trade_symbol as "trade_symbol: models::TradeSymbol",
+          "type" as "type: models::market_transaction::Type",
+          units,
+          price_per_unit,
+          total_price,
+          "timestamp",
+          contract,
+          trade_route,
+          mining,
+          construction
+          from market_transaction
+          where waypoint_symbol = $1 and trade_symbol = $2
+          order by "timestamp"
+          LIMIT $3 OFFSET $4
+        "#,
+            waypoint,
+            trade_symbol as models::TradeSymbol,
+            page_size,
+            offset
+          )
+          .fetch_all(database_pool.get_cache_pool())
+          .await?;
+          Ok(items)
+        },
+        || async move {
+          let items = sqlx::query_as!(
+            MarketTransaction,
+            r#"
+          select 
+          id,
+          waypoint_symbol,
+          ship_symbol,
+          trade_symbol as "trade_symbol: models::TradeSymbol",
+          "type" as "type: models::market_transaction::Type",
+          units,
+          price_per_unit,
+          total_price,
+          "timestamp",
+          contract,
+          trade_route,
+          mining,
+          construction
+          from market_transaction
+          where waypoint_symbol = $1 and trade_symbol = $2
+          order by "timestamp"
+        "#,
             waypoint,
             trade_symbol as models::TradeSymbol
-        )
-        .fetch_all(database_pool.get_cache_pool())
-        .await?;
-        Ok(erg)
+          )
+          .fetch_all(database_pool.get_cache_pool())
+          .await?;
+          Ok(items)
+        },
+        || async move {
+          let count = sqlx::query!(
+            r#"
+            SELECT COUNT(*) as "count!"
+            FROM market_transaction
+            WHERE waypoint_symbol = $1 AND trade_symbol = $2
+            "#,
+            waypoint,
+            trade_symbol as models::TradeSymbol
+          )
+          .fetch_one(database_pool.get_cache_pool())
+          .await?;
+          Ok(count.count)
+        },
+      )
+      .await
     }
 
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_contract(
         database_pool: &DbPool,
         contract: &str,
-    ) -> crate::Result<Vec<Self>> {
-        let erg = sqlx::query_as!(
+      query: PaginatedQuery,
+    ) -> crate::Result<PaginatedResult<Self>> {
+      run_paginated_query(
+        query,
+        |page_size, offset| async move {
+          let items = sqlx::query_as!(
             MarketTransaction,
             r#"
-      select
-        id,
-        waypoint_symbol,
-        ship_symbol,
-        trade_symbol as "trade_symbol: models::TradeSymbol",
-        "type" as "type: models::market_transaction::Type",
-        units,
-        price_per_unit,
-        total_price,
-        "timestamp",
-        contract,
-        trade_route,
-        mining,
-        construction
-      from market_transaction
-      where contract = $1
-      order by "timestamp"
-    "#,
+          select
+          id,
+          waypoint_symbol,
+          ship_symbol,
+          trade_symbol as "trade_symbol: models::TradeSymbol",
+          "type" as "type: models::market_transaction::Type",
+          units,
+          price_per_unit,
+          total_price,
+          "timestamp",
+          contract,
+          trade_route,
+          mining,
+          construction
+          from market_transaction
+          where contract = $1
+          order by "timestamp"
+          LIMIT $2 OFFSET $3
+        "#,
+            contract,
+            page_size,
+            offset
+          )
+          .fetch_all(database_pool.get_cache_pool())
+          .await?;
+          Ok(items)
+        },
+        || async move {
+          let items = sqlx::query_as!(
+            MarketTransaction,
+            r#"
+          select
+          id,
+          waypoint_symbol,
+          ship_symbol,
+          trade_symbol as "trade_symbol: models::TradeSymbol",
+          "type" as "type: models::market_transaction::Type",
+          units,
+          price_per_unit,
+          total_price,
+          "timestamp",
+          contract,
+          trade_route,
+          mining,
+          construction
+          from market_transaction
+          where contract = $1
+          order by "timestamp"
+        "#,
             contract
-        )
-        .fetch_all(database_pool.get_cache_pool())
-        .await?;
-        Ok(erg)
+          )
+          .fetch_all(database_pool.get_cache_pool())
+          .await?;
+          Ok(items)
+        },
+        || async move {
+          let count = sqlx::query!(
+            r#"
+            SELECT COUNT(*) as "count!"
+            FROM market_transaction
+            WHERE contract = $1
+            "#,
+            contract
+          )
+          .fetch_one(database_pool.get_cache_pool())
+          .await?;
+          Ok(count.count)
+        },
+      )
+      .await
     }
 
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_trade_route(
         database_pool: &DbPool,
         route: i32,
-    ) -> crate::Result<Vec<Self>> {
-        let erg = sqlx::query_as!(
+      query: PaginatedQuery,
+    ) -> crate::Result<PaginatedResult<Self>> {
+      run_paginated_query(
+        query,
+        |page_size, offset| async move {
+          let items = sqlx::query_as!(
             MarketTransaction,
             r#"
-      select 
-        id,
-        waypoint_symbol,
-        ship_symbol,
-        trade_symbol as "trade_symbol: models::TradeSymbol",
-        "type" as "type: models::market_transaction::Type",
-        units,
-        price_per_unit,
-        total_price,
-        "timestamp",
-        contract,
-        trade_route,
-        mining,
-        construction
-      from market_transaction
-      where trade_route = $1
-      order by "timestamp"
-    "#,
+          select 
+          id,
+          waypoint_symbol,
+          ship_symbol,
+          trade_symbol as "trade_symbol: models::TradeSymbol",
+          "type" as "type: models::market_transaction::Type",
+          units,
+          price_per_unit,
+          total_price,
+          "timestamp",
+          contract,
+          trade_route,
+          mining,
+          construction
+          from market_transaction
+          where trade_route = $1
+          order by "timestamp"
+          LIMIT $2 OFFSET $3
+        "#,
+            route,
+            page_size,
+            offset
+          )
+          .fetch_all(database_pool.get_cache_pool())
+          .await?;
+          Ok(items)
+        },
+        || async move {
+          let items = sqlx::query_as!(
+            MarketTransaction,
+            r#"
+          select 
+          id,
+          waypoint_symbol,
+          ship_symbol,
+          trade_symbol as "trade_symbol: models::TradeSymbol",
+          "type" as "type: models::market_transaction::Type",
+          units,
+          price_per_unit,
+          total_price,
+          "timestamp",
+          contract,
+          trade_route,
+          mining,
+          construction
+          from market_transaction
+          where trade_route = $1
+          order by "timestamp"
+        "#,
             route
-        )
-        .fetch_all(database_pool.get_cache_pool())
-        .await?;
-        Ok(erg)
+          )
+          .fetch_all(database_pool.get_cache_pool())
+          .await?;
+          Ok(items)
+        },
+        || async move {
+          let count = sqlx::query!(
+            r#"
+            SELECT COUNT(*) as "count!"
+            FROM market_transaction
+            WHERE trade_route = $1
+            "#,
+            route
+          )
+          .fetch_one(database_pool.get_cache_pool())
+          .await?;
+          Ok(count.count)
+        },
+      )
+      .await
     }
 
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_mining_waypoint(
         database_pool: &DbPool,
         waypoint: &str,
-    ) -> crate::Result<Vec<Self>> {
-        let erg = sqlx::query_as!(
+      query: PaginatedQuery,
+    ) -> crate::Result<PaginatedResult<Self>> {
+      run_paginated_query(
+        query,
+        |page_size, offset| async move {
+          let items = sqlx::query_as!(
             MarketTransaction,
             r#"
-      select 
-        id,
-        waypoint_symbol,
-        ship_symbol,
-        trade_symbol as "trade_symbol: models::TradeSymbol",
-        "type" as "type: models::market_transaction::Type",
-        units,
-        price_per_unit,
-        total_price,
-        "timestamp",
-        contract,
-        trade_route,
-        mining,
-        construction
-      from market_transaction
-      where mining = $1
-      order by "timestamp"
-    "#,
+          select 
+          id,
+          waypoint_symbol,
+          ship_symbol,
+          trade_symbol as "trade_symbol: models::TradeSymbol",
+          "type" as "type: models::market_transaction::Type",
+          units,
+          price_per_unit,
+          total_price,
+          "timestamp",
+          contract,
+          trade_route,
+          mining,
+          construction
+          from market_transaction
+          where mining = $1
+          order by "timestamp"
+          LIMIT $2 OFFSET $3
+        "#,
+            waypoint,
+            page_size,
+            offset
+          )
+          .fetch_all(database_pool.get_cache_pool())
+          .await?;
+          Ok(items)
+        },
+        || async move {
+          let items = sqlx::query_as!(
+            MarketTransaction,
+            r#"
+          select 
+          id,
+          waypoint_symbol,
+          ship_symbol,
+          trade_symbol as "trade_symbol: models::TradeSymbol",
+          "type" as "type: models::market_transaction::Type",
+          units,
+          price_per_unit,
+          total_price,
+          "timestamp",
+          contract,
+          trade_route,
+          mining,
+          construction
+          from market_transaction
+          where mining = $1
+          order by "timestamp"
+        "#,
             waypoint
-        )
-        .fetch_all(database_pool.get_cache_pool())
-        .await?;
-        Ok(erg)
+          )
+          .fetch_all(database_pool.get_cache_pool())
+          .await?;
+          Ok(items)
+        },
+        || async move {
+          let count = sqlx::query!(
+            r#"
+            SELECT COUNT(*) as "count!"
+            FROM market_transaction
+            WHERE mining = $1
+            "#,
+            waypoint
+          )
+          .fetch_one(database_pool.get_cache_pool())
+          .await?;
+          Ok(count.count)
+        },
+      )
+      .await
     }
 
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_waypoint(
         database_pool: &DbPool,
         waypoint: &str,
-    ) -> crate::Result<Vec<Self>> {
-        let erg = sqlx::query_as!(
+      query: PaginatedQuery,
+    ) -> crate::Result<PaginatedResult<Self>> {
+      run_paginated_query(
+        query,
+        |page_size, offset| async move {
+          let items = sqlx::query_as!(
             MarketTransaction,
             r#"
-      select 
-        id,
-        waypoint_symbol,
-        ship_symbol,
-        trade_symbol as "trade_symbol: models::TradeSymbol",
-        "type" as "type: models::market_transaction::Type",
-        units,
-        price_per_unit,
-        total_price,
-        "timestamp",
-        contract,
-        trade_route,
-        mining,
-        construction
-      from market_transaction
-      where waypoint_symbol = $1
-      order by "timestamp"
-    "#,
+          select 
+          id,
+          waypoint_symbol,
+          ship_symbol,
+          trade_symbol as "trade_symbol: models::TradeSymbol",
+          "type" as "type: models::market_transaction::Type",
+          units,
+          price_per_unit,
+          total_price,
+          "timestamp",
+          contract,
+          trade_route,
+          mining,
+          construction
+          from market_transaction
+          where waypoint_symbol = $1
+          order by "timestamp"
+          LIMIT $2 OFFSET $3
+        "#,
+            waypoint,
+            page_size,
+            offset
+          )
+          .fetch_all(database_pool.get_cache_pool())
+          .await?;
+          Ok(items)
+        },
+        || async move {
+          let items = sqlx::query_as!(
+            MarketTransaction,
+            r#"
+          select 
+          id,
+          waypoint_symbol,
+          ship_symbol,
+          trade_symbol as "trade_symbol: models::TradeSymbol",
+          "type" as "type: models::market_transaction::Type",
+          units,
+          price_per_unit,
+          total_price,
+          "timestamp",
+          contract,
+          trade_route,
+          mining,
+          construction
+          from market_transaction
+          where waypoint_symbol = $1
+          order by "timestamp"
+        "#,
             waypoint
-        )
-        .fetch_all(database_pool.get_cache_pool())
-        .await?;
-        Ok(erg)
+          )
+          .fetch_all(database_pool.get_cache_pool())
+          .await?;
+          Ok(items)
+        },
+        || async move {
+          let count = sqlx::query!(
+            r#"
+            SELECT COUNT(*) as "count!"
+            FROM market_transaction
+            WHERE waypoint_symbol = $1
+            "#,
+            waypoint
+          )
+          .fetch_one(database_pool.get_cache_pool())
+          .await?;
+          Ok(count.count)
+        },
+      )
+      .await
     }
 
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_construction(
         database_pool: &DbPool,
         construction: i64,
-    ) -> crate::Result<Vec<MarketTransaction>> {
-        let erg = sqlx::query_as!(
+      query: PaginatedQuery,
+    ) -> crate::Result<PaginatedResult<MarketTransaction>> {
+      run_paginated_query(
+        query,
+        |page_size, offset| async move {
+          let items = sqlx::query_as!(
             MarketTransaction,
             r#"
-      select 
-        id,
-        waypoint_symbol,
-        ship_symbol,
-        trade_symbol as "trade_symbol: models::TradeSymbol",
-        "type" as "type: models::market_transaction::Type",
-        units,
-        price_per_unit,
-        total_price,
-        "timestamp",
-        contract,
-        trade_route,
-        mining,
-        construction
-      from market_transaction
-      where construction = $1
-      order by "timestamp"
-    "#,
+          select 
+          id,
+          waypoint_symbol,
+          ship_symbol,
+          trade_symbol as "trade_symbol: models::TradeSymbol",
+          "type" as "type: models::market_transaction::Type",
+          units,
+          price_per_unit,
+          total_price,
+          "timestamp",
+          contract,
+          trade_route,
+          mining,
+          construction
+          from market_transaction
+          where construction = $1
+          order by "timestamp"
+          LIMIT $2 OFFSET $3
+        "#,
+            construction,
+            page_size,
+            offset
+          )
+          .fetch_all(database_pool.get_cache_pool())
+          .await?;
+          Ok(items)
+        },
+        || async move {
+          let items = sqlx::query_as!(
+            MarketTransaction,
+            r#"
+          select 
+          id,
+          waypoint_symbol,
+          ship_symbol,
+          trade_symbol as "trade_symbol: models::TradeSymbol",
+          "type" as "type: models::market_transaction::Type",
+          units,
+          price_per_unit,
+          total_price,
+          "timestamp",
+          contract,
+          trade_route,
+          mining,
+          construction
+          from market_transaction
+          where construction = $1
+          order by "timestamp"
+        "#,
             construction
-        )
-        .fetch_all(database_pool.get_cache_pool())
-        .await?;
-        Ok(erg)
+          )
+          .fetch_all(database_pool.get_cache_pool())
+          .await?;
+          Ok(items)
+        },
+        || async move {
+          let count = sqlx::query!(
+            r#"
+            SELECT COUNT(*) as "count!"
+            FROM market_transaction
+            WHERE construction = $1
+            "#,
+            construction
+          )
+          .fetch_one(database_pool.get_cache_pool())
+          .await?;
+          Ok(count.count)
+        },
+      )
+      .await
     }
 
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
-    pub async fn get_by_system(database_pool: &DbPool, system: &str) -> crate::Result<Vec<Self>> {
+    pub async fn get_by_system(
+      database_pool: &DbPool,
+      system: &str,
+      query: PaginatedQuery,
+    ) -> crate::Result<PaginatedResult<Self>> {
         let system_qr = format!("{}-%", system);
-        let erg = sqlx::query_as!(
+      let page_system_qr = system_qr.clone();
+      let all_system_qr = system_qr.clone();
+      let count_system_qr = system_qr.clone();
+      run_paginated_query(
+        query,
+        |page_size, offset| async move {
+          let items = sqlx::query_as!(
             MarketTransaction,
             r#"
-      select 
-        id,
-        waypoint_symbol,
-        ship_symbol,
-        trade_symbol as "trade_symbol: models::TradeSymbol",
-        "type" as "type: models::market_transaction::Type",
-        units,
-        price_per_unit,
-        total_price,
-        "timestamp",
-        contract,
-        trade_route,
-        mining,
-        construction
-      from market_transaction
-      where waypoint_symbol like $1
-      order by "timestamp"
-    "#,
-            system_qr
-        )
-        .fetch_all(database_pool.get_cache_pool())
-        .await?;
-        Ok(erg)
+          select 
+          id,
+          waypoint_symbol,
+          ship_symbol,
+          trade_symbol as "trade_symbol: models::TradeSymbol",
+          "type" as "type: models::market_transaction::Type",
+          units,
+          price_per_unit,
+          total_price,
+          "timestamp",
+          contract,
+          trade_route,
+          mining,
+          construction
+          from market_transaction
+          where waypoint_symbol like $1
+          order by "timestamp"
+          LIMIT $2 OFFSET $3
+        "#,
+            page_system_qr,
+            page_size,
+            offset
+          )
+          .fetch_all(database_pool.get_cache_pool())
+          .await?;
+          Ok(items)
+        },
+        || async move {
+          let items = sqlx::query_as!(
+            MarketTransaction,
+            r#"
+          select 
+          id,
+          waypoint_symbol,
+          ship_symbol,
+          trade_symbol as "trade_symbol: models::TradeSymbol",
+          "type" as "type: models::market_transaction::Type",
+          units,
+          price_per_unit,
+          total_price,
+          "timestamp",
+          contract,
+          trade_route,
+          mining,
+          construction
+          from market_transaction
+          where waypoint_symbol like $1
+          order by "timestamp"
+        "#,
+            all_system_qr
+          )
+          .fetch_all(database_pool.get_cache_pool())
+          .await?;
+          Ok(items)
+        },
+        || async move {
+          let count = sqlx::query!(
+            r#"
+            SELECT COUNT(*) as "count!"
+            FROM market_transaction
+            WHERE waypoint_symbol LIKE $1
+            "#,
+            count_system_qr
+          )
+          .fetch_one(database_pool.get_cache_pool())
+          .await?;
+          Ok(count.count)
+        },
+      )
+      .await
     }
 
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
-    pub async fn get_by_ship(database_pool: &DbPool, ship: &str) -> crate::Result<Vec<Self>> {
-        let erg = sqlx::query_as!(
+    pub async fn get_by_ship(
+      database_pool: &DbPool,
+      ship: &str,
+      query: PaginatedQuery,
+    ) -> crate::Result<PaginatedResult<Self>> {
+      run_paginated_query(
+        query,
+        |page_size, offset| async move {
+          let items = sqlx::query_as!(
             MarketTransaction,
             r#"
-      select 
-        id,
-        waypoint_symbol,
-        ship_symbol,
-        trade_symbol as "trade_symbol: models::TradeSymbol",
-        "type" as "type: models::market_transaction::Type",
-        units,
-        price_per_unit,
-        total_price,
-        "timestamp",
-        contract,
-        trade_route,
-        mining,
-        construction
-      from market_transaction
-      where ship_symbol = $1
-      order by "timestamp"
-    "#,
+          select 
+          id,
+          waypoint_symbol,
+          ship_symbol,
+          trade_symbol as "trade_symbol: models::TradeSymbol",
+          "type" as "type: models::market_transaction::Type",
+          units,
+          price_per_unit,
+          total_price,
+          "timestamp",
+          contract,
+          trade_route,
+          mining,
+          construction
+          from market_transaction
+          where ship_symbol = $1
+          order by "timestamp"
+          LIMIT $2 OFFSET $3
+        "#,
+            ship,
+            page_size,
+            offset
+          )
+          .fetch_all(database_pool.get_cache_pool())
+          .await?;
+          Ok(items)
+        },
+        || async move {
+          let items = sqlx::query_as!(
+            MarketTransaction,
+            r#"
+          select 
+          id,
+          waypoint_symbol,
+          ship_symbol,
+          trade_symbol as "trade_symbol: models::TradeSymbol",
+          "type" as "type: models::market_transaction::Type",
+          units,
+          price_per_unit,
+          total_price,
+          "timestamp",
+          contract,
+          trade_route,
+          mining,
+          construction
+          from market_transaction
+          where ship_symbol = $1
+          order by "timestamp"
+        "#,
             ship
-        )
-        .fetch_all(database_pool.get_cache_pool())
-        .await?;
-        Ok(erg)
+          )
+          .fetch_all(database_pool.get_cache_pool())
+          .await?;
+          Ok(items)
+        },
+        || async move {
+          let count = sqlx::query!(
+            r#"
+            SELECT COUNT(*) as "count!"
+            FROM market_transaction
+            WHERE ship_symbol = $1
+            "#,
+            ship
+          )
+          .fetch_one(database_pool.get_cache_pool())
+          .await?;
+          Ok(count.count)
+        },
+      )
+      .await
     }
 
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_trade_symbol(
         database_pool: &DbPool,
         trade_symbol: models::TradeSymbol,
-    ) -> crate::Result<Vec<Self>> {
-        let erg = sqlx::query_as!(
+      query: PaginatedQuery,
+    ) -> crate::Result<PaginatedResult<Self>> {
+      run_paginated_query(
+        query,
+        |page_size, offset| async move {
+          let items = sqlx::query_as!(
             MarketTransaction,
             r#"
-      select 
-        id,
-        waypoint_symbol,
-        ship_symbol,
-        trade_symbol as "trade_symbol: models::TradeSymbol",
-        "type" as "type: models::market_transaction::Type",
-        units,
-        price_per_unit,
-        total_price,
-        "timestamp",
-        contract,
-        trade_route,
-        mining,
-        construction
-      from market_transaction
-      where trade_symbol = $1
-      order by "timestamp"
-    "#,
+          select 
+          id,
+          waypoint_symbol,
+          ship_symbol,
+          trade_symbol as "trade_symbol: models::TradeSymbol",
+          "type" as "type: models::market_transaction::Type",
+          units,
+          price_per_unit,
+          total_price,
+          "timestamp",
+          contract,
+          trade_route,
+          mining,
+          construction
+          from market_transaction
+          where trade_symbol = $1
+          order by "timestamp"
+          LIMIT $2 OFFSET $3
+        "#,
+            trade_symbol as models::TradeSymbol,
+            page_size,
+            offset
+          )
+          .fetch_all(database_pool.get_cache_pool())
+          .await?;
+          Ok(items)
+        },
+        || async move {
+          let items = sqlx::query_as!(
+            MarketTransaction,
+            r#"
+          select 
+          id,
+          waypoint_symbol,
+          ship_symbol,
+          trade_symbol as "trade_symbol: models::TradeSymbol",
+          "type" as "type: models::market_transaction::Type",
+          units,
+          price_per_unit,
+          total_price,
+          "timestamp",
+          contract,
+          trade_route,
+          mining,
+          construction
+          from market_transaction
+          where trade_symbol = $1
+          order by "timestamp"
+        "#,
             trade_symbol as models::TradeSymbol
-        )
-        .fetch_all(database_pool.get_cache_pool())
-        .await?;
-        Ok(erg)
+          )
+          .fetch_all(database_pool.get_cache_pool())
+          .await?;
+          Ok(items)
+        },
+        || async move {
+          let count = sqlx::query!(
+            r#"
+            SELECT COUNT(*) as "count!"
+            FROM market_transaction
+            WHERE trade_symbol = $1
+            "#,
+            trade_symbol as models::TradeSymbol
+          )
+          .fetch_one(database_pool.get_cache_pool())
+          .await?;
+          Ok(count.count)
+        },
+      )
+      .await
     }
 
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_trade_type(
         database_pool: &DbPool,
         trade_type: models::market_transaction::Type,
-    ) -> crate::Result<Vec<Self>> {
-        let erg = sqlx::query_as!(
+      query: PaginatedQuery,
+    ) -> crate::Result<PaginatedResult<Self>> {
+      run_paginated_query(
+        query,
+        |page_size, offset| async move {
+          let items = sqlx::query_as!(
             MarketTransaction,
             r#"
-      select 
-        id,
-        waypoint_symbol,
-        ship_symbol,
-        trade_symbol as "trade_symbol: models::TradeSymbol",
-        "type" as "type: models::market_transaction::Type",
-        units,
-        price_per_unit,
-        total_price,
-        "timestamp",
-        contract,
-        trade_route,
-        mining,
-        construction
-      from market_transaction
-      where "type" = $1
-      order by "timestamp"
-    "#,
+          select 
+          id,
+          waypoint_symbol,
+          ship_symbol,
+          trade_symbol as "trade_symbol: models::TradeSymbol",
+          "type" as "type: models::market_transaction::Type",
+          units,
+          price_per_unit,
+          total_price,
+          "timestamp",
+          contract,
+          trade_route,
+          mining,
+          construction
+          from market_transaction
+          where "type" = $1
+          order by "timestamp"
+          LIMIT $2 OFFSET $3
+        "#,
+            trade_type as models::market_transaction::Type,
+            page_size,
+            offset
+          )
+          .fetch_all(database_pool.get_cache_pool())
+          .await?;
+          Ok(items)
+        },
+        || async move {
+          let items = sqlx::query_as!(
+            MarketTransaction,
+            r#"
+          select 
+          id,
+          waypoint_symbol,
+          ship_symbol,
+          trade_symbol as "trade_symbol: models::TradeSymbol",
+          "type" as "type: models::market_transaction::Type",
+          units,
+          price_per_unit,
+          total_price,
+          "timestamp",
+          contract,
+          trade_route,
+          mining,
+          construction
+          from market_transaction
+          where "type" = $1
+          order by "timestamp"
+        "#,
             trade_type as models::market_transaction::Type
-        )
-        .fetch_all(database_pool.get_cache_pool())
-        .await?;
-        Ok(erg)
+          )
+          .fetch_all(database_pool.get_cache_pool())
+          .await?;
+          Ok(items)
+        },
+        || async move {
+          let count = sqlx::query!(
+            r#"
+            SELECT COUNT(*) as "count!"
+            FROM market_transaction
+            WHERE "type" = $1
+            "#,
+            trade_type as models::market_transaction::Type
+          )
+          .fetch_one(database_pool.get_cache_pool())
+          .await?;
+          Ok(count.count)
+        },
+      )
+      .await
     }
 
     pub async fn get_transaction_summary(
@@ -1020,39 +1544,50 @@ impl TryFrom<models::MarketTransaction> for MarketTransaction {
     }
 }
 
-impl DatabaseConnector<MarketTransaction> for MarketTransaction {
+impl DatabaseConnectorAsync for MarketTransaction {
+  type ID = i64;
+
+  #[instrument(level = "trace", skip(database_pool), err(Debug))]
+  async fn insert_new(database_pool: &DbPool, item: &MarketTransaction) -> crate::Result<Self::ID> {
+    let erg = sqlx::query!(
+    r#"
+      INSERT INTO market_transaction (waypoint_symbol, ship_symbol, trade_symbol, "type", units, price_per_unit, total_price, "timestamp", contract, trade_route, mining, construction)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+      ON CONFLICT (waypoint_symbol, ship_symbol, trade_symbol, "timestamp") DO UPDATE
+      SET units = EXCLUDED.units,
+      price_per_unit = EXCLUDED.price_per_unit,
+      total_price = EXCLUDED.total_price
+      returning id
+    "#,
+    item.waypoint_symbol,
+    item.ship_symbol,
+    item.trade_symbol as models::TradeSymbol,
+    item.r#type as models::market_transaction::Type,
+    item.units,
+    item.price_per_unit,
+    item.total_price,
+    item.timestamp,
+    item.contract,
+    item.trade_route,
+    item.mining,
+    item.construction
+  )
+  .fetch_one(&database_pool.database_pool)
+  .await?;
+
+    Ok(erg.id)
+  }
+
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
-    async fn insert(database_pool: &DbPool, item: &MarketTransaction) -> crate::Result<()> {
-        let _erg= sqlx::query!(
-        r#"
-            INSERT INTO market_transaction (waypoint_symbol, ship_symbol, trade_symbol, "type", units, price_per_unit, total_price, "timestamp", contract, trade_route, mining, construction)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-            ON CONFLICT (waypoint_symbol, ship_symbol, trade_symbol, "timestamp") DO UPDATE
-            SET units = EXCLUDED.units,
-            price_per_unit = EXCLUDED.price_per_unit,
-            total_price = EXCLUDED.total_price
-            returning id
-        "#,
-        item.waypoint_symbol,
-        item.ship_symbol,
-        item.trade_symbol as models::TradeSymbol,
-        item.r#type as models::market_transaction::Type,
-        item.units,
-        item.price_per_unit,
-        item.total_price,
-        item.timestamp,
-        item.contract,
-        item.trade_route,
-        item.mining,
-        item.construction
-    )
-    .fetch_one(&database_pool.database_pool)
-    .await?;
-
-        // erg.id;
-
+  async fn upsert(database_pool: &DbPool, item: &MarketTransaction) -> crate::Result<()> {
+    let _ = Self::insert_new(database_pool, item).await?;
         Ok(())
     }
+
+  #[instrument(level = "trace", skip(database_pool), err(Debug))]
+  async fn update(database_pool: &DbPool, item: &MarketTransaction) -> crate::Result<()> {
+    Self::upsert(database_pool, item).await
+  }
 
     #[instrument(level = "trace", skip(database_pool, items))]
     async fn insert_bulk(database_pool: &DbPool, items: &[MarketTransaction]) -> crate::Result<()> {
@@ -1143,31 +1678,128 @@ impl DatabaseConnector<MarketTransaction> for MarketTransaction {
     }
 
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
-    async fn get_all(database_pool: &DbPool) -> crate::Result<Vec<MarketTransaction>> {
-        let erg = sqlx::query_as!(
+    async fn get_all(
+      database_pool: &DbPool,
+      query: PaginatedQuery,
+    ) -> crate::Result<PaginatedResult<MarketTransaction>> {
+      run_paginated_query(
+        query,
+        |page_size, offset| async move {
+          let items = sqlx::query_as!(
             MarketTransaction,
             r#"
+          select 
+          id,
+          waypoint_symbol,
+          ship_symbol,
+          trade_symbol as "trade_symbol: models::TradeSymbol",
+          "type" as "type: models::market_transaction::Type",
+          units,
+          price_per_unit,
+          total_price,
+          "timestamp",
+          contract,
+          trade_route,
+          mining,
+          construction
+          from market_transaction
+          order by "timestamp"
+          LIMIT $1 OFFSET $2
+        "#,
+            page_size,
+            offset
+          )
+          .fetch_all(database_pool.get_cache_pool())
+          .await?;
+          Ok(items)
+        },
+        || async move {
+          let items = sqlx::query_as!(
+            MarketTransaction,
+            r#"
+          select 
+          id,
+          waypoint_symbol,
+          ship_symbol,
+          trade_symbol as "trade_symbol: models::TradeSymbol",
+          "type" as "type: models::market_transaction::Type",
+          units,
+          price_per_unit,
+          total_price,
+          "timestamp",
+          contract,
+          trade_route,
+          mining,
+          construction
+          from market_transaction
+          order by "timestamp"
+        "#,
+          )
+          .fetch_all(database_pool.get_cache_pool())
+          .await?;
+          Ok(items)
+        },
+        || async move {
+          let count = sqlx::query!(
+            r#"
+            SELECT COUNT(*) as "count!"
+            FROM market_transaction
+            "#
+          )
+          .fetch_one(database_pool.get_cache_pool())
+          .await?;
+          Ok(count.count)
+        },
+      )
+      .await
+    }
+
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
+    async fn get_by_id(database_pool: &DbPool, id: &Self::ID) -> crate::Result<Option<Self>> {
+      let item = sqlx::query_as!(
+        MarketTransaction,
+        r#"
       select 
-        id,
-        waypoint_symbol,
-        ship_symbol,
-        trade_symbol as "trade_symbol: models::TradeSymbol",
-        "type" as "type: models::market_transaction::Type",
-        units,
-        price_per_unit,
-        total_price,
-        "timestamp",
-        contract,
-        trade_route,
-        mining,
-        construction
+      id,
+      waypoint_symbol,
+      ship_symbol,
+      trade_symbol as "trade_symbol: models::TradeSymbol",
+      "type" as "type: models::market_transaction::Type",
+      units,
+      price_per_unit,
+      total_price,
+      "timestamp",
+      contract,
+      trade_route,
+      mining,
+      construction
       from market_transaction
-      order by "timestamp"
+      where id = $1
+      LIMIT 1
     "#,
-        )
-        .fetch_all(database_pool.get_cache_pool())
-        .await?;
-        Ok(erg)
+        id
+      )
+      .fetch_optional(&database_pool.database_pool)
+      .await?;
+      Ok(item)
+    }
+
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
+    async fn delete_by_id(database_pool: &DbPool, id: &Self::ID) -> crate::Result<()> {
+      sqlx::query!(
+        r#"
+        DELETE FROM market_transaction
+        WHERE id = $1
+        "#,
+        id
+      )
+      .execute(&database_pool.database_pool)
+      .await?;
+      Ok(())
+    }
+
+    fn set_id(&mut self, id: Self::ID) {
+      self.id = id;
     }
 }
 

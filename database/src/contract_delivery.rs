@@ -1,7 +1,9 @@
 use space_traders_client::models;
 use tracing::instrument;
 
-use super::{DatabaseConnector, DbPool};
+use super::{
+    run_paginated_query, DatabaseConnectorAsync, DbPool, PaginatedQuery, PaginatedResult,
+};
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, async_graphql::SimpleObject)]
 #[graphql(name = "DBContractDelivery")]
@@ -36,99 +38,290 @@ impl ContractDelivery {
     pub async fn get_by_contract_id(
         database_pool: &DbPool,
         contract_id: &str,
-    ) -> crate::Result<Vec<ContractDelivery>> {
-        let erg = sqlx::query_as!(
-            ContractDelivery,
-            r#"
-            SELECT 
-              contract_id,
-              trade_symbol as "trade_symbol: models::TradeSymbol",
-              destination_symbol,
-              units_required,
-              units_fulfilled
-            FROM contract_delivery
-            WHERE contract_id = $1
-        "#,
-            contract_id
+        query: PaginatedQuery,
+    ) -> crate::Result<PaginatedResult<ContractDelivery>> {
+        run_paginated_query(
+            query,
+            |page_size, offset| async move {
+                let items = sqlx::query_as!(
+                    ContractDelivery,
+                    r#"
+                        SELECT 
+                          contract_id,
+                          trade_symbol as "trade_symbol: models::TradeSymbol",
+                          destination_symbol,
+                          units_required,
+                          units_fulfilled
+                        FROM contract_delivery
+                        WHERE contract_id = $1
+                        ORDER BY trade_symbol ASC, destination_symbol ASC
+                        LIMIT $2 OFFSET $3
+                    "#,
+                    contract_id,
+                    page_size,
+                    offset
+                )
+                .fetch_all(database_pool.get_cache_pool())
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let items = sqlx::query_as!(
+                    ContractDelivery,
+                    r#"
+                        SELECT 
+                          contract_id,
+                          trade_symbol as "trade_symbol: models::TradeSymbol",
+                          destination_symbol,
+                          units_required,
+                          units_fulfilled
+                        FROM contract_delivery
+                        WHERE contract_id = $1
+                        ORDER BY trade_symbol ASC, destination_symbol ASC
+                    "#,
+                    contract_id
+                )
+                .fetch_all(database_pool.get_cache_pool())
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let count = sqlx::query!(
+                    r#"
+                        SELECT COUNT(*) as "count!"
+                        FROM contract_delivery
+                        WHERE contract_id = $1
+                    "#,
+                    contract_id
+                )
+                .fetch_one(database_pool.get_cache_pool())
+                .await?;
+                Ok(count.count)
+            },
         )
-        .fetch_all(database_pool.get_cache_pool())
-        .await?;
-        Ok(erg)
+        .await
     }
 
     pub async fn get_by_trade_symbol(
         database_pool: &DbPool,
         trade_symbol: &models::TradeSymbol,
-    ) -> crate::Result<Vec<ContractDelivery>> {
-        let erg = sqlx::query_as!(
-            ContractDelivery,
-            r#"
-            SELECT 
-              contract_id,
-              trade_symbol as "trade_symbol: models::TradeSymbol",
-              destination_symbol,
-              units_required,
-              units_fulfilled
-            FROM contract_delivery
-            WHERE trade_symbol = $1
-        "#,
-            *trade_symbol as models::TradeSymbol
+        query: PaginatedQuery,
+    ) -> crate::Result<PaginatedResult<ContractDelivery>> {
+        run_paginated_query(
+            query,
+            |page_size, offset| async move {
+                let items = sqlx::query_as!(
+                    ContractDelivery,
+                    r#"
+                        SELECT 
+                          contract_id,
+                          trade_symbol as "trade_symbol: models::TradeSymbol",
+                          destination_symbol,
+                          units_required,
+                          units_fulfilled
+                        FROM contract_delivery
+                        WHERE trade_symbol = $1
+                        ORDER BY contract_id ASC, destination_symbol ASC
+                        LIMIT $2 OFFSET $3
+                    "#,
+                    *trade_symbol as models::TradeSymbol,
+                    page_size,
+                    offset
+                )
+                .fetch_all(database_pool.get_cache_pool())
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let items = sqlx::query_as!(
+                    ContractDelivery,
+                    r#"
+                        SELECT 
+                          contract_id,
+                          trade_symbol as "trade_symbol: models::TradeSymbol",
+                          destination_symbol,
+                          units_required,
+                          units_fulfilled
+                        FROM contract_delivery
+                        WHERE trade_symbol = $1
+                        ORDER BY contract_id ASC, destination_symbol ASC
+                    "#,
+                    *trade_symbol as models::TradeSymbol
+                )
+                .fetch_all(database_pool.get_cache_pool())
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let count = sqlx::query!(
+                    r#"
+                        SELECT COUNT(*) as "count!"
+                        FROM contract_delivery
+                        WHERE trade_symbol = $1
+                    "#,
+                    *trade_symbol as models::TradeSymbol
+                )
+                .fetch_one(database_pool.get_cache_pool())
+                .await?;
+                Ok(count.count)
+            },
         )
-        .fetch_all(database_pool.get_cache_pool())
-        .await?;
-        Ok(erg)
+        .await
     }
 
     pub async fn get_by_destination_symbol(
         database_pool: &DbPool,
         destination_symbol: &str,
-    ) -> crate::Result<Vec<ContractDelivery>> {
-        let erg = sqlx::query_as!(
-            ContractDelivery,
-            r#"
-            SELECT 
-              contract_id,
-              trade_symbol as "trade_symbol: models::TradeSymbol",
-              destination_symbol,
-              units_required,
-              units_fulfilled
-            FROM contract_delivery
-            WHERE destination_symbol = $1
-        "#,
-            destination_symbol
+        query: PaginatedQuery,
+    ) -> crate::Result<PaginatedResult<ContractDelivery>> {
+        run_paginated_query(
+            query,
+            |page_size, offset| async move {
+                let items = sqlx::query_as!(
+                    ContractDelivery,
+                    r#"
+                        SELECT 
+                          contract_id,
+                          trade_symbol as "trade_symbol: models::TradeSymbol",
+                          destination_symbol,
+                          units_required,
+                          units_fulfilled
+                        FROM contract_delivery
+                        WHERE destination_symbol = $1
+                        ORDER BY contract_id ASC, trade_symbol ASC
+                        LIMIT $2 OFFSET $3
+                    "#,
+                    destination_symbol,
+                    page_size,
+                    offset
+                )
+                .fetch_all(database_pool.get_cache_pool())
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let items = sqlx::query_as!(
+                    ContractDelivery,
+                    r#"
+                        SELECT 
+                          contract_id,
+                          trade_symbol as "trade_symbol: models::TradeSymbol",
+                          destination_symbol,
+                          units_required,
+                          units_fulfilled
+                        FROM contract_delivery
+                        WHERE destination_symbol = $1
+                        ORDER BY contract_id ASC, trade_symbol ASC
+                    "#,
+                    destination_symbol
+                )
+                .fetch_all(database_pool.get_cache_pool())
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let count = sqlx::query!(
+                    r#"
+                        SELECT COUNT(*) as "count!"
+                        FROM contract_delivery
+                        WHERE destination_symbol = $1
+                    "#,
+                    destination_symbol
+                )
+                .fetch_one(database_pool.get_cache_pool())
+                .await?;
+                Ok(count.count)
+            },
         )
-        .fetch_all(database_pool.get_cache_pool())
-        .await?;
-        Ok(erg)
+        .await
     }
 
     pub async fn get_by_system_symbol(
         database_pool: &DbPool,
         system_symbol: &str,
-    ) -> crate::Result<Vec<ContractDelivery>> {
-        let erg = sqlx::query_as!(
-            ContractDelivery,
-            r#"
-            SELECT 
-              contract_id,
-              trade_symbol as "trade_symbol: models::TradeSymbol",
-              destination_symbol,
-              units_required,
-              units_fulfilled
-            FROM contract_delivery JOIN waypoint ON contract_delivery.destination_symbol = waypoint.symbol
-            WHERE waypoint.system_symbol = $1
-        "#,
-            system_symbol
+        query: PaginatedQuery,
+    ) -> crate::Result<PaginatedResult<ContractDelivery>> {
+        run_paginated_query(
+            query,
+            |page_size, offset| async move {
+                let items = sqlx::query_as!(
+                    ContractDelivery,
+                    r#"
+                        SELECT 
+                          contract_id,
+                          trade_symbol as "trade_symbol: models::TradeSymbol",
+                          destination_symbol,
+                          units_required,
+                          units_fulfilled
+                        FROM contract_delivery JOIN waypoint ON contract_delivery.destination_symbol = waypoint.symbol
+                        WHERE waypoint.system_symbol = $1
+                        ORDER BY contract_id ASC, trade_symbol ASC, destination_symbol ASC
+                        LIMIT $2 OFFSET $3
+                    "#,
+                    system_symbol,
+                    page_size,
+                    offset
+                )
+                .fetch_all(database_pool.get_cache_pool())
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let items = sqlx::query_as!(
+                    ContractDelivery,
+                    r#"
+                        SELECT 
+                          contract_id,
+                          trade_symbol as "trade_symbol: models::TradeSymbol",
+                          destination_symbol,
+                          units_required,
+                          units_fulfilled
+                        FROM contract_delivery JOIN waypoint ON contract_delivery.destination_symbol = waypoint.symbol
+                        WHERE waypoint.system_symbol = $1
+                        ORDER BY contract_id ASC, trade_symbol ASC, destination_symbol ASC
+                    "#,
+                    system_symbol
+                )
+                .fetch_all(database_pool.get_cache_pool())
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let count = sqlx::query!(
+                    r#"
+                        SELECT COUNT(*) as "count!"
+                        FROM contract_delivery JOIN waypoint ON contract_delivery.destination_symbol = waypoint.symbol
+                        WHERE waypoint.system_symbol = $1
+                    "#,
+                    system_symbol
+                )
+                .fetch_one(database_pool.get_cache_pool())
+                .await?;
+                Ok(count.count)
+            },
         )
-        .fetch_all(database_pool.get_cache_pool())
-        .await?;
-        Ok(erg)
+        .await
     }
 }
 
-impl DatabaseConnector<ContractDelivery> for ContractDelivery {
+impl DatabaseConnectorAsync for ContractDelivery {
+    type ID = (String, models::TradeSymbol, String);
+
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
-    async fn insert(database_pool: &DbPool, item: &ContractDelivery) -> crate::Result<()> {
+    async fn insert_new(
+        database_pool: &DbPool,
+        item: &ContractDelivery,
+    ) -> crate::Result<Self::ID> {
+        Self::upsert(database_pool, item).await?;
+        Ok((
+            item.contract_id.clone(),
+            item.trade_symbol,
+            item.destination_symbol.clone(),
+        ))
+    }
+
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
+    async fn upsert(database_pool: &DbPool, item: &ContractDelivery) -> crate::Result<()> {
         sqlx::query!(
             r#"
                 INSERT INTO contract_delivery (contract_id, trade_symbol, destination_symbol, units_required, units_fulfilled)
@@ -145,6 +338,11 @@ impl DatabaseConnector<ContractDelivery> for ContractDelivery {
         ).execute(&database_pool.database_pool).await?;
 
         Ok(())
+    }
+
+    #[instrument(level = "trace", skip(database_pool, item))]
+    async fn update(database_pool: &DbPool, item: &ContractDelivery) -> crate::Result<()> {
+        Self::upsert(database_pool, item).await
     }
 
     #[instrument(level = "trace", skip(database_pool, items))]
@@ -197,21 +395,112 @@ impl DatabaseConnector<ContractDelivery> for ContractDelivery {
     }
 
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
-    async fn get_all(database_pool: &DbPool) -> crate::Result<Vec<ContractDelivery>> {
-        let erg = sqlx::query_as!(
+    async fn get_all(
+        database_pool: &DbPool,
+        query: PaginatedQuery,
+    ) -> crate::Result<PaginatedResult<ContractDelivery>> {
+        run_paginated_query(
+            query,
+            |page_size, offset| async move {
+                let items = sqlx::query_as!(
+                    ContractDelivery,
+                    r#"
+                        SELECT 
+                          contract_id,
+                          trade_symbol as "trade_symbol: models::TradeSymbol",
+                          destination_symbol,
+                          units_required,
+                          units_fulfilled
+                        FROM contract_delivery
+                        ORDER BY contract_id ASC, trade_symbol ASC, destination_symbol ASC
+                        LIMIT $1 OFFSET $2
+                    "#,
+                    page_size,
+                    offset
+                )
+                .fetch_all(database_pool.get_cache_pool())
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let items = sqlx::query_as!(
+                    ContractDelivery,
+                    r#"
+                        SELECT 
+                          contract_id,
+                          trade_symbol as "trade_symbol: models::TradeSymbol",
+                          destination_symbol,
+                          units_required,
+                          units_fulfilled
+                        FROM contract_delivery
+                        ORDER BY contract_id ASC, trade_symbol ASC, destination_symbol ASC
+                    "#
+                )
+                .fetch_all(database_pool.get_cache_pool())
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let count = sqlx::query!(
+                    r#"
+                        SELECT COUNT(*) as "count!"
+                        FROM contract_delivery
+                    "#
+                )
+                .fetch_one(database_pool.get_cache_pool())
+                .await?;
+                Ok(count.count)
+            },
+        )
+        .await
+    }
+
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
+    async fn get_by_id(
+        database_pool: &DbPool,
+        id: &Self::ID,
+    ) -> crate::Result<Option<Self>> {
+        let item = sqlx::query_as!(
             ContractDelivery,
             r#"
-            SELECT 
-              contract_id,
-              trade_symbol as "trade_symbol: models::TradeSymbol",
-              destination_symbol,
-              units_required,
-              units_fulfilled
-            FROM contract_delivery
-        "#
+                SELECT 
+                  contract_id,
+                  trade_symbol as "trade_symbol: models::TradeSymbol",
+                  destination_symbol,
+                  units_required,
+                  units_fulfilled
+                FROM contract_delivery
+                WHERE contract_id = $1 AND trade_symbol = $2 AND destination_symbol = $3
+                LIMIT 1
+            "#,
+            &id.0,
+            id.1 as models::TradeSymbol,
+            &id.2
         )
-        .fetch_all(database_pool.get_cache_pool())
+        .fetch_optional(database_pool.get_cache_pool())
         .await?;
-        Ok(erg)
+        Ok(item)
+    }
+
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
+    async fn delete_by_id(database_pool: &DbPool, id: &Self::ID) -> crate::Result<()> {
+        sqlx::query!(
+            r#"
+                DELETE FROM contract_delivery
+                WHERE contract_id = $1 AND trade_symbol = $2 AND destination_symbol = $3
+            "#,
+            &id.0,
+            id.1 as models::TradeSymbol,
+            &id.2
+        )
+        .execute(&database_pool.database_pool)
+        .await?;
+        Ok(())
+    }
+
+    fn set_id(&mut self, id: Self::ID) {
+        self.contract_id = id.0;
+        self.trade_symbol = id.1;
+        self.destination_symbol = id.2;
     }
 }

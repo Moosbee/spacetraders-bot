@@ -1,5 +1,5 @@
 use chrono::DateTime;
-use database::DatabaseConnector;
+use database::DatabaseConnectorAsync;
 use space_traders_client::models;
 
 pub async fn update_shipyard(
@@ -19,7 +19,11 @@ pub async fn update_shipyard(
         })
         .collect::<Vec<_>>();
 
-    database::ShipyardShipTypes::insert_bulk(database_pool, &ship_types).await?;
+    database::ShipyardShipTypes::insert_bulk(
+        database_pool,
+        &ship_types,
+    )
+    .await?;
 
     if let Some(ships) = shipyard.ships {
         for ship in ships.iter() {
@@ -31,7 +35,11 @@ pub async fn update_shipyard(
             .map(|s| database::ShipyardShip::with_waypoint(s, &shipyard.symbol))
             .collect::<Vec<_>>();
 
-        database::ShipyardShip::insert_bulk(database_pool, &shipyard_ships).await?;
+        database::ShipyardShip::insert_bulk(
+            database_pool,
+            &shipyard_ships,
+        )
+        .await?;
     }
 
     if let Some(transactions) = shipyard.transactions {
@@ -39,7 +47,11 @@ pub async fn update_shipyard(
             .into_iter()
             .filter_map(|t| database::ShipyardTransaction::try_from(t).ok())
             .collect::<Vec<_>>();
-        database::ShipyardTransaction::insert_bulk(database_pool, &shipyard_transactions).await?
+        database::ShipyardTransaction::insert_bulk(
+            database_pool,
+            &shipyard_transactions,
+        )
+        .await?
     }
 
     Ok(())

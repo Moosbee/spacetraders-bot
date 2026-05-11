@@ -150,6 +150,14 @@ export type ChartTransaction = {
   waypointSymbol: Scalars['String']['output'];
 };
 
+export type ChartTransactionPage = {
+  __typename?: 'ChartTransactionPage';
+  items: Array<ChartTransaction>;
+  page: Scalars['Int']['output'];
+  pageSize?: Maybe<Scalars['Int']['output']>;
+  totalCount: Scalars['Int']['output'];
+};
+
 export type ChartingConfig = {
   __typename?: 'ChartingConfig';
   chartingProbeCount: Scalars['Int']['output'];
@@ -236,7 +244,7 @@ export type ConstructionMaterial = {
   id: Scalars['Int']['output'];
   marketTransactionSummary: TransactionSummary;
   required: Scalars['Int']['output'];
-  shipments: Array<ConstructionShipment>;
+  shipments: ConstructionShipmentPage;
   tradeSymbol: TradeSymbol;
   tradeSymbolInfo: TradeSymbolInfo;
   updatedAt: Scalars['DateTime']['output'];
@@ -244,10 +252,24 @@ export type ConstructionMaterial = {
   waypointSymbol: Scalars['String']['output'];
 };
 
+
+export type ConstructionMaterialShipmentsArgs = {
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
+};
+
 export type ConstructionMaterialBy =
   { system: Scalars['String']['input']; tradeSymbol?: never; waypoint?: never; }
   |  { system?: never; tradeSymbol: TradeSymbol; waypoint?: never; }
   |  { system?: never; tradeSymbol?: never; waypoint: Scalars['String']['input']; };
+
+export type ConstructionMaterialPage = {
+  __typename?: 'ConstructionMaterialPage';
+  items: Array<ConstructionMaterial>;
+  page: Scalars['Int']['output'];
+  pageSize?: Maybe<Scalars['Int']['output']>;
+  totalCount: Scalars['Int']['output'];
+};
 
 export type ConstructionShipment = {
   __typename?: 'ConstructionShipment';
@@ -256,7 +278,7 @@ export type ConstructionShipment = {
   createdAt: Scalars['DateTime']['output'];
   id: Scalars['Int']['output'];
   marketTransactionSummary: TransactionSummary;
-  marketTransactions: Array<MarketTransaction>;
+  marketTransactions: MarketTransactionPage;
   material?: Maybe<ConstructionMaterial>;
   materialId: Scalars['Int']['output'];
   purchaseMarketTradeGood?: Maybe<MarketTradeGood>;
@@ -273,12 +295,26 @@ export type ConstructionShipment = {
   updatedAt: Scalars['DateTime']['output'];
 };
 
+
+export type ConstructionShipmentMarketTransactionsArgs = {
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
+};
+
 export type ConstructionShipmentBy =
   { material: Scalars['Int']['input']; shipSymbol?: never; system?: never; tradeSymbol?: never; waypoint?: never; }
   |  { material?: never; shipSymbol: Scalars['String']['input']; system?: never; tradeSymbol?: never; waypoint?: never; }
   |  { material?: never; shipSymbol?: never; system: Scalars['String']['input']; tradeSymbol?: never; waypoint?: never; }
   |  { material?: never; shipSymbol?: never; system?: never; tradeSymbol: TradeSymbol; waypoint?: never; }
   |  { material?: never; shipSymbol?: never; system?: never; tradeSymbol?: never; waypoint: Scalars['String']['input']; };
+
+export type ConstructionShipmentPage = {
+  __typename?: 'ConstructionShipmentPage';
+  items: Array<ConstructionShipment>;
+  page: Scalars['Int']['output'];
+  pageSize?: Maybe<Scalars['Int']['output']>;
+  totalCount: Scalars['Int']['output'];
+};
 
 export type ConstructionStatus = {
   __typename?: 'ConstructionStatus';
@@ -296,18 +332,36 @@ export type Contract = {
   createdAt: Scalars['DateTime']['output'];
   deadline: Scalars['String']['output'];
   deadlineToAccept?: Maybe<Scalars['String']['output']>;
-  deliveries: Array<ContractDelivery>;
+  deliveries: ContractDeliveryPage;
   factionSymbol: Scalars['String']['output'];
   fulfilled: Scalars['Boolean']['output'];
   id: Scalars['String']['output'];
   marketTransactionSummary: TransactionSummary;
-  marketTransactions: Array<MarketTransaction>;
+  marketTransactions: MarketTransactionPage;
   onAccepted: Scalars['Int']['output'];
   onFulfilled: Scalars['Int']['output'];
   reservation?: Maybe<ReservedFund>;
   reservedFund?: Maybe<Scalars['Int']['output']>;
-  shipments: Array<ContractShipment>;
+  shipments: ContractShipmentPage;
   updatedAt: Scalars['DateTime']['output'];
+};
+
+
+export type ContractDeliveriesArgs = {
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type ContractMarketTransactionsArgs = {
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type ContractShipmentsArgs = {
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
 };
 
 export type ContractBy =
@@ -322,7 +376,7 @@ export type ContractDelivery = {
   __typename?: 'ContractDelivery';
   contract?: Maybe<Contract>;
   contractId: Scalars['String']['output'];
-  contractShipment: Array<ContractShipment>;
+  contractShipment: ContractShipmentPage;
   destinationSymbol: Scalars['String']['output'];
   tradeSymbol: TradeSymbol;
   tradeSymbolInfo: TradeSymbolInfo;
@@ -331,16 +385,38 @@ export type ContractDelivery = {
   waypoint?: Maybe<Waypoint>;
 };
 
+
+export type ContractDeliveryContractShipmentArgs = {
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
+};
+
 export type ContractDeliveryBy =
   { contract: Scalars['String']['input']; tradeSymbol?: never; waypoint?: never; }
   |  { contract?: never; tradeSymbol: TradeSymbol; waypoint?: never; }
   |  { contract?: never; tradeSymbol?: never; waypoint: Scalars['String']['input']; };
+
+export type ContractDeliveryPage = {
+  __typename?: 'ContractDeliveryPage';
+  items: Array<ContractDelivery>;
+  page: Scalars['Int']['output'];
+  pageSize?: Maybe<Scalars['Int']['output']>;
+  totalCount: Scalars['Int']['output'];
+};
 
 export type ContractManagerInfo = {
   __typename?: 'ContractManagerInfo';
   busy: Scalars['Boolean']['output'];
   channelState: ChannelInfo;
   runningShipments: Array<ContractShipment>;
+};
+
+export type ContractPage = {
+  __typename?: 'ContractPage';
+  items: Array<Contract>;
+  page: Scalars['Int']['output'];
+  pageSize?: Maybe<Scalars['Int']['output']>;
+  totalCount: Scalars['Int']['output'];
 };
 
 export type ContractShipment = {
@@ -369,6 +445,14 @@ export type ContractShipmentBy =
   |  { contract?: never; destinationWaypoint?: never; shipSymbol: Scalars['String']['input']; sourceWaypoint?: never; tradeSymbol?: never; }
   |  { contract?: never; destinationWaypoint?: never; shipSymbol?: never; sourceWaypoint: Scalars['String']['input']; tradeSymbol?: never; }
   |  { contract?: never; destinationWaypoint?: never; shipSymbol?: never; sourceWaypoint?: never; tradeSymbol: TradeSymbol; };
+
+export type ContractShipmentPage = {
+  __typename?: 'ContractShipmentPage';
+  items: Array<ContractShipment>;
+  page: Scalars['Int']['output'];
+  pageSize?: Maybe<Scalars['Int']['output']>;
+  totalCount: Scalars['Int']['output'];
+};
 
 export type ContractStatus = {
   __typename?: 'ContractStatus';
@@ -436,6 +520,14 @@ export type ExtractionBy =
   |  { shipSymbol?: never; siphon?: never; survey?: never; system?: never; tradeSymbol: TradeSymbol; waypoint?: never; }
   |  { shipSymbol?: never; siphon?: never; survey?: never; system?: never; tradeSymbol?: never; waypoint: Scalars['String']['input']; };
 
+export type ExtractionPage = {
+  __typename?: 'ExtractionPage';
+  items: Array<Extraction>;
+  page: Scalars['Int']['output'];
+  pageSize?: Maybe<Scalars['Int']['output']>;
+  totalCount: Scalars['Int']['output'];
+};
+
 export type ExtractorAssignment = {
   __typename?: 'ExtractorAssignment';
   extractions?: Maybe<Scalars['Int']['output']>;
@@ -481,7 +573,7 @@ export type Fleet = {
   __typename?: 'Fleet';
   active: Scalars['Boolean']['output'];
   allShips: Array<Ship>;
-  assignments: Array<ShipAssignment>;
+  assignments: ShipAssignmentPage;
   config: FleetConfig;
   createdAt: Scalars['DateTime']['output'];
   fleetType: FleetType;
@@ -491,6 +583,12 @@ export type Fleet = {
   systemSymbol: Scalars['String']['output'];
   tempShips: Array<Ship>;
   updatedAt: Scalars['DateTime']['output'];
+};
+
+
+export type FleetAssignmentsArgs = {
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
 };
 
 export type FleetBy =
@@ -503,6 +601,14 @@ export type FleetManagerInfo = {
   __typename?: 'FleetManagerInfo';
   busy: Scalars['Boolean']['output'];
   channelState: ChannelInfo;
+};
+
+export type FleetPage = {
+  __typename?: 'FleetPage';
+  items: Array<Fleet>;
+  page: Scalars['Int']['output'];
+  pageSize?: Maybe<Scalars['Int']['output']>;
+  totalCount: Scalars['Int']['output'];
 };
 
 export enum FleetType {
@@ -551,6 +657,14 @@ export type GateConn = {
   pointBSymbol: Scalars['String']['output'];
   underConstructionA: Scalars['Boolean']['output'];
   underConstructionB: Scalars['Boolean']['output'];
+};
+
+export type GateConnPage = {
+  __typename?: 'GateConnPage';
+  items: Array<GateConn>;
+  page: Scalars['Int']['output'];
+  pageSize?: Maybe<Scalars['Int']['output']>;
+  totalCount: Scalars['Int']['output'];
 };
 
 export type IdleAssignment = {
@@ -738,6 +852,14 @@ export type JumpGateConnection = {
   waypointTo?: Maybe<Waypoint>;
 };
 
+export type JumpGateConnectionPage = {
+  __typename?: 'JumpGateConnectionPage';
+  items: Array<JumpGateConnection>;
+  page: Scalars['Int']['output'];
+  pageSize?: Maybe<Scalars['Int']['output']>;
+  totalCount: Scalars['Int']['output'];
+};
+
 export type KnownAgent = {
   __typename?: 'KnownAgent';
   agent?: Maybe<Agent>;
@@ -758,14 +880,26 @@ export type ManuelStatus = {
 export type MarketTrade = {
   __typename?: 'MarketTrade';
   createdAt: Scalars['DateTime']['output'];
-  history: Array<MarketTrade>;
-  maps: Array<MarketTrade>;
+  history: MarketTradePage;
+  maps: MarketTradePage;
   marketTradeGood?: Maybe<MarketTradeGood>;
   symbol: TradeSymbol;
   tradeSymbolInfo: TradeSymbolInfo;
   type: Type;
   waypoint?: Maybe<Waypoint>;
   waypointSymbol: Scalars['String']['output'];
+};
+
+
+export type MarketTradeHistoryArgs = {
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type MarketTradeMapsArgs = {
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
 };
 
 export type MarketTradeBy =
@@ -778,11 +912,11 @@ export type MarketTradeGood = {
   activity?: Maybe<ActivityLevel>;
   created: Scalars['DateTime']['output'];
   createdAt: Scalars['DateTime']['output'];
-  history: Array<MarketTradeGood>;
-  maps: Array<MarketTradeGood>;
+  history: MarketTradeGoodPage;
+  maps: MarketTradeGoodPage;
   marketTrade?: Maybe<MarketTrade>;
   marketTransactionSummary: TransactionSummary;
-  marketTransactions: Array<MarketTransaction>;
+  marketTransactions: MarketTransactionPage;
   purchasePrice: Scalars['Int']['output'];
   sellPrice: Scalars['Int']['output'];
   supply: SupplyLevel;
@@ -794,10 +928,44 @@ export type MarketTradeGood = {
   waypointSymbol: Scalars['String']['output'];
 };
 
+
+export type MarketTradeGoodHistoryArgs = {
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type MarketTradeGoodMapsArgs = {
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type MarketTradeGoodMarketTransactionsArgs = {
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
+};
+
 export type MarketTradeGoodBy =
   { system: Scalars['String']['input']; tradeSymbol?: never; waypoint?: never; }
   |  { system?: never; tradeSymbol: TradeSymbol; waypoint?: never; }
   |  { system?: never; tradeSymbol?: never; waypoint: Scalars['String']['input']; };
+
+export type MarketTradeGoodPage = {
+  __typename?: 'MarketTradeGoodPage';
+  items: Array<MarketTradeGood>;
+  page: Scalars['Int']['output'];
+  pageSize?: Maybe<Scalars['Int']['output']>;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type MarketTradePage = {
+  __typename?: 'MarketTradePage';
+  items: Array<MarketTrade>;
+  page: Scalars['Int']['output'];
+  pageSize?: Maybe<Scalars['Int']['output']>;
+  totalCount: Scalars['Int']['output'];
+};
 
 export type MarketTransaction = {
   __typename?: 'MarketTransaction';
@@ -846,6 +1014,14 @@ export type MarketTransactionBy =
   |  { construction?: never; contract?: never; mining?: never; shipSymbol?: never; system?: never; tradeRoute?: never; tradeSymbol: TradeSymbol; type?: never; waypoint?: never; }
   |  { construction?: never; contract?: never; mining?: never; shipSymbol?: never; system?: never; tradeRoute?: never; tradeSymbol?: never; type: MarketTransactionType; waypoint?: never; }
   |  { construction?: never; contract?: never; mining?: never; shipSymbol?: never; system?: never; tradeRoute?: never; tradeSymbol?: never; type?: never; waypoint: Scalars['String']['input']; };
+
+export type MarketTransactionPage = {
+  __typename?: 'MarketTransactionPage';
+  items: Array<MarketTransaction>;
+  page: Scalars['Int']['output'];
+  pageSize?: Maybe<Scalars['Int']['output']>;
+  totalCount: Scalars['Int']['output'];
+};
 
 /** The type of transaction. */
 export enum MarketTransactionType {
@@ -1061,53 +1237,53 @@ export type QueryRoot = {
   apiCounts: Scalars['Int']['output'];
   budget: BudgetInfo;
   chartManager: ChartManagerInfo;
-  chartTransactions: Array<ChartTransaction>;
+  chartTransactions: ChartTransactionPage;
   config: Config;
   constructionManager: ConstructionManagerInfo;
-  constructionMaterials: Array<ConstructionMaterial>;
-  constructionShipments: Array<ConstructionShipment>;
+  constructionMaterials: ConstructionMaterialPage;
+  constructionShipments: ConstructionShipmentPage;
   contract: Contract;
-  contractDeliveries: Array<ContractDelivery>;
+  contractDeliveries: ContractDeliveryPage;
   contractManager: ContractManagerInfo;
-  contractShipments: Array<ContractShipment>;
-  contracts: Array<Contract>;
+  contractShipments: ContractShipmentPage;
+  contracts: ContractPage;
   extraction: Extraction;
-  extractions: Array<Extraction>;
+  extractions: ExtractionPage;
   fleetManager: FleetManagerInfo;
-  fleets: Array<Fleet>;
-  jumpConnections: Array<GateConn>;
-  jumpGateConnections: Array<JumpGateConnection>;
-  marketTradeGoods: Array<MarketTradeGood>;
-  marketTrades: Array<MarketTrade>;
-  marketTransactions: Array<MarketTransaction>;
+  fleets: FleetPage;
+  jumpConnections: GateConnPage;
+  jumpGateConnections: JumpGateConnectionPage;
+  marketTradeGoods: MarketTradeGoodPage;
+  marketTrades: MarketTradePage;
+  marketTransactions: MarketTransactionPage;
   miningManager: MiningManagerInfo;
-  repairTransactions: Array<RepairTransaction>;
-  reservedFunds: Array<ReservedFund>;
+  repairTransactions: RepairTransactionPage;
+  reservedFunds: ReservedFundPage;
   runInfo: RunInfo;
-  scrapTransactions: Array<ScrapTransaction>;
+  scrapTransactions: ScrapTransactionPage;
   scrappingManager: ScrappingManagerInfo;
   ship: Ship;
-  shipAssignments: Array<ShipAssignment>;
+  shipAssignments: ShipAssignmentPage;
   shipInfo: ShipInfo;
-  shipInfos: Array<ShipInfo>;
-  shipModificationTransactions: Array<ShipModificationTransaction>;
-  shipRoutes: Array<Route>;
-  shipStates: Array<ShipState>;
+  shipInfos: ShipInfoPage;
+  shipModificationTransactions: ShipModificationTransactionPage;
+  shipRoutes: RoutePage;
+  shipStates: ShipStatePage;
   ships: Array<Ship>;
   shipyard: Shipyard;
-  shipyardShips: Array<ShipyardShip>;
-  shipyardTransactions: Array<ShipyardTransaction>;
-  shipyards: Array<Shipyard>;
+  shipyardShips: ShipyardShipPage;
+  shipyardTransactions: ShipyardTransactionPage;
+  shipyards: ShipyardPage;
   survey: Survey;
-  surveys: Array<Survey>;
+  surveys: SurveyPage;
   system: System;
-  systems: Array<System>;
+  systems: SystemPage;
   tradeManager: TradeManagerInfo;
   tradeRoute: TradeRoute;
-  tradeRoutes: Array<TradeRoute>;
+  tradeRoutes: TradeRoutePage;
   tradeSymbolInfos: Array<TradeSymbolInfo>;
   waypoint: Waypoint;
-  waypoints: Array<Waypoint>;
+  waypoints: WaypointPage;
 };
 
 
@@ -1122,17 +1298,23 @@ export type QueryRootAgentHistoryArgs = {
 
 
 export type QueryRootChartTransactionsArgs = {
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
   shipSymbol?: InputMaybe<Scalars['String']['input']>;
 };
 
 
 export type QueryRootConstructionMaterialsArgs = {
   by?: InputMaybe<ConstructionMaterialBy>;
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
 };
 
 
 export type QueryRootConstructionShipmentsArgs = {
   by?: InputMaybe<ConstructionShipmentBy>;
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
 };
 
 
@@ -1143,16 +1325,22 @@ export type QueryRootContractArgs = {
 
 export type QueryRootContractDeliveriesArgs = {
   by?: InputMaybe<ContractDeliveryBy>;
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
 };
 
 
 export type QueryRootContractShipmentsArgs = {
   by?: InputMaybe<ContractShipmentBy>;
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
 };
 
 
 export type QueryRootContractsArgs = {
   by?: InputMaybe<ContractBy>;
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
 };
 
 
@@ -1163,31 +1351,67 @@ export type QueryRootExtractionArgs = {
 
 export type QueryRootExtractionsArgs = {
   by?: InputMaybe<ExtractionBy>;
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
 };
 
 
 export type QueryRootFleetsArgs = {
   by?: InputMaybe<FleetBy>;
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type QueryRootJumpConnectionsArgs = {
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
 };
 
 
 export type QueryRootJumpGateConnectionsArgs = {
   from?: InputMaybe<Scalars['String']['input']>;
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
 };
 
 
 export type QueryRootMarketTradeGoodsArgs = {
   by?: InputMaybe<MarketTradeGoodBy>;
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
 };
 
 
 export type QueryRootMarketTradesArgs = {
   by?: InputMaybe<MarketTradeBy>;
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
 };
 
 
 export type QueryRootMarketTransactionsArgs = {
   by?: InputMaybe<MarketTransactionBy>;
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type QueryRootRepairTransactionsArgs = {
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type QueryRootReservedFundsArgs = {
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type QueryRootScrapTransactionsArgs = {
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
 };
 
 
@@ -1198,6 +1422,8 @@ export type QueryRootShipArgs = {
 
 export type QueryRootShipAssignmentsArgs = {
   by?: InputMaybe<ShipAssignmentBy>;
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
 };
 
 
@@ -1206,8 +1432,28 @@ export type QueryRootShipInfoArgs = {
 };
 
 
+export type QueryRootShipInfosArgs = {
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type QueryRootShipModificationTransactionsArgs = {
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type QueryRootShipRoutesArgs = {
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
 export type QueryRootShipStatesArgs = {
   by?: InputMaybe<ShipStateBy>;
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
 };
 
 
@@ -1218,11 +1464,21 @@ export type QueryRootShipyardArgs = {
 
 export type QueryRootShipyardShipsArgs = {
   by?: InputMaybe<ShipyardShipBy>;
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
 };
 
 
 export type QueryRootShipyardTransactionsArgs = {
   by?: InputMaybe<ShipyardTransactionBy>;
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type QueryRootShipyardsArgs = {
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
 };
 
 
@@ -1233,6 +1489,8 @@ export type QueryRootSurveyArgs = {
 
 export type QueryRootSurveysArgs = {
   by?: InputMaybe<SurveyBy>;
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
 };
 
 
@@ -1243,6 +1501,8 @@ export type QueryRootSystemArgs = {
 
 export type QueryRootSystemsArgs = {
   onlyWithFleetsOrShips?: InputMaybe<Scalars['Boolean']['input']>;
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
 };
 
 
@@ -1251,8 +1511,20 @@ export type QueryRootTradeRouteArgs = {
 };
 
 
+export type QueryRootTradeRoutesArgs = {
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
 export type QueryRootWaypointArgs = {
   symbol: Scalars['String']['input'];
+};
+
+
+export type QueryRootWaypointsArgs = {
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
 };
 
 export type ReactorInfo = {
@@ -1289,17 +1561,51 @@ export type RepairTransaction = {
   waypointSymbol: Scalars['String']['output'];
 };
 
+export type RepairTransactionPage = {
+  __typename?: 'RepairTransactionPage';
+  items: Array<RepairTransaction>;
+  page: Scalars['Int']['output'];
+  pageSize?: Maybe<Scalars['Int']['output']>;
+  totalCount: Scalars['Int']['output'];
+};
+
 export type ReservedFund = {
   __typename?: 'ReservedFund';
   actualAmount: Scalars['Int']['output'];
   amount: Scalars['Int']['output'];
-  constructionShipment: Array<ConstructionShipment>;
-  contract: Array<Contract>;
+  constructionShipment: ConstructionShipmentPage;
+  contract: ContractPage;
   createdAt: Scalars['DateTime']['output'];
   id: Scalars['Int']['output'];
   status: FundStatus;
-  tradeRoute: Array<TradeRoute>;
+  tradeRoute: TradeRoutePage;
   updatedAt: Scalars['DateTime']['output'];
+};
+
+
+export type ReservedFundConstructionShipmentArgs = {
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type ReservedFundContractArgs = {
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type ReservedFundTradeRouteArgs = {
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
+};
+
+export type ReservedFundPage = {
+  __typename?: 'ReservedFundPage';
+  items: Array<ReservedFund>;
+  page: Scalars['Int']['output'];
+  pageSize?: Maybe<Scalars['Int']['output']>;
+  totalCount: Scalars['Int']['output'];
 };
 
 export type Route = {
@@ -1320,6 +1626,14 @@ export type Route = {
   travelTime: Scalars['Float']['output'];
   waypointFrom?: Maybe<Waypoint>;
   waypointTo?: Maybe<Waypoint>;
+};
+
+export type RoutePage = {
+  __typename?: 'RoutePage';
+  items: Array<Route>;
+  page: Scalars['Int']['output'];
+  pageSize?: Maybe<Scalars['Int']['output']>;
+  totalCount: Scalars['Int']['output'];
 };
 
 export type RouteState = {
@@ -1366,6 +1680,14 @@ export type ScrapTransaction = {
   waypointSymbol: Scalars['String']['output'];
 };
 
+export type ScrapTransactionPage = {
+  __typename?: 'ScrapTransactionPage';
+  items: Array<ScrapTransaction>;
+  page: Scalars['Int']['output'];
+  pageSize?: Maybe<Scalars['Int']['output']>;
+  totalCount: Scalars['Int']['output'];
+};
+
 export type ScraperStatus = {
   __typename?: 'ScraperStatus';
   cycle?: Maybe<Scalars['Int']['output']>;
@@ -1397,22 +1719,22 @@ export type ScrappingManagerInfoPossibleScrapsArgs = {
 export type Ship = {
   __typename?: 'Ship';
   cargo: CargoState;
-  chartTransactions: Array<ChartTransaction>;
+  chartTransactions: ChartTransactionPage;
   conditions: ConditionState;
-  constructionShipments: Array<ConstructionShipment>;
-  contractShipments: Array<ContractShipment>;
+  constructionShipments: ConstructionShipmentPage;
+  contractShipments: ContractShipmentPage;
   cooldown?: Maybe<Scalars['Int']['output']>;
   cooldownExpiration?: Maybe<Scalars['DateTime']['output']>;
   displayName: Scalars['String']['output'];
   engine: ShipEngineSymbol;
   engineInfo: EngineInfo;
   engineSpeed: Scalars['Int']['output'];
-  extractions: Array<Extraction>;
+  extractions: ExtractionPage;
   frame: ShipFrameSymbol;
   frameInfo: FrameInfo;
   fuel: FuelState;
   marketTransactionSummary: TransactionSummary;
-  marketTransactions: Array<MarketTransaction>;
+  marketTransactions: MarketTransactionPage;
   modules: Modules;
   mounts: Mounts;
   nav: NavigationState;
@@ -1422,16 +1744,94 @@ export type Ship = {
   reactor: ShipReactorSymbol;
   reactorInfo: ReactorInfo;
   registrationRole: ShipRole;
-  repairTransactions: Array<RepairTransaction>;
-  routes: Array<Route>;
-  scrapTransactions: Array<ScrapTransaction>;
-  shipJumps: Array<ShipJump>;
-  shipModificationTransactions: Array<ShipModificationTransaction>;
-  shipStates: Array<ShipState>;
+  repairTransactions: RepairTransactionPage;
+  routes: RoutePage;
+  scrapTransactions: ScrapTransactionPage;
+  shipJumps: ShipJumpPage;
+  shipModificationTransactions: ShipModificationTransactionPage;
+  shipStates: ShipStatePage;
   status: ShipStatus;
-  surveys: Array<Survey>;
+  surveys: SurveyPage;
   symbol: Scalars['String']['output'];
-  tradeRoutes: Array<TradeRoute>;
+  tradeRoutes: TradeRoutePage;
+};
+
+
+export type ShipChartTransactionsArgs = {
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type ShipConstructionShipmentsArgs = {
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type ShipContractShipmentsArgs = {
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type ShipExtractionsArgs = {
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type ShipMarketTransactionsArgs = {
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type ShipRepairTransactionsArgs = {
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type ShipRoutesArgs = {
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type ShipScrapTransactionsArgs = {
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type ShipShipJumpsArgs = {
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type ShipShipModificationTransactionsArgs = {
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type ShipShipStatesArgs = {
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type ShipSurveysArgs = {
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type ShipTradeRoutesArgs = {
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
 };
 
 export type ShipAssignment = {
@@ -1457,6 +1857,14 @@ export type ShipAssignment = {
 export type ShipAssignmentBy =
   { fleet: Scalars['Int']['input']; open?: never; }
   |  { fleet?: never; open: Scalars['Boolean']['input']; };
+
+export type ShipAssignmentPage = {
+  __typename?: 'ShipAssignmentPage';
+  items: Array<ShipAssignment>;
+  page: Scalars['Int']['output'];
+  pageSize?: Maybe<Scalars['Int']['output']>;
+  totalCount: Scalars['Int']['output'];
+};
 
 /** The symbol of the engine. */
 export enum ShipEngineSymbol {
@@ -1500,6 +1908,14 @@ export type ShipInfo = {
   tempAssignmentId?: Maybe<Scalars['Int']['output']>;
 };
 
+export type ShipInfoPage = {
+  __typename?: 'ShipInfoPage';
+  items: Array<ShipInfo>;
+  page: Scalars['Int']['output'];
+  pageSize?: Maybe<Scalars['Int']['output']>;
+  totalCount: Scalars['Int']['output'];
+};
+
 export type ShipJump = {
   __typename?: 'ShipJump';
   distance: Scalars['Int']['output'];
@@ -1516,6 +1932,14 @@ export type ShipJump = {
   waypointTo?: Maybe<Waypoint>;
 };
 
+export type ShipJumpPage = {
+  __typename?: 'ShipJumpPage';
+  items: Array<ShipJump>;
+  page: Scalars['Int']['output'];
+  pageSize?: Maybe<Scalars['Int']['output']>;
+  totalCount: Scalars['Int']['output'];
+};
+
 export type ShipModificationTransaction = {
   __typename?: 'ShipModificationTransaction';
   id: Scalars['Int']['output'];
@@ -1527,6 +1951,14 @@ export type ShipModificationTransaction = {
   tradeSymbolInfo: TradeSymbolInfo;
   waypoint?: Maybe<Waypoint>;
   waypointSymbol: Scalars['String']['output'];
+};
+
+export type ShipModificationTransactionPage = {
+  __typename?: 'ShipModificationTransactionPage';
+  items: Array<ShipModificationTransaction>;
+  page: Scalars['Int']['output'];
+  pageSize?: Maybe<Scalars['Int']['output']>;
+  totalCount: Scalars['Int']['output'];
 };
 
 /** The symbol of the module. */
@@ -1680,6 +2112,14 @@ export type ShipStateBy =
   |  { shipSymbol?: never; system: Scalars['String']['input']; waypoint?: never; }
   |  { shipSymbol?: never; system?: never; waypoint: Scalars['String']['input']; };
 
+export type ShipStatePage = {
+  __typename?: 'ShipStatePage';
+  items: Array<ShipState>;
+  page: Scalars['Int']['output'];
+  pageSize?: Maybe<Scalars['Int']['output']>;
+  totalCount: Scalars['Int']['output'];
+};
+
 export type ShipStatus = {
   __typename?: 'ShipStatus';
   assignment?: Maybe<ShipAssignment>;
@@ -1732,14 +2172,46 @@ export enum ShippingStatus {
 export type Shipyard = {
   __typename?: 'Shipyard';
   createdAt: Scalars['DateTime']['output'];
-  history: Array<Shipyard>;
+  history: ShipyardPage;
   id: Scalars['Int']['output'];
   modificationsFee: Scalars['Int']['output'];
-  shipyardShipTypes: Array<ShipyardShipTypes>;
-  shipyardShips: Array<ShipyardShip>;
-  shipyardTransactions: Array<ShipyardTransaction>;
+  shipyardShipTypes: ShipyardShipTypesPage;
+  shipyardShips: ShipyardShipPage;
+  shipyardTransactions: ShipyardTransactionPage;
   waypoint?: Maybe<Waypoint>;
   waypointSymbol: Scalars['String']['output'];
+};
+
+
+export type ShipyardHistoryArgs = {
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type ShipyardShipyardShipTypesArgs = {
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type ShipyardShipyardShipsArgs = {
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type ShipyardShipyardTransactionsArgs = {
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
+};
+
+export type ShipyardPage = {
+  __typename?: 'ShipyardPage';
+  items: Array<Shipyard>;
+  page: Scalars['Int']['output'];
+  pageSize?: Maybe<Scalars['Int']['output']>;
+  totalCount: Scalars['Int']['output'];
 };
 
 export type ShipyardShip = {
@@ -1752,7 +2224,7 @@ export type ShipyardShip = {
   engineType: ShipEngineSymbol;
   frameQuality?: Maybe<Scalars['Float']['output']>;
   frameType: ShipFrameSymbol;
-  history: Array<ShipyardShip>;
+  history: ShipyardShipPage;
   id: Scalars['Int']['output'];
   modules: Array<ShipModuleSymbol>;
   mounts: Array<ShipMountSymbol>;
@@ -1761,17 +2233,37 @@ export type ShipyardShip = {
   reactorQuality?: Maybe<Scalars['Float']['output']>;
   reactorType: ShipReactorSymbol;
   shipType: ShipType;
-  shipyardTransactions: Array<ShipyardTransaction>;
+  shipyardTransactions: ShipyardTransactionPage;
   supply: SupplyLevel;
   tradeSymbolInfo: TradeSymbolInfo;
   waypoint?: Maybe<Waypoint>;
   waypointSymbol: Scalars['String']['output'];
 };
 
+
+export type ShipyardShipHistoryArgs = {
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type ShipyardShipShipyardTransactionsArgs = {
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
+};
+
 export type ShipyardShipBy =
   { shipSymbol: ShipType; system?: never; waypoint?: never; }
   |  { shipSymbol?: never; system: Scalars['String']['input']; waypoint?: never; }
   |  { shipSymbol?: never; system?: never; waypoint: Scalars['String']['input']; };
+
+export type ShipyardShipPage = {
+  __typename?: 'ShipyardShipPage';
+  items: Array<ShipyardShip>;
+  page: Scalars['Int']['output'];
+  pageSize?: Maybe<Scalars['Int']['output']>;
+  totalCount: Scalars['Int']['output'];
+};
 
 export type ShipyardShipTypes = {
   __typename?: 'ShipyardShipTypes';
@@ -1781,6 +2273,14 @@ export type ShipyardShipTypes = {
   shipyard?: Maybe<Shipyard>;
   shipyardId: Scalars['Int']['output'];
   tradeSymbolInfo: TradeSymbolInfo;
+};
+
+export type ShipyardShipTypesPage = {
+  __typename?: 'ShipyardShipTypesPage';
+  items: Array<ShipyardShipTypes>;
+  page: Scalars['Int']['output'];
+  pageSize?: Maybe<Scalars['Int']['output']>;
+  totalCount: Scalars['Int']['output'];
 };
 
 export type ShipyardTransaction = {
@@ -1803,6 +2303,14 @@ export type ShipyardTransactionBy =
   |  { agent?: never; system: Scalars['String']['input']; type?: never; waypoint?: never; }
   |  { agent?: never; system?: never; type: ShipType; waypoint?: never; }
   |  { agent?: never; system?: never; type?: never; waypoint: Scalars['String']['input']; };
+
+export type ShipyardTransactionPage = {
+  __typename?: 'ShipyardTransactionPage';
+  items: Array<ShipyardTransaction>;
+  page: Scalars['Int']['output'];
+  pageSize?: Maybe<Scalars['Int']['output']>;
+  totalCount: Scalars['Int']['output'];
+};
 
 export type SiphonerAssignment = {
   __typename?: 'SiphonerAssignment';
@@ -1829,7 +2337,7 @@ export type Survey = {
   deposits: Array<TradeSymbol>;
   exhaustedSince?: Maybe<Scalars['DateTime']['output']>;
   expiration: Scalars['DateTime']['output'];
-  extractions: Array<Extraction>;
+  extractions: ExtractionPage;
   percent: Array<SurveyPercent>;
   ship?: Maybe<Ship>;
   shipInfoAfter: Scalars['Int']['output'];
@@ -1844,11 +2352,25 @@ export type Survey = {
   waypointSymbol: Scalars['String']['output'];
 };
 
+
+export type SurveyExtractionsArgs = {
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
+};
+
 export type SurveyBy =
   { shipSymbol: Scalars['String']['input']; size?: never; system?: never; waypoint?: never; }
   |  { shipSymbol?: never; size: SurveySize; system?: never; waypoint?: never; }
   |  { shipSymbol?: never; size?: never; system: Scalars['String']['input']; waypoint?: never; }
   |  { shipSymbol?: never; size?: never; system?: never; waypoint: Scalars['String']['input']; };
+
+export type SurveyPage = {
+  __typename?: 'SurveyPage';
+  items: Array<Survey>;
+  page: Scalars['Int']['output'];
+  pageSize?: Maybe<Scalars['Int']['output']>;
+  totalCount: Scalars['Int']['output'];
+};
 
 export type SurveyPercent = {
   __typename?: 'SurveyPercent';
@@ -1875,34 +2397,156 @@ export type SurveyorAssignment = {
 
 export type System = {
   __typename?: 'System';
-  chartTransactions: Array<ChartTransaction>;
+  chartTransactions: ChartTransactionPage;
   constellation?: Maybe<Scalars['String']['output']>;
-  constructionMaterials: Array<ConstructionMaterial>;
-  constructionShipments: Array<ConstructionShipment>;
-  contractDeliveries: Array<ContractDelivery>;
-  extractions: Array<Extraction>;
-  fleets: Array<Fleet>;
-  jumpGateConnections: Array<JumpGateConnection>;
-  marketTradeGoods: Array<MarketTradeGood>;
-  marketTrades: Array<MarketTrade>;
-  marketTransactions: Array<MarketTransaction>;
+  constructionMaterials: ConstructionMaterialPage;
+  constructionShipments: ConstructionShipmentPage;
+  contractDeliveries: ContractDeliveryPage;
+  extractions: ExtractionPage;
+  fleets: FleetPage;
+  jumpGateConnections: JumpGateConnectionPage;
+  marketTradeGoods: MarketTradeGoodPage;
+  marketTrades: MarketTradePage;
+  marketTransactions: MarketTransactionPage;
   populationDisabled: Scalars['Boolean']['output'];
-  repairTransactions: Array<RepairTransaction>;
-  scrapTransactions: Array<ScrapTransaction>;
+  repairTransactions: RepairTransactionPage;
+  scrapTransactions: ScrapTransactionPage;
   sectorSymbol: Scalars['String']['output'];
   seenAgents: Array<KnownAgent>;
-  shipModificationTransactions: Array<ShipModificationTransaction>;
+  shipModificationTransactions: ShipModificationTransactionPage;
   ships: Array<Ship>;
-  shipyardShipTypes: Array<ShipyardShipTypes>;
-  shipyardShips: Array<ShipyardShip>;
-  shipyardTransactions: Array<ShipyardTransaction>;
-  surveys: Array<Survey>;
+  shipyardShipTypes: ShipyardShipTypesPage;
+  shipyardShips: ShipyardShipPage;
+  shipyardTransactions: ShipyardTransactionPage;
+  surveys: SurveyPage;
   symbol: Scalars['String']['output'];
   systemType: SystemType;
-  tradeRoutes: Array<TradeRoute>;
-  waypoints: Array<Waypoint>;
+  tradeRoutes: TradeRoutePage;
+  waypoints: WaypointPage;
   x: Scalars['Int']['output'];
   y: Scalars['Int']['output'];
+};
+
+
+export type SystemChartTransactionsArgs = {
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type SystemConstructionMaterialsArgs = {
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type SystemConstructionShipmentsArgs = {
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type SystemContractDeliveriesArgs = {
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type SystemExtractionsArgs = {
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type SystemFleetsArgs = {
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type SystemJumpGateConnectionsArgs = {
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type SystemMarketTradeGoodsArgs = {
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type SystemMarketTradesArgs = {
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type SystemMarketTransactionsArgs = {
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type SystemRepairTransactionsArgs = {
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type SystemScrapTransactionsArgs = {
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type SystemShipModificationTransactionsArgs = {
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type SystemShipyardShipTypesArgs = {
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type SystemShipyardShipsArgs = {
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type SystemShipyardTransactionsArgs = {
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type SystemSurveysArgs = {
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type SystemTradeRoutesArgs = {
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type SystemWaypointsArgs = {
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
+};
+
+export type SystemPage = {
+  __typename?: 'SystemPage';
+  items: Array<System>;
+  page: Scalars['Int']['output'];
+  pageSize?: Maybe<Scalars['Int']['output']>;
+  totalCount: Scalars['Int']['output'];
 };
 
 /**
@@ -1955,7 +2599,21 @@ export type TradeRoute = {
   symbol: TradeSymbol;
   tradeSymbolInfo: TradeSymbolInfo;
   tradeVolume: Scalars['Int']['output'];
-  transactions: Array<MarketTransaction>;
+  transactions: MarketTransactionPage;
+};
+
+
+export type TradeRouteTransactionsArgs = {
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
+};
+
+export type TradeRoutePage = {
+  __typename?: 'TradeRoutePage';
+  items: Array<TradeRoute>;
+  page: Scalars['Int']['output'];
+  pageSize?: Maybe<Scalars['Int']['output']>;
+  totalCount: Scalars['Int']['output'];
 };
 
 /**
@@ -2112,9 +2770,29 @@ export enum TradeSymbol {
 
 export type TradeSymbolInfo = {
   __typename?: 'TradeSymbolInfo';
-  requiredBy: Array<TradeSymbolInfo>;
-  requires: Array<TradeSymbolInfo>;
+  requiredBy: TradeSymbolInfoPage;
+  requires: TradeSymbolInfoPage;
   symbol: TradeSymbol;
+};
+
+
+export type TradeSymbolInfoRequiredByArgs = {
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type TradeSymbolInfoRequiresArgs = {
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
+};
+
+export type TradeSymbolInfoPage = {
+  __typename?: 'TradeSymbolInfoPage';
+  items: Array<TradeSymbolInfo>;
+  page: Scalars['Int']['output'];
+  pageSize?: Maybe<Scalars['Int']['output']>;
+  totalCount: Scalars['Int']['output'];
 };
 
 export type TraderStatus = {
@@ -2207,48 +2885,174 @@ export type Waypoint = {
   chartTransaction?: Maybe<ChartTransaction>;
   chartedBy?: Maybe<Scalars['String']['output']>;
   chartedOn?: Maybe<Scalars['String']['output']>;
-  constructionMaterials: Array<ConstructionMaterial>;
-  constructionShipmentsFrom: Array<ConstructionShipment>;
-  constructionShipmentsTo: Array<ConstructionShipment>;
-  contractDeliveries: Array<ContractDelivery>;
-  contractShipmentsFrom: Array<ContractShipment>;
-  contractShipmentsTo: Array<ContractShipment>;
+  constructionMaterials: ConstructionMaterialPage;
+  constructionShipmentsFrom: ConstructionShipmentPage;
+  constructionShipmentsTo: ConstructionShipmentPage;
+  contractDeliveries: ContractDeliveryPage;
+  contractShipmentsFrom: ContractShipmentPage;
+  contractShipmentsTo: ContractShipmentPage;
   createdAt: Scalars['DateTime']['output'];
-  extractions: Array<Extraction>;
+  extractions: ExtractionPage;
   faction?: Maybe<Scalars['String']['output']>;
   hasMarketplace: Scalars['Boolean']['output'];
   hasShipyard: Scalars['Boolean']['output'];
   isUnderConstruction: Scalars['Boolean']['output'];
-  jumpGateConnections: Array<JumpGateConnection>;
+  jumpGateConnections: JumpGateConnectionPage;
   lastScrap?: Maybe<Scalars['DateTime']['output']>;
-  marketTradeGoods: Array<MarketTradeGood>;
-  marketTrades: Array<MarketTrade>;
+  marketTradeGoods: MarketTradeGoodPage;
+  marketTrades: MarketTradePage;
   marketTransactionSummary: TransactionSummary;
-  marketTransactions: Array<MarketTransaction>;
+  marketTransactions: MarketTransactionPage;
   modifiers: Array<WaypointModifierSymbol>;
   nextScrap?: Maybe<Scalars['DateTime']['output']>;
   orbitals: Array<Scalars['String']['output']>;
   orbits?: Maybe<Scalars['String']['output']>;
-  repairTransactions: Array<RepairTransaction>;
-  scrapTransactions: Array<ScrapTransaction>;
-  shipModificationTransactions: Array<ShipModificationTransaction>;
+  repairTransactions: RepairTransactionPage;
+  scrapTransactions: ScrapTransactionPage;
+  shipModificationTransactions: ShipModificationTransactionPage;
   ships: Array<Ship>;
   shipyard?: Maybe<Shipyard>;
-  shipyardShipTypes: Array<ShipyardShipTypes>;
-  shipyardShips: Array<ShipyardShip>;
-  shipyardTransactions: Array<ShipyardTransaction>;
-  surveys: Array<Survey>;
+  shipyardShipTypes: ShipyardShipTypesPage;
+  shipyardShips: ShipyardShipPage;
+  shipyardTransactions: ShipyardTransactionPage;
+  surveys: SurveyPage;
   symbol: Scalars['String']['output'];
   system?: Maybe<System>;
   systemSymbol: Scalars['String']['output'];
-  tradeRoutes: Array<TradeRoute>;
-  tradeRoutesFrom: Array<TradeRoute>;
-  tradeRoutesTo: Array<TradeRoute>;
+  tradeRoutes: TradeRoutePage;
+  tradeRoutesFrom: TradeRoutePage;
+  tradeRoutesTo: TradeRoutePage;
   traits: Array<WaypointTraitSymbol>;
   unstableSince?: Maybe<Scalars['DateTime']['output']>;
   waypointType: WaypointType;
   x: Scalars['Int']['output'];
   y: Scalars['Int']['output'];
+};
+
+
+export type WaypointConstructionMaterialsArgs = {
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type WaypointConstructionShipmentsFromArgs = {
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type WaypointConstructionShipmentsToArgs = {
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type WaypointContractDeliveriesArgs = {
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type WaypointContractShipmentsFromArgs = {
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type WaypointContractShipmentsToArgs = {
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type WaypointExtractionsArgs = {
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type WaypointJumpGateConnectionsArgs = {
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type WaypointMarketTradeGoodsArgs = {
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type WaypointMarketTradesArgs = {
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type WaypointMarketTransactionsArgs = {
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type WaypointRepairTransactionsArgs = {
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type WaypointScrapTransactionsArgs = {
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type WaypointShipModificationTransactionsArgs = {
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type WaypointShipyardShipTypesArgs = {
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type WaypointShipyardShipsArgs = {
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type WaypointShipyardTransactionsArgs = {
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type WaypointSurveysArgs = {
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type WaypointTradeRoutesArgs = {
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type WaypointTradeRoutesFromArgs = {
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type WaypointTradeRoutesToArgs = {
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
 };
 
 /**
@@ -2262,6 +3066,14 @@ export enum WaypointModifierSymbol {
   Stripped = 'STRIPPED',
   Unstable = 'UNSTABLE'
 }
+
+export type WaypointPage = {
+  __typename?: 'WaypointPage';
+  items: Array<Waypoint>;
+  page: Scalars['Int']['output'];
+  pageSize?: Maybe<Scalars['Int']['output']>;
+  totalCount: Scalars['Int']['output'];
+};
 
 /**
  * WaypointTraitSymbol : The unique identifier of the trait.
@@ -2363,7 +3175,7 @@ export enum WaypointType {
 export type GetMainSiteDataQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type GetMainSiteDataQuery = { __typename?: 'QueryRoot', apiCounts: number, budget: { __typename?: 'BudgetInfo', currentFunds: number, ironReserve: number, reservedAmount: number, spendable: number }, runInfo: { __typename?: 'RunInfo', resetDate: string, nextResetDate: string, agent?: { __typename?: 'Agent', symbol: string, credits: number, shipCount: number } | null, headquartersSystem?: { __typename?: 'System', symbol: string, constructionMaterials: Array<{ __typename?: 'ConstructionMaterial', waypointSymbol: string, tradeSymbol: TradeSymbol, required: number, fulfilled: number }> } | null }, systems: Array<{ __typename?: 'System', symbol: string, waypoints: Array<{ __typename?: 'Waypoint', symbol: string, chartedBy?: string | null, hasMarketplace: boolean, hasShipyard: boolean }> }>, fleets: Array<{ __typename?: 'Fleet', id: number, systemSymbol: string, fleetType: FleetType, active: boolean, assignments: Array<{ __typename?: 'ShipAssignment', id: number, priority: number, rangeMin: number, cargoMin: number, ship?: { __typename?: 'Ship', symbol: string } | null }> }>, shipAssignments: Array<{ __typename?: 'ShipAssignment', id: number, fleetId: number, fleet?: { __typename?: 'Fleet', systemSymbol: string, fleetType: FleetType } | null }>, ships: Array<{ __typename?: 'Ship', symbol: string, registrationRole: ShipRole, cooldownExpiration?: string | null, status: { __typename?: 'ShipStatus', assignmentId?: number | null, tempAssignmentId?: number | null, status:
+export type GetMainSiteDataQuery = { __typename?: 'QueryRoot', apiCounts: number, budget: { __typename?: 'BudgetInfo', currentFunds: number, ironReserve: number, reservedAmount: number, spendable: number }, runInfo: { __typename?: 'RunInfo', resetDate: string, nextResetDate: string, agent?: { __typename?: 'Agent', symbol: string, credits: number, shipCount: number } | null, headquartersSystem?: { __typename?: 'System', symbol: string, constructionMaterials: { __typename?: 'ConstructionMaterialPage', items: Array<{ __typename?: 'ConstructionMaterial', waypointSymbol: string, tradeSymbol: TradeSymbol, required: number, fulfilled: number }> } } | null }, systems: { __typename?: 'SystemPage', items: Array<{ __typename?: 'System', symbol: string, waypoints: { __typename?: 'WaypointPage', items: Array<{ __typename?: 'Waypoint', symbol: string, chartedBy?: string | null, hasMarketplace: boolean, hasShipyard: boolean }> } }> }, fleets: { __typename?: 'FleetPage', items: Array<{ __typename?: 'Fleet', id: number, systemSymbol: string, fleetType: FleetType, active: boolean, assignments: { __typename?: 'ShipAssignmentPage', items: Array<{ __typename?: 'ShipAssignment', id: number, priority: number, rangeMin: number, cargoMin: number, ship?: { __typename?: 'Ship', symbol: string } | null }> } }> }, shipAssignments: { __typename?: 'ShipAssignmentPage', items: Array<{ __typename?: 'ShipAssignment', id: number, fleetId: number, fleet?: { __typename?: 'Fleet', systemSymbol: string, fleetType: FleetType } | null }> }, ships: Array<{ __typename?: 'Ship', symbol: string, registrationRole: ShipRole, cooldownExpiration?: string | null, status: { __typename?: 'ShipStatus', assignmentId?: number | null, tempAssignmentId?: number | null, status:
         | { __typename: 'ChartingStatus' }
         | { __typename: 'ConstructionStatus' }
         | { __typename: 'ContractStatus' }
@@ -2377,12 +3189,12 @@ export type GetMainSiteDataQuery = { __typename?: 'QueryRoot', apiCounts: number
 export type GetAllSystemsQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type GetAllSystemsQuery = { __typename?: 'QueryRoot', systems: Array<{ __typename?: 'System', symbol: string, constellation?: string | null, sectorSymbol: string, systemType: SystemType, x: number, y: number, populationDisabled: boolean, waypoints: Array<{ __typename?: 'Waypoint', symbol: string, waypointType: WaypointType, hasShipyard: boolean, hasMarketplace: boolean }>, fleets: Array<{ __typename?: 'Fleet', id: number, fleetType: FleetType, active: boolean }>, ships: Array<{ __typename?: 'Ship', symbol: string }> }> };
+export type GetAllSystemsQuery = { __typename?: 'QueryRoot', systems: { __typename?: 'SystemPage', items: Array<{ __typename?: 'System', symbol: string, constellation?: string | null, sectorSymbol: string, systemType: SystemType, x: number, y: number, populationDisabled: boolean, waypoints: { __typename?: 'WaypointPage', items: Array<{ __typename?: 'Waypoint', symbol: string, waypointType: WaypointType, hasShipyard: boolean, hasMarketplace: boolean }> }, fleets: { __typename?: 'FleetPage', items: Array<{ __typename?: 'Fleet', id: number, fleetType: FleetType, active: boolean }> }, ships: Array<{ __typename?: 'Ship', symbol: string }> }> } };
 
 export type GetSystemMapDataQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type GetSystemMapDataQuery = { __typename?: 'QueryRoot', systems: Array<{ __typename?: 'System', symbol: string, constellation?: string | null, systemType: SystemType, x: number, y: number, populationDisabled: boolean, waypoints: Array<{ __typename?: 'Waypoint', symbol: string, waypointType: WaypointType, hasShipyard: boolean, hasMarketplace: boolean, isUnderConstruction: boolean }>, fleets: Array<{ __typename?: 'Fleet', id: number, fleetType: FleetType, active: boolean }>, ships: Array<{ __typename?: 'Ship', symbol: string }> }>, jumpConnections: Array<{ __typename?: 'GateConn', underConstructionA: boolean, underConstructionB: boolean, pointASymbol: string, pointBSymbol: string, fromA: boolean, fromB: boolean }> };
+export type GetSystemMapDataQuery = { __typename?: 'QueryRoot', systems: { __typename?: 'SystemPage', items: Array<{ __typename?: 'System', symbol: string, constellation?: string | null, systemType: SystemType, x: number, y: number, populationDisabled: boolean, waypoints: { __typename?: 'WaypointPage', items: Array<{ __typename?: 'Waypoint', symbol: string, waypointType: WaypointType, hasShipyard: boolean, hasMarketplace: boolean, isUnderConstruction: boolean }> }, fleets: { __typename?: 'FleetPage', items: Array<{ __typename?: 'Fleet', id: number, fleetType: FleetType, active: boolean }> }, ships: Array<{ __typename?: 'Ship', symbol: string }> }> }, jumpConnections: { __typename?: 'GateConnPage', items: Array<{ __typename?: 'GateConn', underConstructionA: boolean, underConstructionB: boolean, pointASymbol: string, pointBSymbol: string, fromA: boolean, fromB: boolean }> } };
 
 export type GetAllAgentsQueryVariables = Exact<{ [key: string]: never; }>;
 
@@ -2399,14 +3211,14 @@ export type GetAgentHistoryQuery = { __typename?: 'QueryRoot', agent: { __typena
 export type GetAllSurveysQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type GetAllSurveysQuery = { __typename?: 'QueryRoot', surveys: Array<{ __typename?: 'Survey', shipInfoBefore: number, updatedAt: string, shipInfoAfter: number, signature: string, size: SurveySize, waypointSymbol: string, deposits: Array<TradeSymbol>, exhaustedSince?: string | null, createdAt: string, expiration: string }> };
+export type GetAllSurveysQuery = { __typename?: 'QueryRoot', surveys: { __typename?: 'SurveyPage', items: Array<{ __typename?: 'Survey', shipInfoBefore: number, updatedAt: string, shipInfoAfter: number, signature: string, size: SurveySize, waypointSymbol: string, deposits: Array<TradeSymbol>, exhaustedSince?: string | null, createdAt: string, expiration: string }> } };
 
 export type GetSystemQueryVariables = Exact<{
   systemSymbol: Scalars['String']['input'];
 }>;
 
 
-export type GetSystemQuery = { __typename?: 'QueryRoot', system: { __typename?: 'System', symbol: string, sectorSymbol: string, constellation?: string | null, systemType: SystemType, x: number, y: number, populationDisabled: boolean, seenAgents: Array<{ __typename?: 'KnownAgent', symbol: string, count: number }>, fleets: Array<{ __typename?: 'Fleet', id: number, fleetType: FleetType, active: boolean, createdAt: string, updatedAt: string, assignments: Array<{ __typename?: 'ShipAssignment', id: number, siphon: boolean, warpDrive: boolean, fleetId: number, priority: number, maxPurchasePrice: number, creditsThreshold: number, disabled: boolean, rangeMin: number, cargoMin: number, survey: boolean, extractor: boolean }> }>, chartTransactions: Array<{ __typename?: 'ChartTransaction', waypointSymbol: string, shipSymbol: string, totalPrice: number, timestamp: string }>, shipyardShips: Array<{ __typename?: 'ShipyardShip', reactorQuality?: number | null, engineType: ShipEngineSymbol, engineQuality?: number | null, modules: Array<ShipModuleSymbol>, mounts: Array<ShipMountSymbol>, createdAt: string, waypointSymbol: string, shipType: ShipType, name: string, supply: SupplyLevel, activity?: ActivityLevel | null, purchasePrice: number, frameType: ShipFrameSymbol, frameQuality?: number | null, reactorType: ShipReactorSymbol }>, marketTrades: Array<{ __typename?: 'MarketTrade', waypointSymbol: string, symbol: TradeSymbol, createdAt: string, type: Type, tradeSymbolInfo: { __typename?: 'TradeSymbolInfo', symbol: TradeSymbol, requires: Array<{ __typename?: 'TradeSymbolInfo', symbol: TradeSymbol }>, requiredBy: Array<{ __typename?: 'TradeSymbolInfo', symbol: TradeSymbol }> }, marketTradeGood?: { __typename?: 'MarketTradeGood', symbol: TradeSymbol, waypointSymbol: string, type: Type, tradeVolume: number, supply: SupplyLevel, activity?: ActivityLevel | null, purchasePrice: number, sellPrice: number, createdAt: string } | null }>, constructionMaterials: Array<{ __typename?: 'ConstructionMaterial', waypointSymbol: string, tradeSymbol: TradeSymbol, required: number, fulfilled: number, marketTransactionSummary: { __typename?: 'TransactionSummary', expenses?: number | null, purchaseUnits?: number | null, purchaseTransactions?: number | null } }>, jumpGateConnections: Array<{ __typename?: 'JumpGateConnection', from: string, to: string }>, waypoints: Array<{ __typename?: 'Waypoint', symbol: string, faction?: string | null, modifiers: Array<WaypointModifierSymbol>, chartedBy?: string | null, chartedOn?: string | null, hasShipyard: boolean, hasMarketplace: boolean, x: number, y: number, lastScrap?: string | null, nextScrap?: string | null, waypointType: WaypointType, traits: Array<WaypointTraitSymbol>, isUnderConstruction: boolean, orbitals: Array<string>, orbits?: string | null, marketTrades: Array<{ __typename?: 'MarketTrade', symbol: TradeSymbol, type: Type, tradeSymbolInfo: { __typename?: 'TradeSymbolInfo', symbol: TradeSymbol, requires: Array<{ __typename?: 'TradeSymbolInfo', symbol: TradeSymbol }>, requiredBy: Array<{ __typename?: 'TradeSymbolInfo', symbol: TradeSymbol }> }, marketTradeGood?: { __typename?: 'MarketTradeGood', tradeVolume: number, supply: SupplyLevel, activity?: ActivityLevel | null, purchasePrice: number, sellPrice: number } | null }>, shipyardShips: Array<{ __typename?: 'ShipyardShip', shipType: ShipType, supply: SupplyLevel, activity?: ActivityLevel | null, purchasePrice: number }> }>, marketTransactions: Array<{ __typename?: 'MarketTransaction', id: number, waypointSymbol: string, shipSymbol: string, tradeSymbol: TradeSymbol, type: MarketTransactionType, units: number, pricePerUnit: number, totalPrice: number, timestamp: string, contract_id?: string | null }>, shipyardTransactions: Array<{ __typename?: 'ShipyardTransaction', id: number, waypointSymbol: string, shipType: ShipType, price: number, agentSymbol: string, timestamp: string }>, contractDeliveries: Array<{ __typename?: 'ContractDelivery', contractId: string, tradeSymbol: TradeSymbol, destinationSymbol: string, unitsRequired: number, unitsFulfilled: number, contract?: { __typename?: 'Contract', id: string, createdAt: string, reservedFund?: number | null, factionSymbol: string, contractType: ContractType, accepted: boolean, onFulfilled: number, deadline: string, marketTransactionSummary: { __typename?: 'TransactionSummary', sum?: number | null, expenses?: number | null, income?: number | null, units?: number | null, purchaseUnits?: number | null, sellUnits?: number | null, purchaseTransactions?: number | null, sellTransactions?: number | null } } | null }>, tradeRoutes: Array<{ __typename?: 'TradeRoute', id: number, reservedFund?: number | null, symbol: TradeSymbol, shipSymbol: string, PurchaseWaypointSymbol: string, SellWaypointSymbol: string, status: ShipmentStatus, tradeVolume: number, predictedPurchasePrice: number, predictedSellPrice: number, marketTransactionSummary: { __typename?: 'TransactionSummary', sum?: number | null, expenses?: number | null, income?: number | null, units?: number | null, purchaseUnits?: number | null, sellUnits?: number | null, purchaseTransactions?: number | null, sellTransactions?: number | null } }>, ships: Array<{ __typename?: 'Ship', symbol: string, nav: { __typename?: 'NavigationState', waypointSymbol: string, status: ShipNavStatus }, fuel: { __typename?: 'FuelState', capacity: number }, cargo: { __typename?: 'CargoState', capacity: number }, status: { __typename?: 'ShipStatus', assignmentId?: number | null, fleetId?: number | null, tempAssignmentId?: number | null, tempFleetId?: number | null, status:
+export type GetSystemQuery = { __typename?: 'QueryRoot', system: { __typename?: 'System', symbol: string, sectorSymbol: string, constellation?: string | null, systemType: SystemType, x: number, y: number, populationDisabled: boolean, seenAgents: Array<{ __typename?: 'KnownAgent', symbol: string, count: number }>, fleets: { __typename?: 'FleetPage', items: Array<{ __typename?: 'Fleet', id: number, fleetType: FleetType, active: boolean, createdAt: string, updatedAt: string, assignments: { __typename?: 'ShipAssignmentPage', items: Array<{ __typename?: 'ShipAssignment', id: number, siphon: boolean, warpDrive: boolean, fleetId: number, priority: number, maxPurchasePrice: number, creditsThreshold: number, disabled: boolean, rangeMin: number, cargoMin: number, survey: boolean, extractor: boolean }> } }> }, chartTransactions: { __typename?: 'ChartTransactionPage', items: Array<{ __typename?: 'ChartTransaction', waypointSymbol: string, shipSymbol: string, totalPrice: number, timestamp: string }> }, shipyardShips: { __typename?: 'ShipyardShipPage', items: Array<{ __typename?: 'ShipyardShip', reactorQuality?: number | null, engineType: ShipEngineSymbol, engineQuality?: number | null, modules: Array<ShipModuleSymbol>, mounts: Array<ShipMountSymbol>, createdAt: string, waypointSymbol: string, shipType: ShipType, name: string, supply: SupplyLevel, activity?: ActivityLevel | null, purchasePrice: number, frameType: ShipFrameSymbol, frameQuality?: number | null, reactorType: ShipReactorSymbol }> }, marketTrades: { __typename?: 'MarketTradePage', items: Array<{ __typename?: 'MarketTrade', waypointSymbol: string, symbol: TradeSymbol, createdAt: string, type: Type, tradeSymbolInfo: { __typename?: 'TradeSymbolInfo', symbol: TradeSymbol, requires: { __typename?: 'TradeSymbolInfoPage', items: Array<{ __typename?: 'TradeSymbolInfo', symbol: TradeSymbol }> }, requiredBy: { __typename?: 'TradeSymbolInfoPage', items: Array<{ __typename?: 'TradeSymbolInfo', symbol: TradeSymbol }> } }, marketTradeGood?: { __typename?: 'MarketTradeGood', symbol: TradeSymbol, waypointSymbol: string, type: Type, tradeVolume: number, supply: SupplyLevel, activity?: ActivityLevel | null, purchasePrice: number, sellPrice: number, createdAt: string } | null }> }, constructionMaterials: { __typename?: 'ConstructionMaterialPage', items: Array<{ __typename?: 'ConstructionMaterial', waypointSymbol: string, tradeSymbol: TradeSymbol, required: number, fulfilled: number, marketTransactionSummary: { __typename?: 'TransactionSummary', expenses?: number | null, purchaseUnits?: number | null, purchaseTransactions?: number | null } }> }, jumpGateConnections: { __typename?: 'JumpGateConnectionPage', items: Array<{ __typename?: 'JumpGateConnection', from: string, to: string }> }, waypoints: { __typename?: 'WaypointPage', items: Array<{ __typename?: 'Waypoint', symbol: string, faction?: string | null, modifiers: Array<WaypointModifierSymbol>, chartedBy?: string | null, chartedOn?: string | null, hasShipyard: boolean, hasMarketplace: boolean, x: number, y: number, lastScrap?: string | null, nextScrap?: string | null, waypointType: WaypointType, traits: Array<WaypointTraitSymbol>, isUnderConstruction: boolean, orbitals: Array<string>, orbits?: string | null, marketTrades: { __typename?: 'MarketTradePage', items: Array<{ __typename?: 'MarketTrade', symbol: TradeSymbol, type: Type, tradeSymbolInfo: { __typename?: 'TradeSymbolInfo', symbol: TradeSymbol, requires: { __typename?: 'TradeSymbolInfoPage', items: Array<{ __typename?: 'TradeSymbolInfo', symbol: TradeSymbol }> }, requiredBy: { __typename?: 'TradeSymbolInfoPage', items: Array<{ __typename?: 'TradeSymbolInfo', symbol: TradeSymbol }> } }, marketTradeGood?: { __typename?: 'MarketTradeGood', tradeVolume: number, supply: SupplyLevel, activity?: ActivityLevel | null, purchasePrice: number, sellPrice: number } | null }> }, shipyardShips: { __typename?: 'ShipyardShipPage', items: Array<{ __typename?: 'ShipyardShip', shipType: ShipType, supply: SupplyLevel, activity?: ActivityLevel | null, purchasePrice: number }> } }> }, marketTransactions: { __typename?: 'MarketTransactionPage', items: Array<{ __typename?: 'MarketTransaction', id: number, waypointSymbol: string, shipSymbol: string, tradeSymbol: TradeSymbol, type: MarketTransactionType, units: number, pricePerUnit: number, totalPrice: number, timestamp: string, contract_id?: string | null }> }, shipyardTransactions: { __typename?: 'ShipyardTransactionPage', items: Array<{ __typename?: 'ShipyardTransaction', id: number, waypointSymbol: string, shipType: ShipType, price: number, agentSymbol: string, timestamp: string }> }, contractDeliveries: { __typename?: 'ContractDeliveryPage', items: Array<{ __typename?: 'ContractDelivery', contractId: string, tradeSymbol: TradeSymbol, destinationSymbol: string, unitsRequired: number, unitsFulfilled: number, contract?: { __typename?: 'Contract', id: string, createdAt: string, reservedFund?: number | null, factionSymbol: string, contractType: ContractType, accepted: boolean, onFulfilled: number, deadline: string, marketTransactionSummary: { __typename?: 'TransactionSummary', sum?: number | null, expenses?: number | null, income?: number | null, units?: number | null, purchaseUnits?: number | null, sellUnits?: number | null, purchaseTransactions?: number | null, sellTransactions?: number | null } } | null }> }, tradeRoutes: { __typename?: 'TradeRoutePage', items: Array<{ __typename?: 'TradeRoute', id: number, reservedFund?: number | null, symbol: TradeSymbol, shipSymbol: string, PurchaseWaypointSymbol: string, SellWaypointSymbol: string, status: ShipmentStatus, tradeVolume: number, predictedPurchasePrice: number, predictedSellPrice: number, marketTransactionSummary: { __typename?: 'TransactionSummary', sum?: number | null, expenses?: number | null, income?: number | null, units?: number | null, purchaseUnits?: number | null, sellUnits?: number | null, purchaseTransactions?: number | null, sellTransactions?: number | null } }> }, ships: Array<{ __typename?: 'Ship', symbol: string, nav: { __typename?: 'NavigationState', waypointSymbol: string, status: ShipNavStatus }, fuel: { __typename?: 'FuelState', capacity: number }, cargo: { __typename?: 'CargoState', capacity: number }, status: { __typename?: 'ShipStatus', assignmentId?: number | null, fleetId?: number | null, tempAssignmentId?: number | null, tempFleetId?: number | null, status:
           | { __typename: 'ChartingStatus' }
           | { __typename: 'ConstructionStatus' }
           | { __typename: 'ContractStatus' }
@@ -2420,14 +3232,14 @@ export type GetSystemQuery = { __typename?: 'QueryRoot', system: { __typename?: 
 export type GetChartTransactionsQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type GetChartTransactionsQuery = { __typename?: 'QueryRoot', chartTransactions: Array<{ __typename?: 'ChartTransaction', waypointSymbol: string, shipSymbol: string, totalPrice: number, timestamp: string, waypoint?: { __typename?: 'Waypoint', symbol: string, waypointType: WaypointType, traits: Array<WaypointTraitSymbol> } | null }> };
+export type GetChartTransactionsQuery = { __typename?: 'QueryRoot', chartTransactions: { __typename?: 'ChartTransactionPage', items: Array<{ __typename?: 'ChartTransaction', waypointSymbol: string, shipSymbol: string, totalPrice: number, timestamp: string, waypoint?: { __typename?: 'Waypoint', symbol: string, waypointType: WaypointType, traits: Array<WaypointTraitSymbol> } | null }> } };
 
 
-export const GetMainSiteDataDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"GetMainSiteData"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"apiCounts"}},{"kind":"Field","name":{"kind":"Name","value":"budget"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"currentFunds"}},{"kind":"Field","name":{"kind":"Name","value":"ironReserve"}},{"kind":"Field","name":{"kind":"Name","value":"reservedAmount"}},{"kind":"Field","name":{"kind":"Name","value":"spendable"}}]}},{"kind":"Field","name":{"kind":"Name","value":"runInfo"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"resetDate"}},{"kind":"Field","name":{"kind":"Name","value":"nextResetDate"}},{"kind":"Field","name":{"kind":"Name","value":"agent"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"credits"}},{"kind":"Field","name":{"kind":"Name","value":"shipCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"headquartersSystem"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"constructionMaterials"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"waypointSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"tradeSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"required"}},{"kind":"Field","name":{"kind":"Name","value":"fulfilled"}}]}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"systems"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"onlyWithFleetsOrShips"},"value":{"kind":"BooleanValue","value":true}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"waypoints"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"chartedBy"}},{"kind":"Field","name":{"kind":"Name","value":"hasMarketplace"}},{"kind":"Field","name":{"kind":"Name","value":"hasShipyard"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"fleets"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"systemSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"fleetType"}},{"kind":"Field","name":{"kind":"Name","value":"active"}},{"kind":"Field","name":{"kind":"Name","value":"assignments"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"priority"}},{"kind":"Field","name":{"kind":"Name","value":"rangeMin"}},{"kind":"Field","name":{"kind":"Name","value":"cargoMin"}},{"kind":"Field","name":{"kind":"Name","value":"ship"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}}]}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"shipAssignments"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"by"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"open"},"value":{"kind":"BooleanValue","value":true}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"fleetId"}},{"kind":"Field","name":{"kind":"Name","value":"fleet"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"systemSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"fleetType"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"ships"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"registrationRole"}},{"kind":"Field","name":{"kind":"Name","value":"status"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"assignmentId"}},{"kind":"Field","name":{"kind":"Name","value":"tempAssignmentId"}},{"kind":"Field","name":{"kind":"Name","value":"status"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"__typename"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"nav"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"status"}},{"kind":"Field","name":{"kind":"Name","value":"systemSymbol"}}]}},{"kind":"Field","name":{"kind":"Name","value":"cargo"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"units"}}]}},{"kind":"Field","name":{"kind":"Name","value":"cooldownExpiration"}}]}},{"kind":"Field","name":{"kind":"Name","value":"chartManager"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"busy"}},{"kind":"Field","name":{"kind":"Name","value":"channelState"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"usedCapacity"}},{"kind":"Field","name":{"kind":"Name","value":"state"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"fleetManager"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"busy"}},{"kind":"Field","name":{"kind":"Name","value":"channelState"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"usedCapacity"}},{"kind":"Field","name":{"kind":"Name","value":"state"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"tradeManager"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"busy"}},{"kind":"Field","name":{"kind":"Name","value":"channelState"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"usedCapacity"}},{"kind":"Field","name":{"kind":"Name","value":"state"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"miningManager"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"busy"}},{"kind":"Field","name":{"kind":"Name","value":"channelState"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"usedCapacity"}},{"kind":"Field","name":{"kind":"Name","value":"state"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"contractManager"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"busy"}},{"kind":"Field","name":{"kind":"Name","value":"channelState"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"usedCapacity"}},{"kind":"Field","name":{"kind":"Name","value":"state"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"scrappingManager"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"busy"}},{"kind":"Field","name":{"kind":"Name","value":"channelState"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"usedCapacity"}},{"kind":"Field","name":{"kind":"Name","value":"state"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"constructionManager"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"busy"}},{"kind":"Field","name":{"kind":"Name","value":"channelState"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"usedCapacity"}},{"kind":"Field","name":{"kind":"Name","value":"state"}}]}}]}}]}}]} as unknown as DocumentNode<GetMainSiteDataQuery, GetMainSiteDataQueryVariables>;
-export const GetAllSystemsDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"GetAllSystems"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"systems"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"constellation"}},{"kind":"Field","name":{"kind":"Name","value":"sectorSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"systemType"}},{"kind":"Field","name":{"kind":"Name","value":"x"}},{"kind":"Field","name":{"kind":"Name","value":"y"}},{"kind":"Field","name":{"kind":"Name","value":"populationDisabled"}},{"kind":"Field","name":{"kind":"Name","value":"waypoints"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"waypointType"}},{"kind":"Field","name":{"kind":"Name","value":"hasShipyard"}},{"kind":"Field","name":{"kind":"Name","value":"hasMarketplace"}}]}},{"kind":"Field","name":{"kind":"Name","value":"fleets"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"fleetType"}},{"kind":"Field","name":{"kind":"Name","value":"active"}}]}},{"kind":"Field","name":{"kind":"Name","value":"ships"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}}]}}]}}]}}]} as unknown as DocumentNode<GetAllSystemsQuery, GetAllSystemsQueryVariables>;
-export const GetSystemMapDataDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"GetSystemMapData"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"systems"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"constellation"}},{"kind":"Field","name":{"kind":"Name","value":"systemType"}},{"kind":"Field","name":{"kind":"Name","value":"x"}},{"kind":"Field","name":{"kind":"Name","value":"y"}},{"kind":"Field","name":{"kind":"Name","value":"populationDisabled"}},{"kind":"Field","name":{"kind":"Name","value":"waypoints"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"waypointType"}},{"kind":"Field","name":{"kind":"Name","value":"hasShipyard"}},{"kind":"Field","name":{"kind":"Name","value":"hasMarketplace"}},{"kind":"Field","name":{"kind":"Name","value":"isUnderConstruction"}}]}},{"kind":"Field","name":{"kind":"Name","value":"fleets"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"fleetType"}},{"kind":"Field","name":{"kind":"Name","value":"active"}}]}},{"kind":"Field","name":{"kind":"Name","value":"ships"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"jumpConnections"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"underConstructionA"}},{"kind":"Field","name":{"kind":"Name","value":"underConstructionB"}},{"kind":"Field","name":{"kind":"Name","value":"pointASymbol"}},{"kind":"Field","name":{"kind":"Name","value":"pointBSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"fromA"}},{"kind":"Field","name":{"kind":"Name","value":"fromB"}}]}}]}}]} as unknown as DocumentNode<GetSystemMapDataQuery, GetSystemMapDataQueryVariables>;
+export const GetMainSiteDataDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"GetMainSiteData"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"apiCounts"}},{"kind":"Field","name":{"kind":"Name","value":"budget"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"currentFunds"}},{"kind":"Field","name":{"kind":"Name","value":"ironReserve"}},{"kind":"Field","name":{"kind":"Name","value":"reservedAmount"}},{"kind":"Field","name":{"kind":"Name","value":"spendable"}}]}},{"kind":"Field","name":{"kind":"Name","value":"runInfo"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"resetDate"}},{"kind":"Field","name":{"kind":"Name","value":"nextResetDate"}},{"kind":"Field","name":{"kind":"Name","value":"agent"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"credits"}},{"kind":"Field","name":{"kind":"Name","value":"shipCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"headquartersSystem"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"constructionMaterials"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"waypointSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"tradeSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"required"}},{"kind":"Field","name":{"kind":"Name","value":"fulfilled"}}]}}]}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"systems"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"onlyWithFleetsOrShips"},"value":{"kind":"BooleanValue","value":true}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"waypoints"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"chartedBy"}},{"kind":"Field","name":{"kind":"Name","value":"hasMarketplace"}},{"kind":"Field","name":{"kind":"Name","value":"hasShipyard"}}]}}]}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"fleets"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"systemSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"fleetType"}},{"kind":"Field","name":{"kind":"Name","value":"active"}},{"kind":"Field","name":{"kind":"Name","value":"assignments"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"priority"}},{"kind":"Field","name":{"kind":"Name","value":"rangeMin"}},{"kind":"Field","name":{"kind":"Name","value":"cargoMin"}},{"kind":"Field","name":{"kind":"Name","value":"ship"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}}]}}]}}]}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"shipAssignments"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"by"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"open"},"value":{"kind":"BooleanValue","value":true}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"fleetId"}},{"kind":"Field","name":{"kind":"Name","value":"fleet"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"systemSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"fleetType"}}]}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"ships"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"registrationRole"}},{"kind":"Field","name":{"kind":"Name","value":"status"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"assignmentId"}},{"kind":"Field","name":{"kind":"Name","value":"tempAssignmentId"}},{"kind":"Field","name":{"kind":"Name","value":"status"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"__typename"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"nav"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"status"}},{"kind":"Field","name":{"kind":"Name","value":"systemSymbol"}}]}},{"kind":"Field","name":{"kind":"Name","value":"cargo"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"units"}}]}},{"kind":"Field","name":{"kind":"Name","value":"cooldownExpiration"}}]}},{"kind":"Field","name":{"kind":"Name","value":"chartManager"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"busy"}},{"kind":"Field","name":{"kind":"Name","value":"channelState"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"usedCapacity"}},{"kind":"Field","name":{"kind":"Name","value":"state"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"fleetManager"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"busy"}},{"kind":"Field","name":{"kind":"Name","value":"channelState"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"usedCapacity"}},{"kind":"Field","name":{"kind":"Name","value":"state"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"tradeManager"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"busy"}},{"kind":"Field","name":{"kind":"Name","value":"channelState"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"usedCapacity"}},{"kind":"Field","name":{"kind":"Name","value":"state"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"miningManager"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"busy"}},{"kind":"Field","name":{"kind":"Name","value":"channelState"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"usedCapacity"}},{"kind":"Field","name":{"kind":"Name","value":"state"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"contractManager"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"busy"}},{"kind":"Field","name":{"kind":"Name","value":"channelState"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"usedCapacity"}},{"kind":"Field","name":{"kind":"Name","value":"state"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"scrappingManager"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"busy"}},{"kind":"Field","name":{"kind":"Name","value":"channelState"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"usedCapacity"}},{"kind":"Field","name":{"kind":"Name","value":"state"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"constructionManager"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"busy"}},{"kind":"Field","name":{"kind":"Name","value":"channelState"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"usedCapacity"}},{"kind":"Field","name":{"kind":"Name","value":"state"}}]}}]}}]}}]} as unknown as DocumentNode<GetMainSiteDataQuery, GetMainSiteDataQueryVariables>;
+export const GetAllSystemsDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"GetAllSystems"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"systems"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"constellation"}},{"kind":"Field","name":{"kind":"Name","value":"sectorSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"systemType"}},{"kind":"Field","name":{"kind":"Name","value":"x"}},{"kind":"Field","name":{"kind":"Name","value":"y"}},{"kind":"Field","name":{"kind":"Name","value":"populationDisabled"}},{"kind":"Field","name":{"kind":"Name","value":"waypoints"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"waypointType"}},{"kind":"Field","name":{"kind":"Name","value":"hasShipyard"}},{"kind":"Field","name":{"kind":"Name","value":"hasMarketplace"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"fleets"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"fleetType"}},{"kind":"Field","name":{"kind":"Name","value":"active"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"ships"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}}]}}]}}]}}]}}]} as unknown as DocumentNode<GetAllSystemsQuery, GetAllSystemsQueryVariables>;
+export const GetSystemMapDataDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"GetSystemMapData"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"systems"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"constellation"}},{"kind":"Field","name":{"kind":"Name","value":"systemType"}},{"kind":"Field","name":{"kind":"Name","value":"x"}},{"kind":"Field","name":{"kind":"Name","value":"y"}},{"kind":"Field","name":{"kind":"Name","value":"populationDisabled"}},{"kind":"Field","name":{"kind":"Name","value":"waypoints"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"waypointType"}},{"kind":"Field","name":{"kind":"Name","value":"hasShipyard"}},{"kind":"Field","name":{"kind":"Name","value":"hasMarketplace"}},{"kind":"Field","name":{"kind":"Name","value":"isUnderConstruction"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"fleets"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"fleetType"}},{"kind":"Field","name":{"kind":"Name","value":"active"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"ships"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}}]}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"jumpConnections"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"underConstructionA"}},{"kind":"Field","name":{"kind":"Name","value":"underConstructionB"}},{"kind":"Field","name":{"kind":"Name","value":"pointASymbol"}},{"kind":"Field","name":{"kind":"Name","value":"pointBSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"fromA"}},{"kind":"Field","name":{"kind":"Name","value":"fromB"}}]}}]}}]}}]} as unknown as DocumentNode<GetSystemMapDataQuery, GetSystemMapDataQueryVariables>;
 export const GetAllAgentsDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"GetAllAgents"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"agents"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"credits"}},{"kind":"Field","name":{"kind":"Name","value":"shipCount"}},{"kind":"Field","name":{"kind":"Name","value":"startingFaction"}},{"kind":"Field","name":{"kind":"Name","value":"headquarters"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}}]}}]}}]} as unknown as DocumentNode<GetAllAgentsQuery, GetAllAgentsQueryVariables>;
 export const GetAgentHistoryDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"GetAgentHistory"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"agentSymbol"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"agent"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"symbol"},"value":{"kind":"Variable","name":{"kind":"Name","value":"agentSymbol"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"credits"}},{"kind":"Field","name":{"kind":"Name","value":"shipCount"}},{"kind":"Field","name":{"kind":"Name","value":"accountId"}},{"kind":"Field","name":{"kind":"Name","value":"startingFaction"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}},{"kind":"Field","name":{"kind":"Name","value":"headquarters"}},{"kind":"Field","name":{"kind":"Name","value":"history"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"credits"}},{"kind":"Field","name":{"kind":"Name","value":"shipCount"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}}]}}]}}]}}]} as unknown as DocumentNode<GetAgentHistoryQuery, GetAgentHistoryQueryVariables>;
-export const GetAllSurveysDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"GetAllSurveys"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"surveys"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"shipInfoBefore"}},{"kind":"Field","name":{"kind":"Name","value":"updatedAt"}},{"kind":"Field","name":{"kind":"Name","value":"shipInfoAfter"}},{"kind":"Field","name":{"kind":"Name","value":"signature"}},{"kind":"Field","name":{"kind":"Name","value":"signature"}},{"kind":"Field","name":{"kind":"Name","value":"size"}},{"kind":"Field","name":{"kind":"Name","value":"waypointSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"deposits"}},{"kind":"Field","name":{"kind":"Name","value":"exhaustedSince"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}},{"kind":"Field","name":{"kind":"Name","value":"expiration"}}]}}]}}]} as unknown as DocumentNode<GetAllSurveysQuery, GetAllSurveysQueryVariables>;
-export const GetSystemDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"GetSystem"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"systemSymbol"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"system"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"symbol"},"value":{"kind":"Variable","name":{"kind":"Name","value":"systemSymbol"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"sectorSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"constellation"}},{"kind":"Field","name":{"kind":"Name","value":"systemType"}},{"kind":"Field","name":{"kind":"Name","value":"x"}},{"kind":"Field","name":{"kind":"Name","value":"y"}},{"kind":"Field","name":{"kind":"Name","value":"populationDisabled"}},{"kind":"Field","name":{"kind":"Name","value":"seenAgents"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"count"}}]}},{"kind":"Field","name":{"kind":"Name","value":"fleets"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"fleetType"}},{"kind":"Field","name":{"kind":"Name","value":"active"}},{"kind":"Field","name":{"kind":"Name","value":"assignments"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"siphon"}},{"kind":"Field","name":{"kind":"Name","value":"warpDrive"}},{"kind":"Field","name":{"kind":"Name","value":"fleetId"}},{"kind":"Field","name":{"kind":"Name","value":"priority"}},{"kind":"Field","name":{"kind":"Name","value":"maxPurchasePrice"}},{"kind":"Field","name":{"kind":"Name","value":"creditsThreshold"}},{"kind":"Field","name":{"kind":"Name","value":"disabled"}},{"kind":"Field","name":{"kind":"Name","value":"rangeMin"}},{"kind":"Field","name":{"kind":"Name","value":"cargoMin"}},{"kind":"Field","name":{"kind":"Name","value":"survey"}},{"kind":"Field","name":{"kind":"Name","value":"extractor"}}]}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}},{"kind":"Field","name":{"kind":"Name","value":"updatedAt"}}]}},{"kind":"Field","name":{"kind":"Name","value":"chartTransactions"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"waypointSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"shipSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"totalPrice"}},{"kind":"Field","name":{"kind":"Name","value":"timestamp"}}]}},{"kind":"Field","name":{"kind":"Name","value":"shipyardShips"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"reactorQuality"}},{"kind":"Field","name":{"kind":"Name","value":"engineType"}},{"kind":"Field","name":{"kind":"Name","value":"engineQuality"}},{"kind":"Field","name":{"kind":"Name","value":"modules"}},{"kind":"Field","name":{"kind":"Name","value":"mounts"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}},{"kind":"Field","name":{"kind":"Name","value":"waypointSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"shipType"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"supply"}},{"kind":"Field","name":{"kind":"Name","value":"activity"}},{"kind":"Field","name":{"kind":"Name","value":"purchasePrice"}},{"kind":"Field","name":{"kind":"Name","value":"frameType"}},{"kind":"Field","name":{"kind":"Name","value":"frameQuality"}},{"kind":"Field","name":{"kind":"Name","value":"reactorType"}}]}},{"kind":"Field","name":{"kind":"Name","value":"marketTrades"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"waypointSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}},{"kind":"Field","name":{"kind":"Name","value":"type"}},{"kind":"Field","name":{"kind":"Name","value":"tradeSymbolInfo"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"requires"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}}]}},{"kind":"Field","name":{"kind":"Name","value":"requiredBy"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"marketTradeGood"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"waypointSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"type"}},{"kind":"Field","name":{"kind":"Name","value":"tradeVolume"}},{"kind":"Field","name":{"kind":"Name","value":"supply"}},{"kind":"Field","name":{"kind":"Name","value":"activity"}},{"kind":"Field","name":{"kind":"Name","value":"purchasePrice"}},{"kind":"Field","name":{"kind":"Name","value":"sellPrice"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"constructionMaterials"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"waypointSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"tradeSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"required"}},{"kind":"Field","name":{"kind":"Name","value":"fulfilled"}},{"kind":"Field","name":{"kind":"Name","value":"marketTransactionSummary"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"expenses"}},{"kind":"Field","name":{"kind":"Name","value":"purchaseUnits"}},{"kind":"Field","name":{"kind":"Name","value":"purchaseTransactions"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"jumpGateConnections"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"from"}},{"kind":"Field","name":{"kind":"Name","value":"to"}}]}},{"kind":"Field","name":{"kind":"Name","value":"waypoints"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"faction"}},{"kind":"Field","name":{"kind":"Name","value":"modifiers"}},{"kind":"Field","name":{"kind":"Name","value":"chartedBy"}},{"kind":"Field","name":{"kind":"Name","value":"chartedOn"}},{"kind":"Field","name":{"kind":"Name","value":"hasShipyard"}},{"kind":"Field","name":{"kind":"Name","value":"hasMarketplace"}},{"kind":"Field","name":{"kind":"Name","value":"x"}},{"kind":"Field","name":{"kind":"Name","value":"y"}},{"kind":"Field","name":{"kind":"Name","value":"lastScrap"}},{"kind":"Field","name":{"kind":"Name","value":"nextScrap"}},{"kind":"Field","name":{"kind":"Name","value":"waypointType"}},{"kind":"Field","name":{"kind":"Name","value":"traits"}},{"kind":"Field","name":{"kind":"Name","value":"isUnderConstruction"}},{"kind":"Field","name":{"kind":"Name","value":"orbitals"}},{"kind":"Field","name":{"kind":"Name","value":"orbits"}},{"kind":"Field","name":{"kind":"Name","value":"marketTrades"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"type"}},{"kind":"Field","name":{"kind":"Name","value":"tradeSymbolInfo"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"requires"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}}]}},{"kind":"Field","name":{"kind":"Name","value":"requiredBy"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"marketTradeGood"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"tradeVolume"}},{"kind":"Field","name":{"kind":"Name","value":"supply"}},{"kind":"Field","name":{"kind":"Name","value":"activity"}},{"kind":"Field","name":{"kind":"Name","value":"purchasePrice"}},{"kind":"Field","name":{"kind":"Name","value":"sellPrice"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"shipyardShips"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"shipType"}},{"kind":"Field","name":{"kind":"Name","value":"supply"}},{"kind":"Field","name":{"kind":"Name","value":"activity"}},{"kind":"Field","name":{"kind":"Name","value":"purchasePrice"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"marketTransactions"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"waypointSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"shipSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"tradeSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"type"}},{"kind":"Field","name":{"kind":"Name","value":"units"}},{"kind":"Field","name":{"kind":"Name","value":"pricePerUnit"}},{"kind":"Field","name":{"kind":"Name","value":"totalPrice"}},{"kind":"Field","name":{"kind":"Name","value":"timestamp"}},{"kind":"Field","name":{"kind":"Name","value":"contract_id"}}]}},{"kind":"Field","name":{"kind":"Name","value":"shipyardTransactions"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"waypointSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"shipType"}},{"kind":"Field","name":{"kind":"Name","value":"price"}},{"kind":"Field","name":{"kind":"Name","value":"agentSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"timestamp"}}]}},{"kind":"Field","name":{"kind":"Name","value":"contractDeliveries"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"contractId"}},{"kind":"Field","name":{"kind":"Name","value":"tradeSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"destinationSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"unitsRequired"}},{"kind":"Field","name":{"kind":"Name","value":"unitsFulfilled"}},{"kind":"Field","name":{"kind":"Name","value":"contract"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}},{"kind":"Field","name":{"kind":"Name","value":"reservedFund"}},{"kind":"Field","name":{"kind":"Name","value":"factionSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"contractType"}},{"kind":"Field","name":{"kind":"Name","value":"accepted"}},{"kind":"Field","name":{"kind":"Name","value":"onFulfilled"}},{"kind":"Field","name":{"kind":"Name","value":"deadline"}},{"kind":"Field","name":{"kind":"Name","value":"marketTransactionSummary"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"sum"}},{"kind":"Field","name":{"kind":"Name","value":"expenses"}},{"kind":"Field","name":{"kind":"Name","value":"income"}},{"kind":"Field","name":{"kind":"Name","value":"units"}},{"kind":"Field","name":{"kind":"Name","value":"purchaseUnits"}},{"kind":"Field","name":{"kind":"Name","value":"sellUnits"}},{"kind":"Field","name":{"kind":"Name","value":"purchaseTransactions"}},{"kind":"Field","name":{"kind":"Name","value":"sellTransactions"}}]}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"tradeRoutes"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"reservedFund"}},{"kind":"Field","name":{"kind":"Name","value":"marketTransactionSummary"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"sum"}},{"kind":"Field","name":{"kind":"Name","value":"expenses"}},{"kind":"Field","name":{"kind":"Name","value":"income"}},{"kind":"Field","name":{"kind":"Name","value":"units"}},{"kind":"Field","name":{"kind":"Name","value":"purchaseUnits"}},{"kind":"Field","name":{"kind":"Name","value":"sellUnits"}},{"kind":"Field","name":{"kind":"Name","value":"purchaseTransactions"}},{"kind":"Field","name":{"kind":"Name","value":"sellTransactions"}}]}},{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"shipSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"PurchaseWaypointSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"SellWaypointSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"status"}},{"kind":"Field","name":{"kind":"Name","value":"tradeVolume"}},{"kind":"Field","name":{"kind":"Name","value":"predictedPurchasePrice"}},{"kind":"Field","name":{"kind":"Name","value":"predictedSellPrice"}}]}},{"kind":"Field","name":{"kind":"Name","value":"ships"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"nav"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"waypointSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"status"}}]}},{"kind":"Field","name":{"kind":"Name","value":"fuel"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"capacity"}}]}},{"kind":"Field","name":{"kind":"Name","value":"cargo"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"capacity"}}]}},{"kind":"Field","name":{"kind":"Name","value":"status"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"assignmentId"}},{"kind":"Field","name":{"kind":"Name","value":"fleetId"}},{"kind":"Field","name":{"kind":"Name","value":"tempAssignmentId"}},{"kind":"Field","name":{"kind":"Name","value":"tempFleetId"}},{"kind":"Field","name":{"kind":"Name","value":"status"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"__typename"}}]}}]}}]}}]}}]}}]} as unknown as DocumentNode<GetSystemQuery, GetSystemQueryVariables>;
-export const GetChartTransactionsDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"GetChartTransactions"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"chartTransactions"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"waypointSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"shipSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"totalPrice"}},{"kind":"Field","name":{"kind":"Name","value":"timestamp"}},{"kind":"Field","name":{"kind":"Name","value":"waypoint"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"waypointType"}},{"kind":"Field","name":{"kind":"Name","value":"traits"}}]}}]}}]}}]} as unknown as DocumentNode<GetChartTransactionsQuery, GetChartTransactionsQueryVariables>;
+export const GetAllSurveysDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"GetAllSurveys"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"surveys"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"shipInfoBefore"}},{"kind":"Field","name":{"kind":"Name","value":"updatedAt"}},{"kind":"Field","name":{"kind":"Name","value":"shipInfoAfter"}},{"kind":"Field","name":{"kind":"Name","value":"signature"}},{"kind":"Field","name":{"kind":"Name","value":"signature"}},{"kind":"Field","name":{"kind":"Name","value":"size"}},{"kind":"Field","name":{"kind":"Name","value":"waypointSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"deposits"}},{"kind":"Field","name":{"kind":"Name","value":"exhaustedSince"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}},{"kind":"Field","name":{"kind":"Name","value":"expiration"}}]}}]}}]}}]} as unknown as DocumentNode<GetAllSurveysQuery, GetAllSurveysQueryVariables>;
+export const GetSystemDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"GetSystem"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"systemSymbol"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"system"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"symbol"},"value":{"kind":"Variable","name":{"kind":"Name","value":"systemSymbol"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"sectorSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"constellation"}},{"kind":"Field","name":{"kind":"Name","value":"systemType"}},{"kind":"Field","name":{"kind":"Name","value":"x"}},{"kind":"Field","name":{"kind":"Name","value":"y"}},{"kind":"Field","name":{"kind":"Name","value":"populationDisabled"}},{"kind":"Field","name":{"kind":"Name","value":"seenAgents"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"count"}}]}},{"kind":"Field","name":{"kind":"Name","value":"fleets"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"fleetType"}},{"kind":"Field","name":{"kind":"Name","value":"active"}},{"kind":"Field","name":{"kind":"Name","value":"assignments"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"siphon"}},{"kind":"Field","name":{"kind":"Name","value":"warpDrive"}},{"kind":"Field","name":{"kind":"Name","value":"fleetId"}},{"kind":"Field","name":{"kind":"Name","value":"priority"}},{"kind":"Field","name":{"kind":"Name","value":"maxPurchasePrice"}},{"kind":"Field","name":{"kind":"Name","value":"creditsThreshold"}},{"kind":"Field","name":{"kind":"Name","value":"disabled"}},{"kind":"Field","name":{"kind":"Name","value":"rangeMin"}},{"kind":"Field","name":{"kind":"Name","value":"cargoMin"}},{"kind":"Field","name":{"kind":"Name","value":"survey"}},{"kind":"Field","name":{"kind":"Name","value":"extractor"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}},{"kind":"Field","name":{"kind":"Name","value":"updatedAt"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"chartTransactions"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"waypointSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"shipSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"totalPrice"}},{"kind":"Field","name":{"kind":"Name","value":"timestamp"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"shipyardShips"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"reactorQuality"}},{"kind":"Field","name":{"kind":"Name","value":"engineType"}},{"kind":"Field","name":{"kind":"Name","value":"engineQuality"}},{"kind":"Field","name":{"kind":"Name","value":"modules"}},{"kind":"Field","name":{"kind":"Name","value":"mounts"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}},{"kind":"Field","name":{"kind":"Name","value":"waypointSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"shipType"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"supply"}},{"kind":"Field","name":{"kind":"Name","value":"activity"}},{"kind":"Field","name":{"kind":"Name","value":"purchasePrice"}},{"kind":"Field","name":{"kind":"Name","value":"frameType"}},{"kind":"Field","name":{"kind":"Name","value":"frameQuality"}},{"kind":"Field","name":{"kind":"Name","value":"reactorType"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"marketTrades"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"waypointSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}},{"kind":"Field","name":{"kind":"Name","value":"type"}},{"kind":"Field","name":{"kind":"Name","value":"tradeSymbolInfo"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"requires"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"requiredBy"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}}]}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"marketTradeGood"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"waypointSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"type"}},{"kind":"Field","name":{"kind":"Name","value":"tradeVolume"}},{"kind":"Field","name":{"kind":"Name","value":"supply"}},{"kind":"Field","name":{"kind":"Name","value":"activity"}},{"kind":"Field","name":{"kind":"Name","value":"purchasePrice"}},{"kind":"Field","name":{"kind":"Name","value":"sellPrice"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}}]}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"constructionMaterials"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"waypointSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"tradeSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"required"}},{"kind":"Field","name":{"kind":"Name","value":"fulfilled"}},{"kind":"Field","name":{"kind":"Name","value":"marketTransactionSummary"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"expenses"}},{"kind":"Field","name":{"kind":"Name","value":"purchaseUnits"}},{"kind":"Field","name":{"kind":"Name","value":"purchaseTransactions"}}]}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"jumpGateConnections"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"from"}},{"kind":"Field","name":{"kind":"Name","value":"to"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"waypoints"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"faction"}},{"kind":"Field","name":{"kind":"Name","value":"modifiers"}},{"kind":"Field","name":{"kind":"Name","value":"chartedBy"}},{"kind":"Field","name":{"kind":"Name","value":"chartedOn"}},{"kind":"Field","name":{"kind":"Name","value":"hasShipyard"}},{"kind":"Field","name":{"kind":"Name","value":"hasMarketplace"}},{"kind":"Field","name":{"kind":"Name","value":"x"}},{"kind":"Field","name":{"kind":"Name","value":"y"}},{"kind":"Field","name":{"kind":"Name","value":"lastScrap"}},{"kind":"Field","name":{"kind":"Name","value":"nextScrap"}},{"kind":"Field","name":{"kind":"Name","value":"waypointType"}},{"kind":"Field","name":{"kind":"Name","value":"traits"}},{"kind":"Field","name":{"kind":"Name","value":"isUnderConstruction"}},{"kind":"Field","name":{"kind":"Name","value":"orbitals"}},{"kind":"Field","name":{"kind":"Name","value":"orbits"}},{"kind":"Field","name":{"kind":"Name","value":"marketTrades"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"type"}},{"kind":"Field","name":{"kind":"Name","value":"tradeSymbolInfo"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"requires"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"requiredBy"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}}]}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"marketTradeGood"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"tradeVolume"}},{"kind":"Field","name":{"kind":"Name","value":"supply"}},{"kind":"Field","name":{"kind":"Name","value":"activity"}},{"kind":"Field","name":{"kind":"Name","value":"purchasePrice"}},{"kind":"Field","name":{"kind":"Name","value":"sellPrice"}}]}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"shipyardShips"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"shipType"}},{"kind":"Field","name":{"kind":"Name","value":"supply"}},{"kind":"Field","name":{"kind":"Name","value":"activity"}},{"kind":"Field","name":{"kind":"Name","value":"purchasePrice"}}]}}]}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"marketTransactions"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"waypointSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"shipSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"tradeSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"type"}},{"kind":"Field","name":{"kind":"Name","value":"units"}},{"kind":"Field","name":{"kind":"Name","value":"pricePerUnit"}},{"kind":"Field","name":{"kind":"Name","value":"totalPrice"}},{"kind":"Field","name":{"kind":"Name","value":"timestamp"}},{"kind":"Field","name":{"kind":"Name","value":"contract_id"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"shipyardTransactions"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"waypointSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"shipType"}},{"kind":"Field","name":{"kind":"Name","value":"price"}},{"kind":"Field","name":{"kind":"Name","value":"agentSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"timestamp"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"contractDeliveries"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"contractId"}},{"kind":"Field","name":{"kind":"Name","value":"tradeSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"destinationSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"unitsRequired"}},{"kind":"Field","name":{"kind":"Name","value":"unitsFulfilled"}},{"kind":"Field","name":{"kind":"Name","value":"contract"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}},{"kind":"Field","name":{"kind":"Name","value":"reservedFund"}},{"kind":"Field","name":{"kind":"Name","value":"factionSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"contractType"}},{"kind":"Field","name":{"kind":"Name","value":"accepted"}},{"kind":"Field","name":{"kind":"Name","value":"onFulfilled"}},{"kind":"Field","name":{"kind":"Name","value":"deadline"}},{"kind":"Field","name":{"kind":"Name","value":"marketTransactionSummary"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"sum"}},{"kind":"Field","name":{"kind":"Name","value":"expenses"}},{"kind":"Field","name":{"kind":"Name","value":"income"}},{"kind":"Field","name":{"kind":"Name","value":"units"}},{"kind":"Field","name":{"kind":"Name","value":"purchaseUnits"}},{"kind":"Field","name":{"kind":"Name","value":"sellUnits"}},{"kind":"Field","name":{"kind":"Name","value":"purchaseTransactions"}},{"kind":"Field","name":{"kind":"Name","value":"sellTransactions"}}]}}]}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"tradeRoutes"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"reservedFund"}},{"kind":"Field","name":{"kind":"Name","value":"marketTransactionSummary"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"sum"}},{"kind":"Field","name":{"kind":"Name","value":"expenses"}},{"kind":"Field","name":{"kind":"Name","value":"income"}},{"kind":"Field","name":{"kind":"Name","value":"units"}},{"kind":"Field","name":{"kind":"Name","value":"purchaseUnits"}},{"kind":"Field","name":{"kind":"Name","value":"sellUnits"}},{"kind":"Field","name":{"kind":"Name","value":"purchaseTransactions"}},{"kind":"Field","name":{"kind":"Name","value":"sellTransactions"}}]}},{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"shipSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"PurchaseWaypointSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"SellWaypointSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"status"}},{"kind":"Field","name":{"kind":"Name","value":"tradeVolume"}},{"kind":"Field","name":{"kind":"Name","value":"predictedPurchasePrice"}},{"kind":"Field","name":{"kind":"Name","value":"predictedSellPrice"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"ships"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"nav"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"waypointSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"status"}}]}},{"kind":"Field","name":{"kind":"Name","value":"fuel"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"capacity"}}]}},{"kind":"Field","name":{"kind":"Name","value":"cargo"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"capacity"}}]}},{"kind":"Field","name":{"kind":"Name","value":"status"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"assignmentId"}},{"kind":"Field","name":{"kind":"Name","value":"fleetId"}},{"kind":"Field","name":{"kind":"Name","value":"tempAssignmentId"}},{"kind":"Field","name":{"kind":"Name","value":"tempFleetId"}},{"kind":"Field","name":{"kind":"Name","value":"status"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"__typename"}}]}}]}}]}}]}}]}}]} as unknown as DocumentNode<GetSystemQuery, GetSystemQueryVariables>;
+export const GetChartTransactionsDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"GetChartTransactions"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"chartTransactions"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"waypointSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"shipSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"totalPrice"}},{"kind":"Field","name":{"kind":"Name","value":"timestamp"}},{"kind":"Field","name":{"kind":"Name","value":"waypoint"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"waypointType"}},{"kind":"Field","name":{"kind":"Name","value":"traits"}}]}}]}}]}}]}}]} as unknown as DocumentNode<GetChartTransactionsQuery, GetChartTransactionsQueryVariables>;

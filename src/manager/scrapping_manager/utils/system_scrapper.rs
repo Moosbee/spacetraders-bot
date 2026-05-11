@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use database::DatabaseConnector;
+use database::DatabaseConnectorAsync;
 use space_traders_client::{models, Api};
 use tracing::debug;
 
@@ -38,7 +38,7 @@ pub async fn update_system(
 ) -> crate::error::Result<()> {
     if also_system {
         let system = api.get_system(system_symbol).await?;
-        database::System::insert(database_pool, &database::System::from(&*system.data)).await?;
+        database::System::upsert(database_pool, &database::System::from(&*system.data)).await?;
     }
 
     let waypoints = loop {

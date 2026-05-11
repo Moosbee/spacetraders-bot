@@ -36,7 +36,7 @@ import { chartColors } from "../utils/chartColors";
 
 function Main() {
   const { loading, error, data, dataState, refetch } = useQuery(
-    GET_MAIN_SITE_DATA
+    GET_MAIN_SITE_DATA,
     // { pollInterval: 3600000 }
   );
   const {
@@ -46,6 +46,18 @@ function Main() {
   if (dataState != "complete") return <p>Loading...</p>;
   if (error) return <p>Error: {error.message}</p>;
 
+  const systems = data.systems.items.map((system) => ({
+    ...system,
+    waypoints: system.waypoints.items,
+  }));
+  const fleetsData = data.fleets.items.map((fleet) => ({
+    ...fleet,
+    assignments: fleet.assignments.items,
+  }));
+  const shipAssignments = data.shipAssignments.items;
+  const constructionMaterials =
+    data.runInfo.headquartersSystem?.constructionMaterials.items || [];
+
   const fleetsByType: {
     [key: string]: {
       fleetCount: number;
@@ -54,7 +66,7 @@ function Main() {
       openAssignmentCount: number;
     };
   } = {};
-  data.fleets.forEach((fleet) => {
+  fleetsData.forEach((fleet) => {
     if (!fleetsByType[fleet.fleetType]) {
       fleetsByType[fleet.fleetType] = {
         fleetCount: 0,
@@ -88,10 +100,13 @@ function Main() {
   const shipStatus = Object.entries(
     data.ships
       .map((ship) => ship.status.status.__typename)
-      .reduce((ob, ship) => {
-        ob[ship] = (ob[ship] || 0) + 1;
-        return ob;
-      }, {} as Record<shipStatusType, number>)
+      .reduce(
+        (ob, ship) => {
+          ob[ship] = (ob[ship] || 0) + 1;
+          return ob;
+        },
+        {} as Record<shipStatusType, number>,
+      ),
   )
     .map(([type, count]) => {
       return {
@@ -283,9 +298,9 @@ function Main() {
               <Card variant="borderless">
                 <div className="overflow-hidden w-full">
                   <div className="flex justify-around gap-4">
-                    {data.systems.length <= 6 ? (
+                    {systems.length <= 6 ? (
                       <>
-                        {data.systems.map((system) => (
+                        {systems.map((system) => (
                           <span key={system.symbol}>
                             <Link to={`system/${system.symbol}`}>
                               {system.symbol}
@@ -296,12 +311,12 @@ function Main() {
                     ) : (
                       <>
                         <TextLoop
-                          texts={data.systems.map((system) => (
+                          texts={systems.map((system) => (
                             <Link to={`system/${system.symbol}`}>
                               {system.symbol}
                             </Link>
                           ))}
-                          duration={data.systems.length * 1}
+                          duration={systems.length * 1}
                         />
                       </>
                     )}
@@ -309,9 +324,9 @@ function Main() {
                 </div>
                 <div className="overflow-hidden w-full">
                   <ul className="flex justify-around gap-4">
-                    {data.fleets.length <= 4 ? (
+                    {fleetsData.length <= 4 ? (
                       <>
-                        {data.fleets.map((fleet) => (
+                        {fleetsData.map((fleet) => (
                           <li key={fleet.id} className="whitespace-nowrap">
                             {fleet.fleetType}-{fleet.systemSymbol}
                           </li>
@@ -320,11 +335,11 @@ function Main() {
                     ) : (
                       <>
                         <TextLoop
-                          texts={data.fleets.map(
+                          texts={fleetsData.map(
                             (fleet) =>
-                              `${fleet.fleetType}_${fleet.id}_${fleet.systemSymbol}`
+                              `${fleet.fleetType}_${fleet.id}_${fleet.systemSymbol}`,
                           )}
-                          duration={data.fleets.length * 3}
+                          duration={fleetsData.length * 3}
                         />
                       </>
                     )}
@@ -358,19 +373,16 @@ function Main() {
             <Card variant="borderless">
               <Row>
                 <Col span={12}>
-                  <Statistic
-                    title="Occupied Systems"
-                    value={data.systems.length}
-                  />
+                  <Statistic title="Occupied Systems" value={systems.length} />
                 </Col>
                 <Col span={12}>
                   <Statistic
                     title="Systems with Ships"
                     value={
-                      data.systems.filter((s) =>
+                      systems.filter((s) =>
                         data.ships.some(
-                          (ship) => ship.nav?.systemSymbol === s.symbol
-                        )
+                          (ship) => ship.nav?.systemSymbol === s.symbol,
+                        ),
                       ).length
                     }
                   />
@@ -380,7 +392,7 @@ function Main() {
                 <Col span={12}>
                   <Statistic
                     title="Total Waypoints"
-                    value={data.systems
+                    value={systems
                       .map((f) => f.waypoints.length)
                       .reduce((total, current) => total + current)}
                   />
@@ -388,9 +400,9 @@ function Main() {
                 <Col span={12}>
                   <Statistic
                     title="Uncharted Waypoints"
-                    value={data.systems
+                    value={systems
                       .map(
-                        (f) => f.waypoints.filter((w) => !w.chartedBy).length
+                        (f) => f.waypoints.filter((w) => !w.chartedBy).length,
                       )
                       .reduce((total, current) => total + current)}
                   />
@@ -400,10 +412,10 @@ function Main() {
                 <Col span={12}>
                   <Statistic
                     title="Total Marketplaces"
-                    value={data.systems
+                    value={systems
                       .map(
                         (f) =>
-                          f.waypoints.filter((m) => m.hasMarketplace).length
+                          f.waypoints.filter((m) => m.hasMarketplace).length,
                       )
                       .reduce((total, current) => total + current)}
                   />
@@ -411,12 +423,12 @@ function Main() {
                 <Col span={12}>
                   <Statistic
                     title="Uncharted Marketplaces"
-                    value={data.systems
+                    value={systems
                       .map(
                         (f) =>
                           f.waypoints
                             .filter((w) => !w.chartedBy)
-                            .filter((m) => m.hasMarketplace).length
+                            .filter((m) => m.hasMarketplace).length,
                       )
                       .reduce((total, current) => total + current)}
                   />
@@ -426,9 +438,9 @@ function Main() {
                 <Col span={12}>
                   <Statistic
                     title="Total Shipyards"
-                    value={data.systems
+                    value={systems
                       .map(
-                        (f) => f.waypoints.filter((m) => m.hasShipyard).length
+                        (f) => f.waypoints.filter((m) => m.hasShipyard).length,
                       )
                       .reduce((total, current) => total + current)}
                   />
@@ -436,12 +448,12 @@ function Main() {
                 <Col span={12}>
                   <Statistic
                     title="Uncharted Shipyards"
-                    value={data.systems
+                    value={systems
                       .map(
                         (f) =>
                           f.waypoints
                             .filter((w) => !w.chartedBy)
-                            .filter((m) => m.hasShipyard).length
+                            .filter((m) => m.hasShipyard).length,
                       )
                       .reduce((total, current) => total + current)}
                   />
@@ -479,7 +491,7 @@ function Main() {
                         title="Ships in Navigation"
                         value={
                           data.ships.filter(
-                            (s) => s.nav?.status === "IN_TRANSIT"
+                            (s) => s.nav?.status === "IN_TRANSIT",
                           ).length
                         }
                       />
@@ -532,12 +544,7 @@ function Main() {
             <Card variant="borderless" title="Construction">
               <div style={{ width: "100%", height: 400 }}>
                 <ResponsiveContainer>
-                  <BarChart
-                    data={
-                      data.runInfo.headquartersSystem?.constructionMaterials ||
-                      []
-                    }
-                  >
+                  <BarChart data={constructionMaterials}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="tradeSymbol" />
                     <YAxis scale="linear" />
@@ -558,16 +565,16 @@ function Main() {
             <Card variant="borderless" title="Fleets by Type">
               <div className="flex justify-between">
                 <div>
-                  <Statistic title="Total Fleets" value={data.fleets.length} />
+                  <Statistic title="Total Fleets" value={fleetsData.length} />
                   <Statistic
                     title="Total Assignments"
-                    value={data.fleets
+                    value={fleetsData
                       .map((f) => f.assignments.length)
                       .reduce((prev, now) => prev + now)}
                   />
                   <Statistic
                     title="Open Assignments"
-                    value={data.shipAssignments.length}
+                    value={shipAssignments.length}
                   />
                 </div>
 
@@ -671,7 +678,7 @@ function Main() {
                 (response) => {
                   console.log(response);
                   alert("shutdown");
-                }
+                },
               );
             }}
           >
@@ -717,8 +724,8 @@ function ShipNavProgress({
         Math.round(
           ((new Date().getTime() - new Date(start_time).getTime()) /
             (new Date(end_time).getTime() - new Date(start_time).getTime())) *
-            10000
-        ) / 100
+            10000,
+        ) / 100,
       );
     }, 1000);
 

@@ -3,7 +3,7 @@ mod gql_ship;
 pub mod mutations;
 
 use async_graphql::Object;
-use database::DatabaseConnector;
+use database::DatabaseConnectorAsync;
 use space_traders_client::models;
 use std::collections::{HashMap, HashSet};
 use strum::IntoEnumIterator;
@@ -17,6 +17,10 @@ use crate::{
 };
 
 type Result<T> = std::result::Result<T, GraphiQLError>;
+
+fn paginated_query(page: Option<i64>, page_size: Option<i64>) -> database::PaginatedQuery {
+    database::PaginatedQuery::new(page.unwrap_or(1), page_size)
+}
 
 pub struct QueryRoot;
 
@@ -71,14 +75,18 @@ impl QueryRoot {
         &self,
         ctx: &async_graphql::Context<'ctx>,
         by: Option<MarketTransactionBy>,
-    ) -> Result<Vec<gql_models::GQLMarketTransaction>> {
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<gql_models::GQLMarketTransactionPage> {
         let context = ctx.data::<ConductorContext>()?;
+        let query = paginated_query(page, page_size);
         let transactions = if let Some(by) = by {
             match by {
                 MarketTransactionBy::Contract(contract_id) => {
                     database::MarketTransaction::get_by_contract(
                         &context.database_pool,
                         &contract_id,
+                        query,
                     )
                     .await
                 }
@@ -86,6 +94,7 @@ impl QueryRoot {
                     database::MarketTransaction::get_by_trade_route(
                         &context.database_pool,
                         trade_route_id,
+                        query,
                     )
                     .await
                 }
@@ -93,6 +102,7 @@ impl QueryRoot {
                     database::MarketTransaction::get_by_mining_waypoint(
                         &context.database_pool,
                         &mining_waypoint,
+                        query,
                     )
                     .await
                 }
@@ -100,6 +110,7 @@ impl QueryRoot {
                     database::MarketTransaction::get_by_construction(
                         &context.database_pool,
                         construction_shipment,
+                        query,
                     )
                     .await
                 }
@@ -107,6 +118,7 @@ impl QueryRoot {
                     database::MarketTransaction::get_by_waypoint(
                         &context.database_pool,
                         &waypoint_symbol,
+                        query,
                     )
                     .await
                 }
@@ -114,17 +126,23 @@ impl QueryRoot {
                     database::MarketTransaction::get_by_system(
                         &context.database_pool,
                         &system_symbol,
+                        query,
                     )
                     .await
                 }
                 MarketTransactionBy::ShipSymbol(ship_symbol) => {
-                    database::MarketTransaction::get_by_ship(&context.database_pool, &ship_symbol)
-                        .await
+                    database::MarketTransaction::get_by_ship(
+                        &context.database_pool,
+                        &ship_symbol,
+                        query,
+                    )
+                    .await
                 }
                 MarketTransactionBy::TradeSymbol(trade_symbol) => {
                     database::MarketTransaction::get_by_trade_symbol(
                         &context.database_pool,
                         trade_symbol,
+                        query,
                     )
                     .await
                 }
@@ -132,28 +150,33 @@ impl QueryRoot {
                     database::MarketTransaction::get_by_trade_type(
                         &context.database_pool,
                         transaction_type,
+                        query,
                     )
                     .await
                 }
             }
         } else {
-            database::MarketTransaction::get_all(&context.database_pool).await
+            database::MarketTransaction::get_all(&context.database_pool, query).await
         }?;
-        Ok(transactions.into_iter().map(Into::into).collect())
+        Ok(transactions.into())
     }
 
     async fn shipyard_transactions<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
         by: Option<ShipyardTransactionBy>,
-    ) -> Result<Vec<gql_models::GQLShipyardTransaction>> {
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<gql_models::GQLShipyardTransactionPage> {
         let context = ctx.data::<ConductorContext>()?;
+        let query = paginated_query(page, page_size);
         let transactions = if let Some(by) = by {
             match by {
                 ShipyardTransactionBy::Waypoint(waypoint_symbol) => {
                     database::ShipyardTransaction::get_by_waypoint(
                         &context.database_pool,
                         &waypoint_symbol,
+                        query,
                     )
                     .await
                 }
@@ -161,6 +184,7 @@ impl QueryRoot {
                     database::ShipyardTransaction::get_by_system(
                         &context.database_pool,
                         &system_symbol,
+                        query,
                     )
                     .await
                 }
@@ -168,6 +192,7 @@ impl QueryRoot {
                     database::ShipyardTransaction::get_by_ship_type(
                         &context.database_pool,
                         ship_type,
+                        query,
                     )
                     .await
                 }
@@ -175,57 +200,90 @@ impl QueryRoot {
                     database::ShipyardTransaction::get_by_agent(
                         &context.database_pool,
                         &agent_symbol,
+                        query,
                     )
                     .await
                 }
             }
         } else {
-            database::ShipyardTransaction::get_all(&context.database_pool).await
+            database::ShipyardTransaction::get_all(
+                &context.database_pool,
+                query,
+            )
+            .await
         }?;
-        Ok(transactions.into_iter().map(Into::into).collect())
+        Ok(transactions.into())
     }
 
     async fn chart_transactions<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
         ship_symbol: Option<String>,
-    ) -> Result<Vec<gql_models::GQLChartTransaction>> {
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<gql_models::GQLChartTransactionPage> {
         let context = ctx.data::<ConductorContext>()?;
+        let query = paginated_query(page, page_size);
         let transactions = if let Some(ship_symbol) = ship_symbol {
-            database::ChartTransaction::get_by_ship_symbol(&context.database_pool, &ship_symbol)
-                .await?
+            database::ChartTransaction::get_by_ship_symbol(
+                &context.database_pool,
+                &ship_symbol,
+                query,
+            )
+            .await?
         } else {
-            database::ChartTransaction::get_all(&context.database_pool).await?
+            database::ChartTransaction::get_all(
+                &context.database_pool,
+                query,
+            )
+            .await?
         };
-        Ok(transactions.into_iter().map(Into::into).collect())
+        Ok(transactions.into())
     }
 
     async fn repair_transactions<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
-    ) -> Result<Vec<gql_models::GQLRepairTransaction>> {
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<gql_models::GQLRepairTransactionPage> {
         let context = ctx.data::<ConductorContext>()?;
-        let transactions = database::RepairTransaction::get_all(&context.database_pool).await?;
-        Ok(transactions.into_iter().map(Into::into).collect())
+        let transactions = database::RepairTransaction::get_all(
+            &context.database_pool,
+            paginated_query(page, page_size),
+        )
+        .await?;
+        Ok(transactions.into())
     }
 
     async fn scrap_transactions<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
-    ) -> Result<Vec<gql_models::GQLScrapTransaction>> {
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<gql_models::GQLScrapTransactionPage> {
         let context = ctx.data::<ConductorContext>()?;
-        let transactions = database::ScrapTransaction::get_all(&context.database_pool).await?;
-        Ok(transactions.into_iter().map(Into::into).collect())
+        let transactions = database::ScrapTransaction::get_all(
+            &context.database_pool,
+            paginated_query(page, page_size),
+        )
+        .await?;
+        Ok(transactions.into())
     }
 
     async fn ship_modification_transactions<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
-    ) -> Result<Vec<gql_models::GQLShipModificationTransaction>> {
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<gql_models::GQLShipModificationTransactionPage> {
         let context = ctx.data::<ConductorContext>()?;
-        let transactions =
-            database::ShipModificationTransaction::get_all(&context.database_pool).await?;
-        Ok(transactions.into_iter().map(Into::into).collect())
+        let transactions = database::ShipModificationTransaction::get_all(
+            &context.database_pool,
+            paginated_query(page, page_size),
+        )
+        .await?;
+        Ok(transactions.into())
     }
 
     async fn waypoint<'ctx>(
@@ -245,10 +303,16 @@ impl QueryRoot {
     async fn waypoints<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
-    ) -> Result<Vec<gql_models::GQLWaypoint>> {
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<gql_models::GQLWaypointPage> {
         let context = ctx.data::<ConductorContext>()?;
-        let waypoints = database::Waypoint::get_all(&context.database_pool).await?;
-        Ok(waypoints.into_iter().map(Into::into).collect())
+        let waypoints = database::Waypoint::get_all(
+            &context.database_pool,
+            paginated_query(page, page_size),
+        )
+        .await?;
+        Ok(waypoints.into())
     }
 
     async fn system<'ctx>(
@@ -257,9 +321,12 @@ impl QueryRoot {
         symbol: String,
     ) -> Result<gql_models::GQLSystem> {
         let context = ctx.data::<ConductorContext>()?;
-        let system = database::System::get_by_symbol(&context.database_pool, &symbol)
-            .await?
-            .ok_or(GraphiQLError::NotFound)?;
+        let system = database::System::get_by_id(
+            &context.database_pool,
+            &symbol,
+        )
+        .await?
+        .ok_or(GraphiQLError::NotFound)?;
         Ok(system.into())
     }
 
@@ -267,12 +334,23 @@ impl QueryRoot {
         &self,
         ctx: &async_graphql::Context<'ctx>,
         only_with_fleets_or_ships: Option<bool>,
-    ) -> Result<Vec<gql_models::GQLSystem>> {
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<gql_models::GQLSystemPage> {
         let context = ctx.data::<ConductorContext>()?;
-        let all_systems = database::System::get_all(&context.database_pool).await?;
+        let query = paginated_query(page, page_size);
 
-        let systems = if only_with_fleets_or_ships.unwrap_or(false) {
-            let fleets = database::Fleet::get_all(&context.database_pool).await?;
+        if only_with_fleets_or_ships.unwrap_or(false) {
+            let all_systems =
+                database::System::get_all(&context.database_pool, database::PaginatedQuery::unpaged())
+                    .await?
+                    .items;
+            let fleets = database::Fleet::get_all(
+                &context.database_pool,
+                database::PaginatedQuery::unpaged(),
+            )
+            .await?
+            .items;
             let ships = context.ship_manager.get_all_clone().await;
             let mut filter_systems = fleets
                 .iter()
@@ -280,15 +358,14 @@ impl QueryRoot {
                 .collect::<HashSet<_>>();
             filter_systems.extend(ships.values().map(|f| f.nav.system_symbol.clone()));
 
-            all_systems
+            let systems = all_systems
                 .into_iter()
                 .filter(|s| filter_systems.contains(&s.symbol))
-                .collect()
+                .collect();
+            Ok(database::paginate_items(query, systems)?.into())
         } else {
-            all_systems
-        };
-
-        Ok(systems.into_iter().map(Into::into).collect())
+            Ok(database::System::get_all(&context.database_pool, query).await?.into())
+        }
     }
 
     async fn agent<'ctx>(
@@ -309,8 +386,10 @@ impl QueryRoot {
         symbol: String,
     ) -> Result<Vec<gql_models::GQLAgent>> {
         let context = ctx.data::<ConductorContext>()?;
-        let agent = database::Agent::get_by_symbol(&context.database_pool, &symbol).await?;
-        Ok(agent.into_iter().map(Into::into).collect())
+        let agent =
+            database::Agent::get_by_symbol(&context.database_pool, &symbol, database::PaginatedQuery::unpaged())
+                .await?;
+        Ok(agent.items.into_iter().map(Into::into).collect())
     }
 
     async fn agents<'ctx>(
@@ -318,8 +397,12 @@ impl QueryRoot {
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Vec<gql_models::GQLAgent>> {
         let context = ctx.data::<ConductorContext>()?;
-        let agents = database::Agent::get_last(&context.database_pool).await?;
-        Ok(agents.into_iter().map(Into::into).collect())
+        let agents = database::Agent::get_last(
+            &context.database_pool,
+            database::PaginatedQuery::unpaged(),
+        )
+        .await?;
+        Ok(agents.items.into_iter().map(Into::into).collect())
     }
 
     async fn contract<'ctx>(
@@ -338,74 +421,102 @@ impl QueryRoot {
         &self,
         ctx: &async_graphql::Context<'ctx>,
         by: Option<ContractBy>,
-    ) -> Result<Vec<gql_models::GQLContract>> {
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<gql_models::GQLContractPage> {
         let context = ctx.data::<ConductorContext>()?;
+        let query = paginated_query(page, page_size);
         let contracts = if let Some(by) = by {
             match by {
                 ContractBy::Faction(symbol) => {
                     database::Contract::get_by_faction_symbol(
                         &context.database_pool,
                         &symbol.to_string(),
+                        query,
                     )
                     .await?
                 }
             }
         } else {
-            database::Contract::get_all(&context.database_pool).await?
+            database::Contract::get_all(&context.database_pool, query).await?
         };
-        Ok(contracts.into_iter().map(Into::into).collect())
+        Ok(contracts.into())
     }
 
     async fn contract_deliveries<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
         by: Option<ContractDeliveryBy>,
-    ) -> Result<Vec<gql_models::GQLContractDelivery>> {
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<gql_models::GQLContractDeliveryPage> {
         let context = ctx.data::<ConductorContext>()?;
+        let query = paginated_query(page, page_size);
         let contract_deliveries = if let Some(by) = by {
             match by {
                 ContractDeliveryBy::Contract(id) => {
-                    database::ContractDelivery::get_by_contract_id(&context.database_pool, &id)
-                        .await?
+                    database::ContractDelivery::get_by_contract_id(
+                        &context.database_pool,
+                        &id,
+                        query,
+                    )
+                    .await?
                 }
                 ContractDeliveryBy::TradeSymbol(symbol) => {
-                    database::ContractDelivery::get_by_trade_symbol(&context.database_pool, &symbol)
-                        .await?
+                    database::ContractDelivery::get_by_trade_symbol(
+                        &context.database_pool,
+                        &symbol,
+                        query,
+                    )
+                    .await?
                 }
                 ContractDeliveryBy::Waypoint(symbol) => {
                     database::ContractDelivery::get_by_destination_symbol(
                         &context.database_pool,
                         &symbol,
+                        query,
                     )
                     .await?
                 }
             }
         } else {
-            database::ContractDelivery::get_all(&context.database_pool).await?
+            database::ContractDelivery::get_all(&context.database_pool, query).await?
         };
-        Ok(contract_deliveries.into_iter().map(Into::into).collect())
+        Ok(contract_deliveries.into())
     }
 
     async fn contract_shipments<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
         by: Option<ContractShipmentBy>,
-    ) -> Result<Vec<gql_models::GQLContractShipment>> {
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<gql_models::GQLContractShipmentPage> {
         let context = ctx.data::<ConductorContext>()?;
+        let query = paginated_query(page, page_size);
         let contract_shipments = if let Some(by) = by {
             match by {
                 ContractShipmentBy::Contract(id) => {
-                    database::ContractShipment::get_by_contract_id(&context.database_pool, &id)
+                    database::ContractShipment::get_by_contract_id(
+                        &context.database_pool,
+                        &id,
+                        query,
+                    )
                         .await
                 }
                 ContractShipmentBy::TradeSymbol(symbol) => {
-                    database::ContractShipment::get_by_trade_symbol(&context.database_pool, &symbol)
-                        .await
+                    database::ContractShipment::get_by_trade_symbol(
+                        &context.database_pool,
+                        &symbol,
+                        query,
+                    )
+                    .await
                 }
                 ContractShipmentBy::SourceWaypoint(source_symbol) => {
                     database::ContractShipment::get_by_source_symbol(
                         &context.database_pool,
                         &source_symbol,
+                        query,
                     )
                     .await
                 }
@@ -413,17 +524,23 @@ impl QueryRoot {
                     database::ContractShipment::get_by_destination_symbol(
                         &context.database_pool,
                         &destination_symbol,
+                        query,
                     )
                     .await
                 }
                 ContractShipmentBy::ShipSymbol(symbol) => {
-                    database::ContractShipment::get_by_ship(&context.database_pool, &symbol).await
+                    database::ContractShipment::get_by_ship(
+                        &context.database_pool,
+                        &symbol,
+                        query,
+                    )
+                    .await
                 }
             }
         } else {
-            database::ContractShipment::get_all(&context.database_pool).await
+            database::ContractShipment::get_all(&context.database_pool, query).await
         }?;
-        Ok(contract_shipments.into_iter().map(Into::into).collect())
+        Ok(contract_shipments.into())
     }
 
     async fn extraction<'ctx>(
@@ -432,7 +549,7 @@ impl QueryRoot {
         symbol: i64,
     ) -> Result<gql_models::GQLExtraction> {
         let context = ctx.data::<ConductorContext>()?;
-        let extraction = database::Extraction::get_by_id(&context.database_pool, symbol)
+        let extraction = database::Extraction::get_by_id(&context.database_pool, &symbol)
             .await?
             .ok_or(GraphiQLError::NotFound)?;
         Ok(extraction.into())
@@ -442,14 +559,18 @@ impl QueryRoot {
         &self,
         ctx: &async_graphql::Context<'ctx>,
         by: Option<ExtractionBy>,
-    ) -> Result<Vec<gql_models::GQLExtraction>> {
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<gql_models::GQLExtractionPage> {
         let context = ctx.data::<ConductorContext>()?;
+        let query = paginated_query(page, page_size);
         let extractions = if let Some(by) = by {
             match by {
                 ExtractionBy::Waypoint(symbol) => {
                     database::Extraction::get_by_waypoint_symbol(
                         &context.database_pool,
                         &symbol.to_string(),
+                        query,
                     )
                     .await
                 }
@@ -457,115 +578,154 @@ impl QueryRoot {
                     database::Extraction::get_by_system_symbol(
                         &context.database_pool,
                         &symbol.to_string(),
+                        query,
                     )
                     .await
                 }
                 ExtractionBy::ShipSymbol(symbol) => {
-                    database::Extraction::get_by_ship(&context.database_pool, &symbol.to_string())
-                        .await
+                    database::Extraction::get_by_ship(
+                        &context.database_pool,
+                        &symbol.to_string(),
+                        query,
+                    )
+                    .await
                 }
                 ExtractionBy::TradeSymbol(symbol) => {
-                    database::Extraction::get_by_trade_symbol(&context.database_pool, &symbol).await
+                    database::Extraction::get_by_trade_symbol(
+                        &context.database_pool,
+                        &symbol,
+                        query,
+                    )
+                    .await
                 }
                 ExtractionBy::Siphon(siphon) => {
-                    database::Extraction::get_by_siphon(&context.database_pool, siphon).await
+                    database::Extraction::get_by_siphon(&context.database_pool, siphon, query)
+                        .await
                 }
                 ExtractionBy::Survey(symbol) => {
                     database::Extraction::get_by_survey_symbol(
                         &context.database_pool,
                         &symbol.to_string(),
+                        query,
                     )
                     .await
                 }
             }
         } else {
-            database::Extraction::get_all(&context.database_pool).await
+            database::Extraction::get_all(&context.database_pool, query).await
         }?;
-        Ok(extractions.into_iter().map(Into::into).collect())
+        Ok(extractions.into())
     }
 
     async fn fleets<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
         by: Option<FleetBy>,
-    ) -> Result<Vec<gql_models::GQLFleet>> {
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<gql_models::GQLFleetPage> {
         let context = ctx.data::<ConductorContext>()?;
+        let query = paginated_query(page, page_size);
         let fleets = if let Some(by) = by {
             match by {
                 FleetBy::System(system_symbol) => {
-                    database::Fleet::get_by_system(&context.database_pool, &system_symbol).await
+                    database::Fleet::get_by_system(&context.database_pool, &system_symbol, query)
+                        .await
                 }
                 FleetBy::Type(fleet_type) => {
-                    database::Fleet::get_by_type(&context.database_pool, fleet_type).await
+                    database::Fleet::get_by_type(&context.database_pool, fleet_type, query).await
                 }
             }
         } else {
-            database::Fleet::get_all(&context.database_pool).await
+            database::Fleet::get_all(&context.database_pool, query).await
         }?;
-        Ok(fleets.into_iter().map(Into::into).collect())
+        Ok(fleets.into())
     }
 
     async fn ship_assignments<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
         by: Option<ShipAssignmentBy>,
-    ) -> Result<Vec<gql_models::GQLShipAssignment>> {
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<gql_models::GQLShipAssignmentPage> {
         let context = ctx.data::<ConductorContext>()?;
+        let query = paginated_query(page, page_size);
         let ship_assignments = if let Some(by) = by {
             match by {
                 ShipAssignmentBy::Fleet(fleet_id) => {
-                    database::ShipAssignment::get_by_fleet_id(&context.database_pool, fleet_id)
+                    database::ShipAssignment::get_by_fleet_id(
+                        &context.database_pool,
+                        fleet_id,
+                        query,
+                    )
                         .await
                 }
                 ShipAssignmentBy::Open(_assigned) => {
-                    database::ShipAssignment::get_open_assignments(&context.database_pool).await
+                    database::ShipAssignment::get_open_assignments(&context.database_pool, query)
+                        .await
                 }
             }
         } else {
-            database::ShipAssignment::get_all(&context.database_pool).await
+            database::ShipAssignment::get_all(&context.database_pool, query).await
         }?;
-        Ok(ship_assignments.into_iter().map(Into::into).collect())
+        Ok(ship_assignments.into())
     }
 
     async fn reserved_funds<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
-    ) -> Result<Vec<gql_models::GQLReservedFund>> {
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<gql_models::GQLReservedFundPage> {
         let context = ctx.data::<ConductorContext>()?;
-        let reserved_funds = database::ReservedFund::get_all(&context.database_pool).await?;
-        Ok(reserved_funds.into_iter().map(Into::into).collect())
+        let reserved_funds = database::ReservedFund::get_all(
+            &context.database_pool,
+            paginated_query(page, page_size),
+        )
+        .await?;
+        Ok(reserved_funds.into())
     }
 
     async fn surveys<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
         by: Option<SurveyBy>,
-    ) -> Result<Vec<gql_models::GQLSurvey>> {
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<gql_models::GQLSurveyPage> {
         let context = ctx.data::<ConductorContext>()?;
+        let query = paginated_query(page, page_size);
         let surveys = if let Some(by) = by {
             match by {
                 SurveyBy::Waypoint(waypoint_symbol) => {
                     database::Survey::get_by_waypoint_symbol(
                         &context.database_pool,
                         &waypoint_symbol,
+                        query,
                     )
                     .await
                 }
                 SurveyBy::System(system_symbol) => {
-                    database::Survey::get_by_system_symbol(&context.database_pool, &system_symbol)
-                        .await
+                    database::Survey::get_by_system_symbol(
+                        &context.database_pool,
+                        &system_symbol,
+                        query,
+                    )
+                    .await
                 }
                 SurveyBy::Size(size) => {
-                    database::Survey::get_by_size(&context.database_pool, size).await
+                    database::Survey::get_by_size(&context.database_pool, size, query).await
                 }
                 SurveyBy::ShipSymbol(ship_symbol) => {
-                    database::Survey::get_by_ship(&context.database_pool, &ship_symbol).await
+                    database::Survey::get_by_ship(&context.database_pool, &ship_symbol, query)
+                        .await
                 }
             }
         } else {
-            database::Survey::get_all(&context.database_pool).await
+            database::Survey::get_all(&context.database_pool, query).await
         }?;
-        Ok(surveys.into_iter().map(Into::into).collect())
+        Ok(surveys.into())
     }
 
     async fn survey<'ctx>(
@@ -581,10 +741,14 @@ impl QueryRoot {
     async fn trade_routes<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
-    ) -> Result<Vec<gql_models::GQLTradeRoute>> {
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<gql_models::GQLTradeRoutePage> {
         let context = ctx.data::<ConductorContext>()?;
-        let trade_routes = database::TradeRoute::get_all(&context.database_pool).await?;
-        Ok(trade_routes.into_iter().map(Into::into).collect())
+        let trade_routes =
+            database::TradeRoute::get_all(&context.database_pool, paginated_query(page, page_size))
+                .await?;
+        Ok(trade_routes.into())
     }
 
     async fn trade_route<'ctx>(
@@ -593,7 +757,7 @@ impl QueryRoot {
         route_id: i32,
     ) -> Result<gql_models::GQLTradeRoute> {
         let context = ctx.data::<ConductorContext>()?;
-        let trade_route = database::TradeRoute::get_by_id(&context.database_pool, route_id)
+        let trade_route = database::TradeRoute::get_by_id(&context.database_pool, &route_id)
             .await?
             .ok_or(GraphiQLError::NotFound)?;
         Ok(trade_route.into())
@@ -602,10 +766,14 @@ impl QueryRoot {
     async fn ship_infos<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
-    ) -> Result<Vec<gql_models::GQLShipInfo>> {
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<gql_models::GQLShipInfoPage> {
         let context = ctx.data::<ConductorContext>()?;
-        let ship_info = database::ShipInfo::get_all(&context.database_pool).await?;
-        Ok(ship_info.into_iter().map(Into::into).collect())
+        let ship_info =
+            database::ShipInfo::get_all(&context.database_pool, paginated_query(page, page_size))
+                .await?;
+        Ok(ship_info.into())
     }
 
     async fn ship_info<'ctx>(
@@ -614,7 +782,7 @@ impl QueryRoot {
         symbol: String,
     ) -> Result<gql_models::GQLShipInfo> {
         let context = ctx.data::<ConductorContext>()?;
-        let ship_info = database::ShipInfo::get_by_symbol(&context.database_pool, &symbol)
+        let ship_info = database::ShipInfo::get_by_id(&context.database_pool, &symbol)
             .await?
             .ok_or(GraphiQLError::NotFound)?;
         Ok(ship_info.into())
@@ -624,33 +792,44 @@ impl QueryRoot {
         &self,
         ctx: &async_graphql::Context<'ctx>,
         by: Option<ShipStateBy>,
-    ) -> Result<Vec<gql_models::GQLShipState>> {
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<gql_models::GQLShipStatePage> {
         let context = ctx.data::<ConductorContext>()?;
+        let query = paginated_query(page, page_size);
         let ship_states = if let Some(by) = by {
             match by {
                 ShipStateBy::Waypoint(waypoint) => {
-                    database::ShipState::get_by_waypoint(&context.database_pool, &waypoint).await
+                    database::ShipState::get_by_waypoint(&context.database_pool, &waypoint, query)
+                        .await
                 }
                 ShipStateBy::System(system) => {
-                    database::ShipState::get_by_system(&context.database_pool, &system).await
+                    database::ShipState::get_by_system(&context.database_pool, &system, query)
+                        .await
                 }
                 ShipStateBy::ShipSymbol(symbol) => {
-                    database::ShipState::get_by_ship(&context.database_pool, &symbol).await
+                    database::ShipState::get_by_ship(&context.database_pool, &symbol, query).await
                 }
             }
         } else {
-            database::ShipState::get_all(&context.database_pool).await
+            database::ShipState::get_all(&context.database_pool, query).await
         }?;
-        Ok(ship_states.into_iter().map(Into::into).collect())
+        Ok(ship_states.into())
     }
 
     async fn shipyards<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
-    ) -> Result<Vec<gql_models::GQLShipyard>> {
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<gql_models::GQLShipyardPage> {
         let context = ctx.data::<ConductorContext>()?;
-        let shipyards = database::Shipyard::get_last(&context.database_pool).await?;
-        Ok(shipyards.into_iter().map(Into::into).collect())
+        let shipyards = database::Shipyard::get_last_paginated(
+            &context.database_pool,
+            paginated_query(page, page_size),
+        )
+        .await?;
+        Ok(shipyards.into())
     }
 
     async fn shipyard<'ctx>(
@@ -669,85 +848,118 @@ impl QueryRoot {
         &self,
         ctx: &async_graphql::Context<'ctx>,
         by: Option<ShipyardShipBy>,
-    ) -> Result<Vec<gql_models::GQLShipyardShip>> {
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<gql_models::GQLShipyardShipPage> {
         let context = ctx.data::<ConductorContext>()?;
+        let query = paginated_query(page, page_size);
         let shipyard_ships = if let Some(by) = by {
             match by {
                 ShipyardShipBy::Waypoint(waypoint) => {
-                    database::ShipyardShip::get_last_by_waypoint(&context.database_pool, &waypoint)
+                    database::ShipyardShip::get_last_by_waypoint(
+                        &context.database_pool,
+                        &waypoint,
+                        query,
+                    )
                         .await
                 }
                 ShipyardShipBy::System(system) => {
-                    database::ShipyardShip::get_last_by_system(&context.database_pool, &system)
+                    database::ShipyardShip::get_last_by_system(
+                        &context.database_pool,
+                        &system,
+                        query,
+                    )
                         .await
                 }
                 ShipyardShipBy::ShipSymbol(symbol) => {
-                    database::ShipyardShip::get_last_by_ship_symbol(&context.database_pool, &symbol)
+                    database::ShipyardShip::get_last_by_ship_symbol(
+                        &context.database_pool,
+                        &symbol,
+                        query,
+                    )
                         .await
                 }
             }
         } else {
-            database::ShipyardShip::get_last(&context.database_pool).await
+            database::ShipyardShip::get_last_paginated(&context.database_pool, query).await
         }?;
-        Ok(shipyard_ships.into_iter().map(Into::into).collect())
+        Ok(shipyard_ships.into())
     }
 
     async fn construction_materials<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
         by: Option<ConstructionMaterialBy>,
-    ) -> Result<Vec<gql_models::GQLConstructionMaterial>> {
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<gql_models::GQLConstructionMaterialPage> {
         let context = ctx.data::<ConductorContext>()?;
+        let query = paginated_query(page, page_size);
         let construction_materials = if let Some(by) = by {
             match by {
                 ConstructionMaterialBy::Waypoint(waypoint) => {
                     database::ConstructionMaterial::get_by_waypoint(
                         &context.database_pool,
                         &waypoint,
+                        query,
                     )
                     .await
                 }
                 ConstructionMaterialBy::System(system) => {
-                    database::ConstructionMaterial::get_by_system(&context.database_pool, &system)
-                        .await
+                    database::ConstructionMaterial::get_by_system(
+                        &context.database_pool,
+                        &system,
+                        query,
+                    )
+                    .await
                 }
                 ConstructionMaterialBy::TradeSymbol(trade_symbol) => {
                     database::ConstructionMaterial::get_by_trade_symbol(
                         &context.database_pool,
                         &trade_symbol,
+                        query,
                     )
                     .await
                 }
             }
         } else {
-            database::ConstructionMaterial::get_all(&context.database_pool).await
+            database::ConstructionMaterial::get_all(&context.database_pool, query).await
         }?;
-        Ok(construction_materials.into_iter().map(Into::into).collect())
+        Ok(construction_materials.into())
     }
 
     async fn construction_shipments<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
         by: Option<ConstructionShipmentBy>,
-    ) -> Result<Vec<gql_models::GQLConstructionShipment>> {
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<gql_models::GQLConstructionShipmentPage> {
         let context = ctx.data::<ConductorContext>()?;
+        let query = paginated_query(page, page_size);
         let construction_shipments = if let Some(by) = by {
             match by {
                 ConstructionShipmentBy::Waypoint(waypoint) => {
                     database::ConstructionShipment::get_by_destination_waypoint(
                         &context.database_pool,
                         &waypoint,
+                        query,
                     )
                     .await
                 }
                 ConstructionShipmentBy::System(system) => {
-                    database::ConstructionShipment::get_by_system(&context.database_pool, &system)
-                        .await
+                    database::ConstructionShipment::get_by_system(
+                        &context.database_pool,
+                        &system,
+                        query,
+                    )
+                    .await
                 }
                 ConstructionShipmentBy::TradeSymbol(trade_symbol) => {
                     database::ConstructionShipment::get_by_trade_symbol(
                         &context.database_pool,
                         &trade_symbol,
+                        query,
                     )
                     .await
                 }
@@ -755,6 +967,7 @@ impl QueryRoot {
                     database::ConstructionShipment::get_by_material_id(
                         &context.database_pool,
                         material_id,
+                        query,
                     )
                     .await
                 }
@@ -762,36 +975,48 @@ impl QueryRoot {
                     database::ConstructionShipment::get_by_ship(
                         &context.database_pool,
                         &ship_symbol,
+                        query,
                     )
                     .await
                 }
             }
         } else {
-            database::ConstructionShipment::get_all(&context.database_pool).await
+            database::ConstructionShipment::get_all(&context.database_pool, query).await
         }?;
-        Ok(construction_shipments.into_iter().map(Into::into).collect())
+        Ok(construction_shipments.into())
     }
 
     async fn jump_gate_connections<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
         from: Option<String>,
-    ) -> Result<Vec<gql_models::GQLJumpGateConnection>> {
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<gql_models::GQLJumpGateConnectionPage> {
         let context = ctx.data::<ConductorContext>()?;
+        let query = paginated_query(page, page_size);
         let jump_gate_connections = if let Some(from) = from {
-            database::JumpGateConnection::get_all_from(&context.database_pool, &from).await?
+            database::JumpGateConnection::get_all_from(&context.database_pool, &from, query)
+                .await?
         } else {
-            database::JumpGateConnection::get_all(&context.database_pool).await?
+            database::JumpGateConnection::get_all(&context.database_pool, query).await?
         };
-        Ok(jump_gate_connections.into_iter().map(Into::into).collect())
+        Ok(jump_gate_connections.into())
     }
 
     async fn jump_connections<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
-    ) -> Result<Vec<gql_models::GateConn>> {
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<gql_models::GQLGateConnPage> {
         let context = ctx.data::<ConductorContext>()?;
-        let connections = database::JumpGateConnection::get_all(&context.database_pool).await?;
+        let connections = database::JumpGateConnection::get_all(
+            &context.database_pool,
+            database::PaginatedQuery::unpaged(),
+        )
+        .await?
+        .items;
 
         let mut connection_map: HashMap<(String, String), gql_models::GateConn> = HashMap::new();
 
@@ -817,8 +1042,12 @@ impl QueryRoot {
             }
         }
 
-        let gate_waypoints = database::Waypoint::get_all(&context.database_pool)
+        let gate_waypoints = database::Waypoint::get_all(
+            &context.database_pool,
+            database::PaginatedQuery::unpaged(),
+        )
             .await?
+            .items
             .into_iter()
             .filter(|w| w.is_jump_gate())
             .map(|w| (w.symbol.clone(), w))
@@ -835,47 +1064,71 @@ impl QueryRoot {
                 .unwrap_or(false);
         }
 
-        Ok(connection_map.into_values().collect())
+        Ok(database::paginate_items(
+            paginated_query(page, page_size),
+            connection_map.into_values().collect(),
+        )?
+        .into())
     }
 
     async fn market_trades<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
         by: Option<MarketTradeBy>,
-    ) -> Result<Vec<gql_models::GQLMarketTrade>> {
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<gql_models::GQLMarketTradePage> {
         let context = ctx.data::<ConductorContext>()?;
+        let query = paginated_query(page, page_size);
         let market_trades = if let Some(by) = by {
             match by {
                 MarketTradeBy::Waypoint(waypoint) => {
-                    database::MarketTrade::get_last_by_waypoint(&context.database_pool, &waypoint)
-                        .await
+                    database::MarketTrade::get_last_by_waypoint(
+                        &context.database_pool,
+                        &waypoint,
+                        query,
+                    )
+                    .await
                 }
                 MarketTradeBy::TradeSymbol(trade_symbol) => {
-                    database::MarketTrade::get_last_by_symbol(&context.database_pool, &trade_symbol)
-                        .await
+                    database::MarketTrade::get_last_by_symbol(
+                        &context.database_pool,
+                        &trade_symbol,
+                        query,
+                    )
+                    .await
                 }
                 MarketTradeBy::System(system) => {
-                    database::MarketTrade::get_last_by_system(&context.database_pool, &system).await
+                    database::MarketTrade::get_last_by_system(
+                        &context.database_pool,
+                        &system,
+                        query,
+                    )
+                    .await
                 }
             }
         } else {
-            database::MarketTrade::get_last(&context.database_pool).await
+            database::MarketTrade::get_last(&context.database_pool, query).await
         }?;
-        Ok(market_trades.into_iter().map(Into::into).collect())
+        Ok(market_trades.into())
     }
 
     async fn market_trade_goods<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
         by: Option<MarketTradeGoodBy>,
-    ) -> Result<Vec<gql_models::GQLMarketTradeGood>> {
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<gql_models::GQLMarketTradeGoodPage> {
         let context = ctx.data::<ConductorContext>()?;
+        let query = paginated_query(page, page_size);
         let market_trade_goods = if let Some(by) = by {
             match by {
                 MarketTradeGoodBy::Waypoint(waypoint) => {
                     database::MarketTradeGood::get_last_by_waypoint(
                         &context.database_pool,
                         &waypoint,
+                        query,
                     )
                     .await
                 }
@@ -883,18 +1136,23 @@ impl QueryRoot {
                     database::MarketTradeGood::get_last_by_symbol(
                         &context.database_pool,
                         &trade_symbol,
+                        query,
                     )
                     .await
                 }
                 MarketTradeGoodBy::System(system) => {
-                    database::MarketTradeGood::get_last_by_system(&context.database_pool, &system)
-                        .await
+                    database::MarketTradeGood::get_last_by_system(
+                        &context.database_pool,
+                        &system,
+                        query,
+                    )
+                    .await
                 }
             }
         } else {
-            database::MarketTradeGood::get_all(&context.database_pool).await
+            database::MarketTradeGood::get_all(&context.database_pool, query).await
         }?;
-        Ok(market_trade_goods.into_iter().map(Into::into).collect())
+        Ok(market_trade_goods.into())
     }
 
     async fn trade_symbol_infos(&self) -> Result<Vec<gql_models::TradeSymbolInfo>> {
@@ -905,11 +1163,17 @@ impl QueryRoot {
     async fn ship_routes<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
-    ) -> Result<Vec<gql_models::GQLRoute>> {
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<gql_models::GQLRoutePage> {
         // Changed return type to GQLRoute
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let reg = database::Route::get_all(database_pool).await?;
-        Ok(reg.into_iter().map(Into::into).collect()) // Added conversion
+        let reg = database::Route::get_all(
+            database_pool,
+            paginated_query(page, page_size),
+        )
+        .await?;
+        Ok(reg.into()) // Added conversion
     }
 
     async fn budget<'ctx>(
