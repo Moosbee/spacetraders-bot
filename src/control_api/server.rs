@@ -9,13 +9,13 @@ use tracing::instrument;
 use async_graphql::{
     dataloader::DataLoader,
     http::{GraphQLPlaygroundConfig, GraphiQLSource},
-    EmptySubscription, Schema,
+    Schema,
 };
 use async_graphql_warp::{GraphQLBadRequest, GraphQLResponse};
 use warp::{http::Response as HttpResponse, Filter, Rejection};
 
 use crate::{
-    control_api::graphql::{mutations::MutationRoot, AllShipLoader, QueryRoot},
+    control_api::graphql::{mutations::MutationRoot, AllShipLoader, QueryRoot, SubscriptionRoot},
     manager::Manager,
     utils::ConductorContext,
 };
@@ -23,22 +23,13 @@ use crate::{
 pub struct ControlApiServer {
     context: ConductorContext,
     cancellation_token: CancellationToken,
-    ship_rx: Option<tokio::sync::broadcast::Receiver<ship::MyShip>>,
-    ship_cancellation_token: CancellationToken,
 }
 
 impl ControlApiServer {
-    pub fn new(
-        context: ConductorContext,
-        ship_rx: tokio::sync::broadcast::Receiver<ship::MyShip>,
-        cancellation_token: CancellationToken,
-        ship_cancellation_token: CancellationToken,
-    ) -> Self {
+    pub fn new(context: ConductorContext, cancellation_token: CancellationToken) -> Self {
         Self {
             context,
             cancellation_token,
-            ship_rx: Some(ship_rx),
-            ship_cancellation_token,
         }
     }
 
@@ -57,7 +48,7 @@ impl ControlApiServer {
         let context = self.context.clone();
         let database_pool = self.context.database_pool.clone();
 
-        let schema = Schema::build(QueryRoot, MutationRoot, EmptySubscription)
+        let schema = Schema::build(QueryRoot, MutationRoot, SubscriptionRoot)
             .data(DataLoader::new(
                 database::WaypointSystemLoader::new(database_pool.clone()),
                 tokio::spawn,
@@ -90,26 +81,34 @@ impl ControlApiServer {
 
         tracing::info!(socket_address = %config.socket_address, "GraphiQL IDE available at address");
 
-        let graphql_post = async_graphql_warp::graphql(schema).and_then(
+        let graphql_post = async_graphql_warp::graphql(schema.clone()).and_then(
             |(schema, request): (
-                Schema<QueryRoot, MutationRoot, EmptySubscription>,
+                Schema<QueryRoot, MutationRoot, SubscriptionRoot>,
                 async_graphql::Request,
             )| async move {
                 Ok::<_, Infallible>(GraphQLResponse::from(schema.execute(request).await))
             },
         );
 
+        let graphql_subscription =
+            warp::path("ws").and(async_graphql_warp::graphql_subscription(schema.clone()));
+
         let graphiql = warp::path::end().and(warp::get()).map(|| {
             HttpResponse::builder()
                 .header("content-type", "text/html")
-                .body(GraphiQLSource::build().endpoint("/").finish())
+                .body(
+                    GraphiQLSource::build()
+                        .endpoint("/")
+                        .subscription_endpoint("/ws")
+                        .finish(),
+                )
         });
 
         let playground = warp::path("playground").and(warp::get()).map(|| {
             HttpResponse::builder()
                 .header("content-type", "text/html")
                 .body(async_graphql::http::playground_source(
-                    GraphQLPlaygroundConfig::new("/"),
+                    GraphQLPlaygroundConfig::new("/").subscription_endpoint("/ws"),
                 ))
         });
 
@@ -124,8 +123,12 @@ impl ControlApiServer {
             ])
             .allow_methods(&[warp::http::Method::GET, warp::http::Method::POST]);
 
-        let routes = graphiql.or(playground).or(graphql_post).with(cors).recover(
-            |err: Rejection| async move {
+        let routes = graphiql
+            .or(playground)
+            .or(graphql_subscription)
+            .or(graphql_post)
+            .with(cors)
+            .recover(|err: Rejection| async move {
                 if let Some(GraphQLBadRequest(err)) = err.find() {
                     return Ok::<_, Infallible>(warp::reply::with_status(
                         err.to_string(),
@@ -137,8 +140,7 @@ impl ControlApiServer {
                     "INTERNAL_SERVER_ERROR".to_string(),
                     warp::http::StatusCode::INTERNAL_SERVER_ERROR,
                 ))
-            },
-        );
+            });
 
         let socket_address: std::net::SocketAddr = config
             .socket_address

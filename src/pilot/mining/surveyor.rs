@@ -5,6 +5,7 @@ use std::{
 
 use database::DatabaseConnectorAsync;
 use ship::status::MiningShipAssignment;
+use ship::{MiningSurveyCreatedEvent, ShipEventName, ShipEventPayload, ShipEventRecord};
 use tracing::instrument;
 
 use crate::{error::Result, utils::ConductorContext};
@@ -82,9 +83,25 @@ impl SurveyPilot {
             .map(|f| database::Survey::from_model(f, ship_before, ship_after, ship.symbol.clone()))
             .collect::<database::Result<Vec<_>, _>>()?;
 
-        database::Survey::insert_bulk(
+        database::Survey::insert_bulk(&self.context.database_pool, &all_surveys).await?;
+
+        ship.record_event(
             &self.context.database_pool,
-            &all_surveys,
+            ShipEventRecord::mining_action(
+                &ship.symbol,
+                ShipEventName::CreateSurvey,
+                &waypoint,
+                ShipEventPayload::MiningSurveyCreated(MiningSurveyCreatedEvent {
+                    waypoint_symbol: waypoint.clone(),
+                    surveys_created: all_surveys.len() as i32,
+                    survey_signatures: all_surveys
+                        .iter()
+                        .map(|survey| survey.signature.clone())
+                        .collect(),
+                }),
+            ),
+            ship_before,
+            ship_after,
         )
         .await?;
 

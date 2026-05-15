@@ -6,7 +6,7 @@ use std::{
 use database::DatabaseConnectorAsync;
 use space_traders_client::models::JettisonRequest;
 
-use crate::error;
+use crate::{CargoTradeCompletedEvent, ShipEventName, ShipEventPayload, ShipEventRecord, error};
 
 use super::RustShip;
 
@@ -53,7 +53,10 @@ impl<T: Clone + Send + Sync> RustShip<T> {
         database_pool: &database::DbPool,
         reason: database::TransactionReason,
         update_funds_fn: impl Fn(i64) + Clone,
-    ) -> error::Result<i64> {
+    ) -> error::Result<i64>
+    where
+        T: serde::Serialize,
+    {
         self.mutate();
         let market_info = self.get_market_info(api, database_pool).await?;
         let purchase_volumes = self.calculate_volumes(units, &market_info, symbol)?;
@@ -85,7 +88,10 @@ impl<T: Clone + Send + Sync> RustShip<T> {
         database_pool: &database::DbPool,
         reason: database::TransactionReason,
         update_funds_fn: impl Fn(i64) + Clone,
-    ) -> error::Result<i64> {
+    ) -> error::Result<i64>
+    where
+        T: serde::Serialize,
+    {
         self.mutate();
         let market_info = self.get_market_info(api, database_pool).await?;
         let sell_volumes = self.calculate_volumes(units, &market_info, symbol)?;
@@ -176,8 +182,12 @@ impl<T: Clone + Send + Sync> RustShip<T> {
         database_pool: &database::DbPool,
         reason: database::TransactionReason,
         update_funds_fn: impl Fn(i64) + Clone,
-    ) -> error::Result<database::MarketTransaction> {
+    ) -> error::Result<database::MarketTransaction>
+    where
+        T: serde::Serialize,
+    {
         self.mutate();
+        let before_ship_state_id = self.snapshot(database_pool).await?;
         let trade_data = match r_type {
             Mode::Sell => {
                 let sell_data: space_traders_client::models::SellCargo201Response = api
@@ -212,18 +222,45 @@ impl<T: Clone + Send + Sync> RustShip<T> {
 
         update_funds_fn(trade_data.agent.credits);
 
-        database::Agent::upsert(
-            database_pool,
-            &database::Agent::from(*trade_data.agent),
-        )
-        .await?;
+        database::Agent::upsert(database_pool, &database::Agent::from(*trade_data.agent)).await?;
 
         let transaction: database::MarketTransaction =
             database::MarketTransaction::try_from(trade_data.transaction.as_ref().clone())?
                 .with(reason);
-        database::MarketTransaction::upsert(
+        database::MarketTransaction::upsert(database_pool, &transaction).await?;
+
+        let after_ship_state_id = self.snapshot(database_pool).await?;
+        let event_name = match transaction.r#type {
+            space_traders_client::models::market_transaction::Type::Purchase => {
+                ShipEventName::PurchaseCargo
+            }
+            space_traders_client::models::market_transaction::Type::Sell => {
+                ShipEventName::SellCargo
+            }
+        };
+
+        self.record_event(
             database_pool,
-            &transaction,
+            ShipEventRecord::cargo_trade(
+                &self.symbol,
+                event_name,
+                &transaction.waypoint_symbol,
+                &transaction.trade_symbol,
+                ShipEventPayload::CargoTradeCompleted(CargoTradeCompletedEvent {
+                    waypoint_symbol: transaction.waypoint_symbol.clone(),
+                    trade_symbol: transaction.trade_symbol,
+                    transaction_type: transaction.r#type,
+                    units: transaction.units,
+                    price_per_unit: transaction.price_per_unit,
+                    total_price: transaction.total_price,
+                    contract_id: transaction.contract.clone(),
+                    trade_route_id: transaction.trade_route,
+                    mining_waypoint_symbol: transaction.mining.clone(),
+                    construction_shipment_id: transaction.construction,
+                }),
+            ),
+            before_ship_state_id,
+            after_ship_state_id,
         )
         .await?;
 

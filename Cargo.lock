@@ -634,6 +634,7 @@ dependencies = [
  "chrono",
  "itertools 0.14.0",
  "serde",
+ "serde_json",
  "space_traders_client",
  "sqlx",
  "thiserror 2.0.6",

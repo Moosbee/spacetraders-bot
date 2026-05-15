@@ -1,6 +1,8 @@
 use async_graphql::Enum;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, serde::Serialize, Enum)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Default, serde::Serialize, serde::Deserialize, Enum,
+)]
 pub enum ShippingStatus {
     InTransitToPurchase,
     Purchasing,
@@ -10,7 +12,16 @@ pub enum ShippingStatus {
     Unknown,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Default, serde::Serialize, async_graphql::SimpleObject)]
+#[derive(
+    Debug,
+    Clone,
+    PartialEq,
+    Eq,
+    Default,
+    serde::Serialize,
+    serde::Deserialize,
+    async_graphql::SimpleObject,
+)]
 #[graphql(name = "ShipShipStatus")]
 pub struct ShipStatus {
     pub waiting_for_manager: bool,
@@ -23,7 +34,7 @@ pub struct ShipStatus {
     pub status: AssignmentStatus,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Default, serde::Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Default, serde::Serialize, serde::Deserialize)]
 #[serde(tag = "type", content = "data")]
 pub enum AssignmentStatus {
     Construction {
@@ -69,7 +80,7 @@ pub enum AssignmentStatus {
     Manuel,
 }
 
-#[derive(Debug, Default, Clone, serde::Serialize, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
 #[serde(tag = "type", content = "data")]
 pub enum MiningShipAssignment {
     Transporter {
@@ -96,7 +107,9 @@ pub enum MiningShipAssignment {
     Useless,
 }
 
-#[derive(Debug, Default, Clone, Copy, serde::Serialize, PartialEq, Eq, Enum)]
+#[derive(
+    Debug, Default, Clone, Copy, serde::Serialize, serde::Deserialize, PartialEq, Eq, Enum,
+)]
 pub enum TransporterState {
     InTransitToAsteroid,
     LoadingCargo,
@@ -109,7 +122,9 @@ pub enum TransporterState {
 
 pub type SiphonerState = ExtractorState;
 
-#[derive(Debug, Default, Clone, Copy, serde::Serialize, PartialEq, Eq, Enum)]
+#[derive(
+    Debug, Default, Clone, Copy, serde::Serialize, serde::Deserialize, PartialEq, Eq, Enum,
+)]
 pub enum ExtractorState {
     InTransit,
     Mining,

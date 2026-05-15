@@ -4,7 +4,7 @@ use lockable::{AsyncLimit, Lockable, LockableHashMap, SyncLimit};
 use tokio::sync::RwLock;
 use utils::{Observer, Subject, safely_get_lock_mut_map};
 
-use super::{RustShip, my_ship_update};
+use super::{RustShip, ShipEventBroadcaster, my_ship_update};
 
 #[derive(Debug)]
 pub struct ShipManager<T: Clone + Send + Sync> {
@@ -14,6 +14,7 @@ pub struct ShipManager<T: Clone + Send + Sync> {
     mpsc_rx: tokio::sync::broadcast::Receiver<RustShip<T>>,
     id: u32,
     broadcaster: my_ship_update::InterShipBroadcaster,
+    event_broadcaster: ShipEventBroadcaster,
 }
 
 // impl Debug for ShipManager {
@@ -74,6 +75,7 @@ impl<T: Clone + Send + Sync> ShipManager<T> {
             mpsc_rx,
             id: rand::random::<u32>(),
             broadcaster,
+            event_broadcaster: Default::default(),
         }
     }
 
@@ -83,6 +85,7 @@ impl<T: Clone + Send + Sync> ShipManager<T> {
 
     pub async fn add_ship(me: &Arc<ShipManager<T>>, mut ship: RustShip<T>) {
         ship.pubsub.register_observer(Arc::downgrade(me));
+        ship.event_broadcaster = me.get_event_broadcaster();
         me.copy
             .write()
             .await
@@ -133,6 +136,14 @@ impl<T: Clone + Send + Sync> ShipManager<T> {
 
     pub fn get_broadcaster(&self) -> my_ship_update::InterShipBroadcaster {
         self.broadcaster.clone()
+    }
+
+    pub fn get_event_broadcaster(&self) -> ShipEventBroadcaster {
+        self.event_broadcaster.clone()
+    }
+
+    pub fn get_event_rx(&self) -> tokio::sync::broadcast::Receiver<database::ShipEvent> {
+        self.event_broadcaster.receiver.resubscribe()
     }
 
     pub fn get_ship_count(&self) -> usize {

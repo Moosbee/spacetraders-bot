@@ -4,6 +4,7 @@ use database::DatabaseConnectorAsync;
 use futures::FutureExt;
 use rand::seq::SliceRandom;
 use ship::status::{ExtractorState, MiningShipAssignment};
+use ship::{MiningExtractionCompletedEvent, ShipEventName, ShipEventPayload, ShipEventRecord};
 use space_traders_client::models;
 use tracing::debug;
 use tracing::instrument;
@@ -329,11 +330,8 @@ impl ExtractionPilot {
                                     (&(*new_wp.data)).into()
                                 };
                                 wp.unstable_since = Some(chrono::Utc::now());
-                                database::Waypoint::upsert(
-                                    &self.context.database_pool,
-                                    &wp,
-                                )
-                                .await?;
+                                database::Waypoint::upsert(&self.context.database_pool, &wp)
+                                    .await?;
                             } else if error_code
                                 .map(|code| {
                                     code == models::error_codes::SHIP_SURVEY_EXHAUSTED_ERROR
@@ -347,11 +345,8 @@ impl ExtractionPilot {
                                     "Survey exhausted",
                                 );
                                 survey.exhausted_since = Some(chrono::Utc::now());
-                                database::Survey::upsert(
-                                    &self.context.database_pool,
-                                    &survey,
-                                )
-                                .await?;
+                                database::Survey::upsert(&self.context.database_pool, &survey)
+                                    .await?;
                             } else if error_code
                                 .map(|code| {
                                     code == models::error_codes::SHIP_SURVEY_EXPIRATION_ERROR
@@ -387,9 +382,27 @@ impl ExtractionPilot {
                                 created_at: now,
                             };
 
-                            database::Extraction::upsert(
+                            database::Extraction::upsert(&self.context.database_pool, &extraction)
+                                .await?;
+
+                            ship.record_event(
                                 &self.context.database_pool,
-                                &extraction,
+                                ShipEventRecord::mining_action(
+                                    &ship.symbol,
+                                    ShipEventName::ExtractResourcesWithSurvey,
+                                    &extraction.waypoint_symbol,
+                                    ShipEventPayload::MiningExtractionCompleted(
+                                        MiningExtractionCompletedEvent {
+                                            waypoint_symbol: extraction.waypoint_symbol.clone(),
+                                            siphon: extraction.siphon,
+                                            yield_symbol: extraction.yield_symbol,
+                                            yield_units: extraction.yield_units,
+                                            survey_signature: extraction.survey.clone(),
+                                        },
+                                    ),
+                                ),
+                                state_id,
+                                after_state_id,
                             )
                             .await?;
 
@@ -436,11 +449,8 @@ impl ExtractionPilot {
                                     (&(*new_wp.data)).into()
                                 };
                                 wp.unstable_since = Some(chrono::Utc::now());
-                                database::Waypoint::upsert(
-                                    &self.context.database_pool,
-                                    &wp,
-                                )
-                                .await?;
+                                database::Waypoint::upsert(&self.context.database_pool, &wp)
+                                    .await?;
                             } else {
                                 return Err(
                                     space_traders_client::apis::Error::ResponseError(e).into()
@@ -468,9 +478,27 @@ impl ExtractionPilot {
                                 created_at: now,
                             };
 
-                            database::Extraction::upsert(
+                            database::Extraction::upsert(&self.context.database_pool, &extraction)
+                                .await?;
+
+                            ship.record_event(
                                 &self.context.database_pool,
-                                &extraction,
+                                ShipEventRecord::mining_action(
+                                    &ship.symbol,
+                                    ShipEventName::ExtractResources,
+                                    &extraction.waypoint_symbol,
+                                    ShipEventPayload::MiningExtractionCompleted(
+                                        MiningExtractionCompletedEvent {
+                                            waypoint_symbol: extraction.waypoint_symbol.clone(),
+                                            siphon: extraction.siphon,
+                                            yield_symbol: extraction.yield_symbol,
+                                            yield_units: extraction.yield_units,
+                                            survey_signature: extraction.survey.clone(),
+                                        },
+                                    ),
+                                ),
+                                state_id,
+                                after_state_id,
                             )
                             .await?;
 
@@ -507,9 +535,26 @@ impl ExtractionPilot {
                     created_at: now,
                 };
 
-                database::Extraction::upsert(
+                database::Extraction::upsert(&self.context.database_pool, &extraction).await?;
+
+                ship.record_event(
                     &self.context.database_pool,
-                    &extraction,
+                    ShipEventRecord::mining_action(
+                        &ship.symbol,
+                        ShipEventName::SiphonResources,
+                        &extraction.waypoint_symbol,
+                        ShipEventPayload::MiningExtractionCompleted(
+                            MiningExtractionCompletedEvent {
+                                waypoint_symbol: extraction.waypoint_symbol.clone(),
+                                siphon: extraction.siphon,
+                                yield_symbol: extraction.yield_symbol,
+                                yield_units: extraction.yield_units,
+                                survey_signature: extraction.survey.clone(),
+                            },
+                        ),
+                    ),
+                    state_id,
+                    after_state_id,
                 )
                 .await?;
 

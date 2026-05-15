@@ -564,3 +564,137 @@ export const GET_CHART_TRANSACTIONS = graphql(/* GraphQL */ `
     }
   }
 `);
+
+export const GET_SHIP_EVENTS = graphql(/* GraphQL */ `
+  query GetShipEvents($shipSymbol: String!) {
+    ship(symbol: $shipSymbol) {
+      symbol
+      shipEvents {
+        totalCount
+        items {
+          id
+          shipSymbol
+          eventKind
+          eventName
+          eventPhase
+          correlationId
+          beforeShipStateId
+          afterShipStateId
+          createdAt
+          payload {
+            __typename
+            ... on JumpConnectionCompletedEvent {
+              from
+              to
+              jumpDistance: distance
+            }
+            ... on WarpConnectionCompletedEvent {
+              from
+              to
+              navMode
+              travelDistance: distance
+              fuelCost
+              travelTime
+            }
+            ... on NavigateConnectionCompletedEvent {
+              from
+              to
+              navMode
+              travelDistance: distance
+              fuelCost
+              travelTime
+            }
+            ... on CargoTradeCompletedEvent {
+              waypointSymbol
+              tradeSymbol
+              transactionType
+              units
+              pricePerUnit
+              totalPrice
+              contractId
+              tradeRouteId
+              miningWaypointSymbol
+              constructionShipmentId
+            }
+            ... on MiningExtractionCompletedEvent {
+              waypointSymbol
+              siphon
+              yieldSymbol
+              yieldUnits
+              surveySignature
+            }
+            ... on MiningSurveyCreatedEvent {
+              waypointSymbol
+              surveysCreated
+              surveySignatures
+            }
+          }
+        }
+      }
+    }
+  }
+`);
+
+export const SHIP_EVENTS_SUBSCRIPTION = graphql(/* GraphQL */ `
+  subscription OnShipEvents($shipSymbol: String!) {
+    shipEvents(shipSymbol: $shipSymbol) {
+      id
+      shipSymbol
+      eventKind
+      eventName
+      eventPhase
+      correlationId
+      beforeShipStateId
+      afterShipStateId
+      createdAt
+      payload {
+        __typename
+        ... on JumpConnectionCompletedEvent {
+          from
+          to
+          jumpDistance: distance
+        }
+        ... on WarpConnectionCompletedEvent {
+          from
+          to
+          navMode
+          travelDistance: distance
+          fuelCost
+          travelTime
+        }
+        ... on NavigateConnectionCompletedEvent {
+          from
+          to
+          navMode
+          travelDistance: distance
+          fuelCost
+          travelTime
+        }
+        ... on CargoTradeCompletedEvent {
+          waypointSymbol
+          tradeSymbol
+          transactionType
+          units
+          pricePerUnit
+          totalPrice
+          contractId
+          tradeRouteId
+          miningWaypointSymbol
+          constructionShipmentId
+        }
+        ... on MiningExtractionCompletedEvent {
+          waypointSymbol
+          siphon
+          yieldSymbol
+          yieldUnits
+          surveySignature
+        }
+        ... on MiningSurveyCreatedEvent {
+          waypointSymbol
+          surveysCreated
+          surveySignatures
+        }
+      }
+    }
+  }
+`);

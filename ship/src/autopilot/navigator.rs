@@ -4,7 +4,10 @@ use log::warn;
 use space_traders_client::models::{self};
 use utils::get_system_symbol;
 
-use crate::RustShip;
+use crate::{
+    JumpConnectionCompletedEvent, NavigateConnectionCompletedEvent, RustShip, ShipEventName,
+    ShipEventPayload, ShipEventRecord, WarpConnectionCompletedEvent,
+};
 
 use super::connection::{
     ConcreteConnection, JumpConnection, NavigateConnection, Refuel, Route, WarpConnection,
@@ -19,7 +22,10 @@ impl<T: Clone + Send + Sync> RustShip<T> {
         api: &space_traders_client::Api,
         wp_action: impl AsyncFn(&mut RustShip<T>, String, String) -> crate::error::Result<()> + Clone,
         update_funds_fn: impl Fn(i64) + Clone,
-    ) -> crate::error::Result<()> {
+    ) -> crate::error::Result<()>
+    where
+        T: serde::Serialize,
+    {
         self.set_auto_pilot(route.clone()).await?;
         for connection in route.connections {
             self.execute_connection(
@@ -47,7 +53,10 @@ impl<T: Clone + Send + Sync> RustShip<T> {
         api: &space_traders_client::Api,
         wp_action: impl AsyncFn(&mut RustShip<T>, String, String) -> crate::error::Result<()>,
         update_funds_fn: impl Fn(i64) + Clone,
-    ) -> crate::error::Result<()> {
+    ) -> crate::error::Result<()>
+    where
+        T: serde::Serialize,
+    {
         match connection {
             ConcreteConnection::JumpGate(jump_connection) => {
                 self.execute_jump_connection(
@@ -95,7 +104,10 @@ impl<T: Clone + Send + Sync> RustShip<T> {
         api: &space_traders_client::Api,
         wp_action: impl (AsyncFn(&mut RustShip<T>, String, String) -> crate::error::Result<()>),
         update_funds_fn: impl Fn(i64) + Clone,
-    ) -> crate::error::Result<()> {
+    ) -> crate::error::Result<()>
+    where
+        T: serde::Serialize,
+    {
         if self.nav.waypoint_symbol != connection.start_symbol {
             return Err("Not on waypoint".into());
         }
@@ -143,24 +155,28 @@ impl<T: Clone + Send + Sync> RustShip<T> {
         let transaction =
             database::MarketTransaction::try_from(jump_data.data.transaction.as_ref().clone())?
                 .with(reason.clone());
-        database::MarketTransaction::upsert(
+        database::MarketTransaction::upsert(database_pool, &transaction).await?;
+
+        let from_symbol = connection.start_symbol.clone();
+        let to_symbol = connection.end_symbol.clone();
+
+        self.record_event(
             database_pool,
-            &transaction,
+            ShipEventRecord::autopilot_connection(
+                &self.symbol,
+                ShipEventName::JumpConnection,
+                &from_symbol,
+                &to_symbol,
+                ShipEventPayload::JumpConnectionCompleted(JumpConnectionCompletedEvent {
+                    from: from_symbol.clone(),
+                    to: to_symbol.clone(),
+                    distance: connection.distance.round() as i64,
+                }),
+            ),
+            before,
+            after,
         )
         .await?;
-
-        let ship_jump = database::ShipJump {
-            id: 0,
-            ship_symbol: self.symbol.clone(),
-            from: connection.start_symbol,
-            to: connection.end_symbol,
-            distance: connection.distance.round() as i64,
-            ship_before: before,
-            ship_after: after,
-        };
-
-        database::ShipJump::upsert(database_pool, &ship_jump)
-            .await?;
 
         Ok(())
     }
@@ -173,7 +189,10 @@ impl<T: Clone + Send + Sync> RustShip<T> {
         api: &space_traders_client::Api,
         wp_action: impl AsyncFn(&mut RustShip<T>, String, String) -> crate::error::Result<()>,
         update_funds_fn: impl Fn(i64) + Clone,
-    ) -> crate::error::Result<()> {
+    ) -> crate::error::Result<()>
+    where
+        T: serde::Serialize,
+    {
         if self.nav.waypoint_symbol != connection.start_symbol {
             return Err("Not on waypoint".into());
         }
@@ -208,7 +227,6 @@ impl<T: Clone + Send + Sync> RustShip<T> {
         let start_id = self.snapshot(database_pool).await?;
 
         let nav_data = self.warp(api, &connection.end_symbol).await?;
-        let now = Utc::now();
 
         if true {
             self.reload(api).await?;
@@ -216,24 +234,34 @@ impl<T: Clone + Send + Sync> RustShip<T> {
 
         let end_id = self.snapshot(database_pool).await?;
 
-        let rote = database::Route {
-            id: 0,
-            ship_symbol: self.symbol.clone(),
-            from: self.nav.waypoint_symbol.clone(),
-            to: connection.end_symbol.clone(),
-            nav_mode: self.nav.flight_mode.to_string(),
-            distance: connection.distance,
-            fuel_cost: nav_data.data.fuel.consumed.map(|f| f.amount).unwrap_or(0),
-            travel_time: ((self.nav.route.arrival - self.nav.route.departure_time)
-                .num_milliseconds() as f64)
-                / 1000.0,
-            ship_info_before: Some(start_id),
-            ship_info_after: Some(end_id),
-            created_at: now,
-        };
+        let travel_time = ((self.nav.route.arrival - self.nav.route.departure_time)
+            .num_milliseconds() as f64)
+            / 1000.0;
+        let fuel_cost = nav_data.data.fuel.consumed.map(|f| f.amount).unwrap_or(0);
 
-        database::Route::upsert(database_pool, &rote)
-            .await?;
+        let from_symbol = connection.start_symbol.clone();
+        let to_symbol = connection.end_symbol.clone();
+
+        self.record_event(
+            database_pool,
+            ShipEventRecord::autopilot_connection(
+                &self.symbol,
+                ShipEventName::WarpConnection,
+                &from_symbol,
+                &to_symbol,
+                ShipEventPayload::WarpConnectionCompleted(WarpConnectionCompletedEvent {
+                    from: from_symbol.clone(),
+                    to: to_symbol.clone(),
+                    nav_mode: connection.nav_mode.to_string(),
+                    distance: connection.distance,
+                    fuel_cost,
+                    travel_time,
+                }),
+            ),
+            start_id,
+            end_id,
+        )
+        .await?;
 
         Ok(())
     }
@@ -246,7 +274,10 @@ impl<T: Clone + Send + Sync> RustShip<T> {
         api: &space_traders_client::Api,
         wp_action: impl AsyncFn(&mut RustShip<T>, String, String) -> crate::error::Result<()>,
         update_funds_fn: impl Fn(i64) + Clone,
-    ) -> crate::error::Result<()> {
+    ) -> crate::error::Result<()>
+    where
+        T: serde::Serialize,
+    {
         if self.nav.waypoint_symbol != connection.start_symbol {
             return Err("Not on waypoint".into());
         }
@@ -281,7 +312,6 @@ impl<T: Clone + Send + Sync> RustShip<T> {
         let start_id = self.snapshot(database_pool).await?;
 
         let nav_data = self.navigate(api, &connection.end_symbol).await?;
-        let now = Utc::now();
         if true {
             self.reload(api).await?;
         }
@@ -292,24 +322,34 @@ impl<T: Clone + Send + Sync> RustShip<T> {
             tracing::debug!(events = ?nav_data.data.events, "Nav Events");
         }
 
-        let rote = database::Route {
-            id: 0,
-            ship_symbol: self.symbol.clone(),
-            from: self.nav.waypoint_symbol.clone(),
-            to: connection.end_symbol.clone(),
-            nav_mode: self.nav.flight_mode.to_string(),
-            distance: connection.distance,
-            fuel_cost: nav_data.data.fuel.consumed.map(|f| f.amount).unwrap_or(0),
-            travel_time: ((self.nav.route.arrival - self.nav.route.departure_time)
-                .num_milliseconds() as f64)
-                / 1000.0,
-            ship_info_before: Some(start_id),
-            ship_info_after: Some(end_id),
-            created_at: now,
-        };
+        let travel_time = ((self.nav.route.arrival - self.nav.route.departure_time)
+            .num_milliseconds() as f64)
+            / 1000.0;
+        let fuel_cost = nav_data.data.fuel.consumed.map(|f| f.amount).unwrap_or(0);
 
-        database::Route::upsert(database_pool, &rote)
-            .await?;
+        let from_symbol = connection.start_symbol.clone();
+        let to_symbol = connection.end_symbol.clone();
+
+        self.record_event(
+            database_pool,
+            ShipEventRecord::autopilot_connection(
+                &self.symbol,
+                ShipEventName::NavigateConnection,
+                &from_symbol,
+                &to_symbol,
+                ShipEventPayload::NavigateConnectionCompleted(NavigateConnectionCompletedEvent {
+                    from: from_symbol.clone(),
+                    to: to_symbol.clone(),
+                    nav_mode: connection.nav_mode.to_string(),
+                    distance: connection.distance,
+                    fuel_cost,
+                    travel_time,
+                }),
+            ),
+            start_id,
+            end_id,
+        )
+        .await?;
 
         Ok(())
     }
@@ -321,7 +361,10 @@ impl<T: Clone + Send + Sync> RustShip<T> {
         database_pool: &database::DbPool,
         api: &space_traders_client::Api,
         update_funds_fn: impl Fn(i64) + Clone,
-    ) -> crate::error::Result<()> {
+    ) -> crate::error::Result<()>
+    where
+        T: serde::Serialize,
+    {
         // the system should refuel at least to such a level, that we can navigate.
         // the system should refuel as much as would fit in the fuel tanks. But not waste fuel by overfilling the tanks. Except overfilling is required for navigation.
         // if the start is a marketplace we should dock, refuel and buy necessary fuel for the cargo hold.
@@ -388,7 +431,10 @@ impl<T: Clone + Send + Sync> RustShip<T> {
         reason: &database::TransactionReason,
         database_pool: &database::DbPool,
         update_funds_fn: impl Fn(i64) + Clone,
-    ) -> crate::error::Result<()> {
+    ) -> crate::error::Result<()>
+    where
+        T: serde::Serialize,
+    {
         // we need to refuel/restock something
 
         self.ensure_docked(api).await?;
@@ -408,11 +454,7 @@ impl<T: Clone + Send + Sync> RustShip<T> {
                 refuel_data.data.transaction.as_ref().clone(),
             )?
             .with(reason.clone());
-            database::MarketTransaction::upsert(
-                database_pool,
-                &transaction,
-            )
-            .await?;
+            database::MarketTransaction::upsert(database_pool, &transaction).await?;
         }
 
         if refuel.restock_amount > 0 {
@@ -453,11 +495,7 @@ impl<T: Clone + Send + Sync> RustShip<T> {
                 refuel_data.data.transaction.as_ref().clone(),
             )?
             .with(reason.clone());
-            database::MarketTransaction::upsert(
-                database_pool,
-                &transaction,
-            )
-            .await?;
+            database::MarketTransaction::upsert(database_pool, &transaction).await?;
         }
 
         if refuel.restock_amount > 0 {

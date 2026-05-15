@@ -2,11 +2,16 @@ use std::collections::HashMap;
 
 use async_graphql::dataloader::DataLoader;
 use database::DatabaseConnectorAsync;
-use ship::status::ShipStatus;
+use serde::de::DeserializeOwned;
+use ship::{
+    status::ShipStatus, AutopilotState, CargoTradeCompletedEvent, JumpConnectionCompletedEvent,
+    MiningExtractionCompletedEvent, MiningSurveyCreatedEvent, NavigateConnectionCompletedEvent,
+    ShipEventPayload, WarpConnectionCompletedEvent,
+};
 use space_traders_client::models;
 
 use crate::{
-    control_api::graphql::gql_ship::{GQLModules, GQLMounts, GQLNavigationState},
+    control_api::graphql::gql_ship::{GQLModules, GQLMounts, GQLNavigationState, GQLShipStatus},
     error::Result,
 };
 
@@ -28,6 +33,15 @@ where
 
 fn paginated_query(page: Option<i64>, page_size: Option<i64>) -> database::PaginatedQuery {
     database::PaginatedQuery::new(page.unwrap_or(1), page_size)
+}
+
+fn from_json_payload<T: DeserializeOwned>(
+    payload: &sqlx::types::Json<serde_json::Value>,
+    payload_name: &str,
+) -> Result<T> {
+    serde_json::from_value(payload.0.clone()).map_err(|err| {
+        crate::error::Error::General(format!("failed to decode {payload_name}: {err}"))
+    })
 }
 
 macro_rules! paginated_gql_object {
@@ -1434,72 +1448,236 @@ paginated_gql_object!(
 );
 
 #[derive(Debug, Clone, async_graphql::SimpleObject)]
-#[graphql(name = "Route")]
+#[graphql(name = "JumpConnectionCompletedEvent")]
+pub struct GQLJumpConnectionCompletedEvent {
+    pub from: String,
+    pub to: String,
+    pub distance: i64,
+}
+
+impl From<JumpConnectionCompletedEvent> for GQLJumpConnectionCompletedEvent {
+    fn from(value: JumpConnectionCompletedEvent) -> Self {
+        Self {
+            from: value.from,
+            to: value.to,
+            distance: value.distance,
+        }
+    }
+}
+
+#[derive(Debug, Clone, async_graphql::SimpleObject)]
+#[graphql(name = "WarpConnectionCompletedEvent")]
+pub struct GQLWarpConnectionCompletedEvent {
+    pub from: String,
+    pub to: String,
+    pub nav_mode: String,
+    pub distance: f64,
+    pub fuel_cost: i32,
+    pub travel_time: f64,
+}
+
+impl From<WarpConnectionCompletedEvent> for GQLWarpConnectionCompletedEvent {
+    fn from(value: WarpConnectionCompletedEvent) -> Self {
+        Self {
+            from: value.from,
+            to: value.to,
+            nav_mode: value.nav_mode,
+            distance: value.distance,
+            fuel_cost: value.fuel_cost,
+            travel_time: value.travel_time,
+        }
+    }
+}
+
+#[derive(Debug, Clone, async_graphql::SimpleObject)]
+#[graphql(name = "NavigateConnectionCompletedEvent")]
+pub struct GQLNavigateConnectionCompletedEvent {
+    pub from: String,
+    pub to: String,
+    pub nav_mode: String,
+    pub distance: f64,
+    pub fuel_cost: i32,
+    pub travel_time: f64,
+}
+
+impl From<NavigateConnectionCompletedEvent> for GQLNavigateConnectionCompletedEvent {
+    fn from(value: NavigateConnectionCompletedEvent) -> Self {
+        Self {
+            from: value.from,
+            to: value.to,
+            nav_mode: value.nav_mode,
+            distance: value.distance,
+            fuel_cost: value.fuel_cost,
+            travel_time: value.travel_time,
+        }
+    }
+}
+
+#[derive(Debug, Clone, async_graphql::SimpleObject)]
+#[graphql(name = "CargoTradeCompletedEvent")]
+pub struct GQLCargoTradeCompletedEvent {
+    pub waypoint_symbol: String,
+    pub trade_symbol: models::TradeSymbol,
+    pub transaction_type: models::market_transaction::Type,
+    pub units: i32,
+    pub price_per_unit: i32,
+    pub total_price: i32,
+    pub contract_id: Option<String>,
+    pub trade_route_id: Option<i32>,
+    pub mining_waypoint_symbol: Option<String>,
+    pub construction_shipment_id: Option<i64>,
+}
+
+impl From<CargoTradeCompletedEvent> for GQLCargoTradeCompletedEvent {
+    fn from(value: CargoTradeCompletedEvent) -> Self {
+        Self {
+            waypoint_symbol: value.waypoint_symbol,
+            trade_symbol: value.trade_symbol,
+            transaction_type: value.transaction_type,
+            units: value.units,
+            price_per_unit: value.price_per_unit,
+            total_price: value.total_price,
+            contract_id: value.contract_id,
+            trade_route_id: value.trade_route_id,
+            mining_waypoint_symbol: value.mining_waypoint_symbol,
+            construction_shipment_id: value.construction_shipment_id,
+        }
+    }
+}
+
+#[derive(Debug, Clone, async_graphql::SimpleObject)]
+#[graphql(name = "MiningExtractionCompletedEvent")]
+pub struct GQLMiningExtractionCompletedEvent {
+    pub waypoint_symbol: String,
+    pub siphon: bool,
+    pub yield_symbol: models::TradeSymbol,
+    pub yield_units: i32,
+    pub survey_signature: Option<String>,
+}
+
+impl From<MiningExtractionCompletedEvent> for GQLMiningExtractionCompletedEvent {
+    fn from(value: MiningExtractionCompletedEvent) -> Self {
+        Self {
+            waypoint_symbol: value.waypoint_symbol,
+            siphon: value.siphon,
+            yield_symbol: value.yield_symbol,
+            yield_units: value.yield_units,
+            survey_signature: value.survey_signature,
+        }
+    }
+}
+
+#[derive(Debug, Clone, async_graphql::SimpleObject)]
+#[graphql(name = "MiningSurveyCreatedEvent")]
+pub struct GQLMiningSurveyCreatedEvent {
+    pub waypoint_symbol: String,
+    pub surveys_created: i32,
+    pub survey_signatures: Vec<String>,
+}
+
+impl From<MiningSurveyCreatedEvent> for GQLMiningSurveyCreatedEvent {
+    fn from(value: MiningSurveyCreatedEvent) -> Self {
+        Self {
+            waypoint_symbol: value.waypoint_symbol,
+            surveys_created: value.surveys_created,
+            survey_signatures: value.survey_signatures,
+        }
+    }
+}
+
+#[derive(Debug, Clone, async_graphql::Union)]
+#[graphql(name = "ShipEventPayload")]
+pub enum GQLShipEventPayload {
+    JumpConnectionCompleted(GQLJumpConnectionCompletedEvent),
+    WarpConnectionCompleted(GQLWarpConnectionCompletedEvent),
+    NavigateConnectionCompleted(GQLNavigateConnectionCompletedEvent),
+    CargoTradeCompleted(GQLCargoTradeCompletedEvent),
+    MiningExtractionCompleted(GQLMiningExtractionCompletedEvent),
+    MiningSurveyCreated(GQLMiningSurveyCreatedEvent),
+}
+
+#[derive(Debug, Clone, async_graphql::SimpleObject)]
+#[graphql(name = "ShipEvent")]
 #[graphql(complex)]
-pub struct GQLRoute {
+pub struct GQLShipEvent {
     #[graphql(flatten)]
-    route: database::Route,
+    ship_event: database::ShipEvent,
 }
 
-impl From<database::Route> for GQLRoute {
-    fn from(value: database::Route) -> Self {
-        GQLRoute { route: value }
+impl From<database::ShipEvent> for GQLShipEvent {
+    fn from(value: database::ShipEvent) -> Self {
+        GQLShipEvent { ship_event: value }
     }
 }
+
 #[async_graphql::ComplexObject]
-impl GQLRoute {
-    async fn waypoint_from<'ctx>(
-        &self,
-        ctx: &async_graphql::Context<'ctx>,
-    ) -> Result<Option<GQLWaypoint>> {
-        let data_loader = ctx.data::<DataLoader<database::WaypointLoader>>().unwrap();
-        let erg = data_loader.load_one(self.route.from.clone()).await?;
-        Ok(into_gql(erg))
+impl GQLShipEvent {
+    async fn payload(&self) -> Result<GQLShipEventPayload> {
+        let payload =
+            from_json_payload::<ShipEventPayload>(&self.ship_event.payload, "ship_event.payload")?;
+        Ok(match payload {
+            ShipEventPayload::JumpConnectionCompleted(payload) => {
+                GQLShipEventPayload::JumpConnectionCompleted(payload.into())
+            }
+            ShipEventPayload::WarpConnectionCompleted(payload) => {
+                GQLShipEventPayload::WarpConnectionCompleted(payload.into())
+            }
+            ShipEventPayload::NavigateConnectionCompleted(payload) => {
+                GQLShipEventPayload::NavigateConnectionCompleted(payload.into())
+            }
+            ShipEventPayload::CargoTradeCompleted(payload) => {
+                GQLShipEventPayload::CargoTradeCompleted(payload.into())
+            }
+            ShipEventPayload::MiningExtractionCompleted(payload) => {
+                GQLShipEventPayload::MiningExtractionCompleted(payload.into())
+            }
+            ShipEventPayload::MiningSurveyCreated(payload) => {
+                GQLShipEventPayload::MiningSurveyCreated(payload.into())
+            }
+        })
     }
 
-    async fn waypoint_to<'ctx>(
-        &self,
-        ctx: &async_graphql::Context<'ctx>,
-    ) -> Result<Option<GQLWaypoint>> {
-        let data_loader = ctx.data::<DataLoader<database::WaypointLoader>>().unwrap();
-        let erg = data_loader.load_one(self.route.to.clone()).await?;
-        Ok(into_gql(erg))
+    async fn payload_json(&self) -> Result<String> {
+        serde_json::to_string(&self.ship_event.payload.0).map_err(|err| {
+            crate::error::Error::General(format!("failed to encode ship_event.payload_json: {err}"))
+        })
     }
 
     async fn ship(&self, ctx: &async_graphql::Context<'_>) -> Result<Option<GQLShip>> {
         let context = ctx.data::<crate::utils::ConductorContext>().unwrap();
-        let ship = context.ship_manager.get_clone(&self.route.ship_symbol);
+        let ship = context.ship_manager.get_clone(&self.ship_event.ship_symbol);
         Ok(ship.map(|f| f.into()))
     }
 
-    async fn ship_state_after<'ctx>(
+    async fn before_ship_state<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Option<GQLShipState>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let ship_state = if let Some(ship_state) = &self.route.ship_info_after {
-            database::ShipState::get_by_id(database_pool, ship_state).await?
-        } else {
-            None
-        };
+        let ship_state =
+            database::ShipState::get_by_id(database_pool, &self.ship_event.before_ship_state_id)
+                .await?;
         Ok(into_gql(ship_state))
     }
 
-    async fn ship_state_before<'ctx>(
+    async fn after_ship_state<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Option<GQLShipState>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let ship_state = if let Some(ship_state) = &self.route.ship_info_before {
-            database::ShipState::get_by_id(database_pool, ship_state).await?
-        } else {
-            None
-        };
+        let ship_state =
+            database::ShipState::get_by_id(database_pool, &self.ship_event.after_ship_state_id)
+                .await?;
         Ok(into_gql(ship_state))
     }
 }
 
-paginated_gql_object!(GQLRoutePage, "RoutePage", database::Route, GQLRoute);
+paginated_gql_object!(
+    GQLShipEventPage,
+    "ShipEventPage",
+    database::ShipEvent,
+    GQLShipEvent
+);
 
 #[derive(Debug, Clone, async_graphql::SimpleObject)]
 #[graphql(name = "ScrapTransaction")]
@@ -1695,73 +1873,6 @@ impl GQLShipInfo {
 }
 
 #[derive(Debug, Clone, async_graphql::SimpleObject)]
-#[graphql(name = "ShipJump")]
-#[graphql(complex)]
-pub struct GQLShipJump {
-    #[graphql(flatten)]
-    ship_jump: database::ShipJump,
-}
-
-impl From<database::ShipJump> for GQLShipJump {
-    fn from(value: database::ShipJump) -> Self {
-        GQLShipJump { ship_jump: value }
-    }
-}
-#[async_graphql::ComplexObject]
-impl GQLShipJump {
-    async fn waypoint_from<'ctx>(
-        &self,
-        ctx: &async_graphql::Context<'ctx>,
-    ) -> Result<Option<GQLWaypoint>> {
-        let data_loader = ctx.data::<DataLoader<database::WaypointLoader>>().unwrap();
-        let erg = data_loader.load_one(self.ship_jump.from.clone()).await?;
-        Ok(into_gql(erg))
-    }
-
-    async fn waypoint_to<'ctx>(
-        &self,
-        ctx: &async_graphql::Context<'ctx>,
-    ) -> Result<Option<GQLWaypoint>> {
-        let data_loader = ctx.data::<DataLoader<database::WaypointLoader>>().unwrap();
-        let erg = data_loader.load_one(self.ship_jump.to.clone()).await?;
-        Ok(into_gql(erg))
-    }
-
-    async fn ship(&self, ctx: &async_graphql::Context<'_>) -> Result<Option<GQLShip>> {
-        let context = ctx.data::<crate::utils::ConductorContext>().unwrap();
-        let ship = context.ship_manager.get_clone(&self.ship_jump.ship_symbol);
-        Ok(ship.map(|f| f.into()))
-    }
-
-    async fn ship_state_after<'ctx>(
-        &self,
-        ctx: &async_graphql::Context<'ctx>,
-    ) -> Result<Option<GQLShipState>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let ship_state =
-            database::ShipState::get_by_id(database_pool, &self.ship_jump.ship_after).await?;
-        Ok(into_gql(ship_state))
-    }
-
-    async fn ship_state_before<'ctx>(
-        &self,
-        ctx: &async_graphql::Context<'ctx>,
-    ) -> Result<Option<GQLShipState>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let ship_state =
-            database::ShipState::get_by_id(database_pool, &self.ship_jump.ship_before).await?;
-        Ok(into_gql(ship_state))
-    }
-}
-
-paginated_gql_object!(
-    GQLShipJumpPage,
-    "ShipJumpPage",
-    database::ShipJump,
-    GQLShipJump
-);
-
-#[derive(Debug, Clone, async_graphql::SimpleObject)]
 #[graphql(name = "ShipModificationTransaction")]
 #[graphql(complex)]
 pub struct GQLShipModificationTransaction {
@@ -1836,6 +1947,18 @@ paginated_gql_object!(
 impl GQLShipState {
     async fn cargo_inventory(&self) -> HashMap<models::TradeSymbol, i32> {
         self.ship_state.cargo_inventory.0.clone()
+    }
+
+    async fn status(&self) -> Result<GQLShipStatus> {
+        let status: ShipStatus = from_json_payload(&self.ship_state.status, "ship_state.status")?;
+        Ok(status.into())
+    }
+
+    async fn auto_pilot_state(&self) -> Result<Option<AutopilotState>> {
+        from_json_payload(
+            &self.ship_state.auto_pilot_state,
+            "ship_state.auto_pilot_state",
+        )
     }
 
     async fn ship(&self, ctx: &async_graphql::Context<'_>) -> Result<Option<GQLShip>> {
@@ -3665,40 +3788,6 @@ impl GQLShip {
         Ok(reg.into())
     }
 
-    async fn routes<'ctx>(
-        &self,
-        ctx: &async_graphql::Context<'ctx>,
-        page: Option<i64>,
-        page_size: Option<i64>,
-    ) -> Result<GQLRoutePage> {
-        // Changed return type to GQLRoute
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let reg = database::Route::get_by_ship(
-            database_pool,
-            &self.ship.symbol,
-            paginated_query(page, page_size),
-        )
-        .await?;
-        Ok(reg.into()) // Added conversion
-    }
-
-    async fn ship_jumps<'ctx>(
-        &self,
-        ctx: &async_graphql::Context<'ctx>,
-        page: Option<i64>,
-        page_size: Option<i64>,
-    ) -> Result<GQLShipJumpPage> {
-        // Changed return type to GQLShipJump
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let reg = database::ShipJump::get_by_ship(
-            database_pool,
-            &self.ship.symbol,
-            paginated_query(page, page_size),
-        )
-        .await?;
-        Ok(reg.into()) // Added conversion
-    }
-
     async fn engine_info<'ctx>(&self, ctx: &async_graphql::Context<'ctx>) -> Result<GQLEngineInfo> {
         // Changed return type to GQLEngineInfo
         let database_pool = ctx.data::<database::DbPool>().unwrap();
@@ -3731,6 +3820,22 @@ impl GQLShip {
     ) -> Result<GQLShipStatePage> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
         let reg = database::ShipState::get_by_ship(
+            database_pool,
+            &self.ship.symbol,
+            paginated_query(page, page_size),
+        )
+        .await?;
+        Ok(reg.into())
+    }
+
+    async fn ship_events<'ctx>(
+        &self,
+        ctx: &async_graphql::Context<'ctx>,
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<GQLShipEventPage> {
+        let database_pool = ctx.data::<database::DbPool>().unwrap();
+        let reg = database::ShipEvent::get_by_ship(
             database_pool,
             &self.ship.symbol,
             paginated_query(page, page_size),

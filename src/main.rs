@@ -437,12 +437,8 @@ async fn setup_context(
         ship_task_handler.0,
     );
 
-    let control_api = control_api::server::ControlApiServer::new(
-        context.clone(),
-        context.ship_manager.get_rx(),
-        manager_cancel_token.child_token(),
-        ship_cancel_token.clone(),
-    );
+    let control_api =
+        control_api::server::ControlApiServer::new(context.clone(), manager_cancel_token.child_token());
 
     tracing::debug!("Managers created");
 

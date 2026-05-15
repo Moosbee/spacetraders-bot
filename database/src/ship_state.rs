@@ -8,6 +8,7 @@ use super::{DatabaseConnectorAsync, DbPool, PaginatedQuery, PaginatedResult, run
 
 // #[derive(sqlx::FromRow)]
 type CargoInv = HashMap<models::TradeSymbol, i32>;
+type JsonPayload = sqlx::types::Json<serde_json::Value>;
 
 #[derive(Debug, Clone, async_graphql::SimpleObject)]
 #[graphql(name = "DBShipState")]
@@ -39,6 +40,8 @@ pub struct ShipState {
     // pub cargo_inventory: HashMap<models::TradeSymbol, i32>,
     #[graphql(skip)]
     pub cargo_inventory: sqlx::types::Json<CargoInv>,
+    #[graphql(skip)]
+    pub status: JsonPayload,
 
     // Mounts and Modules
     pub mounts: Vec<models::ship_mount::Symbol>,
@@ -77,6 +80,8 @@ pub struct ShipState {
     pub auto_pilot_distance: Option<f64>,
     pub auto_pilot_fuel_cost: Option<i32>,
     pub auto_pilot_travel_time: Option<f64>,
+    #[graphql(skip)]
+    pub auto_pilot_state: JsonPayload,
 
     #[allow(dead_code)]
     pub created_at: DateTime<Utc>,
@@ -102,6 +107,7 @@ impl ShipState {
                   cargo_capacity,
                   cargo_units,
                   cargo_inventory,
+                  status,
                   mounts,
                   modules,
                   cooldown_expiration,
@@ -127,7 +133,8 @@ impl ShipState {
                   auto_pilot_origin_system_symbol,
                   auto_pilot_distance,
                   auto_pilot_fuel_cost,
-                  auto_pilot_travel_time
+                                    auto_pilot_travel_time,
+                                    auto_pilot_state
                 )
                 VALUES (
                   $1,
@@ -144,14 +151,14 @@ impl ShipState {
                   $12,
                   $13,
                   $14::jsonb,
-                  $15::ship_mount_symbol[],
-                  $16::ship_module_symbol[],
-                  $17,
+                  $15::jsonb,
+                  $16::ship_mount_symbol[],
+                  $17::ship_module_symbol[],
                   $18,
-                  $19::ship_reactor_symbol,
-                  $20::ship_frame_symbol,
-                  $21::ship_engine_symbol,
-                  $22,
+                  $19,
+                  $20::ship_reactor_symbol,
+                  $21::ship_frame_symbol,
+                  $22::ship_engine_symbol,
                   $23,
                   $24,
                   $25,
@@ -169,7 +176,9 @@ impl ShipState {
                   $37,
                   $38,
                   $39,
-                  $40
+                  $40,
+                  $41,
+                  $42::jsonb
                 )
                 RETURNING id;
             "#,
@@ -187,6 +196,7 @@ impl ShipState {
             &item.cargo_capacity,
             &item.cargo_units,
             &item.cargo_inventory as &sqlx::types::Json<HashMap<models::TradeSymbol, i32>>,
+            &item.status as &JsonPayload,
             &item.mounts as &[models::ship_mount::Symbol],
             &item.modules as &[models::ship_module::Symbol],
             &item.cooldown_expiration as &Option<DateTime<Utc>>,
@@ -213,6 +223,7 @@ impl ShipState {
             &item.auto_pilot_distance as &Option<f64>,
             &item.auto_pilot_fuel_cost as &Option<i32>,
             &item.auto_pilot_travel_time as &Option<f64>,
+            &item.auto_pilot_state as &JsonPayload,
         )
         .fetch_one(&database_pool.database_pool)
         .await?;
@@ -248,6 +259,7 @@ impl ShipState {
                           cargo_capacity,
                           cargo_units,
                           cargo_inventory as "cargo_inventory: sqlx::types::Json<CargoInv>",
+                          status as "status: JsonPayload",
                           mounts as "mounts: Vec<models::ship_mount::Symbol>",
                           modules as "modules: Vec<models::ship_module::Symbol>",
                           reactor_symbol as "reactor_symbol: models::ship_reactor::Symbol",
@@ -274,6 +286,7 @@ impl ShipState {
                           auto_pilot_distance,
                           auto_pilot_fuel_cost,
                           auto_pilot_travel_time,
+                                                    auto_pilot_state as "auto_pilot_state: JsonPayload",
                           created_at
                         FROM ship_state
                         WHERE waypoint_symbol = $1
@@ -308,6 +321,7 @@ impl ShipState {
                           cargo_capacity,
                           cargo_units,
                           cargo_inventory as "cargo_inventory: sqlx::types::Json<CargoInv>",
+                          status as "status: JsonPayload",
                           mounts as "mounts: Vec<models::ship_mount::Symbol>",
                           modules as "modules: Vec<models::ship_module::Symbol>",
                           reactor_symbol as "reactor_symbol: models::ship_reactor::Symbol",
@@ -334,6 +348,7 @@ impl ShipState {
                           auto_pilot_distance,
                           auto_pilot_fuel_cost,
                           auto_pilot_travel_time,
+                                                    auto_pilot_state as "auto_pilot_state: JsonPayload",
                           created_at
                         FROM ship_state
                         WHERE waypoint_symbol = $1
@@ -390,6 +405,7 @@ impl ShipState {
                           cargo_capacity,
                           cargo_units,
                           cargo_inventory as "cargo_inventory: sqlx::types::Json<CargoInv>",
+                          status as "status: JsonPayload",
                           mounts as "mounts: Vec<models::ship_mount::Symbol>",
                           modules as "modules: Vec<models::ship_module::Symbol>",
                           reactor_symbol as "reactor_symbol: models::ship_reactor::Symbol",
@@ -416,6 +432,7 @@ impl ShipState {
                           auto_pilot_distance,
                           auto_pilot_fuel_cost,
                           auto_pilot_travel_time,
+                                                    auto_pilot_state as "auto_pilot_state: JsonPayload",
                           created_at
                         FROM ship_state
                         WHERE system_symbol = $1
@@ -450,6 +467,7 @@ impl ShipState {
                           cargo_capacity,
                           cargo_units,
                           cargo_inventory as "cargo_inventory: sqlx::types::Json<CargoInv>",
+                          status as "status: JsonPayload",
                           mounts as "mounts: Vec<models::ship_mount::Symbol>",
                           modules as "modules: Vec<models::ship_module::Symbol>",
                           reactor_symbol as "reactor_symbol: models::ship_reactor::Symbol",
@@ -476,6 +494,7 @@ impl ShipState {
                           auto_pilot_distance,
                           auto_pilot_fuel_cost,
                           auto_pilot_travel_time,
+                                                    auto_pilot_state as "auto_pilot_state: JsonPayload",
                           created_at
                         FROM ship_state
                         WHERE system_symbol = $1
@@ -532,6 +551,7 @@ impl ShipState {
                           cargo_capacity,
                           cargo_units,
                           cargo_inventory as "cargo_inventory: sqlx::types::Json<CargoInv>",
+                          status as "status: JsonPayload",
                           mounts as "mounts: Vec<models::ship_mount::Symbol>",
                           modules as "modules: Vec<models::ship_module::Symbol>",
                           reactor_symbol as "reactor_symbol: models::ship_reactor::Symbol",
@@ -558,6 +578,7 @@ impl ShipState {
                           auto_pilot_distance,
                           auto_pilot_fuel_cost,
                           auto_pilot_travel_time,
+                                                    auto_pilot_state as "auto_pilot_state: JsonPayload",
                           created_at
                         FROM ship_state
                         WHERE symbol = $1
@@ -592,6 +613,7 @@ impl ShipState {
                           cargo_capacity,
                           cargo_units,
                           cargo_inventory as "cargo_inventory: sqlx::types::Json<CargoInv>",
+                          status as "status: JsonPayload",
                           mounts as "mounts: Vec<models::ship_mount::Symbol>",
                           modules as "modules: Vec<models::ship_module::Symbol>",
                           reactor_symbol as "reactor_symbol: models::ship_reactor::Symbol",
@@ -618,6 +640,7 @@ impl ShipState {
                           auto_pilot_distance,
                           auto_pilot_fuel_cost,
                           auto_pilot_travel_time,
+                                                    auto_pilot_state as "auto_pilot_state: JsonPayload",
                           created_at
                         FROM ship_state
                         WHERE symbol = $1
@@ -701,6 +724,7 @@ impl DatabaseConnectorAsync for ShipState {
                           cargo_capacity,
                           cargo_units,
                           cargo_inventory as "cargo_inventory: sqlx::types::Json<CargoInv>",
+                          status as "status: JsonPayload",
                           mounts as "mounts: Vec<models::ship_mount::Symbol>",
                           modules as "modules: Vec<models::ship_module::Symbol>",
                           reactor_symbol as "reactor_symbol: models::ship_reactor::Symbol",
@@ -727,6 +751,7 @@ impl DatabaseConnectorAsync for ShipState {
                           auto_pilot_distance,
                           auto_pilot_fuel_cost,
                           auto_pilot_travel_time,
+                                                    auto_pilot_state as "auto_pilot_state: JsonPayload",
                           created_at
                         FROM ship_state
                         ORDER BY created_at
@@ -759,6 +784,7 @@ impl DatabaseConnectorAsync for ShipState {
                           cargo_capacity,
                           cargo_units,
                           cargo_inventory as "cargo_inventory: sqlx::types::Json<CargoInv>",
+                          status as "status: JsonPayload",
                           mounts as "mounts: Vec<models::ship_mount::Symbol>",
                           modules as "modules: Vec<models::ship_module::Symbol>",
                           reactor_symbol as "reactor_symbol: models::ship_reactor::Symbol",
@@ -785,6 +811,7 @@ impl DatabaseConnectorAsync for ShipState {
                           auto_pilot_distance,
                           auto_pilot_fuel_cost,
                           auto_pilot_travel_time,
+                                                    auto_pilot_state as "auto_pilot_state: JsonPayload",
                           created_at
                         FROM ship_state
                         ORDER BY created_at
@@ -830,6 +857,7 @@ impl DatabaseConnectorAsync for ShipState {
                   cargo_capacity,
                   cargo_units,
                   cargo_inventory as "cargo_inventory: sqlx::types::Json<CargoInv>",
+                  status as "status: JsonPayload",
                   mounts as "mounts: Vec<models::ship_mount::Symbol>",
                   modules as "modules: Vec<models::ship_module::Symbol>",
                   reactor_symbol as "reactor_symbol: models::ship_reactor::Symbol",
@@ -856,6 +884,7 @@ impl DatabaseConnectorAsync for ShipState {
                   auto_pilot_distance,
                   auto_pilot_fuel_cost,
                   auto_pilot_travel_time,
+                                    auto_pilot_state as "auto_pilot_state: JsonPayload",
                   created_at
                 FROM ship_state
                 WHERE id = $1

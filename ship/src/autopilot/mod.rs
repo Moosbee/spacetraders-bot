@@ -38,7 +38,10 @@ impl<T: Clone + Send + Sync> RustShip<T> {
         database_pool: &database::DbPool,
         api: &space_traders_client::Api,
         update_funds_fn: impl Fn(i64) + Clone,
-    ) -> Result<()> {
+    ) -> Result<()>
+    where
+        T: serde::Serialize,
+    {
         self.mutate();
         self.nav_to_prepare(
             waypoint,
@@ -61,7 +64,10 @@ impl<T: Clone + Send + Sync> RustShip<T> {
         database_pool: &database::DbPool,
         api: &space_traders_client::Api,
         update_funds_fn: impl Fn(i64) + Clone,
-    ) -> Result<()> {
+    ) -> Result<()>
+    where
+        T: serde::Serialize,
+    {
         let pathfinder = self
             .get_pathfinder(database_pool, api)
             .ok_or("Failed to get pathfinder")?;
@@ -177,7 +183,13 @@ impl<T: Clone + Send + Sync> RustShip<T> {
     }
 }
 
-#[derive(Clone, Default, serde::Serialize, async_graphql::SimpleObject)]
+#[derive(
+    Clone,
+    Default,
+    serde::Serialize,
+    serde::Deserialize,
+    async_graphql::SimpleObject,
+)]
 #[graphql(name = "ShipAutopilotState")]
 pub struct AutopilotState {
     pub arrival: DateTime<Utc>,

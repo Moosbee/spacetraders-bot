@@ -1,10 +1,14 @@
+import { useQuery } from "@apollo/client/react";
 import {
+  Alert,
+  Card,
   Descriptions,
   Flex,
   List,
   Progress,
   Space,
   Table,
+  Tag,
   Typography,
 } from "antd";
 import { useEffect, useState } from "react";
@@ -14,14 +18,69 @@ import RoleRenderer from "../features/RoleRenderer/RoleRenderer";
 import ShipControl from "../features/ShipControl/ShipControl";
 import Timer from "../features/Timer/Timer";
 import WaypointLink from "../features/WaypointLink";
+import { GetShipEventsQuery } from "../gql/graphql";
+import { GET_SHIP_EVENTS, SHIP_EVENTS_SUBSCRIPTION } from "../graphql/queries";
 import { useAppSelector } from "../redux/hooks";
 import { selectShip } from "../redux/slices/shipSlice";
+
+type GQLShipEvent = NonNullable<
+  GetShipEventsQuery["ship"]
+>["shipEvents"]["items"][number];
 
 function Ship() {
   const { shipID } = useParams();
   const ship = useAppSelector((state) => selectShip(state, shipID));
 
   if (!ship) return <div>Ship not found</div>;
+
+  const {
+    loading: shipEventsLoading,
+    error: shipEventsError,
+    data: shipEventsData,
+    subscribeToMore,
+  } = useQuery(GET_SHIP_EVENTS, {
+    variables: { shipSymbol: ship.symbol },
+  });
+
+  useEffect(() => {
+    const unsubscribe = subscribeToMore({
+      document: SHIP_EVENTS_SUBSCRIPTION,
+      variables: { shipSymbol: ship.symbol },
+      updateQuery: (previous, { subscriptionData }) => {
+        const nextEvent = subscriptionData.data?.shipEvents;
+        const currentShip = previous.ship;
+        const currentShipEvents = currentShip?.shipEvents;
+        const currentItems = currentShipEvents?.items;
+
+        if (!nextEvent || !currentShip || !currentShipEvents || !currentItems) {
+          return previous as GetShipEventsQuery;
+        }
+
+        if (currentItems.some((event) => event?.id === nextEvent.id)) {
+          return previous as GetShipEventsQuery;
+        }
+
+        return {
+          ...previous,
+          ship: {
+            ...currentShip,
+            shipEvents: {
+              ...currentShipEvents,
+              totalCount:
+                (currentShipEvents.totalCount ?? currentItems.length) + 1,
+              items: [...currentItems, nextEvent],
+            },
+          },
+        } as GetShipEventsQuery;
+      },
+    });
+
+    return unsubscribe;
+  }, [ship.symbol, subscribeToMore]);
+
+  const shipEvents = (shipEventsData?.ship?.shipEvents.items ?? [])
+    .slice()
+    .reverse();
 
   // console.log(ship);
 
@@ -322,8 +381,135 @@ function Ship() {
           rowKey={(type) => type[1]}
         />
       </Flex>
+      <Card
+        size="small"
+        title={`Ship Events (${shipEventsData?.ship?.shipEvents.totalCount ?? 0})`}
+        style={{ marginTop: 16 }}
+      >
+        {shipEventsError ? (
+          <Alert
+            type="error"
+            showIcon
+            message="Could not load ship events"
+            description={shipEventsError.message}
+          />
+        ) : (
+          <Table<GQLShipEvent>
+            size="small"
+            loading={shipEventsLoading}
+            rowKey={(event) => event.id}
+            pagination={{ pageSize: 10, showSizeChanger: false }}
+            dataSource={shipEvents}
+            locale={{ emptyText: "No ship events yet" }}
+            columns={[
+              {
+                title: "Created",
+                dataIndex: "createdAt",
+                key: "createdAt",
+                width: 220,
+                defaultSortOrder: "descend",
+                sorter: (a, b) => a.createdAt.localeCompare(b.createdAt),
+                render: (createdAt: string) => (
+                  <span>{new Date(createdAt).toLocaleString()}</span>
+                ),
+              },
+              {
+                title: "Event",
+                key: "event",
+                width: 260,
+                render: (_value, record) => (
+                  <Space wrap size={[4, 4]}>
+                    <Tag color="blue">{record.eventKind}</Tag>
+                    <Tag>{record.eventName}</Tag>
+                    <Tag color="green">{record.eventPhase}</Tag>
+                  </Space>
+                ),
+              },
+              {
+                title: "Details",
+                key: "payload",
+                render: (_value, record) => renderShipEventPayload(record),
+              },
+              {
+                title: "States",
+                key: "states",
+                width: 140,
+                render: (_value, record) => (
+                  <span>
+                    {record.beforeShipStateId} -{">"} {record.afterShipStateId}
+                  </span>
+                ),
+              },
+            ]}
+          />
+        )}
+      </Card>
     </div>
   );
+}
+
+function renderShipEventPayload(event: GQLShipEvent) {
+  switch (event.payload.__typename) {
+    case "JumpConnectionCompletedEvent":
+      return (
+        <span>
+          Jumped {event.payload.from} -{">"} {event.payload.to} (
+          {event.payload.jumpDistance})
+        </span>
+      );
+    case "WarpConnectionCompletedEvent":
+      return (
+        <span>
+          Warped {event.payload.from} -{">"} {event.payload.to} in{" "}
+          {event.payload.navMode} ({Math.round(event.payload.travelDistance)}u,{" "}
+          {Math.round(event.payload.travelTime)}s)
+        </span>
+      );
+    case "NavigateConnectionCompletedEvent":
+      return (
+        <span>
+          Navigated {event.payload.from} -{">"} {event.payload.to} in{" "}
+          {event.payload.navMode} ({Math.round(event.payload.travelDistance)}u,{" "}
+          {Math.round(event.payload.travelTime)}s)
+        </span>
+      );
+    case "CargoTradeCompletedEvent":
+      return (
+        <span>
+          {event.payload.transactionType} {event.payload.units}{" "}
+          {event.payload.tradeSymbol} at {event.payload.waypointSymbol}
+          {event.payload.contractId
+            ? ` contract ${event.payload.contractId}`
+            : ""}
+        </span>
+      );
+    case "MiningExtractionCompletedEvent":
+      return (
+        <span>
+          {event.payload.siphon ? "Siphoned" : "Extracted"}{" "}
+          {event.payload.yieldUnits} {event.payload.yieldSymbol} at{" "}
+          {event.payload.waypointSymbol}
+          {event.payload.surveySignature
+            ? ` via ${event.payload.surveySignature}`
+            : ""}
+        </span>
+      );
+    case "MiningSurveyCreatedEvent":
+      return (
+        <span>
+          Created {event.payload.surveysCreated} survey
+          {event.payload.surveysCreated === 1 ? "" : "s"} at{" "}
+          {event.payload.waypointSymbol}
+          {event.payload.surveySignatures.length > 0
+            ? ` (${event.payload.surveySignatures.join(", ")})`
+            : ""}
+        </span>
+      );
+    default:
+      return (
+        <Typography.Text type="secondary">Unknown payload</Typography.Text>
+      );
+  }
 }
 
 function ShipNavProgress({
