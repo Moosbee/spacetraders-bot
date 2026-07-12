@@ -36,9 +36,13 @@ impl TransportPilot {
         self.count
             .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
 
-        let waypoints =
-            database::Waypoint::get_by_system(&self.context.database_pool, &ship.nav.system_symbol)
-                .await?
+        let waypoints = database::Waypoint::get_by_system(
+            &self.context.database_pool,
+            &ship.nav.system_symbol,
+            database::PaginatedQuery::unpaged(),
+        )
+        .await?
+        .items
                 .into_iter()
                 .map(|w| (w.symbol.clone(), w))
                 .collect::<HashMap<_, _>>();
@@ -349,9 +353,11 @@ impl TransportPilot {
         let all_trades = database::MarketTradeGood::get_last_by_system(
             &self.context.database_pool,
             &ship.nav.system_symbol,
+            database::PaginatedQuery::unpaged(),
         )
         .await
-        .unwrap();
+        .unwrap()
+        .items;
 
         let filtered_trades = all_trades
             .into_iter()

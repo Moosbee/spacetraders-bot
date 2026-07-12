@@ -1,6 +1,7 @@
 use std::{collections::HashMap, sync::Arc};
 
 use async_graphql::{dataloader::DataLoader, Union};
+use database::DatabaseConnectorAsync;
 use ship::{
     status::{ExtractorState, MiningShipAssignment, ShipStatus, TransporterState},
     AssignmentStatus, AutopilotState, ModuleState, MountState, NavigationState, RouteState,
@@ -152,7 +153,7 @@ impl ConstructionStatus {
     ) -> Result<Option<gql_models::GQLConstructionShipment>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
         if let Some(shipment_id) = self.shipment_id {
-            let erg = database::ConstructionShipment::get_by_id(database_pool, shipment_id).await?;
+            let erg = database::ConstructionShipment::get_by_id(database_pool, &shipment_id).await?;
             Ok(erg.map(|f| f.into()))
         } else {
             Ok(None)
@@ -178,7 +179,7 @@ impl TraderStatus {
     ) -> Result<Option<gql_models::GQLTradeRoute>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
         if let Some(shipment_id) = self.shipment_id {
-            let erg = database::TradeRoute::get_by_id(database_pool, shipment_id).await?;
+            let erg = database::TradeRoute::get_by_id(database_pool, &shipment_id).await?;
             Ok(erg.map(|f| f.into()))
         } else {
             Ok(None)
@@ -512,7 +513,11 @@ impl GQLNavigationState {
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Option<gql_models::GQLSystem>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let erg = database::System::get_by_symbol(database_pool, &self.nav.system_symbol).await?;
+        let erg = database::System::get_by_id(
+            database_pool,
+            &self.nav.system_symbol,
+        )
+        .await?;
         Ok(erg.map(|f| f.into()))
     }
 
@@ -557,9 +562,11 @@ impl GQLRouteState {
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Option<gql_models::GQLSystem>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let erg =
-            database::System::get_by_symbol(database_pool, &self.route.destination_system_symbol)
-                .await?;
+        let erg = database::System::get_by_id(
+            database_pool,
+            &self.route.destination_system_symbol,
+        )
+        .await?;
         Ok(erg.map(|f| f.into()))
     }
 
@@ -579,8 +586,11 @@ impl GQLRouteState {
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Option<gql_models::GQLSystem>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let erg = database::System::get_by_symbol(database_pool, &self.route.origin_system_symbol)
-            .await?;
+        let erg = database::System::get_by_id(
+            database_pool,
+            &self.route.origin_system_symbol,
+        )
+        .await?;
         Ok(erg.map(|f| f.into()))
     }
 
@@ -621,7 +631,7 @@ impl GQLAutopilotState {
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Option<gql_models::GQLSystem>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let erg = database::System::get_by_symbol(
+        let erg = database::System::get_by_id(
             database_pool,
             &self.auto_pilot.destination_system_symbol,
         )
@@ -645,9 +655,11 @@ impl GQLAutopilotState {
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Option<gql_models::GQLSystem>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let erg =
-            database::System::get_by_symbol(database_pool, &self.auto_pilot.origin_system_symbol)
-                .await?;
+        let erg = database::System::get_by_id(
+            database_pool,
+            &self.auto_pilot.origin_system_symbol,
+        )
+        .await?;
         Ok(erg.map(|f| f.into()))
     }
 
@@ -691,7 +703,11 @@ impl JumpConnectionGQL {
     ) -> Result<Option<gql_models::GQLSystem>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
         let system = get_system_symbol(&self.start_symbol);
-        let erg = database::System::get_by_symbol(database_pool, &system).await?;
+        let erg = database::System::get_by_id(
+            database_pool,
+            &system,
+        )
+        .await?;
         Ok(erg.map(|f| f.into()))
     }
 
@@ -710,7 +726,11 @@ impl JumpConnectionGQL {
     ) -> Result<Option<gql_models::GQLSystem>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
         let system = get_system_symbol(&self.end_symbol);
-        let erg = database::System::get_by_symbol(database_pool, &system).await?;
+        let erg = database::System::get_by_id(
+            database_pool,
+            &system,
+        )
+        .await?;
         Ok(erg.map(|f| f.into()))
     }
 }
@@ -746,7 +766,11 @@ impl WarpConnectionGQL {
     ) -> Result<Option<gql_models::GQLSystem>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
         let system = get_system_symbol(&self.start_symbol);
-        let erg = database::System::get_by_symbol(database_pool, &system).await?;
+        let erg = database::System::get_by_id(
+            database_pool,
+            &system,
+        )
+        .await?;
         Ok(erg.map(|f| f.into()))
     }
 
@@ -765,7 +789,11 @@ impl WarpConnectionGQL {
     ) -> Result<Option<gql_models::GQLSystem>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
         let system = get_system_symbol(&self.end_symbol);
-        let erg = database::System::get_by_symbol(database_pool, &system).await?;
+        let erg = database::System::get_by_id(
+            database_pool,
+            &system,
+        )
+        .await?;
         Ok(erg.map(|f| f.into()))
     }
 }
@@ -801,7 +829,11 @@ impl NavigateConnectionGQL {
     ) -> Result<Option<gql_models::GQLSystem>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
         let system = get_system_symbol(&self.start_symbol);
-        let erg = database::System::get_by_symbol(database_pool, &system).await?;
+        let erg = database::System::get_by_id(
+            database_pool,
+            &system,
+        )
+        .await?;
         Ok(erg.map(|f| f.into()))
     }
 
@@ -820,7 +852,11 @@ impl NavigateConnectionGQL {
     ) -> Result<Option<gql_models::GQLSystem>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
         let system = get_system_symbol(&self.end_symbol);
-        let erg = database::System::get_by_symbol(database_pool, &system).await?;
+        let erg = database::System::get_by_id(
+            database_pool,
+            &system,
+        )
+        .await?;
         Ok(erg.map(|f| f.into()))
     }
 }

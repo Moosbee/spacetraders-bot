@@ -1,7 +1,9 @@
 use space_traders_client::models;
 use tracing::instrument;
 
-use super::{DatabaseConnector, DbPool};
+use super::{
+    run_paginated_query, DatabaseConnectorAsync, DbPool, PaginatedQuery, PaginatedResult,
+};
 
 #[derive(
     Debug, Clone, sqlx::FromRow, PartialEq, Eq, serde::Serialize, async_graphql::SimpleObject,
@@ -51,10 +53,24 @@ impl MarketTradeGood {
     }
 }
 
-impl DatabaseConnector<MarketTradeGood> for MarketTradeGood {
+impl DatabaseConnectorAsync for MarketTradeGood {
+    type ID = (
+        String,
+        models::TradeSymbol,
+        sqlx::types::chrono::DateTime<chrono::Utc>,
+    );
+
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
-    async fn insert(database_pool: &DbPool, item: &MarketTradeGood) -> crate::Result<()> {
-        sqlx::query!(
+    async fn insert_new(
+        database_pool: &DbPool,
+        item: &MarketTradeGood,
+    ) -> crate::Result<Self::ID> {
+        struct Inserted {
+            created_at: sqlx::types::chrono::DateTime<chrono::Utc>,
+        }
+
+        let inserted = sqlx::query_as!(
+            Inserted,
             r#"
                 INSERT INTO market_trade_good (
                 waypoint_symbol,
@@ -67,6 +83,7 @@ impl DatabaseConnector<MarketTradeGood> for MarketTradeGood {
                 sell_price
             )
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            RETURNING created_at
             "#,
             item.waypoint_symbol,
             item.symbol as models::TradeSymbol,
@@ -77,9 +94,25 @@ impl DatabaseConnector<MarketTradeGood> for MarketTradeGood {
             item.purchase_price,
             item.sell_price
         )
-        .execute(&database_pool.database_pool)
+        .fetch_one(&database_pool.database_pool)
         .await?;
+
+        Ok((
+            item.waypoint_symbol.clone(),
+            item.symbol,
+            inserted.created_at,
+        ))
+    }
+
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
+    async fn upsert(database_pool: &DbPool, item: &MarketTradeGood) -> crate::Result<()> {
+        let _ = Self::insert_new(database_pool, item).await?;
         Ok(())
+    }
+
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
+    async fn update(database_pool: &DbPool, item: &MarketTradeGood) -> crate::Result<()> {
+        Self::upsert(database_pool, item).await
     }
 
     #[instrument(level = "trace", skip(database_pool, items))]
@@ -154,11 +187,87 @@ impl DatabaseConnector<MarketTradeGood> for MarketTradeGood {
     }
 
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
-    async fn get_all(database_pool: &DbPool) -> crate::Result<Vec<MarketTradeGood>> {
-        let erg = sqlx::query_as!(
+    async fn get_all(
+        database_pool: &DbPool,
+        query: PaginatedQuery,
+    ) -> crate::Result<PaginatedResult<MarketTradeGood>> {
+        run_paginated_query(
+            query,
+            |page_size, offset| async move {
+                let items = sqlx::query_as!(
+                    MarketTradeGood,
+                    r#"
+                    SELECT DISTINCT ON (symbol)
+                        created_at,
+                        created,
+                        waypoint_symbol,
+                        symbol as "symbol: models::TradeSymbol",
+                        "type" as "type: models::market_trade_good::Type",
+                        trade_volume,
+                        supply as "supply: models::SupplyLevel",
+                        activity as "activity: models::ActivityLevel",
+                        purchase_price,
+                        sell_price
+                    FROM public.market_trade_good
+                    ORDER BY symbol, created DESC
+                    LIMIT $1 OFFSET $2
+                "#,
+                    page_size,
+                    offset
+                )
+                .fetch_all(database_pool.get_cache_pool())
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let items = sqlx::query_as!(
+                    MarketTradeGood,
+                    r#"
+                    SELECT DISTINCT ON (symbol)
+                        created_at,
+                        created,
+                        waypoint_symbol,
+                        symbol as "symbol: models::TradeSymbol",
+                        "type" as "type: models::market_trade_good::Type",
+                        trade_volume,
+                        supply as "supply: models::SupplyLevel",
+                        activity as "activity: models::ActivityLevel",
+                        purchase_price,
+                        sell_price
+                    FROM public.market_trade_good
+                    ORDER BY symbol, created DESC
+                "#,
+                )
+                .fetch_all(database_pool.get_cache_pool())
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let count = sqlx::query!(
+                    r#"
+                    SELECT COUNT(*) as "count!"
+                    FROM (
+                        SELECT DISTINCT ON (symbol)
+                            symbol
+                        FROM public.market_trade_good
+                        ORDER BY symbol, created DESC
+                    ) sub
+                    "#
+                )
+                .fetch_one(database_pool.get_cache_pool())
+                .await?;
+                Ok(count.count)
+            },
+        )
+        .await
+    }
+
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
+    async fn get_by_id(database_pool: &DbPool, id: &Self::ID) -> crate::Result<Option<Self>> {
+        let item = sqlx::query_as!(
             MarketTradeGood,
             r#"
-            SELECT DISTINCT ON (symbol)
+            SELECT
                 created_at,
                 created,
                 waypoint_symbol,
@@ -170,12 +279,38 @@ impl DatabaseConnector<MarketTradeGood> for MarketTradeGood {
                 purchase_price,
                 sell_price
             FROM public.market_trade_good
-            ORDER BY symbol, created DESC
-        "#,
+            WHERE waypoint_symbol = $1 AND symbol = $2 AND created_at = $3
+            LIMIT 1
+            "#,
+            &id.0,
+            &id.1 as &models::TradeSymbol,
+            &id.2
         )
-        .fetch_all(database_pool.get_cache_pool())
+        .fetch_optional(&database_pool.database_pool)
         .await?;
-        Ok(erg)
+        Ok(item)
+    }
+
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
+    async fn delete_by_id(database_pool: &DbPool, id: &Self::ID) -> crate::Result<()> {
+        sqlx::query!(
+            r#"
+            DELETE FROM public.market_trade_good
+            WHERE waypoint_symbol = $1 AND symbol = $2 AND created_at = $3
+            "#,
+            &id.0,
+            &id.1 as &models::TradeSymbol,
+            &id.2
+        )
+        .execute(&database_pool.database_pool)
+        .await?;
+        Ok(())
+    }
+
+    fn set_id(&mut self, id: Self::ID) {
+        self.waypoint_symbol = id.0;
+        self.symbol = id.1;
+        self.created_at = id.2;
     }
 }
 
@@ -184,30 +319,78 @@ impl MarketTradeGood {
     pub async fn get_by_waypoint(
         database_pool: &DbPool,
         waypoint_symbol: &str,
-    ) -> crate::Result<Vec<MarketTradeGood>> {
-        let erg = sqlx::query_as!(
-            MarketTradeGood,
-            r#"
-            SELECT
-                created_at,
-                created,
-                waypoint_symbol,
-                symbol as "symbol: models::TradeSymbol",
-                "type" as "type: models::market_trade_good::Type",
-                trade_volume,
-                supply as "supply: models::SupplyLevel",
-                activity as "activity: models::ActivityLevel",
-                purchase_price,
-                sell_price
-            FROM public.market_trade_good
-            WHERE waypoint_symbol = $1
-            ORDER BY created DESC
-        "#,
-            waypoint_symbol,
+        query: PaginatedQuery,
+    ) -> crate::Result<PaginatedResult<MarketTradeGood>> {
+        run_paginated_query(
+            query,
+            |page_size, offset| async move {
+                let items = sqlx::query_as!(
+                    MarketTradeGood,
+                    r#"
+                    SELECT
+                        created_at,
+                        created,
+                        waypoint_symbol,
+                        symbol as "symbol: models::TradeSymbol",
+                        "type" as "type: models::market_trade_good::Type",
+                        trade_volume,
+                        supply as "supply: models::SupplyLevel",
+                        activity as "activity: models::ActivityLevel",
+                        purchase_price,
+                        sell_price
+                    FROM public.market_trade_good
+                    WHERE waypoint_symbol = $1
+                    ORDER BY created DESC
+                    LIMIT $2 OFFSET $3
+                "#,
+                    waypoint_symbol,
+                    page_size,
+                    offset
+                )
+                .fetch_all(database_pool.get_cache_pool())
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let items = sqlx::query_as!(
+                    MarketTradeGood,
+                    r#"
+                    SELECT
+                        created_at,
+                        created,
+                        waypoint_symbol,
+                        symbol as "symbol: models::TradeSymbol",
+                        "type" as "type: models::market_trade_good::Type",
+                        trade_volume,
+                        supply as "supply: models::SupplyLevel",
+                        activity as "activity: models::ActivityLevel",
+                        purchase_price,
+                        sell_price
+                    FROM public.market_trade_good
+                    WHERE waypoint_symbol = $1
+                    ORDER BY created DESC
+                "#,
+                    waypoint_symbol,
+                )
+                .fetch_all(database_pool.get_cache_pool())
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let count = sqlx::query!(
+                    r#"
+                    SELECT COUNT(*) as "count!"
+                    FROM public.market_trade_good
+                    WHERE waypoint_symbol = $1
+                    "#,
+                    waypoint_symbol
+                )
+                .fetch_one(database_pool.get_cache_pool())
+                .await?;
+                Ok(count.count)
+            },
         )
-        .fetch_all(database_pool.get_cache_pool())
-        .await?;
-        Ok(erg)
+        .await
     }
 
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
@@ -215,92 +398,247 @@ impl MarketTradeGood {
         database_pool: &DbPool,
         waypoint_symbol: &str,
         trade_symbol: &models::TradeSymbol,
-    ) -> crate::Result<Vec<MarketTradeGood>> {
-        let erg = sqlx::query_as!(
-            MarketTradeGood,
-            r#"
-            SELECT
-                created_at,
-                created,
-                waypoint_symbol,
-                symbol as "symbol: models::TradeSymbol",
-                "type" as "type: models::market_trade_good::Type",
-                trade_volume,
-                supply as "supply: models::SupplyLevel",
-                activity as "activity: models::ActivityLevel",
-                purchase_price,
-                sell_price
-            FROM public.market_trade_good
-            WHERE waypoint_symbol = $1 AND symbol = $2
-            ORDER BY created DESC
-        "#,
-            waypoint_symbol,
-            *trade_symbol as models::TradeSymbol,
+        query: PaginatedQuery,
+    ) -> crate::Result<PaginatedResult<MarketTradeGood>> {
+        run_paginated_query(
+            query,
+            |page_size, offset| async move {
+                let items = sqlx::query_as!(
+                    MarketTradeGood,
+                    r#"
+                    SELECT
+                        created_at,
+                        created,
+                        waypoint_symbol,
+                        symbol as "symbol: models::TradeSymbol",
+                        "type" as "type: models::market_trade_good::Type",
+                        trade_volume,
+                        supply as "supply: models::SupplyLevel",
+                        activity as "activity: models::ActivityLevel",
+                        purchase_price,
+                        sell_price
+                    FROM public.market_trade_good
+                    WHERE waypoint_symbol = $1 AND symbol = $2
+                    ORDER BY created DESC
+                    LIMIT $3 OFFSET $4
+                "#,
+                    waypoint_symbol,
+                    *trade_symbol as models::TradeSymbol,
+                    page_size,
+                    offset
+                )
+                .fetch_all(&database_pool.database_pool)
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let items = sqlx::query_as!(
+                    MarketTradeGood,
+                    r#"
+                    SELECT
+                        created_at,
+                        created,
+                        waypoint_symbol,
+                        symbol as "symbol: models::TradeSymbol",
+                        "type" as "type: models::market_trade_good::Type",
+                        trade_volume,
+                        supply as "supply: models::SupplyLevel",
+                        activity as "activity: models::ActivityLevel",
+                        purchase_price,
+                        sell_price
+                    FROM public.market_trade_good
+                    WHERE waypoint_symbol = $1 AND symbol = $2
+                    ORDER BY created DESC
+                "#,
+                    waypoint_symbol,
+                    *trade_symbol as models::TradeSymbol,
+                )
+                .fetch_all(&database_pool.database_pool)
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let count = sqlx::query!(
+                    r#"
+                    SELECT COUNT(*) as "count!"
+                    FROM public.market_trade_good
+                    WHERE waypoint_symbol = $1 AND symbol = $2
+                    "#,
+                    waypoint_symbol,
+                    *trade_symbol as models::TradeSymbol,
+                )
+                .fetch_one(&database_pool.database_pool)
+                .await?;
+                Ok(count.count)
+            },
         )
-        .fetch_all(&database_pool.database_pool)
-        .await?;
-        Ok(erg)
+        .await
     }
 
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_last_by_waypoint(
         database_pool: &DbPool,
         waypoint_symbol: &str,
-    ) -> crate::Result<Vec<MarketTradeGood>> {
-        let erg = sqlx::query_as!(
-            MarketTradeGood,
-            r#"
-            SELECT DISTINCT ON (symbol)
-                created_at,
-                created,
-                waypoint_symbol,
-                symbol as "symbol: models::TradeSymbol",
-                "type" as "type: models::market_trade_good::Type",
-                trade_volume,
-                supply as "supply: models::SupplyLevel",
-                activity as "activity: models::ActivityLevel",
-                purchase_price,
-                sell_price
-            FROM public.market_trade_good
-            WHERE waypoint_symbol = $1
-            ORDER BY symbol, created DESC
-        "#,
-            waypoint_symbol,
+        query: PaginatedQuery,
+    ) -> crate::Result<PaginatedResult<MarketTradeGood>> {
+        run_paginated_query(
+            query,
+            |page_size, offset| async move {
+                let items = sqlx::query_as!(
+                    MarketTradeGood,
+                    r#"
+                    SELECT DISTINCT ON (symbol)
+                        created_at,
+                        created,
+                        waypoint_symbol,
+                        symbol as "symbol: models::TradeSymbol",
+                        "type" as "type: models::market_trade_good::Type",
+                        trade_volume,
+                        supply as "supply: models::SupplyLevel",
+                        activity as "activity: models::ActivityLevel",
+                        purchase_price,
+                        sell_price
+                    FROM public.market_trade_good
+                    WHERE waypoint_symbol = $1
+                    ORDER BY symbol, created DESC
+                    LIMIT $2 OFFSET $3
+                "#,
+                    waypoint_symbol,
+                    page_size,
+                    offset
+                )
+                .fetch_all(database_pool.get_cache_pool())
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let items = sqlx::query_as!(
+                    MarketTradeGood,
+                    r#"
+                    SELECT DISTINCT ON (symbol)
+                        created_at,
+                        created,
+                        waypoint_symbol,
+                        symbol as "symbol: models::TradeSymbol",
+                        "type" as "type: models::market_trade_good::Type",
+                        trade_volume,
+                        supply as "supply: models::SupplyLevel",
+                        activity as "activity: models::ActivityLevel",
+                        purchase_price,
+                        sell_price
+                    FROM public.market_trade_good
+                    WHERE waypoint_symbol = $1
+                    ORDER BY symbol, created DESC
+                "#,
+                    waypoint_symbol,
+                )
+                .fetch_all(database_pool.get_cache_pool())
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let count = sqlx::query!(
+                    r#"
+                    SELECT COUNT(*) as "count!"
+                    FROM (
+                        SELECT DISTINCT ON (symbol)
+                            symbol
+                        FROM public.market_trade_good
+                        WHERE waypoint_symbol = $1
+                        ORDER BY symbol, created DESC
+                    ) sub
+                    "#,
+                    waypoint_symbol
+                )
+                .fetch_one(database_pool.get_cache_pool())
+                .await?;
+                Ok(count.count)
+            },
         )
-        .fetch_all(database_pool.get_cache_pool())
-        .await?;
-        Ok(erg)
+        .await
     }
 
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_last_by_symbol(
         database_pool: &DbPool,
         trade_symbol: &models::TradeSymbol,
-    ) -> crate::Result<Vec<MarketTradeGood>> {
-        let row = sqlx::query_as!(
-            MarketTradeGood,
-            r#"
-        SELECT DISTINCT ON (waypoint_symbol)
-            created_at,
-            created,
-            waypoint_symbol,
-            symbol as "symbol: models::TradeSymbol",
-            "type" as "type: models::market_trade_good::Type",
-            trade_volume,
-            supply as "supply: models::SupplyLevel",
-            activity as "activity: models::ActivityLevel",
-            purchase_price,
-            sell_price
-        FROM public.market_trade_good
-        WHERE symbol = $1::trade_symbol
-        ORDER BY waypoint_symbol, created DESC
-        "#,
-            *trade_symbol as models::TradeSymbol
+        query: PaginatedQuery,
+    ) -> crate::Result<PaginatedResult<MarketTradeGood>> {
+        run_paginated_query(
+            query,
+            |page_size, offset| async move {
+                let items = sqlx::query_as!(
+                    MarketTradeGood,
+                    r#"
+                SELECT DISTINCT ON (waypoint_symbol)
+                    created_at,
+                    created,
+                    waypoint_symbol,
+                    symbol as "symbol: models::TradeSymbol",
+                    "type" as "type: models::market_trade_good::Type",
+                    trade_volume,
+                    supply as "supply: models::SupplyLevel",
+                    activity as "activity: models::ActivityLevel",
+                    purchase_price,
+                    sell_price
+                FROM public.market_trade_good
+                WHERE symbol = $1::trade_symbol
+                ORDER BY waypoint_symbol, created DESC
+                LIMIT $2 OFFSET $3
+                "#,
+                    *trade_symbol as models::TradeSymbol,
+                    page_size,
+                    offset
+                )
+                .fetch_all(&database_pool.database_pool)
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let items = sqlx::query_as!(
+                    MarketTradeGood,
+                    r#"
+                SELECT DISTINCT ON (waypoint_symbol)
+                    created_at,
+                    created,
+                    waypoint_symbol,
+                    symbol as "symbol: models::TradeSymbol",
+                    "type" as "type: models::market_trade_good::Type",
+                    trade_volume,
+                    supply as "supply: models::SupplyLevel",
+                    activity as "activity: models::ActivityLevel",
+                    purchase_price,
+                    sell_price
+                FROM public.market_trade_good
+                WHERE symbol = $1::trade_symbol
+                ORDER BY waypoint_symbol, created DESC
+                "#,
+                    *trade_symbol as models::TradeSymbol
+                )
+                .fetch_all(&database_pool.database_pool)
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let count = sqlx::query!(
+                    r#"
+                    SELECT COUNT(*) as "count!"
+                    FROM (
+                        SELECT DISTINCT ON (waypoint_symbol)
+                            waypoint_symbol
+                        FROM public.market_trade_good
+                        WHERE symbol = $1::trade_symbol
+                        ORDER BY waypoint_symbol, created DESC
+                    ) sub
+                    "#,
+                    *trade_symbol as models::TradeSymbol
+                )
+                .fetch_one(&database_pool.database_pool)
+                .await?;
+                Ok(count.count)
+            },
         )
-        .fetch_all(&database_pool.database_pool)
-        .await?;
-
-        Ok(row)
+        .await
     }
 
     pub async fn get_by_last_waypoint_and_trade_symbol(
@@ -336,58 +674,163 @@ impl MarketTradeGood {
     }
 
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
-    pub async fn get_last(database_pool: &DbPool) -> crate::Result<Vec<MarketTradeGood>> {
-        let erg = sqlx::query_as!(
-            MarketTradeGood,
-            r#"
-            SELECT DISTINCT ON (symbol, waypoint_symbol)
-                created_at,
-                created,
-                waypoint_symbol,
-                symbol as "symbol: models::TradeSymbol",
-                "type" as "type: models::market_trade_good::Type",
-                trade_volume,
-                supply as "supply: models::SupplyLevel",
-                activity as "activity: models::ActivityLevel",
-                purchase_price,
-                sell_price
-            FROM public.market_trade_good
-            ORDER BY symbol, waypoint_symbol, created DESC
-        "#,
+    pub async fn get_last(
+        database_pool: &DbPool,
+        query: PaginatedQuery,
+    ) -> crate::Result<PaginatedResult<MarketTradeGood>> {
+        run_paginated_query(
+            query,
+            |page_size, offset| async move {
+                let items = sqlx::query_as!(
+                    MarketTradeGood,
+                    r#"
+                    SELECT DISTINCT ON (symbol, waypoint_symbol)
+                        created_at,
+                        created,
+                        waypoint_symbol,
+                        symbol as "symbol: models::TradeSymbol",
+                        "type" as "type: models::market_trade_good::Type",
+                        trade_volume,
+                        supply as "supply: models::SupplyLevel",
+                        activity as "activity: models::ActivityLevel",
+                        purchase_price,
+                        sell_price
+                    FROM public.market_trade_good
+                    ORDER BY symbol, waypoint_symbol, created DESC
+                    LIMIT $1 OFFSET $2
+                "#,
+                    page_size,
+                    offset
+                )
+                .fetch_all(database_pool.get_cache_pool())
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let items = sqlx::query_as!(
+                    MarketTradeGood,
+                    r#"
+                    SELECT DISTINCT ON (symbol, waypoint_symbol)
+                        created_at,
+                        created,
+                        waypoint_symbol,
+                        symbol as "symbol: models::TradeSymbol",
+                        "type" as "type: models::market_trade_good::Type",
+                        trade_volume,
+                        supply as "supply: models::SupplyLevel",
+                        activity as "activity: models::ActivityLevel",
+                        purchase_price,
+                        sell_price
+                    FROM public.market_trade_good
+                    ORDER BY symbol, waypoint_symbol, created DESC
+                "#,
+                )
+                .fetch_all(database_pool.get_cache_pool())
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let count = sqlx::query!(
+                    r#"
+                    SELECT COUNT(*) as "count!"
+                    FROM (
+                        SELECT DISTINCT ON (symbol, waypoint_symbol)
+                            symbol,
+                            waypoint_symbol
+                        FROM public.market_trade_good
+                        ORDER BY symbol, waypoint_symbol, created DESC
+                    ) sub
+                    "#
+                )
+                .fetch_one(database_pool.get_cache_pool())
+                .await?;
+                Ok(count.count)
+            },
         )
-        .fetch_all(database_pool.get_cache_pool())
-        .await?;
-        Ok(erg)
+        .await
     }
 
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_last_by_system(
         database_pool: &DbPool,
         system_symbol: &str,
-    ) -> crate::Result<Vec<MarketTradeGood>> {
-        let row = sqlx::query_as!(
-            MarketTradeGood,
-            r#"
-        SELECT DISTINCT ON (waypoint_symbol, market_trade_good.symbol)
-            market_trade_good.created_at,
-            market_trade_good.created,
-            market_trade_good.waypoint_symbol,
-            market_trade_good.symbol as "symbol: models::TradeSymbol",
-            market_trade_good."type" as "type: models::market_trade_good::Type",
-            market_trade_good.trade_volume,
-            market_trade_good.supply as "supply: models::SupplyLevel",
-            market_trade_good.activity as "activity: models::ActivityLevel",
-            market_trade_good.purchase_price,
-            market_trade_good.sell_price
-        FROM public.market_trade_good left join public.waypoint ON waypoint.symbol = market_trade_good.waypoint_symbol
-        WHERE waypoint.system_symbol = $1
-        ORDER BY waypoint_symbol, market_trade_good.symbol, created DESC
-        "#,
-            system_symbol
+        query: PaginatedQuery,
+    ) -> crate::Result<PaginatedResult<MarketTradeGood>> {
+        run_paginated_query(
+            query,
+            |page_size, offset| async move {
+                let items = sqlx::query_as!(
+                    MarketTradeGood,
+                    r#"
+                SELECT DISTINCT ON (waypoint_symbol, market_trade_good.symbol)
+                    market_trade_good.created_at,
+                    market_trade_good.created,
+                    market_trade_good.waypoint_symbol,
+                    market_trade_good.symbol as "symbol: models::TradeSymbol",
+                    market_trade_good."type" as "type: models::market_trade_good::Type",
+                    market_trade_good.trade_volume,
+                    market_trade_good.supply as "supply: models::SupplyLevel",
+                    market_trade_good.activity as "activity: models::ActivityLevel",
+                    market_trade_good.purchase_price,
+                    market_trade_good.sell_price
+                FROM public.market_trade_good left join public.waypoint ON waypoint.symbol = market_trade_good.waypoint_symbol
+                WHERE waypoint.system_symbol = $1
+                ORDER BY waypoint_symbol, market_trade_good.symbol, created DESC
+                LIMIT $2 OFFSET $3
+                "#,
+                    system_symbol,
+                    page_size,
+                    offset
+                )
+                .fetch_all(database_pool.get_cache_pool())
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let items = sqlx::query_as!(
+                    MarketTradeGood,
+                    r#"
+                SELECT DISTINCT ON (waypoint_symbol, market_trade_good.symbol)
+                    market_trade_good.created_at,
+                    market_trade_good.created,
+                    market_trade_good.waypoint_symbol,
+                    market_trade_good.symbol as "symbol: models::TradeSymbol",
+                    market_trade_good."type" as "type: models::market_trade_good::Type",
+                    market_trade_good.trade_volume,
+                    market_trade_good.supply as "supply: models::SupplyLevel",
+                    market_trade_good.activity as "activity: models::ActivityLevel",
+                    market_trade_good.purchase_price,
+                    market_trade_good.sell_price
+                FROM public.market_trade_good left join public.waypoint ON waypoint.symbol = market_trade_good.waypoint_symbol
+                WHERE waypoint.system_symbol = $1
+                ORDER BY waypoint_symbol, market_trade_good.symbol, created DESC
+                "#,
+                    system_symbol
+                )
+                .fetch_all(database_pool.get_cache_pool())
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let count = sqlx::query!(
+                    r#"
+                    SELECT COUNT(*) as "count!"
+                    FROM (
+                        SELECT DISTINCT ON (waypoint_symbol, market_trade_good.symbol)
+                            market_trade_good.waypoint_symbol,
+                            market_trade_good.symbol
+                        FROM public.market_trade_good left join public.waypoint ON waypoint.symbol = market_trade_good.waypoint_symbol
+                        WHERE waypoint.system_symbol = $1
+                        ORDER BY waypoint_symbol, market_trade_good.symbol, created DESC
+                    ) sub
+                    "#,
+                    system_symbol
+                )
+                .fetch_one(database_pool.get_cache_pool())
+                .await?;
+                Ok(count.count)
+            },
         )
-        .fetch_all(database_pool.get_cache_pool())
-        .await?;
-
-        Ok(row)
+        .await
     }
 }

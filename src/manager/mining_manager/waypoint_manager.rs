@@ -1,3 +1,4 @@
+use database::DatabaseConnectorAsync;
 use space_traders_client::models;
 use utils::WaypointCan;
 
@@ -61,7 +62,7 @@ impl WaypointManager {
 
         if let Some((waypoint_symbol, _)) = self.places.get_ship(&ship.symbol) {
             let waypoint =
-                database::Waypoint::get_by_symbol(&self.context.database_pool, &waypoint_symbol)
+                database::Waypoint::get_by_id(&self.context.database_pool, &waypoint_symbol)
                     .await?;
 
             if waypoint
@@ -92,7 +93,7 @@ impl WaypointManager {
         let waypoint_symbol = ship.nav.waypoint_symbol.clone();
 
         let waypoint =
-            database::Waypoint::get_by_symbol(&self.context.database_pool, &waypoint_symbol)
+            database::Waypoint::get_by_id(&self.context.database_pool, &waypoint_symbol)
                 .await?;
         if waypoint
             .map(|waypoint| {

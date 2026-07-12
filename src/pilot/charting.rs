@@ -1,6 +1,6 @@
 use std::sync::{atomic::AtomicI32, Arc};
 
-use database::DatabaseConnector;
+use database::DatabaseConnectorAsync;
 use tracing::debug;
 use tracing::instrument;
 use utils::WaypointCan;
@@ -183,16 +183,27 @@ impl ChartPilot {
                 .budget_manager
                 .set_current_funds(sql_agent.credits);
 
-            database::Agent::insert(&self.context.database_pool, &sql_agent).await?;
+            database::Agent::upsert(
+                &self.context.database_pool,
+                &sql_agent,
+            )
+            .await?;
 
             let sql_transaction = database::ChartTransaction::try_from(transaction)?;
-            database::ChartTransaction::insert(&self.context.database_pool, &sql_transaction)
-                .await?;
+            database::ChartTransaction::upsert(
+                &self.context.database_pool,
+                &sql_transaction,
+            )
+            .await?;
         }
 
         let sql_waypoint = (&waypoint).into();
 
-        database::Waypoint::insert(&self.context.database_pool, &sql_waypoint).await?;
+        database::Waypoint::upsert(
+            &self.context.database_pool,
+            &sql_waypoint,
+        )
+        .await?;
 
         debug!(waypoint=?sql_waypoint, "Charted Waypoint");
 
@@ -276,8 +287,13 @@ impl ChartPilot {
         &self,
         system_symbol: &str,
     ) -> std::result::Result<(usize, usize), Error> {
-        let waypoints_in_system =
-            database::Waypoint::get_by_system(&self.context.database_pool, system_symbol).await?;
+        let waypoints_in_system = database::Waypoint::get_by_system(
+            &self.context.database_pool,
+            system_symbol,
+            database::PaginatedQuery::unpaged(),
+        )
+        .await?
+        .items;
 
         let total_to_chart = waypoints_in_system
             .iter()

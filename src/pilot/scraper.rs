@@ -1,6 +1,7 @@
 use std::sync::{atomic::AtomicI32, Arc};
 
 use chrono::Utc;
+use database::DatabaseConnectorAsync;
 use tracing::debug;
 use tracing::instrument;
 use utils::WaypointCan;
@@ -120,7 +121,7 @@ impl ScraperPilot {
         tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
 
         let waypoint =
-            database::Waypoint::get_by_symbol(&self.context.database_pool, &waypoint_symbol)
+            database::Waypoint::get_by_id(&self.context.database_pool, &waypoint_symbol)
                 .await?
                 .ok_or(Error::General("Waypoint not found".to_owned()))?;
 
@@ -143,7 +144,7 @@ impl ScraperPilot {
         }
 
         let waypoint =
-            database::Waypoint::get_by_symbol(&self.context.database_pool, &waypoint_symbol)
+            database::Waypoint::get_by_id(&self.context.database_pool, &waypoint_symbol)
                 .await?
                 .ok_or(Error::General("Waypoint not found".to_owned()))?;
 

@@ -1,7 +1,7 @@
 use space_traders_client::models;
 use tracing::instrument;
 
-use super::DatabaseConnector;
+use super::{run_paginated_query, DatabaseConnectorAsync, PaginatedQuery, PaginatedResult};
 
 #[derive(Debug, Clone, async_graphql::SimpleObject)]
 #[graphql(name = "DBEngineInfo")]
@@ -57,9 +57,17 @@ impl EngineInfo {
     }
 }
 
-impl DatabaseConnector<EngineInfo> for EngineInfo {
+impl DatabaseConnectorAsync for EngineInfo {
+    type ID = models::ship_engine::Symbol;
+
     #[instrument(level = "trace", skip(database_pool, item))]
-    async fn insert(database_pool: &super::DbPool, item: &EngineInfo) -> crate::Result<()> {
+    async fn insert_new(database_pool: &super::DbPool, item: &EngineInfo) -> crate::Result<Self::ID> {
+        Self::upsert(database_pool, item).await?;
+        Ok(item.symbol)
+    }
+
+    #[instrument(level = "trace", skip(database_pool, item))]
+    async fn upsert(database_pool: &super::DbPool, item: &EngineInfo) -> crate::Result<()> {
         sqlx::query!(
             r#"
                 INSERT INTO engine_info (
@@ -91,6 +99,11 @@ impl DatabaseConnector<EngineInfo> for EngineInfo {
         .execute(&database_pool.database_pool)
         .await?;
         Ok(())
+    }
+
+    #[instrument(level = "trace", skip(database_pool, item))]
+    async fn update(database_pool: &super::DbPool, item: &EngineInfo) -> crate::Result<()> {
+        Self::upsert(database_pool, item).await
     }
 
     #[instrument(level = "trace", skip(database_pool, items))]
@@ -158,23 +171,115 @@ impl DatabaseConnector<EngineInfo> for EngineInfo {
     }
 
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
-    async fn get_all(database_pool: &super::DbPool) -> crate::Result<Vec<EngineInfo>> {
-        let erg = sqlx::query_as!(
+    async fn get_all(
+        database_pool: &super::DbPool,
+        query: PaginatedQuery,
+    ) -> crate::Result<PaginatedResult<EngineInfo>> {
+        run_paginated_query(
+            query,
+            |page_size, offset| async move {
+                let items = sqlx::query_as!(
+                    EngineInfo,
+                    r#"
+                        SELECT
+                            symbol as "symbol: models::ship_engine::Symbol",
+                            name,
+                            description,
+                            speed,
+                            power_required,
+                            crew_required,
+                            slots_required
+                        FROM engine_info
+                        ORDER BY symbol ASC
+                        LIMIT $1 OFFSET $2
+                    "#,
+                    page_size,
+                    offset
+                )
+                .fetch_all(database_pool.get_cache_pool())
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let items = sqlx::query_as!(
+                    EngineInfo,
+                    r#"
+                        SELECT
+                            symbol as "symbol: models::ship_engine::Symbol",
+                            name,
+                            description,
+                            speed,
+                            power_required,
+                            crew_required,
+                            slots_required
+                        FROM engine_info
+                        ORDER BY symbol ASC
+                    "#
+                )
+                .fetch_all(database_pool.get_cache_pool())
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let count = sqlx::query!(
+                    r#"
+                        SELECT COUNT(*) as "count!"
+                        FROM engine_info
+                    "#
+                )
+                .fetch_one(database_pool.get_cache_pool())
+                .await?;
+                Ok(count.count)
+            },
+        )
+        .await
+    }
+
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
+    async fn get_by_id(
+        database_pool: &super::DbPool,
+        id: &Self::ID,
+    ) -> crate::Result<Option<Self>> {
+        let item = sqlx::query_as!(
             EngineInfo,
             r#"
-            SELECT
-                symbol as "symbol: models::ship_engine::Symbol",
-                name,
-                description,
-                speed,
-                power_required,
-                crew_required,
-                slots_required
-            FROM engine_info
-            "#
+                SELECT
+                    symbol as "symbol: models::ship_engine::Symbol",
+                    name,
+                    description,
+                    speed,
+                    power_required,
+                    crew_required,
+                    slots_required
+                FROM engine_info
+                WHERE symbol = $1
+                LIMIT 1
+            "#,
+            *id as models::ship_engine::Symbol
         )
-        .fetch_all(database_pool.get_cache_pool())
+        .fetch_optional(database_pool.get_cache_pool())
         .await?;
-        Ok(erg)
+        Ok(item)
+    }
+
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
+    async fn delete_by_id(
+        database_pool: &super::DbPool,
+        id: &Self::ID,
+    ) -> crate::Result<()> {
+        sqlx::query!(
+            r#"
+                DELETE FROM engine_info
+                WHERE symbol = $1
+            "#,
+            *id as models::ship_engine::Symbol
+        )
+        .execute(&database_pool.database_pool)
+        .await?;
+        Ok(())
+    }
+
+    fn set_id(&mut self, id: Self::ID) {
+        self.symbol = id;
     }
 }

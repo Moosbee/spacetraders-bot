@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use async_graphql::dataloader::DataLoader;
+use database::DatabaseConnectorAsync;
 use ship::status::ShipStatus;
 use space_traders_client::models;
 
@@ -25,6 +26,36 @@ where
     db_vec.into_iter().map(Gql::from).collect()
 }
 
+fn paginated_query(page: Option<i64>, page_size: Option<i64>) -> database::PaginatedQuery {
+    database::PaginatedQuery::new(page.unwrap_or(1), page_size)
+}
+
+macro_rules! paginated_gql_object {
+    ($name:ident, $graphql_name:literal, $db_ty:path, $gql_ty:ty) => {
+        #[derive(Debug, Clone, async_graphql::SimpleObject)]
+        #[graphql(name = $graphql_name)]
+        pub struct $name {
+            pub items: Vec<$gql_ty>,
+            #[graphql(name = "totalCount")]
+            pub total_count: i64,
+            pub page: i64,
+            #[graphql(name = "pageSize")]
+            pub page_size: Option<i64>,
+        }
+
+        impl From<database::PaginatedResult<$db_ty>> for $name {
+            fn from(value: database::PaginatedResult<$db_ty>) -> Self {
+                Self {
+                    items: into_gql_vec(value.items),
+                    total_count: value.total_count,
+                    page: value.page,
+                    page_size: value.page_size,
+                }
+            }
+        }
+    };
+}
+
 #[derive(Debug, Clone, async_graphql::SimpleObject)]
 #[graphql(name = "Agent")]
 #[graphql(complex)]
@@ -42,8 +73,13 @@ impl From<database::Agent> for GQLAgent {
 impl GQLAgent {
     async fn history<'ctx>(&self, ctx: &async_graphql::Context<'ctx>) -> Result<Vec<GQLAgent>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let reg = database::Agent::get_by_symbol(database_pool, &self.agent.symbol).await?;
-        Ok(into_gql_vec(reg))
+        let reg = database::Agent::get_by_symbol(
+            database_pool,
+            &self.agent.symbol,
+            database::PaginatedQuery::unpaged(),
+        )
+        .await?;
+        Ok(into_gql_vec(reg.items))
     }
 
     async fn headquarters_waypoint<'ctx>(
@@ -63,7 +99,7 @@ impl GQLAgent {
     ) -> Result<Option<GQLSystem>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
         let system = utils::get_system_symbol(&self.agent.headquarters);
-        let erg = database::System::get_by_symbol(database_pool, &system).await?;
+        let erg = database::System::get_by_id(database_pool, &system).await?;
         Ok(into_gql(erg))
     }
 }
@@ -104,6 +140,13 @@ impl GQLChartTransaction {
         Ok(ship.map(|f| f.into()))
     }
 }
+
+paginated_gql_object!(
+    GQLChartTransactionPage,
+    "ChartTransactionPage",
+    database::ChartTransaction,
+    GQLChartTransaction
+);
 
 #[derive(Debug, Clone, async_graphql::SimpleObject)]
 #[graphql(name = "ConstructionMaterial")]
@@ -149,14 +192,17 @@ impl GQLConstructionMaterial {
     async fn shipments<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
-    ) -> Result<Vec<GQLConstructionShipment>> {
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<GQLConstructionShipmentPage> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
         let erg = database::ConstructionShipment::get_by_material_id(
             database_pool,
             self.construction_material.id,
+            paginated_query(page, page_size),
         )
         .await?;
-        Ok(into_gql_vec(erg))
+        Ok(erg.into())
     }
 
     async fn trade_symbol_info(&self) -> TradeSymbolInfo {
@@ -165,6 +211,13 @@ impl GQLConstructionMaterial {
         }
     }
 }
+
+paginated_gql_object!(
+    GQLConstructionMaterialPage,
+    "ConstructionMaterialPage",
+    database::ConstructionMaterial,
+    GQLConstructionMaterial
+);
 
 #[derive(Debug, Clone, async_graphql::SimpleObject)]
 #[graphql(name = "ConstructionShipment")]
@@ -229,7 +282,7 @@ impl GQLConstructionShipment {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
         let material = database::ConstructionMaterial::get_by_id(
             database_pool,
-            self.construction_shipment.material_id,
+            &self.construction_shipment.material_id,
         )
         .await?;
         Ok(material.map(|f| f.into()))
@@ -259,14 +312,17 @@ impl GQLConstructionShipment {
     async fn market_transactions<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
-    ) -> Result<Vec<GQLMarketTransaction>> {
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<GQLMarketTransactionPage> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
         let erg = database::MarketTransaction::get_by_construction(
             database_pool,
             self.construction_shipment.id,
+            paginated_query(page, page_size),
         )
         .await?;
-        Ok(into_gql_vec(erg))
+        Ok(erg.into())
     }
 
     async fn purchase_market_trade_good(
@@ -290,6 +346,13 @@ impl GQLConstructionShipment {
     }
 }
 
+paginated_gql_object!(
+    GQLConstructionShipmentPage,
+    "ConstructionShipmentPage",
+    database::ConstructionShipment,
+    GQLConstructionShipment
+);
+
 #[derive(Debug, Clone, async_graphql::SimpleObject)]
 #[graphql(name = "Contract")]
 #[graphql(complex)]
@@ -308,31 +371,49 @@ impl GQLContract {
     async fn deliveries<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
-    ) -> Result<Vec<GQLContractDelivery>> {
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<GQLContractDeliveryPage> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let erg = database::ContractDelivery::get_by_contract_id(database_pool, &self.contract.id)
-            .await?;
-        Ok(into_gql_vec(erg))
+        let erg = database::ContractDelivery::get_by_contract_id(
+            database_pool,
+            &self.contract.id,
+            paginated_query(page, page_size),
+        )
+        .await?;
+        Ok(erg.into())
     }
 
     async fn shipments<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
-    ) -> Result<Vec<GQLContractShipment>> {
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<GQLContractShipmentPage> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let erg = database::ContractShipment::get_by_contract_id(database_pool, &self.contract.id)
-            .await?;
-        Ok(into_gql_vec(erg))
+        let erg = database::ContractShipment::get_by_contract_id(
+            database_pool,
+            &self.contract.id,
+            paginated_query(page, page_size),
+        )
+        .await?;
+        Ok(erg.into())
     }
 
     async fn market_transactions<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
-    ) -> Result<Vec<GQLMarketTransaction>> {
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<GQLMarketTransactionPage> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let erg =
-            database::MarketTransaction::get_by_contract(database_pool, &self.contract.id).await?;
-        Ok(into_gql_vec(erg))
+        let erg = database::MarketTransaction::get_by_contract(
+            database_pool,
+            &self.contract.id,
+            paginated_query(page, page_size),
+        )
+        .await?;
+        Ok(erg.into())
     }
 
     async fn market_transaction_summary<'ctx>(
@@ -361,6 +442,13 @@ impl GQLContract {
         Ok(erg.map(|f| f.into()))
     }
 }
+
+paginated_gql_object!(
+    GQLContractPage,
+    "ContractPage",
+    database::Contract,
+    GQLContract
+);
 
 #[derive(Debug, Clone, async_graphql::SimpleObject)]
 #[graphql(name = "TransactionSummary")]
@@ -407,16 +495,19 @@ impl GQLContractDelivery {
     async fn contract_shipment<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
-    ) -> Result<Vec<GQLContractShipment>> {
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<GQLContractShipmentPage> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
         let erg = database::ContractShipment::get_by_contract_id_trade_symbol_destination_symbol(
             database_pool,
             &self.contract_delivery.contract_id,
             &self.contract_delivery.trade_symbol,
             &self.contract_delivery.destination_symbol,
+            paginated_query(page, page_size),
         )
         .await?;
-        Ok(into_gql_vec(erg))
+        Ok(erg.into())
     }
 
     async fn waypoint<'ctx>(
@@ -436,6 +527,13 @@ impl GQLContractDelivery {
         }
     }
 }
+
+paginated_gql_object!(
+    GQLContractDeliveryPage,
+    "ContractDeliveryPage",
+    database::ContractDelivery,
+    GQLContractDelivery
+);
 
 #[derive(Debug, Clone, async_graphql::SimpleObject)]
 #[graphql(name = "ContractShipment")]
@@ -514,6 +612,13 @@ impl GQLContractShipment {
     }
 }
 
+paginated_gql_object!(
+    GQLContractShipmentPage,
+    "ContractShipmentPage",
+    database::ContractShipment,
+    GQLContractShipment
+);
+
 #[derive(Debug, Clone, async_graphql::SimpleObject)]
 #[graphql(name = "EngineInfo")]
 #[graphql(complex)]
@@ -585,6 +690,13 @@ impl GQLExtraction {
     }
 }
 
+paginated_gql_object!(
+    GQLExtractionPage,
+    "ExtractionPage",
+    database::Extraction,
+    GQLExtraction
+);
+
 #[derive(Debug, Clone, async_graphql::SimpleObject)]
 #[graphql(name = "Fleet")]
 #[graphql(complex)]
@@ -598,6 +710,9 @@ impl From<database::Fleet> for GQLFleet {
         GQLFleet { fleet: value }
     }
 }
+
+paginated_gql_object!(GQLFleetPage, "FleetPage", database::Fleet, GQLFleet);
+
 #[async_graphql::ComplexObject]
 impl GQLFleet {
     async fn config(&self) -> Result<database::FleetConfig> {
@@ -607,17 +722,24 @@ impl GQLFleet {
 
     async fn system<'ctx>(&self, ctx: &async_graphql::Context<'ctx>) -> Result<Option<GQLSystem>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let erg = database::System::get_by_symbol(database_pool, &self.fleet.system_symbol).await?;
+        let erg = database::System::get_by_id(database_pool, &self.fleet.system_symbol).await?;
         Ok(into_gql(erg))
     }
 
     async fn assignments<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
-    ) -> Result<Vec<GQLShipAssignment>> {
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<GQLShipAssignmentPage> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let erg = database::ShipAssignment::get_by_fleet_id(database_pool, self.fleet.id).await?;
-        Ok(into_gql_vec(erg))
+        let erg = database::ShipAssignment::get_by_fleet_id(
+            database_pool,
+            self.fleet.id,
+            paginated_query(page, page_size),
+        )
+        .await?;
+        Ok(erg.into())
     }
 
     async fn all_ships<'ctx>(&self, ctx: &async_graphql::Context<'ctx>) -> Result<Vec<GQLShip>> {
@@ -691,6 +813,13 @@ impl From<database::JumpGateConnection> for GQLJumpGateConnection {
         }
     }
 }
+
+paginated_gql_object!(
+    GQLJumpGateConnectionPage,
+    "JumpGateConnectionPage",
+    database::JumpGateConnection,
+    GQLJumpGateConnection
+);
 #[async_graphql::ComplexObject]
 impl GQLJumpGateConnection {
     async fn waypoint_from<'ctx>(
@@ -721,7 +850,7 @@ impl GQLJumpGateConnection {
     ) -> Result<Option<GQLSystem>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
         let system = utils::get_system_symbol(&self.jump_gate_connection.from);
-        let erg = database::System::get_by_symbol(database_pool, &system).await?;
+        let erg = database::System::get_by_id(database_pool, &system).await?;
         Ok(into_gql(erg))
     }
 
@@ -731,7 +860,7 @@ impl GQLJumpGateConnection {
     ) -> Result<Option<GQLSystem>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
         let system = utils::get_system_symbol(&self.jump_gate_connection.to);
-        let erg = database::System::get_by_symbol(database_pool, &system).await?;
+        let erg = database::System::get_by_id(database_pool, &system).await?;
         Ok(into_gql(erg))
     }
 }
@@ -751,6 +880,14 @@ impl From<database::MarketTrade> for GQLMarketTrade {
         }
     }
 }
+
+paginated_gql_object!(
+    GQLMarketTradePage,
+    "MarketTradePage",
+    database::MarketTrade,
+    GQLMarketTrade
+);
+
 #[async_graphql::ComplexObject]
 impl GQLMarketTrade {
     async fn waypoint(&self, ctx: &async_graphql::Context<'_>) -> Result<Option<GQLWaypoint>> {
@@ -761,48 +898,68 @@ impl GQLMarketTrade {
         Ok(into_gql(erg))
     }
 
-    async fn history(&self, ctx: &async_graphql::Context<'_>) -> Result<Vec<GQLMarketTrade>> {
+    async fn history(
+        &self,
+        ctx: &async_graphql::Context<'_>,
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<GQLMarketTradePage> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
         let erg = database::MarketTrade::get_history_by_waypoint_and_trade_symbol(
             database_pool,
             &self.market_trade.waypoint_symbol,
             &self.market_trade.symbol,
+            paginated_query(page, page_size),
         )
         .await?;
-        Ok(erg.into_iter().map(|t| t.into()).collect())
+        Ok(erg.into())
     }
 
-    async fn maps(&self, ctx: &async_graphql::Context<'_>) -> Result<Vec<GQLMarketTrade>> {
+    async fn maps(
+        &self,
+        ctx: &async_graphql::Context<'_>,
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<GQLMarketTradePage> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
         let maping = match self.market_trade.r#type {
             models::market_trade_good::Type::Export => {
                 database::ExportImportMapping::get_imports_for_export(
                     database_pool,
                     self.market_trade.symbol,
+                    database::PaginatedQuery::unpaged(),
                 )
                 .await?
+                .items
             }
             models::market_trade_good::Type::Exchange => Vec::new(),
             models::market_trade_good::Type::Import => {
                 database::ExportImportMapping::get_exports_for_import(
                     database_pool,
                     self.market_trade.symbol,
+                    database::PaginatedQuery::unpaged(),
                 )
                 .await?
+                .items
             }
         };
 
         let market_trades = database::MarketTrade::get_last_by_waypoint(
             database_pool,
             &self.market_trade.waypoint_symbol,
+            database::PaginatedQuery::unpaged(),
         )
-        .await?;
+        .await?
+        .items;
 
-        Ok(market_trades
-            .into_iter()
-            .filter(|t| maping.contains(&t.symbol))
-            .map(Into::into)
-            .collect())
+        Ok(database::paginate_items(
+            paginated_query(page, page_size),
+            market_trades
+                .into_iter()
+                .filter(|t| maping.contains(&t.symbol))
+                .collect(),
+        )?
+        .into())
     }
 
     async fn market_trade_good(
@@ -841,6 +998,14 @@ impl From<database::MarketTradeGood> for GQLMarketTradeGood {
         }
     }
 }
+
+paginated_gql_object!(
+    GQLMarketTradeGoodPage,
+    "MarketTradeGoodPage",
+    database::MarketTradeGood,
+    GQLMarketTradeGood
+);
+
 #[async_graphql::ComplexObject]
 impl GQLMarketTradeGood {
     async fn waypoint(&self, ctx: &async_graphql::Context<'_>) -> Result<Option<GQLWaypoint>> {
@@ -851,29 +1016,38 @@ impl GQLMarketTradeGood {
         Ok(into_gql(erg))
     }
 
-    async fn history(&self, ctx: &async_graphql::Context<'_>) -> Result<Vec<GQLMarketTradeGood>> {
+    async fn history(
+        &self,
+        ctx: &async_graphql::Context<'_>,
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<GQLMarketTradeGoodPage> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
         let history = database::MarketTradeGood::get_history_by_waypoint_and_trade_symbol(
             database_pool,
             &self.market_trade_good.waypoint_symbol,
             &self.market_trade_good.symbol,
+            paginated_query(page, page_size),
         )
         .await?;
-        Ok(into_gql_vec(history))
+        Ok(history.into())
     }
 
     async fn market_transactions<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
-    ) -> Result<Vec<GQLMarketTransaction>> {
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<GQLMarketTransactionPage> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
         let erg = database::MarketTransaction::get_by_waypoint_and_trade_symbol(
             database_pool,
             &self.market_trade_good.waypoint_symbol,
             self.market_trade_good.symbol,
+            paginated_query(page, page_size),
         )
         .await?;
-        Ok(erg.into_iter().map(|t| t.into()).collect())
+        Ok(erg.into())
     }
 
     async fn market_trade(
@@ -904,37 +1078,51 @@ impl GQLMarketTradeGood {
             .await?;
         Ok(erg.into())
     }
-    async fn maps(&self, ctx: &async_graphql::Context<'_>) -> Result<Vec<GQLMarketTradeGood>> {
+    async fn maps(
+        &self,
+        ctx: &async_graphql::Context<'_>,
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<GQLMarketTradeGoodPage> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
         let maping = match self.market_trade_good.r#type {
             models::market_trade_good::Type::Export => {
                 database::ExportImportMapping::get_imports_for_export(
                     database_pool,
                     self.market_trade_good.symbol,
+                    database::PaginatedQuery::unpaged(),
                 )
                 .await?
+                .items
             }
             models::market_trade_good::Type::Exchange => Vec::new(),
             models::market_trade_good::Type::Import => {
                 database::ExportImportMapping::get_exports_for_import(
                     database_pool,
                     self.market_trade_good.symbol,
+                    database::PaginatedQuery::unpaged(),
                 )
                 .await?
+                .items
             }
         };
 
         let market_trades = database::MarketTradeGood::get_last_by_waypoint(
             database_pool,
             &self.market_trade_good.waypoint_symbol,
+            database::PaginatedQuery::unpaged(),
         )
-        .await?;
+        .await?
+        .items;
 
-        Ok(market_trades
-            .into_iter()
-            .filter(|t| maping.contains(&t.symbol))
-            .map(Into::into)
-            .collect())
+        Ok(database::paginate_items(
+            paginated_query(page, page_size),
+            market_trades
+                .into_iter()
+                .filter(|t| maping.contains(&t.symbol))
+                .collect(),
+        )?
+        .into())
     }
 
     async fn trade_symbol_info(&self) -> TradeSymbolInfo {
@@ -959,6 +1147,13 @@ impl From<database::MarketTransaction> for GQLMarketTransaction {
         }
     }
 }
+
+paginated_gql_object!(
+    GQLMarketTransactionPage,
+    "MarketTransactionPage",
+    database::MarketTransaction,
+    GQLMarketTransaction
+);
 #[async_graphql::ComplexObject]
 impl GQLMarketTransaction {
     async fn waypoint<'ctx>(
@@ -996,7 +1191,7 @@ impl GQLMarketTransaction {
     ) -> Result<Option<GQLTradeRoute>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
         let trade_route = if let Some(trade_route) = self.market_transaction.trade_route {
-            database::TradeRoute::get_by_id(database_pool, trade_route).await?
+            database::TradeRoute::get_by_id(database_pool, &trade_route).await?
         } else {
             None
         };
@@ -1024,7 +1219,7 @@ impl GQLMarketTransaction {
         let construction_shipment = if let Some(construction_shipment) =
             self.market_transaction.construction
         {
-            database::ConstructionShipment::get_by_id(database_pool, construction_shipment).await?
+            database::ConstructionShipment::get_by_id(database_pool, &construction_shipment).await?
         } else {
             None
         };
@@ -1158,6 +1353,13 @@ impl GQLRepairTransaction {
     }
 }
 
+paginated_gql_object!(
+    GQLRepairTransactionPage,
+    "RepairTransactionPage",
+    database::RepairTransaction,
+    GQLRepairTransaction
+);
+
 #[derive(Debug, Clone, async_graphql::SimpleObject)]
 #[graphql(name = "ReservedFund")]
 #[graphql(complex)]
@@ -1175,37 +1377,61 @@ impl From<database::ReservedFund> for GQLReservedFund {
 }
 #[async_graphql::ComplexObject]
 impl GQLReservedFund {
-    async fn contract<'ctx>(&self, ctx: &async_graphql::Context<'ctx>) -> Result<Vec<GQLContract>> {
+    async fn contract<'ctx>(
+        &self,
+        ctx: &async_graphql::Context<'ctx>,
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<GQLContractPage> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let contract =
-            database::Contract::get_by_reservation_id(database_pool, self.reserved_fund.id).await?;
-        Ok(into_gql_vec(contract))
+        let contract = database::Contract::get_by_reservation_id(
+            database_pool,
+            self.reserved_fund.id,
+            paginated_query(page, page_size),
+        )
+        .await?;
+        Ok(contract.into())
     }
 
     async fn trade_route<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
-    ) -> Result<Vec<GQLTradeRoute>> {
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<GQLTradeRoutePage> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let trade_routes =
-            database::TradeRoute::get_by_reservation_id(database_pool, self.reserved_fund.id)
-                .await?;
-        Ok(into_gql_vec(trade_routes))
+        let trade_routes = database::TradeRoute::get_by_reservation_id(
+            database_pool,
+            self.reserved_fund.id,
+            paginated_query(page, page_size),
+        )
+        .await?;
+        Ok(trade_routes.into())
     }
 
     async fn construction_shipment<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
-    ) -> Result<Vec<GQLConstructionShipment>> {
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<GQLConstructionShipmentPage> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
         let construction_shipments = database::ConstructionShipment::get_by_reservation_id(
             database_pool,
             self.reserved_fund.id,
+            paginated_query(page, page_size),
         )
         .await?;
-        Ok(into_gql_vec(construction_shipments))
+        Ok(construction_shipments.into())
     }
 }
+
+paginated_gql_object!(
+    GQLReservedFundPage,
+    "ReservedFundPage",
+    database::ReservedFund,
+    GQLReservedFund
+);
 
 #[derive(Debug, Clone, async_graphql::SimpleObject)]
 #[graphql(name = "Route")]
@@ -1252,7 +1478,7 @@ impl GQLRoute {
     ) -> Result<Option<GQLShipState>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
         let ship_state = if let Some(ship_state) = &self.route.ship_info_after {
-            database::ShipState::get_by_id(database_pool, *ship_state).await?
+            database::ShipState::get_by_id(database_pool, ship_state).await?
         } else {
             None
         };
@@ -1265,13 +1491,15 @@ impl GQLRoute {
     ) -> Result<Option<GQLShipState>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
         let ship_state = if let Some(ship_state) = &self.route.ship_info_before {
-            database::ShipState::get_by_id(database_pool, *ship_state).await?
+            database::ShipState::get_by_id(database_pool, ship_state).await?
         } else {
             None
         };
         Ok(into_gql(ship_state))
     }
 }
+
+paginated_gql_object!(GQLRoutePage, "RoutePage", database::Route, GQLRoute);
 
 #[derive(Debug, Clone, async_graphql::SimpleObject)]
 #[graphql(name = "ScrapTransaction")]
@@ -1310,6 +1538,13 @@ impl GQLScrapTransaction {
     }
 }
 
+paginated_gql_object!(
+    GQLScrapTransactionPage,
+    "ScrapTransactionPage",
+    database::ScrapTransaction,
+    GQLScrapTransaction
+);
+
 #[derive(Debug, Clone, async_graphql::SimpleObject)]
 #[graphql(name = "ShipAssignment")]
 #[graphql(complex)]
@@ -1325,6 +1560,14 @@ impl From<database::ShipAssignment> for GQLShipAssignment {
         }
     }
 }
+
+paginated_gql_object!(
+    GQLShipAssignmentPage,
+    "ShipAssignmentPage",
+    database::ShipAssignment,
+    GQLShipAssignment
+);
+
 #[async_graphql::ComplexObject]
 impl GQLShipAssignment {
     async fn fleet<'ctx>(&self, ctx: &async_graphql::Context<'ctx>) -> Result<Option<GQLFleet>> {
@@ -1380,6 +1623,14 @@ impl From<database::ShipInfo> for GQLShipInfo {
         GQLShipInfo { ship_info: value }
     }
 }
+
+paginated_gql_object!(
+    GQLShipInfoPage,
+    "ShipInfoPage",
+    database::ShipInfo,
+    GQLShipInfo
+);
+
 #[async_graphql::ComplexObject]
 impl GQLShipInfo {
     async fn ship<'ctx>(&self, ctx: &async_graphql::Context<'ctx>) -> Result<Option<GQLShip>> {
@@ -1488,7 +1739,7 @@ impl GQLShipJump {
     ) -> Result<Option<GQLShipState>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
         let ship_state =
-            database::ShipState::get_by_id(database_pool, self.ship_jump.ship_after).await?;
+            database::ShipState::get_by_id(database_pool, &self.ship_jump.ship_after).await?;
         Ok(into_gql(ship_state))
     }
 
@@ -1498,10 +1749,17 @@ impl GQLShipJump {
     ) -> Result<Option<GQLShipState>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
         let ship_state =
-            database::ShipState::get_by_id(database_pool, self.ship_jump.ship_before).await?;
+            database::ShipState::get_by_id(database_pool, &self.ship_jump.ship_before).await?;
         Ok(into_gql(ship_state))
     }
 }
+
+paginated_gql_object!(
+    GQLShipJumpPage,
+    "ShipJumpPage",
+    database::ShipJump,
+    GQLShipJump
+);
 
 #[derive(Debug, Clone, async_graphql::SimpleObject)]
 #[graphql(name = "ShipModificationTransaction")]
@@ -1546,6 +1804,13 @@ impl GQLShipModificationTransaction {
     }
 }
 
+paginated_gql_object!(
+    GQLShipModificationTransactionPage,
+    "ShipModificationTransactionPage",
+    database::ShipModificationTransaction,
+    GQLShipModificationTransaction
+);
+
 #[derive(Debug, Clone, async_graphql::SimpleObject)]
 #[graphql(name = "ShipState")]
 #[graphql(complex)]
@@ -1559,6 +1824,14 @@ impl From<database::ShipState> for GQLShipState {
         GQLShipState { ship_state: value }
     }
 }
+
+paginated_gql_object!(
+    GQLShipStatePage,
+    "ShipStatePage",
+    database::ShipState,
+    GQLShipState
+);
+
 #[async_graphql::ComplexObject]
 impl GQLShipState {
     async fn cargo_inventory(&self) -> HashMap<models::TradeSymbol, i32> {
@@ -1578,7 +1851,7 @@ impl GQLShipState {
     ) -> Result<Option<GQLSystem>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
         let system =
-            database::System::get_by_symbol(database_pool, &self.ship_state.system_symbol).await?;
+            database::System::get_by_id(database_pool, &self.ship_state.system_symbol).await?;
         Ok(into_gql(system))
     }
 
@@ -1609,11 +1882,9 @@ impl GQLShipState {
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Option<GQLSystem>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let system = database::System::get_by_symbol(
-            database_pool,
-            &self.ship_state.route_destination_system,
-        )
-        .await?;
+        let system =
+            database::System::get_by_id(database_pool, &self.ship_state.route_destination_system)
+                .await?;
         Ok(into_gql(system))
     }
 
@@ -1634,7 +1905,7 @@ impl GQLShipState {
     ) -> Result<Option<GQLSystem>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
         let system =
-            database::System::get_by_symbol(database_pool, &self.ship_state.route_origin_system)
+            database::System::get_by_id(database_pool, &self.ship_state.route_origin_system)
                 .await?;
         Ok(into_gql(system))
     }
@@ -1658,7 +1929,7 @@ impl GQLShipState {
     ) -> Result<Option<GQLSystem>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
         let system = if let Some(ap_dest) = &self.ship_state.auto_pilot_destination_system_symbol {
-            database::System::get_by_symbol(database_pool, ap_dest).await?
+            database::System::get_by_id(database_pool, ap_dest).await?
         } else {
             None
         };
@@ -1684,7 +1955,7 @@ impl GQLShipState {
     ) -> Result<Option<GQLSystem>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
         let system = if let Some(ap_orig) = &self.ship_state.auto_pilot_origin_system_symbol {
-            database::System::get_by_symbol(database_pool, ap_orig).await?
+            database::System::get_by_id(database_pool, ap_orig).await?
         } else {
             None
         };
@@ -1773,53 +2044,68 @@ impl GQLShipyard {
         Ok(into_gql(erg))
     }
 
-    async fn history(&self, ctx: &async_graphql::Context<'_>) -> Result<Vec<GQLShipyard>> {
+    async fn history(
+        &self,
+        ctx: &async_graphql::Context<'_>,
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<GQLShipyardPage> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
         let history = database::Shipyard::get_history_by_waypoint(
             database_pool,
             &self.shipyard.waypoint_symbol,
+            paginated_query(page, page_size),
         )
         .await?;
-        Ok(into_gql_vec(history))
+        Ok(history.into())
     }
 
     async fn shipyard_ship_types(
         &self,
         ctx: &async_graphql::Context<'_>,
-    ) -> Result<Vec<GQLShipyardShipTypes>> {
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<GQLShipyardShipTypesPage> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
         let history = database::ShipyardShipTypes::get_last_by_waypoint(
             database_pool,
             &self.shipyard.waypoint_symbol,
+            paginated_query(page, page_size),
         )
         .await?;
-        Ok(into_gql_vec(history))
+        Ok(history.into())
     }
 
     async fn shipyard_ships(
         &self,
         ctx: &async_graphql::Context<'_>,
-    ) -> Result<Vec<GQLShipyardShip>> {
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<GQLShipyardShipPage> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
         let history = database::ShipyardShip::get_last_by_waypoint(
             database_pool,
             &self.shipyard.waypoint_symbol,
+            paginated_query(page, page_size),
         )
         .await?;
-        Ok(into_gql_vec(history))
+        Ok(history.into())
     }
 
     async fn shipyard_transactions(
         &self,
         ctx: &async_graphql::Context<'_>,
-    ) -> Result<Vec<GQLShipyardTransaction>> {
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<GQLShipyardTransactionPage> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
         let history = database::ShipyardTransaction::get_by_waypoint(
             database_pool,
             &self.shipyard.waypoint_symbol,
+            paginated_query(page, page_size),
         )
         .await?;
-        Ok(into_gql_vec(history))
+        Ok(history.into())
     }
 }
 
@@ -1848,29 +2134,38 @@ impl GQLShipyardShip {
         Ok(into_gql(erg))
     }
 
-    async fn history(&self, ctx: &async_graphql::Context<'_>) -> Result<Vec<GQLShipyardShip>> {
+    async fn history(
+        &self,
+        ctx: &async_graphql::Context<'_>,
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<GQLShipyardShipPage> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
         let history = database::ShipyardShip::get_history_by_waypoint_and_ship_type(
             database_pool,
             &self.shipyard_ship.waypoint_symbol,
             &self.shipyard_ship.ship_type,
+            paginated_query(page, page_size),
         )
         .await?;
-        Ok(into_gql_vec(history))
+        Ok(history.into())
     }
 
     async fn shipyard_transactions(
         &self,
         ctx: &async_graphql::Context<'_>,
-    ) -> Result<Vec<GQLShipyardTransaction>> {
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<GQLShipyardTransactionPage> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
         let history = database::ShipyardTransaction::get_by_waypoint_and_ship_type(
             database_pool,
             &self.shipyard_ship.waypoint_symbol,
             self.shipyard_ship.ship_type,
+            paginated_query(page, page_size),
         )
         .await?;
-        Ok(into_gql_vec(history))
+        Ok(history.into())
     }
 
     async fn trade_symbol_info(&self) -> TradeSymbolInfo {
@@ -1900,7 +2195,7 @@ impl GQLShipyardShipTypes {
     async fn shipyard(&self, ctx: &async_graphql::Context<'_>) -> Result<Option<GQLShipyard>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
         let erg =
-            database::Shipyard::get_by_id(database_pool, self.shipyard_ship_types.shipyard_id)
+            database::Shipyard::get_by_id(database_pool, &self.shipyard_ship_types.shipyard_id)
                 .await?;
         Ok(into_gql(erg))
     }
@@ -1911,6 +2206,25 @@ impl GQLShipyardShipTypes {
         }
     }
 }
+
+paginated_gql_object!(
+    GQLShipyardPage,
+    "ShipyardPage",
+    database::Shipyard,
+    GQLShipyard
+);
+paginated_gql_object!(
+    GQLShipyardShipPage,
+    "ShipyardShipPage",
+    database::ShipyardShip,
+    GQLShipyardShip
+);
+paginated_gql_object!(
+    GQLShipyardShipTypesPage,
+    "ShipyardShipTypesPage",
+    database::ShipyardShipTypes,
+    GQLShipyardShipTypes
+);
 
 #[derive(Debug, Clone, async_graphql::SimpleObject)]
 #[graphql(name = "ShipyardTransaction")]
@@ -1980,6 +2294,13 @@ impl GQLShipyardTransaction {
     }
 }
 
+paginated_gql_object!(
+    GQLShipyardTransactionPage,
+    "ShipyardTransactionPage",
+    database::ShipyardTransaction,
+    GQLShipyardTransaction
+);
+
 #[derive(Debug, Clone, async_graphql::SimpleObject)]
 #[graphql(name = "Survey")]
 #[graphql(complex)]
@@ -2020,11 +2341,17 @@ impl GQLSurvey {
     async fn extractions<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
-    ) -> Result<Vec<GQLExtraction>> {
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<GQLExtractionPage> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let erg = database::Extraction::get_by_survey_symbol(database_pool, &self.survey.signature)
-            .await?;
-        Ok(into_gql_vec(erg))
+        let erg = database::Extraction::get_by_survey_symbol(
+            database_pool,
+            &self.survey.signature,
+            paginated_query(page, page_size),
+        )
+        .await?;
+        Ok(erg.into())
     }
 
     async fn ship(&self, ctx: &async_graphql::Context<'_>) -> Result<Option<GQLShip>> {
@@ -2039,7 +2366,7 @@ impl GQLSurvey {
     ) -> Result<Option<GQLShipState>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
         let ship_state =
-            database::ShipState::get_by_id(database_pool, self.survey.ship_info_before).await?;
+            database::ShipState::get_by_id(database_pool, &self.survey.ship_info_before).await?;
         Ok(into_gql(ship_state))
     }
 
@@ -2049,10 +2376,12 @@ impl GQLSurvey {
     ) -> Result<Option<GQLShipState>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
         let ship_state =
-            database::ShipState::get_by_id(database_pool, self.survey.ship_info_after).await?;
+            database::ShipState::get_by_id(database_pool, &self.survey.ship_info_after).await?;
         Ok(into_gql(ship_state))
     }
 }
+
+paginated_gql_object!(GQLSurveyPage, "SurveyPage", database::Survey, GQLSurvey);
 
 #[derive(Debug, Clone, serde::Serialize, async_graphql::SimpleObject)]
 #[graphql(complex)]
@@ -2085,181 +2414,288 @@ impl From<database::System> for GQLSystem {
 }
 #[async_graphql::ComplexObject]
 impl GQLSystem {
-    async fn waypoints(&self, ctx: &async_graphql::Context<'_>) -> Result<Vec<GQLWaypoint>> {
-        let data_loader = ctx
-            .data::<DataLoader<database::WaypointSystemLoader>>()
-            .unwrap();
-        let waypoints = data_loader.load_one(self.system.symbol.clone()).await?;
-        let erg = waypoints.unwrap_or_default();
-        Ok(into_gql_vec(erg))
+    async fn waypoints(
+        &self,
+        ctx: &async_graphql::Context<'_>,
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<GQLWaypointPage> {
+        let database_pool = ctx.data::<database::DbPool>().unwrap();
+        let waypoints = database::Waypoint::get_by_system(
+            database_pool,
+            &self.system.symbol,
+            paginated_query(page, page_size),
+        )
+        .await?;
+        Ok(waypoints.into())
     }
 
     async fn market_transactions<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
-    ) -> Result<Vec<GQLMarketTransaction>> {
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<GQLMarketTransactionPage> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let transactions =
-            database::MarketTransaction::get_by_system(database_pool, &self.system.symbol).await?;
-        Ok(into_gql_vec(transactions))
+        let transactions = database::MarketTransaction::get_by_system(
+            database_pool,
+            &self.system.symbol,
+            paginated_query(page, page_size),
+        )
+        .await?;
+        Ok(transactions.into())
     }
     async fn shipyard_transactions<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
-    ) -> Result<Vec<GQLShipyardTransaction>> {
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<GQLShipyardTransactionPage> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let transactions =
-            database::ShipyardTransaction::get_by_system(database_pool, &self.system.symbol)
-                .await?;
-        Ok(into_gql_vec(transactions))
+        let transactions = database::ShipyardTransaction::get_by_system(
+            database_pool,
+            &self.system.symbol,
+            paginated_query(page, page_size),
+        )
+        .await?;
+        Ok(transactions.into())
     }
     async fn chart_transactions<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
-    ) -> Result<Vec<GQLChartTransaction>> {
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<GQLChartTransactionPage> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let transactions =
-            database::ChartTransaction::get_by_system(database_pool, &self.system.symbol).await?;
-        Ok(into_gql_vec(transactions))
+        let transactions = database::ChartTransaction::get_by_system(
+            database_pool,
+            &self.system.symbol,
+            paginated_query(page, page_size),
+        )
+        .await?;
+        Ok(transactions.into())
     }
     async fn repair_transactions<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
-    ) -> Result<Vec<GQLRepairTransaction>> {
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<GQLRepairTransactionPage> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let transactions =
-            database::RepairTransaction::get_by_system(database_pool, &self.system.symbol).await?;
-        Ok(into_gql_vec(transactions))
+        let transactions = database::RepairTransaction::get_by_system(
+            database_pool,
+            &self.system.symbol,
+            paginated_query(page, page_size),
+        )
+        .await?;
+        Ok(transactions.into())
     }
     async fn scrap_transactions<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
-    ) -> Result<Vec<GQLScrapTransaction>> {
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<GQLScrapTransactionPage> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let transactions =
-            database::ScrapTransaction::get_by_system(database_pool, &self.system.symbol).await?;
-        Ok(into_gql_vec(transactions))
+        let transactions = database::ScrapTransaction::get_by_system(
+            database_pool,
+            &self.system.symbol,
+            paginated_query(page, page_size),
+        )
+        .await?;
+        Ok(transactions.into())
     }
     async fn ship_modification_transactions<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
-    ) -> Result<Vec<GQLShipModificationTransaction>> {
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<GQLShipModificationTransactionPage> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
         let transactions = database::ShipModificationTransaction::get_by_system(
             database_pool,
             &self.system.symbol,
+            paginated_query(page, page_size),
         )
         .await?;
-        Ok(into_gql_vec(transactions))
+        Ok(transactions.into())
     }
 
     async fn shipyard_ships(
         &self,
         ctx: &async_graphql::Context<'_>,
-    ) -> Result<Vec<GQLShipyardShip>> {
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<GQLShipyardShipPage> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let history =
-            database::ShipyardShip::get_last_by_system(database_pool, &self.system.symbol).await?;
-        Ok(into_gql_vec(history))
+        let history = database::ShipyardShip::get_last_by_system(
+            database_pool,
+            &self.system.symbol,
+            paginated_query(page, page_size),
+        )
+        .await?;
+        Ok(history.into())
     }
 
     async fn shipyard_ship_types(
         &self,
         ctx: &async_graphql::Context<'_>,
-    ) -> Result<Vec<GQLShipyardShipTypes>> {
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<GQLShipyardShipTypesPage> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let history =
-            database::ShipyardShipTypes::get_last_by_system(database_pool, &self.system.symbol)
-                .await?;
-        Ok(into_gql_vec(history))
+        let history = database::ShipyardShipTypes::get_last_by_system(
+            database_pool,
+            &self.system.symbol,
+            paginated_query(page, page_size),
+        )
+        .await?;
+        Ok(history.into())
     }
 
-    async fn market_trades(&self, ctx: &async_graphql::Context<'_>) -> Result<Vec<GQLMarketTrade>> {
+    async fn market_trades(
+        &self,
+        ctx: &async_graphql::Context<'_>,
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<GQLMarketTradePage> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let history =
-            database::MarketTrade::get_last_by_system(database_pool, &self.system.symbol).await?;
-        Ok(into_gql_vec(history))
+        let history = database::MarketTrade::get_last_by_system(
+            database_pool,
+            &self.system.symbol,
+            paginated_query(page, page_size),
+        )
+        .await?;
+        Ok(history.into())
     }
 
     async fn market_trade_goods(
         &self,
         ctx: &async_graphql::Context<'_>,
-    ) -> Result<Vec<GQLMarketTradeGood>> {
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<GQLMarketTradeGoodPage> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let history =
-            database::MarketTradeGood::get_last_by_system(database_pool, &self.system.symbol)
-                .await?;
-        Ok(into_gql_vec(history))
+        let history = database::MarketTradeGood::get_last_by_system(
+            database_pool,
+            &self.system.symbol,
+            paginated_query(page, page_size),
+        )
+        .await?;
+        Ok(history.into())
     }
 
-    async fn fleets(&self, ctx: &async_graphql::Context<'_>) -> Result<Vec<GQLFleet>> {
-        let data_loader = ctx
-            .data::<DataLoader<database::FleetBySystemLoader>>()
-            .unwrap();
-        let fleets = data_loader
-            .load_one(self.system.symbol.clone())
-            .await?
-            .unwrap_or_default();
-        Ok(into_gql_vec(fleets))
+    async fn fleets(
+        &self,
+        ctx: &async_graphql::Context<'_>,
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<GQLFleetPage> {
+        let database_pool = ctx.data::<database::DbPool>().unwrap();
+        let fleets = database::Fleet::get_by_system(
+            database_pool,
+            &self.system.symbol,
+            paginated_query(page, page_size),
+        )
+        .await?;
+        Ok(fleets.into())
     }
 
-    async fn surveys(&self, ctx: &async_graphql::Context<'_>) -> Result<Vec<GQLSurvey>> {
+    async fn surveys(
+        &self,
+        ctx: &async_graphql::Context<'_>,
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<GQLSurveyPage> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let history =
-            database::Survey::get_by_system_symbol(database_pool, &self.system.symbol).await?;
-        Ok(into_gql_vec(history))
+        let history = database::Survey::get_by_system_symbol(
+            database_pool,
+            &self.system.symbol,
+            paginated_query(page, page_size),
+        )
+        .await?;
+        Ok(history.into())
     }
 
-    async fn extractions(&self, ctx: &async_graphql::Context<'_>) -> Result<Vec<GQLExtraction>> {
+    async fn extractions(
+        &self,
+        ctx: &async_graphql::Context<'_>,
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<GQLExtractionPage> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let history =
-            database::Extraction::get_by_system_symbol(database_pool, &self.system.symbol).await?;
-        Ok(into_gql_vec(history))
+        let history = database::Extraction::get_by_system_symbol(
+            database_pool,
+            &self.system.symbol,
+            paginated_query(page, page_size),
+        )
+        .await?;
+        Ok(history.into())
     }
 
     async fn construction_materials(
         &self,
         ctx: &async_graphql::Context<'_>,
-    ) -> Result<Vec<GQLConstructionMaterial>> {
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<GQLConstructionMaterialPage> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let history =
-            database::ConstructionMaterial::get_by_system(database_pool, &self.system.symbol)
-                .await?;
-        Ok(into_gql_vec(history))
+        let history = database::ConstructionMaterial::get_by_system(
+            database_pool,
+            &self.system.symbol,
+            paginated_query(page, page_size),
+        )
+        .await?;
+        Ok(history.into())
     }
 
     async fn construction_shipments(
         &self,
         ctx: &async_graphql::Context<'_>,
-    ) -> Result<Vec<GQLConstructionShipment>> {
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<GQLConstructionShipmentPage> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let history =
-            database::ConstructionShipment::get_by_system(database_pool, &self.system.symbol)
-                .await?;
-        Ok(into_gql_vec(history))
+        let history = database::ConstructionShipment::get_by_system(
+            database_pool,
+            &self.system.symbol,
+            paginated_query(page, page_size),
+        )
+        .await?;
+        Ok(history.into())
     }
 
     async fn contract_deliveries(
         &self,
         ctx: &async_graphql::Context<'_>,
-    ) -> Result<Vec<GQLContractDelivery>> {
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<GQLContractDeliveryPage> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let history =
-            database::ContractDelivery::get_by_system_symbol(database_pool, &self.system.symbol)
-                .await?;
-        Ok(into_gql_vec(history))
+        let history = database::ContractDelivery::get_by_system_symbol(
+            database_pool,
+            &self.system.symbol,
+            paginated_query(page, page_size),
+        )
+        .await?;
+        Ok(history.into())
     }
 
     async fn jump_gate_connections(
         &self,
         ctx: &async_graphql::Context<'_>,
-    ) -> Result<Vec<GQLJumpGateConnection>> {
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<GQLJumpGateConnectionPage> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let jump_gates =
-            database::JumpGateConnection::get_all_from_system(database_pool, &self.system.symbol)
-                .await?;
+        let jump_gates = database::JumpGateConnection::get_all_from_system(
+            database_pool,
+            &self.system.symbol,
+            paginated_query(page, page_size),
+        )
+        .await?;
 
-        Ok(into_gql_vec(jump_gates))
+        Ok(jump_gates.into())
     }
 
     // async fn contract_shipments(
@@ -2274,11 +2710,20 @@ impl GQLSystem {
     //     Ok(into_gql_vec(history)) // Added conversion
     // }
 
-    async fn trade_routes(&self, ctx: &async_graphql::Context<'_>) -> Result<Vec<GQLTradeRoute>> {
+    async fn trade_routes(
+        &self,
+        ctx: &async_graphql::Context<'_>,
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<GQLTradeRoutePage> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let routes =
-            database::TradeRoute::get_by_system(database_pool, &self.system.symbol).await?;
-        Ok(into_gql_vec(routes))
+        let routes = database::TradeRoute::get_by_system(
+            database_pool,
+            &self.system.symbol,
+            paginated_query(page, page_size),
+        )
+        .await?;
+        Ok(routes.into())
     }
 
     async fn ships(&self, ctx: &async_graphql::Context<'_>) -> Result<Vec<GQLShip>> {
@@ -2293,12 +2738,21 @@ impl GQLSystem {
 
     async fn seen_agents(&self, ctx: &async_graphql::Context<'_>) -> Result<Vec<KnownAgent>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let system_market_transactions =
-            database::MarketTransaction::get_by_system(database_pool, &self.system.symbol).await?;
+        let system_market_transactions = database::MarketTransaction::get_by_system(
+            database_pool,
+            &self.system.symbol,
+            database::PaginatedQuery::unpaged(),
+        )
+        .await?
+        .items;
 
-        let system_shipyard_transactions =
-            database::ShipyardTransaction::get_by_system(database_pool, &self.system.symbol)
-                .await?;
+        let system_shipyard_transactions = database::ShipyardTransaction::get_by_system(
+            database_pool,
+            &self.system.symbol,
+            database::PaginatedQuery::unpaged(),
+        )
+        .await?
+        .items;
 
         let known_agents_iter = system_market_transactions
             .iter()
@@ -2346,6 +2800,8 @@ impl KnownAgent {
         Ok(into_gql(agent))
     }
 }
+
+paginated_gql_object!(GQLSystemPage, "SystemPage", database::System, GQLSystem);
 
 #[derive(Debug, Clone, async_graphql::SimpleObject)]
 #[graphql(name = "TradeRoute")]
@@ -2406,12 +2862,17 @@ impl GQLTradeRoute {
     async fn transactions(
         &self,
         ctx: &async_graphql::Context<'_>,
-    ) -> Result<Vec<GQLMarketTransaction>> {
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<GQLMarketTransactionPage> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let transactions =
-            database::MarketTransaction::get_by_trade_route(database_pool, self.trade_route.id)
-                .await?;
-        Ok(into_gql_vec(transactions))
+        let transactions = database::MarketTransaction::get_by_trade_route(
+            database_pool,
+            self.trade_route.id,
+            paginated_query(page, page_size),
+        )
+        .await?;
+        Ok(transactions.into())
     }
 
     async fn market_transaction_summary(
@@ -2462,6 +2923,13 @@ impl GQLTradeRoute {
     }
 }
 
+paginated_gql_object!(
+    GQLTradeRoutePage,
+    "TradeRoutePage",
+    database::TradeRoute,
+    GQLTradeRoute
+);
+
 #[derive(Debug, Clone, async_graphql::SimpleObject)]
 #[graphql(name = "Waypoint")]
 #[graphql(complex)]
@@ -2475,12 +2943,20 @@ impl From<database::Waypoint> for GQLWaypoint {
         GQLWaypoint { waypoint: value }
     }
 }
+
+paginated_gql_object!(
+    GQLWaypointPage,
+    "WaypointPage",
+    database::Waypoint,
+    GQLWaypoint
+);
+
 #[async_graphql::ComplexObject]
 impl GQLWaypoint {
     async fn system(&self, ctx: &async_graphql::Context<'_>) -> Result<Option<GQLSystem>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
         let system =
-            database::System::get_by_symbol(database_pool, &self.waypoint.system_symbol).await?;
+            database::System::get_by_id(database_pool, &self.waypoint.system_symbol).await?;
         Ok(into_gql(system))
     }
 
@@ -2498,26 +2974,29 @@ impl GQLWaypoint {
         &self,
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Option<GQLChartTransaction>> {
-        // Changed return type to GQLChartTransaction
         let database_pool = ctx.data::<database::DbPool>().unwrap();
         let reg = database::ChartTransaction::get_by_waypoint_symbol(
             database_pool,
             &self.waypoint.symbol,
         )
         .await?;
-        Ok(into_gql(reg)) // Added conversion
+        Ok(into_gql(reg))
     }
 
     async fn market_transactions<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
-    ) -> Result<Vec<GQLMarketTransaction>> {
-        // Changed return type to GQLMarketTransaction
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<GQLMarketTransactionPage> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let reg =
-            database::MarketTransaction::get_by_waypoint(database_pool, &self.waypoint.symbol)
-                .await?;
-        Ok(into_gql_vec(reg)) // Added conversion
+        let reg = database::MarketTransaction::get_by_waypoint(
+            database_pool,
+            &self.waypoint.symbol,
+            paginated_query(page, page_size),
+        )
+        .await?;
+        Ok(reg.into())
     }
 
     async fn market_transaction_summary<'ctx>(
@@ -2537,209 +3016,309 @@ impl GQLWaypoint {
     async fn shipyard_transactions<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
-    ) -> Result<Vec<GQLShipyardTransaction>> {
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<GQLShipyardTransactionPage> {
         // Changed return type to GQLShipyardTransaction
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let reg =
-            database::ShipyardTransaction::get_by_waypoint(database_pool, &self.waypoint.symbol)
-                .await?;
-        Ok(into_gql_vec(reg)) // Added conversion
+        let reg = database::ShipyardTransaction::get_by_waypoint(
+            database_pool,
+            &self.waypoint.symbol,
+            paginated_query(page, page_size),
+        )
+        .await?;
+        Ok(reg.into()) // Added conversion
     }
 
     async fn repair_transactions<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
-    ) -> Result<Vec<GQLRepairTransaction>> {
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<GQLRepairTransactionPage> {
         // Changed return type to GQLRepairTransaction
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let reg =
-            database::RepairTransaction::get_by_waypoint(database_pool, &self.waypoint.symbol)
-                .await?;
-        Ok(into_gql_vec(reg)) // Added conversion
+        let reg = database::RepairTransaction::get_by_waypoint(
+            database_pool,
+            &self.waypoint.symbol,
+            paginated_query(page, page_size),
+        )
+        .await?;
+        Ok(reg.into()) // Added conversion
     }
 
     async fn scrap_transactions<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
-    ) -> Result<Vec<GQLScrapTransaction>> {
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<GQLScrapTransactionPage> {
         // Changed return type to GQLScrapTransaction
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let reg = database::ScrapTransaction::get_by_waypoint(database_pool, &self.waypoint.symbol)
-            .await?;
-        Ok(into_gql_vec(reg)) // Added conversion
+        let reg = database::ScrapTransaction::get_by_waypoint(
+            database_pool,
+            &self.waypoint.symbol,
+            paginated_query(page, page_size),
+        )
+        .await?;
+        Ok(reg.into()) // Added conversion
     }
 
     async fn ship_modification_transactions<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
-    ) -> Result<Vec<GQLShipModificationTransaction>> {
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<GQLShipModificationTransactionPage> {
         // Changed return type to GQLShipModificationTransaction
         let database_pool = ctx.data::<database::DbPool>().unwrap();
         let reg = database::ShipModificationTransaction::get_by_waypoint(
             database_pool,
             &self.waypoint.symbol,
+            paginated_query(page, page_size),
         )
         .await?;
-        Ok(into_gql_vec(reg)) // Added conversion
+        Ok(reg.into()) // Added conversion
     }
 
     async fn construction_materials(
         &self,
         ctx: &async_graphql::Context<'_>,
-    ) -> Result<Vec<GQLConstructionMaterial>> {
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<GQLConstructionMaterialPage> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let history =
-            database::ConstructionMaterial::get_by_waypoint(database_pool, &self.waypoint.symbol)
-                .await?;
-        Ok(into_gql_vec(history))
+        let history = database::ConstructionMaterial::get_by_waypoint(
+            database_pool,
+            &self.waypoint.symbol,
+            paginated_query(page, page_size),
+        )
+        .await?;
+        Ok(history.into())
     }
 
     async fn construction_shipments_to(
         &self,
         ctx: &async_graphql::Context<'_>,
-    ) -> Result<Vec<GQLConstructionShipment>> {
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<GQLConstructionShipmentPage> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
         let history = database::ConstructionShipment::get_by_destination_waypoint(
             database_pool,
             &self.waypoint.symbol,
+            paginated_query(page, page_size),
         )
         .await?;
-        Ok(into_gql_vec(history))
+        Ok(history.into())
     }
 
     async fn construction_shipments_from(
         &self,
         ctx: &async_graphql::Context<'_>,
-    ) -> Result<Vec<GQLConstructionShipment>> {
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<GQLConstructionShipmentPage> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
         let history = database::ConstructionShipment::get_by_source_waypoint(
             database_pool,
             &self.waypoint.symbol,
+            paginated_query(page, page_size),
         )
         .await?;
-        Ok(into_gql_vec(history))
+        Ok(history.into())
     }
 
     async fn contract_deliveries(
         &self,
         ctx: &async_graphql::Context<'_>,
-    ) -> Result<Vec<GQLContractDelivery>> {
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<GQLContractDeliveryPage> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
         let history = database::ContractDelivery::get_by_destination_symbol(
             database_pool,
             &self.waypoint.symbol,
+            paginated_query(page, page_size),
         )
         .await?;
-        Ok(into_gql_vec(history))
+        Ok(history.into())
     }
 
     async fn contract_shipments_from(
         &self,
         ctx: &async_graphql::Context<'_>,
-    ) -> Result<Vec<GQLContractShipment>> {
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<GQLContractShipmentPage> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let history =
-            database::ContractShipment::get_by_source_symbol(database_pool, &self.waypoint.symbol)
-                .await?;
-        Ok(into_gql_vec(history))
+        let history = database::ContractShipment::get_by_source_symbol(
+            database_pool,
+            &self.waypoint.symbol,
+            paginated_query(page, page_size),
+        )
+        .await?;
+        Ok(history.into())
     }
 
     async fn contract_shipments_to(
         &self,
         ctx: &async_graphql::Context<'_>,
-    ) -> Result<Vec<GQLContractShipment>> {
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<GQLContractShipmentPage> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
         let history = database::ContractShipment::get_by_destination_symbol(
             database_pool,
             &self.waypoint.symbol,
+            paginated_query(page, page_size),
         )
         .await?;
-        Ok(into_gql_vec(history))
+        Ok(history.into())
     }
 
-    async fn surveys(&self, ctx: &async_graphql::Context<'_>) -> Result<Vec<GQLSurvey>> {
+    async fn surveys(
+        &self,
+        ctx: &async_graphql::Context<'_>,
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<GQLSurveyPage> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let history =
-            database::Survey::get_by_waypoint_symbol(database_pool, &self.waypoint.symbol).await?;
-        Ok(into_gql_vec(history))
+        let history = database::Survey::get_by_waypoint_symbol(
+            database_pool,
+            &self.waypoint.symbol,
+            paginated_query(page, page_size),
+        )
+        .await?;
+        Ok(history.into())
     }
 
-    async fn extractions(&self, ctx: &async_graphql::Context<'_>) -> Result<Vec<GQLExtraction>> {
+    async fn extractions(
+        &self,
+        ctx: &async_graphql::Context<'_>,
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<GQLExtractionPage> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let history =
-            database::Extraction::get_by_waypoint_symbol(database_pool, &self.waypoint.symbol)
-                .await?;
-        Ok(into_gql_vec(history))
+        let history = database::Extraction::get_by_waypoint_symbol(
+            database_pool,
+            &self.waypoint.symbol,
+            paginated_query(page, page_size),
+        )
+        .await?;
+        Ok(history.into())
     }
 
     async fn trade_routes_from(
         &self,
         ctx: &async_graphql::Context<'_>,
-    ) -> Result<Vec<GQLTradeRoute>> {
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<GQLTradeRoutePage> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let routes =
-            database::TradeRoute::get_by_purchase_waypoint(database_pool, &self.waypoint.symbol)
-                .await?;
-        Ok(into_gql_vec(routes))
+        let routes = database::TradeRoute::get_by_purchase_waypoint(
+            database_pool,
+            &self.waypoint.symbol,
+            paginated_query(page, page_size),
+        )
+        .await?;
+        Ok(routes.into())
     }
 
     async fn trade_routes_to(
         &self,
         ctx: &async_graphql::Context<'_>,
-    ) -> Result<Vec<GQLTradeRoute>> {
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<GQLTradeRoutePage> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let routes =
-            database::TradeRoute::get_by_sell_waypoint(database_pool, &self.waypoint.symbol)
-                .await?;
-        Ok(into_gql_vec(routes))
+        let routes = database::TradeRoute::get_by_sell_waypoint(
+            database_pool,
+            &self.waypoint.symbol,
+            paginated_query(page, page_size),
+        )
+        .await?;
+        Ok(routes.into())
     }
 
-    async fn trade_routes(&self, ctx: &async_graphql::Context<'_>) -> Result<Vec<GQLTradeRoute>> {
+    async fn trade_routes(
+        &self,
+        ctx: &async_graphql::Context<'_>,
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<GQLTradeRoutePage> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let routes =
-            database::TradeRoute::get_by_waypoint(database_pool, &self.waypoint.symbol).await?;
-        Ok(into_gql_vec(routes))
+        let routes = database::TradeRoute::get_by_waypoint(
+            database_pool,
+            &self.waypoint.symbol,
+            paginated_query(page, page_size),
+        )
+        .await?;
+        Ok(routes.into())
     }
 
-    async fn market_trades(&self, ctx: &async_graphql::Context<'_>) -> Result<Vec<GQLMarketTrade>> {
+    async fn market_trades(
+        &self,
+        ctx: &async_graphql::Context<'_>,
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<GQLMarketTradePage> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let history =
-            database::MarketTrade::get_last_by_waypoint(database_pool, &self.waypoint.symbol)
-                .await?;
-        Ok(into_gql_vec(history))
+        let history = database::MarketTrade::get_last_by_waypoint(
+            database_pool,
+            &self.waypoint.symbol,
+            paginated_query(page, page_size),
+        )
+        .await?;
+        Ok(history.into())
     }
 
     async fn market_trade_goods(
         &self,
         ctx: &async_graphql::Context<'_>,
-    ) -> Result<Vec<GQLMarketTradeGood>> {
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<GQLMarketTradeGoodPage> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let history =
-            database::MarketTradeGood::get_last_by_waypoint(database_pool, &self.waypoint.symbol)
-                .await?;
-        Ok(into_gql_vec(history))
+        let history = database::MarketTradeGood::get_last_by_waypoint(
+            database_pool,
+            &self.waypoint.symbol,
+            paginated_query(page, page_size),
+        )
+        .await?;
+        Ok(history.into())
     }
 
     async fn shipyard_ships(
         &self,
         ctx: &async_graphql::Context<'_>,
-    ) -> Result<Vec<GQLShipyardShip>> {
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<GQLShipyardShipPage> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let history =
-            database::ShipyardShip::get_last_by_waypoint(database_pool, &self.waypoint.symbol)
-                .await?;
-        Ok(into_gql_vec(history))
+        let history = database::ShipyardShip::get_last_by_waypoint(
+            database_pool,
+            &self.waypoint.symbol,
+            paginated_query(page, page_size),
+        )
+        .await?;
+        Ok(history.into())
     }
 
     async fn shipyard_ship_types(
         &self,
         ctx: &async_graphql::Context<'_>,
-    ) -> Result<Vec<GQLShipyardShipTypes>> {
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<GQLShipyardShipTypesPage> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let history =
-            database::ShipyardShipTypes::get_last_by_waypoint(database_pool, &self.waypoint.symbol)
-                .await?;
-        Ok(into_gql_vec(history))
+        let history = database::ShipyardShipTypes::get_last_by_waypoint(
+            database_pool,
+            &self.waypoint.symbol,
+            paginated_query(page, page_size),
+        )
+        .await?;
+        Ok(history.into())
     }
 
     async fn shipyard<'ctx>(
@@ -2756,12 +3335,17 @@ impl GQLWaypoint {
     async fn jump_gate_connections(
         &self,
         ctx: &async_graphql::Context<'_>,
-    ) -> Result<Vec<GQLJumpGateConnection>> {
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<GQLJumpGateConnectionPage> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let connections =
-            database::JumpGateConnection::get_all_from(database_pool, &self.waypoint.symbol)
-                .await?;
-        Ok(into_gql_vec(connections))
+        let connections = database::JumpGateConnection::get_all_from(
+            database_pool,
+            &self.waypoint.symbol,
+            paginated_query(page, page_size),
+        )
+        .await?;
+        Ok(connections.into())
     }
 
     async fn last_scrap(
@@ -2772,13 +3356,17 @@ impl GQLWaypoint {
         if !(self.waypoint.has_marketplace || self.waypoint.has_shipyard) {
             return Ok(None);
         }
-        let last_scrap =
-            database::MarketTradeGood::get_last_by_waypoint(database_pool, &self.waypoint.symbol)
-                .await?
-                .iter()
-                .max_by(|a, b| a.created_at.cmp(&b.created_at))
-                .map(|f| f.created_at)
-                .unwrap_or(chrono::DateTime::<chrono::Utc>::MIN_UTC);
+        let last_scrap = database::MarketTradeGood::get_last_by_waypoint(
+            database_pool,
+            &self.waypoint.symbol,
+            database::PaginatedQuery::unpaged(),
+        )
+        .await?
+        .items
+        .iter()
+        .max_by(|a, b| a.created_at.cmp(&b.created_at))
+        .map(|f| f.created_at)
+        .unwrap_or(chrono::DateTime::<chrono::Utc>::MIN_UTC);
 
         Ok(Some(last_scrap))
     }
@@ -2794,8 +3382,10 @@ impl GQLWaypoint {
         let market_trade_goods = database::MarketTradeGood::get_last_by_waypoint(
             &context.database_pool,
             &self.waypoint.symbol,
+            database::PaginatedQuery::unpaged(),
         )
-        .await?;
+        .await?
+        .items;
         let max_update_interval = { context.config.read().await.max_update_interval };
 
         let next_time = crate::manager::scrapping_manager::priority_calculator::get_waypoint_time(
@@ -2841,7 +3431,7 @@ impl crate::utils::RunInfo {
     ) -> Result<Option<GQLSystem>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
         let system_symbol = utils::get_system_symbol(&self.headquarters);
-        let system = database::System::get_by_symbol(database_pool, &system_symbol).await?;
+        let system = database::System::get_by_id(database_pool, &system_symbol).await?;
         Ok(into_gql(system))
     }
 }
@@ -2900,12 +3490,17 @@ impl GQLShip {
     async fn market_transactions<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
-    ) -> Result<Vec<GQLMarketTransaction>> {
-        // Changed return type to GQLMarketTransaction
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<GQLMarketTransactionPage> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let reg =
-            database::MarketTransaction::get_by_ship(database_pool, &self.ship.symbol).await?;
-        Ok(into_gql_vec(reg)) // Added conversion
+        let reg = database::MarketTransaction::get_by_ship(
+            database_pool,
+            &self.ship.symbol,
+            paginated_query(page, page_size),
+        )
+        .await?;
+        Ok(reg.into())
     }
 
     async fn market_transaction_summary<'ctx>(
@@ -2925,109 +3520,183 @@ impl GQLShip {
     async fn repair_transactions<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
-    ) -> Result<Vec<GQLRepairTransaction>> {
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<GQLRepairTransactionPage> {
         // Changed return type to GQLRepairTransaction
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let reg =
-            database::RepairTransaction::get_by_ship(database_pool, &self.ship.symbol).await?;
-        Ok(into_gql_vec(reg)) // Added conversion
+        let reg = database::RepairTransaction::get_by_ship(
+            database_pool,
+            &self.ship.symbol,
+            paginated_query(page, page_size),
+        )
+        .await?;
+        Ok(reg.into()) // Added conversion
     }
 
     async fn scrap_transactions<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
-    ) -> Result<Vec<GQLScrapTransaction>> {
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<GQLScrapTransactionPage> {
         // Changed return type to GQLScrapTransaction
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let reg = database::ScrapTransaction::get_by_ship(database_pool, &self.ship.symbol).await?;
-        Ok(into_gql_vec(reg)) // Added conversion
+        let reg = database::ScrapTransaction::get_by_ship(
+            database_pool,
+            &self.ship.symbol,
+            paginated_query(page, page_size),
+        )
+        .await?;
+        Ok(reg.into()) // Added conversion
     }
 
     async fn ship_modification_transactions<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
-    ) -> Result<Vec<GQLShipModificationTransaction>> {
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<GQLShipModificationTransactionPage> {
         // Changed return type to GQLShipModificationTransaction
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let reg =
-            database::ShipModificationTransaction::get_by_ship(database_pool, &self.ship.symbol)
-                .await?;
-        Ok(into_gql_vec(reg)) // Added conversion
+        let reg = database::ShipModificationTransaction::get_by_ship(
+            database_pool,
+            &self.ship.symbol,
+            paginated_query(page, page_size),
+        )
+        .await?;
+        Ok(reg.into()) // Added conversion
     }
 
     async fn chart_transactions<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
-    ) -> Result<Vec<GQLChartTransaction>> {
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<GQLChartTransactionPage> {
         // Changed return type to GQLChartTransaction
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let reg = database::ChartTransaction::get_by_ship_symbol(database_pool, &self.ship.symbol)
-            .await?;
-        Ok(into_gql_vec(reg)) // Added conversion
+        let reg = database::ChartTransaction::get_by_ship_symbol(
+            database_pool,
+            &self.ship.symbol,
+            paginated_query(page, page_size),
+        )
+        .await?;
+        Ok(reg.into()) // Added conversion
     }
 
     async fn construction_shipments<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
-    ) -> Result<Vec<GQLConstructionShipment>> {
-        // Changed return type to GQLConstructionShipment
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<GQLConstructionShipmentPage> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let reg =
-            database::ConstructionShipment::get_by_ship(database_pool, &self.ship.symbol).await?;
-        Ok(into_gql_vec(reg)) // Added conversion
+        let reg = database::ConstructionShipment::get_by_ship(
+            database_pool,
+            &self.ship.symbol,
+            paginated_query(page, page_size),
+        )
+        .await?;
+        Ok(reg.into())
     }
 
     async fn contract_shipments<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
-    ) -> Result<Vec<GQLContractShipment>> {
-        // Changed return type to GQLContractShipment
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<GQLContractShipmentPage> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let reg = database::ContractShipment::get_by_ship(database_pool, &self.ship.symbol).await?;
-        Ok(into_gql_vec(reg)) // Added conversion
+        let reg = database::ContractShipment::get_by_ship(
+            database_pool,
+            &self.ship.symbol,
+            paginated_query(page, page_size),
+        )
+        .await?;
+        Ok(reg.into())
     }
 
     async fn trade_routes<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
-    ) -> Result<Vec<GQLTradeRoute>> {
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<GQLTradeRoutePage> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let reg = database::TradeRoute::get_by_ship(database_pool, &self.ship.symbol).await?;
-        Ok(into_gql_vec(reg))
+        let reg = database::TradeRoute::get_by_ship(
+            database_pool,
+            &self.ship.symbol,
+            paginated_query(page, page_size),
+        )
+        .await?;
+        Ok(reg.into())
     }
 
-    async fn surveys<'ctx>(&self, ctx: &async_graphql::Context<'ctx>) -> Result<Vec<GQLSurvey>> {
-        // Changed return type to GQLSurvey
+    async fn surveys<'ctx>(
+        &self,
+        ctx: &async_graphql::Context<'ctx>,
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<GQLSurveyPage> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let reg = database::Survey::get_by_ship(database_pool, &self.ship.symbol).await?;
-        Ok(into_gql_vec(reg)) // Added conversion
+        let reg = database::Survey::get_by_ship(
+            database_pool,
+            &self.ship.symbol,
+            paginated_query(page, page_size),
+        )
+        .await?;
+        Ok(reg.into())
     }
 
     async fn extractions<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
-    ) -> Result<Vec<GQLExtraction>> {
-        // Changed return type to GQLExtraction
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<GQLExtractionPage> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let reg = database::Extraction::get_by_ship(database_pool, &self.ship.symbol).await?;
-        Ok(into_gql_vec(reg)) // Added conversion
+        let reg = database::Extraction::get_by_ship(
+            database_pool,
+            &self.ship.symbol,
+            paginated_query(page, page_size),
+        )
+        .await?;
+        Ok(reg.into())
     }
 
-    async fn routes<'ctx>(&self, ctx: &async_graphql::Context<'ctx>) -> Result<Vec<GQLRoute>> {
+    async fn routes<'ctx>(
+        &self,
+        ctx: &async_graphql::Context<'ctx>,
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<GQLRoutePage> {
         // Changed return type to GQLRoute
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let reg = database::Route::get_by_ship(database_pool, &self.ship.symbol).await?;
-        Ok(into_gql_vec(reg)) // Added conversion
+        let reg = database::Route::get_by_ship(
+            database_pool,
+            &self.ship.symbol,
+            paginated_query(page, page_size),
+        )
+        .await?;
+        Ok(reg.into()) // Added conversion
     }
 
     async fn ship_jumps<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
-    ) -> Result<Vec<GQLShipJump>> {
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<GQLShipJumpPage> {
         // Changed return type to GQLShipJump
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let reg = database::ShipJump::get_by_ship(database_pool, &self.ship.symbol).await?;
-        Ok(into_gql_vec(reg)) // Added conversion
+        let reg = database::ShipJump::get_by_ship(
+            database_pool,
+            &self.ship.symbol,
+            paginated_query(page, page_size),
+        )
+        .await?;
+        Ok(reg.into()) // Added conversion
     }
 
     async fn engine_info<'ctx>(&self, ctx: &async_graphql::Context<'ctx>) -> Result<GQLEngineInfo> {
@@ -3057,11 +3726,17 @@ impl GQLShip {
     async fn ship_states<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
-    ) -> Result<Vec<GQLShipState>> {
-        // Changed return type to GQLShipState
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<GQLShipStatePage> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let reg = database::ShipState::get_by_ship(database_pool, &self.ship.symbol).await?;
-        Ok(into_gql_vec(reg)) // Added conversion
+        let reg = database::ShipState::get_by_ship(
+            database_pool,
+            &self.ship.symbol,
+            paginated_query(page, page_size),
+        )
+        .await?;
+        Ok(reg.into())
     }
 
     async fn nav(&self) -> Result<GQLNavigationState> {
@@ -3088,6 +3763,8 @@ pub struct GateConn {
     pub from_a: bool,
     pub from_b: bool,
 }
+
+paginated_gql_object!(GQLGateConnPage, "GateConnPage", GateConn, GateConn);
 
 #[async_graphql::ComplexObject]
 impl GateConn {
@@ -3116,22 +3793,45 @@ impl From<models::TradeSymbol> for TradeSymbolInfo {
     }
 }
 
+paginated_gql_object!(
+    GQLTradeSymbolInfoPage,
+    "TradeSymbolInfoPage",
+    models::TradeSymbol,
+    TradeSymbolInfo
+);
+
 #[async_graphql::ComplexObject]
 impl TradeSymbolInfo {
-    async fn requires(&self, ctx: &async_graphql::Context<'_>) -> Result<Vec<TradeSymbolInfo>> {
+    async fn requires(
+        &self,
+        ctx: &async_graphql::Context<'_>,
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<GQLTradeSymbolInfoPage> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let regs =
-            database::ExportImportMapping::get_imports_for_export(database_pool, self.symbol)
-                .await?;
-        Ok(into_gql_vec(regs))
+        let regs = database::ExportImportMapping::get_imports_for_export(
+            database_pool,
+            self.symbol,
+            paginated_query(page, page_size),
+        )
+        .await?;
+        Ok(regs.into())
     }
 
-    async fn required_by(&self, ctx: &async_graphql::Context<'_>) -> Result<Vec<TradeSymbolInfo>> {
+    async fn required_by(
+        &self,
+        ctx: &async_graphql::Context<'_>,
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<GQLTradeSymbolInfoPage> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let regs =
-            database::ExportImportMapping::get_exports_for_import(database_pool, self.symbol)
-                .await?;
-        Ok(into_gql_vec(regs))
+        let regs = database::ExportImportMapping::get_exports_for_import(
+            database_pool,
+            self.symbol,
+            paginated_query(page, page_size),
+        )
+        .await?;
+        Ok(regs.into())
     }
 }
 

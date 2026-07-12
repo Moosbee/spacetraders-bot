@@ -1,6 +1,6 @@
 use std::{collections::HashMap, time::Duration, vec};
 
-use database::{DatabaseConnector, DbPool};
+use database::{DatabaseConnectorAsync, DbPool};
 use tracing::debug;
 use tracing::Instrument;
 use utils::{distance_between_waypoints, WaypointCan};
@@ -83,16 +83,20 @@ impl ScrappingManager {
                         &api,
                     )
                     .await?;
-                    let gates = database::Waypoint::get_all(&database_pool)
-                        .await?
-                        .into_iter()
-                        .filter(|w| w.is_jump_gate())
-                        .filter(|w| w.is_charted())
-                        .map(|w| {
-                            let chart = w.is_charted();
-                            (w.system_symbol, w.symbol, chart)
-                        })
-                        .collect::<Vec<_>>();
+                    let gates = database::Waypoint::get_all(
+                        &database_pool,
+                        database::PaginatedQuery::unpaged(),
+                    )
+                    .await?
+                    .items
+                    .into_iter()
+                    .filter(|w| w.is_jump_gate())
+                    .filter(|w| w.is_charted())
+                    .map(|w| {
+                        let chart = w.is_charted();
+                        (w.system_symbol, w.symbol, chart)
+                    })
+                    .collect::<Vec<_>>();
                     let jump_gates =
                         crate::manager::scrapping_manager::utils::get_all_jump_gates(&api, gates)
                             .await?;
@@ -350,8 +354,13 @@ impl ScrappingManager {
     ) -> Result<Vec<(database::Waypoint, chrono::DateTime<chrono::Utc>)>> {
         let system_symbol = ship_clone.nav.system_symbol.clone();
 
-        let system_wps =
-            database::Waypoint::get_by_system(&self.context.database_pool, &system_symbol).await?;
+        let system_wps = database::Waypoint::get_by_system(
+            &self.context.database_pool,
+            &system_symbol,
+            database::PaginatedQuery::unpaged(),
+        )
+        .await?
+        .items;
 
         let ship_wp = system_wps
             .iter()
@@ -371,8 +380,10 @@ impl ScrappingManager {
             let market_trade_goods = database::MarketTradeGood::get_last_by_waypoint(
                 &self.context.database_pool,
                 &wp.symbol,
+                database::PaginatedQuery::unpaged(),
             )
-            .await?;
+            .await?
+            .items;
 
             if !wp.is_charted() || market_trade_goods.is_empty() {
                 waypoints.push((wp, chrono::DateTime::<chrono::Utc>::MIN_UTC));

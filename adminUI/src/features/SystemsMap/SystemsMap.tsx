@@ -5,7 +5,16 @@ import { selectSelectedSystemSymbol } from "../../redux/slices/mapSlice";
 import { systemIcons } from "../../utils/waypointColors";
 import classes from "./SystemsMap.module.css";
 
-type GQLSystem = GetSystemMapDataQuery["systems"][number];
+type GQLSystem = Omit<
+  GetSystemMapDataQuery["systems"]["items"][number],
+  "waypoints" | "fleets"
+> & {
+  waypoints: GetSystemMapDataQuery["systems"]["items"][number]["waypoints"]["items"];
+  fleets: GetSystemMapDataQuery["systems"]["items"][number]["fleets"]["items"];
+};
+
+type GQLJumpConnection =
+  GetSystemMapDataQuery["jumpConnections"]["items"][number];
 
 function resizeCanvas(canvas: HTMLCanvasElement) {
   const { width, height } = canvas.getBoundingClientRect();
@@ -38,7 +47,7 @@ function drawSystems(
   }[],
   zoom: number,
   top: number,
-  left: number
+  left: number,
 ) {
   const context = canvas.getContext("2d");
   if (!context) {
@@ -67,11 +76,11 @@ function drawSystems(
     context.beginPath();
     context.moveTo(
       system_a?.xOne * zoom * maxRatio + left,
-      system_a?.yOne * zoom * maxRatio + top
+      system_a?.yOne * zoom * maxRatio + top,
     );
     context.lineTo(
       system_b?.xOne * zoom * maxRatio + left,
-      system_b?.yOne * zoom * maxRatio + top
+      system_b?.yOne * zoom * maxRatio + top,
     );
     if (underConstructionA || underConstructionB) {
       // context.strokeStyle = "#ff00000f";
@@ -126,7 +135,7 @@ function SystemsMap({
 }: {
   zoomMax: number;
   zoomMin: number;
-  data: GetSystemMapDataQuery;
+  data: { systems: GQLSystem[]; jumpConnections: GQLJumpConnection[] };
 }) {
   const selectedSystem = useAppSelector(selectSelectedSystemSymbol);
 
@@ -135,7 +144,7 @@ function SystemsMap({
     { system: GQLSystem; xOne: number; yOne: number }
   > = useMemo(() => {
     const [wpMinX, wpMinY, wpMaxX, wpMaxY] = calculateSystemBoundaries(
-      data.systems
+      data.systems,
     );
 
     const wp: Record<
@@ -174,7 +183,7 @@ function SystemsMap({
         data.jumpConnections,
         zoom,
         top,
-        left
+        left,
       );
     });
     observe.observe(ref.current);
@@ -206,9 +215,9 @@ function SystemsMap({
       const newZoom = Math.min(
         Math.max(
           zoom + (e.deltaY > 0 ? -zoom * zoomFactor : zoom * zoomFactor),
-          zoomMin
+          zoomMin,
         ),
-        zoomMax
+        zoomMax,
       );
       // const zoomDiff = newZoom - zoom;
 
@@ -252,7 +261,7 @@ function SystemsMap({
         topDiff,
         leftDiff,
         top,
-        left
+        left,
       );
 
       const newTop = top - topDiff;
@@ -268,7 +277,7 @@ function SystemsMap({
       setTop(Number.isFinite(newTop) ? newTop : 0);
       setLeft(Number.isFinite(newLeft) ? newLeft : 0);
     },
-    [left, top, zoom, zoomMax, zoomMin]
+    [left, top, zoom, zoomMax, zoomMin],
   );
 
   useEffect(() => {
@@ -388,13 +397,13 @@ function SystemsMap({
               Math.abs(prev.xOne - mapPosX) + Math.abs(prev.yOne - mapPosY);
             return prevDistance > currDistance ? prev : curr;
           },
-          Object.values(calcSystems)[0]
+          Object.values(calcSystems)[0],
         );
 
         console.log(
           "closestSystem",
           closestSystem,
-          closestSystem.system.symbol
+          closestSystem.system.symbol,
         );
 
         window.open("/system/" + closestSystem.system.symbol, "_blank");

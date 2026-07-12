@@ -41,9 +41,13 @@ impl RouteCalculator {
 
         let possible_trades = self.gen_all_possible_trades(&trade_goods, &market_trade);
 
-        let waypoints =
-            database::Waypoint::get_by_system(&self.context.database_pool, &ship.nav.system_symbol)
-                .await?;
+        let waypoints = database::Waypoint::get_by_system(
+            &self.context.database_pool,
+            &ship.nav.system_symbol,
+            database::PaginatedQuery::unpaged(),
+        )
+        .await?
+        .items;
 
         let config = { self.context.config.read().await.clone() };
 
@@ -93,11 +97,18 @@ impl RouteCalculator {
         let trade_goods = database::MarketTradeGood::get_last_by_system(
             &self.context.database_pool,
             system_symbol,
+            database::PaginatedQuery::unpaged(),
         )
-        .await?;
+        .await?
+        .items;
         let market_trade =
-            database::MarketTrade::get_last_by_system(&self.context.database_pool, system_symbol)
-                .await?;
+            database::MarketTrade::get_last_by_system(
+                &self.context.database_pool,
+                system_symbol,
+                database::PaginatedQuery::unpaged(),
+            )
+            .await?
+            .items;
         Ok((trade_goods, market_trade))
     }
 

@@ -4,7 +4,7 @@ use chrono::{DateTime, Utc};
 use space_traders_client::models;
 use tracing::instrument;
 
-use crate::{DatabaseConnector, DbPool};
+use crate::{run_paginated_query, DatabaseConnectorAsync, DbPool, PaginatedQuery, PaginatedResult};
 
 #[derive(
     Clone,
@@ -48,25 +48,68 @@ impl ChartTransaction {
     pub async fn get_by_ship_symbol(
         database_pool: &DbPool,
         ship_symbol: &str,
-    ) -> crate::Result<Vec<ChartTransaction>> {
-        let erg = sqlx::query_as!(
-            ChartTransaction,
-            r#" 
-          SELECT
-            id,
-            waypoint_symbol,
-            ship_symbol,
-            total_price,
-            "timestamp"
-          FROM chart_transaction
-          WHERE ship_symbol = $1
-          order by "timestamp"
-        "#,
-            ship_symbol
+        query: PaginatedQuery,
+    ) -> crate::Result<PaginatedResult<ChartTransaction>> {
+        run_paginated_query(
+            query,
+            |page_size, offset| async move {
+                let items = sqlx::query_as!(
+                    ChartTransaction,
+                    r#"
+                        SELECT
+                            id,
+                            waypoint_symbol,
+                            ship_symbol,
+                            total_price,
+                            "timestamp"
+                        FROM chart_transaction
+                        WHERE ship_symbol = $1
+                        ORDER BY "timestamp" ASC, id ASC
+                        LIMIT $2 OFFSET $3
+                    "#,
+                    ship_symbol,
+                    page_size,
+                    offset
+                )
+                .fetch_all(database_pool.get_cache_pool())
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let items = sqlx::query_as!(
+                    ChartTransaction,
+                    r#"
+                        SELECT
+                            id,
+                            waypoint_symbol,
+                            ship_symbol,
+                            total_price,
+                            "timestamp"
+                        FROM chart_transaction
+                        WHERE ship_symbol = $1
+                        ORDER BY "timestamp" ASC, id ASC
+                    "#,
+                    ship_symbol
+                )
+                .fetch_all(database_pool.get_cache_pool())
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let count = sqlx::query!(
+                    r#"
+                        SELECT COUNT(*) as "count!"
+                        FROM chart_transaction
+                        WHERE ship_symbol = $1
+                    "#,
+                    ship_symbol
+                )
+                .fetch_one(database_pool.get_cache_pool())
+                .await?;
+                Ok(count.count)
+            },
         )
-        .fetch_all(database_pool.get_cache_pool())
-        .await?;
-        Ok(erg)
+        .await
     }
 
     pub async fn get_by_waypoint_symbol(
@@ -98,31 +141,107 @@ impl ChartTransaction {
     pub async fn get_by_system(
         database_pool: &DbPool,
         symbol: &str,
-    ) -> crate::Result<Vec<ChartTransaction>> {
-        let erg = sqlx::query_as!(
-            ChartTransaction,
-            r#" 
-          SELECT
-            id,
-            waypoint_symbol,
-            ship_symbol,
-            total_price,
-            "timestamp"
-          FROM chart_transaction JOIN waypoint ON chart_transaction.waypoint_symbol = waypoint.symbol
-          WHERE waypoint.system_symbol = $1
-          order by "timestamp"
-        "#,
-            symbol
+        query: PaginatedQuery,
+    ) -> crate::Result<PaginatedResult<ChartTransaction>> {
+        run_paginated_query(
+            query,
+            |page_size, offset| async move {
+                let items = sqlx::query_as!(
+                    ChartTransaction,
+                    r#"
+                        SELECT
+                            id,
+                            waypoint_symbol,
+                            ship_symbol,
+                            total_price,
+                            "timestamp"
+                        FROM chart_transaction
+                        JOIN waypoint ON chart_transaction.waypoint_symbol = waypoint.symbol
+                        WHERE waypoint.system_symbol = $1
+                        ORDER BY "timestamp" ASC, id ASC
+                        LIMIT $2 OFFSET $3
+                    "#,
+                    symbol,
+                    page_size,
+                    offset
+                )
+                .fetch_all(database_pool.get_cache_pool())
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let items = sqlx::query_as!(
+                    ChartTransaction,
+                    r#"
+                        SELECT
+                            id,
+                            waypoint_symbol,
+                            ship_symbol,
+                            total_price,
+                            "timestamp"
+                        FROM chart_transaction
+                        JOIN waypoint ON chart_transaction.waypoint_symbol = waypoint.symbol
+                        WHERE waypoint.system_symbol = $1
+                        ORDER BY "timestamp" ASC, id ASC
+                    "#,
+                    symbol
+                )
+                .fetch_all(database_pool.get_cache_pool())
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let count = sqlx::query!(
+                    r#"
+                        SELECT COUNT(*) as "count!"
+                        FROM chart_transaction
+                        JOIN waypoint ON chart_transaction.waypoint_symbol = waypoint.symbol
+                        WHERE waypoint.system_symbol = $1
+                    "#,
+                    symbol
+                )
+                .fetch_one(database_pool.get_cache_pool())
+                .await?;
+                Ok(count.count)
+            },
         )
-        .fetch_all(database_pool.get_cache_pool())
-        .await?;
-        Ok(erg)
+        .await
     }
 }
 
-impl DatabaseConnector<ChartTransaction> for ChartTransaction {
+impl DatabaseConnectorAsync for ChartTransaction {
+    type ID = i64;
+
+    #[instrument(level = "trace", skip(database_pool, item), err(Debug))]
+    async fn insert_new(database_pool: &DbPool, item: &ChartTransaction) -> crate::Result<Self::ID> {
+        let inserted = sqlx::query!(
+            r#"
+              INSERT INTO chart_transaction (
+                waypoint_symbol,
+                ship_symbol,
+                total_price,
+                "timestamp"
+              )
+              VALUES ($1, $2, $3, $4)
+              ON CONFLICT (waypoint_symbol) DO UPDATE SET
+                ship_symbol = EXCLUDED.ship_symbol,
+                total_price = EXCLUDED.total_price,
+                "timestamp" = EXCLUDED."timestamp"
+              RETURNING id
+          "#,
+            &item.waypoint_symbol,
+            &item.ship_symbol,
+            &item.total_price,
+            &item.timestamp
+        )
+        .fetch_one(&database_pool.database_pool)
+        .await?;
+
+        Ok(inserted.id.into())
+    }
+
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
-    async fn insert(database_pool: &DbPool, item: &ChartTransaction) -> crate::Result<()> {
+    async fn upsert(database_pool: &DbPool, item: &ChartTransaction) -> crate::Result<()> {
         sqlx::query!(
             r#"
               INSERT INTO chart_transaction (
@@ -141,6 +260,29 @@ impl DatabaseConnector<ChartTransaction> for ChartTransaction {
             &item.ship_symbol,
             &item.total_price,
             &item.timestamp
+        )
+        .execute(&database_pool.database_pool)
+        .await?;
+        Ok(())
+    }
+
+    #[instrument(level = "trace", skip(database_pool, item), err(Debug))]
+    async fn update(database_pool: &DbPool, item: &ChartTransaction) -> crate::Result<()> {
+        sqlx::query!(
+            r#"
+                UPDATE chart_transaction
+                SET
+                    waypoint_symbol = $1,
+                    ship_symbol = $2,
+                    total_price = $3,
+                    "timestamp" = $4
+                WHERE id = $5
+            "#,
+            &item.waypoint_symbol,
+            &item.ship_symbol,
+            item.total_price,
+            item.timestamp,
+            item.id
         )
         .execute(&database_pool.database_pool)
         .await?;
@@ -193,23 +335,108 @@ impl DatabaseConnector<ChartTransaction> for ChartTransaction {
     }
 
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
-    async fn get_all(database_pool: &DbPool) -> crate::Result<Vec<ChartTransaction>> {
-        let erg = sqlx::query_as!(
+    async fn get_all(
+        database_pool: &DbPool,
+        query: PaginatedQuery,
+    ) -> crate::Result<PaginatedResult<ChartTransaction>> {
+        run_paginated_query(
+            query,
+            |page_size, offset| async move {
+                let items = sqlx::query_as!(
+                    ChartTransaction,
+                    r#"
+                        SELECT
+                            id,
+                            waypoint_symbol,
+                            ship_symbol,
+                            total_price,
+                            "timestamp"
+                        FROM chart_transaction
+                        ORDER BY "timestamp" ASC, id ASC
+                        LIMIT $1 OFFSET $2
+                    "#,
+                    page_size,
+                    offset
+                )
+                .fetch_all(database_pool.get_cache_pool())
+                .await?;
+
+                Ok(items)
+            },
+            || async move {
+                let items = sqlx::query_as!(
+                    ChartTransaction,
+                    r#"
+                        SELECT
+                            id,
+                            waypoint_symbol,
+                            ship_symbol,
+                            total_price,
+                            "timestamp"
+                        FROM chart_transaction
+                        ORDER BY "timestamp" ASC, id ASC
+                    "#
+                )
+                .fetch_all(database_pool.get_cache_pool())
+                .await?;
+
+                Ok(items)
+            },
+            || async move {
+                let count = sqlx::query!(
+                    r#"
+                        SELECT COUNT(*) as "count!"
+                        FROM chart_transaction
+                    "#
+                )
+                .fetch_one(database_pool.get_cache_pool())
+                .await?;
+
+                Ok(count.count)
+            },
+        )
+        .await
+    }
+
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
+    async fn get_by_id(database_pool: &DbPool, id: &Self::ID) -> crate::Result<Option<Self>> {
+        let item = sqlx::query_as!(
             ChartTransaction,
             r#"
-              SELECT
-                id,
-                waypoint_symbol,
-                ship_symbol,
-                total_price,
-                "timestamp"
-              FROM chart_transaction
-              order by "timestamp"
-          "#
+                SELECT
+                    id,
+                    waypoint_symbol,
+                    ship_symbol,
+                    total_price,
+                    "timestamp"
+                FROM chart_transaction
+                WHERE id = $1
+                LIMIT 1
+            "#,
+            *id
         )
-        .fetch_all(database_pool.get_cache_pool())
+        .fetch_optional(database_pool.get_cache_pool())
         .await?;
 
-        Ok(erg)
+        Ok(item)
+    }
+
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
+    async fn delete_by_id(database_pool: &DbPool, id: &Self::ID) -> crate::Result<()> {
+        sqlx::query!(
+            r#"
+                DELETE FROM chart_transaction
+                WHERE id = $1
+            "#,
+            *id
+        )
+        .execute(&database_pool.database_pool)
+        .await?;
+
+        Ok(())
+    }
+
+    fn set_id(&mut self, id: Self::ID) {
+        self.id = id;
     }
 }

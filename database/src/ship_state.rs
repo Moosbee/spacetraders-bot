@@ -4,7 +4,7 @@ use chrono::{DateTime, Utc};
 use space_traders_client::models;
 use tracing::instrument;
 
-use super::{DatabaseConnector, DbPool};
+use super::{DatabaseConnectorAsync, DbPool, PaginatedQuery, PaginatedResult, run_paginated_query};
 
 // #[derive(sqlx::FromRow)]
 type CargoInv = HashMap<models::TradeSymbol, i32>;
@@ -224,190 +224,593 @@ impl ShipState {
     pub async fn get_by_waypoint(
         database_pool: &DbPool,
         waypoint: &str,
-    ) -> crate::Result<Vec<ShipState>> {
-        let erg = sqlx::query_as!(
-            ShipState,
-            r#"
-                SELECT
-                  id,
-                  symbol,
-                  display_name,
-                  engine_speed,
-                  engine_condition,
-                  engine_integrity,
-                  frame_condition,
-                  frame_integrity,
-                  reactor_condition,
-                  reactor_integrity,
-                  fuel_capacity,
-                  fuel_current,
-                  cargo_capacity,
-                  cargo_units,
-                  cargo_inventory as "cargo_inventory: sqlx::types::Json<CargoInv>",
-                  mounts as "mounts: Vec<models::ship_mount::Symbol>",
-                  modules as "modules: Vec<models::ship_module::Symbol>",
-                  reactor_symbol as "reactor_symbol: models::ship_reactor::Symbol",
-                  frame_symbol as "frame_symbol: models::ship_frame::Symbol",
-                  engine_symbol as "engine_symbol: models::ship_engine::Symbol",
-                  cooldown_expiration,
-                  cooldown,
-                  flight_mode,
-                  nav_status,
-                  system_symbol,
-                  waypoint_symbol,
-                  route_arrival,
-                  route_departure,
-                  route_destination_symbol,
-                  route_destination_system,
-                  route_origin_symbol,
-                  route_origin_system,
-                  auto_pilot_arrival,
-                  auto_pilot_departure_time,
-                  auto_pilot_destination_symbol,
-                  auto_pilot_destination_system_symbol,
-                  auto_pilot_origin_symbol,
-                  auto_pilot_origin_system_symbol,
-                  auto_pilot_distance,
-                  auto_pilot_fuel_cost,
-                  auto_pilot_travel_time,
-                  created_at
-                FROM ship_state
-                WHERE waypoint_symbol = $1
-                ORDER BY created_at
-            "#,
-            waypoint
+        query: PaginatedQuery,
+    ) -> crate::Result<PaginatedResult<ShipState>> {
+        run_paginated_query(
+            query,
+            |page_size, offset| async move {
+                let items = sqlx::query_as!(
+                    ShipState,
+                    r#"
+                        SELECT
+                          id,
+                          symbol,
+                          display_name,
+                          engine_speed,
+                          engine_condition,
+                          engine_integrity,
+                          frame_condition,
+                          frame_integrity,
+                          reactor_condition,
+                          reactor_integrity,
+                          fuel_capacity,
+                          fuel_current,
+                          cargo_capacity,
+                          cargo_units,
+                          cargo_inventory as "cargo_inventory: sqlx::types::Json<CargoInv>",
+                          mounts as "mounts: Vec<models::ship_mount::Symbol>",
+                          modules as "modules: Vec<models::ship_module::Symbol>",
+                          reactor_symbol as "reactor_symbol: models::ship_reactor::Symbol",
+                          frame_symbol as "frame_symbol: models::ship_frame::Symbol",
+                          engine_symbol as "engine_symbol: models::ship_engine::Symbol",
+                          cooldown_expiration,
+                          cooldown,
+                          flight_mode,
+                          nav_status,
+                          system_symbol,
+                          waypoint_symbol,
+                          route_arrival,
+                          route_departure,
+                          route_destination_symbol,
+                          route_destination_system,
+                          route_origin_symbol,
+                          route_origin_system,
+                          auto_pilot_arrival,
+                          auto_pilot_departure_time,
+                          auto_pilot_destination_symbol,
+                          auto_pilot_destination_system_symbol,
+                          auto_pilot_origin_symbol,
+                          auto_pilot_origin_system_symbol,
+                          auto_pilot_distance,
+                          auto_pilot_fuel_cost,
+                          auto_pilot_travel_time,
+                          created_at
+                        FROM ship_state
+                        WHERE waypoint_symbol = $1
+                        ORDER BY created_at
+                        LIMIT $2 OFFSET $3
+                    "#,
+                    waypoint,
+                    page_size,
+                    offset
+                )
+                .fetch_all(database_pool.get_cache_pool())
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let items = sqlx::query_as!(
+                    ShipState,
+                    r#"
+                        SELECT
+                          id,
+                          symbol,
+                          display_name,
+                          engine_speed,
+                          engine_condition,
+                          engine_integrity,
+                          frame_condition,
+                          frame_integrity,
+                          reactor_condition,
+                          reactor_integrity,
+                          fuel_capacity,
+                          fuel_current,
+                          cargo_capacity,
+                          cargo_units,
+                          cargo_inventory as "cargo_inventory: sqlx::types::Json<CargoInv>",
+                          mounts as "mounts: Vec<models::ship_mount::Symbol>",
+                          modules as "modules: Vec<models::ship_module::Symbol>",
+                          reactor_symbol as "reactor_symbol: models::ship_reactor::Symbol",
+                          frame_symbol as "frame_symbol: models::ship_frame::Symbol",
+                          engine_symbol as "engine_symbol: models::ship_engine::Symbol",
+                          cooldown_expiration,
+                          cooldown,
+                          flight_mode,
+                          nav_status,
+                          system_symbol,
+                          waypoint_symbol,
+                          route_arrival,
+                          route_departure,
+                          route_destination_symbol,
+                          route_destination_system,
+                          route_origin_symbol,
+                          route_origin_system,
+                          auto_pilot_arrival,
+                          auto_pilot_departure_time,
+                          auto_pilot_destination_symbol,
+                          auto_pilot_destination_system_symbol,
+                          auto_pilot_origin_symbol,
+                          auto_pilot_origin_system_symbol,
+                          auto_pilot_distance,
+                          auto_pilot_fuel_cost,
+                          auto_pilot_travel_time,
+                          created_at
+                        FROM ship_state
+                        WHERE waypoint_symbol = $1
+                        ORDER BY created_at
+                    "#,
+                    waypoint
+                )
+                .fetch_all(database_pool.get_cache_pool())
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let count = sqlx::query!(
+                    r#"
+                    SELECT COUNT(*) as "count!"
+                    FROM ship_state
+                    WHERE waypoint_symbol = $1
+                    "#,
+                    waypoint
+                )
+                .fetch_one(database_pool.get_cache_pool())
+                .await?;
+                Ok(count.count)
+            },
         )
-        .fetch_all(database_pool.get_cache_pool())
-        .await?;
-        Ok(erg)
+        .await
     }
 
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_system(
         database_pool: &DbPool,
         system: &str,
-    ) -> crate::Result<Vec<ShipState>> {
-        let erg = sqlx::query_as!(
-            ShipState,
-            r#"
-                SELECT
-                  id,
-                  symbol,
-                  display_name,
-                  engine_speed,
-                  engine_condition,
-                  engine_integrity,
-                  frame_condition,
-                  frame_integrity,
-                  reactor_condition,
-                  reactor_integrity,
-                  fuel_capacity,
-                  fuel_current,
-                  cargo_capacity,
-                  cargo_units,
-                  cargo_inventory as "cargo_inventory: sqlx::types::Json<CargoInv>",
-                  mounts as "mounts: Vec<models::ship_mount::Symbol>",
-                  modules as "modules: Vec<models::ship_module::Symbol>",
-                  reactor_symbol as "reactor_symbol: models::ship_reactor::Symbol",
-                  frame_symbol as "frame_symbol: models::ship_frame::Symbol",
-                  engine_symbol as "engine_symbol: models::ship_engine::Symbol",
-                  cooldown_expiration,
-                  cooldown,
-                  flight_mode,
-                  nav_status,
-                  system_symbol,
-                  waypoint_symbol,
-                  route_arrival,
-                  route_departure,
-                  route_destination_symbol,
-                  route_destination_system,
-                  route_origin_symbol,
-                  route_origin_system,
-                  auto_pilot_arrival,
-                  auto_pilot_departure_time,
-                  auto_pilot_destination_symbol,
-                  auto_pilot_destination_system_symbol,
-                  auto_pilot_origin_symbol,
-                  auto_pilot_origin_system_symbol,
-                  auto_pilot_distance,
-                  auto_pilot_fuel_cost,
-                  auto_pilot_travel_time,
-                  created_at
-                FROM ship_state
-                WHERE system_symbol = $1
-                ORDER BY created_at
-            "#,
-            system
+        query: PaginatedQuery,
+    ) -> crate::Result<PaginatedResult<ShipState>> {
+        run_paginated_query(
+            query,
+            |page_size, offset| async move {
+                let items = sqlx::query_as!(
+                    ShipState,
+                    r#"
+                        SELECT
+                          id,
+                          symbol,
+                          display_name,
+                          engine_speed,
+                          engine_condition,
+                          engine_integrity,
+                          frame_condition,
+                          frame_integrity,
+                          reactor_condition,
+                          reactor_integrity,
+                          fuel_capacity,
+                          fuel_current,
+                          cargo_capacity,
+                          cargo_units,
+                          cargo_inventory as "cargo_inventory: sqlx::types::Json<CargoInv>",
+                          mounts as "mounts: Vec<models::ship_mount::Symbol>",
+                          modules as "modules: Vec<models::ship_module::Symbol>",
+                          reactor_symbol as "reactor_symbol: models::ship_reactor::Symbol",
+                          frame_symbol as "frame_symbol: models::ship_frame::Symbol",
+                          engine_symbol as "engine_symbol: models::ship_engine::Symbol",
+                          cooldown_expiration,
+                          cooldown,
+                          flight_mode,
+                          nav_status,
+                          system_symbol,
+                          waypoint_symbol,
+                          route_arrival,
+                          route_departure,
+                          route_destination_symbol,
+                          route_destination_system,
+                          route_origin_symbol,
+                          route_origin_system,
+                          auto_pilot_arrival,
+                          auto_pilot_departure_time,
+                          auto_pilot_destination_symbol,
+                          auto_pilot_destination_system_symbol,
+                          auto_pilot_origin_symbol,
+                          auto_pilot_origin_system_symbol,
+                          auto_pilot_distance,
+                          auto_pilot_fuel_cost,
+                          auto_pilot_travel_time,
+                          created_at
+                        FROM ship_state
+                        WHERE system_symbol = $1
+                        ORDER BY created_at
+                        LIMIT $2 OFFSET $3
+                    "#,
+                    system,
+                    page_size,
+                    offset
+                )
+                .fetch_all(database_pool.get_cache_pool())
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let items = sqlx::query_as!(
+                    ShipState,
+                    r#"
+                        SELECT
+                          id,
+                          symbol,
+                          display_name,
+                          engine_speed,
+                          engine_condition,
+                          engine_integrity,
+                          frame_condition,
+                          frame_integrity,
+                          reactor_condition,
+                          reactor_integrity,
+                          fuel_capacity,
+                          fuel_current,
+                          cargo_capacity,
+                          cargo_units,
+                          cargo_inventory as "cargo_inventory: sqlx::types::Json<CargoInv>",
+                          mounts as "mounts: Vec<models::ship_mount::Symbol>",
+                          modules as "modules: Vec<models::ship_module::Symbol>",
+                          reactor_symbol as "reactor_symbol: models::ship_reactor::Symbol",
+                          frame_symbol as "frame_symbol: models::ship_frame::Symbol",
+                          engine_symbol as "engine_symbol: models::ship_engine::Symbol",
+                          cooldown_expiration,
+                          cooldown,
+                          flight_mode,
+                          nav_status,
+                          system_symbol,
+                          waypoint_symbol,
+                          route_arrival,
+                          route_departure,
+                          route_destination_symbol,
+                          route_destination_system,
+                          route_origin_symbol,
+                          route_origin_system,
+                          auto_pilot_arrival,
+                          auto_pilot_departure_time,
+                          auto_pilot_destination_symbol,
+                          auto_pilot_destination_system_symbol,
+                          auto_pilot_origin_symbol,
+                          auto_pilot_origin_system_symbol,
+                          auto_pilot_distance,
+                          auto_pilot_fuel_cost,
+                          auto_pilot_travel_time,
+                          created_at
+                        FROM ship_state
+                        WHERE system_symbol = $1
+                        ORDER BY created_at
+                    "#,
+                    system
+                )
+                .fetch_all(database_pool.get_cache_pool())
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let count = sqlx::query!(
+                    r#"
+                    SELECT COUNT(*) as "count!"
+                    FROM ship_state
+                    WHERE system_symbol = $1
+                    "#,
+                    system
+                )
+                .fetch_one(database_pool.get_cache_pool())
+                .await?;
+                Ok(count.count)
+            },
         )
-        .fetch_all(database_pool.get_cache_pool())
-        .await?;
-        Ok(erg)
+        .await
     }
 
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_ship(
         database_pool: &DbPool,
         ship_symbol: &str,
-    ) -> crate::Result<Vec<ShipState>> {
-        let erg = sqlx::query_as!(
-            ShipState,
-            r#"
-                SELECT
-                  id,
-                  symbol,
-                  display_name,
-                  engine_speed,
-                  engine_condition,
-                  engine_integrity,
-                  frame_condition,
-                  frame_integrity,
-                  reactor_condition,
-                  reactor_integrity,
-                  fuel_capacity,
-                  fuel_current,
-                  cargo_capacity,
-                  cargo_units,
-                  cargo_inventory as "cargo_inventory: sqlx::types::Json<CargoInv>",
-                  mounts as "mounts: Vec<models::ship_mount::Symbol>",
-                  modules as "modules: Vec<models::ship_module::Symbol>",
-                  reactor_symbol as "reactor_symbol: models::ship_reactor::Symbol",
-                  frame_symbol as "frame_symbol: models::ship_frame::Symbol",
-                  engine_symbol as "engine_symbol: models::ship_engine::Symbol",
-                  cooldown_expiration,
-                  cooldown,
-                  flight_mode,
-                  nav_status,
-                  system_symbol,
-                  waypoint_symbol,
-                  route_arrival,
-                  route_departure,
-                  route_destination_symbol,
-                  route_destination_system,
-                  route_origin_symbol,
-                  route_origin_system,
-                  auto_pilot_arrival,
-                  auto_pilot_departure_time,
-                  auto_pilot_destination_symbol,
-                  auto_pilot_destination_system_symbol,
-                  auto_pilot_origin_symbol,
-                  auto_pilot_origin_system_symbol,
-                  auto_pilot_distance,
-                  auto_pilot_fuel_cost,
-                  auto_pilot_travel_time,
-                  created_at
-                FROM ship_state
-                WHERE symbol = $1
-                ORDER BY created_at
-            "#,
-            ship_symbol
+        query: PaginatedQuery,
+    ) -> crate::Result<PaginatedResult<ShipState>> {
+        run_paginated_query(
+            query,
+            |page_size, offset| async move {
+                let items = sqlx::query_as!(
+                    ShipState,
+                    r#"
+                        SELECT
+                          id,
+                          symbol,
+                          display_name,
+                          engine_speed,
+                          engine_condition,
+                          engine_integrity,
+                          frame_condition,
+                          frame_integrity,
+                          reactor_condition,
+                          reactor_integrity,
+                          fuel_capacity,
+                          fuel_current,
+                          cargo_capacity,
+                          cargo_units,
+                          cargo_inventory as "cargo_inventory: sqlx::types::Json<CargoInv>",
+                          mounts as "mounts: Vec<models::ship_mount::Symbol>",
+                          modules as "modules: Vec<models::ship_module::Symbol>",
+                          reactor_symbol as "reactor_symbol: models::ship_reactor::Symbol",
+                          frame_symbol as "frame_symbol: models::ship_frame::Symbol",
+                          engine_symbol as "engine_symbol: models::ship_engine::Symbol",
+                          cooldown_expiration,
+                          cooldown,
+                          flight_mode,
+                          nav_status,
+                          system_symbol,
+                          waypoint_symbol,
+                          route_arrival,
+                          route_departure,
+                          route_destination_symbol,
+                          route_destination_system,
+                          route_origin_symbol,
+                          route_origin_system,
+                          auto_pilot_arrival,
+                          auto_pilot_departure_time,
+                          auto_pilot_destination_symbol,
+                          auto_pilot_destination_system_symbol,
+                          auto_pilot_origin_symbol,
+                          auto_pilot_origin_system_symbol,
+                          auto_pilot_distance,
+                          auto_pilot_fuel_cost,
+                          auto_pilot_travel_time,
+                          created_at
+                        FROM ship_state
+                        WHERE symbol = $1
+                        ORDER BY created_at
+                        LIMIT $2 OFFSET $3
+                    "#,
+                    ship_symbol,
+                    page_size,
+                    offset
+                )
+                .fetch_all(database_pool.get_cache_pool())
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let items = sqlx::query_as!(
+                    ShipState,
+                    r#"
+                        SELECT
+                          id,
+                          symbol,
+                          display_name,
+                          engine_speed,
+                          engine_condition,
+                          engine_integrity,
+                          frame_condition,
+                          frame_integrity,
+                          reactor_condition,
+                          reactor_integrity,
+                          fuel_capacity,
+                          fuel_current,
+                          cargo_capacity,
+                          cargo_units,
+                          cargo_inventory as "cargo_inventory: sqlx::types::Json<CargoInv>",
+                          mounts as "mounts: Vec<models::ship_mount::Symbol>",
+                          modules as "modules: Vec<models::ship_module::Symbol>",
+                          reactor_symbol as "reactor_symbol: models::ship_reactor::Symbol",
+                          frame_symbol as "frame_symbol: models::ship_frame::Symbol",
+                          engine_symbol as "engine_symbol: models::ship_engine::Symbol",
+                          cooldown_expiration,
+                          cooldown,
+                          flight_mode,
+                          nav_status,
+                          system_symbol,
+                          waypoint_symbol,
+                          route_arrival,
+                          route_departure,
+                          route_destination_symbol,
+                          route_destination_system,
+                          route_origin_symbol,
+                          route_origin_system,
+                          auto_pilot_arrival,
+                          auto_pilot_departure_time,
+                          auto_pilot_destination_symbol,
+                          auto_pilot_destination_system_symbol,
+                          auto_pilot_origin_symbol,
+                          auto_pilot_origin_system_symbol,
+                          auto_pilot_distance,
+                          auto_pilot_fuel_cost,
+                          auto_pilot_travel_time,
+                          created_at
+                        FROM ship_state
+                        WHERE symbol = $1
+                        ORDER BY created_at
+                    "#,
+                    ship_symbol
+                )
+                .fetch_all(database_pool.get_cache_pool())
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let count = sqlx::query!(
+                    r#"
+                    SELECT COUNT(*) as "count!"
+                    FROM ship_state
+                    WHERE symbol = $1
+                    "#,
+                    ship_symbol
+                )
+                .fetch_one(database_pool.get_cache_pool())
+                .await?;
+                Ok(count.count)
+            },
         )
-        .fetch_all(database_pool.get_cache_pool())
-        .await?;
-        Ok(erg)
+        .await
+    }
+}
+
+impl DatabaseConnectorAsync for ShipState {
+    type ID = i64;
+
+    #[instrument(level = "trace", skip(database_pool, item))]
+    async fn insert_new(database_pool: &DbPool, item: &ShipState) -> crate::Result<Self::ID> {
+        Self::insert_get_id(database_pool, item).await
+    }
+
+    #[instrument(level = "trace", skip(database_pool, item))]
+    async fn upsert(database_pool: &DbPool, item: &ShipState) -> crate::Result<()> {
+        let _id = Self::insert_get_id(database_pool, item).await?;
+        Ok(())
+    }
+
+    #[instrument(level = "trace", skip(database_pool, item))]
+    async fn update(database_pool: &DbPool, item: &ShipState) -> crate::Result<()> {
+        Self::upsert(database_pool, item).await
+    }
+
+    #[instrument(level = "trace", skip(database_pool, items))]
+    async fn insert_bulk(database_pool: &DbPool, items: &[ShipState]) -> crate::Result<()> {
+        for item in items {
+            Self::upsert(database_pool, item).await?;
+        }
+        Ok(())
     }
 
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
-    pub async fn get_by_id(database_pool: &DbPool, id: i64) -> crate::Result<Option<ShipState>> {
+    async fn get_all(
+        database_pool: &DbPool,
+        query: PaginatedQuery,
+    ) -> crate::Result<PaginatedResult<ShipState>> {
+        run_paginated_query(
+            query,
+            |page_size, offset| async move {
+                let items = sqlx::query_as!(
+                    ShipState,
+                    r#"
+                        SELECT
+                          id,
+                          symbol,
+                          display_name,
+                          engine_speed,
+                          engine_condition,
+                          engine_integrity,
+                          frame_condition,
+                          frame_integrity,
+                          reactor_condition,
+                          reactor_integrity,
+                          fuel_capacity,
+                          fuel_current,
+                          cargo_capacity,
+                          cargo_units,
+                          cargo_inventory as "cargo_inventory: sqlx::types::Json<CargoInv>",
+                          mounts as "mounts: Vec<models::ship_mount::Symbol>",
+                          modules as "modules: Vec<models::ship_module::Symbol>",
+                          reactor_symbol as "reactor_symbol: models::ship_reactor::Symbol",
+                          frame_symbol as "frame_symbol: models::ship_frame::Symbol",
+                          engine_symbol as "engine_symbol: models::ship_engine::Symbol",
+                          cooldown_expiration,
+                          cooldown,
+                          flight_mode,
+                          nav_status,
+                          system_symbol,
+                          waypoint_symbol,
+                          route_arrival,
+                          route_departure,
+                          route_destination_symbol,
+                          route_destination_system,
+                          route_origin_symbol,
+                          route_origin_system,
+                          auto_pilot_arrival,
+                          auto_pilot_departure_time,
+                          auto_pilot_destination_symbol,
+                          auto_pilot_destination_system_symbol,
+                          auto_pilot_origin_symbol,
+                          auto_pilot_origin_system_symbol,
+                          auto_pilot_distance,
+                          auto_pilot_fuel_cost,
+                          auto_pilot_travel_time,
+                          created_at
+                        FROM ship_state
+                        ORDER BY created_at
+                        LIMIT $1 OFFSET $2
+                    "#,
+                    page_size,
+                    offset
+                )
+                .fetch_all(database_pool.get_cache_pool())
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let items = sqlx::query_as!(
+                    ShipState,
+                    r#"
+                        SELECT
+                          id,
+                          symbol,
+                          display_name,
+                          engine_speed,
+                          engine_condition,
+                          engine_integrity,
+                          frame_condition,
+                          frame_integrity,
+                          reactor_condition,
+                          reactor_integrity,
+                          fuel_capacity,
+                          fuel_current,
+                          cargo_capacity,
+                          cargo_units,
+                          cargo_inventory as "cargo_inventory: sqlx::types::Json<CargoInv>",
+                          mounts as "mounts: Vec<models::ship_mount::Symbol>",
+                          modules as "modules: Vec<models::ship_module::Symbol>",
+                          reactor_symbol as "reactor_symbol: models::ship_reactor::Symbol",
+                          frame_symbol as "frame_symbol: models::ship_frame::Symbol",
+                          engine_symbol as "engine_symbol: models::ship_engine::Symbol",
+                          cooldown_expiration,
+                          cooldown,
+                          flight_mode,
+                          nav_status,
+                          system_symbol,
+                          waypoint_symbol,
+                          route_arrival,
+                          route_departure,
+                          route_destination_symbol,
+                          route_destination_system,
+                          route_origin_symbol,
+                          route_origin_system,
+                          auto_pilot_arrival,
+                          auto_pilot_departure_time,
+                          auto_pilot_destination_symbol,
+                          auto_pilot_destination_system_symbol,
+                          auto_pilot_origin_symbol,
+                          auto_pilot_origin_system_symbol,
+                          auto_pilot_distance,
+                          auto_pilot_fuel_cost,
+                          auto_pilot_travel_time,
+                          created_at
+                        FROM ship_state
+                        ORDER BY created_at
+                    "#
+                )
+                .fetch_all(database_pool.get_cache_pool())
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let count = sqlx::query!(
+                    r#"
+                    SELECT COUNT(*) as "count!"
+                    FROM ship_state
+                    "#
+                )
+                .fetch_one(database_pool.get_cache_pool())
+                .await?;
+                Ok(count.count)
+            },
+        )
+        .await
+    }
+
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
+    async fn get_by_id(database_pool: &DbPool, id: &Self::ID) -> crate::Result<Option<Self>> {
         let erg = sqlx::query_as!(
             ShipState,
             r#"
@@ -458,83 +861,28 @@ impl ShipState {
                 WHERE id = $1
                 LIMIT 1
             "#,
-            id
+            *id
         )
         .fetch_optional(database_pool.get_cache_pool())
         .await?;
         Ok(erg)
     }
-}
-
-impl DatabaseConnector<ShipState> for ShipState {
-    #[instrument(level = "trace", skip(database_pool, item))]
-    async fn insert(database_pool: &DbPool, item: &ShipState) -> crate::Result<()> {
-        let _id = Self::insert_get_id(database_pool, item).await?;
-        Ok(())
-    }
-
-    #[instrument(level = "trace", skip(database_pool, items))]
-    async fn insert_bulk(database_pool: &DbPool, items: &[ShipState]) -> crate::Result<()> {
-        for item in items {
-            Self::insert(database_pool, item).await?;
-        }
-        Ok(())
-    }
 
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
-    async fn get_all(database_pool: &DbPool) -> crate::Result<Vec<ShipState>> {
-        let erg = sqlx::query_as!(
-            ShipState,
+    async fn delete_by_id(database_pool: &DbPool, id: &Self::ID) -> crate::Result<()> {
+        sqlx::query!(
             r#"
-                SELECT
-                  id,
-                  symbol,
-                  display_name,
-                  engine_speed,
-                  engine_condition,
-                  engine_integrity,
-                  frame_condition,
-                  frame_integrity,
-                  reactor_condition,
-                  reactor_integrity,
-                  fuel_capacity,
-                  fuel_current,
-                  cargo_capacity,
-                  cargo_units,
-                  cargo_inventory as "cargo_inventory: sqlx::types::Json<CargoInv>",
-                  mounts as "mounts: Vec<models::ship_mount::Symbol>",
-                  modules as "modules: Vec<models::ship_module::Symbol>",
-                  reactor_symbol as "reactor_symbol: models::ship_reactor::Symbol",
-                  frame_symbol as "frame_symbol: models::ship_frame::Symbol",
-                  engine_symbol as "engine_symbol: models::ship_engine::Symbol",
-                  cooldown_expiration,
-                  cooldown,
-                  flight_mode,
-                  nav_status,
-                  system_symbol,
-                  waypoint_symbol,
-                  route_arrival,
-                  route_departure,
-                  route_destination_symbol,
-                  route_destination_system,
-                  route_origin_symbol,
-                  route_origin_system,
-                  auto_pilot_arrival,
-                  auto_pilot_departure_time,
-                  auto_pilot_destination_symbol,
-                  auto_pilot_destination_system_symbol,
-                  auto_pilot_origin_symbol,
-                  auto_pilot_origin_system_symbol,
-                  auto_pilot_distance,
-                  auto_pilot_fuel_cost,
-                  auto_pilot_travel_time,
-                  created_at
-                FROM ship_state
-                ORDER BY created_at
-            "#
+            DELETE FROM ship_state
+            WHERE id = $1
+            "#,
+            id
         )
-        .fetch_all(database_pool.get_cache_pool())
+        .execute(&database_pool.database_pool)
         .await?;
-        Ok(erg)
+        Ok(())
+    }
+
+    fn set_id(&mut self, id: Self::ID) {
+        self.id = id;
     }
 }

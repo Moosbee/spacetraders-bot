@@ -4,7 +4,7 @@ use chrono::{DateTime, Utc};
 use space_traders_client::models;
 use tracing::instrument;
 
-use super::DatabaseConnector;
+use super::{run_paginated_query, DatabaseConnectorAsync, PaginatedQuery, PaginatedResult};
 
 #[derive(Clone, Debug, PartialEq, serde::Serialize, async_graphql::SimpleObject)]
 #[graphql(name = "DBShipyardTransaction")]
@@ -42,105 +42,285 @@ impl ShipyardTransaction {
     pub async fn get_by_waypoint(
         database_pool: &super::DbPool,
         waypoint_symbol: &str,
-    ) -> crate::Result<Vec<ShipyardTransaction>> {
-        let erg = sqlx::query_as!(
-            ShipyardTransaction,
-            r#"
-            SELECT
-                id,
-                waypoint_symbol,
-                ship_type as "ship_type: models::ShipType",
-                price,
-                agent_symbol,
-                "timestamp"
-            FROM shipyard_transaction
-            WHERE waypoint_symbol = $1
-            order by "timestamp"
-            "#,
-            waypoint_symbol
+        query: PaginatedQuery,
+    ) -> crate::Result<PaginatedResult<ShipyardTransaction>> {
+        run_paginated_query(
+            query,
+            |page_size, offset| async move {
+                let items = sqlx::query_as!(
+                    ShipyardTransaction,
+                    r#"
+                        SELECT
+                            id,
+                            waypoint_symbol,
+                            ship_type as "ship_type: models::ShipType",
+                            price,
+                            agent_symbol,
+                            "timestamp"
+                        FROM shipyard_transaction
+                        WHERE waypoint_symbol = $1
+                        ORDER BY "timestamp" ASC, id ASC
+                        LIMIT $2 OFFSET $3
+                    "#,
+                    waypoint_symbol,
+                    page_size,
+                    offset
+                )
+                .fetch_all(database_pool.get_cache_pool())
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let items = sqlx::query_as!(
+                    ShipyardTransaction,
+                    r#"
+                        SELECT
+                            id,
+                            waypoint_symbol,
+                            ship_type as "ship_type: models::ShipType",
+                            price,
+                            agent_symbol,
+                            "timestamp"
+                        FROM shipyard_transaction
+                        WHERE waypoint_symbol = $1
+                        ORDER BY "timestamp" ASC, id ASC
+                    "#,
+                    waypoint_symbol
+                )
+                .fetch_all(database_pool.get_cache_pool())
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let count = sqlx::query!(
+                    r#"
+                        SELECT COUNT(*) as "count!"
+                        FROM shipyard_transaction
+                        WHERE waypoint_symbol = $1
+                    "#,
+                    waypoint_symbol
+                )
+                .fetch_one(database_pool.get_cache_pool())
+                .await?;
+                Ok(count.count)
+            },
         )
-        .fetch_all(database_pool.get_cache_pool())
-        .await?;
-        Ok(erg)
+        .await
     }
 
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_system(
         database_pool: &super::DbPool,
         system: &str,
-    ) -> crate::Result<Vec<Self>> {
+        query: PaginatedQuery,
+    ) -> crate::Result<PaginatedResult<Self>> {
         let system_qr = format!("{}-%", system);
-        let erg = sqlx::query_as!(
-            ShipyardTransaction,
-            r#"
-      select 
-                id,
-                waypoint_symbol,
-                ship_type as "ship_type: models::ShipType",
-                price,
-                agent_symbol,
-                "timestamp"
-      from shipyard_transaction
-      where waypoint_symbol like $1
-            order by "timestamp"
-    "#,
-            system_qr
+        let page_system_qr = system_qr.clone();
+        let all_system_qr = system_qr.clone();
+        let count_system_qr = system_qr.clone();
+
+        run_paginated_query(
+            query,
+            |page_size, offset| async move {
+                let items = sqlx::query_as!(
+                    ShipyardTransaction,
+                    r#"
+                        SELECT
+                            id,
+                            waypoint_symbol,
+                            ship_type as "ship_type: models::ShipType",
+                            price,
+                            agent_symbol,
+                            "timestamp"
+                        FROM shipyard_transaction
+                        WHERE waypoint_symbol LIKE $1
+                        ORDER BY "timestamp" ASC, id ASC
+                        LIMIT $2 OFFSET $3
+                    "#,
+                    page_system_qr,
+                    page_size,
+                    offset
+                )
+                .fetch_all(database_pool.get_cache_pool())
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let items = sqlx::query_as!(
+                    ShipyardTransaction,
+                    r#"
+                        SELECT
+                            id,
+                            waypoint_symbol,
+                            ship_type as "ship_type: models::ShipType",
+                            price,
+                            agent_symbol,
+                            "timestamp"
+                        FROM shipyard_transaction
+                        WHERE waypoint_symbol LIKE $1
+                        ORDER BY "timestamp" ASC, id ASC
+                    "#,
+                    all_system_qr
+                )
+                .fetch_all(database_pool.get_cache_pool())
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let count = sqlx::query!(
+                    r#"
+                        SELECT COUNT(*) as "count!"
+                        FROM shipyard_transaction
+                        WHERE waypoint_symbol LIKE $1
+                    "#,
+                    count_system_qr
+                )
+                .fetch_one(database_pool.get_cache_pool())
+                .await?;
+                Ok(count.count)
+            },
         )
-        .fetch_all(database_pool.get_cache_pool())
-        .await?;
-        Ok(erg)
+        .await
     }
 
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_ship_type(
         database_pool: &super::DbPool,
         ship_type: models::ShipType,
-    ) -> crate::Result<Vec<ShipyardTransaction>> {
-        let erg = sqlx::query_as!(
-            ShipyardTransaction,
-            r#"
-            SELECT
-                id,
-                waypoint_symbol,
-                ship_type as "ship_type: models::ShipType",
-                price,
-                agent_symbol,
-                "timestamp"
-            FROM shipyard_transaction
-            WHERE ship_type = $1
-            order by "timestamp"
-            "#,
-            ship_type as models::ShipType
+        query: PaginatedQuery,
+    ) -> crate::Result<PaginatedResult<ShipyardTransaction>> {
+        run_paginated_query(
+            query,
+            |page_size, offset| async move {
+                let items = sqlx::query_as!(
+                    ShipyardTransaction,
+                    r#"
+                        SELECT
+                            id,
+                            waypoint_symbol,
+                            ship_type as "ship_type: models::ShipType",
+                            price,
+                            agent_symbol,
+                            "timestamp"
+                        FROM shipyard_transaction
+                        WHERE ship_type = $1
+                        ORDER BY "timestamp" ASC, id ASC
+                        LIMIT $2 OFFSET $3
+                    "#,
+                    ship_type as models::ShipType,
+                    page_size,
+                    offset
+                )
+                .fetch_all(database_pool.get_cache_pool())
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let items = sqlx::query_as!(
+                    ShipyardTransaction,
+                    r#"
+                        SELECT
+                            id,
+                            waypoint_symbol,
+                            ship_type as "ship_type: models::ShipType",
+                            price,
+                            agent_symbol,
+                            "timestamp"
+                        FROM shipyard_transaction
+                        WHERE ship_type = $1
+                        ORDER BY "timestamp" ASC, id ASC
+                    "#,
+                    ship_type as models::ShipType
+                )
+                .fetch_all(database_pool.get_cache_pool())
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let count = sqlx::query!(
+                    r#"
+                        SELECT COUNT(*) as "count!"
+                        FROM shipyard_transaction
+                        WHERE ship_type = $1
+                    "#,
+                    ship_type as models::ShipType
+                )
+                .fetch_one(database_pool.get_cache_pool())
+                .await?;
+                Ok(count.count)
+            },
         )
-        .fetch_all(database_pool.get_cache_pool())
-        .await?;
-        Ok(erg)
+        .await
     }
 
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_agent(
         database_pool: &super::DbPool,
         agent_symbol: &str,
-    ) -> crate::Result<Vec<ShipyardTransaction>> {
-        let erg = sqlx::query_as!(
-            ShipyardTransaction,
-            r#"
-            SELECT
-                id,
-                waypoint_symbol,
-                ship_type as "ship_type: models::ShipType",
-                price,
-                agent_symbol,
-                "timestamp"
-            FROM shipyard_transaction
-            WHERE agent_symbol = $1
-            order by "timestamp"
-            "#,
-            agent_symbol
+        query: PaginatedQuery,
+    ) -> crate::Result<PaginatedResult<ShipyardTransaction>> {
+        run_paginated_query(
+            query,
+            |page_size, offset| async move {
+                let items = sqlx::query_as!(
+                    ShipyardTransaction,
+                    r#"
+                        SELECT
+                            id,
+                            waypoint_symbol,
+                            ship_type as "ship_type: models::ShipType",
+                            price,
+                            agent_symbol,
+                            "timestamp"
+                        FROM shipyard_transaction
+                        WHERE agent_symbol = $1
+                        ORDER BY "timestamp" ASC, id ASC
+                        LIMIT $2 OFFSET $3
+                    "#,
+                    agent_symbol,
+                    page_size,
+                    offset
+                )
+                .fetch_all(database_pool.get_cache_pool())
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let items = sqlx::query_as!(
+                    ShipyardTransaction,
+                    r#"
+                        SELECT
+                            id,
+                            waypoint_symbol,
+                            ship_type as "ship_type: models::ShipType",
+                            price,
+                            agent_symbol,
+                            "timestamp"
+                        FROM shipyard_transaction
+                        WHERE agent_symbol = $1
+                        ORDER BY "timestamp" ASC, id ASC
+                    "#,
+                    agent_symbol
+                )
+                .fetch_all(database_pool.get_cache_pool())
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let count = sqlx::query!(
+                    r#"
+                        SELECT COUNT(*) as "count!"
+                        FROM shipyard_transaction
+                        WHERE agent_symbol = $1
+                    "#,
+                    agent_symbol
+                )
+                .fetch_one(database_pool.get_cache_pool())
+                .await?;
+                Ok(count.count)
+            },
         )
-        .fetch_all(database_pool.get_cache_pool())
-        .await?;
-        Ok(erg)
+        .await
     }
 
     pub async fn get_by_id(
@@ -171,27 +351,73 @@ impl ShipyardTransaction {
         database_pool: &super::DbPool,
         waypoint_symbol: &str,
         ship_type: models::ShipType,
-    ) -> crate::Result<Vec<ShipyardTransaction>> {
-        let erg = sqlx::query_as!(
-            ShipyardTransaction,
-            r#"
-            SELECT
-                id,
-                waypoint_symbol,
-                ship_type as "ship_type: models::ShipType",
-                price,
-                agent_symbol,
-                "timestamp"
-            FROM shipyard_transaction
-            WHERE waypoint_symbol = $1 AND ship_type = $2
-            order by "timestamp"
-            "#,
-            waypoint_symbol,
-            ship_type as models::ShipType
+        query: PaginatedQuery,
+    ) -> crate::Result<PaginatedResult<ShipyardTransaction>> {
+        run_paginated_query(
+            query,
+            |page_size, offset| async move {
+                let items = sqlx::query_as!(
+                    ShipyardTransaction,
+                    r#"
+                        SELECT
+                            id,
+                            waypoint_symbol,
+                            ship_type as "ship_type: models::ShipType",
+                            price,
+                            agent_symbol,
+                            "timestamp"
+                        FROM shipyard_transaction
+                        WHERE waypoint_symbol = $1 AND ship_type = $2
+                        ORDER BY "timestamp" ASC, id ASC
+                        LIMIT $3 OFFSET $4
+                    "#,
+                    waypoint_symbol,
+                    ship_type as models::ShipType,
+                    page_size,
+                    offset
+                )
+                .fetch_all(database_pool.get_cache_pool())
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let items = sqlx::query_as!(
+                    ShipyardTransaction,
+                    r#"
+                        SELECT
+                            id,
+                            waypoint_symbol,
+                            ship_type as "ship_type: models::ShipType",
+                            price,
+                            agent_symbol,
+                            "timestamp"
+                        FROM shipyard_transaction
+                        WHERE waypoint_symbol = $1 AND ship_type = $2
+                        ORDER BY "timestamp" ASC, id ASC
+                    "#,
+                    waypoint_symbol,
+                    ship_type as models::ShipType
+                )
+                .fetch_all(database_pool.get_cache_pool())
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let count = sqlx::query!(
+                    r#"
+                        SELECT COUNT(*) as "count!"
+                        FROM shipyard_transaction
+                        WHERE waypoint_symbol = $1 AND ship_type = $2
+                    "#,
+                    waypoint_symbol,
+                    ship_type as models::ShipType
+                )
+                .fetch_one(database_pool.get_cache_pool())
+                .await?;
+                Ok(count.count)
+            },
         )
-        .fetch_all(database_pool.get_cache_pool())
-        .await?;
-        Ok(erg)
+        .await
     }
 
     pub async fn insert_new(
@@ -223,9 +449,63 @@ impl ShipyardTransaction {
     }
 }
 
-impl DatabaseConnector<ShipyardTransaction> for ShipyardTransaction {
+impl DatabaseConnectorAsync for ShipyardTransaction {
+    type ID = i64;
+
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
-    async fn insert(
+    async fn insert_new(
+        database_pool: &super::DbPool,
+        item: &ShipyardTransaction,
+    ) -> crate::Result<Self::ID> {
+        let inserted = sqlx::query!(
+            r#"
+                INSERT INTO shipyard_transaction (
+                    waypoint_symbol,
+                    ship_type,
+                    price,
+                    agent_symbol,
+                    "timestamp"
+                )
+                VALUES ($1, $2, $3, $4, $5)
+                ON CONFLICT (waypoint_symbol, ship_type, agent_symbol, "timestamp") DO NOTHING
+                RETURNING id
+            "#,
+            item.waypoint_symbol,
+            item.ship_type as models::ShipType,
+            item.price,
+            item.agent_symbol,
+            item.timestamp
+        )
+        .fetch_optional(&database_pool.database_pool)
+        .await?;
+
+        if let Some(inserted) = inserted {
+            return Ok(inserted.id);
+        }
+
+        let existing = sqlx::query!(
+            r#"
+                SELECT id
+                FROM shipyard_transaction
+                WHERE waypoint_symbol = $1
+                  AND ship_type = $2
+                  AND agent_symbol = $3
+                  AND "timestamp" = $4
+                LIMIT 1
+            "#,
+            item.waypoint_symbol,
+            item.ship_type as models::ShipType,
+            item.agent_symbol,
+            item.timestamp
+        )
+        .fetch_one(database_pool.get_cache_pool())
+        .await?;
+
+        Ok(existing.id)
+    }
+
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
+    async fn upsert(
         database_pool: &super::DbPool,
         item: &ShipyardTransaction,
     ) -> crate::Result<()> {
@@ -246,6 +526,34 @@ impl DatabaseConnector<ShipyardTransaction> for ShipyardTransaction {
             item.price,
             item.agent_symbol,
             item.timestamp
+        )
+        .execute(&database_pool.database_pool)
+        .await?;
+        Ok(())
+    }
+
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
+    async fn update(
+        database_pool: &super::DbPool,
+        item: &ShipyardTransaction,
+    ) -> crate::Result<()> {
+        sqlx::query!(
+            r#"
+                UPDATE shipyard_transaction
+                SET
+                    waypoint_symbol = $1,
+                    ship_type = $2,
+                    price = $3,
+                    agent_symbol = $4,
+                    "timestamp" = $5
+                WHERE id = $6
+            "#,
+            item.waypoint_symbol,
+            item.ship_type as models::ShipType,
+            item.price,
+            item.agent_symbol,
+            item.timestamp,
+            item.id
         )
         .execute(&database_pool.database_pool)
         .await?;
@@ -303,23 +611,112 @@ impl DatabaseConnector<ShipyardTransaction> for ShipyardTransaction {
     }
 
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
-    async fn get_all(database_pool: &super::DbPool) -> crate::Result<Vec<ShipyardTransaction>> {
-        let erg = sqlx::query_as!(
+    async fn get_all(
+        database_pool: &super::DbPool,
+        query: PaginatedQuery,
+    ) -> crate::Result<PaginatedResult<ShipyardTransaction>> {
+        run_paginated_query(
+            query,
+            |page_size, offset| async move {
+                let items = sqlx::query_as!(
+                    ShipyardTransaction,
+                    r#"
+                        SELECT
+                            id,
+                            waypoint_symbol,
+                            ship_type as "ship_type: models::ShipType",
+                            price,
+                            agent_symbol,
+                            "timestamp"
+                        FROM shipyard_transaction
+                        ORDER BY "timestamp" ASC, id ASC
+                        LIMIT $1 OFFSET $2
+                    "#,
+                    page_size,
+                    offset
+                )
+                .fetch_all(database_pool.get_cache_pool())
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let items = sqlx::query_as!(
+                    ShipyardTransaction,
+                    r#"
+                        SELECT
+                            id,
+                            waypoint_symbol,
+                            ship_type as "ship_type: models::ShipType",
+                            price,
+                            agent_symbol,
+                            "timestamp"
+                        FROM shipyard_transaction
+                        ORDER BY "timestamp" ASC, id ASC
+                    "#
+                )
+                .fetch_all(database_pool.get_cache_pool())
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let count = sqlx::query!(
+                    r#"
+                        SELECT COUNT(*) as "count!"
+                        FROM shipyard_transaction
+                    "#
+                )
+                .fetch_one(database_pool.get_cache_pool())
+                .await?;
+                Ok(count.count)
+            },
+        )
+        .await
+    }
+
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
+    async fn get_by_id(
+        database_pool: &super::DbPool,
+        id: &Self::ID,
+    ) -> crate::Result<Option<Self>> {
+        let item = sqlx::query_as!(
             ShipyardTransaction,
             r#"
-            SELECT
-                id,
-                waypoint_symbol,
-                ship_type as "ship_type: models::ShipType",
-                price,
-                agent_symbol,
-                "timestamp"
-            FROM shipyard_transaction
-            order by "timestamp"
-            "#
+                SELECT
+                    id,
+                    waypoint_symbol,
+                    ship_type as "ship_type: models::ShipType",
+                    price,
+                    agent_symbol,
+                    "timestamp"
+                FROM shipyard_transaction
+                WHERE id = $1
+                LIMIT 1
+            "#,
+            *id
         )
-        .fetch_all(database_pool.get_cache_pool())
+        .fetch_optional(database_pool.get_cache_pool())
         .await?;
-        Ok(erg)
+        Ok(item)
+    }
+
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
+    async fn delete_by_id(
+        database_pool: &super::DbPool,
+        id: &Self::ID,
+    ) -> crate::Result<()> {
+        sqlx::query!(
+            r#"
+                DELETE FROM shipyard_transaction
+                WHERE id = $1
+            "#,
+            *id
+        )
+        .execute(&database_pool.database_pool)
+        .await?;
+        Ok(())
+    }
+
+    fn set_id(&mut self, id: Self::ID) {
+        self.id = id;
     }
 }

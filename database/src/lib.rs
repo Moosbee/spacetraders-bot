@@ -1,3 +1,5 @@
+use std::future::Future;
+
 mod agent;
 mod construction_material;
 mod construction_shipment;
@@ -116,6 +118,9 @@ pub enum Error {
     #[error("Invalid timestamp: {0}")]
     InvalidTimestamp(String),
 
+    #[error("Invalid pagination query: page={page}, page_size={page_size:?}")]
+    InvalidPaginationQuery { page: i64, page_size: Option<i64> },
+
     #[error("Incomplete fleet config for fleet ID {fleet_id:?}")]
     IncompleteFleetConfig { fleet_id: i32 },
 }
@@ -163,15 +168,142 @@ impl Clone for DbPool {
     }
 }
 
-#[allow(async_fn_in_trait)]
-pub trait DatabaseConnector<T> {
-    /// Insert a new item into the database, or update it if it already exists.
-    async fn insert(database_pool: &DbPool, item: &T) -> crate::Result<()>;
-    /// Insert multiple items into the database, or update them if they already exist.
-    async fn insert_bulk(database_pool: &DbPool, items: &[T]) -> crate::Result<()>;
-    #[allow(dead_code)]
-    /// Get all items from the database.
-    async fn get_all(database_pool: &DbPool) -> crate::Result<Vec<T>>;
+#[derive(Debug, Clone)]
+pub struct PaginatedResult<T> {
+    pub items: Vec<T>,
+    pub total_count: i64,
+    pub page: i64,
+    pub page_size: Option<i64>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct PaginatedQuery {
+    pub page: i64,
+    pub page_size: Option<i64>,
+}
+
+impl PaginatedQuery {
+    pub const fn unpaged() -> Self {
+        Self {
+            page: 1,
+            page_size: None,
+        }
+    }
+
+    pub const fn new(page: i64, page_size: Option<i64>) -> Self {
+        Self { page, page_size }
+    }
+
+    pub fn validate(&self) -> crate::Result<()> {
+        if self.page < 1 {
+            return Err(crate::Error::InvalidPaginationQuery {
+                page: self.page,
+                page_size: self.page_size,
+            });
+        }
+
+        if matches!(self.page_size, Some(page_size) if page_size < 1) {
+            return Err(crate::Error::InvalidPaginationQuery {
+                page: self.page,
+                page_size: self.page_size,
+            });
+        }
+
+        Ok(())
+    }
+
+    pub fn validated(self) -> crate::Result<Self> {
+        self.validate()?;
+        Ok(self)
+    }
+
+    pub const fn is_unpaged(&self) -> bool {
+        self.page_size.is_none()
+    }
+
+    pub fn offset(&self) -> crate::Result<i64> {
+        self.validate()?;
+
+        Ok(match self.page_size {
+            Some(page_size) => (self.page - 1) * page_size,
+            None => 0,
+        })
+    }
+}
+
+impl Default for PaginatedQuery {
+    fn default() -> Self {
+        Self::unpaged()
+    }
+}
+
+pub async fn run_paginated_query<
+    T,
+    FetchPage,
+    PageFuture,
+    FetchAll,
+    AllFuture,
+    FetchCount,
+    CountFuture,
+>(
+    query: PaginatedQuery,
+    fetch_page: FetchPage,
+    fetch_all: FetchAll,
+    fetch_count: FetchCount,
+) -> crate::Result<PaginatedResult<T>>
+where
+    FetchPage: FnOnce(i64, i64) -> PageFuture,
+    PageFuture: Future<Output = crate::Result<Vec<T>>>,
+    FetchAll: FnOnce() -> AllFuture,
+    AllFuture: Future<Output = crate::Result<Vec<T>>>,
+    FetchCount: FnOnce() -> CountFuture,
+    CountFuture: Future<Output = crate::Result<i64>>,
+{
+    let query = query.validated()?;
+
+    let items = if let Some(page_size) = query.page_size {
+        fetch_page(page_size, query.offset()?).await?
+    } else {
+        fetch_all().await?
+    };
+
+    let total_count = if query.is_unpaged() {
+        items.len() as i64
+    } else {
+        fetch_count().await?
+    };
+
+    Ok(PaginatedResult {
+        items,
+        total_count,
+        page: query.page,
+        page_size: query.page_size,
+    })
+}
+
+pub fn paginate_items<T>(
+    query: PaginatedQuery,
+    items: Vec<T>,
+) -> crate::Result<PaginatedResult<T>> {
+    let query = query.validated()?;
+    let total_count = items.len() as i64;
+
+    let items = if let Some(page_size) = query.page_size {
+        items
+            .into_iter()
+            .skip(query.offset()? as usize)
+            .take(page_size as usize)
+            .collect()
+    } else {
+        items
+    };
+
+    Ok(PaginatedResult {
+        items,
+        total_count,
+        page: query.page,
+        page_size: query.page_size,
+    })
 }
 
 #[allow(async_fn_in_trait)]
@@ -181,7 +313,10 @@ pub trait DatabaseConnectorAsync: std::marker::Sized {
     async fn upsert(database_pool: &DbPool, item: &Self) -> crate::Result<()>;
     async fn update(database_pool: &DbPool, item: &Self) -> crate::Result<()>;
     async fn insert_bulk(database_pool: &DbPool, items: &[Self]) -> crate::Result<()>;
-    async fn get_all(database_pool: &DbPool) -> crate::Result<Vec<Self>>;
+    async fn get_all(
+        database_pool: &DbPool,
+        query: PaginatedQuery,
+    ) -> crate::Result<PaginatedResult<Self>>;
     async fn get_by_id(database_pool: &DbPool, id: &Self::ID) -> crate::Result<Option<Self>>;
     async fn delete_by_id(database_pool: &DbPool, id: &Self::ID) -> crate::Result<()>;
     fn set_id(&mut self, id: Self::ID);

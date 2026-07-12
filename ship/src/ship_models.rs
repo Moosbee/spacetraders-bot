@@ -1,7 +1,7 @@
 use std::{collections::HashSet, fmt::Debug};
 
 use chrono::{DateTime, Utc};
-use database::DatabaseConnector;
+use database::DatabaseConnectorAsync;
 use space_traders_client::models::{self, ShipRole};
 use utils::{Publisher, Subject};
 
@@ -270,7 +270,11 @@ impl<T: Clone + Send + Sync> RustShip<T> {
         assignment_id: Option<i64>,
     ) -> Result<database::ShipInfo> {
         self.mutate();
-        let db_ship = database::ShipInfo::get_by_symbol(&database_pool, &self.symbol).await?;
+        let db_ship = database::ShipInfo::get_by_id(
+            &database_pool,
+            &self.symbol,
+        )
+        .await?;
         let ship_info = match db_ship {
             Some(db_ship) => db_ship,
             None => {
@@ -292,7 +296,11 @@ impl<T: Clone + Send + Sync> RustShip<T> {
                     assignment_id,
                     temp_assignment_id: None,
                 };
-                database::ShipInfo::insert(&database_pool, &ship_info).await?;
+                database::ShipInfo::upsert(
+                    &database_pool,
+                    &ship_info,
+                )
+                .await?;
                 ship_info
             }
         };
@@ -318,11 +326,21 @@ impl<T: Clone + Send + Sync> RustShip<T> {
         ship: models::ShipyardShip,
         database_pool: &database::DbPool,
     ) -> Result<()> {
-        database::EngineInfo::insert(database_pool, &database::EngineInfo::from(*ship.engine))
-            .await?;
-        database::FrameInfo::insert(database_pool, &database::FrameInfo::from(*ship.frame)).await?;
-        database::ReactorInfo::insert(database_pool, &database::ReactorInfo::from(*ship.reactor))
-            .await?;
+        database::EngineInfo::upsert(
+            database_pool,
+            &database::EngineInfo::from(*ship.engine),
+        )
+        .await?;
+        database::FrameInfo::upsert(
+            database_pool,
+            &database::FrameInfo::from(*ship.frame),
+        )
+        .await?;
+        database::ReactorInfo::upsert(
+            database_pool,
+            &database::ReactorInfo::from(*ship.reactor),
+        )
+        .await?;
 
         database::ModuleInfo::insert_bulk(
             database_pool,
@@ -353,11 +371,21 @@ impl<T: Clone + Send + Sync> RustShip<T> {
         ship: models::Ship,
         database_pool: &database::DbPool,
     ) -> Result<()> {
-        database::EngineInfo::insert(database_pool, &database::EngineInfo::from(*ship.engine))
-            .await?;
-        database::FrameInfo::insert(database_pool, &database::FrameInfo::from(*ship.frame)).await?;
-        database::ReactorInfo::insert(database_pool, &database::ReactorInfo::from(*ship.reactor))
-            .await?;
+        database::EngineInfo::upsert(
+            database_pool,
+            &database::EngineInfo::from(*ship.engine),
+        )
+        .await?;
+        database::FrameInfo::upsert(
+            database_pool,
+            &database::FrameInfo::from(*ship.frame),
+        )
+        .await?;
+        database::ReactorInfo::upsert(
+            database_pool,
+            &database::ReactorInfo::from(*ship.reactor),
+        )
+        .await?;
 
         database::ModuleInfo::insert_bulk(
             database_pool,

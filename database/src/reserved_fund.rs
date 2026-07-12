@@ -1,6 +1,8 @@
 use tracing::instrument;
 
-use crate::DatabaseConnector;
+use crate::{
+    run_paginated_query, DatabaseConnectorAsync, PaginatedQuery, PaginatedResult,
+};
 
 #[derive(Debug, Clone, serde::Serialize, async_graphql::SimpleObject)]
 #[graphql(name = "DBReservedFund")]
@@ -69,59 +71,138 @@ impl ReservedFund {
     }
 
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
-    pub async fn get_by_id(
-        database_pool: &crate::DbPool,
-        id: &i64,
-    ) -> crate::Result<Option<ReservedFund>> {
-        let result = sqlx::query_as!(
-            ReservedFund,
-            r#"
-              SELECT
-                id,
-                amount,
-                status as "status: FundStatus",
-                actual_amount,
-                created_at,
-                updated_at
-              FROM reserved_funds
-              WHERE id = $1
-          "#,
-            id
-        )
-        .fetch_optional(&database_pool.database_pool)
-        .await?;
-        Ok(result)
-    }
-
-    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_status(
         database_pool: &crate::DbPool,
         status: FundStatus,
-    ) -> crate::Result<Vec<ReservedFund>> {
-        let result = sqlx::query_as!(
-            ReservedFund,
-            r#"
-              SELECT
-                id,
-                amount,
-                status as "status: FundStatus",
-                actual_amount,
-                created_at,
-                updated_at
-              FROM reserved_funds
-              WHERE status = $1::fund_status
-          "#,
-            &status as &FundStatus
+        query: PaginatedQuery,
+    ) -> crate::Result<PaginatedResult<ReservedFund>> {
+        run_paginated_query(
+            query,
+            |page_size, offset| async move {
+                let items = sqlx::query_as!(
+                    ReservedFund,
+                    r#"
+                        SELECT
+                            id,
+                            amount,
+                            status as "status: FundStatus",
+                            actual_amount,
+                            created_at,
+                            updated_at
+                        FROM reserved_funds
+                        WHERE status = $1::fund_status
+                        ORDER BY created_at DESC, id DESC
+                        LIMIT $2 OFFSET $3
+                    "#,
+                    &status as &FundStatus,
+                    page_size,
+                    offset
+                )
+                .fetch_all(&database_pool.database_pool)
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let items = sqlx::query_as!(
+                    ReservedFund,
+                    r#"
+                        SELECT
+                            id,
+                            amount,
+                            status as "status: FundStatus",
+                            actual_amount,
+                            created_at,
+                            updated_at
+                        FROM reserved_funds
+                        WHERE status = $1::fund_status
+                        ORDER BY created_at DESC, id DESC
+                    "#,
+                    &status as &FundStatus
+                )
+                .fetch_all(&database_pool.database_pool)
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let count = sqlx::query!(
+                    r#"
+                        SELECT COUNT(*) as "count!"
+                        FROM reserved_funds
+                        WHERE status = $1::fund_status
+                    "#,
+                    &status as &FundStatus
+                )
+                .fetch_one(&database_pool.database_pool)
+                .await?;
+                Ok(count.count)
+            },
         )
-        .fetch_all(&database_pool.database_pool)
-        .await?;
-        Ok(result)
+        .await
     }
 }
 
-impl DatabaseConnector<ReservedFund> for ReservedFund {
+impl DatabaseConnectorAsync for ReservedFund {
+    type ID = i64;
+
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
-    async fn insert(database_pool: &crate::DbPool, item: &ReservedFund) -> crate::Result<()> {
+    async fn insert_new(
+        database_pool: &crate::DbPool,
+        item: &ReservedFund,
+    ) -> crate::Result<Self::ID> {
+        if item.id != 0 {
+                        sqlx::query!(
+                                r#"
+                                    INSERT INTO reserved_funds (
+                                        id,
+                                        amount,
+                                        status,
+                                        actual_amount,
+                                        created_at,
+                                        updated_at
+                                    )
+                                    VALUES (
+                                        $1, $2, $3::fund_status, $4, NOW(), NOW()
+                                    )
+                                    ON CONFLICT (id) DO UPDATE SET
+                                        amount = EXCLUDED.amount,
+                                        status = EXCLUDED.status,
+                                        actual_amount = EXCLUDED.actual_amount,
+                                        updated_at = NOW();
+                            "#,
+                                &item.id,
+                                &item.amount,
+                                &item.status as &FundStatus,
+                                &item.actual_amount
+                        )
+                        .execute(&database_pool.database_pool)
+                        .await?;
+            return Ok(item.id);
+        }
+
+        let id = sqlx::query!(
+            r#"
+                INSERT INTO reserved_funds (amount, status, actual_amount, created_at, updated_at)
+                VALUES ($1, $2::fund_status, $3, NOW(), NOW())
+                RETURNING id
+            "#,
+            &item.amount,
+            &item.status as &FundStatus,
+            &item.actual_amount
+        )
+        .fetch_one(&database_pool.database_pool)
+        .await?
+        .id;
+
+        Ok(id)
+    }
+
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
+    async fn upsert(database_pool: &crate::DbPool, item: &ReservedFund) -> crate::Result<()> {
+        if item.id == 0 {
+            let _ = ReservedFund::insert_new(database_pool, item.clone()).await?;
+            return Ok(());
+        }
+
         sqlx::query!(
             r#"
               INSERT INTO reserved_funds (
@@ -149,6 +230,14 @@ impl DatabaseConnector<ReservedFund> for ReservedFund {
         .execute(&database_pool.database_pool)
         .await?;
         Ok(())
+    }
+
+    #[instrument(level = "trace", skip(database_pool, item))]
+    async fn update(
+        database_pool: &crate::DbPool,
+        item: &ReservedFund,
+    ) -> crate::Result<()> {
+        Self::upsert(database_pool, item).await
     }
 
     #[instrument(level = "trace", skip(database_pool, items))]
@@ -203,22 +292,111 @@ impl DatabaseConnector<ReservedFund> for ReservedFund {
     }
 
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
-    async fn get_all(database_pool: &crate::DbPool) -> crate::Result<Vec<ReservedFund>> {
-        let result = sqlx::query_as!(
-            ReservedFund,
-            r#"
-              SELECT
-                id,
-                amount,
-                status as "status: FundStatus",
-                actual_amount,
-                created_at,
-                updated_at
-              FROM reserved_funds
-          "#
+    async fn get_all(
+        database_pool: &crate::DbPool,
+        query: PaginatedQuery,
+    ) -> crate::Result<PaginatedResult<ReservedFund>> {
+        run_paginated_query(
+            query,
+            |page_size, offset| async move {
+                let items = sqlx::query_as!(
+                    ReservedFund,
+                    r#"
+                        SELECT
+                            id,
+                            amount,
+                            status as "status: FundStatus",
+                            actual_amount,
+                            created_at,
+                            updated_at
+                        FROM reserved_funds
+                        ORDER BY created_at DESC, id DESC
+                        LIMIT $1 OFFSET $2
+                    "#,
+                    page_size,
+                    offset
+                )
+                .fetch_all(&database_pool.database_pool)
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let items = sqlx::query_as!(
+                    ReservedFund,
+                    r#"
+                        SELECT
+                            id,
+                            amount,
+                            status as "status: FundStatus",
+                            actual_amount,
+                            created_at,
+                            updated_at
+                        FROM reserved_funds
+                        ORDER BY created_at DESC, id DESC
+                    "#
+                )
+                .fetch_all(&database_pool.database_pool)
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let count = sqlx::query!(
+                    r#"
+                        SELECT COUNT(*) as "count!"
+                        FROM reserved_funds
+                    "#
+                )
+                .fetch_one(&database_pool.database_pool)
+                .await?;
+                Ok(count.count)
+            },
         )
-        .fetch_all(&database_pool.database_pool)
+        .await
+    }
+
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
+    async fn get_by_id(
+        database_pool: &crate::DbPool,
+        id: &Self::ID,
+    ) -> crate::Result<Option<Self>> {
+                let result = sqlx::query_as!(
+                        ReservedFund,
+                        r#"
+                            SELECT
+                                id,
+                                amount,
+                                status as "status: FundStatus",
+                                actual_amount,
+                                created_at,
+                                updated_at
+                            FROM reserved_funds
+                            WHERE id = $1
+                    "#,
+                        id
+                )
+                .fetch_optional(&database_pool.database_pool)
+                .await?;
+                Ok(result)
+    }
+
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
+    async fn delete_by_id(
+        database_pool: &crate::DbPool,
+        id: &Self::ID,
+    ) -> crate::Result<()> {
+        sqlx::query!(
+            r#"
+                DELETE FROM reserved_funds
+                WHERE id = $1
+            "#,
+            id
+        )
+        .execute(&database_pool.database_pool)
         .await?;
-        Ok(result)
+        Ok(())
+    }
+
+    fn set_id(&mut self, id: Self::ID) {
+        self.id = id;
     }
 }

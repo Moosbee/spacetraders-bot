@@ -1,7 +1,10 @@
 use space_traders_client::models;
 use tracing::instrument;
 
-use super::{DatabaseConnector, DbPool, ShipmentStatus};
+use super::{
+    DatabaseConnectorAsync, DbPool, PaginatedQuery, PaginatedResult, ShipmentStatus,
+    run_paginated_query,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq, async_graphql::SimpleObject)]
 #[graphql(name = "DBTradeRoute")]
@@ -81,9 +84,66 @@ impl std::fmt::Display for TradeRoute {
     }
 }
 
-impl DatabaseConnector<TradeRoute> for TradeRoute {
+impl DatabaseConnectorAsync for TradeRoute {
+    type ID = i32;
+
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
-    async fn insert(database_pool: &DbPool, item: &TradeRoute) -> crate::Result<()> {
+    async fn insert_new(database_pool: &DbPool, item: &TradeRoute) -> crate::Result<Self::ID> {
+        struct Erg {
+            id: i32,
+        }
+
+        let erg = sqlx::query_as!(
+            Erg,
+            r#"
+            insert into trade_route (
+            symbol,
+            ship_symbol,
+            purchase_waypoint,
+            sell_waypoint,
+            status,
+            trade_volume,
+            predicted_purchase_price,
+            predicted_sell_price,
+            reserved_fund
+            ) values (
+            $1,
+            $2,
+            $3,
+            $4,
+            $5,
+            $6,
+            $7,
+            $8,
+            $9
+            )
+            RETURNING id
+            "#,
+            item.symbol as models::TradeSymbol,
+            item.ship_symbol,
+            item.purchase_waypoint,
+            item.sell_waypoint,
+            item.status as crate::ShipmentStatus,
+            item.trade_volume,
+            item.predicted_purchase_price,
+            item.predicted_sell_price,
+            item.reserved_fund
+        )
+        .fetch_all(&database_pool.database_pool)
+        .await?;
+
+        let erg = erg.first().ok_or_else(|| sqlx::Error::RowNotFound)?;
+
+        Ok(erg.id)
+    }
+
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
+    async fn upsert(database_pool: &DbPool, item: &TradeRoute) -> crate::Result<()> {
+        if item.id == 0 {
+            let _ = Self::insert_new(database_pool, item).await?;
+            return Ok(());
+        }
+
         sqlx::query!(
             r#"
             insert into trade_route (
@@ -128,6 +188,11 @@ impl DatabaseConnector<TradeRoute> for TradeRoute {
         .await?;
 
         Ok(())
+    }
+
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
+    async fn update(database_pool: &DbPool, item: &TradeRoute) -> crate::Result<()> {
+        Self::upsert(database_pool, item).await
     }
 
     #[instrument(level = "trace", skip(database_pool, items))]
@@ -220,83 +285,80 @@ impl DatabaseConnector<TradeRoute> for TradeRoute {
     }
 
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
-    async fn get_all(database_pool: &DbPool) -> crate::Result<Vec<TradeRoute>> {
-        let erg = sqlx::query_as!(
-            TradeRoute,
-            r#"
-                SELECT 
-                  id,
-                  symbol as "symbol: models::TradeSymbol",
-                  ship_symbol,
-                  purchase_waypoint,
-                  sell_waypoint,
-                  status as "status: ShipmentStatus",
-                  trade_volume,
-                  predicted_purchase_price,
-                  predicted_sell_price,
-                  created_at,
-                  reserved_fund
-                FROM trade_route
-            "#
+    async fn get_all(
+        database_pool: &DbPool,
+        query: PaginatedQuery,
+    ) -> crate::Result<PaginatedResult<TradeRoute>> {
+        run_paginated_query(
+            query,
+            |page_size, offset| async move {
+                let items = sqlx::query_as!(
+                    TradeRoute,
+                    r#"
+                        SELECT 
+                          id,
+                          symbol as "symbol: models::TradeSymbol",
+                          ship_symbol,
+                          purchase_waypoint,
+                          sell_waypoint,
+                          status as "status: ShipmentStatus",
+                          trade_volume,
+                          predicted_purchase_price,
+                          predicted_sell_price,
+                          created_at,
+                          reserved_fund
+                        FROM trade_route
+                        ORDER BY created_at DESC, id DESC
+                        LIMIT $1 OFFSET $2
+                    "#,
+                    page_size,
+                    offset
+                )
+                .fetch_all(database_pool.get_cache_pool())
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let items = sqlx::query_as!(
+                    TradeRoute,
+                    r#"
+                        SELECT 
+                          id,
+                          symbol as "symbol: models::TradeSymbol",
+                          ship_symbol,
+                          purchase_waypoint,
+                          sell_waypoint,
+                          status as "status: ShipmentStatus",
+                          trade_volume,
+                          predicted_purchase_price,
+                          predicted_sell_price,
+                          created_at,
+                          reserved_fund
+                        FROM trade_route
+                        ORDER BY created_at DESC, id DESC
+                    "#
+                )
+                .fetch_all(database_pool.get_cache_pool())
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let count = sqlx::query!(
+                    r#"
+                        SELECT COUNT(*) as "count!"
+                        FROM trade_route
+                    "#
+                )
+                .fetch_one(database_pool.get_cache_pool())
+                .await?;
+                Ok(count.count)
+            },
         )
-        .fetch_all(database_pool.get_cache_pool())
-        .await?;
-        Ok(erg)
-    }
-}
-
-impl TradeRoute {
-    #[instrument(level = "trace", skip(database_pool), err(Debug))]
-    pub async fn insert_new(database_pool: &DbPool, item: &TradeRoute) -> crate::Result<i32> {
-        struct Erg {
-            id: i32,
-        }
-        let erg = sqlx::query_as!(
-            Erg,
-            r#"
-            insert into trade_route (
-            symbol,
-            ship_symbol,
-            purchase_waypoint,
-            sell_waypoint,
-            status,
-            trade_volume,
-            predicted_purchase_price,
-            predicted_sell_price,
-            reserved_fund
-            ) values (
-            $1,
-            $2,
-            $3,
-            $4,
-            $5,
-            $6,
-            $7,
-            $8,
-            $9
-            )
-            RETURNING id
-            "#,
-            item.symbol as models::TradeSymbol,
-            item.ship_symbol,
-            item.purchase_waypoint,
-            item.sell_waypoint,
-            item.status as crate::ShipmentStatus,
-            item.trade_volume,
-            item.predicted_purchase_price,
-            item.predicted_sell_price,
-            item.reserved_fund
-        )
-        .fetch_all(&database_pool.database_pool)
-        .await?;
-
-        let erg = erg.first().ok_or_else(|| sqlx::Error::RowNotFound)?;
-
-        Ok(erg.id)
+        .await
     }
 
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
-    pub async fn get_by_id(database_pool: &DbPool, id: i32) -> crate::Result<Option<TradeRoute>> {
+    async fn get_by_id(database_pool: &DbPool, id: &Self::ID) -> crate::Result<Option<Self>> {
         let erg = sqlx::query_as!(
             TradeRoute,
             r#"
@@ -314,7 +376,7 @@ impl TradeRoute {
                   reserved_fund
                  FROM trade_route WHERE id = $1
             "#,
-            id
+            *id
         )
         .fetch_optional(&database_pool.database_pool)
         .await?;
@@ -322,264 +384,738 @@ impl TradeRoute {
     }
 
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
+    async fn delete_by_id(database_pool: &DbPool, id: &Self::ID) -> crate::Result<()> {
+        sqlx::query!(
+            r#"
+                DELETE FROM trade_route
+                WHERE id = $1
+            "#,
+            *id
+        )
+        .execute(&database_pool.database_pool)
+        .await?;
+        Ok(())
+    }
+
+    fn set_id(&mut self, id: Self::ID) {
+        self.id = id;
+    }
+}
+
+impl TradeRoute {
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_reservation_id(
         database_pool: &DbPool,
         id: i64,
-    ) -> crate::Result<Vec<TradeRoute>> {
-        let erg = sqlx::query_as!(
-            TradeRoute,
-            r#"
-                SELECT 
-                  id,
-                  symbol as "symbol: models::TradeSymbol",
-                  ship_symbol,
-                  purchase_waypoint,
-                  sell_waypoint,
-                  status as "status: ShipmentStatus",
-                  trade_volume,
-                  predicted_purchase_price,
-                  predicted_sell_price,
-                  created_at,
-                  reserved_fund
-                 FROM trade_route WHERE reserved_fund = $1
-            "#,
-            id
+        query: PaginatedQuery,
+    ) -> crate::Result<PaginatedResult<TradeRoute>> {
+        run_paginated_query(
+            query,
+            |page_size, offset| async move {
+                let items = sqlx::query_as!(
+                    TradeRoute,
+                    r#"
+                        SELECT 
+                          id,
+                          symbol as "symbol: models::TradeSymbol",
+                          ship_symbol,
+                          purchase_waypoint,
+                          sell_waypoint,
+                          status as "status: ShipmentStatus",
+                          trade_volume,
+                          predicted_purchase_price,
+                          predicted_sell_price,
+                          created_at,
+                          reserved_fund
+                         FROM trade_route
+                         WHERE reserved_fund = $1
+                         ORDER BY created_at DESC, id DESC
+                         LIMIT $2 OFFSET $3
+                    "#,
+                    id,
+                    page_size,
+                    offset
+                )
+                .fetch_all(&database_pool.database_pool)
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let items = sqlx::query_as!(
+                    TradeRoute,
+                    r#"
+                        SELECT 
+                          id,
+                          symbol as "symbol: models::TradeSymbol",
+                          ship_symbol,
+                          purchase_waypoint,
+                          sell_waypoint,
+                          status as "status: ShipmentStatus",
+                          trade_volume,
+                          predicted_purchase_price,
+                          predicted_sell_price,
+                          created_at,
+                          reserved_fund
+                         FROM trade_route
+                         WHERE reserved_fund = $1
+                         ORDER BY created_at DESC, id DESC
+                    "#,
+                    id
+                )
+                .fetch_all(&database_pool.database_pool)
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let count = sqlx::query!(
+                    r#"
+                        SELECT COUNT(*) as "count!"
+                        FROM trade_route
+                        WHERE reserved_fund = $1
+                    "#,
+                    id
+                )
+                .fetch_one(database_pool.get_cache_pool())
+                .await?;
+                Ok(count.count)
+            },
         )
-        .fetch_all(&database_pool.database_pool)
-        .await?;
-        Ok(erg)
+        .await
     }
 
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
-    pub async fn get_unfinished(database_pool: &DbPool) -> crate::Result<Vec<TradeRoute>> {
-        let erg = sqlx::query_as!(
-            TradeRoute,
-            r#"
-                SELECT 
-                  id,
-                  symbol as "symbol: models::TradeSymbol",
-                  ship_symbol,
-                  purchase_waypoint,
-                  sell_waypoint,
-                  status as "status: ShipmentStatus",
-                  trade_volume,
-                  predicted_purchase_price,
-                  predicted_sell_price,
-                  created_at,
-                  reserved_fund
-                 FROM trade_route WHERE status='IN_TRANSIT'
-            "#
+    pub async fn get_unfinished(
+        database_pool: &DbPool,
+        query: PaginatedQuery,
+    ) -> crate::Result<PaginatedResult<TradeRoute>> {
+        run_paginated_query(
+            query,
+            |page_size, offset| async move {
+                let items = sqlx::query_as!(
+                    TradeRoute,
+                    r#"
+                        SELECT 
+                          id,
+                          symbol as "symbol: models::TradeSymbol",
+                          ship_symbol,
+                          purchase_waypoint,
+                          sell_waypoint,
+                          status as "status: ShipmentStatus",
+                          trade_volume,
+                          predicted_purchase_price,
+                          predicted_sell_price,
+                          created_at,
+                          reserved_fund
+                         FROM trade_route
+                         WHERE status = 'IN_TRANSIT'
+                         ORDER BY created_at DESC, id DESC
+                         LIMIT $1 OFFSET $2
+                    "#,
+                    page_size,
+                    offset
+                )
+                .fetch_all(&database_pool.database_pool)
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let items = sqlx::query_as!(
+                    TradeRoute,
+                    r#"
+                        SELECT 
+                          id,
+                          symbol as "symbol: models::TradeSymbol",
+                          ship_symbol,
+                          purchase_waypoint,
+                          sell_waypoint,
+                          status as "status: ShipmentStatus",
+                          trade_volume,
+                          predicted_purchase_price,
+                          predicted_sell_price,
+                          created_at,
+                          reserved_fund
+                         FROM trade_route
+                         WHERE status = 'IN_TRANSIT'
+                         ORDER BY created_at DESC, id DESC
+                    "#
+                )
+                .fetch_all(&database_pool.database_pool)
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let count = sqlx::query!(
+                    r#"
+                        SELECT COUNT(*) as "count!"
+                        FROM trade_route
+                        WHERE status = 'IN_TRANSIT'
+                    "#
+                )
+                .fetch_one(database_pool.get_cache_pool())
+                .await?;
+                Ok(count.count)
+            },
         )
-        .fetch_all(&database_pool.database_pool)
-        .await?;
-        Ok(erg)
+        .await
     }
 
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_ship(
         database_pool: &DbPool,
         ship_symbol: &str,
-    ) -> crate::Result<Vec<TradeRoute>> {
-        let erg = sqlx::query_as!(
-            TradeRoute,
-            r#"
-                SELECT 
-                  id,
-                  symbol as "symbol: models::TradeSymbol",
-                  ship_symbol,
-                  purchase_waypoint,
-                  sell_waypoint,
-                  status as "status: ShipmentStatus",
-                  trade_volume,
-                  predicted_purchase_price,
-                  predicted_sell_price,
-                  created_at,
-                  reserved_fund
-                 FROM trade_route WHERE ship_symbol = $1
-            "#,
-            ship_symbol
+        query: PaginatedQuery,
+    ) -> crate::Result<PaginatedResult<TradeRoute>> {
+        run_paginated_query(
+            query,
+            |page_size, offset| async move {
+                let items = sqlx::query_as!(
+                    TradeRoute,
+                    r#"
+                        SELECT 
+                          id,
+                          symbol as "symbol: models::TradeSymbol",
+                          ship_symbol,
+                          purchase_waypoint,
+                          sell_waypoint,
+                          status as "status: ShipmentStatus",
+                          trade_volume,
+                          predicted_purchase_price,
+                          predicted_sell_price,
+                          created_at,
+                          reserved_fund
+                         FROM trade_route
+                         WHERE ship_symbol = $1
+                         ORDER BY created_at DESC, id DESC
+                         LIMIT $2 OFFSET $3
+                    "#,
+                    ship_symbol,
+                    page_size,
+                    offset
+                )
+                .fetch_all(&database_pool.database_pool)
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let items = sqlx::query_as!(
+                    TradeRoute,
+                    r#"
+                        SELECT 
+                          id,
+                          symbol as "symbol: models::TradeSymbol",
+                          ship_symbol,
+                          purchase_waypoint,
+                          sell_waypoint,
+                          status as "status: ShipmentStatus",
+                          trade_volume,
+                          predicted_purchase_price,
+                          predicted_sell_price,
+                          created_at,
+                          reserved_fund
+                         FROM trade_route
+                         WHERE ship_symbol = $1
+                         ORDER BY created_at DESC, id DESC
+                    "#,
+                    ship_symbol
+                )
+                .fetch_all(&database_pool.database_pool)
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let count = sqlx::query!(
+                    r#"
+                        SELECT COUNT(*) as "count!"
+                        FROM trade_route
+                        WHERE ship_symbol = $1
+                    "#,
+                    ship_symbol
+                )
+                .fetch_one(database_pool.get_cache_pool())
+                .await?;
+                Ok(count.count)
+            },
         )
-        .fetch_all(&database_pool.database_pool)
-        .await?;
-        Ok(erg)
+        .await
     }
 
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_purchase_waypoint(
         database_pool: &DbPool,
         waypoint_symbol: &str,
-    ) -> crate::Result<Vec<TradeRoute>> {
-        let erg = sqlx::query_as!(
-            TradeRoute,
-            r#"
-                SELECT 
-                  id,
-                  symbol as "symbol: models::TradeSymbol",
-                  ship_symbol,
-                  purchase_waypoint,
-                  sell_waypoint,
-                  status as "status: ShipmentStatus",
-                  trade_volume,
-                  predicted_purchase_price,
-                  predicted_sell_price,
-                  created_at,
-                  reserved_fund
-                 FROM trade_route WHERE purchase_waypoint = $1
-            "#,
-            waypoint_symbol
+        query: PaginatedQuery,
+    ) -> crate::Result<PaginatedResult<TradeRoute>> {
+        run_paginated_query(
+            query,
+            |page_size, offset| async move {
+                let items = sqlx::query_as!(
+                    TradeRoute,
+                    r#"
+                        SELECT 
+                          id,
+                          symbol as "symbol: models::TradeSymbol",
+                          ship_symbol,
+                          purchase_waypoint,
+                          sell_waypoint,
+                          status as "status: ShipmentStatus",
+                          trade_volume,
+                          predicted_purchase_price,
+                          predicted_sell_price,
+                          created_at,
+                          reserved_fund
+                         FROM trade_route
+                         WHERE purchase_waypoint = $1
+                         ORDER BY created_at DESC, id DESC
+                         LIMIT $2 OFFSET $3
+                    "#,
+                    waypoint_symbol,
+                    page_size,
+                    offset
+                )
+                .fetch_all(&database_pool.database_pool)
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let items = sqlx::query_as!(
+                    TradeRoute,
+                    r#"
+                        SELECT 
+                          id,
+                          symbol as "symbol: models::TradeSymbol",
+                          ship_symbol,
+                          purchase_waypoint,
+                          sell_waypoint,
+                          status as "status: ShipmentStatus",
+                          trade_volume,
+                          predicted_purchase_price,
+                          predicted_sell_price,
+                          created_at,
+                          reserved_fund
+                         FROM trade_route
+                         WHERE purchase_waypoint = $1
+                         ORDER BY created_at DESC, id DESC
+                    "#,
+                    waypoint_symbol
+                )
+                .fetch_all(&database_pool.database_pool)
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let count = sqlx::query!(
+                    r#"
+                        SELECT COUNT(*) as "count!"
+                        FROM trade_route
+                        WHERE purchase_waypoint = $1
+                    "#,
+                    waypoint_symbol
+                )
+                .fetch_one(database_pool.get_cache_pool())
+                .await?;
+                Ok(count.count)
+            },
         )
-        .fetch_all(&database_pool.database_pool)
-        .await?;
-        Ok(erg)
+        .await
     }
 
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_sell_waypoint(
         database_pool: &DbPool,
         waypoint_symbol: &str,
-    ) -> crate::Result<Vec<TradeRoute>> {
-        let erg = sqlx::query_as!(
-            TradeRoute,
-            r#"
-                SELECT 
-                  id,
-                  symbol as "symbol: models::TradeSymbol",
-                  ship_symbol,
-                  purchase_waypoint,
-                  sell_waypoint,
-                  status as "status: ShipmentStatus",
-                  trade_volume,
-                  predicted_purchase_price,
-                  predicted_sell_price,
-                  created_at,
-                  reserved_fund
-                 FROM trade_route WHERE sell_waypoint = $1
-            "#,
-            waypoint_symbol
+        query: PaginatedQuery,
+    ) -> crate::Result<PaginatedResult<TradeRoute>> {
+        run_paginated_query(
+            query,
+            |page_size, offset| async move {
+                let items = sqlx::query_as!(
+                    TradeRoute,
+                    r#"
+                        SELECT 
+                          id,
+                          symbol as "symbol: models::TradeSymbol",
+                          ship_symbol,
+                          purchase_waypoint,
+                          sell_waypoint,
+                          status as "status: ShipmentStatus",
+                          trade_volume,
+                          predicted_purchase_price,
+                          predicted_sell_price,
+                          created_at,
+                          reserved_fund
+                         FROM trade_route
+                         WHERE sell_waypoint = $1
+                         ORDER BY created_at DESC, id DESC
+                         LIMIT $2 OFFSET $3
+                    "#,
+                    waypoint_symbol,
+                    page_size,
+                    offset
+                )
+                .fetch_all(&database_pool.database_pool)
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let items = sqlx::query_as!(
+                    TradeRoute,
+                    r#"
+                        SELECT 
+                          id,
+                          symbol as "symbol: models::TradeSymbol",
+                          ship_symbol,
+                          purchase_waypoint,
+                          sell_waypoint,
+                          status as "status: ShipmentStatus",
+                          trade_volume,
+                          predicted_purchase_price,
+                          predicted_sell_price,
+                          created_at,
+                          reserved_fund
+                         FROM trade_route
+                         WHERE sell_waypoint = $1
+                         ORDER BY created_at DESC, id DESC
+                    "#,
+                    waypoint_symbol
+                )
+                .fetch_all(&database_pool.database_pool)
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let count = sqlx::query!(
+                    r#"
+                        SELECT COUNT(*) as "count!"
+                        FROM trade_route
+                        WHERE sell_waypoint = $1
+                    "#,
+                    waypoint_symbol
+                )
+                .fetch_one(database_pool.get_cache_pool())
+                .await?;
+                Ok(count.count)
+            },
         )
-        .fetch_all(&database_pool.database_pool)
-        .await?;
-        Ok(erg)
+        .await
     }
 
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_waypoint(
         database_pool: &DbPool,
         waypoint_symbol: &str,
-    ) -> crate::Result<Vec<TradeRoute>> {
-        let erg = sqlx::query_as!(
-            TradeRoute,
-            r#"
-                SELECT 
-                  id,
-                  symbol as "symbol: models::TradeSymbol",
-                  ship_symbol,
-                  purchase_waypoint,
-                  sell_waypoint,
-                  status as "status: ShipmentStatus",
-                  trade_volume,
-                  predicted_purchase_price,
-                  predicted_sell_price,
-                  created_at,
-                  reserved_fund
-                 FROM trade_route WHERE sell_waypoint = $1 OR purchase_waypoint = $1
-            "#,
-            waypoint_symbol
+        query: PaginatedQuery,
+    ) -> crate::Result<PaginatedResult<TradeRoute>> {
+        run_paginated_query(
+            query,
+            |page_size, offset| async move {
+                let items = sqlx::query_as!(
+                    TradeRoute,
+                    r#"
+                        SELECT 
+                          id,
+                          symbol as "symbol: models::TradeSymbol",
+                          ship_symbol,
+                          purchase_waypoint,
+                          sell_waypoint,
+                          status as "status: ShipmentStatus",
+                          trade_volume,
+                          predicted_purchase_price,
+                          predicted_sell_price,
+                          created_at,
+                          reserved_fund
+                         FROM trade_route
+                         WHERE sell_waypoint = $1 OR purchase_waypoint = $1
+                         ORDER BY created_at DESC, id DESC
+                         LIMIT $2 OFFSET $3
+                    "#,
+                    waypoint_symbol,
+                    page_size,
+                    offset
+                )
+                .fetch_all(&database_pool.database_pool)
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let items = sqlx::query_as!(
+                    TradeRoute,
+                    r#"
+                        SELECT 
+                          id,
+                          symbol as "symbol: models::TradeSymbol",
+                          ship_symbol,
+                          purchase_waypoint,
+                          sell_waypoint,
+                          status as "status: ShipmentStatus",
+                          trade_volume,
+                          predicted_purchase_price,
+                          predicted_sell_price,
+                          created_at,
+                          reserved_fund
+                         FROM trade_route
+                         WHERE sell_waypoint = $1 OR purchase_waypoint = $1
+                         ORDER BY created_at DESC, id DESC
+                    "#,
+                    waypoint_symbol
+                )
+                .fetch_all(&database_pool.database_pool)
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let count = sqlx::query!(
+                    r#"
+                        SELECT COUNT(*) as "count!"
+                        FROM trade_route
+                        WHERE sell_waypoint = $1 OR purchase_waypoint = $1
+                    "#,
+                    waypoint_symbol
+                )
+                .fetch_one(database_pool.get_cache_pool())
+                .await?;
+                Ok(count.count)
+            },
         )
-        .fetch_all(&database_pool.database_pool)
-        .await?;
-        Ok(erg)
+        .await
     }
 
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_purchase_system(
         database_pool: &DbPool,
         system_symbol: &str,
-    ) -> crate::Result<Vec<TradeRoute>> {
-        let system_qr = format!("{}-%", system_symbol);
-        let erg = sqlx::query_as!(
-            TradeRoute,
-            r#"
-                SELECT 
-                  id,
-                  symbol as "symbol: models::TradeSymbol",
-                  ship_symbol,
-                  purchase_waypoint,
-                  sell_waypoint,
-                  status as "status: ShipmentStatus",
-                  trade_volume,
-                  predicted_purchase_price,
-                  predicted_sell_price,
-                  created_at,
-                  reserved_fund
-                 FROM trade_route WHERE purchase_waypoint like $1
-            "#,
-            system_qr
+        query: PaginatedQuery,
+    ) -> crate::Result<PaginatedResult<TradeRoute>> {
+        run_paginated_query(
+            query,
+            |page_size, offset| async move {
+                let items = sqlx::query_as!(
+                    TradeRoute,
+                    r#"
+                        SELECT 
+                          id,
+                          symbol as "symbol: models::TradeSymbol",
+                          ship_symbol,
+                          purchase_waypoint,
+                          sell_waypoint,
+                          status as "status: ShipmentStatus",
+                          trade_volume,
+                          predicted_purchase_price,
+                          predicted_sell_price,
+                          created_at,
+                          reserved_fund
+                         FROM trade_route
+                         WHERE purchase_waypoint LIKE ($1 || '-%')
+                         ORDER BY created_at DESC, id DESC
+                         LIMIT $2 OFFSET $3
+                    "#,
+                    system_symbol,
+                    page_size,
+                    offset
+                )
+                .fetch_all(&database_pool.database_pool)
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let items = sqlx::query_as!(
+                    TradeRoute,
+                    r#"
+                        SELECT 
+                          id,
+                          symbol as "symbol: models::TradeSymbol",
+                          ship_symbol,
+                          purchase_waypoint,
+                          sell_waypoint,
+                          status as "status: ShipmentStatus",
+                          trade_volume,
+                          predicted_purchase_price,
+                          predicted_sell_price,
+                          created_at,
+                          reserved_fund
+                         FROM trade_route
+                         WHERE purchase_waypoint LIKE ($1 || '-%')
+                         ORDER BY created_at DESC, id DESC
+                    "#,
+                    system_symbol
+                )
+                .fetch_all(&database_pool.database_pool)
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let count = sqlx::query!(
+                    r#"
+                        SELECT COUNT(*) as "count!"
+                        FROM trade_route
+                        WHERE purchase_waypoint LIKE ($1 || '-%')
+                    "#,
+                    system_symbol
+                )
+                .fetch_one(database_pool.get_cache_pool())
+                .await?;
+                Ok(count.count)
+            },
         )
-        .fetch_all(&database_pool.database_pool)
-        .await?;
-        Ok(erg)
+        .await
     }
 
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_sell_system(
         database_pool: &DbPool,
         system_symbol: &str,
-    ) -> crate::Result<Vec<TradeRoute>> {
-        let system_qr = format!("{}-%", system_symbol);
-
-        let erg = sqlx::query_as!(
-            TradeRoute,
-            r#"
-                SELECT 
-                  id,
-                  symbol as "symbol: models::TradeSymbol",
-                  ship_symbol,
-                  purchase_waypoint,
-                  sell_waypoint,
-                  status as "status: ShipmentStatus",
-                  trade_volume,
-                  predicted_purchase_price,
-                  predicted_sell_price,
-                  created_at,
-                  reserved_fund
-                 FROM trade_route WHERE sell_waypoint like $1
-            "#,
-            system_qr
+        query: PaginatedQuery,
+    ) -> crate::Result<PaginatedResult<TradeRoute>> {
+        run_paginated_query(
+            query,
+            |page_size, offset| async move {
+                let items = sqlx::query_as!(
+                    TradeRoute,
+                    r#"
+                        SELECT 
+                          id,
+                          symbol as "symbol: models::TradeSymbol",
+                          ship_symbol,
+                          purchase_waypoint,
+                          sell_waypoint,
+                          status as "status: ShipmentStatus",
+                          trade_volume,
+                          predicted_purchase_price,
+                          predicted_sell_price,
+                          created_at,
+                          reserved_fund
+                         FROM trade_route
+                         WHERE sell_waypoint LIKE ($1 || '-%')
+                         ORDER BY created_at DESC, id DESC
+                         LIMIT $2 OFFSET $3
+                    "#,
+                    system_symbol,
+                    page_size,
+                    offset
+                )
+                .fetch_all(&database_pool.database_pool)
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let items = sqlx::query_as!(
+                    TradeRoute,
+                    r#"
+                        SELECT 
+                          id,
+                          symbol as "symbol: models::TradeSymbol",
+                          ship_symbol,
+                          purchase_waypoint,
+                          sell_waypoint,
+                          status as "status: ShipmentStatus",
+                          trade_volume,
+                          predicted_purchase_price,
+                          predicted_sell_price,
+                          created_at,
+                          reserved_fund
+                         FROM trade_route
+                         WHERE sell_waypoint LIKE ($1 || '-%')
+                         ORDER BY created_at DESC, id DESC
+                    "#,
+                    system_symbol
+                )
+                .fetch_all(&database_pool.database_pool)
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let count = sqlx::query!(
+                    r#"
+                        SELECT COUNT(*) as "count!"
+                        FROM trade_route
+                        WHERE sell_waypoint LIKE ($1 || '-%')
+                    "#,
+                    system_symbol
+                )
+                .fetch_one(database_pool.get_cache_pool())
+                .await?;
+                Ok(count.count)
+            },
         )
-        .fetch_all(&database_pool.database_pool)
-        .await?;
-        Ok(erg)
+        .await
     }
 
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_system(
         database_pool: &DbPool,
         system_symbol: &str,
-    ) -> crate::Result<Vec<TradeRoute>> {
-        let system_qr = format!("{}-%", system_symbol);
-
-        let erg = sqlx::query_as!(
-            TradeRoute,
-            r#"
-                SELECT 
-                  id,
-                  symbol as "symbol: models::TradeSymbol",
-                  ship_symbol,
-                  purchase_waypoint,
-                  sell_waypoint,
-                  status as "status: ShipmentStatus",
-                  trade_volume,
-                  predicted_purchase_price,
-                  predicted_sell_price,
-                  created_at,
-                  reserved_fund
-                 FROM trade_route WHERE sell_waypoint like $1 OR purchase_waypoint like $1
-            "#,
-            system_qr
+        query: PaginatedQuery,
+    ) -> crate::Result<PaginatedResult<TradeRoute>> {
+        run_paginated_query(
+            query,
+            |page_size, offset| async move {
+                let items = sqlx::query_as!(
+                    TradeRoute,
+                    r#"
+                        SELECT 
+                          id,
+                          symbol as "symbol: models::TradeSymbol",
+                          ship_symbol,
+                          purchase_waypoint,
+                          sell_waypoint,
+                          status as "status: ShipmentStatus",
+                          trade_volume,
+                          predicted_purchase_price,
+                          predicted_sell_price,
+                          created_at,
+                          reserved_fund
+                         FROM trade_route
+                         WHERE sell_waypoint LIKE ($1 || '-%') OR purchase_waypoint LIKE ($1 || '-%')
+                         ORDER BY created_at DESC, id DESC
+                         LIMIT $2 OFFSET $3
+                    "#,
+                    system_symbol,
+                    page_size,
+                    offset
+                )
+                .fetch_all(&database_pool.database_pool)
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let items = sqlx::query_as!(
+                    TradeRoute,
+                    r#"
+                        SELECT 
+                          id,
+                          symbol as "symbol: models::TradeSymbol",
+                          ship_symbol,
+                          purchase_waypoint,
+                          sell_waypoint,
+                          status as "status: ShipmentStatus",
+                          trade_volume,
+                          predicted_purchase_price,
+                          predicted_sell_price,
+                          created_at,
+                          reserved_fund
+                         FROM trade_route
+                         WHERE sell_waypoint LIKE ($1 || '-%') OR purchase_waypoint LIKE ($1 || '-%')
+                         ORDER BY created_at DESC, id DESC
+                    "#,
+                    system_symbol
+                )
+                .fetch_all(&database_pool.database_pool)
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let count = sqlx::query!(
+                    r#"
+                        SELECT COUNT(*) as "count!"
+                        FROM trade_route
+                        WHERE sell_waypoint LIKE ($1 || '-%') OR purchase_waypoint LIKE ($1 || '-%')
+                    "#,
+                    system_symbol
+                )
+                .fetch_one(database_pool.get_cache_pool())
+                .await?;
+                Ok(count.count)
+            },
         )
-        .fetch_all(&database_pool.database_pool)
-        .await?;
-        Ok(erg)
+        .await
     }
 }

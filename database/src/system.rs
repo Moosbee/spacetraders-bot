@@ -1,7 +1,7 @@
 use space_traders_client::models;
 use tracing::instrument;
 
-use super::DatabaseConnector;
+use super::{run_paginated_query, DatabaseConnectorAsync, DbPool, PaginatedQuery, PaginatedResult};
 
 #[derive(Clone, Debug, PartialEq, serde::Serialize, async_graphql::SimpleObject)]
 #[graphql(name = "DBSystem")]
@@ -43,36 +43,8 @@ impl From<&models::System> for System {
 
 impl System {
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
-    pub async fn get_by_symbol(
-        database_pool: &super::DbPool,
-        symbol: &str,
-    ) -> crate::Result<Option<Self>> {
-        let erg = sqlx::query_as!(
-            System,
-            r#"
-            SELECT 
-                symbol,
-                constellation,
-                population_disabled,
-                sector_symbol,
-                system_type as "system_type: models::SystemType",
-                x,
-                y
-            FROM system
-            WHERE symbol = $1
-            LIMIT 1
-            "#,
-            symbol
-        )
-        .fetch_optional(&database_pool.database_pool)
-        .await?;
-        Ok(erg)
-    }
-
-    #[instrument(level = "trace", skip(database_pool), err(Debug))]
-
     pub async fn set_population_disabled_led(
-        database_pool: &super::DbPool,
+        database_pool: &DbPool,
         symbol: &str,
         disabled: bool,
     ) -> crate::Result<()> {
@@ -91,9 +63,17 @@ impl System {
     }
 }
 
-impl DatabaseConnector<System> for System {
+impl DatabaseConnectorAsync for System {
+    type ID = String;
+
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
-    async fn insert(database_pool: &super::DbPool, item: &System) -> crate::Result<()> {
+    async fn insert_new(database_pool: &DbPool, item: &System) -> crate::Result<Self::ID> {
+        Self::upsert(database_pool, item).await?;
+        Ok(item.symbol.clone())
+    }
+
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
+    async fn upsert(database_pool: &DbPool, item: &System) -> crate::Result<()> {
         sqlx::query!(
             r#"
                 INSERT INTO system (
@@ -128,8 +108,13 @@ impl DatabaseConnector<System> for System {
         Ok(())
     }
 
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
+    async fn update(database_pool: &DbPool, item: &System) -> crate::Result<()> {
+        Self::upsert(database_pool, item).await
+    }
+
     #[instrument(level = "trace", skip(database_pool, items))]
-    async fn insert_bulk(database_pool: &super::DbPool, items: &[System]) -> crate::Result<()> {
+    async fn insert_bulk(database_pool: &DbPool, items: &[System]) -> crate::Result<()> {
         let (symbols, constellation, population_disableds, sector_symbols, system_types, xs, ys): (
             Vec<_>,
             Vec<_>,
@@ -193,11 +178,76 @@ impl DatabaseConnector<System> for System {
     }
 
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
-    async fn get_all(database_pool: &super::DbPool) -> crate::Result<Vec<System>> {
+    async fn get_all(
+        database_pool: &DbPool,
+        query: PaginatedQuery,
+    ) -> crate::Result<PaginatedResult<System>> {
+        run_paginated_query(
+            query,
+            |page_size, offset| async move {
+                let items = sqlx::query_as!(
+                    System,
+                    r#"
+                    SELECT 
+                        symbol,
+                        constellation,
+                        population_disabled,
+                        sector_symbol,
+                        system_type as "system_type: models::SystemType",
+                        x,
+                        y
+                    FROM system
+                    ORDER BY symbol ASC
+                    LIMIT $1 OFFSET $2
+                    "#,
+                    page_size,
+                    offset
+                )
+                .fetch_all(database_pool.get_cache_pool())
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let items = sqlx::query_as!(
+                    System,
+                    r#"
+                    SELECT 
+                        symbol,
+                        constellation,
+                        population_disabled,
+                        sector_symbol,
+                        system_type as "system_type: models::SystemType",
+                        x,
+                        y
+                    FROM system
+                    ORDER BY symbol ASC
+                    "#
+                )
+                .fetch_all(database_pool.get_cache_pool())
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let count = sqlx::query!(
+                    r#"
+                    SELECT COUNT(*) as "count!"
+                    FROM system
+                    "#
+                )
+                .fetch_one(database_pool.get_cache_pool())
+                .await?;
+                Ok(count.count)
+            },
+        )
+        .await
+    }
+
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
+    async fn get_by_id(database_pool: &DbPool, id: &Self::ID) -> crate::Result<Option<Self>> {
         let erg = sqlx::query_as!(
             System,
             r#"
-            SELECT 
+            SELECT
                 symbol,
                 constellation,
                 population_disabled,
@@ -206,39 +256,31 @@ impl DatabaseConnector<System> for System {
                 x,
                 y
             FROM system
-            "#
-        )
-        .fetch_all(database_pool.get_cache_pool())
-        .await?;
-        Ok(erg)
-    }
-}
-
-impl System {
-    #[instrument(level = "trace", skip(database_pool), err(Debug))]
-    pub async fn get_by_id(
-        database_pool: &super::DbPool,
-        id: &String,
-    ) -> crate::Result<Option<System>> {
-        let erg = sqlx::query_as!(
-            System,
-            r#"
-        SELECT 
-            symbol,
-            sector_symbol,
-            constellation,
-            population_disabled,
-            system_type as "system_type: models::SystemType",
-            x,
-            y
-        FROM system
-        WHERE symbol = $1
-        LIMIT 1
-        "#,
+            WHERE symbol = $1
+            LIMIT 1
+            "#,
             id
         )
         .fetch_optional(&database_pool.database_pool)
         .await?;
         Ok(erg)
+    }
+
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
+    async fn delete_by_id(database_pool: &DbPool, id: &Self::ID) -> crate::Result<()> {
+        sqlx::query!(
+            r#"
+            DELETE FROM system
+            WHERE symbol = $1
+            "#,
+            id
+        )
+        .execute(&database_pool.database_pool)
+        .await?;
+        Ok(())
+    }
+
+    fn set_id(&mut self, id: Self::ID) {
+        self.symbol = id;
     }
 }

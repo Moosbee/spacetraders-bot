@@ -1,5 +1,5 @@
 use chrono::Utc;
-use database::DatabaseConnector;
+use database::DatabaseConnectorAsync;
 use log::warn;
 use space_traders_client::models::{self};
 use utils::get_system_symbol;
@@ -134,7 +134,7 @@ impl<T: Clone + Send + Sync> RustShip<T> {
 
         update_funds_fn(jump_data.data.agent.credits);
 
-        database::Agent::insert(
+        database::Agent::upsert(
             database_pool,
             &database::Agent::from((*jump_data.data.agent).clone()),
         )
@@ -143,7 +143,11 @@ impl<T: Clone + Send + Sync> RustShip<T> {
         let transaction =
             database::MarketTransaction::try_from(jump_data.data.transaction.as_ref().clone())?
                 .with(reason.clone());
-        database::MarketTransaction::insert(database_pool, &transaction).await?;
+        database::MarketTransaction::upsert(
+            database_pool,
+            &transaction,
+        )
+        .await?;
 
         let ship_jump = database::ShipJump {
             id: 0,
@@ -155,7 +159,8 @@ impl<T: Clone + Send + Sync> RustShip<T> {
             ship_after: after,
         };
 
-        database::ShipJump::insert(database_pool, &ship_jump).await?;
+        database::ShipJump::upsert(database_pool, &ship_jump)
+            .await?;
 
         Ok(())
     }
@@ -227,7 +232,8 @@ impl<T: Clone + Send + Sync> RustShip<T> {
             created_at: now,
         };
 
-        database::Route::insert(database_pool, &rote).await?;
+        database::Route::upsert(database_pool, &rote)
+            .await?;
 
         Ok(())
     }
@@ -302,7 +308,8 @@ impl<T: Clone + Send + Sync> RustShip<T> {
             created_at: now,
         };
 
-        database::Route::insert(database_pool, &rote).await?;
+        database::Route::upsert(database_pool, &rote)
+            .await?;
 
         Ok(())
     }
@@ -391,7 +398,7 @@ impl<T: Clone + Send + Sync> RustShip<T> {
 
             update_funds_fn(refuel_data.data.agent.credits);
 
-            database::Agent::insert(
+            database::Agent::upsert(
                 database_pool,
                 &database::Agent::from(*refuel_data.data.agent),
             )
@@ -401,7 +408,11 @@ impl<T: Clone + Send + Sync> RustShip<T> {
                 refuel_data.data.transaction.as_ref().clone(),
             )?
             .with(reason.clone());
-            database::MarketTransaction::insert(database_pool, &transaction).await?;
+            database::MarketTransaction::upsert(
+                database_pool,
+                &transaction,
+            )
+            .await?;
         }
 
         if refuel.restock_amount > 0 {
@@ -432,7 +443,7 @@ impl<T: Clone + Send + Sync> RustShip<T> {
 
             update_funds_fn(refuel_data.data.agent.credits);
 
-            database::Agent::insert(
+            database::Agent::upsert(
                 database_pool,
                 &database::Agent::from(*refuel_data.data.agent),
             )
@@ -442,7 +453,11 @@ impl<T: Clone + Send + Sync> RustShip<T> {
                 refuel_data.data.transaction.as_ref().clone(),
             )?
             .with(reason.clone());
-            database::MarketTransaction::insert(database_pool, &transaction).await?;
+            database::MarketTransaction::upsert(
+                database_pool,
+                &transaction,
+            )
+            .await?;
         }
 
         if refuel.restock_amount > 0 {

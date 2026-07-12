@@ -1,7 +1,7 @@
 use space_traders_client::models;
 use tracing::instrument;
 
-use super::DatabaseConnector;
+use super::{run_paginated_query, DatabaseConnectorAsync, PaginatedQuery, PaginatedResult};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, async_graphql::SimpleObject)]
 #[graphql(name = "DBMountInfo")]
@@ -62,9 +62,17 @@ impl From<models::ship_mount::ShipMount> for MountInfo {
     }
 }
 
-impl DatabaseConnector<MountInfo> for MountInfo {
+impl DatabaseConnectorAsync for MountInfo {
+    type ID = models::ship_mount::Symbol;
+
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
-    async fn insert(database_pool: &super::DbPool, item: &MountInfo) -> crate::Result<()> {
+    async fn insert_new(database_pool: &super::DbPool, item: &MountInfo) -> crate::Result<Self::ID> {
+        Self::upsert(database_pool, item).await?;
+        Ok(item.symbol)
+    }
+
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
+    async fn upsert(database_pool: &super::DbPool, item: &MountInfo) -> crate::Result<()> {
         let deposits = item.deposits.clone();
         sqlx::query!(
             r#"
@@ -102,33 +110,132 @@ impl DatabaseConnector<MountInfo> for MountInfo {
         Ok(())
     }
 
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
+    async fn update(database_pool: &super::DbPool, item: &MountInfo) -> crate::Result<()> {
+        Self::upsert(database_pool, item).await
+    }
+
     #[instrument(level = "trace", skip(database_pool, items))]
     async fn insert_bulk(database_pool: &super::DbPool, items: &[MountInfo]) -> crate::Result<()> {
         for item in items {
-            Self::insert(database_pool, item).await?;
+            Self::upsert(database_pool, item).await?;
         }
         Ok(())
     }
 
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
-    async fn get_all(database_pool: &super::DbPool) -> crate::Result<Vec<MountInfo>> {
-        let erg = sqlx::query_as!(
+    async fn get_all(
+        database_pool: &super::DbPool,
+        query: PaginatedQuery,
+    ) -> crate::Result<PaginatedResult<MountInfo>> {
+        run_paginated_query(
+            query,
+            |page_size, offset| async move {
+                let items = sqlx::query_as!(
+                    MountInfo,
+                    r#"
+                        SELECT
+                            symbol as "symbol: models::ship_mount::Symbol",
+                            name,
+                            description,
+                            strength,
+                            deposits as "deposits: Vec<models::TradeSymbol>",
+                            power_required,
+                            crew_required,
+                            slots_required
+                        FROM mount_info
+                        ORDER BY symbol ASC
+                        LIMIT $1 OFFSET $2
+                    "#,
+                    page_size,
+                    offset
+                )
+                .fetch_all(database_pool.get_cache_pool())
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let items = sqlx::query_as!(
+                    MountInfo,
+                    r#"
+                        SELECT
+                            symbol as "symbol: models::ship_mount::Symbol",
+                            name,
+                            description,
+                            strength,
+                            deposits as "deposits: Vec<models::TradeSymbol>",
+                            power_required,
+                            crew_required,
+                            slots_required
+                        FROM mount_info
+                        ORDER BY symbol ASC
+                    "#
+                )
+                .fetch_all(database_pool.get_cache_pool())
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let count = sqlx::query!(
+                    r#"
+                        SELECT COUNT(*) as "count!"
+                        FROM mount_info
+                    "#
+                )
+                .fetch_one(database_pool.get_cache_pool())
+                .await?;
+                Ok(count.count)
+            },
+        )
+        .await
+    }
+
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
+    async fn get_by_id(
+        database_pool: &super::DbPool,
+        id: &Self::ID,
+    ) -> crate::Result<Option<Self>> {
+        let item = sqlx::query_as!(
             MountInfo,
             r#"
-            SELECT
-                symbol as "symbol: models::ship_mount::Symbol",
-                name,
-                description,
-                strength,
-                deposits as "deposits: Vec<models::TradeSymbol>",
-                power_required,
-                crew_required,
-                slots_required
-            FROM mount_info
-            "#
+                SELECT
+                    symbol as "symbol: models::ship_mount::Symbol",
+                    name,
+                    description,
+                    strength,
+                    deposits as "deposits: Vec<models::TradeSymbol>",
+                    power_required,
+                    crew_required,
+                    slots_required
+                FROM mount_info
+                WHERE symbol = $1
+                LIMIT 1
+            "#,
+            *id as models::ship_mount::Symbol
         )
-        .fetch_all(database_pool.get_cache_pool())
+        .fetch_optional(database_pool.get_cache_pool())
         .await?;
-        Ok(erg)
+        Ok(item)
+    }
+
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
+    async fn delete_by_id(
+        database_pool: &super::DbPool,
+        id: &Self::ID,
+    ) -> crate::Result<()> {
+        sqlx::query!(
+            r#"
+                DELETE FROM mount_info
+                WHERE symbol = $1
+            "#,
+            *id as models::ship_mount::Symbol
+        )
+        .execute(&database_pool.database_pool)
+        .await?;
+        Ok(())
+    }
+
+    fn set_id(&mut self, id: Self::ID) {
+        self.symbol = id;
     }
 }

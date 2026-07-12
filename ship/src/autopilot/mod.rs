@@ -1,5 +1,6 @@
 use ::utils::WaypointCan;
 use chrono::{DateTime, Utc};
+use database::DatabaseConnectorAsync;
 use database::TransactionReason;
 use pathfinder::Pathfinder;
 use space_traders_client::models;
@@ -79,7 +80,11 @@ impl<T: Clone + Send + Sync> RustShip<T> {
         let wp_action = async move |shipi: &mut RustShip<_>,
                                     start_waypoint: String,
                                     end_waypoint: String| {
-            let start = database::Waypoint::get_by_symbol(&database_pool2, &start_waypoint).await?;
+            let start = database::Waypoint::get_by_id(
+                &database_pool2,
+                &start_waypoint,
+            )
+            .await?;
 
             if let Some(start) = start {
                 if update_market && start.is_marketplace() {

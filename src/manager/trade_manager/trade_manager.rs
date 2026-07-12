@@ -1,4 +1,4 @@
-use database::DatabaseConnector;
+use database::{DatabaseConnectorAsync, PaginatedQuery};
 use space_traders_client::models;
 use tokio::select;
 use tracing::debug;
@@ -43,7 +43,9 @@ impl TradeManager {
         let mut tracker = RoutesTracker::default();
 
         let unfinished_routes =
-            database::TradeRoute::get_unfinished(&context.database_pool).await?;
+            database::TradeRoute::get_unfinished(&context.database_pool, PaginatedQuery::unpaged())
+                .await?
+                .items;
 
         for route in &unfinished_routes {
             let _ = tracker.lock(&route.clone().into());
@@ -121,8 +123,12 @@ impl TradeManager {
         &mut self,
         ship_clone: ship::MyShip,
     ) -> Result<Option<database::TradeRoute>> {
-        let unfinished_route =
-            database::TradeRoute::get_unfinished(&self.context.database_pool).await?;
+        let unfinished_route = database::TradeRoute::get_unfinished(
+            &self.context.database_pool,
+            PaginatedQuery::unpaged(),
+        )
+        .await?
+        .items;
         let my_unfinished_routes = unfinished_route
             .iter()
             .filter(|r| r.ship_symbol == ship_clone.symbol)
@@ -183,8 +189,10 @@ impl TradeManager {
             let transactions = database::MarketTransaction::get_by_reason(
                 &self.context.database_pool,
                 database::TransactionReason::TradeRoute(trade.id),
+                database::PaginatedQuery::unpaged(),
             )
-            .await?;
+            .await?
+            .items;
             let actual_amount = transactions
                 .iter()
                 .filter(|t| t.r#type == models::market_transaction::Type::Purchase)
@@ -216,7 +224,7 @@ impl TradeManager {
                 ..route.clone()
             })
         } else {
-            database::TradeRoute::insert(&self.context.database_pool, route).await?;
+            database::TradeRoute::upsert(&self.context.database_pool, route).await?;
             Ok(route.clone())
         }
     }
@@ -226,7 +234,7 @@ impl TradeManager {
         trade_route: database::TradeRoute,
     ) -> Result<database::TradeRoute> {
         let completed_route = trade_route.complete();
-        database::TradeRoute::insert(&self.context.database_pool, &completed_route).await?;
+        database::TradeRoute::upsert(&self.context.database_pool, &completed_route).await?;
         Ok(completed_route)
     }
 }

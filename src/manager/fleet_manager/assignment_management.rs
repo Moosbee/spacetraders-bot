@@ -1,4 +1,4 @@
-use database::{DatabaseConnector, ShipAssignment};
+use database::{DatabaseConnectorAsync, ShipAssignment};
 use itertools::Itertools;
 use space_traders_client::models::{self};
 use tracing::{debug, info};
@@ -34,7 +34,11 @@ pub async fn update_fleet_assignments(
     }
 
     for assignment in result.merged_assignments {
-        database::ShipAssignment::insert(&context.database_pool, &assignment).await?;
+        database::ShipAssignment::upsert(
+            &context.database_pool,
+            &assignment,
+        )
+        .await?;
         info!(
             assignment_id = assignment.id,
             "Updated merged ship assignment"
@@ -201,8 +205,13 @@ async fn generate_trading_fleet_assignments(
     trading_config: &database::TradingFleetConfig,
     context: &ConductorContext,
 ) -> crate::error::Result<Vec<ShipAssignment>> {
-    let waypoints = database::Waypoint::get_by_system(&context.database_pool, &fleet.system_symbol)
-        .await?
+    let waypoints = database::Waypoint::get_by_system(
+        &context.database_pool,
+        &fleet.system_symbol,
+        database::PaginatedQuery::unpaged(),
+    )
+    .await?
+    .items
         .into_iter()
         .filter(|wp| wp.is_marketplace() || wp.is_shipyard())
         .count();
@@ -248,8 +257,13 @@ async fn generate_mining_fleet_assignments(
 ) -> crate::error::Result<Vec<ShipAssignment>> {
     // Placeholder for mining fleet assignment generation logic
 
-    let waypoints =
-        database::Waypoint::get_by_system(&context.database_pool, &fleet.system_symbol).await?;
+    let waypoints = database::Waypoint::get_by_system(
+        &context.database_pool,
+        &fleet.system_symbol,
+        database::PaginatedQuery::unpaged(),
+    )
+    .await?
+    .items;
 
     let mining_waypoints_count = waypoints.iter().filter(|wp| wp.is_minable()).count();
 
@@ -349,9 +363,13 @@ async fn generate_scraping_fleet_assignments(
     scraping_config: &database::ScrapingFleetConfig,
     context: &ConductorContext,
 ) -> crate::error::Result<Vec<ShipAssignment>> {
-    let waypoint_counts =
-        database::Waypoint::get_by_system(&context.database_pool, &fleet.system_symbol)
+    let waypoint_counts = database::Waypoint::get_by_system(
+        &context.database_pool,
+        &fleet.system_symbol,
+        database::PaginatedQuery::unpaged(),
+    )
             .await?
+            .items
             .into_iter()
             .filter(|wp| wp.is_marketplace() || wp.is_shipyard())
             .count();
@@ -389,9 +407,13 @@ async fn generate_charting_fleet_assignments(
     charting_config: &database::ChartingFleetConfig,
     context: &ConductorContext,
 ) -> crate::error::Result<Vec<ShipAssignment>> {
-    let uncharted_waypoints =
-        database::Waypoint::get_by_system(&context.database_pool, &fleet.system_symbol)
+    let uncharted_waypoints = database::Waypoint::get_by_system(
+        &context.database_pool,
+        &fleet.system_symbol,
+        database::PaginatedQuery::unpaged(),
+    )
             .await?
+            .items
             .into_iter()
             .filter(|wp| !wp.is_charted())
             .count();

@@ -3,7 +3,7 @@ use std::{
     sync::atomic::{AtomicI64, Ordering},
 };
 
-use database::{DatabaseConnector, FundStatus, ReservedFund};
+use database::{DatabaseConnectorAsync, FundStatus, PaginatedQuery, ReservedFund};
 use tokio::sync::Mutex;
 
 #[derive(Debug, Clone, serde::Serialize, async_graphql::SimpleObject)]
@@ -31,8 +31,13 @@ impl BudgetManager {
         current_funds: i64,
         iron_reserve: i64,
     ) -> crate::error::Result<Self> {
-        let reserved_funds =
-            ReservedFund::get_by_status(database_pool, FundStatus::Reserved).await?;
+        let reserved_funds = ReservedFund::get_by_status(
+            database_pool,
+            FundStatus::Reserved,
+            PaginatedQuery::unpaged(),
+        )
+        .await?
+        .items;
 
         Ok(BudgetManager {
             current_funds: AtomicI64::new(current_funds),
@@ -157,7 +162,7 @@ impl BudgetManager {
 
             reserved_fund.updated_at = chrono::Utc::now();
 
-            ReservedFund::insert(database_pool, reserved_fund).await?;
+            ReservedFund::upsert(database_pool, reserved_fund).await?;
         }
 
         reserved_funds.remove(&reservation_id);
@@ -194,7 +199,7 @@ impl BudgetManager {
 
         reserved_fund.updated_at = chrono::Utc::now();
 
-        ReservedFund::insert(database_pool, reserved_fund).await?;
+        ReservedFund::upsert(database_pool, reserved_fund).await?;
 
         // reserved_funds.remove(&reservation_id);
 
@@ -232,7 +237,7 @@ impl BudgetManager {
 
         reserved_fund.updated_at = chrono::Utc::now();
 
-        ReservedFund::insert(database_pool, reserved_fund).await?;
+        ReservedFund::upsert(database_pool, reserved_fund).await?;
 
         reserved_funds.remove(&reservation_id);
 
@@ -267,7 +272,7 @@ impl BudgetManager {
 
         reserved_fund.updated_at = chrono::Utc::now();
 
-        ReservedFund::insert(database_pool, reserved_fund).await?;
+        ReservedFund::upsert(database_pool, reserved_fund).await?;
 
         reserved_funds.remove(&reservation_id);
 

@@ -3,7 +3,9 @@ use std::{collections::HashMap, sync::Arc};
 use async_graphql::dataloader::Loader;
 use tracing::instrument;
 
-use crate::{DatabaseConnector, DbPool};
+use crate::{
+    run_paginated_query, DatabaseConnectorAsync, DbPool, PaginatedQuery, PaginatedResult,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq, async_graphql::SimpleObject)]
 #[graphql(name = "DBShipAssignment")]
@@ -167,32 +169,83 @@ impl ShipAssignment {
     pub async fn get_by_fleet_id(
         database_pool: &DbPool,
         fleet_id: i32,
-    ) -> crate::Result<Vec<ShipAssignment>> {
-        let resp = sqlx::query_as!(
-            ShipAssignment,
-            r#"
-                SELECT
-                  id,
-                  fleet_id,
-                  priority,
-                  max_purchase_price,
-                  credits_threshold,
-                  disabled,
-                  range_min,
-                  cargo_min,
-                  survey,
-                  extractor,
-                  siphon,
-                  warp_drive
-                FROM ship_assignment
-                WHERE fleet_id = $1
-            "#,
-            fleet_id
-        )
-        .fetch_all(&database_pool.database_pool)
-        .await?;
+        query: PaginatedQuery,
+    ) -> crate::Result<PaginatedResult<ShipAssignment>> {
+        run_paginated_query(
+            query,
+            |page_size, offset| async move {
+                let items = sqlx::query_as!(
+                    ShipAssignment,
+                    r#"
+                        SELECT
+                          id,
+                          fleet_id,
+                          priority,
+                          max_purchase_price,
+                          credits_threshold,
+                          disabled,
+                          range_min,
+                          cargo_min,
+                          survey,
+                          extractor,
+                          siphon,
+                          warp_drive
+                        FROM ship_assignment
+                        WHERE fleet_id = $1
+                        LIMIT $2 OFFSET $3
+                    "#,
+                    fleet_id,
+                    page_size,
+                    offset
+                )
+                .fetch_all(&database_pool.database_pool)
+                .await?;
 
-        Ok(resp)
+                Ok(items)
+            },
+            || async move {
+                let items = sqlx::query_as!(
+                    ShipAssignment,
+                    r#"
+                        SELECT
+                          id,
+                          fleet_id,
+                          priority,
+                          max_purchase_price,
+                          credits_threshold,
+                          disabled,
+                          range_min,
+                          cargo_min,
+                          survey,
+                          extractor,
+                          siphon,
+                          warp_drive
+                        FROM ship_assignment
+                        WHERE fleet_id = $1
+                    "#,
+                    fleet_id
+                )
+                .fetch_all(&database_pool.database_pool)
+                .await?;
+
+                Ok(items)
+            },
+            || async move {
+                let count = sqlx::query!(
+                    r#"
+                    SELECT COUNT(*) as "count!"
+                    FROM ship_assignment
+                    WHERE fleet_id = $1
+                    "#,
+                    fleet_id
+                )
+                .fetch_one(&database_pool.database_pool)
+                .await?;
+
+                Ok(count.count)
+            },
+        )
+        .await
     }
 
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
@@ -230,34 +283,87 @@ impl ShipAssignment {
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_open_assignments(
         database_pool: &DbPool,
-    ) -> crate::Result<Vec<ShipAssignment>> {
+        query: PaginatedQuery,
+    ) -> crate::Result<PaginatedResult<ShipAssignment>> {
         // get all "open" assignments from the database, i.e. assignments that are not yet assigned to a ship, that are not disabled and where the fleet is activated
-        let resp = sqlx::query_as!(
-            ShipAssignment,
-            r#"
-                SELECT
-                  sa.id,
-                  sa.fleet_id,
-                  sa.priority,
-                  max_purchase_price,
-                  credits_threshold,
-                  sa.disabled,
-                  sa.range_min,
-                  sa.cargo_min,
-                  sa.survey,
-                  sa.extractor,
-                  sa.siphon,
-                  sa.warp_drive
-                FROM ship_assignment sa
-                JOIN fleet f ON sa.fleet_id = f.id
-                left JOIN ship_info si ON (sa.id = si.assignment_id OR sa.id = si.temp_assignment_id)
-                WHERE sa.disabled = false AND f.active = true AND si.symbol IS NULL
-            "#,
-        )
-        .fetch_all(&database_pool.database_pool)
-        .await?;
+        run_paginated_query(
+            query,
+            |page_size, offset| async move {
+                let items = sqlx::query_as!(
+                    ShipAssignment,
+                    r#"
+                        SELECT
+                          sa.id,
+                          sa.fleet_id,
+                          sa.priority,
+                          max_purchase_price,
+                          credits_threshold,
+                          sa.disabled,
+                          sa.range_min,
+                          sa.cargo_min,
+                          sa.survey,
+                          sa.extractor,
+                          sa.siphon,
+                          sa.warp_drive
+                        FROM ship_assignment sa
+                        JOIN fleet f ON sa.fleet_id = f.id
+                        left JOIN ship_info si ON (sa.id = si.assignment_id OR sa.id = si.temp_assignment_id)
+                        WHERE sa.disabled = false AND f.active = true AND si.symbol IS NULL
+                        LIMIT $1 OFFSET $2
+                    "#,
+                    page_size,
+                    offset
+                )
+                .fetch_all(&database_pool.database_pool)
+                .await?;
 
-        Ok(resp)
+                Ok(items)
+            },
+            || async move {
+                let items = sqlx::query_as!(
+                    ShipAssignment,
+                    r#"
+                        SELECT
+                          sa.id,
+                          sa.fleet_id,
+                          sa.priority,
+                          max_purchase_price,
+                          credits_threshold,
+                          sa.disabled,
+                          sa.range_min,
+                          sa.cargo_min,
+                          sa.survey,
+                          sa.extractor,
+                          sa.siphon,
+                          sa.warp_drive
+                        FROM ship_assignment sa
+                        JOIN fleet f ON sa.fleet_id = f.id
+                        left JOIN ship_info si ON (sa.id = si.assignment_id OR sa.id = si.temp_assignment_id)
+                        WHERE sa.disabled = false AND f.active = true AND si.symbol IS NULL
+                    "#,
+                )
+                .fetch_all(&database_pool.database_pool)
+                .await?;
+
+                Ok(items)
+            },
+            || async move {
+                let count = sqlx::query!(
+                    r#"
+                    SELECT COUNT(*) as "count!"
+                    FROM ship_assignment sa
+                    JOIN fleet f ON sa.fleet_id = f.id
+                    left JOIN ship_info si ON (sa.id = si.assignment_id OR sa.id = si.temp_assignment_id)
+                    WHERE sa.disabled = false AND f.active = true AND si.symbol IS NULL
+                    "#,
+                )
+                .fetch_one(&database_pool.database_pool)
+                .await?;
+
+                Ok(count.count)
+            },
+        )
+        .await
     }
 
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
@@ -341,10 +447,51 @@ impl Loader<i32> for AssignmentsByFleetLoader {
     }
 }
 
-impl DatabaseConnector<ShipAssignment> for ShipAssignment {
+impl DatabaseConnectorAsync for ShipAssignment {
+    type ID = i64;
+
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
-    async fn insert(database_pool: &DbPool, item: &ShipAssignment) -> crate::Result<()> {
-        sqlx::query!(
+    async fn insert_new(database_pool: &DbPool, item: &ShipAssignment) -> crate::Result<Self::ID> {
+                let erg = sqlx::query!(
+                        r#"
+                                INSERT INTO ship_assignment (
+                                    fleet_id,
+                                    priority,
+                                    max_purchase_price,
+                                    credits_threshold,
+                                    disabled,
+                                    range_min,
+                                    cargo_min,
+                                    survey,
+                                    extractor,
+                                    siphon,
+                                    warp_drive
+                                )
+                                VALUES (
+                                    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
+                                )
+                                RETURNING id
+                        "#,
+                        &item.fleet_id,
+                        &item.priority,
+                        &item.max_purchase_price,
+                        &item.credits_threshold,
+                        &item.disabled,
+                        &item.range_min,
+                        &item.cargo_min,
+                        &item.survey,
+                        &item.extractor,
+                        &item.siphon,
+                        &item.warp_drive,
+                )
+                .fetch_one(&database_pool.database_pool)
+                .await?;
+                Ok(erg.id)
+        }
+
+        #[instrument(level = "trace", skip(database_pool), err(Debug))]
+        async fn upsert(database_pool: &DbPool, item: &ShipAssignment) -> crate::Result<()> {
+                sqlx::query!(
             r#"
                 INSERT INTO ship_assignment (
                   id,
@@ -392,6 +539,11 @@ impl DatabaseConnector<ShipAssignment> for ShipAssignment {
         .execute(&database_pool.database_pool)
         .await?;
         Ok(())
+    }
+
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
+    async fn update(database_pool: &DbPool, item: &ShipAssignment) -> crate::Result<()> {
+        Self::upsert(database_pool, item).await
     }
 
     #[instrument(level = "trace", skip(database_pool, items))]
@@ -514,8 +666,81 @@ impl DatabaseConnector<ShipAssignment> for ShipAssignment {
     }
 
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
-    async fn get_all(database_pool: &DbPool) -> crate::Result<Vec<ShipAssignment>> {
-        let result = sqlx::query_as!(
+    async fn get_all(
+        database_pool: &DbPool,
+        query: PaginatedQuery,
+    ) -> crate::Result<PaginatedResult<ShipAssignment>> {
+        run_paginated_query(
+            query,
+            |page_size, offset| async move {
+                let items = sqlx::query_as!(
+                    ShipAssignment,
+                    r#"
+                        SELECT
+                          id,
+                          fleet_id,
+                          priority,
+                          max_purchase_price,
+                          credits_threshold,
+                          disabled,
+                          range_min,
+                          cargo_min,
+                          survey,
+                          extractor,
+                          siphon,
+                          warp_drive
+                        FROM ship_assignment
+                        LIMIT $1 OFFSET $2
+                    "#,
+                    page_size,
+                    offset
+                )
+                .fetch_all(database_pool.get_cache_pool())
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let items = sqlx::query_as!(
+                    ShipAssignment,
+                    r#"
+                        SELECT
+                          id,
+                          fleet_id,
+                          priority,
+                          max_purchase_price,
+                          credits_threshold,
+                          disabled,
+                          range_min,
+                          cargo_min,
+                          survey,
+                          extractor,
+                          siphon,
+                          warp_drive
+                        FROM ship_assignment
+                    "#
+                )
+                .fetch_all(database_pool.get_cache_pool())
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let count = sqlx::query!(
+                    r#"
+                    SELECT COUNT(*) as "count!"
+                    FROM ship_assignment
+                    "#
+                )
+                .fetch_one(database_pool.get_cache_pool())
+                .await?;
+                Ok(count.count)
+            },
+        )
+        .await
+    }
+
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
+    async fn get_by_id(database_pool: &DbPool, id: &Self::ID) -> crate::Result<Option<Self>> {
+        let resp = sqlx::query_as!(
             ShipAssignment,
             r#"
                 SELECT
@@ -532,10 +757,31 @@ impl DatabaseConnector<ShipAssignment> for ShipAssignment {
                   siphon,
                   warp_drive
                 FROM ship_assignment
-            "#
+                WHERE id = $1
+            "#,
+            id
         )
-        .fetch_all(database_pool.get_cache_pool())
+        .fetch_optional(&database_pool.database_pool)
         .await?;
-        Ok(result)
+
+        Ok(resp)
+    }
+
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
+    async fn delete_by_id(database_pool: &DbPool, id: &Self::ID) -> crate::Result<()> {
+        sqlx::query!(
+            r#"
+                DELETE FROM ship_assignment
+                WHERE id = $1
+            "#,
+            id
+        )
+        .execute(&database_pool.database_pool)
+        .await?;
+        Ok(())
+    }
+
+    fn set_id(&mut self, id: Self::ID) {
+        self.id = id;
     }
 }

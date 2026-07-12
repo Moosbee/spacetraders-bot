@@ -128,6 +128,13 @@ type ChartTransaction {
 	ship: Ship
 }
 
+type ChartTransactionPage {
+	items: [ChartTransaction!]!
+	totalCount: Int!
+	page: Int!
+	pageSize: Int
+}
+
 type ChartingConfig {
 	chartingProbeCount: Int!
 }
@@ -210,7 +217,7 @@ type ConstructionMaterial {
 	updatedAt: DateTime!
 	waypoint: Waypoint
 	marketTransactionSummary: TransactionSummary!
-	shipments: [ConstructionShipment!]!
+	shipments(page: Int, pageSize: Int): ConstructionShipmentPage!
 	tradeSymbolInfo: TradeSymbolInfo!
 }
 
@@ -218,6 +225,13 @@ input ConstructionMaterialBy @oneOf {
 	waypoint: String
 	system: String
 	tradeSymbol: TradeSymbol
+}
+
+type ConstructionMaterialPage {
+	items: [ConstructionMaterial!]!
+	totalCount: Int!
+	page: Int!
+	pageSize: Int
 }
 
 type ConstructionShipment {
@@ -238,7 +252,7 @@ type ConstructionShipment {
 	material: ConstructionMaterial
 	ship: Ship
 	reservation: ReservedFund
-	marketTransactions: [MarketTransaction!]!
+	marketTransactions(page: Int, pageSize: Int): MarketTransactionPage!
 	purchaseMarketTradeGood: MarketTradeGood
 	tradeSymbolInfo: TradeSymbolInfo!
 }
@@ -249,6 +263,13 @@ input ConstructionShipmentBy @oneOf {
 	tradeSymbol: TradeSymbol
 	material: Int
 	shipSymbol: String
+}
+
+type ConstructionShipmentPage {
+	items: [ConstructionShipment!]!
+	totalCount: Int!
+	page: Int!
+	pageSize: Int
 }
 
 type ConstructionStatus {
@@ -272,9 +293,9 @@ type Contract {
 	updatedAt: DateTime!
 	createdAt: DateTime!
 	reservedFund: Int
-	deliveries: [ContractDelivery!]!
-	shipments: [ContractShipment!]!
-	marketTransactions: [MarketTransaction!]!
+	deliveries(page: Int, pageSize: Int): ContractDeliveryPage!
+	shipments(page: Int, pageSize: Int): ContractShipmentPage!
+	marketTransactions(page: Int, pageSize: Int): MarketTransactionPage!
 	marketTransactionSummary: TransactionSummary!
 	reservation: ReservedFund
 }
@@ -294,7 +315,7 @@ type ContractDelivery {
 	unitsRequired: Int!
 	unitsFulfilled: Int!
 	contract: Contract
-	contractShipment: [ContractShipment!]!
+	contractShipment(page: Int, pageSize: Int): ContractShipmentPage!
 	waypoint: Waypoint
 	tradeSymbolInfo: TradeSymbolInfo!
 }
@@ -305,10 +326,24 @@ input ContractDeliveryBy @oneOf {
 	contract: String
 }
 
+type ContractDeliveryPage {
+	items: [ContractDelivery!]!
+	totalCount: Int!
+	page: Int!
+	pageSize: Int
+}
+
 type ContractManagerInfo {
 	busy: Boolean!
 	channelState: ChannelInfo!
 	runningShipments: [ContractShipment!]!
+}
+
+type ContractPage {
+	items: [Contract!]!
+	totalCount: Int!
+	page: Int!
+	pageSize: Int
 }
 
 type ContractShipment {
@@ -336,6 +371,13 @@ input ContractShipmentBy @oneOf {
 	tradeSymbol: TradeSymbol
 	contract: String
 	shipSymbol: String
+}
+
+type ContractShipmentPage {
+	items: [ContractShipment!]!
+	totalCount: Int!
+	page: Int!
+	pageSize: Int
 }
 
 type ContractStatus {
@@ -410,6 +452,13 @@ input ExtractionBy @oneOf {
 	survey: String
 }
 
+type ExtractionPage {
+	items: [Extraction!]!
+	totalCount: Int!
+	page: Int!
+	pageSize: Int
+}
+
 type ExtractorAssignment {
 	state: ExtractorState!
 	waypointSymbol: String
@@ -459,7 +508,7 @@ type Fleet {
 	updatedAt: DateTime!
 	config: FleetConfig!
 	system: System
-	assignments: [ShipAssignment!]!
+	assignments(page: Int, pageSize: Int): ShipAssignmentPage!
 	allShips: [Ship!]!
 	ships: [Ship!]!
 	tempShips: [Ship!]!
@@ -475,6 +524,13 @@ union FleetConfig = TradingConfig | ScrapingConfig | MiningConfig | ChartingConf
 type FleetManagerInfo {
 	busy: Boolean!
 	channelState: ChannelInfo!
+}
+
+type FleetPage {
+	items: [Fleet!]!
+	totalCount: Int!
+	page: Int!
+	pageSize: Int
 }
 
 enum FleetType {
@@ -520,6 +576,13 @@ type GateConn {
 	fromB: Boolean!
 	pointA: Waypoint
 	pointB: Waypoint
+}
+
+type GateConnPage {
+	items: [GateConn!]!
+	totalCount: Int!
+	page: Int!
+	pageSize: Int
 }
 
 type IdleAssignment {
@@ -711,6 +774,13 @@ type JumpGateConnection {
 	systemTo: System
 }
 
+type JumpGateConnectionPage {
+	items: [JumpGateConnection!]!
+	totalCount: Int!
+	page: Int!
+	pageSize: Int
+}
+
 type KnownAgent {
 	symbol: String!
 	count: Int!
@@ -731,8 +801,8 @@ type MarketTrade {
 	createdAt: DateTime!
 	type: Type!
 	waypoint: Waypoint
-	history: [MarketTrade!]!
-	maps: [MarketTrade!]!
+	history(page: Int, pageSize: Int): MarketTradePage!
+	maps(page: Int, pageSize: Int): MarketTradePage!
 	marketTradeGood: MarketTradeGood
 	tradeSymbolInfo: TradeSymbolInfo!
 }
@@ -755,11 +825,11 @@ type MarketTradeGood {
 	created: DateTime!
 	createdAt: DateTime!
 	waypoint: Waypoint
-	history: [MarketTradeGood!]!
-	marketTransactions: [MarketTransaction!]!
+	history(page: Int, pageSize: Int): MarketTradeGoodPage!
+	marketTransactions(page: Int, pageSize: Int): MarketTransactionPage!
 	marketTrade: MarketTrade
 	marketTransactionSummary: TransactionSummary!
-	maps: [MarketTradeGood!]!
+	maps(page: Int, pageSize: Int): MarketTradeGoodPage!
 	tradeSymbolInfo: TradeSymbolInfo!
 }
 
@@ -767,6 +837,20 @@ input MarketTradeGoodBy @oneOf {
 	waypoint: String
 	tradeSymbol: TradeSymbol
 	system: String
+}
+
+type MarketTradeGoodPage {
+	items: [MarketTradeGood!]!
+	totalCount: Int!
+	page: Int!
+	pageSize: Int
+}
+
+type MarketTradePage {
+	items: [MarketTrade!]!
+	totalCount: Int!
+	page: Int!
+	pageSize: Int
 }
 
 type MarketTransaction {
@@ -831,6 +915,13 @@ input MarketTransactionBy @oneOf {
 	shipSymbol: String
 	tradeSymbol: TradeSymbol
 	type: MarketTransactionType
+}
+
+type MarketTransactionPage {
+	items: [MarketTransaction!]!
+	totalCount: Int!
+	page: Int!
+	pageSize: Int
 }
 
 """
@@ -993,46 +1084,46 @@ type QueryRoot {
 	config: Config!
 	ship(symbol: String!): Ship!
 	ships: [Ship!]!
-	marketTransactions(by: MarketTransactionBy): [MarketTransaction!]!
-	shipyardTransactions(by: ShipyardTransactionBy): [ShipyardTransaction!]!
-	chartTransactions(shipSymbol: String): [ChartTransaction!]!
-	repairTransactions: [RepairTransaction!]!
-	scrapTransactions: [ScrapTransaction!]!
-	shipModificationTransactions: [ShipModificationTransaction!]!
+	marketTransactions(by: MarketTransactionBy, page: Int, pageSize: Int): MarketTransactionPage!
+	shipyardTransactions(by: ShipyardTransactionBy, page: Int, pageSize: Int): ShipyardTransactionPage!
+	chartTransactions(shipSymbol: String, page: Int, pageSize: Int): ChartTransactionPage!
+	repairTransactions(page: Int, pageSize: Int): RepairTransactionPage!
+	scrapTransactions(page: Int, pageSize: Int): ScrapTransactionPage!
+	shipModificationTransactions(page: Int, pageSize: Int): ShipModificationTransactionPage!
 	waypoint(symbol: String!): Waypoint!
-	waypoints: [Waypoint!]!
+	waypoints(page: Int, pageSize: Int): WaypointPage!
 	system(symbol: String!): System!
-	systems(onlyWithFleetsOrShips: Boolean): [System!]!
+	systems(onlyWithFleetsOrShips: Boolean, page: Int, pageSize: Int): SystemPage!
 	agent(symbol: String!): Agent!
 	agentHistory(symbol: String!): [Agent!]!
 	agents: [Agent!]!
 	contract(symbol: String!): Contract!
-	contracts(by: ContractBy): [Contract!]!
-	contractDeliveries(by: ContractDeliveryBy): [ContractDelivery!]!
-	contractShipments(by: ContractShipmentBy): [ContractShipment!]!
+	contracts(by: ContractBy, page: Int, pageSize: Int): ContractPage!
+	contractDeliveries(by: ContractDeliveryBy, page: Int, pageSize: Int): ContractDeliveryPage!
+	contractShipments(by: ContractShipmentBy, page: Int, pageSize: Int): ContractShipmentPage!
 	extraction(symbol: Int!): Extraction!
-	extractions(by: ExtractionBy): [Extraction!]!
-	fleets(by: FleetBy): [Fleet!]!
-	shipAssignments(by: ShipAssignmentBy): [ShipAssignment!]!
-	reservedFunds: [ReservedFund!]!
-	surveys(by: SurveyBy): [Survey!]!
+	extractions(by: ExtractionBy, page: Int, pageSize: Int): ExtractionPage!
+	fleets(by: FleetBy, page: Int, pageSize: Int): FleetPage!
+	shipAssignments(by: ShipAssignmentBy, page: Int, pageSize: Int): ShipAssignmentPage!
+	reservedFunds(page: Int, pageSize: Int): ReservedFundPage!
+	surveys(by: SurveyBy, page: Int, pageSize: Int): SurveyPage!
 	survey(signature: String!): Survey!
-	tradeRoutes: [TradeRoute!]!
+	tradeRoutes(page: Int, pageSize: Int): TradeRoutePage!
 	tradeRoute(routeId: Int!): TradeRoute!
-	shipInfos: [ShipInfo!]!
+	shipInfos(page: Int, pageSize: Int): ShipInfoPage!
 	shipInfo(symbol: String!): ShipInfo!
-	shipStates(by: ShipStateBy): [ShipState!]!
-	shipyards: [Shipyard!]!
+	shipStates(by: ShipStateBy, page: Int, pageSize: Int): ShipStatePage!
+	shipyards(page: Int, pageSize: Int): ShipyardPage!
 	shipyard(symbol: String!): Shipyard!
-	shipyardShips(by: ShipyardShipBy): [ShipyardShip!]!
-	constructionMaterials(by: ConstructionMaterialBy): [ConstructionMaterial!]!
-	constructionShipments(by: ConstructionShipmentBy): [ConstructionShipment!]!
-	jumpGateConnections(from: String): [JumpGateConnection!]!
-	jumpConnections: [GateConn!]!
-	marketTrades(by: MarketTradeBy): [MarketTrade!]!
-	marketTradeGoods(by: MarketTradeGoodBy): [MarketTradeGood!]!
+	shipyardShips(by: ShipyardShipBy, page: Int, pageSize: Int): ShipyardShipPage!
+	constructionMaterials(by: ConstructionMaterialBy, page: Int, pageSize: Int): ConstructionMaterialPage!
+	constructionShipments(by: ConstructionShipmentBy, page: Int, pageSize: Int): ConstructionShipmentPage!
+	jumpGateConnections(from: String, page: Int, pageSize: Int): JumpGateConnectionPage!
+	jumpConnections(page: Int, pageSize: Int): GateConnPage!
+	marketTrades(by: MarketTradeBy, page: Int, pageSize: Int): MarketTradePage!
+	marketTradeGoods(by: MarketTradeGoodBy, page: Int, pageSize: Int): MarketTradeGoodPage!
 	tradeSymbolInfos: [TradeSymbolInfo!]!
-	shipRoutes: [Route!]!
+	shipRoutes(page: Int, pageSize: Int): RoutePage!
 	budget: BudgetInfo!
 	chartManager: ChartManagerInfo!
 	constructionManager: ConstructionManagerInfo!
@@ -1075,6 +1166,13 @@ type RepairTransaction {
 	ship: Ship
 }
 
+type RepairTransactionPage {
+	items: [RepairTransaction!]!
+	totalCount: Int!
+	page: Int!
+	pageSize: Int
+}
+
 type ReservedFund {
 	id: Int!
 	amount: Int!
@@ -1082,9 +1180,16 @@ type ReservedFund {
 	actualAmount: Int!
 	createdAt: DateTime!
 	updatedAt: DateTime!
-	contract: [Contract!]!
-	tradeRoute: [TradeRoute!]!
-	constructionShipment: [ConstructionShipment!]!
+	contract(page: Int, pageSize: Int): ContractPage!
+	tradeRoute(page: Int, pageSize: Int): TradeRoutePage!
+	constructionShipment(page: Int, pageSize: Int): ConstructionShipmentPage!
+}
+
+type ReservedFundPage {
+	items: [ReservedFund!]!
+	totalCount: Int!
+	page: Int!
+	pageSize: Int
 }
 
 type Route {
@@ -1104,6 +1209,13 @@ type Route {
 	ship: Ship
 	shipStateAfter: ShipState
 	shipStateBefore: ShipState
+}
+
+type RoutePage {
+	items: [Route!]!
+	totalCount: Int!
+	page: Int!
+	pageSize: Int
 }
 
 type RouteState {
@@ -1146,6 +1258,13 @@ type ScrapTransaction {
 	ship: Ship
 }
 
+type ScrapTransactionPage {
+	items: [ScrapTransaction!]!
+	totalCount: Int!
+	page: Int!
+	pageSize: Int
+}
+
 type ScraperStatus {
 	cycle: Int
 	waitingForManager: Boolean!
@@ -1183,23 +1302,23 @@ type Ship {
 	status: ShipStatus!
 	possibleScraps: [ScrapInfo!]!
 	purchaseTransaction: ShipyardTransaction
-	marketTransactions: [MarketTransaction!]!
+	marketTransactions(page: Int, pageSize: Int): MarketTransactionPage!
 	marketTransactionSummary: TransactionSummary!
-	repairTransactions: [RepairTransaction!]!
-	scrapTransactions: [ScrapTransaction!]!
-	shipModificationTransactions: [ShipModificationTransaction!]!
-	chartTransactions: [ChartTransaction!]!
-	constructionShipments: [ConstructionShipment!]!
-	contractShipments: [ContractShipment!]!
-	tradeRoutes: [TradeRoute!]!
-	surveys: [Survey!]!
-	extractions: [Extraction!]!
-	routes: [Route!]!
-	shipJumps: [ShipJump!]!
+	repairTransactions(page: Int, pageSize: Int): RepairTransactionPage!
+	scrapTransactions(page: Int, pageSize: Int): ScrapTransactionPage!
+	shipModificationTransactions(page: Int, pageSize: Int): ShipModificationTransactionPage!
+	chartTransactions(page: Int, pageSize: Int): ChartTransactionPage!
+	constructionShipments(page: Int, pageSize: Int): ConstructionShipmentPage!
+	contractShipments(page: Int, pageSize: Int): ContractShipmentPage!
+	tradeRoutes(page: Int, pageSize: Int): TradeRoutePage!
+	surveys(page: Int, pageSize: Int): SurveyPage!
+	extractions(page: Int, pageSize: Int): ExtractionPage!
+	routes(page: Int, pageSize: Int): RoutePage!
+	shipJumps(page: Int, pageSize: Int): ShipJumpPage!
 	engineInfo: EngineInfo!
 	frameInfo: FrameInfo!
 	reactorInfo: ReactorInfo!
-	shipStates: [ShipState!]!
+	shipStates(page: Int, pageSize: Int): ShipStatePage!
 	nav: NavigationState!
 	mounts: Mounts!
 	modules: Modules!
@@ -1227,6 +1346,13 @@ type ShipAssignment {
 input ShipAssignmentBy @oneOf {
 	fleet: Int
 	open: Boolean
+}
+
+type ShipAssignmentPage {
+	items: [ShipAssignment!]!
+	totalCount: Int!
+	page: Int!
+	pageSize: Int
 }
 
 """
@@ -1274,6 +1400,13 @@ type ShipInfo {
 	purchaseTransaction: ShipyardTransaction
 }
 
+type ShipInfoPage {
+	items: [ShipInfo!]!
+	totalCount: Int!
+	page: Int!
+	pageSize: Int
+}
+
 type ShipJump {
 	id: Int!
 	shipSymbol: String!
@@ -1289,6 +1422,13 @@ type ShipJump {
 	shipStateBefore: ShipState
 }
 
+type ShipJumpPage {
+	items: [ShipJump!]!
+	totalCount: Int!
+	page: Int!
+	pageSize: Int
+}
+
 type ShipModificationTransaction {
 	id: Int!
 	waypointSymbol: String!
@@ -1299,6 +1439,13 @@ type ShipModificationTransaction {
 	waypoint: Waypoint
 	ship: Ship
 	tradeSymbolInfo: TradeSymbolInfo!
+}
+
+type ShipModificationTransactionPage {
+	items: [ShipModificationTransaction!]!
+	totalCount: Int!
+	page: Int!
+	pageSize: Int
 }
 
 """
@@ -1458,6 +1605,13 @@ input ShipStateBy @oneOf {
 	shipSymbol: String
 }
 
+type ShipStatePage {
+	items: [ShipState!]!
+	totalCount: Int!
+	page: Int!
+	pageSize: Int
+}
+
 type ShipStatus {
 	waitingForManager: Boolean!
 	waitingForApi: Boolean!
@@ -1512,10 +1666,17 @@ type Shipyard {
 	modificationsFee: Int!
 	createdAt: DateTime!
 	waypoint: Waypoint
-	history: [Shipyard!]!
-	shipyardShipTypes: [ShipyardShipTypes!]!
-	shipyardShips: [ShipyardShip!]!
-	shipyardTransactions: [ShipyardTransaction!]!
+	history(page: Int, pageSize: Int): ShipyardPage!
+	shipyardShipTypes(page: Int, pageSize: Int): ShipyardShipTypesPage!
+	shipyardShips(page: Int, pageSize: Int): ShipyardShipPage!
+	shipyardTransactions(page: Int, pageSize: Int): ShipyardTransactionPage!
+}
+
+type ShipyardPage {
+	items: [Shipyard!]!
+	totalCount: Int!
+	page: Int!
+	pageSize: Int
 }
 
 type ShipyardShip {
@@ -1538,8 +1699,8 @@ type ShipyardShip {
 	crewCapacity: Int!
 	createdAt: DateTime!
 	waypoint: Waypoint
-	history: [ShipyardShip!]!
-	shipyardTransactions: [ShipyardTransaction!]!
+	history(page: Int, pageSize: Int): ShipyardShipPage!
+	shipyardTransactions(page: Int, pageSize: Int): ShipyardTransactionPage!
 	tradeSymbolInfo: TradeSymbolInfo!
 }
 
@@ -1549,6 +1710,13 @@ input ShipyardShipBy @oneOf {
 	shipSymbol: ShipType
 }
 
+type ShipyardShipPage {
+	items: [ShipyardShip!]!
+	totalCount: Int!
+	page: Int!
+	pageSize: Int
+}
+
 type ShipyardShipTypes {
 	id: Int!
 	shipyardId: Int!
@@ -1556,6 +1724,13 @@ type ShipyardShipTypes {
 	createdAt: DateTime!
 	shipyard: Shipyard
 	tradeSymbolInfo: TradeSymbolInfo!
+}
+
+type ShipyardShipTypesPage {
+	items: [ShipyardShipTypes!]!
+	totalCount: Int!
+	page: Int!
+	pageSize: Int
 }
 
 type ShipyardTransaction {
@@ -1577,6 +1752,13 @@ input ShipyardTransactionBy @oneOf {
 	system: String
 	type: ShipType
 	agent: String
+}
+
+type ShipyardTransactionPage {
+	items: [ShipyardTransaction!]!
+	totalCount: Int!
+	page: Int!
+	pageSize: Int
 }
 
 type SiphonerAssignment {
@@ -1611,7 +1793,7 @@ type Survey {
 	updatedAt: DateTime!
 	percent: [SurveyPercent!]!
 	waypoint: Waypoint
-	extractions: [Extraction!]!
+	extractions(page: Int, pageSize: Int): ExtractionPage!
 	ship: Ship
 	shipStateBefore: ShipState
 	shipStateAfter: ShipState
@@ -1622,6 +1804,13 @@ input SurveyBy @oneOf {
 	system: String
 	size: SurveySize
 	shipSymbol: String
+}
+
+type SurveyPage {
+	items: [Survey!]!
+	totalCount: Int!
+	page: Int!
+	pageSize: Int
 }
 
 type SurveyPercent {
@@ -1653,27 +1842,34 @@ type System {
 	x: Int!
 	y: Int!
 	populationDisabled: Boolean!
-	waypoints: [Waypoint!]!
-	marketTransactions: [MarketTransaction!]!
-	shipyardTransactions: [ShipyardTransaction!]!
-	chartTransactions: [ChartTransaction!]!
-	repairTransactions: [RepairTransaction!]!
-	scrapTransactions: [ScrapTransaction!]!
-	shipModificationTransactions: [ShipModificationTransaction!]!
-	shipyardShips: [ShipyardShip!]!
-	shipyardShipTypes: [ShipyardShipTypes!]!
-	marketTrades: [MarketTrade!]!
-	marketTradeGoods: [MarketTradeGood!]!
-	fleets: [Fleet!]!
-	surveys: [Survey!]!
-	extractions: [Extraction!]!
-	constructionMaterials: [ConstructionMaterial!]!
-	constructionShipments: [ConstructionShipment!]!
-	contractDeliveries: [ContractDelivery!]!
-	jumpGateConnections: [JumpGateConnection!]!
-	tradeRoutes: [TradeRoute!]!
+	waypoints(page: Int, pageSize: Int): WaypointPage!
+	marketTransactions(page: Int, pageSize: Int): MarketTransactionPage!
+	shipyardTransactions(page: Int, pageSize: Int): ShipyardTransactionPage!
+	chartTransactions(page: Int, pageSize: Int): ChartTransactionPage!
+	repairTransactions(page: Int, pageSize: Int): RepairTransactionPage!
+	scrapTransactions(page: Int, pageSize: Int): ScrapTransactionPage!
+	shipModificationTransactions(page: Int, pageSize: Int): ShipModificationTransactionPage!
+	shipyardShips(page: Int, pageSize: Int): ShipyardShipPage!
+	shipyardShipTypes(page: Int, pageSize: Int): ShipyardShipTypesPage!
+	marketTrades(page: Int, pageSize: Int): MarketTradePage!
+	marketTradeGoods(page: Int, pageSize: Int): MarketTradeGoodPage!
+	fleets(page: Int, pageSize: Int): FleetPage!
+	surveys(page: Int, pageSize: Int): SurveyPage!
+	extractions(page: Int, pageSize: Int): ExtractionPage!
+	constructionMaterials(page: Int, pageSize: Int): ConstructionMaterialPage!
+	constructionShipments(page: Int, pageSize: Int): ConstructionShipmentPage!
+	contractDeliveries(page: Int, pageSize: Int): ContractDeliveryPage!
+	jumpGateConnections(page: Int, pageSize: Int): JumpGateConnectionPage!
+	tradeRoutes(page: Int, pageSize: Int): TradeRoutePage!
 	ships: [Ship!]!
 	seenAgents: [KnownAgent!]!
+}
+
+type SystemPage {
+	items: [System!]!
+	totalCount: Int!
+	page: Int!
+	pageSize: Int
 }
 
 """
@@ -1720,11 +1916,18 @@ type TradeRoute {
 	sellWaypoint: Waypoint
 	purchaseWaypoint: Waypoint
 	reservation: ReservedFund
-	transactions: [MarketTransaction!]!
+	transactions(page: Int, pageSize: Int): MarketTransactionPage!
 	marketTransactionSummary: TransactionSummary!
 	purchaseMarketTradeGood: MarketTradeGood
 	sellMarketTradeGood: MarketTradeGood
 	tradeSymbolInfo: TradeSymbolInfo!
+}
+
+type TradeRoutePage {
+	items: [TradeRoute!]!
+	totalCount: Int!
+	page: Int!
+	pageSize: Int
 }
 
 """
@@ -1881,8 +2084,15 @@ enum TradeSymbol {
 
 type TradeSymbolInfo {
 	symbol: TradeSymbol!
-	requires: [TradeSymbolInfo!]!
-	requiredBy: [TradeSymbolInfo!]!
+	requires(page: Int, pageSize: Int): TradeSymbolInfoPage!
+	requiredBy(page: Int, pageSize: Int): TradeSymbolInfoPage!
+}
+
+type TradeSymbolInfoPage {
+	items: [TradeSymbolInfo!]!
+	totalCount: Int!
+	page: Int!
+	pageSize: Int
 }
 
 type TraderStatus {
@@ -1986,29 +2196,29 @@ type Waypoint {
 	system: System
 	ships: [Ship!]!
 	chartTransaction: ChartTransaction
-	marketTransactions: [MarketTransaction!]!
+	marketTransactions(page: Int, pageSize: Int): MarketTransactionPage!
 	marketTransactionSummary: TransactionSummary!
-	shipyardTransactions: [ShipyardTransaction!]!
-	repairTransactions: [RepairTransaction!]!
-	scrapTransactions: [ScrapTransaction!]!
-	shipModificationTransactions: [ShipModificationTransaction!]!
-	constructionMaterials: [ConstructionMaterial!]!
-	constructionShipmentsTo: [ConstructionShipment!]!
-	constructionShipmentsFrom: [ConstructionShipment!]!
-	contractDeliveries: [ContractDelivery!]!
-	contractShipmentsFrom: [ContractShipment!]!
-	contractShipmentsTo: [ContractShipment!]!
-	surveys: [Survey!]!
-	extractions: [Extraction!]!
-	tradeRoutesFrom: [TradeRoute!]!
-	tradeRoutesTo: [TradeRoute!]!
-	tradeRoutes: [TradeRoute!]!
-	marketTrades: [MarketTrade!]!
-	marketTradeGoods: [MarketTradeGood!]!
-	shipyardShips: [ShipyardShip!]!
-	shipyardShipTypes: [ShipyardShipTypes!]!
+	shipyardTransactions(page: Int, pageSize: Int): ShipyardTransactionPage!
+	repairTransactions(page: Int, pageSize: Int): RepairTransactionPage!
+	scrapTransactions(page: Int, pageSize: Int): ScrapTransactionPage!
+	shipModificationTransactions(page: Int, pageSize: Int): ShipModificationTransactionPage!
+	constructionMaterials(page: Int, pageSize: Int): ConstructionMaterialPage!
+	constructionShipmentsTo(page: Int, pageSize: Int): ConstructionShipmentPage!
+	constructionShipmentsFrom(page: Int, pageSize: Int): ConstructionShipmentPage!
+	contractDeliveries(page: Int, pageSize: Int): ContractDeliveryPage!
+	contractShipmentsFrom(page: Int, pageSize: Int): ContractShipmentPage!
+	contractShipmentsTo(page: Int, pageSize: Int): ContractShipmentPage!
+	surveys(page: Int, pageSize: Int): SurveyPage!
+	extractions(page: Int, pageSize: Int): ExtractionPage!
+	tradeRoutesFrom(page: Int, pageSize: Int): TradeRoutePage!
+	tradeRoutesTo(page: Int, pageSize: Int): TradeRoutePage!
+	tradeRoutes(page: Int, pageSize: Int): TradeRoutePage!
+	marketTrades(page: Int, pageSize: Int): MarketTradePage!
+	marketTradeGoods(page: Int, pageSize: Int): MarketTradeGoodPage!
+	shipyardShips(page: Int, pageSize: Int): ShipyardShipPage!
+	shipyardShipTypes(page: Int, pageSize: Int): ShipyardShipTypesPage!
 	shipyard: Shipyard
-	jumpGateConnections: [JumpGateConnection!]!
+	jumpGateConnections(page: Int, pageSize: Int): JumpGateConnectionPage!
 	lastScrap: DateTime
 	nextScrap: DateTime
 }
@@ -2023,6 +2233,13 @@ enum WaypointModifierSymbol {
 	RADIATION_LEAK
 	CRITICAL_LIMIT
 	CIVIL_UNREST
+}
+
+type WaypointPage {
+	items: [Waypoint!]!
+	totalCount: Int!
+	page: Int!
+	pageSize: Int
 }
 
 """

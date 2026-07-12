@@ -20,43 +20,55 @@ export const GET_MAIN_SITE_DATA = graphql(/* GraphQL */ `
       headquartersSystem {
         symbol
         constructionMaterials {
-          waypointSymbol
-          tradeSymbol
-          required
-          fulfilled
+          items {
+            waypointSymbol
+            tradeSymbol
+            required
+            fulfilled
+          }
         }
       }
     }
     systems(onlyWithFleetsOrShips: true) {
-      symbol
-      waypoints {
+      items {
         symbol
-        chartedBy
-        hasMarketplace
-        hasShipyard
+        waypoints {
+          items {
+            symbol
+            chartedBy
+            hasMarketplace
+            hasShipyard
+          }
+        }
       }
     }
     fleets {
-      id
-      systemSymbol
-      fleetType
-      active
-      assignments {
+      items {
         id
-        priority
-        rangeMin
-        cargoMin
-        ship {
-          symbol
+        systemSymbol
+        fleetType
+        active
+        assignments {
+          items {
+            id
+            priority
+            rangeMin
+            cargoMin
+            ship {
+              symbol
+            }
+          }
         }
       }
     }
     shipAssignments(by: { open: true }) {
-      id
-      fleetId
-      fleet {
-        systemSymbol
-        fleetType
+      items {
+        id
+        fleetId
+        fleet {
+          systemSymbol
+          fleetType
+        }
       }
     }
     ships {
@@ -133,26 +145,32 @@ export const GET_MAIN_SITE_DATA = graphql(/* GraphQL */ `
 export const GET_ALL_SYSTEMS = graphql(/* GraphQL */ `
   query GetAllSystems {
     systems {
-      symbol
-      constellation
-      sectorSymbol
-      systemType
-      x
-      y
-      populationDisabled
-      waypoints {
+      items {
         symbol
-        waypointType
-        hasShipyard
-        hasMarketplace
-      }
-      fleets {
-        id
-        fleetType
-        active
-      }
-      ships {
-        symbol
+        constellation
+        sectorSymbol
+        systemType
+        x
+        y
+        populationDisabled
+        waypoints {
+          items {
+            symbol
+            waypointType
+            hasShipyard
+            hasMarketplace
+          }
+        }
+        fleets {
+          items {
+            id
+            fleetType
+            active
+          }
+        }
+        ships {
+          symbol
+        }
       }
     }
   }
@@ -161,35 +179,43 @@ export const GET_ALL_SYSTEMS = graphql(/* GraphQL */ `
 export const GET_SYSTEM_MAP_DATA = graphql(/* GraphQL */ `
   query GetSystemMapData {
     systems {
-      symbol
-      constellation
-      systemType
-      x
-      y
-      populationDisabled
-      waypoints {
+      items {
         symbol
-        waypointType
-        hasShipyard
-        hasMarketplace
-        isUnderConstruction
-      }
-      fleets {
-        id
-        fleetType
-        active
-      }
-      ships {
-        symbol
+        constellation
+        systemType
+        x
+        y
+        populationDisabled
+        waypoints {
+          items {
+            symbol
+            waypointType
+            hasShipyard
+            hasMarketplace
+            isUnderConstruction
+          }
+        }
+        fleets {
+          items {
+            id
+            fleetType
+            active
+          }
+        }
+        ships {
+          symbol
+        }
       }
     }
     jumpConnections {
-      underConstructionA
-      underConstructionB
-      pointASymbol
-      pointBSymbol
-      fromA
-      fromB
+      items {
+        underConstructionA
+        underConstructionB
+        pointASymbol
+        pointBSymbol
+        fromA
+        fromB
+      }
     }
   }
 `);
@@ -230,17 +256,19 @@ export const GET_AGENT_HISTORY = graphql(/* GraphQL */ `
 export const GET_ALL_SURVEYS = graphql(/* GraphQL */ `
   query GetAllSurveys {
     surveys {
-      shipInfoBefore
-      updatedAt
-      shipInfoAfter
-      signature
-      signature
-      size
-      waypointSymbol
-      deposits
-      exhaustedSince
-      createdAt
-      expiration
+      items {
+        shipInfoBefore
+        updatedAt
+        shipInfoAfter
+        signature
+        signature
+        size
+        waypointSymbol
+        deposits
+        exhaustedSince
+        createdAt
+        expiration
+      }
     }
   }
 `);
@@ -260,169 +288,219 @@ export const GET_SYSTEM = graphql(/* GraphQL */ `
         count
       }
       fleets {
-        id
-        fleetType
-        active
-        assignments {
+        items {
           id
-          siphon
-          warpDrive
-          fleetId
-          priority
-          maxPurchasePrice
-          creditsThreshold
-          disabled
-          rangeMin
-          cargoMin
-          survey
-          extractor
+          fleetType
+          active
+          assignments {
+            items {
+              id
+              siphon
+              warpDrive
+              fleetId
+              priority
+              maxPurchasePrice
+              creditsThreshold
+              disabled
+              rangeMin
+              cargoMin
+              survey
+              extractor
+            }
+          }
+          createdAt
+          updatedAt
         }
-        createdAt
-        updatedAt
       }
       chartTransactions {
-        waypointSymbol
-        shipSymbol
-        totalPrice
-        timestamp
+        items {
+          waypointSymbol
+          shipSymbol
+          totalPrice
+          timestamp
+        }
       }
       shipyardShips {
-        reactorQuality
-        engineType
-        engineQuality
-        modules
-        mounts
-        createdAt
-        waypointSymbol
-        shipType
-        name
-        supply
-        activity
-        purchasePrice
-        frameType
-        frameQuality
-        reactorType
-      }
-      marketTrades {
-        waypointSymbol
-        symbol
-        createdAt
-        type
-        tradeSymbolInfo {
-          symbol
-          requires {
-            symbol
-          }
-          requiredBy {
-            symbol
-          }
-        }
-        marketTradeGood {
-          symbol
+        items {
+          reactorQuality
+          engineType
+          engineQuality
+          modules
+          mounts
+          createdAt
           waypointSymbol
-          type
-          tradeVolume
+          shipType
+          name
           supply
           activity
           purchasePrice
-          sellPrice
-          createdAt
+          frameType
+          frameQuality
+          reactorType
         }
       }
-      constructionMaterials {
-        waypointSymbol
-        tradeSymbol
-        required
-        fulfilled
-        marketTransactionSummary {
-          expenses
-          purchaseUnits
-          purchaseTransactions
-        }
-      }
-      jumpGateConnections {
-        from
-        to
-      }
-      waypoints {
-        symbol
-        faction
-        modifiers
-        chartedBy
-        chartedOn
-        hasShipyard
-        hasMarketplace
-        x
-        y
-        lastScrap
-        nextScrap
-        waypointType
-        traits
-        isUnderConstruction
-        orbitals
-        orbits
-        marketTrades {
+      marketTrades {
+        items {
+          waypointSymbol
           symbol
+          createdAt
           type
           tradeSymbolInfo {
             symbol
             requires {
-              symbol
+              items {
+                symbol
+              }
             }
             requiredBy {
-              symbol
+              items {
+                symbol
+              }
             }
           }
           marketTradeGood {
+            symbol
+            waypointSymbol
+            type
             tradeVolume
             supply
             activity
             purchasePrice
             sellPrice
+            createdAt
           }
         }
-        shipyardShips {
-          shipType
-          supply
-          activity
-          purchasePrice
+      }
+      constructionMaterials {
+        items {
+          waypointSymbol
+          tradeSymbol
+          required
+          fulfilled
+          marketTransactionSummary {
+            expenses
+            purchaseUnits
+            purchaseTransactions
+          }
+        }
+      }
+      jumpGateConnections {
+        items {
+          from
+          to
+        }
+      }
+      waypoints {
+        items {
+          symbol
+          faction
+          modifiers
+          chartedBy
+          chartedOn
+          hasShipyard
+          hasMarketplace
+          x
+          y
+          lastScrap
+          nextScrap
+          waypointType
+          traits
+          isUnderConstruction
+          orbitals
+          orbits
+          marketTrades {
+            items {
+              symbol
+              type
+              tradeSymbolInfo {
+                symbol
+                requires {
+                  items {
+                    symbol
+                  }
+                }
+                requiredBy {
+                  items {
+                    symbol
+                  }
+                }
+              }
+              marketTradeGood {
+                tradeVolume
+                supply
+                activity
+                purchasePrice
+                sellPrice
+              }
+            }
+          }
+          shipyardShips {
+            items {
+              shipType
+              supply
+              activity
+              purchasePrice
+            }
+          }
         }
       }
       marketTransactions {
-        id
-        waypointSymbol
-        shipSymbol
-        tradeSymbol
-        type
-        units
-        pricePerUnit
-        totalPrice
-        timestamp
-        contract_id
+        items {
+          id
+          waypointSymbol
+          shipSymbol
+          tradeSymbol
+          type
+          units
+          pricePerUnit
+          totalPrice
+          timestamp
+          contract_id
+        }
       }
       shipyardTransactions {
-        id
-        waypointSymbol
-        shipType
-        price
-        agentSymbol
-        timestamp
+        items {
+          id
+          waypointSymbol
+          shipType
+          price
+          agentSymbol
+          timestamp
+        }
       }
       contractDeliveries {
-        contractId
-        tradeSymbol
-        destinationSymbol
-        unitsRequired
-        unitsFulfilled
-        contract {
+        items {
+          contractId
+          tradeSymbol
+          destinationSymbol
+          unitsRequired
+          unitsFulfilled
+          contract {
+            id
+            createdAt
+            reservedFund
+            factionSymbol
+            contractType
+            accepted
+            onFulfilled
+            deadline
+            marketTransactionSummary {
+              sum
+              expenses
+              income
+              units
+              purchaseUnits
+              sellUnits
+              purchaseTransactions
+              sellTransactions
+            }
+          }
+        }
+      }
+      tradeRoutes {
+        items {
           id
-          createdAt
           reservedFund
-          factionSymbol
-          contractType
-          accepted
-          onFulfilled
-          deadline
           marketTransactionSummary {
             sum
             expenses
@@ -433,29 +511,15 @@ export const GET_SYSTEM = graphql(/* GraphQL */ `
             purchaseTransactions
             sellTransactions
           }
+          symbol
+          shipSymbol
+          PurchaseWaypointSymbol
+          SellWaypointSymbol
+          status
+          tradeVolume
+          predictedPurchasePrice
+          predictedSellPrice
         }
-      }
-      tradeRoutes {
-        id
-        reservedFund
-        marketTransactionSummary {
-          sum
-          expenses
-          income
-          units
-          purchaseUnits
-          sellUnits
-          purchaseTransactions
-          sellTransactions
-        }
-        symbol
-        shipSymbol
-        PurchaseWaypointSymbol
-        SellWaypointSymbol
-        status
-        tradeVolume
-        predictedPurchasePrice
-        predictedSellPrice
       }
       ships {
         symbol
@@ -486,14 +550,16 @@ export const GET_SYSTEM = graphql(/* GraphQL */ `
 export const GET_CHART_TRANSACTIONS = graphql(/* GraphQL */ `
   query GetChartTransactions {
     chartTransactions {
-      waypointSymbol
-      shipSymbol
-      totalPrice
-      timestamp
-      waypoint {
-        symbol
-        waypointType
-        traits
+      items {
+        waypointSymbol
+        shipSymbol
+        totalPrice
+        timestamp
+        waypoint {
+          symbol
+          waypointType
+          traits
+        }
       }
     }
   }

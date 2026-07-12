@@ -1,4 +1,4 @@
-use database::DatabaseConnector;
+use database::DatabaseConnectorAsync;
 use space_traders_client::models;
 
 pub async fn update_market(

@@ -1,5 +1,6 @@
 use std::collections::HashSet;
 
+use database::DatabaseConnectorAsync;
 use space_traders_client::models::{self};
 use tracing::debug;
 use utils::{distance_between_waypoints, WaypointCan};
@@ -106,7 +107,7 @@ impl ChartManager {
         &mut self,
         ship_clone: ship::MyShip,
     ) -> std::result::Result<NextChartResp, Error> {
-        let ship_waypoint = database::Waypoint::get_by_symbol(
+        let ship_waypoint = database::Waypoint::get_by_id(
             &self.context.database_pool,
             &ship_clone.nav.waypoint_symbol,
         )
@@ -116,8 +117,10 @@ impl ChartManager {
         let waypoints = database::Waypoint::get_by_system(
             &self.context.database_pool,
             &ship_clone.nav.system_symbol,
+            database::PaginatedQuery::unpaged(),
         )
-        .await?;
+        .await?
+        .items;
         let mut system = waypoints
             .iter()
             .filter(|w| !w.is_charted())

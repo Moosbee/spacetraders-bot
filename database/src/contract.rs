@@ -2,7 +2,7 @@ use chrono::{DateTime, Utc};
 use space_traders_client::models;
 use tracing::instrument;
 
-use super::{DatabaseConnector, DbPool};
+use super::{DatabaseConnectorAsync, DbPool, PaginatedQuery, PaginatedResult, run_paginated_query};
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, async_graphql::SimpleObject)]
 #[graphql(name = "DBContract")]
@@ -59,9 +59,17 @@ impl From<models::Contract> for Contract {
     }
 }
 
-impl DatabaseConnector<Contract> for Contract {
+impl DatabaseConnectorAsync for Contract {
+    type ID = String;
+
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
-    async fn insert(database_pool: &DbPool, item: &Contract) -> crate::Result<()> {
+    async fn insert_new(database_pool: &DbPool, item: &Contract) -> crate::Result<Self::ID> {
+        Self::upsert(database_pool, item).await?;
+        Ok(item.id.clone())
+    }
+
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
+    async fn upsert(database_pool: &DbPool, item: &Contract) -> crate::Result<()> {
         sqlx::query!(
             r#"
             INSERT INTO contract (
@@ -104,6 +112,11 @@ impl DatabaseConnector<Contract> for Contract {
         .await?;
 
         Ok(())
+    }
+
+    #[instrument(level = "trace", skip(database_pool, item))]
+    async fn update(database_pool: &DbPool, item: &Contract) -> crate::Result<()> {
+        Self::upsert(database_pool, item).await
     }
 
     #[instrument(level = "trace", skip(database_pool, items))]
@@ -199,30 +212,123 @@ impl DatabaseConnector<Contract> for Contract {
 
         Ok(())
     }
+
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
-    async fn get_all(database_pool: &DbPool) -> crate::Result<Vec<Contract>> {
+    async fn get_all(
+        database_pool: &DbPool,
+        query: PaginatedQuery,
+    ) -> crate::Result<PaginatedResult<Contract>> {
+        run_paginated_query(
+            query,
+            |page_size, offset| async move {
+                let items = sqlx::query_as!(
+                    Contract,
+                    r#"
+                        SELECT 
+                            id,
+                            faction_symbol,
+                            contract_type as "contract_type: models::contract::Type",
+                            accepted,
+                            fulfilled,
+                            deadline_to_accept,
+                            on_accepted,
+                            on_fulfilled,
+                            deadline,
+                            updated_at,
+                            created_at,
+                            reserved_fund
+                        FROM contract
+                        ORDER BY created_at DESC, id ASC
+                        LIMIT $1 OFFSET $2
+                    "#,
+                    page_size,
+                    offset
+                )
+                .fetch_all(database_pool.get_cache_pool())
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let items = sqlx::query_as!(
+                    Contract,
+                    r#"
+                        SELECT 
+                            id,
+                            faction_symbol,
+                            contract_type as "contract_type: models::contract::Type",
+                            accepted,
+                            fulfilled,
+                            deadline_to_accept,
+                            on_accepted,
+                            on_fulfilled,
+                            deadline,
+                            updated_at,
+                            created_at,
+                            reserved_fund
+                        FROM contract
+                        ORDER BY created_at DESC, id ASC
+                    "#
+                )
+                .fetch_all(database_pool.get_cache_pool())
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let count = sqlx::query!(
+                    r#"
+                        SELECT COUNT(*) as "count!"
+                        FROM contract
+                    "#
+                )
+                .fetch_one(database_pool.get_cache_pool())
+                .await?;
+                Ok(count.count)
+            },
+        )
+        .await
+    }
+
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
+    async fn get_by_id(database_pool: &DbPool, id: &Self::ID) -> crate::Result<Option<Self>> {
         let erg = sqlx::query_as!(
             Contract,
-            r#"
-                SELECT 
-                    id,
-                    faction_symbol,
-                    contract_type as "contract_type: models::contract::Type",
-                    accepted,
-                    fulfilled,
-                    deadline_to_accept,
-                    on_accepted,
-                    on_fulfilled,
-                    deadline,
-                    updated_at,
-                    created_at,
-                    reserved_fund
-                FROM contract
-            "#
+            r#"SELECT
+          id,
+          faction_symbol,
+          contract_type as "contract_type: models::contract::Type",
+          accepted,
+          fulfilled,
+          deadline_to_accept,
+          on_accepted,
+          on_fulfilled,
+          deadline,
+          updated_at,
+          created_at,
+          reserved_fund
+        FROM public.contract WHERE id = $1"#,
+            id
         )
-        .fetch_all(database_pool.get_cache_pool())
+        .fetch_optional(database_pool.get_cache_pool())
         .await?;
         Ok(erg)
+    }
+
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
+    async fn delete_by_id(database_pool: &DbPool, id: &Self::ID) -> crate::Result<()> {
+        sqlx::query!(
+            r#"
+                DELETE FROM contract
+                WHERE id = $1
+            "#,
+            id
+        )
+        .execute(&database_pool.database_pool)
+        .await?;
+        Ok(())
+    }
+
+    fn set_id(&mut self, id: Self::ID) {
+        self.id = id;
     }
 }
 
@@ -235,7 +341,7 @@ impl Contract {
     ) -> crate::Result<()> {
         let mut contract_old = Contract::from(contract.clone());
         contract_old.reserved_fund = reserved_fund;
-        Contract::insert(database_pool, &contract_old).await?;
+        Contract::upsert(database_pool, &contract_old).await?;
 
         if let Some(deliveries) = &contract.terms.deliver {
             let deliveries: Vec<_> = deliveries
@@ -255,115 +361,248 @@ impl Contract {
     pub async fn get_by_faction_symbol(
         database_pool: &DbPool,
         symbol: &String,
-    ) -> crate::Result<Vec<Contract>> {
-        let erg = sqlx::query_as!(
-            Contract,
-            r#"SELECT
-          id,
-          faction_symbol,
-          contract_type as "contract_type: models::contract::Type",
-          accepted,
-          fulfilled,
-          deadline_to_accept,
-          on_accepted,
-          on_fulfilled,
-          deadline,
-          updated_at,
-          created_at,
-          reserved_fund
-        FROM public.contract WHERE faction_symbol = $1"#,
-            &symbol
+        query: PaginatedQuery,
+    ) -> crate::Result<PaginatedResult<Contract>> {
+        run_paginated_query(
+            query,
+            |page_size, offset| async move {
+                let items = sqlx::query_as!(
+                    Contract,
+                    r#"
+                        SELECT
+                          id,
+                          faction_symbol,
+                          contract_type as "contract_type: models::contract::Type",
+                          accepted,
+                          fulfilled,
+                          deadline_to_accept,
+                          on_accepted,
+                          on_fulfilled,
+                          deadline,
+                          updated_at,
+                          created_at,
+                          reserved_fund
+                        FROM public.contract
+                        WHERE faction_symbol = $1
+                        ORDER BY created_at DESC, id ASC
+                        LIMIT $2 OFFSET $3
+                    "#,
+                    symbol,
+                    page_size,
+                    offset
+                )
+                .fetch_all(database_pool.get_cache_pool())
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let items = sqlx::query_as!(
+                    Contract,
+                    r#"
+                        SELECT
+                          id,
+                          faction_symbol,
+                          contract_type as "contract_type: models::contract::Type",
+                          accepted,
+                          fulfilled,
+                          deadline_to_accept,
+                          on_accepted,
+                          on_fulfilled,
+                          deadline,
+                          updated_at,
+                          created_at,
+                          reserved_fund
+                        FROM public.contract
+                        WHERE faction_symbol = $1
+                        ORDER BY created_at DESC, id ASC
+                    "#,
+                    symbol
+                )
+                .fetch_all(database_pool.get_cache_pool())
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let count = sqlx::query!(
+                    r#"
+                        SELECT COUNT(*) as "count!"
+                        FROM public.contract
+                        WHERE faction_symbol = $1
+                    "#,
+                    symbol
+                )
+                .fetch_one(database_pool.get_cache_pool())
+                .await?;
+                Ok(count.count)
+            },
         )
-        .fetch_all(database_pool.get_cache_pool())
-        .await?;
-        Ok(erg)
-    }
-
-    #[instrument(level = "trace", skip(database_pool), err(Debug))]
-    pub async fn get_by_id(database_pool: &DbPool, id: &String) -> crate::Result<Option<Contract>> {
-        let erg = sqlx::query_as!(
-            Contract,
-            r#"SELECT
-          id,
-          faction_symbol,
-          contract_type as "contract_type: models::contract::Type",
-          accepted,
-          fulfilled,
-          deadline_to_accept,
-          on_accepted,
-          on_fulfilled,
-          deadline,
-          updated_at,
-          created_at,
-          reserved_fund
-        FROM public.contract WHERE id = $1"#,
-            &id
-        )
-        .fetch_optional(database_pool.get_cache_pool())
-        .await?;
-        Ok(erg)
+        .await
     }
 
     pub async fn get_by_reservation_id(
         database_pool: &DbPool,
         id: i64,
-    ) -> crate::Result<Vec<Contract>> {
-        let erg = sqlx::query_as!(
-            Contract,
-            r#"SELECT
-          id,
-          faction_symbol,
-          contract_type as "contract_type: models::contract::Type",
-          accepted,
-          fulfilled,
-          deadline_to_accept,
-          on_accepted,
-          on_fulfilled,
-          deadline,
-          updated_at,
-          created_at,
-          reserved_fund
-        FROM public.contract WHERE reserved_fund = $1"#,
-            id
+        query: PaginatedQuery,
+    ) -> crate::Result<PaginatedResult<Contract>> {
+        run_paginated_query(
+            query,
+            |page_size, offset| async move {
+                let items = sqlx::query_as!(
+                    Contract,
+                    r#"
+                        SELECT
+                          id,
+                          faction_symbol,
+                          contract_type as "contract_type: models::contract::Type",
+                          accepted,
+                          fulfilled,
+                          deadline_to_accept,
+                          on_accepted,
+                          on_fulfilled,
+                          deadline,
+                          updated_at,
+                          created_at,
+                          reserved_fund
+                        FROM public.contract
+                        WHERE reserved_fund = $1
+                        ORDER BY created_at DESC, id ASC
+                        LIMIT $2 OFFSET $3
+                    "#,
+                    id,
+                    page_size,
+                    offset
+                )
+                .fetch_all(database_pool.get_cache_pool())
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let items = sqlx::query_as!(
+                    Contract,
+                    r#"
+                        SELECT
+                          id,
+                          faction_symbol,
+                          contract_type as "contract_type: models::contract::Type",
+                          accepted,
+                          fulfilled,
+                          deadline_to_accept,
+                          on_accepted,
+                          on_fulfilled,
+                          deadline,
+                          updated_at,
+                          created_at,
+                          reserved_fund
+                        FROM public.contract
+                        WHERE reserved_fund = $1
+                        ORDER BY created_at DESC, id ASC
+                    "#,
+                    id
+                )
+                .fetch_all(database_pool.get_cache_pool())
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let count = sqlx::query!(
+                    r#"
+                        SELECT COUNT(*) as "count!"
+                        FROM public.contract
+                        WHERE reserved_fund = $1
+                    "#,
+                    id
+                )
+                .fetch_one(database_pool.get_cache_pool())
+                .await?;
+                Ok(count.count)
+            },
         )
-        .fetch_all(database_pool.get_cache_pool())
-        .await?;
-        Ok(erg)
+        .await
     }
 
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
-    pub async fn get_all_sm(database_pool: &DbPool) -> crate::Result<Vec<ContractSummary>> {
-        let erg = sqlx::query_as!(
-    ContractSummary,
-    r#"
-SELECT
-  contract.id,
-  contract.faction_symbol,
-  contract.contract_type as "contract_type: models::contract::Type",
-  contract.accepted,
-  contract.fulfilled,
-  contract.deadline_to_accept,
-  contract.on_accepted,
-  contract.on_fulfilled,
-  contract.deadline,
-  contract.on_accepted + contract.on_fulfilled as "totalprofit: i32",
-  COALESCE(sum(market_transaction.total_price), 0) as "total_expenses: i32",
-  contract.on_accepted + contract.on_fulfilled - COALESCE(sum(market_transaction.total_price), 0) as "net_profit: i32",
-  contract.updated_at,
-  contract.created_at,
-  contract.reserved_fund
-FROM
-  public.contract
- left join public.market_transaction ON market_transaction.contract = contract.id
-group by
-  contract.id
-order by
-  contract.deadline_to_accept ASC;
-    "#,
-)
-        .fetch_all(database_pool.get_cache_pool())
-        .await?;
-        Ok(erg)
+    pub async fn get_all_sm(
+        database_pool: &DbPool,
+        query: PaginatedQuery,
+    ) -> crate::Result<PaginatedResult<ContractSummary>> {
+        run_paginated_query(
+            query,
+            |page_size, offset| async move {
+                let items = sqlx::query_as!(
+                    ContractSummary,
+                    r#"
+                        SELECT
+                          contract.id,
+                          contract.faction_symbol,
+                          contract.contract_type as "contract_type: models::contract::Type",
+                          contract.accepted,
+                          contract.fulfilled,
+                          contract.deadline_to_accept,
+                          contract.on_accepted,
+                          contract.on_fulfilled,
+                          contract.deadline,
+                          contract.on_accepted + contract.on_fulfilled as "totalprofit: i32",
+                          COALESCE(sum(market_transaction.total_price), 0) as "total_expenses: i32",
+                          contract.on_accepted + contract.on_fulfilled - COALESCE(sum(market_transaction.total_price), 0) as "net_profit: i32",
+                          contract.updated_at,
+                          contract.created_at,
+                          contract.reserved_fund
+                        FROM public.contract
+                        LEFT JOIN public.market_transaction ON market_transaction.contract = contract.id
+                        GROUP BY contract.id
+                        ORDER BY contract.deadline_to_accept ASC NULLS LAST, contract.id ASC
+                        LIMIT $1 OFFSET $2
+                    "#,
+                    page_size,
+                    offset
+                )
+                .fetch_all(database_pool.get_cache_pool())
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let items = sqlx::query_as!(
+                    ContractSummary,
+                    r#"
+                        SELECT
+                          contract.id,
+                          contract.faction_symbol,
+                          contract.contract_type as "contract_type: models::contract::Type",
+                          contract.accepted,
+                          contract.fulfilled,
+                          contract.deadline_to_accept,
+                          contract.on_accepted,
+                          contract.on_fulfilled,
+                          contract.deadline,
+                          contract.on_accepted + contract.on_fulfilled as "totalprofit: i32",
+                          COALESCE(sum(market_transaction.total_price), 0) as "total_expenses: i32",
+                          contract.on_accepted + contract.on_fulfilled - COALESCE(sum(market_transaction.total_price), 0) as "net_profit: i32",
+                          contract.updated_at,
+                          contract.created_at,
+                          contract.reserved_fund
+                        FROM public.contract
+                        LEFT JOIN public.market_transaction ON market_transaction.contract = contract.id
+                        GROUP BY contract.id
+                        ORDER BY contract.deadline_to_accept ASC NULLS LAST, contract.id ASC
+                    "#,
+                )
+                .fetch_all(database_pool.get_cache_pool())
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let count = sqlx::query!(
+                    r#"
+                        SELECT COUNT(*) as "count!"
+                        FROM public.contract
+                    "#
+                )
+                .fetch_one(database_pool.get_cache_pool())
+                .await?;
+                Ok(count.count)
+            },
+        )
+        .await
     }
 
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
