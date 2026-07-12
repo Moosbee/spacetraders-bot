@@ -924,10 +924,10 @@ impl async_graphql::dataloader::Loader<()> for AllShipLoader {
     type Value = HashMap<String, ship::RustShip<ShipStatus>>;
     type Error = Arc<crate::error::Error>;
 
-    #[instrument(level = "trace", skip(self, keys))]
+    #[instrument(level = "trace", skip(self, _keys))]
     async fn load(
         &self,
-        keys: &[()],
+        _keys: &[()],
     ) -> std::result::Result<HashMap<(), Self::Value>, Self::Error> {
         // let context = ctx.data::<crate::utils::ConductorContext>().unwrap();
         let mut map = HashMap::new();

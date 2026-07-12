@@ -214,7 +214,7 @@ impl<T: Clone + Send + Sync> RustShip<T> {
         let rote = database::Route {
             id: 0,
             ship_symbol: self.symbol.clone(),
-            from: self.nav.waypoint_symbol.clone(),
+            from: connection.start_symbol.clone(),
             to: connection.end_symbol.clone(),
             nav_mode: self.nav.flight_mode.to_string(),
             distance: connection.distance,

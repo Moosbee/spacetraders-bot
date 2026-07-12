@@ -25,6 +25,7 @@ pub struct ControlApiServer {
     cancellation_token: CancellationToken,
     ship_rx: Option<tokio::sync::broadcast::Receiver<ship::MyShip>>,
     ship_cancellation_token: CancellationToken,
+    socket_address: String,
 }
 
 impl ControlApiServer {
@@ -33,12 +34,14 @@ impl ControlApiServer {
         ship_rx: tokio::sync::broadcast::Receiver<ship::MyShip>,
         cancellation_token: CancellationToken,
         ship_cancellation_token: CancellationToken,
+        socket_address: String,
     ) -> Self {
         Self {
             context,
             cancellation_token,
             ship_rx: Some(ship_rx),
             ship_cancellation_token,
+            socket_address,
         }
     }
 
@@ -87,8 +90,6 @@ impl ControlApiServer {
             .finish();
 
         tokio::fs::write("schema.graphql", schema.sdl()).await?;
-
-        tracing::info!(socket_address = %config.socket_address, "GraphiQL IDE available at address");
 
         let graphql_post = async_graphql_warp::graphql(schema).and_then(
             |(schema, request): (
@@ -140,10 +141,10 @@ impl ControlApiServer {
             },
         );
 
-        let socket_address: std::net::SocketAddr = config
-            .socket_address
-            .parse()
-            .expect("Invalid socket address");
+        let socket_address: std::net::SocketAddr =
+            self.socket_address.parse().expect("Invalid socket address");
+
+        tracing::info!(socket_address = %socket_address, "GraphiQL IDE available at address");
 
         tokio::select! {
             _ = self.cancellation_token.cancelled() => {

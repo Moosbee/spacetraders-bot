@@ -21,9 +21,6 @@ impl MutationRoot {
             let mut w = context.config.write().await;
             let mut cfg = w.clone();
 
-            if let Some(v) = input.socket_address {
-                cfg.socket_address = v;
-            }
             if let Some(v) = input.control_start_sleep {
                 cfg.control_start_sleep = v;
             }
@@ -459,7 +456,6 @@ enum RegenFleetBy {
 
 #[derive(Debug, Clone, async_graphql::InputObject)]
 struct InputConfig {
-    pub socket_address: Option<String>,
     pub control_start_sleep: Option<u64>,
     pub control_active: Option<bool>,
 

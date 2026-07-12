@@ -52,7 +52,6 @@ pub enum ChannelState {
 
 #[derive(Deserialize, Serialize, Debug, Clone, async_graphql::SimpleObject)]
 pub struct Config {
-    pub socket_address: String,
     pub control_start_sleep: u64,
     pub control_active: bool,
 

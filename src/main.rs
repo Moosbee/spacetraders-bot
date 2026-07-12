@@ -418,11 +418,14 @@ async fn setup_context(
         ship_task_handler.0,
     );
 
+let socket_address=  env::var("SOCKET_ADDRESS").ok().unwrap_or("0.0.0.0:8780".to_string());
+
     let control_api = control_api::server::ControlApiServer::new(
         context.clone(),
         context.ship_manager.get_rx(),
         manager_cancel_token.child_token(),
         ship_cancel_token.clone(),
+        socket_address
     );
 
     tracing::debug!("Managers created");
