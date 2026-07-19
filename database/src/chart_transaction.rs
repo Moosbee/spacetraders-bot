@@ -4,7 +4,7 @@ use chrono::{DateTime, Utc};
 use space_traders_client::models;
 use tracing::instrument;
 
-use crate::{run_paginated_query, DatabaseConnectorAsync, DbPool, PaginatedQuery, PaginatedResult};
+use crate::{DatabaseConnectorAsync, DbPool, PaginatedQuery, PaginatedResult, run_paginated_query};
 
 #[derive(
     Clone,
@@ -213,7 +213,10 @@ impl DatabaseConnectorAsync for ChartTransaction {
     type ID = i64;
 
     #[instrument(level = "trace", skip(database_pool, item), err(Debug))]
-    async fn insert_new(database_pool: &DbPool, item: &ChartTransaction) -> crate::Result<Self::ID> {
+    async fn insert_new(
+        database_pool: &DbPool,
+        item: &ChartTransaction,
+    ) -> crate::Result<Self::ID> {
         let inserted = sqlx::query!(
             r#"
               INSERT INTO chart_transaction (

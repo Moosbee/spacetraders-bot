@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use tracing::instrument;
 
-use super::{run_paginated_query, DatabaseConnectorAsync, PaginatedQuery, PaginatedResult};
+use super::{DatabaseConnectorAsync, PaginatedQuery, PaginatedResult, run_paginated_query};
 
 #[derive(Debug, Clone, PartialEq, async_graphql::SimpleObject)]
 #[graphql(name = "DBRoute")]
@@ -329,10 +329,7 @@ impl DatabaseConnectorAsync for Route {
     }
 
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
-    async fn delete_by_id(
-        database_pool: &super::DbPool,
-        id: &Self::ID,
-    ) -> crate::Result<()> {
+    async fn delete_by_id(database_pool: &super::DbPool, id: &Self::ID) -> crate::Result<()> {
         sqlx::query!(
             r#"
                 DELETE FROM route

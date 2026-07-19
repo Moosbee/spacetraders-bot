@@ -1,8 +1,6 @@
 use tracing::instrument;
 
-use crate::{
-    run_paginated_query, DatabaseConnectorAsync, PaginatedQuery, PaginatedResult,
-};
+use crate::{DatabaseConnectorAsync, PaginatedQuery, PaginatedResult, run_paginated_query};
 
 #[derive(Debug, Clone, serde::Serialize, async_graphql::SimpleObject)]
 #[graphql(name = "DBReservedFund")]
@@ -150,8 +148,8 @@ impl DatabaseConnectorAsync for ReservedFund {
         item: &ReservedFund,
     ) -> crate::Result<Self::ID> {
         if item.id != 0 {
-                        sqlx::query!(
-                                r#"
+            sqlx::query!(
+                r#"
                                     INSERT INTO reserved_funds (
                                         id,
                                         amount,
@@ -169,13 +167,13 @@ impl DatabaseConnectorAsync for ReservedFund {
                                         actual_amount = EXCLUDED.actual_amount,
                                         updated_at = NOW();
                             "#,
-                                &item.id,
-                                &item.amount,
-                                &item.status as &FundStatus,
-                                &item.actual_amount
-                        )
-                        .execute(&database_pool.database_pool)
-                        .await?;
+                &item.id,
+                &item.amount,
+                &item.status as &FundStatus,
+                &item.actual_amount
+            )
+            .execute(&database_pool.database_pool)
+            .await?;
             return Ok(item.id);
         }
 
@@ -233,10 +231,7 @@ impl DatabaseConnectorAsync for ReservedFund {
     }
 
     #[instrument(level = "trace", skip(database_pool, item))]
-    async fn update(
-        database_pool: &crate::DbPool,
-        item: &ReservedFund,
-    ) -> crate::Result<()> {
+    async fn update(database_pool: &crate::DbPool, item: &ReservedFund) -> crate::Result<()> {
         Self::upsert(database_pool, item).await
     }
 
@@ -359,9 +354,9 @@ impl DatabaseConnectorAsync for ReservedFund {
         database_pool: &crate::DbPool,
         id: &Self::ID,
     ) -> crate::Result<Option<Self>> {
-                let result = sqlx::query_as!(
-                        ReservedFund,
-                        r#"
+        let result = sqlx::query_as!(
+            ReservedFund,
+            r#"
                             SELECT
                                 id,
                                 amount,
@@ -372,18 +367,15 @@ impl DatabaseConnectorAsync for ReservedFund {
                             FROM reserved_funds
                             WHERE id = $1
                     "#,
-                        id
-                )
-                .fetch_optional(&database_pool.database_pool)
-                .await?;
-                Ok(result)
+            id
+        )
+        .fetch_optional(&database_pool.database_pool)
+        .await?;
+        Ok(result)
     }
 
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
-    async fn delete_by_id(
-        database_pool: &crate::DbPool,
-        id: &Self::ID,
-    ) -> crate::Result<()> {
+    async fn delete_by_id(database_pool: &crate::DbPool, id: &Self::ID) -> crate::Result<()> {
         sqlx::query!(
             r#"
                 DELETE FROM reserved_funds

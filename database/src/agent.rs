@@ -1,7 +1,7 @@
 use itertools::Itertools;
 use tracing::instrument;
 
-use super::{run_paginated_query, DatabaseConnectorAsync, DbPool, PaginatedQuery, PaginatedResult};
+use super::{DatabaseConnectorAsync, DbPool, PaginatedQuery, PaginatedResult, run_paginated_query};
 
 #[derive(Debug, Clone, serde::Serialize, async_graphql::SimpleObject)]
 #[graphql(name = "DBAgent")]
@@ -368,11 +368,7 @@ impl DatabaseConnectorAsync for Agent {
         .await?;
 
         for item in inserted {
-            database_pool
-                .agent_broadcast_channel
-                .0
-                .send(item)
-                .unwrap();
+            database_pool.agent_broadcast_channel.0.send(item).unwrap();
         }
 
         Ok(())

@@ -1,9 +1,7 @@
 use space_traders_client::models;
 use tracing::instrument;
 
-use super::{
-    run_paginated_query, DatabaseConnectorAsync, DbPool, PaginatedQuery, PaginatedResult,
-};
+use super::{DatabaseConnectorAsync, DbPool, PaginatedQuery, PaginatedResult, run_paginated_query};
 
 #[derive(
     Debug,
@@ -324,10 +322,7 @@ impl DatabaseConnectorAsync for ContractShipment {
     }
 
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
-    async fn get_by_id(
-        database_pool: &DbPool,
-        id: &Self::ID,
-    ) -> crate::Result<Option<Self>> {
+    async fn get_by_id(database_pool: &DbPool, id: &Self::ID) -> crate::Result<Option<Self>> {
         let item = sqlx::query_as!(
             ContractShipment,
             r#"

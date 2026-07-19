@@ -1,6 +1,6 @@
 use tracing::instrument;
 
-use crate::{run_paginated_query, DatabaseConnectorAsync, PaginatedQuery, PaginatedResult};
+use crate::{DatabaseConnectorAsync, PaginatedQuery, PaginatedResult, run_paginated_query};
 
 #[derive(Debug, Clone, PartialEq, Eq, async_graphql::SimpleObject)]
 #[graphql(name = "DBShipJump")]
@@ -92,10 +92,7 @@ impl DatabaseConnectorAsync for ShipJump {
     type ID = i64;
 
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
-    async fn insert_new(
-        database_pool: &super::DbPool,
-        item: &ShipJump,
-    ) -> crate::Result<Self::ID> {
+    async fn insert_new(database_pool: &super::DbPool, item: &ShipJump) -> crate::Result<Self::ID> {
         let inserted = sqlx::query!(
             r#"
                 INSERT INTO ship_jumps (
@@ -318,10 +315,7 @@ impl DatabaseConnectorAsync for ShipJump {
     }
 
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
-    async fn delete_by_id(
-        database_pool: &super::DbPool,
-        id: &Self::ID,
-    ) -> crate::Result<()> {
+    async fn delete_by_id(database_pool: &super::DbPool, id: &Self::ID) -> crate::Result<()> {
         sqlx::query!(
             r#"
                 DELETE FROM ship_jumps

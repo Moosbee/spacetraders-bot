@@ -2,7 +2,7 @@ use chrono::{DateTime, Utc};
 use space_traders_client::models;
 use tracing::instrument;
 
-use super::{run_paginated_query, DatabaseConnectorAsync, PaginatedQuery, PaginatedResult};
+use super::{DatabaseConnectorAsync, PaginatedQuery, PaginatedResult, run_paginated_query};
 
 #[derive(Clone, Debug, PartialEq, serde::Serialize, async_graphql::SimpleObject)]
 #[graphql(name = "DBShipyardShipTypes")]
@@ -213,10 +213,7 @@ impl DatabaseConnectorAsync for ShipyardShipTypes {
     }
 
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
-    async fn update(
-        database_pool: &super::DbPool,
-        item: &ShipyardShipTypes,
-    ) -> crate::Result<()> {
+    async fn update(database_pool: &super::DbPool, item: &ShipyardShipTypes) -> crate::Result<()> {
         sqlx::query!(
             r#"
                 UPDATE shipyard_ship_types
@@ -348,10 +345,7 @@ impl DatabaseConnectorAsync for ShipyardShipTypes {
     }
 
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
-    async fn delete_by_id(
-        database_pool: &super::DbPool,
-        id: &Self::ID,
-    ) -> crate::Result<()> {
+    async fn delete_by_id(database_pool: &super::DbPool, id: &Self::ID) -> crate::Result<()> {
         sqlx::query!(
             r#"
                 DELETE FROM shipyard_ship_types

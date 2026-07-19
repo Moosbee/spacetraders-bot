@@ -1,8 +1,6 @@
 use tracing::instrument;
 
-use super::{
-    run_paginated_query, DatabaseConnectorAsync, PaginatedQuery, PaginatedResult,
-};
+use super::{DatabaseConnectorAsync, PaginatedQuery, PaginatedResult, run_paginated_query};
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, async_graphql::SimpleObject)]
 #[graphql(name = "DBShipInfo")]
@@ -313,7 +311,10 @@ impl DatabaseConnectorAsync for ShipInfo {
     }
 
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
-    async fn get_by_id(database_pool: &super::DbPool, id: &Self::ID) -> crate::Result<Option<Self>> {
+    async fn get_by_id(
+        database_pool: &super::DbPool,
+        id: &Self::ID,
+    ) -> crate::Result<Option<Self>> {
         let erg = sqlx::query_as!(
             ShipInfo,
             r#"

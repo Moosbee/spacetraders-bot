@@ -2,8 +2,8 @@ use space_traders_client::models;
 use tracing::instrument;
 
 use super::{
-    run_paginated_query, DatabaseConnectorAsync, DbPool, MarketTradeGood, PaginatedQuery,
-    PaginatedResult,
+    DatabaseConnectorAsync, DbPool, MarketTradeGood, PaginatedQuery, PaginatedResult,
+    run_paginated_query,
 };
 
 #[derive(

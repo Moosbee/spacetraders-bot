@@ -1,30 +1,44 @@
-use std::{collections::HashSet, env,str::FromStr, num::NonZeroU32, sync::Arc};
+use std::{collections::HashSet, env, num::NonZeroU32, str::FromStr, sync::Arc};
 
 use database::DatabaseConnectorAsync;
 use futures::StreamExt;
 use ship::ShipManager;
 use space_traders_client::models;
-use tokio::sync::{RwLock, broadcast};
+use tokio::sync::{broadcast, RwLock};
 use tokio_util::sync::CancellationToken;
 use tracing::Instrument;
-use utils::{WaypointCan, get_system_symbol};
+use utils::{get_system_symbol, WaypointCan};
 
-use crate::{control_api, error, manager::{self, Manager, chart_manager::ChartManager, construction_manager::ConstructionManager, contract_manager::ContractManager, fleet_manager::FleetManager, mining_manager::MiningManager, scrapping_manager::{self, ScrappingManager}, ship_task::ShipTaskHandler, trade_manager::TradeManager}, utils::{ConductorContext, RunInfo}};
+use crate::{
+    control_api, error,
+    manager::{
+        self,
+        chart_manager::ChartManager,
+        construction_manager::ConstructionManager,
+        contract_manager::ContractManager,
+        fleet_manager::FleetManager,
+        mining_manager::MiningManager,
+        scrapping_manager::{self, ScrappingManager},
+        ship_task::ShipTaskHandler,
+        trade_manager::TradeManager,
+        Manager,
+    },
+    utils::{ConductorContext, RunInfo},
+};
 
-
-#[derive(Debug,Clone)]
-pub struct ResetSummary{
- pub start_date:chrono::DateTime<chrono::Utc>,
- pub end_date:chrono::DateTime<chrono::Utc>,
- pub agent_symbol:String,
- pub version:String,
+#[derive(Debug, Clone)]
+pub struct ResetSummary {
+    pub start_date: chrono::DateTime<chrono::Utc>,
+    pub end_date: chrono::DateTime<chrono::Utc>,
+    pub agent_symbol: String,
+    pub version: String,
 }
 
 pub async fn run_reset(
     api_key: &str,
-    database_pool: database::DbPool, // the database her is already fully set up
-    _global_cancel_token:&CancellationToken
-) -> Result<ResetSummary,anyhow::Error> {
+    database_pool: database::DbPool,
+    global_cancel_token: &CancellationToken,
+) -> Result<ResetSummary, anyhow::Error> {
     let api: space_traders_client::Api =
         space_traders_client::Api::new(Some(api_key.to_string()), 500, NonZeroU32::new(2).unwrap());
 
@@ -54,9 +68,7 @@ pub async fn run_reset(
         version: status.version.clone(),
     };
 
-    let ships = fetch_and_update_ships(&api,&database_pool)
-    .await?;
-
+    let ships = fetch_and_update_ships(&api, &database_pool).await?;
 
     let exports_to_imports = api.get_exports_to_imports().await?;
 
@@ -69,7 +81,10 @@ pub async fn run_reset(
 
     database::ExportImportMapping::insert_bulk(&database_pool, &mappings).await?;
 
-    let (context,_cancel_token,managers)=create_context(database_pool, api, run_info, &ships, my_agent.data.credits).await?;
+    tracing::info!("Inserted export-import mappings into the database");
+
+    let (context, _cancel_token, managers) =
+        create_context(database_pool, api, run_info, &ships, my_agent.data.credits).await?;
 
     populate_main_system(&context).await?;
 
@@ -89,15 +104,15 @@ pub async fn run_reset(
     tracing::debug!("Managers and ships finished");
 
     if let Err(errror) = erg {
-      // if we get a "universe is beeing reset error" gracefully shutdown ships and managers and return
+        // if we get a "universe is beeing reset error" gracefully shutdown ships and managers and return
         tracing::error!(errror = ?errror, error = %errror, "Managers error occurred");
     }
 
     tracing::debug!("Start function finished");
 
-    let r_info=context.run_info.read().await;
+    let r_info = context.run_info.read().await;
 
-    let summary=ResetSummary{
+    let summary = ResetSummary {
         start_date: r_info.reset_date,
         end_date: chrono::Utc::now(),
         agent_symbol: r_info.agent_symbol.clone(),
@@ -107,9 +122,7 @@ pub async fn run_reset(
     Ok(summary)
 }
 
-async fn populate_main_system(context: &ConductorContext)->Result<(),anyhow::Error>{
-
-
+async fn populate_main_system(context: &ConductorContext) -> Result<(), anyhow::Error> {
     let main_system = { get_system_symbol(&context.run_info.read().await.headquarters) };
 
     if manager::fleet_manager::fleet_population::is_system_populated(
@@ -126,35 +139,32 @@ async fn populate_main_system(context: &ConductorContext)->Result<(),anyhow::Err
         tracing::info!("Populated main system fleets");
     }
 
-Ok(())
+    Ok(())
 }
 
-async fn fetch_and_update_ships(api:&space_traders_client::Api,database_pool: &database::DbPool)->Result<Vec<models::Ship>,anyhow::Error>{
-        let ships = api.get_all_my_ships(20).await?;
+async fn fetch_and_update_ships(
+    api: &space_traders_client::Api,
+    database_pool: &database::DbPool,
+) -> Result<Vec<models::Ship>, anyhow::Error> {
+    let ships = api.get_all_my_ships(20).await?;
     tracing::info!(count = ships.len(), "Fetched ships count");
 
-        let system_symbols = ships
-            .iter()
-            .map(|s| s.nav.system_symbol.clone())
-            .collect::<HashSet<_>>();
+    let system_symbols = ships
+        .iter()
+        .map(|s| s.nav.system_symbol.clone())
+        .collect::<HashSet<_>>();
 
     tracing::debug!(count = system_symbols.len(), "Fetched systems count");
 
-        for system_symbol in system_symbols {
+    for system_symbol in system_symbols {
+        (
             async {
-                let db_system =
-                    database::System::get_by_id(
-                        database_pool,
-                        &system_symbol,
-                    )
-                    .await?;
+                let db_system = database::System::get_by_id(database_pool, &system_symbol).await?;
                 let waypoints = database::Waypoint::get_by_system(
                     database_pool,
                     &system_symbol,
-                    database::PaginatedQuery::unpaged(),
-                )
-                .await?
-                .items;
+                    database::PaginatedQuery::unpaged()
+                ).await?.items;
 
                 if db_system.is_none() || waypoints.is_empty() {
                     tracing::debug!(system = %system_symbol, "Updating system and waypoints");
@@ -163,58 +173,55 @@ async fn fetch_and_update_ships(api:&space_traders_client::Api,database_pool: &d
                         database_pool,
                         api,
                         &system_symbol,
-                        true,
-                    )
-                    .await?;
-                    let wps = database::Waypoint::get_by_system(
-                        database_pool,
-                        &system_symbol,
-                        database::PaginatedQuery::unpaged(),
-                    )
-                        .await?
-                        .items
-                        .into_iter()
+                        true
+                    ).await?;
+                    let wps = database::Waypoint
+                        ::get_by_system(
+                            database_pool,
+                            &system_symbol,
+                            database::PaginatedQuery::unpaged()
+                        ).await?
+                        .items.into_iter()
                         .filter(|w| w.is_marketplace())
                         .map(|w| (w.system_symbol, w.symbol, w.is_under_construction))
                         .collect::<Vec<_>>();
 
                     let markets = scrapping_manager::utils::get_all_markets(api, &wps).await?;
                     let markets_len = markets.len();
-                    scrapping_manager::utils::update_markets(markets, database_pool.clone())
-                        .await?;
+                    scrapping_manager::utils::update_markets(markets, database_pool.clone()).await?;
 
-                      for waypoint in wps.iter().filter(|f|f.2){
-                                        let construction = api
-                    .get_construction(&waypoint.0, &waypoint.1)
-                    .await?;
-                tracing::debug!("Got construction: {:?}", construction);
+                    for waypoint in wps.iter().filter(|f| f.2) {
+                        let construction = api.get_construction(&waypoint.0, &waypoint.1).await?;
+                        tracing::debug!("Got construction: {:?}", construction);
 
-                let materials = construction
-                    .data
-                    .materials
-                    .iter()
-                    .map(|m| database::ConstructionMaterial::from(m, &waypoint.1))
-                    .collect::<Vec<_>>();
+                        let materials = construction.data.materials
+                            .iter()
+                            .map(|m| database::ConstructionMaterial::from(m, &waypoint.1))
+                            .collect::<Vec<_>>();
 
-                database::ConstructionMaterial::insert_bulk(
-                    database_pool,
-                    &materials,
-                )
-                .await?;
-                      }
-                      
+                        database::ConstructionMaterial::insert_bulk(
+                            database_pool,
+                            &materials
+                        ).await?;
+                    }
+
                     tracing::debug!(system = %system_symbol, waypoints = wps.len(), markets = markets_len, "Updated markets");
                 }
                 Ok::<(), crate::error::Error>(())
             }
-            .instrument(tracing::info_span!("update_system", system=%system_symbol))
-            .await?;
-        }
-        Ok(ships)
+        ).instrument(tracing::info_span!("update_system", system=%system_symbol)).await?;
     }
+    Ok(ships)
+}
 
-async fn create_context(database_pool: database::DbPool,api:space_traders_client::Api,run_info:RunInfo,ships:&[models::Ship],current_funds:i64)->Result<(ConductorContext, CancellationToken, Vec<Box<dyn Manager>>), anyhow::Error>{
-let (sender, receiver) = broadcast::channel(1024);
+async fn create_context(
+    database_pool: database::DbPool,
+    api: space_traders_client::Api,
+    run_info: RunInfo,
+    ships: &[models::Ship],
+    current_funds: i64,
+) -> Result<(ConductorContext, CancellationToken, Vec<Box<dyn Manager>>), anyhow::Error> {
+    let (sender, receiver) = broadcast::channel(1024);
 
     let ship_manager = Arc::new(ship::ShipManager::new(
         ship::my_ship_update::InterShipBroadcaster { sender, receiver },
@@ -227,8 +234,6 @@ let (sender, receiver) = broadcast::channel(1024);
         ShipManager::add_ship(&ship_manager, ship_i).await;
     }
 
-    tracing::info!("Inserted export-import mappings into the database");
-
     let construction_manager_data = ConstructionManager::create();
     let contract_manager_data = ContractManager::create();
     let mining_manager_data = MiningManager::create();
@@ -238,7 +243,7 @@ let (sender, receiver) = broadcast::channel(1024);
     let fleet_manager = FleetManager::create();
     let ship_task_handler = ShipTaskHandler::create();
 
-    let config:crate::utils::Config =
+    let config: crate::utils::Config =
         toml_edit::de::from_str(&std::fs::read_to_string("config.toml").unwrap()).unwrap();
 
     let max_miners_per_waypoint = config.max_miners_per_waypoint;
@@ -351,9 +356,7 @@ let (sender, receiver) = broadcast::channel(1024);
             Box::new(control_api),
         ],
     ))
-
 }
-
 
 type ManagersHandle = (
     tokio::task::JoinHandle<Result<(), error::Error>>,

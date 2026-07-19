@@ -3,9 +3,7 @@ use std::{collections::HashMap, sync::Arc};
 use async_graphql::dataloader::Loader;
 use tracing::instrument;
 
-use crate::{
-    run_paginated_query, DatabaseConnectorAsync, DbPool, PaginatedQuery, PaginatedResult,
-};
+use crate::{DatabaseConnectorAsync, DbPool, PaginatedQuery, PaginatedResult, run_paginated_query};
 
 #[derive(Debug, Clone, PartialEq, Eq, async_graphql::SimpleObject)]
 #[graphql(name = "DBShipAssignment")]
@@ -452,8 +450,8 @@ impl DatabaseConnectorAsync for ShipAssignment {
 
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
     async fn insert_new(database_pool: &DbPool, item: &ShipAssignment) -> crate::Result<Self::ID> {
-                let erg = sqlx::query!(
-                        r#"
+        let erg = sqlx::query!(
+            r#"
                                 INSERT INTO ship_assignment (
                                     fleet_id,
                                     priority,
@@ -472,26 +470,26 @@ impl DatabaseConnectorAsync for ShipAssignment {
                                 )
                                 RETURNING id
                         "#,
-                        &item.fleet_id,
-                        &item.priority,
-                        &item.max_purchase_price,
-                        &item.credits_threshold,
-                        &item.disabled,
-                        &item.range_min,
-                        &item.cargo_min,
-                        &item.survey,
-                        &item.extractor,
-                        &item.siphon,
-                        &item.warp_drive,
-                )
-                .fetch_one(&database_pool.database_pool)
-                .await?;
-                Ok(erg.id)
-        }
+            &item.fleet_id,
+            &item.priority,
+            &item.max_purchase_price,
+            &item.credits_threshold,
+            &item.disabled,
+            &item.range_min,
+            &item.cargo_min,
+            &item.survey,
+            &item.extractor,
+            &item.siphon,
+            &item.warp_drive,
+        )
+        .fetch_one(&database_pool.database_pool)
+        .await?;
+        Ok(erg.id)
+    }
 
-        #[instrument(level = "trace", skip(database_pool), err(Debug))]
-        async fn upsert(database_pool: &DbPool, item: &ShipAssignment) -> crate::Result<()> {
-                sqlx::query!(
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
+    async fn upsert(database_pool: &DbPool, item: &ShipAssignment) -> crate::Result<()> {
+        sqlx::query!(
             r#"
                 INSERT INTO ship_assignment (
                   id,

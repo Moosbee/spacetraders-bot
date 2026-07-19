@@ -107,7 +107,7 @@ fn setup_logging() {
     } else {
         None
     };
-    let fmt_tracer = tracing_subscriber::fmt::layer();
+    let fmt_tracer = tracing_subscriber::fmt::Layer::new().json();
 
     // let tracing_tracy = tracing_tracy::TracyLayer::default();
 

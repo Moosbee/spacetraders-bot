@@ -1,7 +1,7 @@
 use space_traders_client::models;
 use tracing::instrument;
 
-use super::{run_paginated_query, DatabaseConnectorAsync, DbPool, PaginatedQuery, PaginatedResult};
+use super::{DatabaseConnectorAsync, DbPool, PaginatedQuery, PaginatedResult, run_paginated_query};
 
 #[derive(Clone, Debug, PartialEq, serde::Serialize, async_graphql::SimpleObject)]
 #[graphql(name = "DBSystem")]

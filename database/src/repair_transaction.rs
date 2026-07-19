@@ -4,7 +4,7 @@ use chrono::{DateTime, Utc};
 use space_traders_client::models;
 use tracing::instrument;
 
-use super::{run_paginated_query, DatabaseConnectorAsync, PaginatedQuery, PaginatedResult};
+use super::{DatabaseConnectorAsync, PaginatedQuery, PaginatedResult, run_paginated_query};
 
 #[derive(Debug, Clone, async_graphql::SimpleObject)]
 #[graphql(name = "DBRepairTransaction")]
@@ -468,10 +468,7 @@ impl DatabaseConnectorAsync for RepairTransaction {
     }
 
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
-    async fn delete_by_id(
-        database_pool: &super::DbPool,
-        id: &Self::ID,
-    ) -> crate::Result<()> {
+    async fn delete_by_id(database_pool: &super::DbPool, id: &Self::ID) -> crate::Result<()> {
         sqlx::query!(
             r#"
                 DELETE FROM repair_transaction

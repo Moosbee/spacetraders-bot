@@ -1,9 +1,7 @@
 use space_traders_client::models;
 use tracing::instrument;
 
-use super::{
-    run_paginated_query, DatabaseConnectorAsync, DbPool, PaginatedQuery, PaginatedResult,
-};
+use super::{DatabaseConnectorAsync, DbPool, PaginatedQuery, PaginatedResult, run_paginated_query};
 
 #[derive(
     Debug, Clone, sqlx::FromRow, PartialEq, Eq, serde::Serialize, async_graphql::SimpleObject,
@@ -61,10 +59,7 @@ impl DatabaseConnectorAsync for MarketTradeGood {
     );
 
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
-    async fn insert_new(
-        database_pool: &DbPool,
-        item: &MarketTradeGood,
-    ) -> crate::Result<Self::ID> {
+    async fn insert_new(database_pool: &DbPool, item: &MarketTradeGood) -> crate::Result<Self::ID> {
         struct Inserted {
             created_at: sqlx::types::chrono::DateTime<chrono::Utc>,
         }

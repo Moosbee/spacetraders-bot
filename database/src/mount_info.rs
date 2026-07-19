@@ -1,7 +1,7 @@
 use space_traders_client::models;
 use tracing::instrument;
 
-use super::{run_paginated_query, DatabaseConnectorAsync, PaginatedQuery, PaginatedResult};
+use super::{DatabaseConnectorAsync, PaginatedQuery, PaginatedResult, run_paginated_query};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, async_graphql::SimpleObject)]
 #[graphql(name = "DBMountInfo")]
@@ -66,7 +66,10 @@ impl DatabaseConnectorAsync for MountInfo {
     type ID = models::ship_mount::Symbol;
 
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
-    async fn insert_new(database_pool: &super::DbPool, item: &MountInfo) -> crate::Result<Self::ID> {
+    async fn insert_new(
+        database_pool: &super::DbPool,
+        item: &MountInfo,
+    ) -> crate::Result<Self::ID> {
         Self::upsert(database_pool, item).await?;
         Ok(item.symbol)
     }
@@ -219,10 +222,7 @@ impl DatabaseConnectorAsync for MountInfo {
     }
 
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
-    async fn delete_by_id(
-        database_pool: &super::DbPool,
-        id: &Self::ID,
-    ) -> crate::Result<()> {
+    async fn delete_by_id(database_pool: &super::DbPool, id: &Self::ID) -> crate::Result<()> {
         sqlx::query!(
             r#"
                 DELETE FROM mount_info

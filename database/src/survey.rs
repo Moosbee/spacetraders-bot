@@ -4,9 +4,7 @@ use chrono::{DateTime, Utc};
 use space_traders_client::models::{self};
 use tracing::instrument;
 
-use crate::{
-    run_paginated_query, DatabaseConnectorAsync, DbPool, PaginatedQuery, PaginatedResult,
-};
+use crate::{DatabaseConnectorAsync, DbPool, PaginatedQuery, PaginatedResult, run_paginated_query};
 
 #[derive(Debug, Clone, serde::Serialize, async_graphql::SimpleObject)]
 #[graphql(name = "DBSurvey")]
