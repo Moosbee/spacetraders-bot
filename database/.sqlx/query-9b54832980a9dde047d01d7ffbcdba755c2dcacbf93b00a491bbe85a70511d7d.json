@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                        SELECT COUNT(*) as \"count!\"\n                        FROM shipyard_ship_types\n                        WHERE shipyard_id = (\n                            SELECT id FROM shipyard WHERE waypoint_symbol = $1 ORDER BY created_at DESC LIMIT 1\n                        )\n                    ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "count!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "9b54832980a9dde047d01d7ffbcdba755c2dcacbf93b00a491bbe85a70511d7d"
+}

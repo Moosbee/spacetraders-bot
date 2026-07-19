@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                DELETE FROM surveys\n                WHERE signature = $1\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b5f1992c3388d7f65d37279b0bd6a5b6bf3eb5b05f55dacfae79d27fc37f2110"
+}

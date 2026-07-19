@@ -1,0 +1,70 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            select \n              sum(market_transaction.total_price) as \"sum: i32\",\n              sum(\n                  CASE\n                    WHEN market_transaction.type = 'PURCHASE' THEN market_transaction.total_price\n                    ELSE 0\n                  END\n                ) as \"expenses: i32\",\n              sum(\n                  CASE\n                    WHEN market_transaction.type = 'PURCHASE' THEN 0\n                    ELSE market_transaction.total_price\n                  END\n                ) as \"income: i32\",\n              sum(market_transaction.units) as \"units: i32\",\n              sum(\n                  CASE\n                    WHEN market_transaction.type = 'PURCHASE' THEN market_transaction.units\n                    ELSE 0\n                  END\n                ) as \"purchase_units: i32\",\n              sum(\n                  CASE\n                    WHEN market_transaction.type = 'SELL' THEN market_transaction.units\n                    ELSE 0\n                  END\n                ) as \"sell_units: i32\",\n              count(market_transaction.id) as \"transactions: i32\",\n              count(\n                  CASE\n                    WHEN market_transaction.type = 'PURCHASE' THEN market_transaction.id\n                    ELSE NULL\n                  END\n                ) as \"purchase_transactions: i32\",\n              count(\n                  CASE\n                    WHEN market_transaction.type = 'SELL' THEN market_transaction.id\n                    ELSE NULL\n                  END\n              ) as \"sell_transactions: i32\"\n            from market_transaction\n            where mining = $1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "sum: i32",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "expenses: i32",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "income: i32",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "units: i32",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 4,
+        "name": "purchase_units: i32",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 5,
+        "name": "sell_units: i32",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 6,
+        "name": "transactions: i32",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 7,
+        "name": "purchase_transactions: i32",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 8,
+        "name": "sell_transactions: i32",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "73b6bd96c8e4a8c32b2d3f733d9e799af944bce4f24841ba49a9217d9c4d07e2"
+}

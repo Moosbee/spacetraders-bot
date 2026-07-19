@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                INSERT INTO shipyard (\n                    waypoint_symbol,\n                    modifications_fee\n                )\n                VALUES ($1, $2)\n                ON CONFLICT (id) DO UPDATE\n                SET waypoint_symbol = EXCLUDED.waypoint_symbol,\n                    modifications_fee = EXCLUDED.modifications_fee\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Varchar",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "c63a24152b1e12bab66723f5ff01ffce4f7f21b730ad7a48e6fade2f8d5b4128"
+}

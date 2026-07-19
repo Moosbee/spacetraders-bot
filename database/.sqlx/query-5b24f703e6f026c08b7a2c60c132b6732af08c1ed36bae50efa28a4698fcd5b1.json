@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                INSERT INTO jump_gate_connections (\n                  waypoint_from,\n                  waypoint_to,\n                  updated_at\n                )\n                VALUES ($1, $2, NOW())\n                ON CONFLICT (waypoint_from, waypoint_to) DO UPDATE SET\n                  updated_at = NOW()\n                RETURNING id;\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Varchar",
+        "Varchar"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "5b24f703e6f026c08b7a2c60c132b6732af08c1ed36bae50efa28a4698fcd5b1"
+}

@@ -1,0 +1,20 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                UPDATE agent\n                SET\n                  symbol = $1,\n                  account_id = $2,\n                  headquarters = $3,\n                  credits = $4,\n                  starting_faction = $5,\n                  ship_count = $6\n                WHERE id = $7\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Varchar",
+        "Varchar",
+        "Varchar",
+        "Int8",
+        "Varchar",
+        "Int4",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "9aeae3bccb82d08c4d42dc3ca05ffc6230b72692206e2621c59d2acb798fcf75"
+}

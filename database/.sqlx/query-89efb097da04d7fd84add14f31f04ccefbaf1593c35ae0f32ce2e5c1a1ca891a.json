@@ -1,0 +1,66 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                        SELECT \n                          id,\n                          symbol,\n                          account_id,\n                          headquarters,\n                          credits,\n                          starting_faction,\n                          ship_count,\n                          created_at\n                        FROM agent\n                        WHERE symbol = $1\n                        ORDER BY symbol ASC, created_at DESC\n                        LIMIT $2 OFFSET $3\n                    ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "symbol",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "account_id",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "headquarters",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "credits",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 5,
+        "name": "starting_faction",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 6,
+        "name": "ship_count",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 7,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "89efb097da04d7fd84add14f31f04ccefbaf1593c35ae0f32ce2e5c1a1ca891a"
+}

@@ -1,0 +1,58 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                        SELECT\n                            id,\n                            ship_symbol,\n                            \"from\",\n                            \"to\",\n                            distance,\n                            ship_before,\n                            ship_after\n                        FROM ship_jumps\n                        WHERE ship_symbol = $1\n                        ORDER BY id ASC\n                    ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "ship_symbol",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "from",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "to",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "distance",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 5,
+        "name": "ship_before",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 6,
+        "name": "ship_after",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "85a646445d453688482a185393bbd90b44cc8cf0833a875589fa6ae434f9604b"
+}

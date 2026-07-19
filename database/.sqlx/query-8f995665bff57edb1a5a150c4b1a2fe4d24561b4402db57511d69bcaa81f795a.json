@@ -1,0 +1,33 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                INSERT INTO reactor_info (\n                    symbol,\n                    name,\n                    description,\n                    power_output,\n                    power_required,\n                    crew_required,\n                    slots_required\n                )\n                VALUES ($1, $2, $3, $4, $5, $6, $7)\n                ON CONFLICT (symbol) DO UPDATE\n                SET name = EXCLUDED.name,\n                    description = EXCLUDED.description,\n                    power_output = EXCLUDED.power_output,\n                    power_required = EXCLUDED.power_required,\n                    crew_required = EXCLUDED.crew_required,\n                    slots_required = EXCLUDED.slots_required\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        {
+          "Custom": {
+            "name": "ship_reactor_symbol",
+            "kind": {
+              "Enum": [
+                "REACTOR_SOLAR_I",
+                "REACTOR_FUSION_I",
+                "REACTOR_FISSION_I",
+                "REACTOR_CHEMICAL_I",
+                "REACTOR_ANTIMATTER_I"
+              ]
+            }
+          }
+        },
+        "Varchar",
+        "Varchar",
+        "Int4",
+        "Int4",
+        "Int4",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "8f995665bff57edb1a5a150c4b1a2fe4d24561b4402db57511d69bcaa81f795a"
+}

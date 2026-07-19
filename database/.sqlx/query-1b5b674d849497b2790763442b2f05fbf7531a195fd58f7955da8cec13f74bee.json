@@ -1,0 +1,55 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                        SELECT\n                            id,\n                            waypoint_symbol,\n                            ship_type as \"ship_type: models::ShipType\",\n                            price,\n                            agent_symbol,\n                            \"timestamp\"\n                        FROM shipyard_transaction\n                        WHERE waypoint_symbol = $1 AND ship_type = $2\n                        ORDER BY \"timestamp\" ASC, id ASC\n                        LIMIT $3 OFFSET $4\n                    ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "waypoint_symbol",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "ship_type: models::ShipType",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "price",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "agent_symbol",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 5,
+        "name": "timestamp",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "1b5b674d849497b2790763442b2f05fbf7531a195fd58f7955da8cec13f74bee"
+}

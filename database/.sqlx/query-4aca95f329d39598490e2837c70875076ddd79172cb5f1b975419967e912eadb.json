@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                UPDATE scrap_transaction\n                SET\n                    waypoint_symbol = $1,\n                    ship_symbol = $2,\n                    total_price = $3,\n                    \"timestamp\" = $4\n                WHERE id = $5\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Varchar",
+        "Varchar",
+        "Int4",
+        "Timestamptz",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "4aca95f329d39598490e2837c70875076ddd79172cb5f1b975419967e912eadb"
+}

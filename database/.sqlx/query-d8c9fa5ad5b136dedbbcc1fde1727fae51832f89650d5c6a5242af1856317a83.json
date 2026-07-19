@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                UPDATE shipyard\n                SET\n                    waypoint_symbol = $1,\n                    modifications_fee = $2\n                WHERE id = $3\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Varchar",
+        "Int4",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "d8c9fa5ad5b136dedbbcc1fde1727fae51832f89650d5c6a5242af1856317a83"
+}

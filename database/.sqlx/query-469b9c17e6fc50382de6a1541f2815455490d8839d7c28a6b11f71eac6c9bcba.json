@@ -1,0 +1,20 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                    SELECT COUNT(*) as \"count!\"\n                    FROM ship_assignment sa\n                    JOIN fleet f ON sa.fleet_id = f.id\n                    left JOIN ship_info si ON (sa.id = si.assignment_id OR sa.id = si.temp_assignment_id)\n                    WHERE sa.disabled = false AND f.active = true AND si.symbol IS NULL\n                    ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "count!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "469b9c17e6fc50382de6a1541f2815455490d8839d7c28a6b11f71eac6c9bcba"
+}

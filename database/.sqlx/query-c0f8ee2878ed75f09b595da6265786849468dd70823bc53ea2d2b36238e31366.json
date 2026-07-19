@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                SELECT id\n                FROM repair_transaction\n                WHERE waypoint_symbol = $1\n                  AND ship_symbol = $2\n                  AND \"timestamp\" = $3\n                LIMIT 1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "c0f8ee2878ed75f09b595da6265786849468dd70823bc53ea2d2b36238e31366"
+}

@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        DELETE FROM construction_material\n        WHERE id = $1\n      ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "8edf3409650acc1bf6c97bc04a6f197ebbab66c3ea7d8db0332a31ae816b999c"
+}

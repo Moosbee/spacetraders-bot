@@ -1,0 +1,25 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                SELECT id\n                FROM shipyard_transaction\n                WHERE waypoint_symbol = $1\n                  AND ship_type = $2\n                  AND agent_symbol = $3\n                  AND \"timestamp\" = $4\n                LIMIT 1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text",
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "b32369c3d659b56d4a934b624bf60861f837d912e515b531f77003e9154960c5"
+}

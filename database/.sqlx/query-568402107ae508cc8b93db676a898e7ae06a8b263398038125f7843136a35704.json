@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n          UPDATE ship_info SET assignment_id = NULL WHERE symbol = $1\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "568402107ae508cc8b93db676a898e7ae06a8b263398038125f7843136a35704"
+}

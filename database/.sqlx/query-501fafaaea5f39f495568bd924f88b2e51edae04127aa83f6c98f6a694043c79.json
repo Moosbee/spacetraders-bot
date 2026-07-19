@@ -1,0 +1,20 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                        SELECT COUNT(*) as \"count!\"\n                        FROM (\n                            SELECT DISTINCT ON (waypoint_symbol, ship_type)\n                                waypoint_symbol,\n                                ship_type\n                            FROM shipyard_ship\n                            ORDER BY waypoint_symbol, ship_type, created_at DESC\n                        ) distinct_shipyard_ships\n                    ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "count!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "501fafaaea5f39f495568bd924f88b2e51edae04127aa83f6c98f6a694043c79"
+}

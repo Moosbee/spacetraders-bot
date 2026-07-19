@@ -1,0 +1,88 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                SELECT\n                  id,\n                  fleet_id,\n                  priority,\n                  max_purchase_price,\n                  credits_threshold,\n                  disabled,\n                  range_min,\n                  cargo_min,\n                  survey,\n                  extractor,\n                  siphon,\n                  warp_drive\n                FROM ship_assignment\n                WHERE id = $1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "fleet_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "priority",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 3,
+        "name": "max_purchase_price",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "credits_threshold",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 5,
+        "name": "disabled",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 6,
+        "name": "range_min",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 7,
+        "name": "cargo_min",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 8,
+        "name": "survey",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 9,
+        "name": "extractor",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 10,
+        "name": "siphon",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 11,
+        "name": "warp_drive",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "12846e99b380192feb0290bfc252588c0dc35b07d9d215b3181d090b5f3cefb8"
+}

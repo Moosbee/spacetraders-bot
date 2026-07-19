@@ -1,0 +1,77 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                    SELECT \n                        symbol,\n                        constellation,\n                        population_disabled,\n                        sector_symbol,\n                        system_type as \"system_type: models::SystemType\",\n                        x,\n                        y\n                    FROM system\n                    ORDER BY symbol ASC\n                    LIMIT $1 OFFSET $2\n                    ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "symbol",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "constellation",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "population_disabled",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 3,
+        "name": "sector_symbol",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "system_type: models::SystemType",
+        "type_info": {
+          "Custom": {
+            "name": "system_type",
+            "kind": {
+              "Enum": [
+                "NEUTRON_STAR",
+                "RED_STAR",
+                "ORANGE_STAR",
+                "BLUE_STAR",
+                "YOUNG_STAR",
+                "WHITE_DWARF",
+                "BLACK_HOLE",
+                "HYPERGIANT",
+                "NEBULA",
+                "UNSTABLE"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "x",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 6,
+        "name": "y",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "17bbe02764b4e081daf0af625ee936d95d0a07def03bb6353ffc8e8972016f65"
+}

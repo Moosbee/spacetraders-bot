@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                        SELECT COUNT(*) as \"count!\"\n                        FROM surveys\n                        WHERE waypoint_symbol = $1\n                          AND exhausted_since IS NULL\n                          AND expiration > NOW()\n                    ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "count!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "4771c055e2b9112a1727c9d9f9a985a02a0177922058fed1aa8eaac836e714fb"
+}

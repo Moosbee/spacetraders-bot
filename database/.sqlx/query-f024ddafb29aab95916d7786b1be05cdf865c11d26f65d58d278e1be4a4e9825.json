@@ -1,0 +1,20 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                UPDATE ship_jumps\n                SET\n                    ship_symbol = $1,\n                    \"from\" = $2,\n                    \"to\" = $3,\n                    distance = $4,\n                    ship_before = $5,\n                    ship_after = $6\n                WHERE id = $7\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Varchar",
+        "Varchar",
+        "Varchar",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "f024ddafb29aab95916d7786b1be05cdf865c11d26f65d58d278e1be4a4e9825"
+}

@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO jump_gate_connections (\n                waypoint_from,\n                waypoint_to,\n                updated_at\n            )\n            SELECT from_wp, to_wp, NOW() FROM UNNEST(\n                $1::character varying[],\n                $2::character varying[]\n            ) AS t(from_wp, to_wp)\n            ON CONFLICT (waypoint_from, waypoint_to) DO UPDATE\n            SET updated_at = NOW();\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "VarcharArray",
+        "VarcharArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "bc0e4c7ea03443b89e5ff994b190b7a5a39ce814b57aac3a19a06f1e74f7b7bb"
+}

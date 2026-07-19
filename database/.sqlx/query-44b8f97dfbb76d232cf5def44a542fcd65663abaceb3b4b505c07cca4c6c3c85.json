@@ -1,0 +1,37 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                DELETE FROM mount_info\n                WHERE symbol = $1\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        {
+          "Custom": {
+            "name": "ship_mount_symbol",
+            "kind": {
+              "Enum": [
+                "MOUNT_GAS_SIPHON_I",
+                "MOUNT_GAS_SIPHON_II",
+                "MOUNT_GAS_SIPHON_III",
+                "MOUNT_SURVEYOR_I",
+                "MOUNT_SURVEYOR_II",
+                "MOUNT_SURVEYOR_III",
+                "MOUNT_SENSOR_ARRAY_I",
+                "MOUNT_SENSOR_ARRAY_II",
+                "MOUNT_SENSOR_ARRAY_III",
+                "MOUNT_MINING_LASER_I",
+                "MOUNT_MINING_LASER_II",
+                "MOUNT_MINING_LASER_III",
+                "MOUNT_LASER_CANNON_I",
+                "MOUNT_MISSILE_LAUNCHER_I",
+                "MOUNT_TURRET_I"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "44b8f97dfbb76d232cf5def44a542fcd65663abaceb3b4b505c07cca4c6c3c85"
+}

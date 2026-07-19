@@ -1,0 +1,44 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                INSERT INTO shipyard_ship_types (\n                    shipyard_id,\n                    ship_type\n                )\n                VALUES ($1, $2)\n                RETURNING id\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        {
+          "Custom": {
+            "name": "ship_type",
+            "kind": {
+              "Enum": [
+                "SHIP_PROBE",
+                "SHIP_MINING_DRONE",
+                "SHIP_SIPHON_DRONE",
+                "SHIP_INTERCEPTOR",
+                "SHIP_LIGHT_HAULER",
+                "SHIP_COMMAND_FRIGATE",
+                "SHIP_EXPLORER",
+                "SHIP_HEAVY_FREIGHTER",
+                "SHIP_LIGHT_SHUTTLE",
+                "SHIP_ORE_HOUND",
+                "SHIP_REFINING_FREIGHTER",
+                "SHIP_SURVEYOR",
+                "SHIP_BULK_FREIGHTER"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "6044d552623beeedbc273e8f8c067b7034a4a4ac0537efb2e0823169e9810365"
+}
