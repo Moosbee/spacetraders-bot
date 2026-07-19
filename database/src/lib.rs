@@ -31,6 +31,7 @@ mod module_info;
 mod mount_info;
 mod reactor_info;
 
+mod configuration;
 mod export_import;
 mod extraction;
 mod fleet;
@@ -43,6 +44,7 @@ mod survey;
 
 pub use agent::Agent;
 pub use chart_transaction::ChartTransaction;
+pub use configuration::Configuration;
 pub use construction_material::ConstructionMaterial;
 pub use construction_shipment::ConstructionShipment;
 pub use contract::Contract;

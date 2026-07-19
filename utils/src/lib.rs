@@ -3,6 +3,7 @@ use std::sync::Weak;
 
 use dashmap::DashMap;
 use lockable::{AsyncLimit, Lockable, LockableHashMap, SyncLimit};
+use rand::Rng;
 
 /// Trait representing an observer that can be updated
 pub trait Observer<K> {
@@ -210,4 +211,30 @@ pub fn get_system_symbol(waypoint_symbol: &str) -> String {
 pub fn distance_between_waypoints(start: (i32, i32), end: (i32, i32)) -> f64 {
     (((end.0 as f64) - (start.0 as f64)).powi(2) + ((end.1 as f64) - (start.1 as f64)).powi(2))
         .sqrt()
+}
+
+pub fn get_random_faction() -> space_traders_client::models::FactionSymbol {
+    let random_number = rand::thread_rng().gen_range(0..=18);
+    match random_number {
+        // 0 => space_traders_client::models::FactionSymbol::Cosmic, // excluded
+        1 => space_traders_client::models::FactionSymbol::Void,
+        2 => space_traders_client::models::FactionSymbol::Galactic,
+        3 => space_traders_client::models::FactionSymbol::Quantum,
+        4 => space_traders_client::models::FactionSymbol::Dominion,
+        5 => space_traders_client::models::FactionSymbol::Astro,
+        6 => space_traders_client::models::FactionSymbol::Corsairs,
+        7 => space_traders_client::models::FactionSymbol::Obsidian,
+        8 => space_traders_client::models::FactionSymbol::Aegis,
+        9 => space_traders_client::models::FactionSymbol::United,
+        10 => space_traders_client::models::FactionSymbol::Solitary,
+        11 => space_traders_client::models::FactionSymbol::Cobalt,
+        12 => space_traders_client::models::FactionSymbol::Omega,
+        13 => space_traders_client::models::FactionSymbol::Echo,
+        14 => space_traders_client::models::FactionSymbol::Lords,
+        15 => space_traders_client::models::FactionSymbol::Cult,
+        16 => space_traders_client::models::FactionSymbol::Ancients,
+        17 => space_traders_client::models::FactionSymbol::Shadow,
+        18 => space_traders_client::models::FactionSymbol::Ethereal,
+        _ => space_traders_client::models::FactionSymbol::Cosmic,
+    }
 }

@@ -11,7 +11,7 @@ mod reset_runner;
 mod utils;
 
 use core::panic;
-use std::env;
+use std::{env, num::NonZeroU32};
 
 use chrono::{DateTime, Utc};
 
@@ -21,6 +21,7 @@ use opentelemetry::{
 };
 use rsntp::AsyncSntpClient;
 
+use ::utils::get_random_faction;
 use tokio_util::sync::CancellationToken;
 use tracing_subscriber::layer::SubscriberExt;
 
@@ -34,8 +35,9 @@ async fn main() -> anyhow::Result<()> {
 
     check_time().await;
 
-    let account_token = env::var("ACCOUNT_TOKEN").ok();
+    let account_token = env::var("ACCOUNT_TOKEN").unwrap();
     let database_url = env::var("DATABASE_URL").unwrap();
+    let agent_symbol = env::var("AGENT_SYMBOL").unwrap_or("MOOSBEE".to_string());
     let readyset_url = env::var("READYSET_URL").ok();
 
     let global_cancel_token = CancellationToken::new();
@@ -47,10 +49,30 @@ async fn main() -> anyhow::Result<()> {
 
         // check db if already has an agent, if not create agent
 
-        let agent_token = "";
+        let agent_token = {
+            let db_agent_token = database::Configuration::get_agent_token(&database_pool).await?;
+
+            if let Some(db_agent_token) = db_agent_token {
+                db_agent_token
+            } else {
+                let account_api =
+                    space_traders_client::Api::new(None, 500, NonZeroU32::new(2).unwrap());
+
+                let faction = get_random_faction();
+
+                let agent_token_response = account_api
+                    .register(agent_symbol.clone(), faction, account_token.clone())
+                    .await?;
+
+                let agent_token = agent_token_response.token;
+
+                database::Configuration::set_agent_token(&database_pool, &agent_token).await?;
+                agent_token
+            }
+        };
 
         let reset_info =
-            reset_runner::run_reset(agent_token, database_pool.clone(), &global_cancel_token)
+            reset_runner::run_reset(&agent_token, database_pool.clone(), &global_cancel_token)
                 .await?;
 
         tracing::info!(reset_info=?reset_info, "run finished");
