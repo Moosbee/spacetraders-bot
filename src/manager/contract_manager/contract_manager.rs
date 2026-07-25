@@ -15,21 +15,20 @@ use super::{
     message::ContractManagerMessage, messanger::ContractManagerMessanger, NextShipmentResp,
 };
 
+pub type ContractManagerReceiver = tokio::sync::mpsc::Receiver<ContractManagerMessage>;
+
 #[derive(Debug)]
 pub struct ContractManager {
     cancel_token: tokio_util::sync::CancellationToken,
     context: ConductorContext,
-    receiver: tokio::sync::mpsc::Receiver<ContractManagerMessage>,
+    receiver: ContractManagerReceiver,
     current_contract: Option<models::Contract>,
     running_shipments: Vec<database::ContractShipment>,
     reserved_funds: Option<database::ReservedFund>,
 }
 
 impl ContractManager {
-    pub fn create() -> (
-        tokio::sync::mpsc::Receiver<ContractManagerMessage>,
-        ContractManagerMessanger,
-    ) {
+    pub fn create() -> (ContractManagerReceiver, ContractManagerMessanger) {
         let (sender, receiver) = tokio::sync::mpsc::channel(1024);
         tracing::debug!("Created ContractManager channel");
 
@@ -39,7 +38,7 @@ impl ContractManager {
     pub fn new(
         cancel_token: tokio_util::sync::CancellationToken,
         context: ConductorContext,
-        receiver: tokio::sync::mpsc::Receiver<ContractManagerMessage>,
+        receiver: ContractManagerReceiver,
     ) -> Self {
         tracing::debug!("Creating new ContractManager");
         Self {

@@ -6,6 +6,7 @@ pub mod chart_manager;
 pub mod construction_manager;
 pub mod contract_manager;
 pub mod fleet_manager;
+pub mod manager_manager;
 pub mod mining_manager;
 pub mod scrapping_manager;
 pub mod ship_task;

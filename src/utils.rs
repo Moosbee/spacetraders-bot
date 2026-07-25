@@ -99,6 +99,45 @@ pub struct Config {
 
     pub iron_reserve: i64,
 }
+impl Default for Config {
+    fn default() -> Config {
+        Config {
+            control_start_sleep: 0,
+            control_active: false,
+            scrapper_start_sleep: 0,
+            scrap_agents: false,
+            update_all_systems: false,
+            max_miners_per_waypoint: 0,
+            mining_eject_list: Vec::new(),
+            mining_prefer_list: Vec::new(),
+            ignore_engineered_asteroids: false,
+            unstable_since_timeout: 0,
+            stop_all_unstable: false,
+            extra_mining_transporter: 0,
+            fuel_cost: 0,
+            antimatter_price: 0,
+            purchase_multiplier: 0.0,
+            market_blacklist: Vec::new(),
+            default_purchase_price: 0,
+            default_sell_price: 0,
+            default_profit: 0,
+            max_update_interval: 0,
+            markup_percentage: 0.0,
+            margin_percentage: 0.0,
+            markets_per_ship: 0,
+            mining_waypoints_per_system: 0,
+            mining_ships_per_waypoint: 0,
+            transport_capacity_per_waypoint: 0,
+            trade_mode: database::TradeMode::default(),
+            trade_profit_threshold: 0,
+            ship_purchase_percentile: 0.0,
+            ship_purchase_stop: false,
+            expand: false,
+            ship_purchase_amount: 0,
+            iron_reserve: 0,
+        }
+    }
+}
 
 #[derive(Debug, Clone, serde::Serialize, async_graphql::SimpleObject)]
 #[graphql(complex)]
@@ -109,4 +148,16 @@ pub struct RunInfo {
     pub reset_date: chrono::DateTime<chrono::Utc>,
     pub next_reset_date: chrono::DateTime<chrono::Utc>,
     pub version: String,
+}
+impl Default for RunInfo {
+    fn default() -> RunInfo {
+        RunInfo {
+            agent_symbol: "".to_string(),
+            headquarters: "".to_string(),
+            starting_faction: models::FactionSymbol::default(),
+            reset_date: chrono::Utc::now(),
+            next_reset_date: chrono::Utc::now(),
+            version: "".to_string(),
+        }
+    }
 }

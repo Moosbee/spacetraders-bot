@@ -18,11 +18,13 @@ use super::{
     waypoint_manager::WaypointManager,
 };
 
+pub type MiningManagerReceiver = tokio::sync::mpsc::Receiver<MiningManagerMessage>;
+
 #[derive(Debug)]
 pub struct MiningManager {
     cancel_token: tokio_util::sync::CancellationToken,
     context: ConductorContext,
-    receiver: tokio::sync::mpsc::Receiver<MiningManagerMessage>,
+    receiver: MiningManagerReceiver,
     transfer_manager: Arc<TransferManager>,
     inventory_manager: ShipInventoryManager,
     waypoint_manager: WaypointManager,
@@ -30,7 +32,7 @@ pub struct MiningManager {
 
 impl MiningManager {
     pub fn create() -> (
-        tokio::sync::mpsc::Receiver<MiningManagerMessage>,
+        MiningManagerReceiver,
         MiningManagerMessanger,
         Arc<TransferManager>,
     ) {
@@ -48,7 +50,7 @@ impl MiningManager {
     pub fn new(
         cancel_token: tokio_util::sync::CancellationToken,
         context: ConductorContext,
-        receiver: tokio::sync::mpsc::Receiver<MiningManagerMessage>,
+        receiver: MiningManagerReceiver,
         transfer_manager: Arc<TransferManager>,
         max_miners_per_waypoint: u32,
     ) -> Self {

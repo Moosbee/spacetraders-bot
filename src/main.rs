@@ -39,6 +39,9 @@ async fn main() -> anyhow::Result<()> {
     let database_url = env::var("DATABASE_URL").unwrap();
     let agent_symbol = env::var("AGENT_SYMBOL").unwrap_or("MOOSBEE".to_string());
     let readyset_url = env::var("READYSET_URL").ok();
+    let socket_address = env::var("SOCKET_ADDRESS")
+        .ok()
+        .unwrap_or("0.0.0.0:8780".to_string());
 
     let global_cancel_token = CancellationToken::new();
 
@@ -71,9 +74,13 @@ async fn main() -> anyhow::Result<()> {
             }
         };
 
-        let reset_info =
-            reset_runner::run_reset(&agent_token, database_pool.clone(), &global_cancel_token)
-                .await?;
+        let reset_info = reset_runner::run_reset(
+            &agent_token,
+            database_pool.clone(),
+            &global_cancel_token,
+            socket_address.clone(),
+        )
+        .await?;
 
         tracing::info!(reset_info=?reset_info, "run finished");
 

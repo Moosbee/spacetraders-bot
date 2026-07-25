@@ -340,11 +340,7 @@ async fn update_fleet(
         (Some(mut new), Some(old)) => {
             // update old with new
             new.id = old.id;
-            database::Fleet::upsert(
-                &context.database_pool,
-                &new,
-            )
-            .await?;
+            database::Fleet::upsert(&context.database_pool, &new).await?;
         }
         (Some(new), None) => {
             // insert new
@@ -353,11 +349,7 @@ async fn update_fleet(
         (None, Some(mut old)) => {
             // deactivate old
             old.active = false;
-            database::Fleet::upsert(
-                &context.database_pool,
-                &old,
-            )
-            .await?;
+            database::Fleet::upsert(&context.database_pool, &old).await?;
         }
         (None, None) => {
             // do nothing
@@ -367,6 +359,7 @@ async fn update_fleet(
     Ok(())
 }
 
+// returns true if the system is fully populated, populated meaning it has at least 1 fleet
 pub async fn is_system_populated(
     database_pool: &database::DbPool,
     system_symbol: &str,

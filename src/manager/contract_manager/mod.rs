@@ -3,6 +3,7 @@ mod message;
 mod messanger;
 
 pub use contract_manager::ContractManager;
+pub use contract_manager::ContractManagerReceiver;
 pub use message::ContractShipmentMessage;
 pub use message::NextShipmentResp;
 pub use messanger::ContractManagerMessanger;

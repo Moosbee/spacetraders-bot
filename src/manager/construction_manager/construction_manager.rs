@@ -17,19 +17,17 @@ use crate::{
 
 use super::{message::ConstructionManagerMessage, messanger::ConstructionManagerMessanger};
 
+pub type ConstructionManagerReceiver = tokio::sync::mpsc::Receiver<ConstructionManagerMessage>;
 #[derive(Debug)]
 pub struct ConstructionManager {
     cancel_token: tokio_util::sync::CancellationToken,
     context: ConductorContext,
-    receiver: tokio::sync::mpsc::Receiver<ConstructionManagerMessage>,
+    receiver: ConstructionManagerReceiver,
     running_shipments: Vec<database::ConstructionShipment>,
 }
 
 impl ConstructionManager {
-    pub fn create() -> (
-        tokio::sync::mpsc::Receiver<ConstructionManagerMessage>,
-        ConstructionManagerMessanger,
-    ) {
+    pub fn create() -> (ConstructionManagerReceiver, ConstructionManagerMessanger) {
         let (sender, receiver) = tokio::sync::mpsc::channel(1024);
 
         (receiver, ConstructionManagerMessanger::new(sender))
@@ -38,7 +36,7 @@ impl ConstructionManager {
     pub fn new(
         cancel_token: tokio_util::sync::CancellationToken,
         context: ConductorContext,
-        receiver: tokio::sync::mpsc::Receiver<ConstructionManagerMessage>,
+        receiver: ConstructionManagerReceiver,
     ) -> Self {
         Self {
             cancel_token,
@@ -472,11 +470,7 @@ impl ConstructionManager {
                 .get_waypoint(&system_waypoint, &waypoint)
                 .await?;
             let waypoint = (&(*wp.data)).into();
-            database::Waypoint::upsert(
-                &self.context.database_pool,
-                &waypoint,
-            )
-            .await?;
+            database::Waypoint::upsert(&self.context.database_pool, &waypoint).await?;
             if waypoint.is_jump_gate() {
                 self.context
                     .fleet_manager

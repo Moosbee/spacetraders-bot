@@ -1725,7 +1725,9 @@ impl Fleet {
 )]
 #[sqlx(type_name = "trade_mode")]
 #[allow(clippy::enum_variant_names)]
+#[derive(Default)]
 pub enum TradeMode {
+    #[default]
     ProfitPerHour,
     ProfitPerAPIRequest,
     ProfitPerTrip,

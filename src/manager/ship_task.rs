@@ -5,8 +5,10 @@ use crate::utils::ConductorContext;
 
 use super::Manager;
 
+pub type ShipTaskHandlerReceiver = tokio::sync::mpsc::Receiver<database::ShipInfo>;
+
 pub struct ShipTaskHandler {
-    receiver: tokio::sync::mpsc::Receiver<database::ShipInfo>,
+    receiver: ShipTaskHandlerReceiver,
     ship_cancel_token: tokio_util::sync::CancellationToken,
     manager_cancel_token: tokio_util::sync::CancellationToken,
     cancel_token: tokio_util::sync::CancellationToken,
@@ -28,11 +30,8 @@ impl ShipTaskMessanger {
 }
 
 impl ShipTaskHandler {
-    pub fn create() -> (
-        tokio::sync::mpsc::Receiver<database::ShipInfo>,
-        ShipTaskMessanger,
-    ) {
-        let (sender, receiver) = tokio::sync::mpsc::channel(1024);
+    pub fn create() -> (ShipTaskHandlerReceiver, ShipTaskMessanger) {
+        let (sender, receiver) = tokio::sync::mpsc::channel(1024); // may become a problem if we have to many ships, set to 8192 if needed
         (receiver, ShipTaskMessanger { sender })
     }
     pub fn new(
@@ -40,7 +39,7 @@ impl ShipTaskHandler {
         manager_cancel_token: tokio_util::sync::CancellationToken,
         cancel_token: tokio_util::sync::CancellationToken,
         context: ConductorContext,
-        receiver: tokio::sync::mpsc::Receiver<database::ShipInfo>,
+        receiver: ShipTaskHandlerReceiver,
     ) -> Self {
         Self {
             ship_cancel_token,

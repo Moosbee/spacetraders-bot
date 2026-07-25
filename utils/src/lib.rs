@@ -213,6 +213,19 @@ pub fn distance_between_waypoints(start: (i32, i32), end: (i32, i32)) -> f64 {
         .sqrt()
 }
 
+pub fn task_spawn<F>(_name: &str, future: F) -> tokio::task::JoinHandle<F::Output>
+where
+    F: std::future::Future + Send + 'static,
+    F::Output: Send + 'static,
+{
+    tokio::task::spawn(future)
+
+    // tokio::task::Builder::new()
+    //     .name(_name)
+    //     .spawn(future)
+    //     .unwrap()
+}
+
 pub fn get_random_faction() -> space_traders_client::models::FactionSymbol {
     let random_number = rand::thread_rng().gen_range(0..=18);
     match random_number {

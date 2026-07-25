@@ -15,18 +15,17 @@ use crate::{
 
 use super::{message::FleetManagerMessage, messanger::FleetManagerMessanger};
 
+pub type FleetManagerReceiver = tokio::sync::mpsc::Receiver<FleetManagerMessage>;
+
 pub struct FleetManager {
     cancel_token: tokio_util::sync::CancellationToken,
-    receiver: tokio::sync::mpsc::Receiver<FleetManagerMessage>,
+    receiver: FleetManagerReceiver,
     context: ConductorContext,
     jump_gate: Option<ship::autopilot::jump_gate_nav::JumpPathfinder>,
 }
 
 impl FleetManager {
-    pub fn create() -> (
-        tokio::sync::mpsc::Receiver<FleetManagerMessage>,
-        FleetManagerMessanger,
-    ) {
+    pub fn create() -> (FleetManagerReceiver, FleetManagerMessanger) {
         let (sender, receiver) = tokio::sync::mpsc::channel(1024);
         debug!("Created FleetManager channel");
 
@@ -36,7 +35,7 @@ impl FleetManager {
     pub fn new(
         cancel_token: tokio_util::sync::CancellationToken,
         context: ConductorContext,
-        receiver: tokio::sync::mpsc::Receiver<FleetManagerMessage>,
+        receiver: FleetManagerReceiver,
     ) -> Self {
         debug!("Creating new FleetManager");
         Self {

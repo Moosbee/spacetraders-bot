@@ -9,6 +9,13 @@ pub struct InterShipBroadcaster {
     pub receiver: tokio::sync::broadcast::Receiver<MyShipUpdate>,
 }
 
+impl InterShipBroadcaster {
+    pub fn new(channel_capacity: usize) -> Self {
+        let (sender, receiver) = broadcast::channel(channel_capacity);
+        Self { sender, receiver }
+    }
+}
+
 impl Default for InterShipBroadcaster {
     fn default() -> Self {
         let (sender, receiver) = broadcast::channel(16);

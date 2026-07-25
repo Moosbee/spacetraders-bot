@@ -13,19 +13,18 @@ use crate::{
 
 use super::{message::ScrappingManagerMessage, messanger::ScrappingManagerMessanger};
 
+pub type ScrappingManagerReceiver = tokio::sync::mpsc::Receiver<ScrappingManagerMessage>;
+
 #[derive(Debug)]
 pub struct ScrappingManager {
     cancel_token: tokio_util::sync::CancellationToken,
     context: ConductorContext,
-    receiver: tokio::sync::mpsc::Receiver<ScrappingManagerMessage>,
+    receiver: ScrappingManagerReceiver,
     scrap_waypoints: HashMap<String, String>,
 }
 
 impl ScrappingManager {
-    pub fn create() -> (
-        tokio::sync::mpsc::Receiver<ScrappingManagerMessage>,
-        ScrappingManagerMessanger,
-    ) {
+    pub fn create() -> (ScrappingManagerReceiver, ScrappingManagerMessanger) {
         let (sender, receiver) = tokio::sync::mpsc::channel(1024);
 
         (receiver, ScrappingManagerMessanger::new(sender))
@@ -34,7 +33,7 @@ impl ScrappingManager {
     pub fn new(
         cancel_token: tokio_util::sync::CancellationToken,
         context: ConductorContext,
-        receiver: tokio::sync::mpsc::Receiver<ScrappingManagerMessage>,
+        receiver: ScrappingManagerReceiver,
     ) -> Self {
         Self {
             cancel_token,

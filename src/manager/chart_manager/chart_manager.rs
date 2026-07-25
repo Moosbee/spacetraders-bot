@@ -16,18 +16,17 @@ use super::{
     messanger::ChartManagerMessanger,
 };
 
+pub type ChartManagerReceiver = tokio::sync::mpsc::Receiver<ChartManagerMessage>;
+
 pub struct ChartManager {
     cancel_token: tokio_util::sync::CancellationToken,
     context: ConductorContext,
-    receiver: tokio::sync::mpsc::Receiver<ChartManagerMessage>,
+    receiver: ChartManagerReceiver,
     running_charts: HashSet<String>,
 }
 
 impl ChartManager {
-    pub fn create() -> (
-        tokio::sync::mpsc::Receiver<ChartManagerMessage>,
-        ChartManagerMessanger,
-    ) {
+    pub fn create() -> (ChartManagerReceiver, ChartManagerMessanger) {
         let (sender, receiver) = tokio::sync::mpsc::channel(1024);
 
         (receiver, ChartManagerMessanger::new(sender))
@@ -36,7 +35,7 @@ impl ChartManager {
     pub fn new(
         cancel_token: tokio_util::sync::CancellationToken,
         context: ConductorContext,
-        receiver: tokio::sync::mpsc::Receiver<ChartManagerMessage>,
+        receiver: ChartManagerReceiver,
     ) -> Self {
         Self {
             cancel_token,

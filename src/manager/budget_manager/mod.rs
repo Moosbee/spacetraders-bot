@@ -26,11 +26,20 @@ pub struct BudgetManager {
 }
 
 impl BudgetManager {
-    pub async fn init(
+    pub async fn duplicate(&self) -> BudgetManager {
+        BudgetManager {
+            current_funds: AtomicI64::new(self.current_funds.load(Ordering::SeqCst)),
+            reserved_funds: Mutex::new(self.reserved_funds.lock().await.clone()),
+            iron_reserve: self.iron_reserve,
+        }
+    }
+
+    pub async fn load(
+        &mut self,
         database_pool: &database::DbPool,
         current_funds: i64,
         iron_reserve: i64,
-    ) -> crate::error::Result<Self> {
+    ) -> crate::error::Result<()> {
         let reserved_funds = ReservedFund::get_by_status(
             database_pool,
             FundStatus::Reserved,
@@ -39,11 +48,12 @@ impl BudgetManager {
         .await?
         .items;
 
-        Ok(BudgetManager {
-            current_funds: AtomicI64::new(current_funds),
-            reserved_funds: Mutex::new(reserved_funds.into_iter().map(|rf| (rf.id, rf)).collect()),
-            iron_reserve,
-        })
+        self.iron_reserve = iron_reserve;
+        self.current_funds = AtomicI64::new(current_funds);
+        self.reserved_funds =
+            Mutex::new(reserved_funds.into_iter().map(|rf| (rf.id, rf)).collect());
+
+        Ok(())
     }
 
     pub async fn get_budget_info(&self) -> BudgetInfo {
@@ -277,5 +287,15 @@ impl BudgetManager {
         reserved_funds.remove(&reservation_id);
 
         Ok(())
+    }
+}
+
+impl Default for BudgetManager {
+    fn default() -> Self {
+        Self {
+            current_funds: AtomicI64::new(0),
+            reserved_funds: Mutex::new(HashMap::new()),
+            iron_reserve: 0,
+        }
     }
 }

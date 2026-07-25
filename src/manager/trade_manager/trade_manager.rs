@@ -14,20 +14,19 @@ use super::{
     routes_tracker::RoutesTracker, TradeManagerMessage,
 };
 
+pub type TradeManagerReceiver = tokio::sync::mpsc::Receiver<TradeManagerMessage>;
+
 #[derive(Debug)]
 pub struct TradeManager {
     cancel_token: tokio_util::sync::CancellationToken,
     context: ConductorContext,
-    receiver: tokio::sync::mpsc::Receiver<TradeManagerMessage>,
+    receiver: TradeManagerReceiver,
     routes_tracker: RoutesTracker,
     calculator: RouteCalculator,
 }
 
 impl TradeManager {
-    pub fn create() -> (
-        tokio::sync::mpsc::Receiver<TradeManagerMessage>,
-        TradeManagerMessanger,
-    ) {
+    pub fn create() -> (TradeManagerReceiver, TradeManagerMessanger) {
         let (sender, receiver) = tokio::sync::mpsc::channel(1024);
         debug!("Created TradeManager channel");
         (receiver, TradeManagerMessanger::new(sender))
@@ -36,7 +35,7 @@ impl TradeManager {
     pub async fn init(
         cancel_token: tokio_util::sync::CancellationToken,
         context: ConductorContext,
-        receiver: tokio::sync::mpsc::Receiver<TradeManagerMessage>,
+        receiver: TradeManagerReceiver,
     ) -> crate::error::Result<Self> {
         debug!("Created new TradeManager");
 
