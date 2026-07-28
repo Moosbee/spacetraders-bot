@@ -1,7 +1,6 @@
 use std::collections::{BTreeSet, HashMap, HashSet};
 
 use database::DatabaseConnectorAsync;
-use itertools::Itertools;
 use tracing::{debug, warn};
 
 use crate::{
@@ -18,7 +17,8 @@ use super::{message::FleetManagerMessage, messanger::FleetManagerMessanger};
 pub type FleetManagerReceiver = tokio::sync::mpsc::Receiver<FleetManagerMessage>;
 
 pub struct FleetManager {
-    cancel_token: tokio_util::sync::CancellationToken,
+    fast_cancel_token: tokio_util::sync::CancellationToken,
+    slow_cancel_token: tokio_util::sync::CancellationToken,
     receiver: FleetManagerReceiver,
     context: ConductorContext,
     jump_gate: Option<ship::autopilot::jump_gate_nav::JumpPathfinder>,
@@ -33,13 +33,15 @@ impl FleetManager {
     }
 
     pub fn new(
-        cancel_token: tokio_util::sync::CancellationToken,
+        fast_cancel_token: tokio_util::sync::CancellationToken,
+        slow_cancel_token: tokio_util::sync::CancellationToken,
         context: ConductorContext,
         receiver: FleetManagerReceiver,
     ) -> Self {
         debug!("Creating new FleetManager");
         Self {
-            cancel_token,
+            fast_cancel_token,
+            slow_cancel_token,
             context,
             receiver,
             jump_gate: None,
@@ -53,10 +55,21 @@ impl FleetManager {
         err(Debug)
     )]
     async fn run_fleet_worker(&mut self) -> std::result::Result<(), crate::error::Error> {
-        while !self.cancel_token.is_cancelled() {
+        let fast_cancel_token = self.fast_cancel_token.clone();
+
+        let _erg = tokio::select! {
+            _ = fast_cancel_token.cancelled() => Ok(()),
+            erg = self.run_fleet_worker_loop() => erg,
+        }?;
+
+        Ok(())
+    }
+
+    async fn run_fleet_worker_loop(&mut self) -> std::result::Result<(), crate::error::Error> {
+        while !self.slow_cancel_token.is_cancelled() {
             let message = tokio::select! {
                 message = self.receiver.recv() => message,
-                _ = self.cancel_token.cancelled() => None
+                _ = self.slow_cancel_token.cancelled() => None
             };
             debug!("Received FleetManager message: {:?}", message);
 
@@ -787,6 +800,6 @@ impl Manager for FleetManager {
     }
 
     fn get_cancel_token(&self) -> &tokio_util::sync::CancellationToken {
-        &self.cancel_token
+        &self.slow_cancel_token
     }
 }

@@ -112,11 +112,7 @@ pub async fn update_jump_gate(
         })
         .collect::<Vec<database::JumpGateConnection>>();
 
-    database::JumpGateConnection::insert_bulk(
-        database_pool,
-        &connections,
-    )
-    .await?;
+    database::JumpGateConnection::insert_bulk(database_pool, &connections).await?;
 
     Ok(())
 }

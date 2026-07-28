@@ -6,6 +6,7 @@ use ship::status::ShipStatus;
 use ship::ShipManager;
 use space_traders_client::models;
 use tokio::sync::RwLock;
+use tokio_util::sync::CancellationToken;
 
 use crate::manager::budget_manager::BudgetManager;
 use crate::manager::chart_manager::ChartManagerMessanger;
@@ -32,6 +33,17 @@ pub struct ConductorContext {
     pub budget_manager: Arc<BudgetManager>,
     pub run_info: Arc<RwLock<RunInfo>>,
     pub config: Arc<RwLock<Config>>,
+    pub cancellation_tokens: Arc<CancellationTokens>,
+}
+
+#[derive(Debug, Clone)]
+pub struct CancellationTokens {
+    pub global_cancel_token: CancellationToken,
+    pub run_cancel_token: CancellationToken,
+    pub fast_manager_cancel_token: CancellationToken,
+    pub slow_manager_cancel_token: CancellationToken,
+    pub fast_ship_cancel_token: CancellationToken,
+    pub slow_ship_cancel_token: CancellationToken,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone, async_graphql::SimpleObject)]

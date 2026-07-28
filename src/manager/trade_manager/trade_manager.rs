@@ -18,7 +18,9 @@ pub type TradeManagerReceiver = tokio::sync::mpsc::Receiver<TradeManagerMessage>
 
 #[derive(Debug)]
 pub struct TradeManager {
-    cancel_token: tokio_util::sync::CancellationToken,
+    slow_cancel_token: tokio_util::sync::CancellationToken,
+    fast_cancel_token: tokio_util::sync::CancellationToken,
+
     context: ConductorContext,
     receiver: TradeManagerReceiver,
     routes_tracker: RoutesTracker,
@@ -33,7 +35,8 @@ impl TradeManager {
     }
 
     pub async fn init(
-        cancel_token: tokio_util::sync::CancellationToken,
+        fast_cancel_token: tokio_util::sync::CancellationToken,
+        slow_cancel_token: tokio_util::sync::CancellationToken,
         context: ConductorContext,
         receiver: TradeManagerReceiver,
     ) -> crate::error::Result<Self> {
@@ -51,7 +54,8 @@ impl TradeManager {
         }
 
         Ok(Self {
-            cancel_token,
+            fast_cancel_token,
+            slow_cancel_token,
             context: context.clone(),
             receiver,
             routes_tracker: tracker,
@@ -67,10 +71,18 @@ impl TradeManager {
     )]
     async fn run_trade_worker(&mut self) -> Result<()> {
         debug!("Starting TradeManager worker");
-        while !self.cancel_token.is_cancelled() {
+        let fast_cancel_token = self.fast_cancel_token.clone();
+        select! {
+            _ = fast_cancel_token.cancelled() => return Ok(()),
+            erg = self.run_trade_worker_loop() => return erg,
+        }
+    }
+
+    async fn run_trade_worker_loop(&mut self) -> Result<()> {
+        while !self.slow_cancel_token.is_cancelled() {
             let message: Option<TradeMessage> = select! {
                 message = self.receiver.recv() => message,
-                _ = self.cancel_token.cancelled() => None
+                _ = self.slow_cancel_token.cancelled() => None
             };
             debug!("Received message: {:?}", message);
             match message {
@@ -250,6 +262,6 @@ impl Manager for TradeManager {
     }
 
     fn get_cancel_token(&self) -> &tokio_util::sync::CancellationToken {
-        &self.cancel_token
+        &self.slow_cancel_token
     }
 }

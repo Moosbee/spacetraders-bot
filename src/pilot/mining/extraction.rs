@@ -329,11 +329,8 @@ impl ExtractionPilot {
                                     (&(*new_wp.data)).into()
                                 };
                                 wp.unstable_since = Some(chrono::Utc::now());
-                                database::Waypoint::upsert(
-                                    &self.context.database_pool,
-                                    &wp,
-                                )
-                                .await?;
+                                database::Waypoint::upsert(&self.context.database_pool, &wp)
+                                    .await?;
                             } else if error_code
                                 .map(|code| {
                                     code == models::error_codes::SHIP_SURVEY_EXHAUSTED_ERROR
@@ -347,11 +344,8 @@ impl ExtractionPilot {
                                     "Survey exhausted",
                                 );
                                 survey.exhausted_since = Some(chrono::Utc::now());
-                                database::Survey::upsert(
-                                    &self.context.database_pool,
-                                    &survey,
-                                )
-                                .await?;
+                                database::Survey::upsert(&self.context.database_pool, &survey)
+                                    .await?;
                             } else if error_code
                                 .map(|code| {
                                     code == models::error_codes::SHIP_SURVEY_EXPIRATION_ERROR
@@ -387,11 +381,8 @@ impl ExtractionPilot {
                                 created_at: now,
                             };
 
-                            database::Extraction::upsert(
-                                &self.context.database_pool,
-                                &extraction,
-                            )
-                            .await?;
+                            database::Extraction::upsert(&self.context.database_pool, &extraction)
+                                .await?;
 
                             tracing::info!(
                                 "Extracted on ship: {} erg {:?} events: {:?}",
@@ -436,11 +427,8 @@ impl ExtractionPilot {
                                     (&(*new_wp.data)).into()
                                 };
                                 wp.unstable_since = Some(chrono::Utc::now());
-                                database::Waypoint::upsert(
-                                    &self.context.database_pool,
-                                    &wp,
-                                )
-                                .await?;
+                                database::Waypoint::upsert(&self.context.database_pool, &wp)
+                                    .await?;
                             } else {
                                 return Err(
                                     space_traders_client::apis::Error::ResponseError(e).into()
@@ -468,11 +456,8 @@ impl ExtractionPilot {
                                 created_at: now,
                             };
 
-                            database::Extraction::upsert(
-                                &self.context.database_pool,
-                                &extraction,
-                            )
-                            .await?;
+                            database::Extraction::upsert(&self.context.database_pool, &extraction)
+                                .await?;
 
                             tracing::info!(
                                 "Extracted on ship: {} erg {:?} events: {:?}",
@@ -507,11 +492,7 @@ impl ExtractionPilot {
                     created_at: now,
                 };
 
-                database::Extraction::upsert(
-                    &self.context.database_pool,
-                    &extraction,
-                )
-                .await?;
+                database::Extraction::upsert(&self.context.database_pool, &extraction).await?;
 
                 tracing::info!(
                     "Siphoned on ship: {} erg {:?} events: {:?}",
@@ -581,7 +562,7 @@ impl ExtractionPilot {
         loop {
             let i = {
                 tokio::select! {
-                    _ = pilot.cancellation_token.cancelled() => {(None,0)},// it's the end of the Programm we don't care(for now)
+                    _ = pilot.slow_cancellation_token.cancelled() => {(None,0)},// it's the end of the Programm we don't care(for now)
                     _ = &mut fused_future => {(None,1)},
                     msg = receiver.recv() => {(msg,2)},
                 }

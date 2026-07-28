@@ -20,7 +20,8 @@ use super::{message::ConstructionManagerMessage, messanger::ConstructionManagerM
 pub type ConstructionManagerReceiver = tokio::sync::mpsc::Receiver<ConstructionManagerMessage>;
 #[derive(Debug)]
 pub struct ConstructionManager {
-    cancel_token: tokio_util::sync::CancellationToken,
+    fast_cancel_token: tokio_util::sync::CancellationToken,
+    slow_cancel_token: tokio_util::sync::CancellationToken,
     context: ConductorContext,
     receiver: ConstructionManagerReceiver,
     running_shipments: Vec<database::ConstructionShipment>,
@@ -34,12 +35,14 @@ impl ConstructionManager {
     }
 
     pub fn new(
-        cancel_token: tokio_util::sync::CancellationToken,
+        fast_cancel_token: tokio_util::sync::CancellationToken,
+        slow_cancel_token: tokio_util::sync::CancellationToken,
         context: ConductorContext,
         receiver: ConstructionManagerReceiver,
     ) -> Self {
         Self {
-            cancel_token,
+            fast_cancel_token,
+            slow_cancel_token,
             context,
             receiver,
             // current_contract: None,
@@ -98,10 +101,20 @@ impl ConstructionManager {
             }
         }
 
-        while !self.cancel_token.is_cancelled() {
+        let fast_cancel_token = self.fast_cancel_token.clone();
+        let _erg = tokio::select! {
+            _ = fast_cancel_token.cancelled() => Ok(()),
+            erg = self.run_construction_worker_loop() => erg,
+        }?;
+
+        Ok(())
+    }
+
+    async fn run_construction_worker_loop(&mut self) -> Result<()> {
+        while !self.slow_cancel_token.is_cancelled() {
             let message = tokio::select! {
                 message = self.receiver.recv() => message,
-                _ = self.cancel_token.cancelled() => None
+                _ = self.slow_cancel_token.cancelled() => None
             };
             debug!("Received ConstructionManager message: {:?}", message);
 
@@ -162,65 +175,6 @@ impl ConstructionManager {
 
         Ok(())
     }
-
-    // #[tracing::instrument(
-    //     level = "info",
-    //     name = "spacetraders::manager::construction_manager::get_required_ships",
-    //     skip(context)
-    // )]
-    // pub async fn get_required_ships(context: &ConductorContext) -> Result<RequiredShips> {
-    //     // we need one transporter(39+ cargo space) in our headquarters as long as their are unfinished constructions in the main system
-    //     let db_ships = database::ShipInfo::get_by_role(
-    //         &context.database_pool,
-    //         &database::ShipInfoRole::Construction,
-    //     )
-    //     .await?;
-    //     let all_ships = context
-    //         .ship_manager
-    //         .get_all_clone()
-    //         .await
-    //         .into_values()
-    //         .filter(|ship| {
-    //             (ship.role == database::ShipInfoRole::Construction
-    //                 || db_ships.iter().any(|db_ship| db_ship.symbol == ship.symbol))
-    //                 && ship.cargo.capacity >= 40
-    //         })
-    //         .collect::<Vec<_>>();
-
-    //     let headquarters = { context.run_info.read().await.headquarters.clone() };
-
-    //     let headquarters = get_system_symbol(&headquarters);
-
-    //     let headquarter_constructions =
-    //         database::Waypoint::get_by_system(&context.database_pool, &headquarters)
-    //             .await?
-    //             .into_iter()
-    //             .filter(|w| w.is_under_construction)
-    //             .collect::<Vec<_>>();
-    //     debug!(
-    //         "headquarters: {}, headquarter_constructions: {}, all_ships: {}",
-    //         headquarters,
-    //         headquarter_constructions.len(),
-    //         all_ships.len()
-    //     );
-    //     let ships = if !headquarter_constructions.is_empty() && all_ships.is_empty() {
-    //         HashMap::from_iter(
-    //             vec![(
-    //                 headquarters.clone(),
-    //                 vec![(
-    //                     RequestedShipType::Transporter,
-    //                     Priority::Low,
-    //                     Budget::High,
-    //                     database::ShipInfoRole::Construction,
-    //                 )],
-    //             )]
-    //             .into_iter(),
-    //         )
-    //     } else {
-    //         HashMap::new()
-    //     };
-    //     Ok(RequiredShips { ships })
-    // }
 
     async fn request_next_shipment(
         &mut self,
@@ -574,6 +528,6 @@ impl Manager for ConstructionManager {
     }
 
     fn get_cancel_token(&self) -> &tokio_util::sync::CancellationToken {
-        &self.cancel_token
+        &self.slow_cancel_token
     }
 }

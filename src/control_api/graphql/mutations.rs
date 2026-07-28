@@ -407,11 +407,7 @@ impl MutationRoot {
         } else {
             ship.assignment_id = Some(assignment_id);
         }
-        database::ShipInfo::upsert(
-            &context.database_pool,
-            &ship,
-        )
-        .await?;
+        database::ShipInfo::upsert(&context.database_pool, &ship).await?;
         Ok(ship.into())
     }
 
@@ -426,11 +422,7 @@ impl MutationRoot {
             database::ShipInfo::get_by_id(&context.database_pool, &ship_symbol).await?
         {
             info.active = false;
-            database::ShipInfo::upsert(
-                &context.database_pool,
-                &info,
-            )
-            .await?;
+            database::ShipInfo::upsert(&context.database_pool, &info).await?;
             Ok(true)
         } else {
             Err(super::GraphiQLError::NotFound)
@@ -448,15 +440,55 @@ impl MutationRoot {
             database::ShipInfo::get_by_id(&context.database_pool, &ship_symbol).await?
         {
             info.active = true;
-            database::ShipInfo::upsert(
-                &context.database_pool,
-                &info,
-            )
-            .await?;
+            database::ShipInfo::upsert(&context.database_pool, &info).await?;
             Ok(true)
         } else {
             Err(super::GraphiQLError::NotFound)
         }
+    }
+
+    /// Shutdown the server
+    #[allow(clippy::too_many_arguments)]
+    async fn shutdown<'ctx>(
+        &self,
+        ctx: &Context<'ctx>,
+        global: bool,
+        run: bool,
+        slow_managers: bool,
+        fast_managers: bool,
+        slow_ships: bool,
+        fast_ships: bool,
+    ) -> super::Result<super::gql_models::GQLCancellationTokens> {
+        let context = ctx.data::<ConductorContext>()?;
+
+        if global {
+            context.cancellation_tokens.global_cancel_token.cancel();
+        }
+        if run {
+            context.cancellation_tokens.run_cancel_token.cancel();
+        }
+        if slow_managers {
+            context
+                .cancellation_tokens
+                .slow_manager_cancel_token
+                .cancel();
+        }
+        if fast_managers {
+            context
+                .cancellation_tokens
+                .fast_manager_cancel_token
+                .cancel();
+        }
+        if slow_ships {
+            context.cancellation_tokens.slow_ship_cancel_token.cancel();
+        }
+        if fast_ships {
+            context.cancellation_tokens.fast_ship_cancel_token.cancel();
+        }
+
+        let cancel_tokens = context.cancellation_tokens.as_ref();
+
+        Ok(cancel_tokens.into())
     }
 }
 

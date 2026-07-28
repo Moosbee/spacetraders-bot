@@ -206,11 +206,7 @@ impl QueryRoot {
                 }
             }
         } else {
-            database::ShipyardTransaction::get_all(
-                &context.database_pool,
-                query,
-            )
-            .await
+            database::ShipyardTransaction::get_all(&context.database_pool, query).await
         }?;
         Ok(transactions.into())
     }
@@ -232,11 +228,7 @@ impl QueryRoot {
             )
             .await?
         } else {
-            database::ChartTransaction::get_all(
-                &context.database_pool,
-                query,
-            )
-            .await?
+            database::ChartTransaction::get_all(&context.database_pool, query).await?
         };
         Ok(transactions.into())
     }
@@ -307,11 +299,9 @@ impl QueryRoot {
         page_size: Option<i64>,
     ) -> Result<gql_models::GQLWaypointPage> {
         let context = ctx.data::<ConductorContext>()?;
-        let waypoints = database::Waypoint::get_all(
-            &context.database_pool,
-            paginated_query(page, page_size),
-        )
-        .await?;
+        let waypoints =
+            database::Waypoint::get_all(&context.database_pool, paginated_query(page, page_size))
+                .await?;
         Ok(waypoints.into())
     }
 
@@ -321,12 +311,9 @@ impl QueryRoot {
         symbol: String,
     ) -> Result<gql_models::GQLSystem> {
         let context = ctx.data::<ConductorContext>()?;
-        let system = database::System::get_by_id(
-            &context.database_pool,
-            &symbol,
-        )
-        .await?
-        .ok_or(GraphiQLError::NotFound)?;
+        let system = database::System::get_by_id(&context.database_pool, &symbol)
+            .await?
+            .ok_or(GraphiQLError::NotFound)?;
         Ok(system.into())
     }
 
@@ -341,10 +328,12 @@ impl QueryRoot {
         let query = paginated_query(page, page_size);
 
         if only_with_fleets_or_ships.unwrap_or(false) {
-            let all_systems =
-                database::System::get_all(&context.database_pool, database::PaginatedQuery::unpaged())
-                    .await?
-                    .items;
+            let all_systems = database::System::get_all(
+                &context.database_pool,
+                database::PaginatedQuery::unpaged(),
+            )
+            .await?
+            .items;
             let fleets = database::Fleet::get_all(
                 &context.database_pool,
                 database::PaginatedQuery::unpaged(),
@@ -364,7 +353,9 @@ impl QueryRoot {
                 .collect();
             Ok(database::paginate_items(query, systems)?.into())
         } else {
-            Ok(database::System::get_all(&context.database_pool, query).await?.into())
+            Ok(database::System::get_all(&context.database_pool, query)
+                .await?
+                .into())
         }
     }
 
@@ -386,9 +377,12 @@ impl QueryRoot {
         symbol: String,
     ) -> Result<Vec<gql_models::GQLAgent>> {
         let context = ctx.data::<ConductorContext>()?;
-        let agent =
-            database::Agent::get_by_symbol(&context.database_pool, &symbol, database::PaginatedQuery::unpaged())
-                .await?;
+        let agent = database::Agent::get_by_symbol(
+            &context.database_pool,
+            &symbol,
+            database::PaginatedQuery::unpaged(),
+        )
+        .await?;
         Ok(agent.items.into_iter().map(Into::into).collect())
     }
 
@@ -397,11 +391,9 @@ impl QueryRoot {
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Vec<gql_models::GQLAgent>> {
         let context = ctx.data::<ConductorContext>()?;
-        let agents = database::Agent::get_last(
-            &context.database_pool,
-            database::PaginatedQuery::unpaged(),
-        )
-        .await?;
+        let agents =
+            database::Agent::get_last(&context.database_pool, database::PaginatedQuery::unpaged())
+                .await?;
         Ok(agents.items.into_iter().map(Into::into).collect())
     }
 
@@ -502,7 +494,7 @@ impl QueryRoot {
                         &id,
                         query,
                     )
-                        .await
+                    .await
                 }
                 ContractShipmentBy::TradeSymbol(symbol) => {
                     database::ContractShipment::get_by_trade_symbol(
@@ -529,12 +521,8 @@ impl QueryRoot {
                     .await
                 }
                 ContractShipmentBy::ShipSymbol(symbol) => {
-                    database::ContractShipment::get_by_ship(
-                        &context.database_pool,
-                        &symbol,
-                        query,
-                    )
-                    .await
+                    database::ContractShipment::get_by_ship(&context.database_pool, &symbol, query)
+                        .await
                 }
             }
         } else {
@@ -599,8 +587,7 @@ impl QueryRoot {
                     .await
                 }
                 ExtractionBy::Siphon(siphon) => {
-                    database::Extraction::get_by_siphon(&context.database_pool, siphon, query)
-                        .await
+                    database::Extraction::get_by_siphon(&context.database_pool, siphon, query).await
                 }
                 ExtractionBy::Survey(symbol) => {
                     database::Extraction::get_by_survey_symbol(
@@ -659,7 +646,7 @@ impl QueryRoot {
                         fleet_id,
                         query,
                     )
-                        .await
+                    .await
                 }
                 ShipAssignmentBy::Open(_assigned) => {
                     database::ShipAssignment::get_open_assignments(&context.database_pool, query)
@@ -718,8 +705,7 @@ impl QueryRoot {
                     database::Survey::get_by_size(&context.database_pool, size, query).await
                 }
                 SurveyBy::ShipSymbol(ship_symbol) => {
-                    database::Survey::get_by_ship(&context.database_pool, &ship_symbol, query)
-                        .await
+                    database::Survey::get_by_ship(&context.database_pool, &ship_symbol, query).await
                 }
             }
         } else {
@@ -804,8 +790,7 @@ impl QueryRoot {
                         .await
                 }
                 ShipStateBy::System(system) => {
-                    database::ShipState::get_by_system(&context.database_pool, &system, query)
-                        .await
+                    database::ShipState::get_by_system(&context.database_pool, &system, query).await
                 }
                 ShipStateBy::ShipSymbol(symbol) => {
                     database::ShipState::get_by_ship(&context.database_pool, &symbol, query).await
@@ -861,7 +846,7 @@ impl QueryRoot {
                         &waypoint,
                         query,
                     )
-                        .await
+                    .await
                 }
                 ShipyardShipBy::System(system) => {
                     database::ShipyardShip::get_last_by_system(
@@ -869,7 +854,7 @@ impl QueryRoot {
                         &system,
                         query,
                     )
-                        .await
+                    .await
                 }
                 ShipyardShipBy::ShipSymbol(symbol) => {
                     database::ShipyardShip::get_last_by_ship_symbol(
@@ -877,7 +862,7 @@ impl QueryRoot {
                         &symbol,
                         query,
                     )
-                        .await
+                    .await
                 }
             }
         } else {
@@ -996,8 +981,7 @@ impl QueryRoot {
         let context = ctx.data::<ConductorContext>()?;
         let query = paginated_query(page, page_size);
         let jump_gate_connections = if let Some(from) = from {
-            database::JumpGateConnection::get_all_from(&context.database_pool, &from, query)
-                .await?
+            database::JumpGateConnection::get_all_from(&context.database_pool, &from, query).await?
         } else {
             database::JumpGateConnection::get_all(&context.database_pool, query).await?
         };
@@ -1046,12 +1030,12 @@ impl QueryRoot {
             &context.database_pool,
             database::PaginatedQuery::unpaged(),
         )
-            .await?
-            .items
-            .into_iter()
-            .filter(|w| w.is_jump_gate())
-            .map(|w| (w.symbol.clone(), w))
-            .collect::<HashMap<_, _>>();
+        .await?
+        .items
+        .into_iter()
+        .filter(|w| w.is_jump_gate())
+        .map(|w| (w.symbol.clone(), w))
+        .collect::<HashMap<_, _>>();
 
         for connection in connection_map.values_mut() {
             connection.under_construction_a = gate_waypoints
@@ -1168,11 +1152,7 @@ impl QueryRoot {
     ) -> Result<gql_models::GQLRoutePage> {
         // Changed return type to GQLRoute
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let reg = database::Route::get_all(
-            database_pool,
-            paginated_query(page, page_size),
-        )
-        .await?;
+        let reg = database::Route::get_all(database_pool, paginated_query(page, page_size)).await?;
         Ok(reg.into()) // Added conversion
     }
 
@@ -1206,6 +1186,17 @@ impl QueryRoot {
     }
     async fn trade_manager(&self) -> gql_models::TradeManagerInfo {
         gql_models::TradeManagerInfo::new()
+    }
+
+    async fn cancel_token<'ctx>(
+        &self,
+        ctx: &async_graphql::Context<'ctx>,
+    ) -> Result<gql_models::GQLCancellationTokens> {
+        let context = ctx.data::<ConductorContext>()?;
+
+        let cancel_tokens = context.cancellation_tokens.as_ref();
+
+        Ok(cancel_tokens.into())
     }
 }
 

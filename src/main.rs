@@ -77,7 +77,7 @@ async fn main() -> anyhow::Result<()> {
         let reset_info = reset_runner::run_reset(
             &agent_token,
             database_pool.clone(),
-            &global_cancel_token,
+            global_cancel_token.clone(),
             socket_address.clone(),
         )
         .await?;

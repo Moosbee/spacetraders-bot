@@ -43,9 +43,9 @@ impl TransportPilot {
         )
         .await?
         .items
-                .into_iter()
-                .map(|w| (w.symbol.clone(), w))
-                .collect::<HashMap<_, _>>();
+        .into_iter()
+        .map(|w| (w.symbol.clone(), w))
+        .collect::<HashMap<_, _>>();
 
         let mut last_waypoint = ship.nav.waypoint_symbol.clone();
 
@@ -181,7 +181,7 @@ impl TransportPilot {
             ship.notify(true).await;
 
             let msg = tokio::select! {
-                _ = pilot.cancellation_token.cancelled() => {
+                _ = pilot.slow_cancellation_token.cancelled() => {
                     debug!(ship_symbol = %ship.symbol, "Cancellation token received");
                     None
                 },
@@ -292,7 +292,7 @@ impl TransportPilot {
         mining_waypoint: String,
     ) -> Result<()> {
         while ship.cargo.get_units_no_fuel() > 0 {
-            if pilot.cancellation_token.is_cancelled() {
+            if pilot.slow_cancellation_token.is_cancelled() {
                 tracing::info!(symbol = %ship.symbol, "Transport cycle cancelled");
                 break;
             }

@@ -98,7 +98,7 @@ impl TradingPilot {
         };
         ship.notify(true).await;
         select! {
-            _=pilot.cancellation_token.cancelled() => (),
+            _=pilot.slow_cancellation_token.cancelled() => (),
             _=tokio::time::sleep(std::time::Duration::from_millis(60_000+ rand::random::<u64>() % 1_000)) => (),
         }
         Ok(())

@@ -4097,3 +4097,39 @@ impl TradeManagerInfo {
         Ok(context.trade_manager.get_channel_state())
     }
 }
+
+#[derive(Debug, Clone, async_graphql::SimpleObject)]
+pub struct GQLCancellationTokens {
+    pub global_cancel_token: bool,
+    pub run_cancel_token: bool,
+    pub fast_manager_cancel_token: bool,
+    pub slow_manager_cancel_token: bool,
+    pub fast_ship_cancel_token: bool,
+    pub slow_ship_cancel_token: bool,
+}
+
+impl From<crate::utils::CancellationTokens> for GQLCancellationTokens {
+    fn from(value: crate::utils::CancellationTokens) -> Self {
+        Self {
+            global_cancel_token: value.global_cancel_token.is_cancelled(),
+            run_cancel_token: value.run_cancel_token.is_cancelled(),
+            fast_manager_cancel_token: value.fast_manager_cancel_token.is_cancelled(),
+            slow_manager_cancel_token: value.slow_manager_cancel_token.is_cancelled(),
+            fast_ship_cancel_token: value.fast_ship_cancel_token.is_cancelled(),
+            slow_ship_cancel_token: value.slow_ship_cancel_token.is_cancelled(),
+        }
+    }
+}
+
+impl From<&crate::utils::CancellationTokens> for GQLCancellationTokens {
+    fn from(value: &crate::utils::CancellationTokens) -> Self {
+        Self {
+            global_cancel_token: value.global_cancel_token.is_cancelled(),
+            run_cancel_token: value.run_cancel_token.is_cancelled(),
+            fast_manager_cancel_token: value.fast_manager_cancel_token.is_cancelled(),
+            slow_manager_cancel_token: value.slow_manager_cancel_token.is_cancelled(),
+            fast_ship_cancel_token: value.fast_ship_cancel_token.is_cancelled(),
+            slow_ship_cancel_token: value.slow_ship_cancel_token.is_cancelled(),
+        }
+    }
+}

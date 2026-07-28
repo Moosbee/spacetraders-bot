@@ -25,7 +25,8 @@ use crate::{
 pub struct Pilot {
     context: ConductorContext,
     ship_symbol: String,
-    cancellation_token: CancellationToken,
+    slow_cancellation_token: CancellationToken,
+    fast_cancellation_token: CancellationToken,
     construction_pilot: ConstructionPilot,
     trading_pilot: TradingPilot,
     scraper_pilot: ScraperPilot,
@@ -38,14 +39,16 @@ impl Pilot {
     pub fn new(
         context: ConductorContext,
         ship_symbol: String,
-        cancellation_token: CancellationToken,
+        fast_cancellation_token: CancellationToken,
+        slow_cancellation_token: CancellationToken,
     ) -> Self {
         debug!(ship_symbol, "Creating pilot for ship");
 
         Self {
             context: context.clone(),
             ship_symbol: ship_symbol.clone(),
-            cancellation_token,
+            fast_cancellation_token,
+            slow_cancellation_token,
             construction_pilot: ConstructionPilot::new(context.clone(), ship_symbol.clone()),
             trading_pilot: TradingPilot::new(context.clone(), ship_symbol.clone()),
             scraper_pilot: ScraperPilot::new(context.clone(), ship_symbol.clone()),
@@ -56,7 +59,7 @@ impl Pilot {
     }
 
     pub fn get_cancel_token(&self) -> CancellationToken {
-        self.cancellation_token.clone()
+        self.slow_cancellation_token.clone()
     }
 
     #[instrument(level = "info", name = "spacetraders::pilot::pilot_ship", skip(self), fields(self.ship_symbol = %self.ship_symbol), err(Debug))]
@@ -70,8 +73,17 @@ impl Pilot {
             500 + rand::random::<u64>() % 500,
         ))
         .await;
-        while !self.cancellation_token.is_cancelled() {
-            self.pilot_circle().await?;
+        while !self.slow_cancellation_token.is_cancelled()
+            && !self.fast_cancellation_token.is_cancelled()
+        {
+            tokio::select! {
+                _ = self.fast_cancellation_token.cancelled() => break,
+                erg = self.pilot_circle() => {
+                    if let Err(e) = erg {
+                        tracing::error!(ship_symbol = %self.ship_symbol, "Error while piloting ship: {}", e);
+                    }
+                },
+            };
         }
         Ok(())
     }

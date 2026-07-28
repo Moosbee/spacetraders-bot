@@ -19,7 +19,8 @@ use super::{
 pub type ChartManagerReceiver = tokio::sync::mpsc::Receiver<ChartManagerMessage>;
 
 pub struct ChartManager {
-    cancel_token: tokio_util::sync::CancellationToken,
+    fast_cancel_token: tokio_util::sync::CancellationToken,
+    slow_cancel_token: tokio_util::sync::CancellationToken,
     context: ConductorContext,
     receiver: ChartManagerReceiver,
     running_charts: HashSet<String>,
@@ -33,12 +34,14 @@ impl ChartManager {
     }
 
     pub fn new(
-        cancel_token: tokio_util::sync::CancellationToken,
+        fast_cancel_token: tokio_util::sync::CancellationToken,
+        slow_cancel_token: tokio_util::sync::CancellationToken,
         context: ConductorContext,
         receiver: ChartManagerReceiver,
     ) -> Self {
         Self {
-            cancel_token,
+            fast_cancel_token,
+            slow_cancel_token,
             context,
             receiver,
             running_charts: HashSet::new(),
@@ -52,10 +55,21 @@ impl ChartManager {
         err(Debug)
     )]
     async fn run_chart_worker(&mut self) -> Result<()> {
-        while !self.cancel_token.is_cancelled() {
+        let fast_cancel_token = self.fast_cancel_token.clone();
+
+        let _erg = tokio::select! {
+            _ = fast_cancel_token.cancelled() => Ok(()),
+            erg = self.run_chart_worker_loop() => erg,
+        }?;
+
+        Ok(())
+    }
+
+    async fn run_chart_worker_loop(&mut self) -> Result<()> {
+        while !self.slow_cancel_token.is_cancelled() {
             let message = tokio::select! {
                 message = self.receiver.recv() => message,
-                _ = self.cancel_token.cancelled() => None
+                _ = self.slow_cancel_token.cancelled() => None
             };
             tracing::debug!(message = ?message, "Received chartManager message");
 
@@ -182,6 +196,6 @@ impl Manager for ChartManager {
     }
 
     fn get_cancel_token(&self) -> &tokio_util::sync::CancellationToken {
-        &self.cancel_token
+        &self.slow_cancel_token
     }
 }

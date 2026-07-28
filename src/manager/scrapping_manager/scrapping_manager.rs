@@ -17,7 +17,8 @@ pub type ScrappingManagerReceiver = tokio::sync::mpsc::Receiver<ScrappingManager
 
 #[derive(Debug)]
 pub struct ScrappingManager {
-    cancel_token: tokio_util::sync::CancellationToken,
+    fast_cancel_token: tokio_util::sync::CancellationToken,
+    slow_cancel_token: tokio_util::sync::CancellationToken,
     context: ConductorContext,
     receiver: ScrappingManagerReceiver,
     scrap_waypoints: HashMap<String, String>,
@@ -31,12 +32,14 @@ impl ScrappingManager {
     }
 
     pub fn new(
-        cancel_token: tokio_util::sync::CancellationToken,
+        fast_cancel_token: tokio_util::sync::CancellationToken,
+        slow_cancel_token: tokio_util::sync::CancellationToken,
         context: ConductorContext,
         receiver: ScrappingManagerReceiver,
     ) -> Self {
         Self {
-            cancel_token,
+            fast_cancel_token,
+            slow_cancel_token,
             context,
             receiver,
             scrap_waypoints: HashMap::new(),
@@ -55,73 +58,12 @@ impl ScrappingManager {
         }))
         .await;
 
-        let erg = { self.context.config.read().await.scrap_agents };
-        let agent_join_handle = if erg {
-            let api = self.context.api.clone();
-            let database_pool = self.context.database_pool.clone();
-            let cancel_token = self.cancel_token.child_token();
-            let interval = 1000 * 60 * 60;
-            tokio::spawn(async move {
-                Self::run_agent_worker(&api, &database_pool, cancel_token, interval).await
-            })
-        } else {
-            tokio::spawn(async move { Ok(()) })
-        };
+        let (agent_join_handle, system_join_handle) = self.init_other_scrappers().await?;
 
-        let erg = { self.context.config.read().await.update_all_systems };
-        let system_join_handle: tokio::task::JoinHandle<
-            std::result::Result<(), crate::error::Error>,
-        > = if erg {
-            let api = self.context.api.clone();
-            let database_pool = self.context.database_pool.clone();
-
-            tokio::spawn(
-                async move {
-                    crate::manager::scrapping_manager::utils::update_all_systems(
-                        &database_pool,
-                        &api,
-                    )
-                    .await?;
-                    let gates = database::Waypoint::get_all(
-                        &database_pool,
-                        database::PaginatedQuery::unpaged(),
-                    )
-                    .await?
-                    .items
-                    .into_iter()
-                    .filter(|w| w.is_jump_gate())
-                    .filter(|w| w.is_charted())
-                    .map(|w| {
-                        let chart = w.is_charted();
-                        (w.system_symbol, w.symbol, chart)
-                    })
-                    .collect::<Vec<_>>();
-                    let jump_gates =
-                        crate::manager::scrapping_manager::utils::get_all_jump_gates(&api, gates)
-                            .await?;
-
-                    let jump_gates_len = jump_gates.len();
-                    crate::manager::scrapping_manager::utils::update_jump_gates(
-                        &database_pool,
-                        jump_gates,
-                    )
-                    .await?;
-                    debug!("Updated jump gates {}", jump_gates_len);
-
-                    Ok(())
-                }
-                .instrument(tracing::info_span!(
-                    "spacetraders::manager::scrapping_update_systems"
-                )),
-            )
-        } else {
-            tokio::spawn(async move { Ok(()) })
-        };
-
-        while !self.cancel_token.is_cancelled() {
+        while !self.slow_cancel_token.is_cancelled() {
             let message = tokio::select! {
                 message = self.receiver.recv() => message,
-                _ = self.cancel_token.cancelled() => None
+                _ = self.slow_cancel_token.cancelled() => None
             };
             debug!(
                 "Received scrappingManager message: {:?}",
@@ -154,18 +96,70 @@ impl ScrappingManager {
         Ok(())
     }
 
+    async fn init_other_scrappers(
+        &self,
+    ) -> Result<(
+        tokio::task::JoinHandle<std::result::Result<(), crate::error::Error>>,
+        tokio::task::JoinHandle<std::result::Result<(), crate::error::Error>>,
+    )> {
+        let erg = { self.context.config.read().await.scrap_agents };
+        let agent_join_handle = if erg {
+            let api = self.context.api.clone();
+            let database_pool = self.context.database_pool.clone();
+            let slow_cancel_token = self.slow_cancel_token.child_token();
+            let fast_cancel_token = self.fast_cancel_token.child_token();
+            let interval = 1000 * 60 * 60;
+            tokio::spawn(async move {
+                let _erg = tokio::select! {
+                  _ = fast_cancel_token.cancelled() =>  Ok(()),
+                  erg = Self::run_agent_worker(&api, &database_pool, slow_cancel_token, interval) => erg,
+                };
+                Ok(())
+            })
+        } else {
+            tokio::spawn(async move { Ok(()) })
+        };
+
+        let erg = { self.context.config.read().await.update_all_systems };
+        let system_join_handle: tokio::task::JoinHandle<
+            std::result::Result<(), crate::error::Error>,
+        > = if erg {
+            let api = self.context.api.clone();
+            let database_pool = self.context.database_pool.clone();
+            let fast_cancel_token = self.fast_cancel_token.child_token();
+
+            tokio::spawn(
+                async move {
+                    tokio::select! {
+                      _ = fast_cancel_token.cancelled() =>  Ok(()),
+                      erg = Self::run_system_worker(&api, &database_pool) => erg,
+                    };
+
+                    Ok(())
+                }
+                .instrument(tracing::info_span!(
+                    "spacetraders::manager::scrapping_update_systems"
+                )),
+            )
+        } else {
+            tokio::spawn(async move { Ok(()) })
+        };
+
+        Ok((agent_join_handle, system_join_handle))
+    }
+
     #[tracing::instrument(
         level = "info",
         name = "spacetraders::manager::scrapping_agent_worker",
-        skip(api, database_pool, cancel_token)
+        skip(api, database_pool, slow_cancel_token)
     )]
     async fn run_agent_worker(
         api: &space_traders_client::Api,
         database_pool: &DbPool,
-        cancel_token: tokio_util::sync::CancellationToken,
+        slow_cancel_token: tokio_util::sync::CancellationToken,
         interval: u64,
     ) -> Result<()> {
-        while !cancel_token.is_cancelled() {
+        while !slow_cancel_token.is_cancelled() {
             tokio::time::sleep(Duration::from_millis(interval)).await;
             super::utils::update_all_agents(api, database_pool).await?;
         }
@@ -216,85 +210,6 @@ impl ScrappingManager {
 
         Ok(())
     }
-
-    // #[tracing::instrument(
-    //     level = "info",
-    //     name = "spacetraders::manager::scrapping_manager::get_required_ships",
-    //     skip(all_ships, all_systems_hashmap)
-    // )]
-    // pub fn get_required_ships(
-    //     all_ships: &[ship::MyShip],
-    //     all_systems_hashmap: &HashMap<String, HashMap<String, database::Waypoint>>,
-    // ) -> Result<RequiredShips> {
-    //     let mut systems: HashMap<String, Vec<String>> = HashMap::new();
-
-    //     for s in all_ships {
-    //         let is_scrapper = s.role == database::ShipInfoRole::Scraper
-    //             || (s.role == database::ShipInfoRole::Transfer
-    //                 && match &s.status {
-    //                     ship::ShipStatus::Transfer { role, .. } => {
-    //                         role == &Some(database::ShipInfoRole::Scraper)
-    //                     }
-    //                     _ => false,
-    //                 });
-
-    //         if !is_scrapper {
-    //             continue;
-    //         }
-
-    //         let system_str = match &s.role {
-    //             database::ShipInfoRole::Transfer => match &s.status {
-    //                 ship::ShipStatus::Transfer { system_symbol, .. } => {
-    //                     system_symbol.clone().unwrap_or_default()
-    //                 }
-    //                 _ => s.nav.system_symbol.clone(),
-    //             },
-    //             _ => s.nav.system_symbol.clone(),
-    //         };
-
-    //         let system = systems.get_mut(&system_str);
-    //         if let Some(system) = system {
-    //             system.push(s.symbol.clone());
-    //         } else {
-    //             systems.insert(system_str, vec![s.symbol.clone()]);
-    //         }
-    //     }
-
-    //     let mut required_ships = RequiredShips::new();
-
-    //     for (system, ships) in systems {
-    //         let waypoints = all_systems_hashmap
-    //             .get(&system)
-    //             .map(|wps| {
-    //                 wps.values()
-    //                     .filter(|w| w.is_marketplace() || w.is_shipyard())
-    //                     .count()
-    //             })
-    //             .unwrap_or_default();
-    //         let diff = (waypoints as i64) - (ships.len() as i64);
-    //         if diff <= 0 {
-    //             continue;
-    //         };
-
-    //         let sys_ships = (0..(diff as usize))
-    //             .map(|_| {
-    //                 (
-    //                     RequestedShipType::Scrapper,
-    //                     Priority::High,
-    //                     Budget::High,
-    //                     database::ShipInfoRole::Scraper,
-    //                 )
-    //             })
-    //             .collect::<Vec<_>>();
-
-    //         let before = required_ships.ships.insert(system, sys_ships);
-    //         if before.is_some() {
-    //             log::warn!("Scrapping Ship contains ships");
-    //         }
-    //     }
-
-    //     Ok(required_ships)
-    // }
 
     async fn complete_scrapping(
         &mut self,
@@ -437,6 +352,34 @@ impl ScrappingManager {
 
         Ok(waypoints)
     }
+
+    async fn run_system_worker(
+        api: &space_traders_client::Api,
+        database_pool: &DbPool,
+    ) -> Result<()> {
+        crate::manager::scrapping_manager::utils::update_all_systems(&database_pool, &api).await?;
+        let gates =
+            database::Waypoint::get_all(&database_pool, database::PaginatedQuery::unpaged())
+                .await?
+                .items
+                .into_iter()
+                .filter(|w| w.is_jump_gate())
+                .filter(|w| w.is_charted())
+                .map(|w| {
+                    let chart = w.is_charted();
+                    (w.system_symbol, w.symbol, chart)
+                })
+                .collect::<Vec<_>>();
+        let jump_gates =
+            crate::manager::scrapping_manager::utils::get_all_jump_gates(&api, gates).await?;
+
+        let jump_gates_len = jump_gates.len();
+        crate::manager::scrapping_manager::utils::update_jump_gates(&database_pool, jump_gates)
+            .await?;
+        debug!("Updated jump gates {}", jump_gates_len);
+
+        Ok(())
+    }
 }
 
 impl Manager for ScrappingManager {
@@ -451,6 +394,6 @@ impl Manager for ScrappingManager {
     }
 
     fn get_cancel_token(&self) -> &tokio_util::sync::CancellationToken {
-        &self.cancel_token
+        &self.slow_cancel_token
     }
 }

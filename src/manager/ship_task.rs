@@ -9,9 +9,11 @@ pub type ShipTaskHandlerReceiver = tokio::sync::mpsc::Receiver<database::ShipInf
 
 pub struct ShipTaskHandler {
     receiver: ShipTaskHandlerReceiver,
-    ship_cancel_token: tokio_util::sync::CancellationToken,
-    manager_cancel_token: tokio_util::sync::CancellationToken,
-    cancel_token: tokio_util::sync::CancellationToken,
+    slow_ship_cancel_token: tokio_util::sync::CancellationToken,
+    fast_ship_cancel_token: tokio_util::sync::CancellationToken,
+    slow_manager_cancel_token: tokio_util::sync::CancellationToken,
+    slow_cancel_token: tokio_util::sync::CancellationToken,
+    fast_cancel_token: tokio_util::sync::CancellationToken,
     context: ConductorContext,
 }
 
@@ -35,17 +37,21 @@ impl ShipTaskHandler {
         (receiver, ShipTaskMessanger { sender })
     }
     pub fn new(
-        ship_cancel_token: tokio_util::sync::CancellationToken,
-        manager_cancel_token: tokio_util::sync::CancellationToken,
-        cancel_token: tokio_util::sync::CancellationToken,
+        fast_ship_cancel_token: tokio_util::sync::CancellationToken,
+        slow_ship_cancel_token: tokio_util::sync::CancellationToken,
+        fast_cancel_token: tokio_util::sync::CancellationToken,
+        slow_cancel_token: tokio_util::sync::CancellationToken,
+        slow_manager_cancel_token: tokio_util::sync::CancellationToken,
         context: ConductorContext,
         receiver: ShipTaskHandlerReceiver,
     ) -> Self {
         Self {
-            ship_cancel_token,
+            fast_cancel_token,
+            fast_ship_cancel_token,
+            slow_ship_cancel_token,
             receiver,
-            manager_cancel_token,
-            cancel_token,
+            slow_manager_cancel_token,
+            slow_cancel_token,
             context,
         }
     }
@@ -65,24 +71,20 @@ impl ShipTaskHandler {
             let pilot = crate::pilot::Pilot::new(
                 self.context.clone(),
                 ship_name.symbol.clone(),
-                self.ship_cancel_token.child_token(),
+                self.fast_ship_cancel_token.child_token(),
+                self.slow_ship_cancel_token.child_token(),
             );
-            // set.build_task()
-            //     .name(format!("ship-ds-{}", ship_name.symbol).as_str())
-            //     .spawn(async move {
-            //         (
-            //             ship_name.symbol.clone(),
-            //             pilot.pilot_ship().await.map_err(anyhow::Error::from),
-            //         )
-            //     })
-            //     .unwrap();
 
-            set.spawn(async move {
-                (
-                    ship_name.symbol.clone(),
-                    pilot.pilot_ship().await.map_err(anyhow::Error::from),
-                )
-            });
+            utils::task_spawn_set(
+                &mut set,
+                format!("ship-as-{}", ship_name.symbol).as_str(),
+                async move {
+                    (
+                        ship_name.symbol.clone(),
+                        pilot.pilot_ship().await.map_err(anyhow::Error::from),
+                    )
+                },
+            );
         }
 
         loop {
@@ -91,21 +93,24 @@ impl ShipTaskHandler {
                     match ship_name {
                         Some(ship_name) => {
                             tracing::debug!(ship_name = ?ship_name, "Starting new ship task in await_all");
-                            let pilot = crate::pilot::Pilot::new(self.context.clone(), ship_name.symbol.clone(), self.ship_cancel_token.child_token());
-                            // set.build_task()
-                            //     .name(format!("ship-as-{}", ship_name.symbol).as_str())
-                            //     .spawn(async move {
-                            //         (
-                            //             ship_name.symbol.clone(),
-                            //             pilot.pilot_ship().await.map_err(anyhow::Error::from),
-                            //         )
-                            //     }).unwrap();
-                            set.spawn(async move {
-                                (
-                                    ship_name.symbol.clone(),
-                                    pilot.pilot_ship().await.map_err(anyhow::Error::from),
-                                )
-                            });
+                            let pilot = crate::pilot::Pilot::new(
+                                self.context.clone(),
+                                ship_name.symbol.clone(),
+                                self.fast_ship_cancel_token.child_token(),
+                                self.slow_ship_cancel_token.child_token()
+                            );
+
+                            utils::task_spawn_set(
+                                &mut set,
+                                format!("ship-as-{}", ship_name.symbol).as_str(),
+                                async move {
+                                    (
+                                        ship_name.symbol.clone(),
+                                        pilot.pilot_ship().await.map_err(anyhow::Error::from),
+                                    )
+                                },
+                            );
+
                         }
                         None => {
                             tracing::info!("ShipTaskHandler::await_all: receiver is closed");
@@ -121,12 +126,10 @@ impl ShipTaskHandler {
                           tracing::debug!(ship_name = %ship_name, erg = ?erg, "Finished ship in await_all");
                         }
                         Ok((ship_name,Err(e))) => {
-                                                    tracing::error!(ship_name = %ship_name, error = %e, backtrace = ?e.backtrace(), source = ?e.source(), root_cause = ?e.root_cause(), "Ship error occurred");
+                          tracing::error!(ship_name = %ship_name, error = %e, backtrace = ?e.backtrace(), source = ?e.source(), root_cause = ?e.root_cause(), "Ship error occurred");
                         }
                         Err(e) => {
-                            tracing::error!(error = ?e, "Ship join error");
-
-
+                          tracing::error!(error = ?e, "Ship join error");
                         }
                       }
                     },
@@ -136,10 +139,19 @@ impl ShipTaskHandler {
                     }
                   }
                 }
+                _ = self.fast_cancel_token.cancelled() => {
+                    tracing::info!("ShipTaskHandler::await_all: fast cancel token");
+                    break;
+                }
+                _ = self.slow_cancel_token.cancelled() => {
+                    tracing::info!("ShipTaskHandler::await_all: slow cancel token");
+                    break;
+                }
             }
         }
 
-        self.manager_cancel_token.cancel();
+        self.slow_ship_cancel_token.cancel();
+        self.slow_manager_cancel_token.cancel();
         Ok(())
     }
 }
@@ -158,6 +170,6 @@ impl Manager for ShipTaskHandler {
     }
 
     fn get_cancel_token(&self) -> &tokio_util::sync::CancellationToken {
-        &self.cancel_token
+        &self.slow_cancel_token
     }
 }

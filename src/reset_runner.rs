@@ -21,7 +21,7 @@ use crate::{
         ship_task::ShipTaskHandler,
         trade_manager::TradeManager,
     },
-    utils::{ConductorContext, RunInfo},
+    utils::{CancellationTokens, ConductorContext, RunInfo},
 };
 
 #[derive(Debug, Clone)]
@@ -40,7 +40,7 @@ pub struct ResetSummary {
 pub async fn run_reset(
     api_key: &str,
     database_pool: database::DbPool,
-    global_cancel_token: &CancellationToken,
+    global_cancel_token: CancellationToken,
     socket_address: String,
 ) -> Result<ResetSummary, anyhow::Error> {
     let api: space_traders_client::Api =
@@ -50,7 +50,8 @@ pub async fn run_reset(
 
     let (run_info, my_agent, ships) = get_api_main_info(&api).await?;
 
-    let (context, managers) = init_min_context(api, database_pool).await?;
+    let (context, managers) =
+        init_min_context(api, database_pool, run_cancel_token, global_cancel_token).await?;
 
     let context = populate_context(context, &my_agent, run_info).await?;
 
@@ -62,7 +63,7 @@ pub async fn run_reset(
 
     ensure_main_system_fleets(&context).await?;
 
-    let managers = init_managers(run_cancel_token, &context, managers, socket_address).await?;
+    let managers = init_managers(&context, managers, socket_address).await?;
 
     setup_ships(&context, ships).await?;
 
@@ -290,6 +291,8 @@ async fn init_system(
 async fn init_min_context(
     api: space_traders_client::Api,
     database_pool: database::DbPool,
+    run_cancel_token: CancellationToken,
+    global_cancel_token: CancellationToken,
 ) -> Result<(ConductorContext, ManagerReceiver), anyhow::Error> {
     let ship_manager = Arc::new(ship::ShipManager::new(
         ship::my_ship_update::InterShipBroadcaster::new(1024),
@@ -306,6 +309,15 @@ async fn init_min_context(
 
     let budget_manager = manager::budget_manager::BudgetManager::default();
 
+    let cancellation_tokens = CancellationTokens {
+        global_cancel_token,
+        fast_manager_cancel_token: run_cancel_token.child_token(),
+        slow_manager_cancel_token: run_cancel_token.child_token(),
+        fast_ship_cancel_token: run_cancel_token.child_token(),
+        slow_ship_cancel_token: run_cancel_token.child_token(),
+        run_cancel_token,
+    };
+
     let context = ConductorContext {
         api,
         database_pool,
@@ -321,6 +333,7 @@ async fn init_min_context(
         budget_manager: Arc::new(budget_manager),
         run_info: Arc::new(RwLock::new(RunInfo::default())),
         config: Arc::new(RwLock::new(crate::utils::Config::default())),
+        cancellation_tokens: Arc::new(cancellation_tokens),
     };
 
     let manager_receiver = ManagerReceiver {
@@ -351,59 +364,69 @@ struct ManagerReceiver {
 }
 
 async fn init_managers(
-    run_cancel_token: CancellationToken,
     context: &ConductorContext,
     manager_receivers: ManagerReceiver,
     socket_address: String,
 ) -> Result<ManagerManager, anyhow::Error> {
-    let manager_cancel_token = run_cancel_token.child_token();
-    let ship_cancel_token = run_cancel_token.child_token();
+    let slow_manager_cancel_token = &context.cancellation_tokens.slow_manager_cancel_token;
+    let fast_manager_cancel_token = &context.cancellation_tokens.fast_manager_cancel_token;
+    let slow_ship_cancel_token = &context.cancellation_tokens.slow_ship_cancel_token;
+    let fast_ship_cancel_token = &context.cancellation_tokens.fast_ship_cancel_token;
 
     let construction_manager = ConstructionManager::new(
-        manager_cancel_token.child_token(),
+        fast_manager_cancel_token.child_token(),
+        slow_manager_cancel_token.child_token(),
         context.clone(),
         manager_receivers.construction_manager,
     );
     let contract_manager = ContractManager::new(
-        manager_cancel_token.child_token(),
+        fast_manager_cancel_token.child_token(),
+        slow_manager_cancel_token.child_token(),
         context.clone(),
         manager_receivers.contract_manager,
     );
     let mining_manager = MiningManager::new(
-        manager_cancel_token.child_token(),
+        fast_manager_cancel_token.child_token(),
+        slow_manager_cancel_token.child_token(),
         context.clone(),
         manager_receivers.mining_manager,
         manager_receivers.transfer_manager,
         context.config.read().await.max_miners_per_waypoint,
     );
     let scrapping_manager = ScrappingManager::new(
-        manager_cancel_token.child_token(),
+        fast_manager_cancel_token.child_token(),
+        slow_manager_cancel_token.child_token(),
         context.clone(),
         manager_receivers.scrapping_manager,
     );
     let trade_manager = TradeManager::init(
-        manager_cancel_token.child_token(),
+        fast_manager_cancel_token.child_token(),
+        slow_manager_cancel_token.child_token(),
         context.clone(),
         manager_receivers.trade_manager,
     )
     .await?;
 
     let chart_manager = ChartManager::new(
-        manager_cancel_token.child_token(),
+        fast_manager_cancel_token.child_token(),
+        slow_manager_cancel_token.child_token(),
         context.clone(),
         manager_receivers.chart_manager,
     );
 
     let fleet_manager = FleetManager::new(
-        manager_cancel_token.child_token(),
+        fast_manager_cancel_token.child_token(),
+        slow_manager_cancel_token.child_token(),
         context.clone(),
         manager_receivers.fleet_manager,
     );
 
     let ship_task_handler = ShipTaskHandler::new(
-        ship_cancel_token.clone(),
-        manager_cancel_token.clone(),
-        manager_cancel_token.child_token(),
+        fast_ship_cancel_token.clone(),
+        slow_ship_cancel_token.clone(),
+        fast_manager_cancel_token.child_token(),
+        fast_manager_cancel_token.child_token(),
+        slow_manager_cancel_token.clone(),
         context.clone(),
         manager_receivers.ship_task,
     );
@@ -411,8 +434,7 @@ async fn init_managers(
     let control_api = control_api::server::ControlApiServer::new(
         context.clone(),
         context.ship_manager.get_rx(),
-        manager_cancel_token.child_token(),
-        ship_cancel_token.clone(),
+        fast_manager_cancel_token.child_token(),
         socket_address,
     );
 

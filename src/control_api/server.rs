@@ -22,9 +22,8 @@ use crate::{
 
 pub struct ControlApiServer {
     context: ConductorContext,
-    cancellation_token: CancellationToken,
+    fast_cancellation_token: CancellationToken,
     ship_rx: Option<tokio::sync::broadcast::Receiver<ship::MyShip>>,
-    ship_cancellation_token: CancellationToken,
     socket_address: String,
 }
 
@@ -32,15 +31,13 @@ impl ControlApiServer {
     pub fn new(
         context: ConductorContext,
         ship_rx: tokio::sync::broadcast::Receiver<ship::MyShip>,
-        cancellation_token: CancellationToken,
-        ship_cancellation_token: CancellationToken,
+        fast_cancellation_token: CancellationToken,
         socket_address: String,
     ) -> Self {
         Self {
             context,
-            cancellation_token,
+            fast_cancellation_token,
             ship_rx: Some(ship_rx),
-            ship_cancellation_token,
             socket_address,
         }
     }
@@ -147,7 +144,7 @@ impl ControlApiServer {
         tracing::info!(socket_address = %socket_address, "GraphiQL IDE available at address");
 
         tokio::select! {
-            _ = self.cancellation_token.cancelled() => {
+            _ = self.fast_cancellation_token.cancelled() => {
                 tracing::info!("Server is shutting down due to cancellation");
             },
             _ = warp::serve(routes).run(socket_address).fuse() => {
@@ -176,6 +173,6 @@ impl Manager for ControlApiServer {
     }
 
     fn get_cancel_token(&self) -> &tokio_util::sync::CancellationToken {
-        &self.cancellation_token
+        &self.fast_cancellation_token
     }
 }

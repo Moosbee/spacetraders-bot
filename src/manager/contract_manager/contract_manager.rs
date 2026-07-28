@@ -19,7 +19,8 @@ pub type ContractManagerReceiver = tokio::sync::mpsc::Receiver<ContractManagerMe
 
 #[derive(Debug)]
 pub struct ContractManager {
-    cancel_token: tokio_util::sync::CancellationToken,
+    fast_cancel_token: tokio_util::sync::CancellationToken,
+    slow_cancel_token: tokio_util::sync::CancellationToken,
     context: ConductorContext,
     receiver: ContractManagerReceiver,
     current_contract: Option<models::Contract>,
@@ -36,13 +37,15 @@ impl ContractManager {
     }
 
     pub fn new(
-        cancel_token: tokio_util::sync::CancellationToken,
+        fast_cancel_token: tokio_util::sync::CancellationToken,
+        slow_cancel_token: tokio_util::sync::CancellationToken,
         context: ConductorContext,
         receiver: ContractManagerReceiver,
     ) -> Self {
         tracing::debug!("Creating new ContractManager");
         Self {
-            cancel_token,
+            fast_cancel_token,
+            slow_cancel_token,
             context,
             receiver,
             current_contract: None,
@@ -95,13 +98,22 @@ impl ContractManager {
                 panic!("Too many contracts");
             }
         }
-
         debug!("Starting contract worker loop");
 
-        while !self.cancel_token.is_cancelled() {
+        let fast_cancel_token = self.fast_cancel_token.clone();
+        let _erg = tokio::select! {
+            _ = fast_cancel_token.cancelled() => Ok(()),
+            erg = self.run_contract_worker_loop() => erg,
+        }?;
+
+        Ok(())
+    }
+
+    async fn run_contract_worker_loop(&mut self) -> Result<()> {
+        while !self.slow_cancel_token.is_cancelled() {
             let message = tokio::select! {
                 message = self.receiver.recv() => message,
-                _ = self.cancel_token.cancelled() => None
+                _ = self.slow_cancel_token.cancelled() => None
             };
             debug!("Received message: {:?}", message);
 
@@ -160,54 +172,6 @@ impl ContractManager {
 
         Ok(())
     }
-
-    // #[tracing::instrument(
-    //     level = "info",
-    //     name = "spacetraders::manager::contract_manager::get_required_ships",
-    //     skip(context)
-    // )]
-    // pub async fn get_required_ships(context: &ConductorContext) -> Result<RequiredShips> {
-    //     let db_ships = database::ShipInfo::get_by_role(
-    //         &context.database_pool,
-    //         &database::ShipInfoRole::Contract,
-    //     )
-    //     .await?;
-    //     let all_ships = context
-    //         .ship_manager
-    //         .get_all_clone()
-    //         .await
-    //         .into_values()
-    //         .filter(|ship| {
-    //             (ship.role == database::ShipInfoRole::Contract
-    //                 || db_ships.iter().any(|db_ship| db_ship.symbol == ship.symbol))
-    //                 && ship.cargo.capacity >= 40
-    //         })
-    //         .collect::<Vec<_>>();
-
-    //     let headquarters = { context.run_info.read().await.headquarters.clone() };
-
-    //     let mut contract_systems = HashSet::new();
-    //     if contract_systems.is_empty() {
-    //         contract_systems.insert(headquarters.clone());
-    //     }
-    //     let ships = if all_ships.is_empty() {
-    //         HashMap::from_iter(
-    //             vec![(
-    //                 contract_systems.iter().next().unwrap().clone(),
-    //                 vec![(
-    //                     RequestedShipType::Transporter,
-    //                     Priority::High,
-    //                     Budget::Medium,
-    //                     database::ShipInfoRole::Contract,
-    //                 )],
-    //             )]
-    //             .into_iter(),
-    //         )
-    //     } else {
-    //         HashMap::new()
-    //     };
-    //     Ok(RequiredShips { ships })
-    // }
 
     async fn request_next_shipment(
         &mut self,
@@ -744,6 +708,6 @@ impl Manager for ContractManager {
     }
 
     fn get_cancel_token(&self) -> &tokio_util::sync::CancellationToken {
-        &self.cancel_token
+        &self.slow_cancel_token
     }
 }

@@ -226,6 +226,19 @@ where
     //     .unwrap()
 }
 
+pub fn task_spawn_set<
+    O: std::marker::Send + 'static,
+    F: std::future::Future<Output = O> + std::marker::Send + 'static,
+>(
+    set: &mut tokio::task::JoinSet<O>,
+    _name: &str,
+    future: F,
+) {
+    set.spawn(future);
+
+    // set.build_task().name(_name).spawn(future).unwrap();
+}
+
 pub fn get_random_faction() -> space_traders_client::models::FactionSymbol {
     let random_number = rand::thread_rng().gen_range(0..=18);
     match random_number {

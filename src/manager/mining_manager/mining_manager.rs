@@ -22,7 +22,8 @@ pub type MiningManagerReceiver = tokio::sync::mpsc::Receiver<MiningManagerMessag
 
 #[derive(Debug)]
 pub struct MiningManager {
-    cancel_token: tokio_util::sync::CancellationToken,
+    fast_cancel_token: tokio_util::sync::CancellationToken,
+    slow_cancel_token: tokio_util::sync::CancellationToken,
     context: ConductorContext,
     receiver: MiningManagerReceiver,
     transfer_manager: Arc<TransferManager>,
@@ -48,7 +49,8 @@ impl MiningManager {
     }
 
     pub fn new(
-        cancel_token: tokio_util::sync::CancellationToken,
+        fast_cancel_token: tokio_util::sync::CancellationToken,
+        slow_cancel_token: tokio_util::sync::CancellationToken,
         context: ConductorContext,
         receiver: MiningManagerReceiver,
         transfer_manager: Arc<TransferManager>,
@@ -56,7 +58,8 @@ impl MiningManager {
     ) -> Self {
         tracing::debug!("Initializing new MiningManager");
         Self {
-            cancel_token,
+            fast_cancel_token,
+            slow_cancel_token,
             receiver,
             transfer_manager,
             inventory_manager: ShipInventoryManager::new(),
@@ -73,10 +76,21 @@ impl MiningManager {
     )]
     async fn run_mining_worker(&mut self) -> Result<()> {
         tracing::debug!("Starting MiningManager worker");
-        while !self.cancel_token.is_cancelled() {
+        let fast_cancel_token = self.fast_cancel_token.clone();
+        let _erg = tokio::select! {
+            _ = fast_cancel_token.cancelled() => Ok(()),
+            res = self.run_mining_worker_loop() => res,
+        }?;
+
+        debug!("MiningManager worker stopped");
+        Ok(())
+    }
+
+    async fn run_mining_worker_loop(&mut self) -> Result<()> {
+        while !self.slow_cancel_token.is_cancelled() {
             let message: Option<MiningMessage> = tokio::select! {
                 message = self.receiver.recv() => message,
-                _ = self.cancel_token.cancelled() => None
+                _ = self.slow_cancel_token.cancelled() => None
             };
             match message {
                 Some(message) => {
@@ -90,7 +104,6 @@ impl MiningManager {
             }
         }
 
-        debug!("MiningManager worker stopped");
         Ok(())
     }
 
@@ -474,6 +487,6 @@ impl Manager for MiningManager {
     }
 
     fn get_cancel_token(&self) -> &tokio_util::sync::CancellationToken {
-        &self.cancel_token
+        &self.slow_cancel_token
     }
 }
