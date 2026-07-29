@@ -135,7 +135,7 @@ fn setup_logging() {
         None
     };
     let fmt_tracer = tracing_subscriber::fmt::Layer::new()
-        .with_span_events(format::FmtSpan::FULL)
+        .with_span_events(format::FmtSpan::NEW | format::FmtSpan::CLOSE)
         .json();
 
     // let tracing_tracy = tracing_tracy::TracyLayer::default();
