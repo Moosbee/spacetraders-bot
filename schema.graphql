@@ -1060,7 +1060,7 @@ type MutationRoot {
 	"""
 	Shutdown the server
 	"""
-	shutdown(global: Boolean!, run: Boolean!, slowManagers: Boolean!, fastManagers: Boolean!, slowShips: Boolean!, fastShips: Boolean!): GqlcancellationTokens!
+	shutdown(global: Boolean, run: Boolean, slowManagers: Boolean, fastManagers: Boolean, slowShips: Boolean, fastShips: Boolean): GqlcancellationTokens!
 }
 
 type NavigateConnection {
