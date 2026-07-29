@@ -63,7 +63,10 @@ impl ScrappingManager {
         while !self.slow_cancel_token.is_cancelled() {
             let message = tokio::select! {
                 message = self.receiver.recv() => message,
-                _ = self.slow_cancel_token.cancelled() => None
+                _ = self.slow_cancel_token.cancelled() => {
+                    tracing::info!("ScrappingManager slow cancel token triggered");
+                    None
+                }
             };
             debug!(
                 "Received scrappingManager message: {:?}",
@@ -111,7 +114,10 @@ impl ScrappingManager {
             let interval = 1000 * 60 * 60;
             tokio::spawn(async move {
                 let _erg = tokio::select! {
-                  _ = fast_cancel_token.cancelled() =>  Ok(()),
+                  _ = fast_cancel_token.cancelled() => {
+                    tracing::info!("ScrappingManager agent worker fast cancel token triggered");
+                    Ok(())
+                  },
                   erg = Self::run_agent_worker(&api, &database_pool, slow_cancel_token, interval) => erg,
                 };
                 Ok(())
@@ -130,10 +136,13 @@ impl ScrappingManager {
 
             tokio::spawn(
                 async move {
-                    tokio::select! {
-                      _ = fast_cancel_token.cancelled() =>  Ok(()),
+                    let _erg = tokio::select! {
+                      _ = fast_cancel_token.cancelled() => {
+                        tracing::info!("ScrappingManager system worker fast cancel token triggered");
+                        Ok(())
+                      },
                       erg = Self::run_system_worker(&api, &database_pool) => erg,
-                    };
+                    }?;
 
                     Ok(())
                 }

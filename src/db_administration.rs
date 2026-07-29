@@ -2,19 +2,23 @@ use anyhow::Result;
 use sqlx::{postgres::PgPoolOptions, Connection};
 use std::{path::Path, time::Duration};
 use tokio::process::Command;
-use tracing::{error, info};
+use tracing::{debug, error, info, instrument};
 
+#[instrument(skip(database_url, readyset_url), fields(%database_url))]
 pub async fn create_database_pool(
     database_url: &str,
     readyset_url: Option<&String>,
 ) -> Result<database::DbPool, anyhow::Error> {
+    info!("Creating database connection pool");
     let database_pool = PgPoolOptions::new()
         .max_connections(20)
         .acquire_timeout(Duration::from_secs(120))
         .connect(database_url)
         .await?;
+    debug!("Database pool created successfully");
 
     let readyset_pool = if let Some(readyset_url) = readyset_url {
+        debug!(%readyset_url, "Creating Readyset connection pool");
         Some(
             PgPoolOptions::new()
                 .max_connections(20)
@@ -32,7 +36,9 @@ pub async fn create_database_pool(
 }
 
 // destroys the current connection and completely resets the database
+#[instrument(skip(db, database_url))]
 pub async fn reset_database(db: database::DbPool, database_url: &str) -> Result<(), anyhow::Error> {
+    info!("Resetting database");
     if let Some(readyset_pool) = &db.readyset_pool {
         readyset_pool.close().await;
     }
@@ -64,12 +70,15 @@ pub async fn reset_database(db: database::DbPool, database_url: &str) -> Result<
         .execute(&mut conn)
         .await?;
 
+    info!(db_name = %db_name, "Database reset completed");
     Ok(())
 }
+
+#[instrument(skip(database_url))]
 pub async fn export_database(database_url: &str, file_name: &str) -> Result<String> {
     let dump_file = format!("./db_backup/{}.sql.gz", file_name);
 
-    info!("Dumping PostgreSQL database to {}", dump_file);
+    debug!("Dumping PostgreSQL database to {}", dump_file);
 
     // Create output directory if needed
     if let Some(parent) = Path::new(&dump_file).parent() {

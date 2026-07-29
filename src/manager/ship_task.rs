@@ -66,6 +66,8 @@ impl ShipTaskHandler {
 
         tokio::time::sleep(std::time::Duration::from_millis(500)).await;
 
+        tracing::info!("Starting ship_task await_all");
+
         while let Ok(ship_name) = self.receiver.try_recv() {
             tracing::debug!(ship_name = ?ship_name, "Starting initial ship task in await_all");
             let pilot = crate::pilot::Pilot::new(
@@ -86,6 +88,8 @@ impl ShipTaskHandler {
                 },
             );
         }
+
+        tracing::debug!("Starting ship_task await_all loop");
 
         loop {
             select! {

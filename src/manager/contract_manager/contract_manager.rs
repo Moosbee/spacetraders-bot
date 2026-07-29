@@ -102,7 +102,10 @@ impl ContractManager {
 
         let fast_cancel_token = self.fast_cancel_token.clone();
         let _erg = tokio::select! {
-            _ = fast_cancel_token.cancelled() => Ok(()),
+            _ = fast_cancel_token.cancelled() => {
+                tracing::info!("ContractManager fast cancel token triggered");
+                Ok(())
+            },
             erg = self.run_contract_worker_loop() => erg,
         }?;
 
@@ -113,7 +116,10 @@ impl ContractManager {
         while !self.slow_cancel_token.is_cancelled() {
             let message = tokio::select! {
                 message = self.receiver.recv() => message,
-                _ = self.slow_cancel_token.cancelled() => None
+                _ = self.slow_cancel_token.cancelled() => {
+                    tracing::info!("ContractManager slow cancel token triggered");
+                    None
+                }
             };
             debug!("Received message: {:?}", message);
 

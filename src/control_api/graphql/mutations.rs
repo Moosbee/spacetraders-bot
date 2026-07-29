@@ -452,37 +452,46 @@ impl MutationRoot {
     async fn shutdown<'ctx>(
         &self,
         ctx: &Context<'ctx>,
-        global: bool,
-        run: bool,
-        slow_managers: bool,
-        fast_managers: bool,
-        slow_ships: bool,
-        fast_ships: bool,
+        global: Option<bool>,
+        run: Option<bool>,
+        slow_managers: Option<bool>,
+        fast_managers: Option<bool>,
+        slow_ships: Option<bool>,
+        fast_ships: Option<bool>,
     ) -> super::Result<super::gql_models::GQLCancellationTokens> {
         let context = ctx.data::<ConductorContext>()?;
 
-        if global {
+        tracing::info!(
+            global = %global.unwrap_or(false),
+            run = %run.unwrap_or(false),
+            slow_managers = %slow_managers.unwrap_or(false),
+            fast_managers = %fast_managers.unwrap_or(false),
+            slow_ships = %slow_ships.unwrap_or(false),
+            fast_ships = %fast_ships.unwrap_or(false),
+            "Shutting down");
+
+        if global.unwrap_or(false) {
             context.cancellation_tokens.global_cancel_token.cancel();
         }
-        if run {
+        if run.unwrap_or(false) {
             context.cancellation_tokens.run_cancel_token.cancel();
         }
-        if slow_managers {
+        if slow_managers.unwrap_or(false) {
             context
                 .cancellation_tokens
                 .slow_manager_cancel_token
                 .cancel();
         }
-        if fast_managers {
+        if fast_managers.unwrap_or(false) {
             context
                 .cancellation_tokens
                 .fast_manager_cancel_token
                 .cancel();
         }
-        if slow_ships {
+        if slow_ships.unwrap_or(false) {
             context.cancellation_tokens.slow_ship_cancel_token.cancel();
         }
-        if fast_ships {
+        if fast_ships.unwrap_or(false) {
             context.cancellation_tokens.fast_ship_cancel_token.cancel();
         }
 

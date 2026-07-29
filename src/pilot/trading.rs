@@ -98,7 +98,9 @@ impl TradingPilot {
         };
         ship.notify(true).await;
         select! {
-            _=pilot.slow_cancellation_token.cancelled() => (),
+            _=pilot.slow_cancellation_token.cancelled() => {
+                tracing::debug!(ship_symbol = %ship.symbol, "Trading pilot slow cancellation token triggered during wait");
+            },
             _=tokio::time::sleep(std::time::Duration::from_millis(60_000+ rand::random::<u64>() % 1_000)) => (),
         }
         Ok(())

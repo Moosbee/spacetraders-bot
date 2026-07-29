@@ -73,7 +73,10 @@ impl TradeManager {
         debug!("Starting TradeManager worker");
         let fast_cancel_token = self.fast_cancel_token.clone();
         select! {
-            _ = fast_cancel_token.cancelled() => return Ok(()),
+            _ = fast_cancel_token.cancelled() => {
+                tracing::info!("TradeManager fast cancel token triggered");
+                return Ok(());
+            },
             erg = self.run_trade_worker_loop() => return erg,
         }
     }
@@ -82,7 +85,10 @@ impl TradeManager {
         while !self.slow_cancel_token.is_cancelled() {
             let message: Option<TradeMessage> = select! {
                 message = self.receiver.recv() => message,
-                _ = self.slow_cancel_token.cancelled() => None
+                _ = self.slow_cancel_token.cancelled() => {
+                    tracing::info!("TradeManager slow cancel token triggered");
+                    None
+                }
             };
             debug!("Received message: {:?}", message);
             match message {

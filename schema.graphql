@@ -160,7 +160,6 @@ type ConditionState {
 }
 
 type Config {
-	socketAddress: String!
 	controlStartSleep: Int!
 	controlActive: Boolean!
 	scrapperStartSleep: Int!
@@ -585,6 +584,15 @@ type GateConnPage {
 	pageSize: Int
 }
 
+type GqlcancellationTokens {
+	globalCancelToken: Boolean!
+	runCancelToken: Boolean!
+	fastManagerCancelToken: Boolean!
+	slowManagerCancelToken: Boolean!
+	fastShipCancelToken: Boolean!
+	slowShipCancelToken: Boolean!
+}
+
 type IdleAssignment {
 	controlled: Boolean!
 }
@@ -594,7 +602,6 @@ input InputChartingConfig {
 }
 
 input InputConfig {
-	socketAddress: String
 	controlStartSleep: Int
 	controlActive: Boolean
 	scrapperStartSleep: Int
@@ -1050,6 +1057,10 @@ type MutationRoot {
 	Resume a ship (set active=true in ship_info)
 	"""
 	resumeShip(shipSymbol: String!): Boolean!
+	"""
+	Shutdown the server
+	"""
+	shutdown(global: Boolean!, run: Boolean!, slowManagers: Boolean!, fastManagers: Boolean!, slowShips: Boolean!, fastShips: Boolean!): GqlcancellationTokens!
 }
 
 type NavigateConnection {
@@ -1132,6 +1143,7 @@ type QueryRoot {
 	miningManager: MiningManagerInfo!
 	scrappingManager: ScrappingManagerInfo!
 	tradeManager: TradeManagerInfo!
+	cancelToken: GqlcancellationTokens!
 }
 
 type ReactorInfo {

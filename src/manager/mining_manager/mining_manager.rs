@@ -78,7 +78,10 @@ impl MiningManager {
         tracing::debug!("Starting MiningManager worker");
         let fast_cancel_token = self.fast_cancel_token.clone();
         let _erg = tokio::select! {
-            _ = fast_cancel_token.cancelled() => Ok(()),
+            _ = fast_cancel_token.cancelled() => {
+                tracing::info!("MiningManager fast cancel token triggered");
+                Ok(())
+            },
             res = self.run_mining_worker_loop() => res,
         }?;
 
@@ -90,7 +93,10 @@ impl MiningManager {
         while !self.slow_cancel_token.is_cancelled() {
             let message: Option<MiningMessage> = tokio::select! {
                 message = self.receiver.recv() => message,
-                _ = self.slow_cancel_token.cancelled() => None
+                _ = self.slow_cancel_token.cancelled() => {
+                    tracing::info!("MiningManager slow cancel token triggered");
+                    None
+                }
             };
             match message {
                 Some(message) => {

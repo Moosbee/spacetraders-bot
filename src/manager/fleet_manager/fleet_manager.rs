@@ -58,7 +58,10 @@ impl FleetManager {
         let fast_cancel_token = self.fast_cancel_token.clone();
 
         let _erg = tokio::select! {
-            _ = fast_cancel_token.cancelled() => Ok(()),
+            _ = fast_cancel_token.cancelled() => {
+                tracing::info!("FleetManager fast cancel token triggered");
+                Ok(())
+            },
             erg = self.run_fleet_worker_loop() => erg,
         }?;
 
@@ -69,7 +72,10 @@ impl FleetManager {
         while !self.slow_cancel_token.is_cancelled() {
             let message = tokio::select! {
                 message = self.receiver.recv() => message,
-                _ = self.slow_cancel_token.cancelled() => None
+                _ = self.slow_cancel_token.cancelled() => {
+                    tracing::info!("FleetManager slow cancel token triggered");
+                    None
+                }
             };
             debug!("Received FleetManager message: {:?}", message);
 

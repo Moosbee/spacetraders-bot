@@ -64,11 +64,8 @@ impl Pilot {
 
     #[instrument(level = "info", name = "spacetraders::pilot::pilot_ship", skip(self), fields(self.ship_symbol = %self.ship_symbol), err(Debug))]
     pub async fn pilot_ship(&self) -> Result<()> {
-        {
-            let span = tracing::info_span!("spacetraders::pilot::pilot_ship_start", ship_symbol=%self.ship_symbol);
-            let _enter = span.enter();
-            debug!(ship_symbol = %self.ship_symbol, "Starting pilot for ship");
-        }
+        debug!(ship_symbol = %self.ship_symbol, "Starting pilot for ship");
+
         tokio::time::sleep(std::time::Duration::from_millis(
             500 + rand::random::<u64>() % 500,
         ))
@@ -77,7 +74,10 @@ impl Pilot {
             && !self.fast_cancellation_token.is_cancelled()
         {
             tokio::select! {
-                _ = self.fast_cancellation_token.cancelled() => break,
+                _ = self.fast_cancellation_token.cancelled() => {
+                    tracing::info!(ship_symbol = %self.ship_symbol, "Pilot fast cancellation token triggered");
+                    break;
+                },
                 erg = self.pilot_circle() => {
                     if let Err(e) = erg {
                         tracing::error!(ship_symbol = %self.ship_symbol, "Error while piloting ship: {}", e);

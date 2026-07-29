@@ -5,6 +5,7 @@ use ship::ShipManager;
 use space_traders_client::models;
 use tokio::sync::RwLock;
 use tokio_util::sync::CancellationToken;
+use tracing::instrument;
 use utils::{get_system_symbol, WaypointCan};
 
 use crate::{
@@ -37,48 +38,75 @@ pub struct ResetSummary {
     pub spendable: i64,
 }
 
+#[instrument(skip(api_key, database_pool, global_cancel_token))]
 pub async fn run_reset(
     api_key: &str,
     database_pool: database::DbPool,
     global_cancel_token: CancellationToken,
     socket_address: String,
 ) -> Result<ResetSummary, anyhow::Error> {
+    tracing::info!("Starting reset run");
+
     let api: space_traders_client::Api =
         space_traders_client::Api::new(Some(api_key.to_string()), 500, NonZeroU32::new(2).unwrap());
 
     let run_cancel_token = global_cancel_token.child_token();
 
     let (run_info, my_agent, ships) = get_api_main_info(&api).await?;
+    tracing::info!(
+        agent = %run_info.agent_symbol,
+        version = %run_info.version,
+        ship_count = ships.len(),
+        "Fetched API main info"
+    );
 
+    tracing::info!("Initializing minimal context");
     let (context, managers) =
         init_min_context(api, database_pool, run_cancel_token, global_cancel_token).await?;
 
     let context = populate_context(context, &my_agent, run_info).await?;
 
+    tracing::info!("Populating database with agent info");
     populate_database(&context, &my_agent).await?;
 
+    tracing::info!("Initializing export-import mappings");
     init_exports_to_imports(&context.api, &context.database_pool).await?;
 
+    tracing::info!("Initializing systems for ship locations");
     init_systems_with_ships(&context, &ships).await?;
 
+    tracing::info!("Ensuring main system fleets are populated");
     ensure_main_system_fleets(&context).await?;
 
+    tracing::info!("Initializing managers");
     let managers = init_managers(&context, managers, socket_address).await?;
 
+    tracing::info!(ship_count = ships.len(), "Setting up ships");
     setup_ships(&context, ships).await?;
 
+    tracing::info!("Starting managers");
     let managers_handles = managers.start();
 
+    tracing::info!("Starting ship pilots");
     start_ships(&context).await?;
 
+    tracing::info!("Waiting for managers to complete");
     let manager = managers_handles.wait().await?;
-    // wait(managers_handles).await?;
 
+    tracing::info!("Analyzing run results");
     let run_result = analyze_run(&context, &manager).await?;
+
+    tracing::info!(
+        agent = %run_result.agent_symbol,
+        funds = run_result.current_funds,
+        spendable = run_result.spendable,
+        "Reset run completed successfully"
+    );
 
     Ok(run_result)
 }
 
+#[instrument(skip(context, _manager))]
 async fn analyze_run(
     context: &ConductorContext,
     _manager: &ManagerManager,
@@ -98,6 +126,7 @@ async fn analyze_run(
     })
 }
 
+#[instrument(skip(context, ships))]
 async fn setup_ships(
     context: &ConductorContext,
     ships: Vec<models::Ship>,
@@ -113,6 +142,7 @@ async fn setup_ships(
     Ok(())
 }
 
+#[instrument(skip(api))]
 async fn get_api_main_info(
     api: &space_traders_client::Api,
 ) -> Result<(RunInfo, models::Agent, Vec<models::Ship>), anyhow::Error> {
@@ -140,6 +170,7 @@ async fn get_api_main_info(
     Ok((run_info, *my_agent.data, ships))
 }
 
+#[instrument(skip(context, my_agent))]
 async fn populate_context(
     mut context: ConductorContext,
     my_agent: &models::Agent,
@@ -167,6 +198,7 @@ async fn populate_context(
     Ok(context)
 }
 
+#[instrument(skip(api, database_pool))]
 async fn init_exports_to_imports(
     api: &space_traders_client::Api,
     database_pool: &database::DbPool,
@@ -184,6 +216,7 @@ async fn init_exports_to_imports(
     tracing::info!("Inserted export-import mappings into the database");
     Ok(())
 }
+#[instrument(skip(context, my_agent))]
 async fn populate_database(
     context: &ConductorContext,
     my_agent: &models::Agent,
@@ -197,6 +230,7 @@ async fn populate_database(
     Ok(())
 }
 
+#[instrument(skip(context))]
 async fn ensure_main_system_fleets(context: &ConductorContext) -> Result<(), anyhow::Error> {
     let main_system = { get_system_symbol(&context.run_info.read().await.headquarters) };
 
@@ -217,6 +251,7 @@ async fn ensure_main_system_fleets(context: &ConductorContext) -> Result<(), any
     Ok(())
 }
 
+#[instrument(skip(context, ships))]
 async fn init_systems_with_ships(
     context: &ConductorContext,
     ships: &[models::Ship],
@@ -246,6 +281,7 @@ async fn init_systems_with_ships(
     Ok(())
 }
 
+#[instrument(skip(database_pool, api))]
 async fn init_system(
     database_pool: &database::DbPool,
     api: &space_traders_client::Api,
@@ -288,6 +324,7 @@ async fn init_system(
     Ok(())
 }
 
+#[instrument(skip(api, database_pool, run_cancel_token, global_cancel_token))]
 async fn init_min_context(
     api: space_traders_client::Api,
     database_pool: database::DbPool,
@@ -308,6 +345,9 @@ async fn init_min_context(
     let ship_task_handler = ShipTaskHandler::create();
 
     let budget_manager = manager::budget_manager::BudgetManager::default();
+
+    // let fast_manager_cancel_token= run_cancel_token.child_token();
+    // let fast_ship_cancel_token = run_cancel_token.child_token();
 
     let cancellation_tokens = CancellationTokens {
         global_cancel_token,
@@ -363,6 +403,7 @@ struct ManagerReceiver {
     transfer_manager: Arc<manager::mining_manager::TransferManager>,
 }
 
+#[instrument(skip(context, manager_receivers, socket_address))]
 async fn init_managers(
     context: &ConductorContext,
     manager_receivers: ManagerReceiver,
@@ -453,6 +494,7 @@ async fn init_managers(
     Ok(manager_manager)
 }
 
+#[instrument(skip(context))]
 async fn start_ships(context: &ConductorContext) -> Result<(), anyhow::Error> {
     let ship_names: Vec<database::ShipInfo> =
         database::ShipInfo::get_all(&context.database_pool, database::PaginatedQuery::unpaged())

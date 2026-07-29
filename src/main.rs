@@ -23,7 +23,9 @@ use rsntp::AsyncSntpClient;
 
 use ::utils::get_random_faction;
 use tokio_util::sync::CancellationToken;
-use tracing_subscriber::layer::SubscriberExt;
+use tracing::{error, info};
+
+use tracing_subscriber::{fmt::format, layer::SubscriberExt};
 
 use crate::db_administration::{create_database_pool, export_database, reset_database};
 
@@ -32,6 +34,8 @@ async fn main() -> anyhow::Result<()> {
     let _erg = dotenvy::dotenv();
 
     setup_logging();
+
+    info!("SpaceTraders starting up");
 
     check_time().await;
 
@@ -45,19 +49,27 @@ async fn main() -> anyhow::Result<()> {
 
     let global_cancel_token = CancellationToken::new();
 
+    let mut reset_cycle = 0u64;
+
     loop {
+        reset_cycle += 1;
+
+        info!("Starting reset cycle {}", reset_cycle);
+
         let database_pool = create_database_pool(&database_url, readyset_url.as_ref()).await?;
 
+        info!("Running database migrations");
         sqlx::migrate!().run(&database_pool.database_pool).await?;
 
         // check db if already has an agent, if not create agent
-
         let agent_token = {
             let db_agent_token = database::Configuration::get_agent_token(&database_pool).await?;
 
             if let Some(db_agent_token) = db_agent_token {
+                info!("Using existing agent token from database");
                 db_agent_token
             } else {
+                info!(%agent_symbol, "Registering new agent");
                 let account_api =
                     space_traders_client::Api::new(None, 500, NonZeroU32::new(2).unwrap());
 
@@ -70,6 +82,10 @@ async fn main() -> anyhow::Result<()> {
                 let agent_token = agent_token_response.token;
 
                 database::Configuration::set_agent_token(&database_pool, &agent_token).await?;
+                info!(
+                    agent = ?*agent_token_response.agent,
+                    "Agent registered and token saved"
+                );
                 agent_token
             }
         };
@@ -82,7 +98,7 @@ async fn main() -> anyhow::Result<()> {
         )
         .await?;
 
-        tracing::info!(reset_info=?reset_info, "run finished");
+        info!(reset_info=?reset_info, "run finished");
 
         let filename = format!(
             "spacetraders_reset_{}_to_{}_{}_{}",
@@ -92,12 +108,16 @@ async fn main() -> anyhow::Result<()> {
         export_database(&database_url, &filename).await?;
 
         if global_cancel_token.is_cancelled() {
+            info!("Global cancel token triggered, shutting down");
             break;
         }
 
         reset_database(database_pool, &database_url).await?;
+
+        info!("Reset cycle {} completed", reset_cycle);
     }
 
+    info!("SpaceTraders shutting down");
     Ok(())
 }
 
@@ -114,7 +134,9 @@ fn setup_logging() {
     } else {
         None
     };
-    let fmt_tracer = tracing_subscriber::fmt::Layer::new().json();
+    let fmt_tracer = tracing_subscriber::fmt::Layer::new()
+        .with_span_events(format::FmtSpan::FULL)
+        .json();
 
     // let tracing_tracy = tracing_tracy::TracyLayer::default();
 
@@ -139,15 +161,20 @@ fn setup_logging() {
     //     .init();
 }
 
+#[tracing::instrument]
 async fn check_time() {
     let client = AsyncSntpClient::new();
     let result = client.synchronize("pool.ntp.org").await.unwrap();
     let local_time: DateTime<Utc> = result.datetime().into_chrono_datetime().unwrap();
     let time_diff = (local_time - Utc::now()).abs();
 
-    tracing::info!(current_time = %Utc::now(), expected_time = %local_time, time_diff = ?time_diff.to_std().unwrap(), "Checked local time against NTP");
+    info!(current_time = %Utc::now(), expected_time = %local_time, time_diff_ms = ?time_diff.num_milliseconds(), "Checked local time against NTP");
 
     if time_diff > chrono::Duration::milliseconds(1000) {
+        error!(
+            time_diff_ms = time_diff.num_milliseconds(),
+            "The time is not correct"
+        );
         panic!(
             "The time is not correct, off by: {:?}",
             time_diff.to_std().unwrap()

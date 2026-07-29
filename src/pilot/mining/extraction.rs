@@ -562,7 +562,10 @@ impl ExtractionPilot {
         loop {
             let i = {
                 tokio::select! {
-                    _ = pilot.slow_cancellation_token.cancelled() => {(None,0)},// it's the end of the Programm we don't care(for now)
+                    _ = pilot.slow_cancellation_token.cancelled() => {
+                        tracing::debug!(ship_symbol = %ship.symbol, "Extraction pilot slow cancellation token triggered during cooldown");
+                        (None,0)
+                    },
                     _ = &mut fused_future => {(None,1)},
                     msg = receiver.recv() => {(msg,2)},
                 }

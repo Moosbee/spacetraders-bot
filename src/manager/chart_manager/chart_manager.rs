@@ -58,7 +58,10 @@ impl ChartManager {
         let fast_cancel_token = self.fast_cancel_token.clone();
 
         let _erg = tokio::select! {
-            _ = fast_cancel_token.cancelled() => Ok(()),
+            _ = fast_cancel_token.cancelled() => {
+                tracing::info!("ChartManager fast cancel token triggered");
+                Ok(())
+            },
             erg = self.run_chart_worker_loop() => erg,
         }?;
 
@@ -69,7 +72,10 @@ impl ChartManager {
         while !self.slow_cancel_token.is_cancelled() {
             let message = tokio::select! {
                 message = self.receiver.recv() => message,
-                _ = self.slow_cancel_token.cancelled() => None
+                _ = self.slow_cancel_token.cancelled() => {
+                    tracing::info!("ChartManager slow cancel token triggered");
+                    None
+                }
             };
             tracing::debug!(message = ?message, "Received chartManager message");
 

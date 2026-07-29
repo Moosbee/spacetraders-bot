@@ -85,7 +85,10 @@ impl<T: Clone + Send + Sync> RustShip<T> {
         loop {
             let data = select! {
                 data = self.broadcaster.receiver.recv() => data,
-                _ = cancel.cancelled() => break,
+                _ = cancel.cancelled() => {
+                    tracing::debug!(symbol = %self.symbol, "Ship update loop cancel token triggered");
+                    break;
+                },
             };
             if let Ok(data) = data {
                 self.handle_update(data, api).await;
