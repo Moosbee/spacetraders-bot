@@ -32,7 +32,7 @@ impl ScraperPilot {
         pilot: &super::Pilot,
         fleet: database::Fleet,
         ship_assignment: database::ShipAssignment,
-        scraping_config: database::ScrapingFleetConfig,
+        _scraping_config: database::ScrapingFleetConfig,
     ) -> Result<()> {
         let mut erg = pilot.context.ship_manager.get_mut(&self.ship_symbol).await;
         let ship = erg

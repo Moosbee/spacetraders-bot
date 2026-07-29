@@ -102,7 +102,7 @@ impl ConstructionManager {
         }
 
         let fast_cancel_token = self.fast_cancel_token.clone();
-        let _erg = tokio::select! {
+        tokio::select! {
             _ = fast_cancel_token.cancelled() => {
                 tracing::info!("ConstructionManager fast cancel token triggered");
                 Ok(())

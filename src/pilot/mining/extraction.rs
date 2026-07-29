@@ -168,7 +168,7 @@ impl ExtractionPilot {
         )
         .await;
 
-        if done == 1 || rand::random::<u64>() % 10 == 0 {
+        if done == 1 || rand::random::<u64>().is_multiple_of(10) {
             self.context
                 .mining_manager
                 .extraction_complete(&ship.symbol, &ship.nav.waypoint_symbol)

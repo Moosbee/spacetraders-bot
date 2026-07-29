@@ -32,7 +32,7 @@ impl ChartPilot {
         fleet: database::Fleet,
         ship_assignment: database::ShipAssignment,
         is_temp: bool,
-        charting_config: database::ChartingFleetConfig,
+        _charting_config: database::ChartingFleetConfig,
     ) -> Result<()> {
         let mut erg = pilot.context.ship_manager.get_mut(&self.ship_symbol).await;
         let ship = erg

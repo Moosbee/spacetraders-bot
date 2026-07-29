@@ -136,7 +136,7 @@ impl ScrappingManager {
 
             tokio::spawn(
                 async move {
-                    let _erg = tokio::select! {
+                    tokio::select! {
                       _ = fast_cancel_token.cancelled() => {
                         tracing::info!("ScrappingManager system worker fast cancel token triggered");
                         Ok(())
@@ -327,7 +327,7 @@ impl ScrappingManager {
             waypoints.push((wp, next_time));
         }
 
-        waypoints.sort_by(|a, b| a.1.cmp(&b.1));
+        waypoints.sort_by_key(|a| a.1);
 
         waypoints.sort_by(|a, b| {
             // the first waypoint is the closest
@@ -356,8 +356,8 @@ impl ScrappingManager {
         }
 
         let mut waypoints = Vec::new();
-        waypoints.extend(past_waypoints.into_iter());
-        waypoints.extend(future_waypoints.into_iter());
+        waypoints.extend(past_waypoints);
+        waypoints.extend(future_waypoints);
 
         Ok(waypoints)
     }
@@ -366,9 +366,9 @@ impl ScrappingManager {
         api: &space_traders_client::Api,
         database_pool: &DbPool,
     ) -> Result<()> {
-        crate::manager::scrapping_manager::utils::update_all_systems(&database_pool, &api).await?;
+        crate::manager::scrapping_manager::utils::update_all_systems(database_pool, api).await?;
         let gates =
-            database::Waypoint::get_all(&database_pool, database::PaginatedQuery::unpaged())
+            database::Waypoint::get_all(database_pool, database::PaginatedQuery::unpaged())
                 .await?
                 .items
                 .into_iter()
@@ -380,10 +380,10 @@ impl ScrappingManager {
                 })
                 .collect::<Vec<_>>();
         let jump_gates =
-            crate::manager::scrapping_manager::utils::get_all_jump_gates(&api, gates).await?;
+            crate::manager::scrapping_manager::utils::get_all_jump_gates(api, gates).await?;
 
         let jump_gates_len = jump_gates.len();
-        crate::manager::scrapping_manager::utils::update_jump_gates(&database_pool, jump_gates)
+        crate::manager::scrapping_manager::utils::update_jump_gates(database_pool, jump_gates)
             .await?;
         debug!("Updated jump gates {}", jump_gates_len);
 

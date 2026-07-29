@@ -30,7 +30,7 @@ impl ContractPilot {
         pilot: &super::Pilot,
         fleet: database::Fleet,
         ship_assignment: database::ShipAssignment,
-        contract_config: database::ContractFleetConfig,
+        _contract_config: database::ContractFleetConfig,
     ) -> Result<()> {
         let mut erg = pilot.context.ship_manager.get_mut(&self.ship_symbol).await;
         let ship = erg

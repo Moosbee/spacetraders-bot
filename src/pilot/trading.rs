@@ -30,7 +30,7 @@ impl TradingPilot {
         pilot: &crate::pilot::Pilot,
         fleet: database::Fleet,
         ship_assignment: database::ShipAssignment,
-        trading_config: database::TradingFleetConfig,
+        _trading_config: database::TradingFleetConfig,
     ) -> Result<()> {
         let mut erg = pilot.context.ship_manager.get_mut(&self.ship_symbol).await;
         let ship = erg
@@ -133,7 +133,7 @@ impl TradingPilot {
         &self,
         ship: &mut ship::MyShip,
         route: &database::TradeRoute,
-        pilot: &crate::pilot::Pilot,
+        _pilot: &crate::pilot::Pilot,
     ) -> Result<()> {
         debug!(
             "Executing purchase for ship {} on route {:?}",

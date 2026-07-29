@@ -288,7 +288,7 @@ impl TransportPilot {
         &self,
         pilot: &crate::pilot::Pilot,
         ship: &mut ship::MyShip,
-        waypoints: &std::collections::HashMap<String, database::Waypoint>,
+        _waypoints: &std::collections::HashMap<String, database::Waypoint>,
         mining_waypoint: String,
     ) -> Result<()> {
         while ship.cargo.get_units_no_fuel() > 0 {
@@ -393,7 +393,7 @@ impl TransportPilot {
             .collect::<Vec<_>>();
 
         // let way_p = erg.iter().max_by(|a, b| a.2.cmp(&b.2));
-        erg.sort_by(|a, b| a.2.cmp(&b.2));
+        erg.sort_by_key(|a| a.2);
         let way_p = erg.iter().min_by(|a, b| a.4.cmp(&b.4));
 
         way_p.map(|w| {

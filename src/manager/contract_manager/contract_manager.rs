@@ -101,7 +101,7 @@ impl ContractManager {
         debug!("Starting contract worker loop");
 
         let fast_cancel_token = self.fast_cancel_token.clone();
-        let _erg = tokio::select! {
+        tokio::select! {
             _ = fast_cancel_token.cancelled() => {
                 tracing::info!("ContractManager fast cancel token triggered");
                 Ok(())

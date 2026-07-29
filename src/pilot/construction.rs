@@ -32,7 +32,7 @@ impl ConstructionPilot {
         pilot: &super::Pilot,
         fleet: database::Fleet,
         ship_assignment: database::ShipAssignment,
-        construction_config: database::ConstructionFleetConfig,
+        _construction_config: database::ConstructionFleetConfig,
     ) -> Result<()> {
         let mut erg = pilot.context.ship_manager.get_mut(&self.ship_symbol).await;
         let ship = erg
@@ -134,7 +134,7 @@ impl ConstructionPilot {
         Ok(())
     }
 
-    async fn do_elsewhere(&self, ship: &mut ship::MyShip, pilot: &super::Pilot) -> Result<()> {
+    async fn do_elsewhere(&self, ship: &mut ship::MyShip, _pilot: &super::Pilot) -> Result<()> {
         let temp_assignment = self
             .context
             .fleet_manager

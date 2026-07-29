@@ -57,7 +57,7 @@ impl FleetManager {
     async fn run_fleet_worker(&mut self) -> std::result::Result<(), crate::error::Error> {
         let fast_cancel_token = self.fast_cancel_token.clone();
 
-        let _erg = tokio::select! {
+        tokio::select! {
             _ = fast_cancel_token.cancelled() => {
                 tracing::info!("FleetManager fast cancel token triggered");
                 Ok(())

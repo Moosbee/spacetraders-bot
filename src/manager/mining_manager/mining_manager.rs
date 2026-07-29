@@ -77,7 +77,7 @@ impl MiningManager {
     async fn run_mining_worker(&mut self) -> Result<()> {
         tracing::debug!("Starting MiningManager worker");
         let fast_cancel_token = self.fast_cancel_token.clone();
-        let _erg = tokio::select! {
+        tokio::select! {
             _ = fast_cancel_token.cancelled() => {
                 tracing::info!("MiningManager fast cancel token triggered");
                 Ok(())

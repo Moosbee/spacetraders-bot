@@ -443,7 +443,7 @@ async fn generate_charting_fleet_assignments(
 async fn generate_construction_fleet_assignments(
     fleet: &database::Fleet,
     construction_config: &database::ConstructionFleetConfig,
-    context: &ConductorContext,
+    _context: &ConductorContext,
 ) -> crate::error::Result<Vec<ShipAssignment>> {
     // https://en.wikipedia.org/wiki/Percolation_theory
     let min_range = 300; // todo get minimum range to get to every waypoint in the system using cruse, see percolation theory
@@ -472,7 +472,7 @@ async fn generate_construction_fleet_assignments(
 async fn generate_contract_fleet_assignments(
     fleet: &database::Fleet,
     contract_config: &database::ContractFleetConfig,
-    context: &ConductorContext,
+    _context: &ConductorContext,
 ) -> crate::error::Result<Vec<ShipAssignment>> {
     // Placeholder for contract fleet assignment generation logic
 

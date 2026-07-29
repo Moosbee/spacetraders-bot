@@ -36,7 +36,7 @@ impl MiningPilot {
         pilot: &super::Pilot,
         fleet: database::Fleet,
         ship_assignment: database::ShipAssignment,
-        mining_config: database::MiningFleetConfig,
+        _mining_config: database::MiningFleetConfig,
     ) -> Result<()> {
         let mut erg = pilot.context.ship_manager.get_mut(&self.ship_symbol).await;
         let ship = erg

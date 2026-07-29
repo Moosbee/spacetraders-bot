@@ -57,7 +57,7 @@ impl ChartManager {
     async fn run_chart_worker(&mut self) -> Result<()> {
         let fast_cancel_token = self.fast_cancel_token.clone();
 
-        let _erg = tokio::select! {
+        tokio::select! {
             _ = fast_cancel_token.cancelled() => {
                 tracing::info!("ChartManager fast cancel token triggered");
                 Ok(())

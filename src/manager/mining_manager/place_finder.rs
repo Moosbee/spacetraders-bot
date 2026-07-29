@@ -108,7 +108,7 @@ impl PlaceFinder {
             })
             .collect::<Vec<_>>();
 
-        d_points.sort_by(|a, b| a.distance.cmp(&b.distance));
+        d_points.sort_by_key(|a| a.distance);
 
         d_points
     }
