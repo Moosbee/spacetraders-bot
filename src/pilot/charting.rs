@@ -25,7 +25,7 @@ impl ChartPilot {
         }
     }
 
-    #[instrument(level = "info", name = "spacetraders::pilot::charting::pilot_chart", skip(self, pilot, fleet, ship_assignment, charting_config), fields(self.ship_symbol = %self.ship_symbol, chart_waypoint, fleet_id = fleet.id, ship_assignment_id = ship_assignment.id))]
+    #[instrument(level = "info", name = "spacetraders::pilot::charting::pilot_chart", skip(self, pilot, fleet, ship_assignment, _charting_config), fields(self.ship_symbol = %self.ship_symbol, chart_waypoint, fleet_id = fleet.id, ship_assignment_id = ship_assignment.id))]
     pub async fn execute_pilot_circle(
         &self,
         pilot: &super::Pilot,
@@ -183,27 +183,16 @@ impl ChartPilot {
                 .budget_manager
                 .set_current_funds(sql_agent.credits);
 
-            database::Agent::upsert(
-                &self.context.database_pool,
-                &sql_agent,
-            )
-            .await?;
+            database::Agent::upsert(&self.context.database_pool, &sql_agent).await?;
 
             let sql_transaction = database::ChartTransaction::try_from(transaction)?;
-            database::ChartTransaction::upsert(
-                &self.context.database_pool,
-                &sql_transaction,
-            )
-            .await?;
+            database::ChartTransaction::upsert(&self.context.database_pool, &sql_transaction)
+                .await?;
         }
 
         let sql_waypoint = (&waypoint).into();
 
-        database::Waypoint::upsert(
-            &self.context.database_pool,
-            &sql_waypoint,
-        )
-        .await?;
+        database::Waypoint::upsert(&self.context.database_pool, &sql_waypoint).await?;
 
         debug!(waypoint=?sql_waypoint, "Charted Waypoint");
 

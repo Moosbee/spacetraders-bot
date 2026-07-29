@@ -26,7 +26,7 @@ impl ScraperPilot {
         }
     }
 
-    #[instrument(level = "info", name = "spacetraders::pilot::scraper::pilot_scraper", skip(self, pilot, fleet, ship_assignment, scraping_config), fields(self.ship_symbol = %self.ship_symbol, scrap_waypoint = tracing::field::Empty, scrap_date = tracing::field::Empty, fleet_id = fleet.id, ship_assignment_id = ship_assignment.id))]
+    #[instrument(level = "info", name = "spacetraders::pilot::scraper::pilot_scraper", skip(self, pilot, fleet, ship_assignment, _scraping_config), fields(self.ship_symbol = %self.ship_symbol, scrap_waypoint = tracing::field::Empty, scrap_date = tracing::field::Empty, fleet_id = fleet.id, ship_assignment_id = ship_assignment.id))]
     pub async fn execute_pilot_circle(
         &self,
         pilot: &super::Pilot,
@@ -120,10 +120,9 @@ impl ScraperPilot {
 
         tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
 
-        let waypoint =
-            database::Waypoint::get_by_id(&self.context.database_pool, &waypoint_symbol)
-                .await?
-                .ok_or(Error::General("Waypoint not found".to_owned()))?;
+        let waypoint = database::Waypoint::get_by_id(&self.context.database_pool, &waypoint_symbol)
+            .await?
+            .ok_or(Error::General("Waypoint not found".to_owned()))?;
 
         if waypoint.is_shipyard() {
             self.context
@@ -143,10 +142,9 @@ impl ScraperPilot {
             return Ok(());
         }
 
-        let waypoint =
-            database::Waypoint::get_by_id(&self.context.database_pool, &waypoint_symbol)
-                .await?
-                .ok_or(Error::General("Waypoint not found".to_owned()))?;
+        let waypoint = database::Waypoint::get_by_id(&self.context.database_pool, &waypoint_symbol)
+            .await?
+            .ok_or(Error::General("Waypoint not found".to_owned()))?;
 
         if waypoint.is_marketplace() {
             let market_resp = self

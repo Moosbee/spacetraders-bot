@@ -26,7 +26,7 @@ impl ConstructionPilot {
         }
     }
 
-    #[instrument(level = "info", name = "spacetraders::pilot::construction::pilot_construction", skip(self, pilot, fleet, ship_assignment, construction_config), fields(self.ship_symbol = %self.ship_symbol, construction_shipment, fleet_id = fleet.id, ship_assignment_id = ship_assignment.id))]
+    #[instrument(level = "info", name = "spacetraders::pilot::construction::pilot_construction", skip(self, pilot, fleet, ship_assignment, _construction_config), fields(self.ship_symbol = %self.ship_symbol, construction_shipment, fleet_id = fleet.id, ship_assignment_id = ship_assignment.id))]
     pub async fn execute_pilot_circle(
         &self,
         pilot: &super::Pilot,
@@ -39,7 +39,7 @@ impl ConstructionPilot {
             .value_mut()
             .ok_or(Error::General("Ship not found".to_string()))?;
 
-    debug!(ship_symbol = %ship.symbol, "Requesting next shipment for ship");
+        debug!(ship_symbol = %ship.symbol, "Requesting next shipment for ship");
 
         let shipment = self
             .context
@@ -47,7 +47,7 @@ impl ConstructionPilot {
             .next_shipment(ship.clone())
             .await?;
 
-    debug!(shipment = ?shipment, "Next shipment");
+        debug!(shipment = ?shipment, "Next shipment");
 
         // if (self.count.load(std::sync::atomic::Ordering::SeqCst) == 0) {
         //     self.count.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
@@ -77,7 +77,7 @@ impl ConstructionPilot {
 
         let storage_count = ship.cargo.get_amount(&shipment.trade_symbol);
 
-    debug!(storage_count, "Storage count");
+        debug!(storage_count, "Storage count");
 
         if storage_count != shipment.units {
             debug!("Purchasing cargo");
@@ -96,7 +96,7 @@ impl ConstructionPilot {
             }
         }
 
-    debug!("Delivering cargo");
+        debug!("Delivering cargo");
 
         let del_erg = self.deliver_cargo(ship, shipment.clone()).await;
 
@@ -115,7 +115,7 @@ impl ConstructionPilot {
 
         let (contract, shipment) = del_erg.unwrap();
 
-    debug!("Completing shipment");
+        debug!("Completing shipment");
 
         self.context
             .construction_manager
@@ -267,7 +267,7 @@ impl ConstructionPilot {
             .get_amount(&shipment.trade_symbol)
             .min(shipment.units);
 
-    debug!(units_to_deliver, "Delivering units");
+        debug!(units_to_deliver, "Delivering units");
 
         let response = ship
             .supply_construction(shipment.trade_symbol, units_to_deliver, &self.context.api)

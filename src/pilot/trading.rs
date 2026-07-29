@@ -24,7 +24,7 @@ impl TradingPilot {
         }
     }
 
-    #[instrument(level = "info", name = "spacetraders::pilot::trading::pilot_trading", skip(self, pilot, fleet, ship_assignment, trading_config), fields(self.ship_symbol = %self.ship_symbol, trade_route, fleet_id = fleet.id, ship_assignment_id = ship_assignment.id))]
+    #[instrument(level = "info", name = "spacetraders::pilot::trading::pilot_trading", skip(self, pilot, fleet, ship_assignment, _trading_config), fields(self.ship_symbol = %self.ship_symbol, trade_route, fleet_id = fleet.id, ship_assignment_id = ship_assignment.id))]
     pub async fn execute_pilot_circle(
         &self,
         pilot: &crate::pilot::Pilot,

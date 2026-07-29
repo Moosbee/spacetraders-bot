@@ -24,7 +24,7 @@ impl ContractPilot {
         }
     }
 
-    #[instrument(level = "info", name = "spacetraders::pilot::contract::pilot_contract", skip(self, pilot, fleet, ship_assignment, contract_config), fields(self.ship_symbol = %self.ship_symbol, contract_shipment = tracing::field::Empty, contract_id = tracing::field::Empty, fleet_id = fleet.id, ship_assignment_id = ship_assignment.id))]
+    #[instrument(level = "info", name = "spacetraders::pilot::contract::pilot_contract", skip(self, pilot, fleet, ship_assignment, _contract_config), fields(self.ship_symbol = %self.ship_symbol, contract_shipment = tracing::field::Empty, contract_id = tracing::field::Empty, fleet_id = fleet.id, ship_assignment_id = ship_assignment.id))]
     pub async fn execute_pilot_circle(
         &self,
         pilot: &super::Pilot,

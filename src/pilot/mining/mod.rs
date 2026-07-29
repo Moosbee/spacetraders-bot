@@ -30,7 +30,7 @@ impl MiningPilot {
         }
     }
 
-    #[instrument(level = "info", name = "spacetraders::pilot::mining::pilot_mining", skip(self, pilot, fleet, ship_assignment, mining_config), fields(self.ship_symbol = %self.ship_symbol, fleet_id = fleet.id, ship_assignment_id = ship_assignment.id))]
+    #[instrument(level = "info", name = "spacetraders::pilot::mining::pilot_mining", skip(self, pilot, fleet, ship_assignment, _mining_config), fields(self.ship_symbol = %self.ship_symbol, fleet_id = fleet.id, ship_assignment_id = ship_assignment.id))]
     pub async fn execute_pilot_circle(
         &self,
         pilot: &super::Pilot,

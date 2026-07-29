@@ -76,6 +76,13 @@ pub async fn reset_database(db: database::DbPool, database_url: &str) -> Result<
 
 #[instrument(skip(database_url))]
 pub async fn export_database(database_url: &str, file_name: &str) -> Result<String> {
+    if !cfg!(target_os = "linux") {
+        tracing::error!("Only Linux is supported for database backups");
+        return Err(anyhow::anyhow!(
+            "Only Linux is supported for database backups"
+        ));
+    }
+
     let dump_file = format!("./db_backup/{}.sql.gz", file_name);
 
     debug!("Dumping PostgreSQL database to {}", dump_file);
