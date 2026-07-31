@@ -346,7 +346,7 @@ impl FleetManager {
                         return Err(e);
                     }
                 } else {
-                    reservation.unwrap()
+                    reservation?
                 };
 
                 used_shipyard_ships.insert(shipyard_ship_worth.shipyard_ship.ship_type);
@@ -502,6 +502,8 @@ impl FleetManager {
 
         let jump_gate = self.get_jump_navigator().await?;
 
+        debug!(fleets=?fleets,"fleets and created jump gate navigator");
+
         let target_systems = fleets
             .iter()
             .map(|f| f.1.system_symbol.clone())
@@ -524,11 +526,15 @@ impl FleetManager {
             let fleet_b = &fleets.get(&b.fleet_id);
             let priority_a = a.priority;
             let priority_b = b.priority;
-            let distance_a = conns.get(&fleet_a.unwrap().system_symbol).unwrap();
-            let distance_b = conns.get(&fleet_b.unwrap().system_symbol).unwrap();
+            let distance_a = *conns
+                .get(&fleet_a.unwrap().system_symbol)
+                .unwrap_or(&f64::MAX);
+            let distance_b = *conns
+                .get(&fleet_b.unwrap().system_symbol)
+                .unwrap_or(&f64::MAX);
             priority_a.cmp(&priority_b).then_with(|| {
                 distance_a
-                    .partial_cmp(distance_b)
+                    .partial_cmp(&distance_b)
                     .unwrap_or(std::cmp::Ordering::Equal)
             })
         });

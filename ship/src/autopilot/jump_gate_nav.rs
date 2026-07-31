@@ -133,7 +133,7 @@ impl JumpPathfinder {
             .unwrap_or_else(|| {
                 panic!(
                     "We should have importet the route in the cache(find_cached_route) key: {:?}",
-                    &(from_system.to_string(), to_system.to_string())
+                    (from_system.to_string(), to_system.to_string())
                 )
             })
     }
@@ -255,11 +255,7 @@ pub async fn generate_all_connections(
         .flat_map(|k| [k.0.clone(), k.1.clone()])
         .collect::<HashSet<_>>()
     {
-        let wp = database::Waypoint::get_by_id(
-            database_pool,
-            &waypoint,
-        )
-        .await?;
+        let wp = database::Waypoint::get_by_id(database_pool, &waypoint).await?;
         if let Some(wp) = wp {
             waypoints.insert(waypoint, wp);
         }
@@ -267,11 +263,7 @@ pub async fn generate_all_connections(
 
     let mut systems = HashMap::new();
     for waypoint in waypoints.values() {
-        let system = database::System::get_by_id(
-            database_pool,
-            &waypoint.system_symbol,
-        )
-        .await?;
+        let system = database::System::get_by_id(database_pool, &waypoint.system_symbol).await?;
         if let Some(system) = system {
             systems.insert(waypoint.system_symbol.clone(), system);
         }
@@ -279,11 +271,11 @@ pub async fn generate_all_connections(
 
     let connections = connection_map
         .into_values()
-        .map(|mut c| {
-            let wp_a = waypoints.get(&c.point_a).unwrap();
-            let wp_b = waypoints.get(&c.point_b).unwrap();
-            let sys_a = systems.get(&wp_a.system_symbol).unwrap();
-            let sys_b = systems.get(&wp_b.system_symbol).unwrap();
+        .filter_map(|mut c| {
+            let wp_a = waypoints.get(&c.point_a)?;
+            let wp_b = waypoints.get(&c.point_b)?;
+            let sys_a = systems.get(&wp_a.system_symbol)?;
+            let sys_b = systems.get(&wp_b.system_symbol)?;
 
             c.pos_point_a = (sys_a.x, sys_a.y);
             c.pos_point_b = (sys_b.x, sys_b.y);
@@ -296,7 +288,7 @@ pub async fn generate_all_connections(
             c.under_construction_a = wp_a.is_under_construction;
             c.under_construction_b = wp_b.is_under_construction;
 
-            c
+            Some(c)
         })
         .collect::<Vec<_>>();
 

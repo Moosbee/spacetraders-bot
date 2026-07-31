@@ -2,7 +2,7 @@ use std::{collections::HashSet, num::NonZeroU32, str::FromStr, sync::Arc};
 
 use database::DatabaseConnectorAsync;
 use ship::ShipManager;
-use space_traders_client::models::{self, jump_gate};
+use space_traders_client::models::{self};
 use tokio::sync::RwLock;
 use tokio_util::sync::CancellationToken;
 use tracing::instrument;
@@ -61,8 +61,13 @@ pub async fn run_reset(
     );
 
     tracing::info!("Initializing minimal context");
-    let (context, managers) =
-        init_min_context(api, database_pool, run_cancel_token, global_cancel_token).await?;
+    let (context, managers) = init_min_context(
+        api,
+        database_pool,
+        run_cancel_token,
+        global_cancel_token.clone(),
+    )
+    .await?;
 
     let context = populate_context(context, &my_agent, run_info).await?;
 
@@ -73,7 +78,7 @@ pub async fn run_reset(
     init_exports_to_imports(&context.api, &context.database_pool).await?;
 
     tracing::info!("Initializing systems for ship locations");
-    init_systems_with_ships(&context, &ships).await?;
+    init_systems_with_ships(&context, &ships, true).await?;
 
     tracing::info!("Ensuring main system fleets are populated");
     ensure_main_system_fleets(&context).await?;
@@ -91,7 +96,7 @@ pub async fn run_reset(
     start_ships(&context).await?;
 
     tracing::info!("Waiting for managers to complete");
-    let manager = managers_handles.wait().await?;
+    let manager = managers_handles.wait(&global_cancel_token).await?;
 
     tracing::info!("Analyzing run results");
     let run_result = analyze_run(&context, &manager).await?;
@@ -255,6 +260,7 @@ async fn ensure_main_system_fleets(context: &ConductorContext) -> Result<(), any
 async fn init_systems_with_ships(
     context: &ConductorContext,
     ships: &[models::Ship],
+    force: bool,
 ) -> Result<(), anyhow::Error> {
     let system_symbols = ships
         .iter()
@@ -273,7 +279,7 @@ async fn init_systems_with_ships(
         .await?
         .items;
 
-        if db_system.is_none() || waypoints.is_empty() {
+        if db_system.is_none() || waypoints.is_empty() || force {
             init_system(&context.database_pool, &context.api, &system_symbol).await?;
         }
     }
@@ -301,7 +307,13 @@ async fn init_system(
     let marketplaces = waypoints
         .iter()
         .filter(|w| w.is_marketplace())
-        .map(|w| (w.system_symbol, w.symbol, w.is_under_construction))
+        .map(|w| {
+            (
+                w.system_symbol.clone(),
+                w.symbol.clone(),
+                w.is_under_construction,
+            )
+        })
         .collect::<Vec<_>>();
 
     let markets = scrapping_manager::utils::get_all_markets(api, &marketplaces).await?;
@@ -325,12 +337,12 @@ async fn init_system(
     let jump_gates = waypoints
         .iter()
         .filter(|w| w.is_jump_gate())
-        .map(|w| (w.system_symbol, w.symbol, w.is_charted()))
+        .map(|w| (w.system_symbol.clone(), w.symbol.clone(), w.is_charted()))
         .collect::<Vec<_>>();
 
     let jump_gates = scrapping_manager::utils::get_all_jump_gates(api, jump_gates).await?;
     let jump_gates_len = jump_gates.len();
-    scrapping_manager::utils::update_jump_gates(&database_pool, jump_gates).await?;
+    scrapping_manager::utils::update_jump_gates(database_pool, jump_gates).await?;
 
     tracing::debug!(system = %system_symbol, waypoints = marketplaces.len(), markets = markets_len, jump_gates = jump_gates_len, "Updated markets, jump gates and waypoints for system");
     Ok(())

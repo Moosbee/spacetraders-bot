@@ -88,13 +88,17 @@ impl<T: manager::Manager + 'static> ManagersHandle<T> {
         }
     }
 
-    pub async fn wait(self) -> Option<(T, Result<(), crate::error::Error>)> {
+    pub async fn wait(
+        self,
+        global_cancel_token: &tokio_util::sync::CancellationToken,
+    ) -> Option<(T, Result<(), crate::error::Error>)> {
         let erg: Result<(T, Result<(), crate::error::Error>), tokio::task::JoinError> =
             self.handle.await;
         match erg {
             Ok(result) => Some(result),
             Err(e) => {
                 tracing::error!(manager_name = %self.manager_name, error = ?e, "Manager error occurred");
+                global_cancel_token.cancel();
                 None
             }
         }
@@ -114,17 +118,20 @@ pub struct ManagerHandels {
 }
 
 impl ManagerHandels {
-    pub async fn wait(self) -> Result<ManagerManager, anyhow::Error> {
+    pub async fn wait(
+        self,
+        global_cancel_token: &tokio_util::sync::CancellationToken,
+    ) -> Result<ManagerManager, anyhow::Error> {
         let erg = tokio::join!(
-            self.construction_manager.wait(),
-            self.contract_manager.wait(),
-            self.mining_manager.wait(),
-            self.scrapping_manager.wait(),
-            self.trade_manager.wait(),
-            self.fleet_manager.wait(),
-            self.chart_manager.wait(),
-            self.ship_task_handler.wait(),
-            self.control_api.wait(),
+            self.construction_manager.wait(global_cancel_token),
+            self.contract_manager.wait(global_cancel_token),
+            self.mining_manager.wait(global_cancel_token),
+            self.scrapping_manager.wait(global_cancel_token),
+            self.trade_manager.wait(global_cancel_token),
+            self.fleet_manager.wait(global_cancel_token),
+            self.chart_manager.wait(global_cancel_token),
+            self.ship_task_handler.wait(global_cancel_token),
+            self.control_api.wait(global_cancel_token),
         );
 
         if let (
