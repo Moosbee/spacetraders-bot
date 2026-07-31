@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [workspace]
-members = ["database", "ship", "space_traders_client", "utils"]
+members = ["database", "ship", "space_traders_client", "utils", "xtask"]
 
 [dependencies]
 space_traders_client = { path = "./space_traders_client" }
@@ -25,10 +25,10 @@ governor = "0.7"
 dashmap = { version = "6.1", features = ["raw-api"] }
 # tokio + native-tls
 sqlx = { version = "0.8", features = [
-  "runtime-tokio",
-  "tls-native-tls",
-  "postgres",
-  "chrono",
+    "runtime-tokio",
+    "tls-native-tls",
+    "postgres",
+    "chrono",
 ] }
 strum = "0.26"
 priority-queue = "2.1.1"

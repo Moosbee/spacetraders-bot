@@ -3,3 +3,6 @@ rustflags = ["--cfg", "tokio_unstable"]
 
 [target.x86_64-pc-windows-msvc]
 linker = "rust-lld.exe"
+
+[alias]
+xtask = "run --package xtask --"
