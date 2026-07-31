@@ -1,7 +1,7 @@
 // scripts/src/main.rs
 use clap::{Parser, Subcommand};
 
-mod analyse_logs;
+mod analyze_logs;
 
 #[derive(Parser)]
 #[command(name = "xtask")]
@@ -13,9 +13,9 @@ struct Cli {
 #[derive(Subcommand)]
 enum Commands {
     SayHello,
-    AnalyseLogs {
+    AnalyzeLogs {
         #[arg(long, default_value = "log.txt")]
-        input: String,
+        file: String,
     },
 }
 
@@ -25,10 +25,7 @@ async fn main() -> anyhow::Result<()> {
 
     match cli.command {
         Commands::SayHello => println!("Hello!"),
-        Commands::AnalyseLogs { input } => {
-            println!("input: {}", input);
-            let _ = analyse_logs::analyse_logs(input).await?;
-        }
+        Commands::AnalyzeLogs { file } => analyze_logs::run(&file)?,
     }
 
     Ok(())
