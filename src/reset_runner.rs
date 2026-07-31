@@ -2,7 +2,7 @@ use std::{collections::HashSet, num::NonZeroU32, str::FromStr, sync::Arc};
 
 use database::DatabaseConnectorAsync;
 use ship::ShipManager;
-use space_traders_client::models;
+use space_traders_client::models::{self, jump_gate};
 use tokio::sync::RwLock;
 use tokio_util::sync::CancellationToken;
 use tracing::instrument;
@@ -290,23 +290,25 @@ async fn init_system(
     tracing::debug!(system = %system_symbol, "Updating system and waypoints");
     // some systems have no waypoints, but we likely won't have ships there
     scrapping_manager::utils::update_system(database_pool, api, system_symbol, true).await?;
-    let wps = database::Waypoint::get_by_system(
+
+    let waypoints = database::Waypoint::get_by_system(
         database_pool,
         system_symbol,
         database::PaginatedQuery::unpaged(),
     )
     .await?
-    .items
-    .into_iter()
-    .filter(|w| w.is_marketplace())
-    .map(|w| (w.system_symbol, w.symbol, w.is_under_construction))
-    .collect::<Vec<_>>();
+    .items;
+    let marketplaces = waypoints
+        .iter()
+        .filter(|w| w.is_marketplace())
+        .map(|w| (w.system_symbol, w.symbol, w.is_under_construction))
+        .collect::<Vec<_>>();
 
-    let markets = scrapping_manager::utils::get_all_markets(api, &wps).await?;
+    let markets = scrapping_manager::utils::get_all_markets(api, &marketplaces).await?;
     let markets_len = markets.len();
     scrapping_manager::utils::update_markets(markets, database_pool.clone()).await?;
 
-    for waypoint in wps.iter().filter(|f| f.2) {
+    for waypoint in marketplaces.iter().filter(|f| f.2) {
         let construction = api.get_construction(&waypoint.0, &waypoint.1).await?;
         tracing::debug!("Got construction: {:?}", construction);
 
@@ -320,7 +322,17 @@ async fn init_system(
         database::ConstructionMaterial::insert_bulk(database_pool, &materials).await?;
     }
 
-    tracing::debug!(system = %system_symbol, waypoints = wps.len(), markets = markets_len, "Updated markets");
+    let jump_gates = waypoints
+        .iter()
+        .filter(|w| w.is_jump_gate())
+        .map(|w| (w.system_symbol, w.symbol, w.is_charted()))
+        .collect::<Vec<_>>();
+
+    let jump_gates = scrapping_manager::utils::get_all_jump_gates(api, jump_gates).await?;
+    let jump_gates_len = jump_gates.len();
+    scrapping_manager::utils::update_jump_gates(&database_pool, jump_gates).await?;
+
+    tracing::debug!(system = %system_symbol, waypoints = marketplaces.len(), markets = markets_len, jump_gates = jump_gates_len, "Updated markets, jump gates and waypoints for system");
     Ok(())
 }
 
