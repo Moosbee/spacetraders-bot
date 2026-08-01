@@ -1,9 +1,7 @@
 import {
-  DownloadOutlined,
   NodeIndexOutlined,
   SortDescendingOutlined,
   TruckOutlined,
-  UploadOutlined,
 } from "@ant-design/icons";
 import { useQuery } from "@apollo/client/react";
 import {
@@ -24,6 +22,7 @@ import {
   TableProps,
 } from "antd";
 import { Link, useParams } from "react-router-dom";
+import MarketTradeGoodsPopover from "../features/MarketTradeGoods/MarketTradeGoodsPopover";
 import MoneyDisplay from "../features/MonyDisplay";
 import PageTitle from "../features/PageTitle";
 import Timer from "../features/Timer/Timer";
@@ -44,6 +43,7 @@ import {
   selectSelectedSystemSymbol,
   setSelectedSystemSymbol,
 } from "../redux/slices/mapSlice";
+import { cn } from "../utils/utils";
 import { systemIcons } from "../utils/waypointColors";
 
 function System() {
@@ -81,14 +81,7 @@ function System() {
         jumpGateConnections: data.system.jumpGateConnections.items,
         waypoints: data.system.waypoints.items.map((waypoint) => ({
           ...waypoint,
-          marketTrades: waypoint.marketTrades.items.map((trade) => ({
-            ...trade,
-            tradeSymbolInfo: {
-              ...trade.tradeSymbolInfo,
-              requires: trade.tradeSymbolInfo.requires.items,
-              requiredBy: trade.tradeSymbolInfo.requiredBy.items,
-            },
-          })),
+          marketTrades: waypoint.marketTrades.items,
           shipyardShips: waypoint.shipyardShips.items,
         })),
         marketTransactions: data.system.marketTransactions.items,
@@ -384,164 +377,8 @@ function System() {
       render: (marketTrades: GQLWaypoint["marketTrades"]) =>
         marketTrades && marketTrades.length > 0 ? (
           <>
-            {/* <Flex gap={1} vertical>
-              {marketTrades.map((trade_good) => (
-                <span>
-                  {trade_good.type.slice(0, 3)} {trade_good.symbol}
-                </span>
-              ))}
-            </Flex> */}
             <Popover
-              content={
-                <Flex gap={1} vertical>
-                  {marketTrades.filter((t) => t.type === "EXCHANGE").length >
-                    0 && <span className="font-bold">EXCHANGE</span>}
-                  {marketTrades
-                    .filter((t) => t.type === "EXCHANGE")
-                    .map((trade_good) => (
-                      <Flex justify="space-between" key={trade_good.symbol}>
-                        <span>{trade_good.symbol}</span>
-                        <Flex gap={1} justify="end">
-                          <span className="text-nowrap">
-                            <UploadOutlined />{" "}
-                            <MoneyDisplay
-                              amount={
-                                trade_good.marketTradeGood?.purchasePrice || 0
-                              }
-                            />
-                          </span>
-                          |
-                          <span className="text-nowrap">
-                            <DownloadOutlined />{" "}
-                            <MoneyDisplay
-                              amount={
-                                trade_good.marketTradeGood?.sellPrice || 0
-                              }
-                            />
-                          </span>
-                          |
-                          <span className="text-nowrap">
-                            <TruckOutlined />{" "}
-                            {trade_good.marketTradeGood?.tradeVolume}
-                          </span>
-                          |
-                          <span>
-                            {trade_good.marketTradeGood?.supply.slice(0, 3)}
-                          </span>
-                        </Flex>
-                      </Flex>
-                    ))}
-                  {marketTrades.filter((t) => t.type === "IMPORT").length >
-                    0 && <span className="font-bold">IMPORT</span>}
-
-                  {marketTrades
-                    .filter((t) => t.type === "IMPORT")
-                    .map((trade_good) => (
-                      <Flex justify="space-between" key={trade_good.symbol}>
-                        <span>{trade_good.symbol}</span>
-                        <Flex gap={1} justify="end">
-                          <span className="text-nowrap">
-                            <UploadOutlined />{" "}
-                            <MoneyDisplay
-                              amount={
-                                trade_good.marketTradeGood?.purchasePrice || 0
-                              }
-                            />
-                          </span>
-                          |
-                          <span className="font-bold text-nowrap">
-                            <DownloadOutlined />{" "}
-                            <MoneyDisplay
-                              amount={
-                                trade_good.marketTradeGood?.sellPrice || 0
-                              }
-                            />
-                          </span>
-                          |
-                          <span className="text-nowrap">
-                            <TruckOutlined />{" "}
-                            {trade_good.marketTradeGood?.tradeVolume}
-                          </span>
-                          |
-                          <span>
-                            {trade_good.marketTradeGood?.supply.slice(0, 3)}
-                          </span>
-                        </Flex>
-                      </Flex>
-                    ))}
-                  {marketTrades.filter((t) => t.type === "EXPORT").length >
-                    0 && <span className="font-bold">EXPORT</span>}
-
-                  {marketTrades
-                    .filter((t) => t.type === "EXPORT")
-                    .map((trade_good) => (
-                      <Flex justify="space-between" key={trade_good.symbol}>
-                        <span>{trade_good.symbol}</span>
-                        <Flex gap={1} justify="end">
-                          <span className="text-nowrap font-bold">
-                            <UploadOutlined />{" "}
-                            <MoneyDisplay
-                              amount={
-                                trade_good.marketTradeGood?.purchasePrice || 0
-                              }
-                            />
-                          </span>
-                          |
-                          <span className="text-nowrap">
-                            <DownloadOutlined />{" "}
-                            <MoneyDisplay
-                              amount={
-                                trade_good.marketTradeGood?.sellPrice || 0
-                              }
-                            />
-                          </span>
-                          |
-                          <span className="text-nowrap">
-                            <TruckOutlined />{" "}
-                            {trade_good.marketTradeGood?.tradeVolume}
-                          </span>
-                          |
-                          <span>
-                            {trade_good.marketTradeGood?.supply.slice(0, 3)}
-                          </span>
-                        </Flex>
-                      </Flex>
-                    ))}
-                  {marketTrades.filter((t) => t.type === "EXPORT").length >
-                    0 && <span className="font-bold">MAPPING</span>}
-                  <div className="flex flex-col">
-                    {marketTrades
-                      .filter((t) => t.type === "EXPORT")
-                      .map((trade_good) => (
-                        <div
-                          key={trade_good.symbol + "EXPORT" + trade_good.type}
-                          className={`flex justify-between border-t-2 border-t-current`}
-                        >
-                          <div className="flex flex-col">
-                            {trade_good.tradeSymbolInfo.requires.map((t) => (
-                              <div
-                                className={`${
-                                  marketTrades.some(
-                                    (e) =>
-                                      e.type === "IMPORT" &&
-                                      e.symbol == t.symbol,
-                                  )
-                                    ? "text-current"
-                                    : "text-red-700"
-                                }`}
-                              >
-                                {t.symbol}
-                              </div>
-                            ))}
-                          </div>
-                          <div className="flex items-center">
-                            {trade_good.symbol}
-                          </div>
-                        </div>
-                      ))}
-                  </div>
-                </Flex>
-              }
+              content={<MarketTradeGoodsPopover marketTrades={marketTrades} />}
             >
               <Flex gap={1} flex={1} vertical>
                 {marketTrades.filter((t) => t.type === "EXCHANGE").length >
@@ -814,6 +651,7 @@ function System() {
       {(system?.constructionMaterials || []).length > 0 && (
         <>
           <Table
+            title={() => "Construction Materials"}
             size="small"
             columns={[
               {
@@ -910,6 +748,7 @@ function System() {
       <Table
         size="middle"
         columns={columns}
+        title={() => "Waypoints"}
         dataSource={system?.waypoints || []}
         rowKey={(row) => row.symbol}
         pagination={{
@@ -928,6 +767,7 @@ function System() {
               trade_route_id: false,
             }}
             size="small"
+            title={() => "Market Transactions"}
           />
         </Col>
         <Col span={9}>
@@ -1001,6 +841,7 @@ function System() {
               },
             ]}
             dataSource={system?.chartTransactions || []}
+            title={() => "Chart Transactions"}
             rowKey={(row) => row.waypointSymbol}
             pagination={{
               showSizeChanger: true,
@@ -1117,6 +958,7 @@ function System() {
             ]}
             dataSource={system?.shipyardShips || []}
             rowKey={(row) => row.waypointSymbol + row.shipType}
+            title={() => "Shipyard Ships"}
             pagination={{
               showSizeChanger: true,
               pageSizeOptions: ["10", "20", "50", "100", "200", "500", "1000"],
@@ -1214,9 +1056,302 @@ function System() {
             ]}
             dataSource={system?.shipyardTransactions || []}
             rowKey={(row) => row.id}
+            title={() => "Shipyard Transactions"}
             pagination={{
               showSizeChanger: true,
               pageSizeOptions: ["10", "20", "50", "100", "200", "500", "1000"],
+              defaultPageSize: 10,
+              showTotal: (total, range) =>
+                `${range[0]}-${range[1]} of ${total}`,
+            }}
+          />
+        </Col>
+      </Row>
+      <Divider />
+      <Row gutter={10}>
+        <Col span={12}>
+          <Table
+            size="small"
+            columns={[
+              {
+                title: "ID",
+                dataIndex: "id",
+                key: "id",
+                sorter: (a, b) => a.id - b.id,
+              },
+              {
+                title: "Trade Symbol",
+                dataIndex: "symbol",
+                key: "symbol",
+                sorter: (a, b) => a.symbol.localeCompare(b.symbol),
+                filters: Object.values(TradeSymbol).map((sym) => ({
+                  text: sym,
+                  value: sym,
+                })),
+                onFilter: (value, record) => record.symbol === value,
+              },
+              {
+                title: "Ship",
+                dataIndex: "shipSymbol",
+                key: "shipSymbol",
+                render: (symbol: string) => (
+                  <Link to={`/ships/${symbol}`}>{symbol}</Link>
+                ),
+                sorter: (a, b) => a.shipSymbol.localeCompare(b.shipSymbol),
+              },
+              {
+                title: "Purchase WP",
+                dataIndex: "PurchaseWaypointSymbol",
+                key: "PurchaseWaypointSymbol",
+                render: (symbol: string) => (
+                  <WaypointLink waypoint={symbol}>{symbol}</WaypointLink>
+                ),
+                sorter: (a, b) =>
+                  a.PurchaseWaypointSymbol.localeCompare(
+                    b.PurchaseWaypointSymbol,
+                  ),
+              },
+              {
+                title: "Sell WP",
+                dataIndex: "SellWaypointSymbol",
+                key: "SellWaypointSymbol",
+                render: (symbol: string) => (
+                  <WaypointLink waypoint={symbol}>{symbol}</WaypointLink>
+                ),
+                sorter: (a, b) =>
+                  a.SellWaypointSymbol.localeCompare(b.SellWaypointSymbol),
+              },
+              {
+                title: "Status",
+                dataIndex: "status",
+                key: "status",
+                sorter: (a, b) => a.status.localeCompare(b.status),
+                filters: [
+                  { text: "Delivered", value: "DELIVERED" },
+                  { text: "Failed", value: "FAILED" },
+                  { text: "In Transit", value: "IN_TRANSIT" },
+                ],
+                onFilter: (value, record) => record.status === value,
+              },
+              {
+                title: "Volume",
+                dataIndex: "tradeVolume",
+                key: "tradeVolume",
+                align: "right",
+                sorter: (a, b) => a.tradeVolume - b.tradeVolume,
+              },
+              {
+                title: "Expenses",
+                key: "expenses",
+                align: "right",
+                render: (_, record) => (
+                  <span>
+                    <MoneyDisplay
+                      amount={record.marketTransactionSummary?.expenses || 0}
+                    />
+                  </span>
+                ),
+                sorter: (a, b) =>
+                  (a.marketTransactionSummary?.expenses || 0) -
+                  (b.marketTransactionSummary?.expenses || 0),
+              },
+              {
+                title: "Profit",
+                key: "profit",
+                align: "right",
+                render: (_, record) => (
+                  <Popover
+                    content={
+                      <Flex flex={1} vertical>
+                        <span className="font-bold">Prediction</span>
+                        <Flex justify="space-between" gap={10}>
+                          <span>Income:</span>{" "}
+                          <MoneyDisplay
+                            amount={
+                              record.predictedSellPrice * record.tradeVolume ||
+                              0
+                            }
+                          />
+                        </Flex>
+                        <Flex justify="space-between" gap={10}>
+                          <span>Expenses:</span>{" "}
+                          <MoneyDisplay
+                            amount={
+                              record.predictedPurchasePrice *
+                                record.tradeVolume || 0
+                            }
+                          />
+                        </Flex>
+                        <Flex justify="space-between" gap={10}>
+                          <span>Profit:</span>{" "}
+                          <MoneyDisplay
+                            amount={
+                              (record.predictedSellPrice * record.tradeVolume ||
+                                0) -
+                              (record.predictedPurchasePrice *
+                                record.tradeVolume || 0)
+                            }
+                          />
+                        </Flex>
+                        <span className="font-bold">Summary</span>
+                        <Flex justify="space-between" gap={10}>
+                          <span>Income:</span>{" "}
+                          <MoneyDisplay
+                            amount={
+                              record.marketTransactionSummary?.income || 0
+                            }
+                          />
+                        </Flex>
+                        <Flex justify="space-between" gap={10}>
+                          <span>Expenses:</span>{" "}
+                          <MoneyDisplay
+                            amount={
+                              record.marketTransactionSummary?.expenses || 0
+                            }
+                          />
+                        </Flex>
+                        <Flex justify="space-between" gap={10}>
+                          <span>Profit:</span>{" "}
+                          <MoneyDisplay
+                            amount={
+                              (record.marketTransactionSummary?.income || 0) -
+                              (record.marketTransactionSummary?.expenses || 0)
+                            }
+                          />
+                        </Flex>
+                      </Flex>
+                    }
+                  >
+                    <MoneyDisplay
+                      amount={
+                        (record.marketTransactionSummary?.income || 0) -
+                        (record.marketTransactionSummary?.expenses || 0)
+                      }
+                      className={cn(
+                        (record.marketTransactionSummary?.income || 0) -
+                          (record.marketTransactionSummary?.expenses || 0) >
+                          0
+                          ? "text-current"
+                          : "text-red-600",
+                      )}
+                    />
+                  </Popover>
+                ),
+                sorter: (a, b) =>
+                  (a.marketTransactionSummary?.income || 0) -
+                  (a.marketTransactionSummary?.expenses || 0) -
+                  (b.marketTransactionSummary?.income || 0) +
+                  (b.marketTransactionSummary?.expenses || 0),
+              },
+            ]}
+            dataSource={system?.tradeRoutes || []}
+            rowKey={(row) => row.id.toString()}
+            title={() => "Trade Routes"}
+            pagination={{
+              showSizeChanger: true,
+              pageSizeOptions: ["10", "20", "50", "100"],
+              defaultPageSize: 10,
+              showTotal: (total, range) =>
+                `${range[0]}-${range[1]} of ${total}`,
+            }}
+          />
+        </Col>
+        <Col span={12}>
+          <Table
+            size="small"
+            columns={[
+              {
+                title: "Contract",
+                dataIndex: "contractId",
+                key: "contractId",
+                render: (id: string) => (
+                  <Link to={`/contracts/${id}`}>
+                    {id.slice(0, 3)}...{id.slice(-3)}
+                  </Link>
+                ),
+                sorter: (a, b) => a.contractId.localeCompare(b.contractId),
+              },
+              {
+                title: "Trade Symbol",
+                dataIndex: "tradeSymbol",
+                key: "tradeSymbol",
+                sorter: (a, b) => a.tradeSymbol.localeCompare(b.tradeSymbol),
+                filters: Object.values(TradeSymbol).map((sym) => ({
+                  text: sym,
+                  value: sym,
+                })),
+                onFilter: (value, record) => record.tradeSymbol === value,
+              },
+              {
+                title: "Destination",
+                dataIndex: "destinationSymbol",
+                key: "destinationSymbol",
+                render: (symbol: string) => (
+                  <WaypointLink waypoint={symbol}>{symbol}</WaypointLink>
+                ),
+                sorter: (a, b) =>
+                  a.destinationSymbol.localeCompare(b.destinationSymbol),
+              },
+              {
+                title: "Required",
+                dataIndex: "unitsRequired",
+                key: "unitsRequired",
+                align: "right",
+                sorter: (a, b) => a.unitsRequired - b.unitsRequired,
+              },
+              {
+                title: "Fulfilled",
+                dataIndex: "unitsFulfilled",
+                key: "unitsFulfilled",
+                align: "right",
+                sorter: (a, b) => a.unitsFulfilled - b.unitsFulfilled,
+              },
+              {
+                title: "Faction",
+                key: "faction",
+                render: (_, record) => record.contract?.factionSymbol || "N/A",
+                sorter: (a, b) =>
+                  (a.contract?.factionSymbol || "").localeCompare(
+                    b.contract?.factionSymbol || "",
+                  ),
+              },
+              {
+                title: "Reward",
+                key: "onFulfilled",
+                align: "right",
+                render: (_, record) => (
+                  <MoneyDisplay
+                    amount={
+                      (record.contract?.onFulfilled || 0) +
+                      (record.contract?.onAccepted || 0)
+                    }
+                  />
+                ),
+                sorter: (a, b) =>
+                  (a.contract?.onFulfilled || 0) -
+                  (b.contract?.onFulfilled || 0),
+              },
+              {
+                title: "Deadline",
+                key: "deadline",
+                render: (_, record) =>
+                  record.contract?.deadline
+                    ? new Date(record.contract.deadline).toLocaleString()
+                    : "N/A",
+                sorter: (a, b) =>
+                  new Date(a.contract?.deadline ?? 0).getTime() -
+                  new Date(b.contract?.deadline ?? 0).getTime(),
+                defaultSortOrder: "descend",
+              },
+            ]}
+            dataSource={system?.contractDeliveries || []}
+            rowKey={(row) =>
+              row.contractId + row.tradeSymbol + row.destinationSymbol
+            }
+            title={() => "Contract Deliveries"}
+            pagination={{
+              showSizeChanger: true,
+              pageSizeOptions: ["10", "20", "50", "100"],
               defaultPageSize: 10,
               showTotal: (total, range) =>
                 `${range[0]}-${range[1]} of ${total}`,

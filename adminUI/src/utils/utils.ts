@@ -1,3 +1,6 @@
+import { clsx, type ClassValue } from "clsx";
+import { twMerge } from "tailwind-merge";
+
 /**
  * Scales a number from one range to another.
  *
@@ -13,7 +16,7 @@ function scaleNum(
   inMin: number,
   inMax: number,
   outMin: number,
-  outMax: number
+  outMax: number,
 ): number {
   return ((number - inMin) * (outMax - outMin)) / (inMax - inMin) + outMin;
 }
@@ -37,7 +40,7 @@ const cyrb53 = (str: string, seed = 0) => {
 function interpolatePosition(
   pos1: [number, number],
   pos2: [number, number],
-  percentage: number
+  percentage: number,
 ): [number, number] {
   const x = pos1[0] + (pos2[0] - pos1[0]) * percentage;
   const y = pos1[1] + (pos2[1] - pos1[1]) * percentage;
@@ -108,6 +111,10 @@ function shallowEqual(objA: any, objB: any) {
   }
 
   return true;
+}
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
 }
 
 export { cyrb53, interpolatePosition, scaleNum, seedShuffle, shallowEqual };

@@ -10,15 +10,14 @@ import WaypointLink from "../WaypointLink";
 
 function TransactionTable({
   transactions,
-  size,
   reasons = {
     contract: true,
     trade_route_id: true,
     mining: true,
     construction_shipment_id: true,
   },
+  ...tableProps
 }: {
-  size?: TableProps["size"];
   transactions: Partial<MarketTransaction>[];
   reasons?: {
     contract: boolean;
@@ -26,7 +25,10 @@ function TransactionTable({
     mining: boolean;
     construction_shipment_id: boolean;
   };
-}) {
+} & Omit<
+  TableProps<Partial<MarketTransaction>>,
+  "columns" | "dataSource" | "rowKey"
+>) {
   const columns: TableProps<Partial<MarketTransaction>>["columns"] = [
     {
       title: "Waypoint",
@@ -59,7 +61,7 @@ function TransactionTable({
         (t) => ({
           text: t,
           value: t,
-        })
+        }),
       ),
       onFilter: (value, record) => record.shipSymbol === value,
     },
@@ -132,7 +134,7 @@ function TransactionTable({
             render: (text: string | null) => text || "N/A", // Display "N/A" if null
             sorter: (
               a: Partial<MarketTransaction>,
-              b: Partial<MarketTransaction>
+              b: Partial<MarketTransaction>,
             ) => (a.contract_id ?? "").localeCompare(b.contract_id ?? ""),
             filters: [
               {
@@ -146,7 +148,7 @@ function TransactionTable({
             ],
             onFilter: (
               value: boolean | React.Key,
-              record: Partial<MarketTransaction>
+              record: Partial<MarketTransaction>,
             ) =>
               (value === "No" && !record.contract_id) ||
               (value === "Yes" && !!record.contract_id),
@@ -162,7 +164,7 @@ function TransactionTable({
             render: (value: number | null) => (value !== null ? value : "N/A"), // Display "N/A" if null
             sorter: (
               a: Partial<MarketTransaction>,
-              b: Partial<MarketTransaction>
+              b: Partial<MarketTransaction>,
             ) => (a.trade_route_id ?? 0) - (b.trade_route_id ?? 0),
             filters: [
               {
@@ -176,7 +178,7 @@ function TransactionTable({
             ],
             onFilter: (
               value: boolean | React.Key,
-              record: Partial<MarketTransaction>
+              record: Partial<MarketTransaction>,
             ) =>
               (value === "No" && !record.trade_route_id) ||
               (value === "Yes" && !!record.trade_route_id),
@@ -193,10 +195,10 @@ function TransactionTable({
             render: (text: string | null) => text || "N/A", // Display "N/A" if null
             sorter: (
               a: Partial<MarketTransaction>,
-              b: Partial<MarketTransaction>
+              b: Partial<MarketTransaction>,
             ) =>
               (a.mining_waypoint_symbol ?? "").localeCompare(
-                b.mining_waypoint_symbol ?? ""
+                b.mining_waypoint_symbol ?? "",
               ),
             filters: [
               {
@@ -210,7 +212,7 @@ function TransactionTable({
             ],
             onFilter: (
               value: boolean | React.Key,
-              record: Partial<MarketTransaction>
+              record: Partial<MarketTransaction>,
             ) =>
               (value === "No" && !record.mining_waypoint_symbol) ||
               (value === "Yes" && !!record.mining_waypoint_symbol),
@@ -226,7 +228,7 @@ function TransactionTable({
             render: (value: number | null) => (value !== null ? value : "N/A"), // Display "N/A" if null
             sorter: (
               a: Partial<MarketTransaction>,
-              b: Partial<MarketTransaction>
+              b: Partial<MarketTransaction>,
             ) =>
               (a.construction_shipment_id ?? 0) -
               (b.construction_shipment_id ?? 0),
@@ -242,7 +244,7 @@ function TransactionTable({
             ],
             onFilter: (
               value: boolean | React.Key,
-              record: Partial<MarketTransaction>
+              record: Partial<MarketTransaction>,
             ) =>
               (value === "No" && !record.construction_shipment_id) ||
               (value === "Yes" && !!record.construction_shipment_id),
@@ -253,7 +255,6 @@ function TransactionTable({
   return (
     <Table
       rowKey={(id) => "L" + id.id}
-      size={size}
       dataSource={transactions}
       columns={columns}
       pagination={{
@@ -262,6 +263,7 @@ function TransactionTable({
         defaultPageSize: 10,
         showTotal: (total, range) => `${range[0]}-${range[1]} of ${total}`,
       }}
+      {...tableProps}
     />
   );
 }

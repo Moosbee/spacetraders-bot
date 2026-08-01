@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "typecheck": "tsc -b --noEmit",
     "lint": "eslint .",
     "preview": "vite preview",
     "codegen": "graphql-codegen --config codegen.ts",
@@ -29,7 +30,8 @@
     "recharts": "^2.15.1",
     "redux-persist": "^6.0.0",
     "redux-state-sync": "^3.1.4",
-    "tailwindcss": "^4.1.17"
+    "tailwindcss": "^4.1.17",
+    "tailwind-merge": "^3.6.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.15.0",

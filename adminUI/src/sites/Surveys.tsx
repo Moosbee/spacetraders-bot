@@ -2,6 +2,7 @@ import { useQuery } from "@apollo/client/react";
 import { Button, Space, Table, TableProps } from "antd";
 import PageTitle from "../features/PageTitle";
 import Timer from "../features/Timer/Timer";
+import WaypointLink from "../features/WaypointLink";
 import { GetAllSurveysQuery, SurveySize, TradeSymbol } from "../gql/graphql";
 import { GET_ALL_SURVEYS } from "../graphql/queries";
 
@@ -26,7 +27,7 @@ export default function Surveys() {
         <span
           style={{
             color:
-              record.exhaustedSince ||
+              !record.exhaustedSince &&
               new Date(record.expiration).getTime() > Date.now()
                 ? "currentColor"
                 : "red",
@@ -65,6 +66,9 @@ export default function Surveys() {
       dataIndex: "waypointSymbol",
       key: "waypointSymbol",
       sorter: (a, b) => a.waypointSymbol.localeCompare(b.waypointSymbol),
+      render: (symbol: string) => (
+        <WaypointLink waypoint={symbol}>{symbol}</WaypointLink>
+      ),
     },
     {
       title: "Deposits",

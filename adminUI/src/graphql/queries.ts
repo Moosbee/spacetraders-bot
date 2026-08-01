@@ -478,21 +478,15 @@ export const GET_SYSTEM = graphql(/* GraphQL */ `
           contract {
             id
             createdAt
-            reservedFund
             factionSymbol
             contractType
             accepted
             onFulfilled
+            onAccepted
             deadline
             marketTransactionSummary {
-              sum
               expenses
               income
-              units
-              purchaseUnits
-              sellUnits
-              purchaseTransactions
-              sellTransactions
             }
           }
         }
@@ -500,16 +494,9 @@ export const GET_SYSTEM = graphql(/* GraphQL */ `
       tradeRoutes {
         items {
           id
-          reservedFund
           marketTransactionSummary {
-            sum
             expenses
             income
-            units
-            purchaseUnits
-            sellUnits
-            purchaseTransactions
-            sellTransactions
           }
           symbol
           shipSymbol
