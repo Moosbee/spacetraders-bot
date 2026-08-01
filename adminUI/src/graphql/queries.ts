@@ -534,6 +534,101 @@ export const GET_SYSTEM = graphql(/* GraphQL */ `
   }
 `);
 
+export const GET_SYSTEM_MAP = graphql(/* GraphQL */ `
+  query GetSystemMap($systemSymbol: String!) {
+    system(symbol: $systemSymbol) {
+      symbol
+      sectorSymbol
+      constellation
+      systemType
+      x
+      y
+      populationDisabled
+      waypoints {
+        items {
+          symbol
+          faction
+          modifiers
+          chartedBy
+          chartedOn
+          hasShipyard
+          hasMarketplace
+          x
+          y
+          lastScrap
+          nextScrap
+          waypointType
+          traits
+          isUnderConstruction
+          orbitals
+          orbits
+          marketTrades {
+            items {
+              symbol
+              type
+              tradeSymbolInfo {
+                symbol
+                requires {
+                  items {
+                    symbol
+                  }
+                }
+                requiredBy {
+                  items {
+                    symbol
+                  }
+                }
+              }
+              marketTradeGood {
+                tradeVolume
+                supply
+                activity
+                purchasePrice
+                sellPrice
+              }
+            }
+          }
+          shipyardShips {
+            items {
+              shipType
+              supply
+              activity
+              purchasePrice
+            }
+          }
+        }
+      }
+      ships {
+        symbol
+        nav {
+          waypointSymbol
+          status
+          flightMode
+          route {
+            destinationSymbol
+            originSymbol
+            departureTime
+            arrival
+          }
+          autoPilot {
+            destinationSymbol
+            originSymbol
+            route {
+              connections {
+                ... on NavigateConnection {
+                  startSymbol
+                  endSymbol
+                  navMode
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+`);
+
 export const GET_CHART_TRANSACTIONS = graphql(/* GraphQL */ `
   query GetChartTransactions {
     chartTransactions {

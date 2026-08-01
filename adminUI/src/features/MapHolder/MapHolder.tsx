@@ -1,6 +1,6 @@
 import type { PropsWithChildren } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { scaleNum } from "../../utils/utils";
+import { cn, scaleNum } from "../../utils/utils";
 import classes from "./MapHolder.module.css";
 
 function MapHolder({
@@ -40,9 +40,9 @@ function MapHolder({
         Math.max(
           zoom +
             (signY == 0 ? signX * zoomFactorX : signY * zoomFactorY) * zoom,
-          zoomMin
+          zoomMin,
         ),
-        zoomMax
+        zoomMax,
       );
       // const zoomDiff = newZoom - zoom;
 
@@ -86,7 +86,7 @@ function MapHolder({
       setTop(Number.isFinite(newTop) ? newTop : 0);
       setLeft(Number.isFinite(newLeft) ? newLeft : 0);
     },
-    [left, top, zoom, zoomMax, zoomMin]
+    [left, top, zoom, zoomMax, zoomMin],
   );
 
   useEffect(() => {
@@ -126,7 +126,7 @@ function MapHolder({
 
   return (
     <div
-      className={classes.root}
+      className={cn("absolute inset-0 overflow-hidden")}
       ref={rootRef}
       onKeyDown={(e) => {
         if (e.key === "ArrowLeft") {

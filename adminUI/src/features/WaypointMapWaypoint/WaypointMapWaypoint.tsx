@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { useDispatch } from "react-redux";
-import { SQLWaypoint } from "../../models/SQLWaypoint";
 import { useAppSelector } from "../../redux/hooks";
 import {
   selectSelectedWaypointSymbol,
   setSelectedWaypointSymbol,
 } from "../../redux/slices/mapSlice";
 import { waypointIcons } from "../../utils/waypointColors";
+import { SystemWaypoint } from "../WaypointMap/WaypointMap";
 import classes from "./WaypointMapWaypoint.module.css";
 
 //TODO change color to antd color and dark/light mode
@@ -18,7 +18,7 @@ function WaypointMapWaypoint({
   yOne,
 }: {
   systemSymbol: string;
-  waypoint: SQLWaypoint;
+  waypoint: SystemWaypoint;
   xOne: number;
   yOne: number;
 }) {
@@ -44,8 +44,8 @@ function WaypointMapWaypoint({
     };
   }, []);
 
-  const color = waypointIcons[waypoint.waypoint_type].color;
-  const waypointIcon = waypointIcons[waypoint.waypoint_type].icon;
+  const color = waypointIcons[waypoint.waypointType].color;
+  const waypointIcon = waypointIcons[waypoint.waypointType].icon;
 
   return (
     <div
@@ -73,13 +73,13 @@ function WaypointMapWaypoint({
           setSelectedWaypointSymbol({
             waypointSymbol: waypoint.symbol,
             systemSymbol: waypoint.symbol,
-          })
+          }),
         );
       }}
       onDoubleClick={() => {
         window.open(
           `/system/${systemSymbol}/${waypoint.symbol}`,
-          "_blank"
+          "_blank",
           // "popup:true",
         );
       }}

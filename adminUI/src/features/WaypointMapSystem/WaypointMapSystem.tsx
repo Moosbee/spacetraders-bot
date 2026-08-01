@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from "react";
-import { SQLSystem } from "../../models/SQLSystem";
 import { useAppDispatch, useAppSelector } from "../../redux/hooks";
 import {
   selectSelectedSystemSymbol,
   setSelectedSystemSymbol,
 } from "../../redux/slices/mapSlice";
+import { Prettify } from "../../utils/utils";
 import { systemIcons } from "../../utils/waypointColors";
+import { SystemData } from "../WaypointMap/WaypointMap";
 import classes from "./WaypointMapSystem.module.css";
 
 function WaypointMapSystem({
@@ -13,7 +14,7 @@ function WaypointMapSystem({
   xOne,
   yOne,
 }: {
-  system: SQLSystem;
+  system: Prettify<Omit<SystemData, "waypoints" | "ships">>;
   xOne: number;
   yOne: number;
 }) {
@@ -39,8 +40,8 @@ function WaypointMapSystem({
     };
   }, []);
 
-  const color = systemIcons[system.system_type].color;
-  const waypointIcon = systemIcons[system.system_type].icon;
+  const color = systemIcons[system.systemType].color;
+  const waypointIcon = systemIcons[system.systemType].icon;
 
   return (
     <div
@@ -63,7 +64,7 @@ function WaypointMapSystem({
       onDoubleClick={() => {
         window.open(
           `/system/${system.symbol}`,
-          "_blank"
+          "_blank",
           //  "popup:true"
         );
       }}

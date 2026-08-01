@@ -1,12 +1,12 @@
 import { theme } from "antd";
 import { useEffect, useRef, useState } from "react";
-import RustShip from "../../models/ship";
 import { useAppDispatch, useAppSelector } from "../../redux/hooks";
 import {
   selectSelectedShipSymbol,
   setSelectedShipSymbol,
 } from "../../redux/slices/mapSlice";
 import FaIcon from "../FontAwsome/FaIcon";
+import { SystemShip } from "../WaypointMap/WaypointMap";
 import classes from "./WaypointMapShip.module.css";
 
 function WaypointMapShip({
@@ -14,7 +14,7 @@ function WaypointMapShip({
   xOne,
   yOne,
 }: {
-  ship: RustShip;
+  ship: SystemShip;
   xOne: number;
   yOne: number;
 }) {
@@ -80,7 +80,7 @@ function WaypointMapShip({
         if (ship) {
           window.open(
             `/ships/${ship.symbol}`,
-            "_blank"
+            "_blank",
             // ,"popup:true"
           );
         }
