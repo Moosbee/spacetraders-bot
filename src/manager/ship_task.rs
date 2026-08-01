@@ -62,7 +62,7 @@ impl ShipTaskHandler {
         skip(self)
     )]
     pub async fn await_all(&mut self) -> Result<(), crate::error::Error> {
-        let mut set: JoinSet<(String, Result<ShipFuture, anyhow::Error>)> = JoinSet::new();
+        let mut set: JoinSet<(String, Result<ShipFuture, crate::error::Error>)> = JoinSet::new();
 
         tokio::time::sleep(std::time::Duration::from_millis(500)).await;
 
@@ -80,12 +80,7 @@ impl ShipTaskHandler {
             utils::task_spawn_set(
                 &mut set,
                 format!("ship-as-{}", ship_name.symbol).as_str(),
-                async move {
-                    (
-                        ship_name.symbol.clone(),
-                        pilot.pilot_ship().await.map_err(anyhow::Error::from),
-                    )
-                },
+                async move { (ship_name.symbol.clone(), pilot.pilot_ship().await) },
             );
         }
 
@@ -96,25 +91,7 @@ impl ShipTaskHandler {
                 ship_name = self.receiver.recv() => {
                     match ship_name {
                         Some(ship_name) => {
-                            tracing::debug!(ship_name = ?ship_name, "Starting new ship task in await_all");
-                            let pilot = crate::pilot::Pilot::new(
-                                self.context.clone(),
-                                ship_name.symbol.clone(),
-                                self.fast_ship_cancel_token.child_token(),
-                                self.slow_ship_cancel_token.child_token()
-                            );
-
-                            utils::task_spawn_set(
-                                &mut set,
-                                format!("ship-as-{}", ship_name.symbol).as_str(),
-                                async move {
-                                    (
-                                        ship_name.symbol.clone(),
-                                        pilot.pilot_ship().await.map_err(anyhow::Error::from),
-                                    )
-                                },
-                            );
-
+                            self.handle_ship_add(&mut set, ship_name).await?;
                         }
                         None => {
                             tracing::info!("ShipTaskHandler::await_all: receiver is closed");
@@ -125,17 +102,7 @@ impl ShipTaskHandler {
                 finished_future = set.join_next() => {
                   match finished_future {
                     Some(finished_future) => {
-                      match finished_future {
-                        Ok((ship_name,Ok(erg))) => {
-                          tracing::debug!(ship_name = %ship_name, erg = ?erg, "Finished ship in await_all");
-                        }
-                        Ok((ship_name,Err(e))) => {
-                          tracing::error!(ship_name = %ship_name, error = %e, backtrace = ?e.backtrace(), source = ?e.source(), root_cause = ?e.root_cause(), "Ship error occurred");
-                        }
-                        Err(e) => {
-                          tracing::error!(error = ?e, "Ship join error");
-                        }
-                      }
+                        self.handle_finished_future(finished_future).await;
                     },
                     None => {
                         tracing::debug!("No finished future in await_all");
@@ -147,16 +114,71 @@ impl ShipTaskHandler {
                     tracing::info!("ShipTaskHandler::await_all: fast cancel token");
                     break;
                 }
-                _ = self.slow_cancel_token.cancelled() => {
-                    tracing::info!("ShipTaskHandler::await_all: slow cancel token");
-                    break;
-                }
+                // _ = self.slow_cancel_token.cancelled() => {
+                //     tracing::info!("ShipTaskHandler::await_all: slow cancel token");
+                //     break;
+                // }
             }
         }
 
         self.slow_ship_cancel_token.cancel();
         self.slow_manager_cancel_token.cancel();
         Ok(())
+    }
+
+    async fn handle_ship_add(
+        &mut self,
+        set: &mut JoinSet<(String, Result<ShipFuture, crate::error::Error>)>,
+        ship_name: database::ShipInfo,
+    ) -> Result<(), crate::error::Error> {
+        tracing::debug!(ship_name = ?ship_name, "Starting new ship task in await_all");
+        let pilot = crate::pilot::Pilot::new(
+            self.context.clone(),
+            ship_name.symbol.clone(),
+            self.fast_ship_cancel_token.child_token(),
+            self.slow_ship_cancel_token.child_token(),
+        );
+
+        utils::task_spawn_set(
+            set,
+            format!("ship-as-{}", ship_name.symbol).as_str(),
+            async move { (ship_name.symbol.clone(), pilot.pilot_ship().await) },
+        );
+
+        Ok(())
+    }
+
+    async fn handle_finished_future(
+        &mut self,
+        finished_future: Result<
+            (String, Result<ShipFuture, crate::error::Error>),
+            tokio::task::JoinError,
+        >,
+    ) {
+        match finished_future {
+            Ok((ship_name, Ok(erg))) => {
+                tracing::debug!(ship_name = %ship_name, erg = ?erg, "Finished ship in await_all");
+            }
+            Ok((ship_name, Err(e))) => {
+                tracing::error!(ship_name = %ship_name, error = %e, "Ship error occurred");
+
+                if let crate::error::Error::Api(api_error) = &e
+                    && api_error.is_universe_reset()
+                {
+                    self.context.cancellation_tokens.run_cancel_token.cancel();
+                } else if let crate::error::Error::ArcError(arc_error) = e
+                    && let crate::error::Error::Api(api_error) = &*arc_error
+                    && api_error.is_universe_reset()
+                {
+                    self.context.cancellation_tokens.run_cancel_token.cancel();
+                } else {
+                    // self.context.cancellation_tokens.global_cancel_token.cancel();
+                }
+            }
+            Err(e) => {
+                tracing::error!(error = ?e, "Ship join error");
+            }
+        }
     }
 }
 

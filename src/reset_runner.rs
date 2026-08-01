@@ -6,7 +6,7 @@ use space_traders_client::models::{self};
 use tokio::sync::RwLock;
 use tokio_util::sync::CancellationToken;
 use tracing::instrument;
-use utils::{get_system_symbol, WaypointCan};
+use utils::{WaypointCan, get_system_symbol};
 
 use crate::{
     control_api,
@@ -64,7 +64,7 @@ pub async fn run_reset(
     let (context, managers) = init_min_context(
         api,
         database_pool,
-        run_cancel_token,
+        run_cancel_token.clone(),
         global_cancel_token.clone(),
     )
     .await?;
@@ -96,7 +96,9 @@ pub async fn run_reset(
     start_ships(&context).await?;
 
     tracing::info!("Waiting for managers to complete");
-    let manager = managers_handles.wait(&global_cancel_token).await?;
+    let manager = managers_handles
+        .wait(&global_cancel_token, &run_cancel_token)
+        .await?;
 
     tracing::info!("Analyzing run results");
     let run_result = analyze_run(&context, &manager).await?;

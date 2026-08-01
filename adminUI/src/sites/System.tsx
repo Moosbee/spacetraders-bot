@@ -797,11 +797,11 @@ function System() {
               <span>
                 <MoneyDisplay
                   amount={
-                    system?.chartTransactions
+                    (system?.chartTransactions || [])
                       .map((s) => s.totalPrice)
                       .reduce((r, e) => {
                         return r + e;
-                      }) || 0
+                      }, 0) || 0
                   }
                 />
               </span>

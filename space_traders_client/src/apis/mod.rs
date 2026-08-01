@@ -20,6 +20,12 @@ pub enum Error<T> {
     ResponseError(ResponseContent<T>),
 }
 
+impl<T> Error<T> {
+    pub fn is_universe_reset(&self) -> bool {
+        false // TODO
+    }
+}
+
 #[derive(Debug)]
 pub struct ResponseContent<T> {
     pub status: reqwest::StatusCode,
@@ -122,6 +128,12 @@ pub enum ApiError {
     Serde(serde_json::Error),
     Io(std::io::Error),
     ResponseError(ResponseContent<Result<serde_json::Value, serde_json::Error>>),
+}
+
+impl ApiError {
+    pub fn is_universe_reset(&self) -> bool {
+        false // TODO
+    }
 }
 
 impl fmt::Display for ApiError {

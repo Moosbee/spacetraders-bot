@@ -61,6 +61,8 @@ async fn main() -> anyhow::Result<()> {
         info!("Running database migrations");
         sqlx::migrate!().run(&database_pool.database_pool).await?;
 
+        wait_for_api().await?;
+
         // check db if already has an agent, if not create agent
         let agent_token = {
             let db_agent_token = database::Configuration::get_agent_token(&database_pool).await?;
@@ -118,6 +120,31 @@ async fn main() -> anyhow::Result<()> {
     }
 
     info!("SpaceTraders shutting down");
+    Ok(())
+}
+
+async fn wait_for_api() -> Result<(), anyhow::Error> {
+    let waiting_api = space_traders_client::Api::new(None, 500, NonZeroU32::new(2).unwrap());
+
+    loop {
+        let status = waiting_api.get_status().await;
+
+        let working = match status {
+            Ok(status) => status.status == "SpaceTraders is currently online and available to play",
+            Err(status_error) => {
+                error!(?status_error, "Failed to get status");
+                false
+            }
+        };
+
+        if working {
+            info!("API is working");
+            break;
+        }
+
+        tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+    }
+
     Ok(())
 }
 
