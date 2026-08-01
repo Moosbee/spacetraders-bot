@@ -27,4 +27,33 @@ function WaypointLink({
   );
 }
 
+function WaypointLinkWithSystem({
+  systemSymbol,
+  waypoint,
+  ...props
+}: Prettify<
+  Omit<
+    {
+      waypoint: string;
+      systemSymbol?: string;
+    } & LinkProps,
+    "to" | "children"
+  >
+>) {
+  if (!systemSymbol) {
+    systemSymbol = waypoint.split("-", 2).join("-");
+  }
+  return (
+    <span>
+      <Link to={`/system/${systemSymbol}`} {...props}>
+        {systemSymbol}
+      </Link>
+      <Link to={`/system/${systemSymbol}/${waypoint}`} {...props}>
+        {waypoint.replace(systemSymbol || "", "")}
+      </Link>
+    </span>
+  );
+}
+
 export default WaypointLink;
+export { WaypointLinkWithSystem };

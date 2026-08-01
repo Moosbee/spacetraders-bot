@@ -506,6 +506,7 @@ export const GET_SYSTEM = graphql(/* GraphQL */ `
           tradeVolume
           predictedPurchasePrice
           predictedSellPrice
+          createdAt
         }
       }
       ships {
@@ -643,6 +644,33 @@ export const GET_CHART_TRANSACTIONS = graphql(/* GraphQL */ `
           traits
         }
       }
+    }
+  }
+`);
+
+export const GET_API_COUNT = graphql(/* GraphQL */ `
+  query GetApiCount {
+    apiCounts
+  }
+`);
+
+export const GET_MY_AGENT_MINI_INFO = graphql(/* GraphQL */ `
+  query GetMyAgentMiniInfo {
+    runInfo {
+      agent {
+        accountId
+        symbol
+        credits
+        shipCount
+        startingFaction
+        headquarters
+        createdAt
+      }
+    }
+    budget {
+      currentFunds
+      reservedAmount
+      spendable
     }
   }
 `);

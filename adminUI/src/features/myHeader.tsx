@@ -1,3 +1,4 @@
+import { useQuery } from "@apollo/client/react";
 import type { MenuProps } from "antd";
 import {
   Avatar,
@@ -8,16 +9,14 @@ import {
   Flex,
   Row,
   Space,
+  Spin,
   theme,
   Tooltip,
 } from "antd";
-import { useState } from "react";
 import { Link } from "react-router-dom";
-import { backendUrl } from "../data";
-import { DbAgent } from "../models/Agent";
+import { GET_API_COUNT, GET_MY_AGENT_MINI_INFO } from "../graphql/queries";
 import { type AntHeaderHeader } from "../MyApp";
 import { useAppDispatch, useAppSelector } from "../redux/hooks";
-import { selectMyAgent, setMyAgent } from "../redux/slices/agentSlice";
 import {
   selectConnectWebsocket,
   selectDarkMode,
@@ -32,10 +31,10 @@ import {
 } from "../redux/slices/mapSlice";
 import FaIcon from "./FontAwsome/FaIcon";
 import MoneyDisplay from "./MonyDisplay";
+import { WaypointLinkWithSystem } from "./WaypointLink";
 
 function MyHeader({ Header }: { Header: typeof AntHeaderHeader }) {
   const isDarkMode = useAppSelector(selectDarkMode);
-  const myAgent = useAppSelector(selectMyAgent);
 
   const shipSymbol = useAppSelector(selectSelectedShipSymbol);
   const waypointSymbol = useAppSelector(selectSelectedWaypointSymbol);
@@ -47,7 +46,21 @@ function MyHeader({ Header }: { Header: typeof AntHeaderHeader }) {
 
   const dispatch = useAppDispatch();
 
-  const [apiCount, setApiCount] = useState(0);
+  const {
+    loading: apiCountLoading,
+    data: apiCount,
+    refetch: apiCountRefetch,
+  } = useQuery(GET_API_COUNT, {
+    initialFetchPolicy: "standby",
+  });
+
+  const {
+    loading: myAgentLoading,
+    data: myAgentData,
+    refetch: myAgentRefetch,
+  } = useQuery(GET_MY_AGENT_MINI_INFO, {
+    initialFetchPolicy: "standby",
+  });
 
   const {
     token: { colorBgContainer, colorTextDescription },
@@ -106,19 +119,22 @@ function MyHeader({ Header }: { Header: typeof AntHeaderHeader }) {
           title={
             <Row gutter={[2, 2]}>
               <Col span={24} style={{ textAlign: "center" }}>
-                {myAgent.account_id}
+                {myAgentData?.runInfo.agent?.accountId}
               </Col>
               <Col span={12} style={{ textAlign: "center" }}>
-                {myAgent.symbol}
+                {myAgentData?.runInfo.agent?.symbol}
               </Col>
               <Col span={12} style={{ textAlign: "center" }}>
-                {myAgent.ship_count} Ships
+                {myAgentData?.runInfo.agent?.shipCount} Ships
               </Col>
               <Col span={12} style={{ textAlign: "center" }}>
-                {myAgent.starting_faction}
+                {myAgentData?.runInfo.agent?.startingFaction}
               </Col>
               <Col span={12} style={{ textAlign: "center" }}>
-                {myAgent.headquarters}
+                <WaypointLinkWithSystem
+                  waypoint={myAgentData?.runInfo.agent?.headquarters || ""}
+                  className="text-blue-400! hover:text-blue-200!"
+                />
               </Col>
               <Col span={12} style={{ textAlign: "center" }}>
                 <Space>
@@ -127,35 +143,42 @@ function MyHeader({ Header }: { Header: typeof AntHeaderHeader }) {
                 </Space>
               </Col>
               <Col span={12} style={{ textAlign: "center" }}>
-                <MoneyDisplay amount={myAgent.credits} />
+                <MoneyDisplay
+                  amount={myAgentData?.runInfo.agent?.credits || -1}
+                />
               </Col>
               <Col span={12} style={{ textAlign: "center" }}>
                 <Button
                   onClick={() => {
-                    fetch(`http://${backendUrl}/agents`)
-                      .then((res) => res.json())
-                      .then((res) => {
-                        for (const agent of res as DbAgent[]) {
-                          if (agent.account_id) {
-                            dispatch(setMyAgent(agent));
-                            break;
-                          }
-                        }
-                      });
+                    myAgentRefetch();
                   }}
                 >
                   Refresh
                 </Button>
               </Col>
+              <Col span={12} style={{ textAlign: "center" }}>
+                <MoneyDisplay
+                  amount={myAgentData?.budget.reservedAmount || -1}
+                />
+              </Col>
             </Row>
           }
         >
-          <Link to={`/agents/${myAgent.symbol}`} style={{ color: "inherit" }}>
+          <Link
+            to={`/agents/${myAgentData?.runInfo.agent?.symbol}`}
+            style={{ color: "inherit" }}
+          >
             <Space>
-              <Avatar>{myAgent.symbol.slice(0, 1)}</Avatar>
-              {myAgent.symbol}
+              <Spin size="small" spinning={myAgentLoading}>
+                <Avatar>
+                  {myAgentData?.runInfo.agent?.symbol.slice(0, 1)}
+                </Avatar>
+              </Spin>
+              {myAgentData?.runInfo.agent?.symbol}
               <Badge status={websocketConnected ? "success" : "error"} />
-              <MoneyDisplay amount={myAgent.credits} />
+              <MoneyDisplay
+                amount={myAgentData?.runInfo.agent?.credits || -1}
+              />
             </Space>
           </Link>
         </Tooltip>
@@ -206,12 +229,11 @@ function MyHeader({ Header }: { Header: typeof AntHeaderHeader }) {
         <Space>
           <Button
             onClick={() => {
-              fetch(`http://${backendUrl}/insights/apiCounter`)
-                .then((response) => response.json())
-                .then((data) => setApiCount(data.counter));
+              apiCountRefetch();
             }}
+            loading={apiCountLoading}
           >
-            API Count: {apiCount}
+            API Count: {apiCount?.apiCounts || 0}
           </Button>
           <Dropdown trigger={["click"]} menu={{ items: settingsItems }}>
             <Button>

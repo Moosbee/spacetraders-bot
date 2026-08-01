@@ -1069,15 +1069,29 @@ function System() {
       </Row>
       <Divider />
       <Row gutter={10}>
-        <Col span={12}>
+        <Col span={13}>
           <Table
             size="small"
             columns={[
+              // {
+              //   title: "ID",
+              //   dataIndex: "id",
+              //   key: "id",
+              //   sorter: (a, b) => a.id - b.id,
+              // },
               {
-                title: "ID",
-                dataIndex: "id",
-                key: "id",
-                sorter: (a, b) => a.id - b.id,
+                title: "Created At",
+                dataIndex: "createdAt",
+                key: "createdAt",
+                render: (date: string, record) => (
+                  <Popover content={<span>{record.id}</span>}>
+                    <span>{new Date(date).toLocaleString()}</span>
+                  </Popover>
+                ),
+                sorter: (a, b) =>
+                  new Date(a.createdAt).getTime() -
+                  new Date(b.createdAt).getTime(),
+                defaultSortOrder: "descend",
               },
               {
                 title: "Trade Symbol",
@@ -1256,7 +1270,7 @@ function System() {
             }}
           />
         </Col>
-        <Col span={12}>
+        <Col span={11}>
           <Table
             size="small"
             columns={[
