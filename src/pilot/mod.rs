@@ -33,6 +33,7 @@ pub struct Pilot {
     contract_pilot: ContractPilot,
     mining_pilot: MiningPilot,
     chart_pilot: ChartPilot,
+    error_count: u32,
 }
 
 impl Pilot {
@@ -55,6 +56,7 @@ impl Pilot {
             contract_pilot: ContractPilot::new(context.clone(), ship_symbol.clone()),
             mining_pilot: MiningPilot::new(context.clone(), ship_symbol.clone()),
             chart_pilot: ChartPilot::new(context.clone(), ship_symbol.clone()),
+            error_count: 0,
         }
     }
 
@@ -63,7 +65,7 @@ impl Pilot {
     }
 
     #[instrument(level = "info", name = "spacetraders::pilot::pilot_ship", skip(self), fields(self.ship_symbol = %self.ship_symbol), err(Debug))]
-    pub async fn pilot_ship(&self) -> Result<()> {
+    pub async fn pilot_ship(&mut self) -> Result<()> {
         debug!(ship_symbol = %self.ship_symbol, "Starting pilot for ship");
 
         tokio::time::sleep(std::time::Duration::from_millis(
@@ -80,10 +82,26 @@ impl Pilot {
                 },
                 erg = self.pilot_circle() => {
                     if let Err(e) = erg {
-                        tracing::error!(ship_symbol = %self.ship_symbol, "Error while piloting ship: {}", e);
+                        self.handle_error(e).await?;
                     }
                 },
             };
+        }
+        Ok(())
+    }
+
+    async fn handle_error(&mut self, e: Error) -> Result<()> {
+        tracing::error!(ship_symbol = %self.ship_symbol, "Error while piloting ship: {}", e);
+
+        if let Some(api_error) = e.get_api_error()
+            && api_error.is_universe_reset()
+        {
+            self.context.cancellation_tokens.run_cancel_token.cancel();
+        }
+        self.error_count += 1;
+
+        if self.error_count > 5 {
+            return Err(e);
         }
         Ok(())
     }

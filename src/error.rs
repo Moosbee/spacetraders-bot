@@ -29,6 +29,17 @@ pub enum Error {
     ArcError(#[from] std::sync::Arc<Error>),
 }
 
+impl Error {
+    pub fn get_api_error(&self) -> Option<&space_traders_client::apis::ApiError> {
+        match self {
+            Error::Api(e) => Some(e),
+            Error::Ship(ship::Error::Api(e)) => Some(e),
+            Error::ArcError(e) => e.get_api_error(),
+            _ => None,
+        }
+    }
+}
+
 impl From<&str> for Error {
     fn from(value: &str) -> Self {
         Error::General(value.to_string())

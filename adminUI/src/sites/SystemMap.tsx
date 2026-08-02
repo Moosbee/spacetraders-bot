@@ -11,24 +11,22 @@ type MapConfig = {
   minShipyardCount?: number;
   minMarketplaceCount?: number;
   onlyJumpGates?: "NOT_ACCESSIBLE" | "NONE" | "ACCESSIBLE";
+  highlightSelectedSystem?: boolean;
   minShipsHighlighted?: number;
   minFleetsHighlighted?: number;
   minMarketplacesHighlighted?: number;
   minShipyardsHighlighted?: number;
   minWaypointsHighlighted?: number;
+  doubleClickBehavior?: "SELECT_SYSTEM" | "GO_TO_SYSTEM" | "NONE" | undefined;
 };
 
 const defaultConfig: MapConfig = {
   minWaypointCount: 1,
-  minFleetCount: 1,
-  minShipyardCount: 1,
-  minMarketplaceCount: 1,
-  onlyJumpGates: "NOT_ACCESSIBLE",
+  onlyJumpGates: "NONE",
+  highlightSelectedSystem: false,
   minShipsHighlighted: 1,
   minFleetsHighlighted: 1,
-  minMarketplacesHighlighted: 20,
-  minShipyardsHighlighted: 1,
-  minWaypointsHighlighted: 100,
+  doubleClickBehavior: "GO_TO_SYSTEM",
 };
 
 function SysMap() {
@@ -272,6 +270,88 @@ function SysMap() {
               minWaypointsHighlighted: Number(o.key),
             })),
         })),
+      ],
+    },
+    {
+      key: "doubleClickBehavior",
+      label: `Double Click Behavior: ${config.doubleClickBehavior ?? "NONE"}`,
+      children: [
+        {
+          key: "SELECT_SYSTEM",
+          label: (
+            <span
+              style={{
+                fontWeight:
+                  config.doubleClickBehavior === "SELECT_SYSTEM"
+                    ? "bold"
+                    : "normal",
+              }}
+            >
+              Select System
+            </span>
+          ),
+          onClick: () =>
+            setConfig((c) => ({ ...c, doubleClickBehavior: "SELECT_SYSTEM" })),
+        },
+        {
+          key: "GO_TO_SYSTEM",
+          label: (
+            <span
+              style={{
+                fontWeight:
+                  config.doubleClickBehavior === "GO_TO_SYSTEM"
+                    ? "bold"
+                    : "normal",
+              }}
+            >
+              Go to System
+            </span>
+          ),
+          onClick: () =>
+            setConfig((c) => ({ ...c, doubleClickBehavior: "GO_TO_SYSTEM" })),
+        },
+        {
+          key: "NONE",
+          label: (
+            <span
+              style={{
+                fontWeight:
+                  config.doubleClickBehavior === "NONE" ? "bold" : "normal",
+              }}
+            >
+              None
+            </span>
+          ),
+          onClick: () =>
+            setConfig((c) => ({ ...c, doubleClickBehavior: "NONE" })),
+        },
+      ],
+    },
+    {
+      key: "highlightSelectedSystem",
+      label: `Highlight Selected System: ${config.highlightSelectedSystem ?? "OFF"}`,
+      children: [
+        {
+          ...offOption(config.highlightSelectedSystem),
+          onClick: () =>
+            setConfig((c) => ({ ...c, highlightSelectedSystem: undefined })),
+        },
+        {
+          key: "true",
+          label: (
+            <span
+              onClick={() =>
+                setConfig((c) => ({ ...c, highlightSelectedSystem: true }))
+              }
+              style={{
+                fontWeight:
+                  config.highlightSelectedSystem === true ? "bold" : "normal",
+              }}
+            >
+              ON
+            </span>
+          ),
+        },
       ],
     },
     { type: "divider" as const },

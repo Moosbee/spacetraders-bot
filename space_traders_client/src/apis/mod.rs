@@ -22,7 +22,10 @@ pub enum Error<T> {
 
 impl<T> Error<T> {
     pub fn is_universe_reset(&self) -> bool {
-        false // TODO
+        match self {
+            Error::ResponseError(response_content) => response_content.is_universe_reset(),
+            _ => false,
+        }
     }
 }
 
@@ -31,6 +34,24 @@ pub struct ResponseContent<T> {
     pub status: reqwest::StatusCode,
     pub content: String,
     pub entity: Option<ResponseContentEntity<T>>,
+}
+
+impl<T> ResponseContent<T> {
+    pub fn is_universe_reset(&self) -> bool {
+        // Api(ResponseError(ResponseContent { status: 503, content: \"{\\\"error\\\":{\\\"code\\\":3100,\\\"message\\\":\\\"The universe is being reset. Please check back in a few minutes.\\\",\\\"requestId\\\":\\\"019fc28f-c88e-779d-bbca-cd77429dd898\\\"}}\", entity: None }))
+        // Api(ResponseError(ResponseContent { status: 401, content: \"{\\\"error\\\":{\\\"code\\\":4113,\\\"message\\\":\\\"Failed to parse token. Token reset_date does not match the server. Server resets happen on a weekly to bi-weekly frequency during alpha. After a reset, you should re-register your agent. Expected: 2026-08-02, Actual: 2026-07-26\\\",\\\"data\\\":{\\\"expected\\\":\\\"2026-08-02\\\",\\\"actual\\\":\\\"2026-07-26\\\"},\\\"requestId\\\":\\\"019fc28f-ff49-77d9-8d86-c6baded26cc5\\\"}}\", entity: Some(ResponseContentEntity { error: ResponseContentEntityData { message: \"Failed to parse token. Token reset_date does not match the server. Server resets happen on a weekly to bi-weekly frequency during alpha. After a reset, you should re-register your agent. Expected: 2026-08-02, Actual: 2026-07-26\", code: 4113, data: Ok(Object {\"actual\": String(\"2026-07-26\"), \"expected\": String(\"2026-08-02\")}) } }) }))
+
+        let try_parsed: Result<serde_json::Value, serde_json::Error> =
+            serde_json::from_str(&self.content);
+        match try_parsed {
+            Ok(content) => {
+                content["error"]["code"] == 3100
+                    && content["error"]["message"]
+                        == "The universe is being reset. Please check back in a few minutes."
+            }
+            Err(_) => false,
+        }
+    }
 }
 
 lazy_static::lazy_static! {
@@ -132,7 +153,10 @@ pub enum ApiError {
 
 impl ApiError {
     pub fn is_universe_reset(&self) -> bool {
-        false // TODO
+        match self {
+            ApiError::ResponseError(e) => e.is_universe_reset(),
+            _ => false,
+        }
     }
 }
 

@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { GetSystemMapDataQuery } from "../../gql/graphql";
-import { useAppSelector } from "../../redux/hooks";
-import { selectSelectedSystemSymbol } from "../../redux/slices/mapSlice";
+import { useAppDispatch, useAppSelector } from "../../redux/hooks";
+import {
+  selectSelectedSystemSymbol,
+  setSelectedSystemSymbol,
+} from "../../redux/slices/mapSlice";
 import { systemMapDrawStyle } from "../../utils/systemMapColors";
 import { systemIcons } from "../../utils/waypointColors";
 import classes from "./SystemsMap.module.css";
@@ -49,14 +52,17 @@ function drawSystems(
   zoom: number,
   top: number,
   left: number,
+  selectedSystem: string | undefined,
   config: {
     minFleetsHighlighted?: number;
     minShipsHighlighted?: number;
     minWaypointsHighlighted?: number;
     minShipyardsHighlighted?: number;
     minMarketplacesHighlighted?: number;
+    highlightSelectedSystem?: boolean;
   },
   style: {
+    selectedSystemHighlightColor: string;
     workingJumpGateLineColor: string;
     blockedJumpGateLineColor: string;
     shipHighlightColor: string;
@@ -71,8 +77,8 @@ function drawSystems(
     return;
   }
 
-  const width = canvas.width;
-  const height = canvas.height;
+  const width = canvas.clientWidth;
+  const height = canvas.clientHeight;
 
   context.clearRect(0, 0, width, height);
 
@@ -118,6 +124,14 @@ function drawSystems(
     if (x < 0 || x > width || y < 0 || y > height) continue;
     const r = Math.max(maxRatio / 3000, Math.min(Math.abs(zoom / 2) * 1, 10));
     let highlightRadius = 0;
+
+    if (config.highlightSelectedSystem && selectedSystem === system.symbol) {
+      context.beginPath();
+      context.arc(x, y, r * highLightRadius[highlightRadius++], 0, 2 * Math.PI);
+      context.fillStyle = style.selectedSystemHighlightColor;
+      context.fill();
+    }
+
     if (
       config.minShipsHighlighted !== undefined &&
       config.minShipsHighlighted <= system.ships.length
@@ -206,9 +220,12 @@ function SystemsMap({
     minWaypointsHighlighted?: number;
     minShipyardsHighlighted?: number;
     minMarketplacesHighlighted?: number;
+    highlightSelectedSystem?: boolean;
+    doubleClickBehavior?: "SELECT_SYSTEM" | "GO_TO_SYSTEM" | "NONE" | undefined;
   };
 }) {
   const selectedSystem = useAppSelector(selectSelectedSystemSymbol);
+  const dispatch = useAppDispatch();
 
   const calcSystems: Record<
     string,
@@ -282,12 +299,14 @@ function SystemsMap({
         zoom,
         top,
         left,
+        selectedSystem,
         {
           minFleetsHighlighted: config.minFleetsHighlighted,
           minShipsHighlighted: config.minShipsHighlighted,
           minWaypointsHighlighted: config.minWaypointsHighlighted,
           minShipyardsHighlighted: config.minShipyardsHighlighted,
           minMarketplacesHighlighted: config.minMarketplacesHighlighted,
+          highlightSelectedSystem: config.highlightSelectedSystem,
         },
         systemMapDrawStyle,
       );
@@ -299,6 +318,7 @@ function SystemsMap({
     };
   }, [
     calcSystems,
+    config.highlightSelectedSystem,
     config.minFleetsHighlighted,
     config.minMarketplacesHighlighted,
     config.minShipsHighlighted,
@@ -306,6 +326,7 @@ function SystemsMap({
     config.minWaypointsHighlighted,
     data.jumpConnections,
     left,
+    selectedSystem,
     top,
     zoom,
   ]);
@@ -320,17 +341,20 @@ function SystemsMap({
       zoom,
       top,
       left,
+      selectedSystem,
       {
         minFleetsHighlighted: config.minFleetsHighlighted,
         minShipsHighlighted: config.minShipsHighlighted,
         minWaypointsHighlighted: config.minWaypointsHighlighted,
         minShipyardsHighlighted: config.minShipyardsHighlighted,
         minMarketplacesHighlighted: config.minMarketplacesHighlighted,
+        highlightSelectedSystem: config.highlightSelectedSystem,
       },
       systemMapDrawStyle,
     );
   }, [
     calcSystems,
+    config.highlightSelectedSystem,
     config.minFleetsHighlighted,
     config.minMarketplacesHighlighted,
     config.minShipsHighlighted,
@@ -338,6 +362,7 @@ function SystemsMap({
     config.minWaypointsHighlighted,
     data.jumpConnections,
     left,
+    selectedSystem,
     top,
     zoom,
   ]);
@@ -395,17 +420,6 @@ function SystemsMap({
       // this is the ammount to move the frame left or right to compensate the change in zoom
       const leftDiff =
         zoomDiff * cursorPosX * (mapPosX / mausPercentPosX) * Math.max(HdW, 1);
-
-      console.log(
-        "efjoejfeop",
-        zoom,
-        newZoom,
-        zoomDiff,
-        topDiff,
-        leftDiff,
-        top,
-        left,
-      );
 
       const newTop = top - topDiff;
       const newLeft = left - leftDiff;
@@ -529,8 +543,8 @@ function SystemsMap({
         // this is the position of the mouse relative to the frame 0 left of the frame 1 right of the frame
         const mausPosX = e.clientX - bounding.x;
 
-        const mapPosX = (mausPosX - left) / (zoom * maxRatio); // between 0 and 1
-        const mapPosY = (mausPosY - top) / (zoom * maxRatio);
+        const mapPosX = (mausPosX - left) / zoom / maxRatio; // between 0 and 1
+        const mapPosY = (mausPosY - top) / zoom / maxRatio; // between 0 and 1
 
         const closestSystem = Object.values(calcSystems).reduce(
           (prev, curr) => {
@@ -549,7 +563,11 @@ function SystemsMap({
           closestSystem.system.symbol,
         );
 
-        window.open("/system/" + closestSystem.system.symbol, "_blank");
+        if (config.doubleClickBehavior === "GO_TO_SYSTEM") {
+          window.open("/system/" + closestSystem.system.symbol, "_blank");
+        } else if (config.doubleClickBehavior === "SELECT_SYSTEM") {
+          dispatch(setSelectedSystemSymbol(closestSystem.system.symbol));
+        }
       }}
     />
   );

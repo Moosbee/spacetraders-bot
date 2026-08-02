@@ -3,5 +3,6 @@
 /db
 /jaeger_data
 /readyset_data
+/db_backup
 log.txt
 log*.txt

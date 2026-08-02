@@ -70,7 +70,7 @@ impl ShipTaskHandler {
 
         while let Ok(ship_name) = self.receiver.try_recv() {
             tracing::debug!(ship_name = ?ship_name, "Starting initial ship task in await_all");
-            let pilot = crate::pilot::Pilot::new(
+            let mut pilot = crate::pilot::Pilot::new(
                 self.context.clone(),
                 ship_name.symbol.clone(),
                 self.fast_ship_cancel_token.child_token(),
@@ -132,7 +132,7 @@ impl ShipTaskHandler {
         ship_name: database::ShipInfo,
     ) -> Result<(), crate::error::Error> {
         tracing::debug!(ship_name = ?ship_name, "Starting new ship task in await_all");
-        let pilot = crate::pilot::Pilot::new(
+        let mut pilot = crate::pilot::Pilot::new(
             self.context.clone(),
             ship_name.symbol.clone(),
             self.fast_ship_cancel_token.child_token(),
