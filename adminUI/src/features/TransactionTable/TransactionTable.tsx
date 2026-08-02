@@ -131,7 +131,14 @@ function TransactionTable({
             title: "Contract",
             dataIndex: "contract_id",
             key: "contract_id",
-            render: (text: string | null) => text || "N/A", // Display "N/A" if null
+            render: (id: string | null) =>
+              id ? (
+                <Link to={`/contracts/${id}`}>
+                  {id.slice(0, 3)}...{id.slice(-3)}
+                </Link>
+              ) : (
+                "N/A"
+              ), // Display "N/A" if null
             sorter: (
               a: Partial<MarketTransaction>,
               b: Partial<MarketTransaction>,
@@ -222,7 +229,7 @@ function TransactionTable({
     ...(reasons?.construction_shipment_id
       ? [
           {
-            title: "Construction Shipment",
+            title: "Constr. Shipment",
             dataIndex: "construction_shipment_id",
             key: "construction_shipment_id",
             render: (value: number | null) => (value !== null ? value : "N/A"), // Display "N/A" if null

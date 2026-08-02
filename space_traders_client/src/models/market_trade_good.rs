@@ -69,6 +69,7 @@ impl MarketTradeGood {
     async_graphql::Enum,
 )]
 #[sqlx(type_name = "market_trade_good_type")]
+#[graphql(name = "MarketTradeGoodType")]
 pub enum Type {
     #[serde(rename = "EXPORT")]
     #[sqlx(rename = "EXPORT")]

@@ -5,6 +5,7 @@ import {
 } from "@ant-design/icons";
 import { useMutation, useQuery } from "@apollo/client/react";
 import {
+  Alert,
   Button,
   Card,
   Col,
@@ -57,7 +58,9 @@ function System() {
   const [
     repopulateSystem,
     { loading: repopulateSystemLoading, error: repopulateSystemError },
-  ] = useMutation(REPOPULATE_SYSTEMS_WITH_FLEETS_FROM_SYSTEM);
+  ] = useMutation(REPOPULATE_SYSTEMS_WITH_FLEETS_FROM_SYSTEM, {
+    refetchQueries: [GET_SYSTEM],
+  });
 
   const selectedSystem = useAppSelector(selectSelectedSystemSymbol);
 
@@ -100,7 +103,7 @@ function System() {
   type GQLWaypoint = NonNullable<typeof system>["waypoints"][number];
 
   const color = systemIcons[system?.systemType || "BLACK_HOLE"].color;
-  const waypointIcon = systemIcons[system?.systemType || "BLACK_HOLE"].icon;
+  const systemIcon = systemIcons[system?.systemType || "BLACK_HOLE"].icon;
 
   const items: DescriptionsProps["items"] = [
     {
@@ -132,7 +135,7 @@ function System() {
                     : "",
               }}
             ></span>
-            {waypointIcon}
+            {systemIcon}
           </div>
           {system?.symbol}
         </button>
@@ -539,7 +542,12 @@ function System() {
   return (
     <div style={{ padding: "24px 24px" }}>
       <PageTitle title={`System ${systemID}`} />
-      <h2>System {systemID}</h2>
+      <Space>
+        <h2>System {systemID}</h2>
+        {repopulateSystemError && (
+          <Alert message={repopulateSystemError.message} type="error" />
+        )}
+      </Space>
       <Space>
         <Descriptions bordered column={3} items={items} />
 
@@ -1355,20 +1363,91 @@ function System() {
                   ),
               },
               {
-                title: "Reward",
-                key: "onFulfilled",
+                title: "Profit",
+                key: "profit",
                 align: "right",
                 render: (_, record) => (
-                  <MoneyDisplay
-                    amount={
-                      (record.contract?.onFulfilled || 0) +
-                      (record.contract?.onAccepted || 0)
+                  <Popover
+                    content={
+                      <Flex vertical>
+                        <Flex justify="space-between" gap={10}>
+                          <span>On Fulfilled:</span>{" "}
+                          <MoneyDisplay
+                            amount={record.contract?.onFulfilled || 0}
+                          />
+                        </Flex>
+                        <Flex justify="space-between" gap={10}>
+                          <span>On Accepted:</span>{" "}
+                          <MoneyDisplay
+                            amount={record.contract?.onAccepted || 0}
+                          />
+                        </Flex>
+                        <Flex
+                          justify="space-between"
+                          className="border-t border-gray-600"
+                          gap={10}
+                        >
+                          <span>Total Rewards:</span>{" "}
+                          <MoneyDisplay
+                            amount={
+                              (record.contract?.onAccepted || 0) +
+                              (record.contract?.onFulfilled || 0)
+                            }
+                          />
+                        </Flex>
+                        <Flex justify="space-between" gap={10}>
+                          <span>Expenses:</span>{" "}
+                          <MoneyDisplay
+                            amount={
+                              record.contract?.marketTransactionSummary
+                                .expenses || 0
+                            }
+                          />
+                        </Flex>
+                        <Flex
+                          justify="space-between"
+                          className="border-t border-gray-600"
+                          gap={10}
+                        >
+                          <span>Profit:</span>{" "}
+                          <MoneyDisplay
+                            amount={
+                              (record.contract?.onFulfilled || 0) +
+                              (record.contract?.onAccepted || 0) -
+                              (record.contract?.marketTransactionSummary
+                                .expenses || 0)
+                            }
+                          />
+                        </Flex>
+                      </Flex>
                     }
-                  />
+                  >
+                    <MoneyDisplay
+                      amount={
+                        (record.contract?.onFulfilled || 0) +
+                        (record.contract?.onAccepted || 0) -
+                        (record.contract?.marketTransactionSummary.expenses ||
+                          0)
+                      }
+                      className={
+                        (record.contract?.onFulfilled || 0) +
+                          (record.contract?.onAccepted || 0) -
+                          (record.contract?.marketTransactionSummary.expenses ||
+                            0) >
+                        0
+                          ? "text-current"
+                          : "text-red-600"
+                      }
+                    />
+                  </Popover>
                 ),
                 sorter: (a, b) =>
-                  (a.contract?.onFulfilled || 0) -
-                  (b.contract?.onFulfilled || 0),
+                  (a.contract?.onFulfilled || 0) +
+                  (a.contract?.onAccepted || 0) -
+                  (a.contract?.marketTransactionSummary.expenses || 0) -
+                  (b.contract?.onFulfilled || 0) -
+                  (b.contract?.onAccepted || 0) +
+                  (b.contract?.marketTransactionSummary.expenses || 0),
               },
               {
                 title: "Deadline",

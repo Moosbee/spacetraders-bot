@@ -486,7 +486,6 @@ export const GET_SYSTEM = graphql(/* GraphQL */ `
             deadline
             marketTransactionSummary {
               expenses
-              income
             }
           }
         }
@@ -634,13 +633,13 @@ export const GET_WAYPOINT = graphql(/* GraphQL */ `
   query GetWaypoint($waypointSymbol: String!) {
     waypoint(symbol: $waypointSymbol) {
       symbol
+      systemSymbol
       waypointType
       traits
       faction
       chartedBy
       chartedOn
       unstableSince
-      systemSymbol
       x
       y
       lastScrap
@@ -656,6 +655,98 @@ export const GET_WAYPOINT = graphql(/* GraphQL */ `
           id
           from
           to
+        }
+      }
+      marketTrades {
+        items {
+          symbol
+          type
+          tradeSymbolInfo {
+            symbol
+            requires {
+              items {
+                symbol
+              }
+            }
+            requiredBy {
+              items {
+                symbol
+              }
+            }
+          }
+        }
+      }
+      marketTradeGoods {
+        items {
+          symbol
+          tradeVolume
+          supply
+          activity
+          purchasePrice
+          sellPrice
+          type
+          createdAt
+        }
+      }
+      constructionMaterials {
+        items {
+          id
+          tradeSymbol
+          required
+          fulfilled
+          updatedAt
+          marketTransactionSummary {
+            expenses
+            purchaseUnits
+            purchaseTransactions
+          }
+        }
+      }
+      marketTransactions {
+        items {
+          id
+          waypointSymbol
+          shipSymbol
+          tradeSymbol
+          type
+          units
+          pricePerUnit
+          totalPrice
+          timestamp
+          contract_id
+          trade_route_id
+          mining_waypoint_symbol
+          construction_shipment_id
+        }
+      }
+      shipyard {
+        waypointSymbol
+        modificationsFee
+        createdAt
+      }
+      shipyardShipTypes {
+        items {
+          id
+          shipType
+          createdAt
+        }
+      }
+      shipyardShips {
+        items {
+          shipType
+          supply
+          activity
+          purchasePrice
+          createdAt
+        }
+      }
+      shipyardTransactions {
+        items {
+          id
+          shipType
+          price
+          agentSymbol
+          timestamp
         }
       }
     }
