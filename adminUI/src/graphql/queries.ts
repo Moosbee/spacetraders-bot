@@ -630,6 +630,38 @@ export const GET_SYSTEM_MAP = graphql(/* GraphQL */ `
   }
 `);
 
+export const GET_WAYPOINT = graphql(/* GraphQL */ `
+  query GetWaypoint($waypointSymbol: String!) {
+    waypoint(symbol: $waypointSymbol) {
+      symbol
+      waypointType
+      traits
+      faction
+      chartedBy
+      chartedOn
+      unstableSince
+      systemSymbol
+      x
+      y
+      lastScrap
+      nextScrap
+      orbitals
+      orbits
+      isUnderConstruction
+      hasMarketplace
+      hasShipyard
+      modifiers
+      jumpGateConnections {
+        items {
+          id
+          from
+          to
+        }
+      }
+    }
+  }
+`);
+
 export const GET_CHART_TRANSACTIONS = graphql(/* GraphQL */ `
   query GetChartTransactions {
     chartTransactions {

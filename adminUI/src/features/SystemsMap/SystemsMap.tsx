@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { GetSystemMapDataQuery } from "../../gql/graphql";
 import { useAppSelector } from "../../redux/hooks";
 import { selectSelectedSystemSymbol } from "../../redux/slices/mapSlice";
+import { systemMapDrawStyle } from "../../utils/systemMapColors";
 import { systemIcons } from "../../utils/waypointColors";
 import classes from "./SystemsMap.module.css";
 
@@ -48,6 +49,22 @@ function drawSystems(
   zoom: number,
   top: number,
   left: number,
+  config: {
+    minFleetsHighlighted?: number;
+    minShipsHighlighted?: number;
+    minWaypointsHighlighted?: number;
+    minShipyardsHighlighted?: number;
+    minMarketplacesHighlighted?: number;
+  },
+  style: {
+    workingJumpGateLineColor: string;
+    blockedJumpGateLineColor: string;
+    shipHighlightColor: string;
+    fleetHighlightColor: string;
+    marketplaceHighlightColor: string;
+    shipyardHighlightColor: string;
+    waypointHighlightColor: string;
+  },
 ) {
   const context = canvas.getContext("2d");
   if (!context) {
@@ -85,30 +102,71 @@ function drawSystems(
     if (underConstructionA || underConstructionB) {
       // context.strokeStyle = "#ff00000f";
       // context.strokeStyle = "#ff0000ff";
-      context.strokeStyle = "#ff00003f";
+      context.strokeStyle = style.blockedJumpGateLineColor;
     } else {
-      context.strokeStyle = "#008000";
+      context.strokeStyle = style.workingJumpGateLineColor;
     }
     context.closePath();
     context.stroke();
   }
+
+  const highLightRadius = [10, 8, 6, 4, 3];
 
   for (const { system, xOne, yOne } of Object.values(systems)) {
     const x = xOne * zoom * maxRatio + left;
     const y = yOne * zoom * maxRatio + top;
     if (x < 0 || x > width || y < 0 || y > height) continue;
     const r = Math.max(maxRatio / 3000, Math.min(Math.abs(zoom / 2) * 1, 10));
-    if (system.ships.length > 0) {
+    let highlightRadius = 0;
+    if (
+      config.minShipsHighlighted !== undefined &&
+      config.minShipsHighlighted <= system.ships.length
+    ) {
       context.beginPath();
-      context.arc(x, y, r * 10.5, 0, 2 * Math.PI);
-      context.fillStyle = "#ffffff";
+      context.arc(x, y, r * highLightRadius[highlightRadius++], 0, 2 * Math.PI);
+      context.fillStyle = style.shipHighlightColor;
       context.fill();
     }
 
-    if (system.fleets.length > 0) {
+    if (
+      config.minFleetsHighlighted !== undefined &&
+      config.minFleetsHighlighted <= system.fleets.length
+    ) {
       context.beginPath();
-      context.arc(x, y, r * 5, 0, 2 * Math.PI);
-      context.fillStyle = "#6a7282";
+      context.arc(x, y, r * highLightRadius[highlightRadius++], 0, 2 * Math.PI);
+      context.fillStyle = style.fleetHighlightColor;
+      context.fill();
+    }
+
+    if (
+      config.minWaypointsHighlighted !== undefined &&
+      config.minWaypointsHighlighted <= system.waypoints.length
+    ) {
+      context.beginPath();
+      context.arc(x, y, r * highLightRadius[highlightRadius++], 0, 2 * Math.PI);
+      context.fillStyle = style.waypointHighlightColor;
+      context.fill();
+    }
+
+    if (
+      config.minShipyardsHighlighted !== undefined &&
+      config.minShipyardsHighlighted <=
+        system.waypoints.filter((wp) => wp.hasShipyard).length
+    ) {
+      context.beginPath();
+      context.arc(x, y, r * highLightRadius[highlightRadius++], 0, 2 * Math.PI);
+      context.fillStyle = style.shipyardHighlightColor;
+      context.fill();
+    }
+
+    if (
+      config.minMarketplacesHighlighted !== undefined &&
+      config.minMarketplacesHighlighted <=
+        system.waypoints.filter((wp) => wp.hasMarketplace).length
+    ) {
+      context.beginPath();
+      context.arc(x, y, r * highLightRadius[highlightRadius++], 0, 2 * Math.PI);
+      context.fillStyle = style.marketplaceHighlightColor;
       context.fill();
     }
 
@@ -132,10 +190,23 @@ function SystemsMap({
   zoomMax = 1000,
   zoomMin = 0.01,
   data,
+  config = {},
 }: {
   zoomMax: number;
   zoomMin: number;
   data: { systems: GQLSystem[]; jumpConnections: GQLJumpConnection[] };
+  config: {
+    minWaypointCount?: number;
+    minFleetCount?: number;
+    minShipyardCount?: number;
+    minMarketplaceCount?: number;
+    onlyJumpGates?: "ACCESSIBLE" | "NOT_ACCESSIBLE" | "NONE";
+    minFleetsHighlighted?: number;
+    minShipsHighlighted?: number;
+    minWaypointsHighlighted?: number;
+    minShipyardsHighlighted?: number;
+    minMarketplacesHighlighted?: number;
+  };
 }) {
   const selectedSystem = useAppSelector(selectSelectedSystemSymbol);
 
@@ -153,8 +224,29 @@ function SystemsMap({
     > = {};
 
     for (const system of data.systems) {
-      if ((system.waypoints.length || 0) <= 1) continue;
-      // if ((system.shipyards || 0) <= 1) continue;
+      if ((system.waypoints.length || 0) < (config.minWaypointCount ?? 0))
+        continue;
+      if (
+        system.waypoints.filter((wp) => wp.hasMarketplace).length <
+        (config.minMarketplaceCount ?? 0)
+      )
+        continue;
+      if (
+        system.waypoints.filter((wp) => wp.hasShipyard).length <
+        (config.minShipyardCount ?? 0)
+      )
+        continue;
+      if (
+        (config.onlyJumpGates ?? "NONE") !== "NONE" &&
+        system.waypoints.filter(
+          (wp) =>
+            wp.waypointType === "JUMP_GATE" &&
+            (config.onlyJumpGates === "ACCESSIBLE"
+              ? !wp.isUnderConstruction
+              : true),
+        ).length === 0
+      )
+        continue;
       wp[system.symbol] = {
         system: system,
         xOne: (system.x - wpMinX) / (wpMaxX - wpMinX),
@@ -163,7 +255,13 @@ function SystemsMap({
     }
 
     return wp;
-  }, [data.systems]);
+  }, [
+    config.minMarketplaceCount,
+    config.minShipyardCount,
+    config.minWaypointCount,
+    config.onlyJumpGates,
+    data.systems,
+  ]);
 
   const [zoom, setZoom] = useState(1);
   const [top, setTop] = useState(0);
@@ -184,6 +282,14 @@ function SystemsMap({
         zoom,
         top,
         left,
+        {
+          minFleetsHighlighted: config.minFleetsHighlighted,
+          minShipsHighlighted: config.minShipsHighlighted,
+          minWaypointsHighlighted: config.minWaypointsHighlighted,
+          minShipyardsHighlighted: config.minShipyardsHighlighted,
+          minMarketplacesHighlighted: config.minMarketplacesHighlighted,
+        },
+        systemMapDrawStyle,
       );
     });
     observe.observe(ref.current);
@@ -191,13 +297,50 @@ function SystemsMap({
     return () => {
       observe.disconnect();
     };
-  }, [calcSystems, data.jumpConnections, left, top, zoom]);
+  }, [
+    calcSystems,
+    config.minFleetsHighlighted,
+    config.minMarketplacesHighlighted,
+    config.minShipsHighlighted,
+    config.minShipyardsHighlighted,
+    config.minWaypointsHighlighted,
+    data.jumpConnections,
+    left,
+    top,
+    zoom,
+  ]);
 
   useEffect(() => {
     const canvas = ref.current;
     if (!canvas) return;
-    drawSystems(canvas, calcSystems, data.jumpConnections, zoom, top, left);
-  }, [calcSystems, data.jumpConnections, left, top, zoom]);
+    drawSystems(
+      canvas,
+      calcSystems,
+      data.jumpConnections,
+      zoom,
+      top,
+      left,
+      {
+        minFleetsHighlighted: config.minFleetsHighlighted,
+        minShipsHighlighted: config.minShipsHighlighted,
+        minWaypointsHighlighted: config.minWaypointsHighlighted,
+        minShipyardsHighlighted: config.minShipyardsHighlighted,
+        minMarketplacesHighlighted: config.minMarketplacesHighlighted,
+      },
+      systemMapDrawStyle,
+    );
+  }, [
+    calcSystems,
+    config.minFleetsHighlighted,
+    config.minMarketplacesHighlighted,
+    config.minShipsHighlighted,
+    config.minShipyardsHighlighted,
+    config.minWaypointsHighlighted,
+    data.jumpConnections,
+    left,
+    top,
+    zoom,
+  ]);
 
   const onWheel = useCallback(
     (e: WheelEvent) => {

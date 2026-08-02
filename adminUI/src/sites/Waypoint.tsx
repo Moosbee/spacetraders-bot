@@ -9,7 +9,7 @@ import {
   Table,
   TableProps,
 } from "antd";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import MoneyDisplay from "../features/MonyDisplay";
 import PageTitle from "../features/PageTitle";
@@ -17,8 +17,11 @@ import Timer from "../features/Timer/Timer";
 import TransactionTable from "../features/TransactionTableOld/TransactionTable";
 import WaypointLink from "../features/WaypointLink";
 
+import { useMutation, useQuery } from "@apollo/client/react";
 import { backendUrl } from "../data";
 import ShipyardShipTable from "../features/ShipyardShipTable/ShipyardShipTable";
+import { REPOPULATE_SYSTEMS_WITH_FLEETS_FROM_JUMP_GATE } from "../graphql/mutations";
+import { GET_WAYPOINT } from "../graphql/queries";
 import {
   ActivityLevel,
   MarketTradeGoodTypeEnum,
@@ -37,7 +40,21 @@ function Waypoint() {
   const { systemID } = useParams();
   const { waypointID } = useParams();
 
-  const [waypoint, setWaypoint] = useState<WaypointResponse | null>(null);
+  const { loading, error, data, refetch } = useQuery(GET_WAYPOINT, {
+    variables: { waypointSymbol: waypointID || "" },
+  });
+
+  const [
+    repopulateSystemsFromJumpGates,
+    {
+      loading: repopulateSystemsFromJumpGatesLoading,
+      error: repopulateSystemsFromJumpGatesError,
+    },
+  ] = useMutation(REPOPULATE_SYSTEMS_WITH_FLEETS_FROM_JUMP_GATE);
+
+  const [oldWaypoint, setWaypoint] = useState<WaypointResponse | null>(null);
+
+  const waypoint = data?.waypoint;
 
   const ships = useAppSelector(selectAllShipsArray);
 
@@ -45,23 +62,13 @@ function Waypoint() {
     return ships.filter((ship) => ship.nav.waypoint_symbol === waypointID);
   }, [waypointID, ships]);
 
-  useEffect(() => {
-    fetch(`http://${backendUrl}/waypoints/${waypointID}`)
-      .then((response) => response.json())
-      .then((data) => {
-        console.log("waypoint", data);
-
-        setWaypoint(data);
-      });
-  }, [waypointID]);
-
   const items: DescriptionsProps["items"] = [
     {
       label: "Symbol",
       key: "symbol",
       children: (
-        <WaypointLink waypoint={waypoint?.waypoint.symbol || ""}>
-          {waypoint?.waypoint.symbol}
+        <WaypointLink waypoint={waypoint?.symbol || ""}>
+          {waypoint?.symbol}
         </WaypointLink>
       ),
     },
@@ -73,22 +80,22 @@ function Waypoint() {
     {
       label: "Waypoint Type",
       key: "waypointType",
-      children: waypoint?.waypoint?.waypoint_type,
+      children: waypoint?.waypointType,
     },
     {
       label: "Coordinates",
       key: "coordinates",
-      children: `X: ${waypoint?.waypoint?.x} Y: ${waypoint?.waypoint?.y}`,
+      children: `X: ${waypoint?.x} Y: ${waypoint?.y}`,
     },
     {
       key: "chart",
       label: "Chart",
       children: (
         <p>
-          By: {waypoint?.waypoint.charted_by} <br />
+          By: {waypoint?.chartedBy} <br />
           On:{" "}
           {new Date(
-            waypoint?.waypoint.charted_on ? waypoint?.waypoint.charted_on : 0
+            waypoint?.chartedOn ? waypoint.chartedOn : 0,
           ).toLocaleDateString()}
         </p>
       ),
@@ -96,13 +103,13 @@ function Waypoint() {
     {
       label: "Faction",
       key: "faction",
-      children: waypoint?.waypoint?.faction || "None",
+      children: waypoint?.faction || "None",
     },
 
     {
       label: "Orbits",
       key: "orbits",
-      children: waypoint?.waypoint?.orbits || "None",
+      children: waypoint?.orbits || "None",
     },
     {
       label: "Orbitals",
@@ -110,7 +117,7 @@ function Waypoint() {
       children: (
         <List
           size="small"
-          dataSource={waypoint?.waypoint?.orbitals?.map((orbitals) => (
+          dataSource={waypoint?.orbitals?.map((orbitals) => (
             <WaypointLink waypoint={orbitals}>{orbitals}</WaypointLink>
           ))}
           renderItem={(item) => <List.Item>{item}</List.Item>}
@@ -121,10 +128,10 @@ function Waypoint() {
       label: "Modifiers",
       key: "modifiers",
       children:
-        (waypoint?.waypoint?.modifiers?.length || 0) > 0 ? (
+        (waypoint?.modifiers?.length || 0) > 0 ? (
           <List
             size="small"
-            dataSource={waypoint?.waypoint.modifiers?.map((modifier) => (
+            dataSource={waypoint?.modifiers?.map((modifier) => (
               <span>{modifier}</span>
             ))}
             renderItem={(item) => <List.Item>{item}</List.Item>}
@@ -138,12 +145,12 @@ function Waypoint() {
       label: "Traits",
       span:
         3 -
-        (waypoint?.waypoint.is_under_construction ? 1 : 0) -
-        (waypoint?.waypoint.unstable_since ? 1 : 0),
+        (waypoint?.isUnderConstruction ? 1 : 0) -
+        (waypoint?.unstableSince ? 1 : 0),
       children: (
         <List
           size="small"
-          dataSource={waypoint?.waypoint.traits.map((trait) => (
+          dataSource={waypoint?.traits.map((trait) => (
             <span>{trait}</span>
           ))}
           renderItem={(item) => <List.Item>{item}</List.Item>}
@@ -153,32 +160,30 @@ function Waypoint() {
     {
       key: "has_shipyard",
       label: "Has Shipyard",
-      children: <p>{waypoint?.waypoint.has_shipyard ? "Yes" : "No"}</p>,
+      children: <p>{waypoint?.hasShipyard ? "Yes" : "No"}</p>,
     },
     {
       key: "has_marketplace",
       label: "Has Marketplace",
-      children: <p>{waypoint?.waypoint.has_marketplace ? "Yes" : "No"}</p>,
+      children: <p>{waypoint?.hasMarketplace ? "Yes" : "No"}</p>,
     },
   ];
 
-  if (waypoint?.waypoint.is_under_construction) {
+  if (waypoint?.isUnderConstruction) {
     items.push({
       key: "is_under_construction",
       label: "Under Construction",
-      children: (
-        <p>{waypoint?.waypoint.is_under_construction ? "Yes" : "No"}</p>
-      ),
+      children: <p>{waypoint?.isUnderConstruction ? "Yes" : "No"}</p>,
     });
   }
 
-  if (waypoint?.waypoint.unstable_since) {
+  if (waypoint?.unstableSince) {
     items.push({
       key: "unstable_since",
       label: "Unstable Since",
       children: (
         <p>
-          <Timer time={waypoint?.waypoint.unstable_since} />
+          <Timer time={waypoint.unstableSince} />
         </p>
       ),
     });
@@ -191,7 +196,9 @@ function Waypoint() {
       key: "symbol",
       sorter: (a, b) => a.symbol.localeCompare(b.symbol),
       filters: [
-        ...new Set((waypoint?.market_trade_goods || []).map((t) => t.symbol)),
+        ...new Set(
+          (oldWaypoint?.market_trade_goods || []).map((t) => t.symbol),
+        ),
       ].map((t) => ({
         text: t,
         value: t,
@@ -218,7 +225,9 @@ function Waypoint() {
       key: "symbol",
       sorter: (a, b) => a.symbol.localeCompare(b.symbol),
       filters: [
-        ...new Set((waypoint?.market_trade_goods || []).map((t) => t.symbol)),
+        ...new Set(
+          (oldWaypoint?.market_trade_goods || []).map((t) => t.symbol),
+        ),
       ].map((t) => ({
         text: t,
         value: t,
@@ -398,24 +407,18 @@ function Waypoint() {
     <div style={{ padding: "24px 24px" }}>
       <PageTitle title={`Waypoint ${waypointID}`} />
       <Space>
-        <h2>
+        <h2 className="text-2xl font-bold">
           Waypoint {waypointID} in {systemID}
         </h2>
         <Button
           onClick={() => {
-            fetch(`http://${backendUrl}/waypoints/${waypointID}`)
-              .then((response) => response.json())
-              .then((data) => {
-                console.log("waypoint", data);
-
-                setWaypoint(data);
-              });
+            refetch();
           }}
         >
           Reload
         </Button>
-        {waypoint?.shipyard && <a href="#shipyard">Shipyard</a>}
-        {waypoint?.trade_good_history && (
+        {oldWaypoint?.shipyard && <a href="#shipyard">Shipyard</a>}
+        {oldWaypoint?.trade_good_history && (
           <Link to={`/system/${systemID}/${waypointID}/marketHistory`}>
             Market History
           </Link>
@@ -424,6 +427,7 @@ function Waypoint() {
           <Link to={`/ships/${s.symbol}`}>{s.symbol}</Link>
         ))}
       </Space>
+      <Divider size="small" />
       <Flex align="stretch" justify="flex-start" gap={24}>
         <Descriptions
           bordered
@@ -433,67 +437,92 @@ function Waypoint() {
           size="small"
         />
         <Flex vertical gap={24}>
-          {waypoint?.market_trades && waypoint.market_trades.length > 0 && (
-            <Table
-              columns={marketTradeColumns}
-              dataSource={waypoint?.market_trades}
-              rowKey={(symbol) => symbol.symbol + symbol.waypoint_symbol}
-              size="small"
-            />
-          )}
-          {waypoint?.jump_gate_connections &&
-            waypoint.jump_gate_connections.length > 0 && (
+          {oldWaypoint?.market_trades &&
+            oldWaypoint.market_trades.length > 0 && (
               <Table
-                columns={[
-                  {
-                    title: "Symbol",
-                    dataIndex: "to",
-                    key: "to",
-                    sorter: (a, b) => a.to.localeCompare(b.to),
-                    render: (symbol: string) => (
-                      <WaypointLink waypoint={symbol}>{symbol}</WaypointLink>
-                    ),
-                  },
-                ]}
-                dataSource={waypoint?.jump_gate_connections}
-                rowKey={(symbol) => symbol.id}
-                size="small"
-              />
-            )}
-        </Flex>
-        <Flex vertical gap={24}>
-          {waypoint?.market_trade_goods &&
-            waypoint.market_trade_goods.length > 0 && (
-              <Table
-                columns={marketTradeGoodsColumns}
-                dataSource={waypoint?.market_trade_goods}
+                columns={marketTradeColumns}
+                dataSource={oldWaypoint?.market_trades}
                 rowKey={(symbol) => symbol.symbol + symbol.waypoint_symbol}
                 size="small"
               />
             )}
-          {waypoint?.constructions && waypoint.constructions.length > 0 && (
-            <Table
-              columns={constructionMaterialColumns}
-              dataSource={waypoint?.constructions}
-              rowKey={(symbol) => symbol.trade_symbol + symbol.waypoint_symbol}
-              size="small"
-            />
-          )}
+          {waypoint?.jumpGateConnections.items &&
+            waypoint.jumpGateConnections.items.length > 0 && (
+              <Flex vertical gap={12}>
+                <Button
+                  loading={repopulateSystemsFromJumpGatesLoading}
+                  onClick={() => {
+                    repopulateSystemsFromJumpGates({
+                      variables: { jumpGate: waypointID || "" },
+                    }).then((data) => {
+                      message.success(
+                        `Repopulated systems with fleets from jump gate ${waypointID} ${data.data?.repopulateSystemsWithFleetsFromJumpGate ? "success" : "failed"}`,
+                      );
+                    });
+                  }}
+                >
+                  Populate
+                </Button>
+                {repopulateSystemsFromJumpGatesError && (
+                  <p style={{ color: "red" }}>
+                    Error: {repopulateSystemsFromJumpGatesError.message}
+                  </p>
+                )}
+                <Table
+                  columns={[
+                    {
+                      title: "Symbol",
+                      dataIndex: "to",
+                      key: "to",
+                      sorter: (a, b) => a.to.localeCompare(b.to),
+                      render: (symbol: string) => (
+                        <WaypointLink waypoint={symbol}>{symbol}</WaypointLink>
+                      ),
+                    },
+                  ]}
+                  dataSource={waypoint?.jumpGateConnections.items}
+                  rowKey={(symbol) => symbol.id}
+                  size="small"
+                />
+              </Flex>
+            )}
+        </Flex>
+        <Flex vertical gap={24}>
+          {oldWaypoint?.market_trade_goods &&
+            oldWaypoint.market_trade_goods.length > 0 && (
+              <Table
+                columns={marketTradeGoodsColumns}
+                dataSource={oldWaypoint?.market_trade_goods}
+                rowKey={(symbol) => symbol.symbol + symbol.waypoint_symbol}
+                size="small"
+              />
+            )}
+          {oldWaypoint?.constructions &&
+            oldWaypoint.constructions.length > 0 && (
+              <Table
+                columns={constructionMaterialColumns}
+                dataSource={oldWaypoint?.constructions}
+                rowKey={(symbol) =>
+                  symbol.trade_symbol + symbol.waypoint_symbol
+                }
+                size="small"
+              />
+            )}
         </Flex>
       </Flex>
-      {waypoint?.transactions && waypoint.transactions.length > 0 && (
+      {oldWaypoint?.transactions && oldWaypoint.transactions.length > 0 && (
         <Divider />
       )}
-      {waypoint?.transactions && waypoint.transactions.length > 0 && (
+      {oldWaypoint?.transactions && oldWaypoint.transactions.length > 0 && (
         <TransactionTable
-          transactions={waypoint?.transactions || []}
+          transactions={oldWaypoint?.transactions || []}
           reasons={{ contract: true, trade_route: true, mining: true }}
         />
       )}
-      {(waypoint?.shipyard || waypoint?.ship_types) && <Divider />}
+      {(oldWaypoint?.shipyard || oldWaypoint?.ship_types) && <Divider />}
 
       <Flex align="stretch" justify="space-evenly" gap={24} id="shipyard">
-        {waypoint?.shipyard && (
+        {oldWaypoint?.shipyard && (
           <Descriptions
             bordered
             column={2}
@@ -503,16 +532,10 @@ function Waypoint() {
                 key: "shipyard",
                 children: (
                   <Space>
-                    {waypoint?.shipyard?.waypoint_symbol}{" "}
+                    {oldWaypoint?.shipyard?.waypoint_symbol}{" "}
                     <Button
                       onClick={() => {
-                        fetch(`http://${backendUrl}/waypoints/${waypointID}`)
-                          .then((response) => response.json())
-                          .then((data) => {
-                            console.log("waypoint", data);
-
-                            setWaypoint(data);
-                          });
+                        refetch();
                       }}
                     >
                       Reload
@@ -524,7 +547,7 @@ function Waypoint() {
                 label: "Last Updated",
                 key: "last_updated",
                 children: new Date(
-                  waypoint?.shipyard?.created_at || ""
+                  oldWaypoint?.shipyard?.created_at || "",
                 ).toLocaleString(),
               },
               {
@@ -532,33 +555,33 @@ function Waypoint() {
                 key: "modifications_fee",
                 children: (
                   <MoneyDisplay
-                    amount={waypoint?.shipyard?.modifications_fee || 0}
+                    amount={oldWaypoint?.shipyard?.modifications_fee || 0}
                   />
                 ),
               },
               {
                 label: "Ships",
                 key: "ships",
-                children: waypoint?.ship_types?.length,
+                children: oldWaypoint?.ship_types?.length,
               },
             ]}
             // layout="vertical"
             // size="small"
           />
         )}
-        {waypoint?.ship_types && waypoint.ship_types.length > 0 && (
+        {oldWaypoint?.ship_types && oldWaypoint.ship_types.length > 0 && (
           <Table
             columns={shipTypesColumns}
-            dataSource={waypoint?.ship_types}
+            dataSource={oldWaypoint?.ship_types}
             rowKey={(symbol) => symbol.ship_type + symbol.shipyard_id}
             size="small"
           />
         )}
       </Flex>
-      {(waypoint?.shipyard || waypoint?.ship_types) && <Divider />}
-      {waypoint?.ships && waypoint.ships.length > 0 && (
+      {(oldWaypoint?.shipyard || oldWaypoint?.ship_types) && <Divider />}
+      {oldWaypoint?.ships && oldWaypoint.ships.length > 0 && (
         <ShipyardShipTable
-          ships={waypoint?.ships}
+          ships={oldWaypoint?.ships}
           onPurchase={(ship) => {
             fetch(`http://${backendUrl}/ship/buy`, {
               method: "POST",
@@ -589,43 +612,42 @@ function Waypoint() {
                       data.shipSymbol +
                       " for " +
                       data.transaction.price +
-                      "$"
+                      "$",
                   );
-                }
+                },
               )
-              .then(() => fetch(`http://${backendUrl}/waypoints/${waypointID}`))
-              .then((response) => response.json())
-              .then((data) => {
-                console.log("waypoint", data);
-
-                setWaypoint(data);
+              .then(() => refetch())
+              .catch((error) => {
+                console.error("Error purchasing ship:", error);
               });
           }}
         />
       )}
       <Divider />
-      {(waypoint?.ships || waypoint?.ship_types) && <Divider />}
+      {(oldWaypoint?.ships || oldWaypoint?.ship_types) && <Divider />}
 
-      {waypoint?.ship_transactions && waypoint.ship_transactions.length > 0 && (
-        <Table
-          columns={shipTransactionColumns}
-          dataSource={waypoint?.ship_transactions}
-          rowKey={(symbol) =>
-            symbol.agent_symbol +
-            symbol.waypoint_symbol +
-            symbol.ship_type +
-            symbol.timestamp
-          }
-          // size="small"
+      {oldWaypoint?.ship_transactions &&
+        oldWaypoint.ship_transactions.length > 0 && (
+          <Table
+            columns={shipTransactionColumns}
+            dataSource={oldWaypoint?.ship_transactions}
+            rowKey={(symbol) =>
+              symbol.agent_symbol +
+              symbol.waypoint_symbol +
+              symbol.ship_type +
+              symbol.timestamp
+            }
+            // size="small"
 
-          pagination={{
-            showSizeChanger: true,
-            pageSizeOptions: ["10", "20", "50", "100", "200", "500", "1000"],
-            defaultPageSize: 20,
-            showTotal: (total, range) => `${range[0]}-${range[1]} of ${total}`,
-          }}
-        />
-      )}
+            pagination={{
+              showSizeChanger: true,
+              pageSizeOptions: ["10", "20", "50", "100", "200", "500", "1000"],
+              defaultPageSize: 20,
+              showTotal: (total, range) =>
+                `${range[0]}-${range[1]} of ${total}`,
+            }}
+          />
+        )}
     </div>
   );
 }

@@ -3,7 +3,7 @@ import {
   SortDescendingOutlined,
   TruckOutlined,
 } from "@ant-design/icons";
-import { useQuery } from "@apollo/client/react";
+import { useMutation, useQuery } from "@apollo/client/react";
 import {
   Button,
   Card,
@@ -17,7 +17,6 @@ import {
   Progress,
   Row,
   Space,
-  Spin,
   Table,
   TableProps,
 } from "antd";
@@ -37,12 +36,14 @@ import {
   WaypointTraitSymbol,
   WaypointType,
 } from "../gql/graphql";
+import { REPOPULATE_SYSTEMS_WITH_FLEETS_FROM_SYSTEM } from "../graphql/mutations";
 import { GET_SYSTEM } from "../graphql/queries";
 import { useAppDispatch, useAppSelector } from "../redux/hooks";
 import {
   selectSelectedSystemSymbol,
   setSelectedSystemSymbol,
 } from "../redux/slices/mapSlice";
+import { message } from "../utils/antdMessage";
 import { cn } from "../utils/utils";
 import { systemIcons } from "../utils/waypointColors";
 
@@ -52,6 +53,11 @@ function System() {
   const { loading, error, data, dataState, refetch } = useQuery(GET_SYSTEM, {
     variables: { systemSymbol: systemID || "" },
   });
+
+  const [
+    repopulateSystem,
+    { loading: repopulateSystemLoading, error: repopulateSystemError },
+  ] = useMutation(REPOPULATE_SYSTEMS_WITH_FLEETS_FROM_SYSTEM);
 
   const selectedSystem = useAppSelector(selectSelectedSystemSymbol);
 
@@ -143,8 +149,8 @@ function System() {
       label: <Link to={`/map/system/${systemID}`}>Map</Link>,
       children: (
         <span className="flex justify-evenly items-center">
-          <Spin spinning={loading || dataState !== "complete"} />
           <Button
+            loading={loading || dataState !== "complete"}
             onClick={() => {
               refetch();
             }}
@@ -167,7 +173,26 @@ function System() {
     {
       label: "Fleets",
       key: "Fleets",
-      children: system?.fleets.length,
+      children: (
+        <span>
+          {system?.fleets.length}{" "}
+          <Button
+            loading={repopulateSystemLoading}
+            onClick={() => {
+              repopulateSystem({
+                variables: {
+                  systemSymbol: systemID || "",
+                },
+              }).then(() => {
+                message.success(`Repopulated system ${systemID} with fleets!`);
+                refetch();
+              });
+            }}
+          >
+            Repopulate
+          </Button>
+        </span>
+      ),
     },
     {
       label: "Population Disabled",
