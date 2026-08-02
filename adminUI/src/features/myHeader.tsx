@@ -51,7 +51,7 @@ function MyHeader({ Header }: { Header: typeof AntHeaderHeader }) {
     data: apiCount,
     refetch: apiCountRefetch,
   } = useQuery(GET_API_COUNT, {
-    initialFetchPolicy: "standby",
+    // initialFetchPolicy: "standby",
   });
 
   const {
@@ -59,7 +59,7 @@ function MyHeader({ Header }: { Header: typeof AntHeaderHeader }) {
     data: myAgentData,
     refetch: myAgentRefetch,
   } = useQuery(GET_MY_AGENT_MINI_INFO, {
-    initialFetchPolicy: "standby",
+    // initialFetchPolicy: "standby",
   });
 
   const {

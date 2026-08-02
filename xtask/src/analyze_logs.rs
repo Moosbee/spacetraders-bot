@@ -2,7 +2,7 @@ use chrono::{DateTime, Utc};
 use serde::Deserialize;
 use serde_json::{Map, Value};
 use std::collections::HashMap;
-use std::fs::{File, OpenOptions};
+use std::fs::OpenOptions;
 use std::io::{BufRead, BufReader};
 use std::path::Path;
 
@@ -43,14 +43,20 @@ pub fn run(path: &str) -> anyhow::Result<()> {
     let mut total_lines = 0;
     let now = std::time::Instant::now();
 
-    for line in reader.lines() {
+    for bytes in reader.split(b'\n') {
         total_lines += 1;
-        if let Err(line_error) = line {
-            println!("Error parsing line: {line_error} {:?} ", line_error);
-            parse_errors += 1;
-            continue;
-        }
-        let line = line?;
+        let bytes = match bytes {
+            Ok(b) => b,
+            Err(e) => {
+                println!("Error reading line: {e}");
+                parse_errors += 1;
+                continue;
+            }
+        };
+        let line = String::from_utf8_lossy(&bytes)
+            .to_string()
+            .replace("�", "")
+            .replace("\0", "");
         if line.trim().is_empty() {
             continue;
         }
@@ -59,10 +65,15 @@ pub fn run(path: &str) -> anyhow::Result<()> {
             println!("Processed {} lines", total_lines);
         }
 
-        let entry: LogLine = match serde_json::from_str(&line) {
+        let entry: LogLine = match serde_json::from_str(line.trim()) {
             Ok(e) => e,
-            Err(_) => {
+            Err(err) => {
+                println!("Error parsing line: {:?}", err);
+                println!("Line: {:?} {}", line, line);
                 parse_errors += 1;
+                if parse_errors > 10 {
+                    break;
+                }
                 continue;
             }
         };

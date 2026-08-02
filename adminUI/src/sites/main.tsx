@@ -37,7 +37,10 @@ import { chartColors } from "../utils/chartColors";
 function Main() {
   const { loading, error, data, dataState, refetch } = useQuery(
     GET_MAIN_SITE_DATA,
-    // { pollInterval: 3600000 }
+    {
+      // pollInterval: 3600000
+      initialFetchPolicy: "standby",
+    },
   );
   const {
     token: { colorInfo, geekblue8, green8 },
