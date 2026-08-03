@@ -103,8 +103,11 @@ async fn main() -> anyhow::Result<()> {
         info!(reset_info=?reset_info, "run finished");
 
         let filename = format!(
-            "spacetraders_reset_{}_to_{}_{}_{}",
-            reset_info.start_date, reset_info.end_date, reset_info.version, reset_info.agent_symbol
+            "spacetraders_reset_{}_UTC_to_{}_UTC_{}_{}",
+            reset_info.start_date.format("%Y-%m-%d_%H-%M-%S"),
+            reset_info.end_date.format("%Y-%m-%d_%H-%M-%S"),
+            reset_info.version,
+            reset_info.agent_symbol
         );
 
         export_database(&database_url, &filename).await?;

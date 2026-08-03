@@ -2,6 +2,7 @@
 use clap::{Parser, Subcommand};
 
 mod analyze_logs;
+mod log_utils;
 
 #[derive(Parser)]
 #[command(name = "xtask")]
@@ -16,6 +17,9 @@ enum Commands {
     AnalyzeLogs {
         #[arg(long, default_value = "log.txt")]
         file: String,
+
+        #[arg(long)]
+        total_lines: Option<u64>,
     },
 }
 
@@ -25,7 +29,7 @@ async fn main() -> anyhow::Result<()> {
 
     match cli.command {
         Commands::SayHello => println!("Hello!"),
-        Commands::AnalyzeLogs { file } => analyze_logs::run(&file)?,
+        Commands::AnalyzeLogs { file, total_lines } => analyze_logs::run(&file, total_lines)?,
     }
 
     Ok(())

@@ -25,7 +25,7 @@ impl ChartPilot {
         }
     }
 
-    #[instrument(level = "info", name = "spacetraders::pilot::charting::pilot_chart", skip(self, pilot, fleet, ship_assignment, _charting_config), fields(self.ship_symbol = %self.ship_symbol, chart_waypoint, fleet_id = fleet.id, ship_assignment_id = ship_assignment.id))]
+    #[instrument(level = "info", name = "spacetraders::pilot::charting::pilot_chart", skip(self, pilot, fleet, ship_assignment, charting_config), fields(self.ship_symbol = %self.ship_symbol, chart_waypoint, fleet_id = fleet.id, ship_assignment_id = ship_assignment.id))]
     pub async fn execute_pilot_circle(
         &self,
         pilot: &super::Pilot,

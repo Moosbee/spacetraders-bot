@@ -137,6 +137,7 @@ type ChartTransactionPage {
 
 type ChartingConfig {
 	chartingProbeCount: Int!
+	chartOnlyJumpGates: Boolean!
 }
 
 type ChartingStatus {
@@ -599,6 +600,7 @@ type IdleAssignment {
 
 input InputChartingConfig {
 	chartingProbeCount: Int
+	chartOnlyJumpGates: Boolean
 }
 
 input InputConfig {
@@ -685,6 +687,7 @@ input InputScrapingConfig {
 
 input InputTotalChartingConfig {
 	chartingProbeCount: Int!
+	chartOnlyJumpGates: Boolean!
 }
 
 input InputTotalConstructionConfig {
@@ -806,7 +809,7 @@ type MarketTrade {
 	waypointSymbol: String!
 	symbol: TradeSymbol!
 	createdAt: DateTime!
-	type: Type!
+	type: MarketTradeGoodType!
 	waypoint: Waypoint
 	history(page: Int, pageSize: Int): MarketTradePage!
 	maps(page: Int, pageSize: Int): MarketTradePage!
@@ -823,7 +826,7 @@ input MarketTradeBy @oneOf {
 type MarketTradeGood {
 	symbol: TradeSymbol!
 	waypointSymbol: String!
-	type: Type!
+	type: MarketTradeGoodType!
 	tradeVolume: Int!
 	supply: SupplyLevel!
 	activity: ActivityLevel
@@ -851,6 +854,15 @@ type MarketTradeGoodPage {
 	totalCount: Int!
 	page: Int!
 	pageSize: Int
+}
+
+"""
+The type of trade good (export, import, or exchange).
+"""
+enum MarketTradeGoodType {
+	EXPORT
+	EXCHANGE
+	IMPORT
 }
 
 type MarketTradePage {
@@ -2157,15 +2169,6 @@ enum TransporterState {
 	IN_TRANSIT_TO_MARKET
 	SELLING_CARGO
 	UNKNOWN
-}
-
-"""
-The type of trade good (export, import, or exchange).
-"""
-enum Type {
-	EXPORT
-	EXCHANGE
-	IMPORT
 }
 
 type UselessAssignment {
