@@ -34,11 +34,7 @@ pub async fn update_fleet_assignments(
     }
 
     for assignment in result.merged_assignments {
-        database::ShipAssignment::upsert(
-            &context.database_pool,
-            &assignment,
-        )
-        .await?;
+        database::ShipAssignment::upsert(&context.database_pool, &assignment).await?;
         info!(
             assignment_id = assignment.id,
             "Updated merged ship assignment"
@@ -212,9 +208,9 @@ async fn generate_trading_fleet_assignments(
     )
     .await?
     .items
-        .into_iter()
-        .filter(|wp| wp.is_marketplace() || wp.is_shipyard())
-        .count();
+    .into_iter()
+    .filter(|wp| wp.is_marketplace() || wp.is_shipyard())
+    .count();
 
     // let market_trades =
     //     database::MarketTradeGood::get_last_by_system(&context.database_pool, &fleet.system_symbol)
@@ -368,11 +364,11 @@ async fn generate_scraping_fleet_assignments(
         &fleet.system_symbol,
         database::PaginatedQuery::unpaged(),
     )
-            .await?
-            .items
-            .into_iter()
-            .filter(|wp| wp.is_marketplace() || wp.is_shipyard())
-            .count();
+    .await?
+    .items
+    .into_iter()
+    .filter(|wp| wp.is_marketplace() || wp.is_shipyard())
+    .count();
 
     let ship_counts = (waypoint_counts as f64 * scraping_config.ship_market_ratio).floor() as u32;
     let quarter_ships = (ship_counts as f64 / 4.0).floor() as u32;
@@ -412,13 +408,19 @@ async fn generate_charting_fleet_assignments(
         &fleet.system_symbol,
         database::PaginatedQuery::unpaged(),
     )
-            .await?
-            .items
-            .into_iter()
-            .filter(|wp| !wp.is_charted())
-            .count();
+    .await?
+    .items
+    .into_iter()
+    .filter(|wp| !wp.is_charted())
+    .count();
 
     let ship_count = (uncharted_waypoints as i32).min(charting_config.charting_probe_count);
+
+    let priority = if charting_config.chart_only_jump_gates {
+        DEFAULT_PRIORITY - 20
+    } else {
+        DEFAULT_PRIORITY - 10
+    };
 
     let ships = (0..ship_count)
         .map(|_i| ShipAssignment {
@@ -426,7 +428,7 @@ async fn generate_charting_fleet_assignments(
             fleet_id: fleet.id,
             max_purchase_price: 1_000_000,
             credits_threshold: 100_000,
-            priority: DEFAULT_PRIORITY - 10,
+            priority,
             disabled: false,
             range_min: -1, // need infinite range for charting
             cargo_min: 0,  // to not need cargo for charting

@@ -6,8 +6,9 @@ use space_traders_client::models;
 use utils::WaypointCan;
 
 struct SystemFleets {
-    charting_fleet: Option<database::Fleet>, // exists if there are >1 uncharted waypoints
-    scrapping_fleet: Option<database::Fleet>, // exists if there are >1 marketplaces
+    exploration_fleet: Option<database::Fleet>, // exists if there are >1 uncharted jump gates
+    charting_fleet: Option<database::Fleet>,    // exists if there are >1 uncharted waypoints
+    scrapping_fleet: Option<database::Fleet>,   // exists if there are >1 marketplaces
     trading_fleet: Option<database::Fleet>, // exists if there are >1 marketplaces, and there are no uncharted marketplace waypoints, if it's a system with an construction site there are more ships
     mining_fleet: Option<database::Fleet>,  // exists if a construction fleet exists
     construction_fleet: Option<database::Fleet>, // exists if it's the main system and in that system there is an unfinished construction site
@@ -34,13 +35,34 @@ pub async fn populate_system(
     .await?
     .items; // we can assume that there is a maximum of one fleet per type per system
 
+    // Match exploration fleet
+    update_fleet(
+        context,
+        system_fleets.exploration_fleet,
+        current_fleets
+            .iter()
+            .find(|f| {
+                f.fleet_type == database::FleetType::Scrapping
+                    && f.get_charting_config()
+                        .map(|c| c.chart_only_jump_gates)
+                        .unwrap_or(false)
+            })
+            .cloned(),
+    )
+    .await?;
+
     // Match scrapping fleet
     update_fleet(
         context,
         system_fleets.scrapping_fleet,
         current_fleets
             .iter()
-            .find(|f| f.fleet_type == database::FleetType::Scrapping)
+            .find(|f| {
+                f.fleet_type == database::FleetType::Scrapping
+                    && f.get_charting_config()
+                        .map(|c| !c.chart_only_jump_gates)
+                        .unwrap_or(false)
+            })
             .cloned(),
     )
     .await?;
@@ -153,6 +175,10 @@ async fn generate_system_fleets(
         .iter()
         .any(|w| w.is_marketplace() && !w.is_charted());
 
+    let has_uncharted_jump_gates = waypoints
+        .iter()
+        .any(|w| w.is_jump_gate() && !w.is_charted());
+
     let constructions = database::ConstructionMaterial::get_by_system(
         &context.database_pool,
         system_symbol,
@@ -189,6 +215,7 @@ async fn generate_system_fleets(
     let _shipyard_count = waypoints.iter().filter(|w| w.is_shipyard()).count();
 
     let mut system_fleets = SystemFleets {
+        exploration_fleet: None,
         charting_fleet: None,
         scrapping_fleet: None,
         trading_fleet: None,
@@ -197,12 +224,24 @@ async fn generate_system_fleets(
         contract_fleet: None,
     };
 
+    if has_uncharted_jump_gates {
+        system_fleets.exploration_fleet = Some(
+            database::Fleet::new(system_symbol.to_string(), true).with_config(
+                database::FleetConfig::Charting(database::ChartingFleetConfig {
+                    charting_probe_count: 1,
+                    chart_only_jump_gates: true,
+                }),
+            ),
+        );
+    }
+
     // charting fleet
     if has_uncharted_waypoints {
         system_fleets.charting_fleet = Some(
             database::Fleet::new(system_symbol.to_string(), true).with_config(
                 database::FleetConfig::Charting(database::ChartingFleetConfig {
                     charting_probe_count: 1,
+                    chart_only_jump_gates: false,
                 }),
             ),
         );

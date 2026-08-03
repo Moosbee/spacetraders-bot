@@ -1,4 +1,4 @@
-use std::sync::{atomic::AtomicBool, Arc};
+use std::sync::{Arc, atomic::AtomicBool};
 use tracing::instrument;
 
 use super::messages::{ChartManagerMessage, NextChartResp};
@@ -21,11 +21,13 @@ impl ChartManagerMessanger {
     pub async fn get_next(
         &self,
         ship_clone: ship::MyShip,
+        chart_only_jump_gates: bool,
     ) -> Result<NextChartResp, crate::error::Error> {
         let (sender, callback) = tokio::sync::oneshot::channel();
 
         let message = ChartManagerMessage::Next {
             ship_clone,
+            chart_only_jump_gates,
             callback: sender,
         };
         self.sender

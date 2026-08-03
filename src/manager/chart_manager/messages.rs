@@ -2,6 +2,7 @@
 pub enum ChartMessage {
     Next {
         ship_clone: ship::MyShip,
+        chart_only_jump_gates: bool,
         callback: tokio::sync::oneshot::Sender<Result<NextChartResp, crate::error::Error>>,
     },
     Fail {

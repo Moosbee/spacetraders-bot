@@ -1,4 +1,4 @@
-use std::sync::{atomic::AtomicI32, Arc};
+use std::sync::{Arc, atomic::AtomicI32};
 
 use database::DatabaseConnectorAsync;
 use tracing::debug;
@@ -32,7 +32,7 @@ impl ChartPilot {
         fleet: database::Fleet,
         ship_assignment: database::ShipAssignment,
         is_temp: bool,
-        _charting_config: database::ChartingFleetConfig,
+        charting_config: database::ChartingFleetConfig,
     ) -> Result<()> {
         let mut erg = pilot.context.ship_manager.get_mut(&self.ship_symbol).await;
         let ship = erg
@@ -48,7 +48,11 @@ impl ChartPilot {
         };
         ship.notify(true).await;
 
-        let chart = self.context.chart_manager.get_next(ship.clone()).await?;
+        let chart = self
+            .context
+            .chart_manager
+            .get_next(ship.clone(), charting_config.chart_only_jump_gates)
+            .await?;
 
         debug!(chart = ?chart, "Next chart");
 
@@ -236,6 +240,11 @@ impl ChartPilot {
                 (*jump_gate.data).clone(),
             )
             .await?;
+
+            self.context
+                .fleet_manager
+                .populate_system(sql_waypoint.system_symbol.clone())
+                .await?;
 
             self.context
                 .fleet_manager

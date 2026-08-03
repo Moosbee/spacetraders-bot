@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use database::DatabaseConnectorAsync;
 use space_traders_client::models::{self};
 use tracing::debug;
-use utils::{distance_between_waypoints, WaypointCan};
+use utils::{WaypointCan, distance_between_waypoints};
 
 use crate::{
     error::{Error, Result},
@@ -102,9 +102,10 @@ impl ChartManager {
         match message {
             super::messages::ChartMessage::Next {
                 ship_clone,
+                chart_only_jump_gates,
                 callback,
             } => {
-                let next_chart = self.get_next_chart(ship_clone).await;
+                let next_chart = self.get_next_chart(ship_clone, chart_only_jump_gates).await;
 
                 callback
                     .send(next_chart)
@@ -125,6 +126,7 @@ impl ChartManager {
     async fn get_next_chart(
         &mut self,
         ship_clone: ship::MyShip,
+        chart_only_jump_gates: bool,
     ) -> std::result::Result<NextChartResp, Error> {
         let ship_waypoint = database::Waypoint::get_by_id(
             &self.context.database_pool,
@@ -144,6 +146,13 @@ impl ChartManager {
             .iter()
             .filter(|w| !w.is_charted())
             .filter(|w| !self.running_charts.contains(&w.symbol))
+            .filter(|w| {
+                if chart_only_jump_gates {
+                    w.is_jump_gate()
+                } else {
+                    true
+                }
+            })
             .collect::<Vec<_>>();
 
         if system.is_empty() {

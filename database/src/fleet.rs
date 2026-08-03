@@ -75,6 +75,8 @@ pub struct Fleet {
     // charting config
     #[graphql(skip)]
     charting_probe_count: Option<i32>,
+    #[graphql(skip)]
+    chart_only_jump_gates: Option<bool>,
 
     // construction config
     #[graphql(skip)]
@@ -120,6 +122,7 @@ impl Default for Fleet {
             min_mining_cargo_space: None,
             min_siphon_cargo_space: None,
             charting_probe_count: None,
+            chart_only_jump_gates: None,
             construction_ship_count: None,
             construction_waypoint: None,
             contract_ship_count: None,
@@ -222,6 +225,7 @@ impl DatabaseConnectorAsync for Fleet {
                                     min_mining_cargo_space,
                                     min_siphon_cargo_space,
                                     charting_probe_count,
+                                    chart_only_jump_gates,
                                     construction_ship_count,
                                     construction_waypoint,
                                     contract_ship_count
@@ -230,7 +234,7 @@ impl DatabaseConnectorAsync for Fleet {
                                     $1, $2::fleet_type, $3, NOW(), NOW(),
                                     $4, $5, $6, $7, $8, $9::trade_mode, $10,
                                     $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24,
-                                    $25, $26, $27, $28, $29, $30
+                                    $25, $26, $27, $28, $29, $30, $31
                                 )
                                 RETURNING id;
                         "#,
@@ -261,6 +265,7 @@ impl DatabaseConnectorAsync for Fleet {
                         &item.min_mining_cargo_space as &Option<i32>,
                         &item.min_siphon_cargo_space as &Option<i32>,
                         &item.charting_probe_count as &Option<i32>,
+                        &item.chart_only_jump_gates as &Option<bool>,
                         &item.construction_ship_count as &Option<i32>,
                         &item.construction_waypoint as &Option<String>,
                         &item.contract_ship_count as &Option<i32>,
@@ -305,6 +310,7 @@ impl DatabaseConnectorAsync for Fleet {
                   min_mining_cargo_space,
                   min_siphon_cargo_space,
                   charting_probe_count,
+                  chart_only_jump_gates,
                   construction_ship_count,
                   construction_waypoint,
                   contract_ship_count
@@ -313,7 +319,7 @@ impl DatabaseConnectorAsync for Fleet {
                   $1, $2, $3::fleet_type, $4, NOW(), NOW(),
                   $5, $6, $7, $8, $9, $10::trade_mode, $11,
                   $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24,
-                  $25, $26, $27, $28, $29, $30, $31
+                  $25, $26, $27, $28, $29, $30, $31, $32
                 )
                 ON CONFLICT (id) DO UPDATE SET
                   system_symbol = EXCLUDED.system_symbol,
@@ -344,6 +350,7 @@ impl DatabaseConnectorAsync for Fleet {
                   min_mining_cargo_space = EXCLUDED.min_mining_cargo_space,
                   min_siphon_cargo_space = EXCLUDED.min_siphon_cargo_space,
                   charting_probe_count = EXCLUDED.charting_probe_count,
+                  chart_only_jump_gates = EXCLUDED.chart_only_jump_gates,
                   construction_ship_count = EXCLUDED.construction_ship_count,
                   construction_waypoint = EXCLUDED.construction_waypoint,
                   contract_ship_count = EXCLUDED.contract_ship_count;
@@ -376,6 +383,7 @@ impl DatabaseConnectorAsync for Fleet {
             &item.min_mining_cargo_space as &Option<i32>,
             &item.min_siphon_cargo_space as &Option<i32>,
             &item.charting_probe_count as &Option<i32>,
+            &item.chart_only_jump_gates as &Option<bool>,
             &item.construction_ship_count as &Option<i32>,
             &item.construction_waypoint as &Option<String>,
             &item.contract_ship_count as &Option<i32>,
@@ -440,6 +448,7 @@ impl DatabaseConnectorAsync for Fleet {
                           min_mining_cargo_space,
                           min_siphon_cargo_space,
                           charting_probe_count,
+                          chart_only_jump_gates,
                           construction_ship_count,
                           construction_waypoint,
                           contract_ship_count
@@ -488,6 +497,7 @@ impl DatabaseConnectorAsync for Fleet {
                           min_mining_cargo_space,
                           min_siphon_cargo_space,
                           charting_probe_count,
+                          chart_only_jump_gates,
                           construction_ship_count,
                           construction_waypoint,
                           contract_ship_count
@@ -549,6 +559,7 @@ impl DatabaseConnectorAsync for Fleet {
                   min_mining_cargo_space,
                   min_siphon_cargo_space,
                   charting_probe_count,
+                  chart_only_jump_gates,
                   construction_ship_count,
                   construction_waypoint,
                   contract_ship_count
@@ -959,12 +970,23 @@ impl Fleet {
         database_pool: &DbPool,
         id: i32,
         charting_probe_count: Option<i32>,
+        chart_only_jump_gates: Option<bool>,
     ) -> crate::Result<()> {
         let ft = FleetType::Charting;
         if charting_probe_count.is_some() {
             sqlx::query!(
                 r#"UPDATE fleet SET charting_probe_count = $1, fleet_type = $2::fleet_type, updated_at = NOW() WHERE id = $3"#,
                 &charting_probe_count as &Option<i32>,
+                &ft as &FleetType,
+                id
+            )
+            .execute(&database_pool.database_pool)
+            .await?;
+        }
+        if chart_only_jump_gates.is_some() {
+            sqlx::query!(
+                r#"UPDATE fleet SET chart_only_jump_gates = $1, fleet_type = $2::fleet_type, updated_at = NOW() WHERE id = $3"#,
+                &chart_only_jump_gates as &Option<bool>,
                 &ft as &FleetType,
                 id
             )
@@ -1061,6 +1083,7 @@ impl Fleet {
                   min_mining_cargo_space,
                   min_siphon_cargo_space,
                   charting_probe_count,
+                  chart_only_jump_gates,
                   construction_ship_count,
                   construction_waypoint,
                   contract_ship_count
@@ -1069,7 +1092,7 @@ impl Fleet {
                   $1, $2::fleet_type, $3, NOW(), NOW(),
                   $4, $5, $6, $7, $8, $9::trade_mode, $10,
                   $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24,
-                  $25, $26, $27, $28, $29, $30
+                  $25, $26, $27, $28, $29, $30, $31
                 )
                 RETURNING id;
             "#,
@@ -1100,6 +1123,7 @@ impl Fleet {
             &item.min_mining_cargo_space as &Option<i32>,
             &item.min_siphon_cargo_space as &Option<i32>,
             &item.charting_probe_count as &Option<i32>,
+            &item.chart_only_jump_gates as &Option<bool>,
             &item.construction_ship_count as &Option<i32>,
             &item.construction_waypoint as &Option<String>,
             &item.contract_ship_count as &Option<i32>,
@@ -1150,6 +1174,7 @@ impl Fleet {
                 min_mining_cargo_space,
                 min_siphon_cargo_space,
                 charting_probe_count,
+                chart_only_jump_gates,
                 construction_ship_count,
                 construction_waypoint,
                 contract_ship_count
@@ -1210,6 +1235,7 @@ impl Fleet {
                           min_mining_cargo_space,
                           min_siphon_cargo_space,
                           charting_probe_count,
+                          chart_only_jump_gates,
                           construction_ship_count,
                           construction_waypoint,
                           contract_ship_count
@@ -1260,6 +1286,7 @@ impl Fleet {
                           min_mining_cargo_space,
                           min_siphon_cargo_space,
                           charting_probe_count,
+                          chart_only_jump_gates,
                           construction_ship_count,
                           construction_waypoint,
                           contract_ship_count
@@ -1328,6 +1355,7 @@ impl Fleet {
                   min_mining_cargo_space,
                   min_siphon_cargo_space,
                   charting_probe_count,
+                  chart_only_jump_gates,
                   construction_ship_count,
                   construction_waypoint,
                   contract_ship_count
@@ -1384,6 +1412,7 @@ impl Fleet {
                           min_mining_cargo_space,
                           min_siphon_cargo_space,
                           charting_probe_count,
+                          chart_only_jump_gates,
                           construction_ship_count,
                           construction_waypoint,
                           contract_ship_count
@@ -1434,6 +1463,7 @@ impl Fleet {
                           min_mining_cargo_space,
                           min_siphon_cargo_space,
                           charting_probe_count,
+                          chart_only_jump_gates,
                           construction_ship_count,
                           construction_waypoint,
                           contract_ship_count
@@ -1499,6 +1529,7 @@ impl Fleet {
                   min_mining_cargo_space,
                   min_siphon_cargo_space,
                   charting_probe_count,
+                  chart_only_jump_gates,
                   construction_ship_count,
                   construction_waypoint,
                   contract_ship_count
@@ -1607,6 +1638,7 @@ impl Fleet {
             FleetConfig::Charting(cfg) => {
                 self.fleet_type = FleetType::Charting;
                 self.charting_probe_count = Some(cfg.charting_probe_count);
+                self.chart_only_jump_gates = Some(cfg.chart_only_jump_gates);
             }
             FleetConfig::Construction(cfg) => {
                 self.fleet_type = FleetType::Construction;
@@ -1695,6 +1727,7 @@ impl Fleet {
     pub fn get_charting_config(&self) -> Option<ChartingConfig> {
         Some(ChartingConfig {
             charting_probe_count: self.charting_probe_count?,
+            chart_only_jump_gates: self.chart_only_jump_gates?,
         })
     }
 
@@ -1828,6 +1861,7 @@ pub struct MiningConfig {
 #[graphql(input_name = "InputTotalChartingConfig")]
 pub struct ChartingConfig {
     pub charting_probe_count: i32,
+    pub chart_only_jump_gates: bool,
 }
 
 #[derive(

@@ -1,0 +1,1 @@
+ALTER TABLE fleet DROP COLUMN chart_only_jump_gates;

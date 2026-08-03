@@ -1,5 +1,5 @@
 use crate::{
-    control_api::{graphql::gql_models::GQLShipInfo, GraphiQLError},
+    control_api::{GraphiQLError, graphql::gql_models::GQLShipInfo},
     utils::ConductorContext,
 };
 use async_graphql::{Context, Object};
@@ -253,6 +253,7 @@ impl MutationRoot {
                         &context.database_pool,
                         id,
                         cfg.charting_probe_count,
+                        cfg.chart_only_jump_gates,
                     )
                     .await
                     .map_err(|e| super::GraphiQLError::IO(e.to_string()))?;
@@ -610,6 +611,7 @@ impl InputFleetConfig {
             InputFleetConfig::Charting(cfg) => {
                 database::FleetConfig::Charting(database::ChartingFleetConfig {
                     charting_probe_count: cfg.charting_probe_count?,
+                    chart_only_jump_gates: cfg.chart_only_jump_gates?,
                 })
             }
             InputFleetConfig::Construction(cfg) => {
@@ -670,6 +672,7 @@ pub struct InputMiningConfig {
 #[derive(Debug, Clone, async_graphql::InputObject)]
 pub struct InputChartingConfig {
     pub charting_probe_count: Option<i32>,
+    pub chart_only_jump_gates: Option<bool>,
 }
 
 #[derive(Debug, Clone, async_graphql::InputObject)]
