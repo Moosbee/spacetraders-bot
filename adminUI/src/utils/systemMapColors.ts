@@ -7,4 +7,5 @@ export const systemMapDrawStyle = {
   marketplaceHighlightColor: "#96dfe0",
   shipyardHighlightColor: "#e09796",
   waypointHighlightColor: "#96e097",
+  starterSystemHighlightColor: "#ffb95d",
 };

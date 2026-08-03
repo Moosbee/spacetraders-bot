@@ -12,6 +12,7 @@ type MapConfig = {
   minMarketplaceCount?: number;
   onlyJumpGates?: "NOT_ACCESSIBLE" | "NONE" | "ACCESSIBLE";
   highlightSelectedSystem?: boolean;
+  highlightStarterSystems?: boolean;
   minShipsHighlighted?: number;
   minFleetsHighlighted?: number;
   minMarketplacesHighlighted?: number;
@@ -270,6 +271,32 @@ function SysMap() {
               minWaypointsHighlighted: Number(o.key),
             })),
         })),
+      ],
+    },
+    {
+      key: "highlightStarterSystems",
+      label: `Highlight Starter Systems: ${config.highlightStarterSystems ?? "OFF"}`,
+      children: [
+        {
+          ...offOption(config.highlightStarterSystems),
+          onClick: () =>
+            setConfig((c) => ({ ...c, highlightStarterSystems: undefined })),
+        },
+        {
+          key: "ON",
+          label: (
+            <span
+              style={{
+                fontWeight:
+                  config.highlightStarterSystems === true ? "bold" : "normal",
+              }}
+            >
+              ON
+            </span>
+          ),
+          onClick: () =>
+            setConfig((c) => ({ ...c, highlightStarterSystems: true })),
+        },
       ],
     },
     {

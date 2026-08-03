@@ -60,6 +60,7 @@ function drawSystems(
     minShipyardsHighlighted?: number;
     minMarketplacesHighlighted?: number;
     highlightSelectedSystem?: boolean;
+    highlightStarterSystems?: boolean;
   },
   style: {
     selectedSystemHighlightColor: string;
@@ -70,6 +71,7 @@ function drawSystems(
     marketplaceHighlightColor: string;
     shipyardHighlightColor: string;
     waypointHighlightColor: string;
+    starterSystemHighlightColor: string;
   },
 ) {
   const context = canvas.getContext("2d");
@@ -116,72 +118,90 @@ function drawSystems(
     context.stroke();
   }
 
-  const highLightRadius = [10, 8, 6, 4, 3];
+  const highLightRadiusBig = [10, 8, 7, 6, 5, 4, 3, 2];
+  const highLightRadiusSmall = [5, 4, 3, 2];
 
   for (const { system, xOne, yOne } of Object.values(systems)) {
     const x = xOne * zoom * maxRatio + left;
     const y = yOne * zoom * maxRatio + top;
     if (x < 0 || x > width || y < 0 || y > height) continue;
     const r = Math.max(maxRatio / 3000, Math.min(Math.abs(zoom / 2) * 1, 10));
-    let highlightRadius = 0;
 
-    if (config.highlightSelectedSystem && selectedSystem === system.symbol) {
+    const drawRing = (radiusMultiplier: number, color: string) => {
       context.beginPath();
-      context.arc(x, y, r * highLightRadius[highlightRadius++], 0, 2 * Math.PI);
-      context.fillStyle = style.selectedSystemHighlightColor;
+      context.arc(x, y, r * radiusMultiplier, 0, 2 * Math.PI);
+      context.fillStyle = color;
       context.fill();
-    }
+    };
 
-    if (
-      config.minShipsHighlighted !== undefined &&
-      config.minShipsHighlighted <= system.ships.length
-    ) {
-      context.beginPath();
-      context.arc(x, y, r * highLightRadius[highlightRadius++], 0, 2 * Math.PI);
-      context.fillStyle = style.shipHighlightColor;
-      context.fill();
-    }
+    const shipyardCount = system.waypoints.filter(
+      (wp) => wp.hasShipyard,
+    ).length;
+    const marketplaceCount = system.waypoints.filter(
+      (wp) => wp.hasMarketplace,
+    ).length;
+    const isStarterSystem = system.waypoints.some(
+      (wp) => wp.waypointType === "ENGINEERED_ASTEROID",
+    );
 
-    if (
-      config.minFleetsHighlighted !== undefined &&
-      config.minFleetsHighlighted <= system.fleets.length
-    ) {
-      context.beginPath();
-      context.arc(x, y, r * highLightRadius[highlightRadius++], 0, 2 * Math.PI);
-      context.fillStyle = style.fleetHighlightColor;
-      context.fill();
-    }
+    const highlights = [
+      {
+        active: selectedSystem === system.symbol,
+        selected: config.highlightSelectedSystem,
+        color: style.selectedSystemHighlightColor,
+      },
+      {
+        active: (config.minFleetsHighlighted || 0) <= system.fleets.length,
+        selected: config.minFleetsHighlighted !== undefined,
+        color: style.fleetHighlightColor,
+      },
+      {
+        active: (config.minShipsHighlighted || 0) <= system.ships.length,
+        selected: config.minShipsHighlighted !== undefined,
+        color: style.shipHighlightColor,
+      },
+      {
+        active:
+          (config.minWaypointsHighlighted || 0) <= system.waypoints.length,
+        selected: config.minWaypointsHighlighted !== undefined,
+        color: style.waypointHighlightColor,
+      },
+      {
+        active: (config.minShipyardsHighlighted || 0) <= shipyardCount,
+        selected: config.minShipyardsHighlighted !== undefined,
+        color: style.shipyardHighlightColor,
+      },
+      {
+        active: (config.minMarketplacesHighlighted || 0) <= marketplaceCount,
+        selected: config.minMarketplacesHighlighted !== undefined,
+        color: style.marketplaceHighlightColor,
+      },
+      {
+        active: isStarterSystem,
+        selected: config.highlightStarterSystems,
+        color: style.starterSystemHighlightColor,
+      },
+    ];
 
-    if (
-      config.minWaypointsHighlighted !== undefined &&
-      config.minWaypointsHighlighted <= system.waypoints.length
-    ) {
-      context.beginPath();
-      context.arc(x, y, r * highLightRadius[highlightRadius++], 0, 2 * Math.PI);
-      context.fillStyle = style.waypointHighlightColor;
-      context.fill();
-    }
-
-    if (
-      config.minShipyardsHighlighted !== undefined &&
-      config.minShipyardsHighlighted <=
-        system.waypoints.filter((wp) => wp.hasShipyard).length
-    ) {
-      context.beginPath();
-      context.arc(x, y, r * highLightRadius[highlightRadius++], 0, 2 * Math.PI);
-      context.fillStyle = style.shipyardHighlightColor;
-      context.fill();
-    }
-
-    if (
-      config.minMarketplacesHighlighted !== undefined &&
-      config.minMarketplacesHighlighted <=
-        system.waypoints.filter((wp) => wp.hasMarketplace).length
-    ) {
-      context.beginPath();
-      context.arc(x, y, r * highLightRadius[highlightRadius++], 0, 2 * Math.PI);
-      context.fillStyle = style.marketplaceHighlightColor;
-      context.fill();
+    let radiusIndex = 0;
+    const activeCount = highlights.filter(
+      (highlight) => highlight.active,
+    ).length;
+    if (activeCount) {
+      for (const { active, color, selected } of highlights) {
+        if (selected) {
+          const currentRadius = radiusIndex++;
+          if (active) {
+            let multiplier = 2;
+            if (activeCount < 4) {
+              multiplier = highLightRadiusSmall[currentRadius] || 14;
+            } else {
+              multiplier = highLightRadiusBig[currentRadius] || 14;
+            }
+            drawRing(multiplier, color);
+          }
+        }
+      }
     }
 
     context.beginPath();
@@ -217,6 +237,7 @@ function SystemsMap({
     onlyJumpGates?: "ACCESSIBLE" | "NOT_ACCESSIBLE" | "NONE";
     minFleetsHighlighted?: number;
     minShipsHighlighted?: number;
+    highlightStarterSystems?: boolean;
     minWaypointsHighlighted?: number;
     minShipyardsHighlighted?: number;
     minMarketplacesHighlighted?: number;
@@ -307,6 +328,7 @@ function SystemsMap({
           minShipyardsHighlighted: config.minShipyardsHighlighted,
           minMarketplacesHighlighted: config.minMarketplacesHighlighted,
           highlightSelectedSystem: config.highlightSelectedSystem,
+          highlightStarterSystems: config.highlightStarterSystems,
         },
         systemMapDrawStyle,
       );
@@ -319,6 +341,7 @@ function SystemsMap({
   }, [
     calcSystems,
     config.highlightSelectedSystem,
+    config.highlightStarterSystems,
     config.minFleetsHighlighted,
     config.minMarketplacesHighlighted,
     config.minShipsHighlighted,
@@ -349,12 +372,14 @@ function SystemsMap({
         minShipyardsHighlighted: config.minShipyardsHighlighted,
         minMarketplacesHighlighted: config.minMarketplacesHighlighted,
         highlightSelectedSystem: config.highlightSelectedSystem,
+        highlightStarterSystems: config.highlightStarterSystems,
       },
       systemMapDrawStyle,
     );
   }, [
     calcSystems,
     config.highlightSelectedSystem,
+    config.highlightStarterSystems,
     config.minFleetsHighlighted,
     config.minMarketplacesHighlighted,
     config.minShipsHighlighted,
