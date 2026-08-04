@@ -25,9 +25,9 @@ import TransactionTable from "../features/TransactionTable/TransactionTable";
 import {
   ActivityLevel,
   GetWaypointQuery,
+  MarketTradeGoodType,
   SupplyLevel,
   TradeSymbol,
-  Type,
 } from "../gql/graphql";
 import { REPOPULATE_SYSTEMS_WITH_FLEETS_FROM_JUMP_GATE } from "../graphql/mutations";
 import { GET_WAYPOINT } from "../graphql/queries";
@@ -285,7 +285,7 @@ function Waypoint() {
       dataIndex: "type",
       key: "type",
       sorter: (a, b) => a.type.localeCompare(b.type),
-      filters: Object.values(Type).map((t) => ({
+      filters: Object.values(MarketTradeGoodType).map((t) => ({
         text: t,
         value: t,
       })),
@@ -316,7 +316,7 @@ function Waypoint() {
       dataIndex: "type",
       key: "type",
       sorter: (a, b) => a.type.localeCompare(b.type),
-      filters: Object.values(Type).map((t) => ({
+      filters: Object.values(MarketTradeGoodType).map((t) => ({
         text: t,
         value: t,
       })),

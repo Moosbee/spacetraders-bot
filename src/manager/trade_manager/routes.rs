@@ -163,7 +163,11 @@ impl ConcreteTradeRoute {
                 database::TradeMode::ProfitPerAPIRequest => None,
                 database::TradeMode::ProfitPerTrip => {
                     Some(self.trip.total_profit.cmp(&other.trip.total_profit))
-                }
+                } // database::TradeMode::MarketBalanced => {
+                  //     // TODO
+                  //     // prefer trades that trade from high supply to low supply the higher difference the better
+                  //     None
+                  // }
             }
         }
     }
