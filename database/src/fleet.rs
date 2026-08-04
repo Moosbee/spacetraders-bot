@@ -1764,6 +1764,7 @@ pub enum TradeMode {
     ProfitPerHour,
     ProfitPerAPIRequest,
     ProfitPerTrip,
+    // MarketBalanced
 }
 
 #[derive(

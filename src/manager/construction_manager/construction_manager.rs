@@ -7,11 +7,11 @@ use chrono::Utc;
 use database::{DatabaseConnectorAsync, PaginatedQuery};
 use space_traders_client::models::{self};
 use tracing::debug;
-use utils::{get_system_symbol, WaypointCan};
+use utils::{WaypointCan, get_system_symbol};
 
 use crate::{
     error::{Error, Result},
-    manager::{construction_manager::message::ConstructionMessage, Manager},
+    manager::{Manager, construction_manager::message::ConstructionMessage},
     utils::ConductorContext,
 };
 
@@ -286,22 +286,22 @@ impl ConstructionManager {
                 .await;
 
             debug!("Calculated budget: {:?}", budget);
-            if budget.is_err() {
-                if let Err(e) = budget {
-                    if let crate::error::Error::NotEnoughFunds {
-                        remaining_funds,
-                        required_funds,
-                    } = e
-                    {
-                        debug!(
-                            "Not enough budget for purchase has {} needed {}",
-                            remaining_funds, required_funds
-                        );
-                        return Ok(super::NextShipmentResp::ComeBackLater);
-                    } else {
-                        debug!("Error reserving funds: {:?}", e);
-                        return Err(e);
-                    }
+            if budget.is_err()
+                && let Err(e) = budget
+            {
+                if let crate::error::Error::NotEnoughFunds {
+                    remaining_funds,
+                    required_funds,
+                } = e
+                {
+                    debug!(
+                        "Not enough budget for purchase has {} needed {}",
+                        remaining_funds, required_funds
+                    );
+                    return Ok(super::NextShipmentResp::ComeBackLater);
+                } else {
+                    debug!("Error reserving funds: {:?}", e);
+                    return Err(e);
                 }
             }
 
