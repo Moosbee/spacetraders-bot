@@ -125,7 +125,6 @@ pub async fn safely_get_lock_mut_map<K, V>(
 ) -> <LockableHashMap<K, V> as Lockable<K, V>>::Guard<'_>
 where
     K: std::hash::Hash + Eq + Clone + Debug,
-    V: Clone,
 {
     let result = map.try_lock(key.clone(), SyncLimit::no_limit()).unwrap();
 

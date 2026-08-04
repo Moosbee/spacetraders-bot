@@ -332,7 +332,7 @@ impl MiningManager {
             .filter(|f| f.1.nav.waypoint_symbol == waypoint_symbol)
             .filter(|f| !f.1.nav.is_in_transit())
             .filter(|f| matches!(&f.1.status.status, ship::AssignmentStatus::Mining { .. }))
-            .map(|f| f.1)
+            .map(|f| f.1.into_mutable())
             .collect())
     }
 
@@ -455,9 +455,14 @@ impl MiningManager {
 
     async fn get_next_waypoint(&self, ship_clone: ship::MyShip) -> Result<String> {
         debug!("Getting next waypoint for ship: {}", ship_clone.symbol);
-        let the_ships: std::collections::HashMap<String, ship::MyShip> =
-            self.context.ship_manager.get_all_clone().await;
-        let routes = self
+        let the_ships: std::collections::HashMap<String, ship::MyShip> = self
+            .context
+            .ship_manager
+            .get_all_clone()
+            .await
+            .into_iter()
+            .map(|(k, v)| (k, v.into_mutable()))
+            .collect();        let routes = self
             .waypoint_manager
             .calculate_waypoint_urgencys(&the_ships);
 

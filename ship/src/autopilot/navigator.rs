@@ -4,20 +4,20 @@ use log::warn;
 use space_traders_client::models::{self};
 use utils::get_system_symbol;
 
-use crate::RustShip;
+use crate::{RustShip, Mutable, error::Result};
 
 use super::connection::{
     ConcreteConnection, JumpConnection, NavigateConnection, Refuel, Route, WarpConnection,
 };
 
-impl<T: Clone + Send + Sync> RustShip<T> {
+impl<T: Clone + Send + Sync> RustShip<T, Mutable> {
     pub async fn fly_route(
         &mut self,
         route: Route,
         reason: database::TransactionReason,
         database_pool: &database::DbPool,
         api: &space_traders_client::Api,
-        wp_action: impl AsyncFn(&mut RustShip<T>, String, String) -> crate::error::Result<()> + Clone,
+        wp_action: impl AsyncFn(&mut RustShip<T, Mutable>, String, String) -> crate::error::Result<()> + Clone,
         update_funds_fn: impl Fn(i64) + Clone,
     ) -> crate::error::Result<()> {
         self.set_auto_pilot(route.clone()).await?;
@@ -45,7 +45,7 @@ impl<T: Clone + Send + Sync> RustShip<T> {
         reason: &database::TransactionReason,
         database_pool: &database::DbPool,
         api: &space_traders_client::Api,
-        wp_action: impl AsyncFn(&mut RustShip<T>, String, String) -> crate::error::Result<()>,
+        wp_action: impl AsyncFn(&mut RustShip<T, Mutable>, String, String) -> crate::error::Result<()>,
         update_funds_fn: impl Fn(i64) + Clone,
     ) -> crate::error::Result<()> {
         match connection {
@@ -93,7 +93,7 @@ impl<T: Clone + Send + Sync> RustShip<T> {
         reason: &database::TransactionReason,
         database_pool: &database::DbPool,
         api: &space_traders_client::Api,
-        wp_action: impl (AsyncFn(&mut RustShip<T>, String, String) -> crate::error::Result<()>),
+        wp_action: impl (AsyncFn(&mut RustShip<T, Mutable>, String, String) -> crate::error::Result<()>),
         update_funds_fn: impl Fn(i64) + Clone,
     ) -> crate::error::Result<()> {
         if self.nav.waypoint_symbol != connection.start_symbol {
@@ -171,7 +171,7 @@ impl<T: Clone + Send + Sync> RustShip<T> {
         reason: &database::TransactionReason,
         database_pool: &database::DbPool,
         api: &space_traders_client::Api,
-        wp_action: impl AsyncFn(&mut RustShip<T>, String, String) -> crate::error::Result<()>,
+        wp_action: impl AsyncFn(&mut RustShip<T, Mutable>, String, String) -> crate::error::Result<()>,
         update_funds_fn: impl Fn(i64) + Clone,
     ) -> crate::error::Result<()> {
         if self.nav.waypoint_symbol != connection.start_symbol {
@@ -244,7 +244,7 @@ impl<T: Clone + Send + Sync> RustShip<T> {
         reason: &database::TransactionReason,
         database_pool: &database::DbPool,
         api: &space_traders_client::Api,
-        wp_action: impl AsyncFn(&mut RustShip<T>, String, String) -> crate::error::Result<()>,
+        wp_action: impl AsyncFn(&mut RustShip<T, Mutable>, String, String) -> crate::error::Result<()>,
         update_funds_fn: impl Fn(i64) + Clone,
     ) -> crate::error::Result<()> {
         if self.nav.waypoint_symbol != connection.start_symbol {

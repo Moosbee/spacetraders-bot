@@ -28,8 +28,9 @@ pub use connection::WarpConnection;
 use crate::error::Result;
 
 use super::RustShip;
+use super::Mutable;
 
-impl<T: Clone + Send + Sync> RustShip<T> {
+impl<T: Clone + Send + Sync> RustShip<T, Mutable> {
     pub async fn nav_to(
         &mut self,
         waypoint: &str,
@@ -39,7 +40,6 @@ impl<T: Clone + Send + Sync> RustShip<T> {
         api: &space_traders_client::Api,
         update_funds_fn: impl Fn(i64) + Clone,
     ) -> Result<()> {
-        self.mutate();
         self.nav_to_prepare(
             waypoint,
             update_market,

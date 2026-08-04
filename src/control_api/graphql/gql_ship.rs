@@ -957,7 +957,7 @@ impl AllShipLoader {
 }
 
 impl async_graphql::dataloader::Loader<()> for AllShipLoader {
-    type Value = HashMap<String, ship::RustShip<ShipStatus>>;
+    type Value = HashMap<String, ship::RustShip<ShipStatus, ship::Immutable>>;
     type Error = Arc<crate::error::Error>;
 
     #[instrument(level = "trace", skip(self, _keys))]

@@ -4,7 +4,7 @@ use tracing::{debug, error, warn};
 
 use crate::error;
 
-use super::{RustShip, autopilot::AutopilotState};
+use super::{Mutable, RustShip, autopilot::AutopilotState};
 
 use std::fmt::Debug;
 
@@ -55,13 +55,12 @@ pub struct RouteState {
     pub origin_system_symbol: String,
 }
 
-impl<T: Clone + Send + Sync> RustShip<T> {
+impl<T: Clone + Send + Sync> RustShip<T, Mutable> {
     pub async fn navigate(
         &mut self,
         api: &space_traders_client::Api,
         waypoint_symbol: &str,
     ) -> error::Result<models::NavigateShip200Response> {
-        self.mutate();
         let nav_data = api
             .navigate_ship(
                 &self.symbol,
@@ -84,7 +83,6 @@ impl<T: Clone + Send + Sync> RustShip<T> {
         api: &space_traders_client::Api,
         waypoint_symbol: &str,
     ) -> error::Result<models::JumpShip200Response> {
-        self.mutate();
         let jump_data = api
             .jump_ship(
                 &self.symbol,
@@ -107,7 +105,6 @@ impl<T: Clone + Send + Sync> RustShip<T> {
         api: &space_traders_client::Api,
         waypoint_symbol: &str,
     ) -> error::Result<models::NavigateShip200Response> {
-        self.mutate();
         let warp_data = api
             .warp_ship(
                 &self.symbol,
@@ -131,7 +128,6 @@ impl<T: Clone + Send + Sync> RustShip<T> {
         models::DockShip200Response,
         apis::Error<apis::fleet_api::DockShipError>,
     > {
-        self.mutate();
         let dock_data = api.dock_ship(&self.symbol).await?;
         self.nav.update(&dock_data.data.nav);
         self.notify(true).await;
@@ -146,7 +142,6 @@ impl<T: Clone + Send + Sync> RustShip<T> {
         models::OrbitShip200Response,
         apis::Error<apis::fleet_api::OrbitShipError>,
     > {
-        self.mutate();
         let undock_data: models::OrbitShip200Response = api.orbit_ship(&self.symbol).await?;
         self.nav.update(&undock_data.data.nav);
         self.notify(true).await;
@@ -158,7 +153,6 @@ impl<T: Clone + Send + Sync> RustShip<T> {
         &mut self,
         api: &space_traders_client::Api,
     ) -> core::result::Result<(), apis::Error<apis::fleet_api::DockShipError>> {
-        self.mutate();
         if self.nav.get_status() != models::ShipNavStatus::Docked {
             self.dock(api).await?;
         }
@@ -169,7 +163,6 @@ impl<T: Clone + Send + Sync> RustShip<T> {
         &mut self,
         api: &space_traders_client::Api,
     ) -> core::result::Result<(), apis::Error<apis::fleet_api::OrbitShipError>> {
-        self.mutate();
         if self.nav.get_status() == models::ShipNavStatus::Docked {
             self.undock(api).await?;
         }
@@ -184,7 +177,6 @@ impl<T: Clone + Send + Sync> RustShip<T> {
     //     models::PatchShipNav200Response,
     //     apis::Error<apis::fleet_api::PatchShipNavError>,
     // > {
-    //     self.mutate();
     //     let ship_patch_data = api
     //         .patch_ship_nav(
     //             &self.symbol,
@@ -207,7 +199,6 @@ impl<T: Clone + Send + Sync> RustShip<T> {
         models::PatchShipNav200Response,
         apis::Error<apis::fleet_api::PatchShipNavError>,
     > {
-        self.mutate();
         let mut count = 0;
         let ship_patch_data = loop {
             let ship_patch_data_result = api
@@ -247,7 +238,6 @@ impl<T: Clone + Send + Sync> RustShip<T> {
         api: &space_traders_client::Api,
         flight_mode: models::ShipNavFlightMode,
     ) -> core::result::Result<(), apis::Error<apis::fleet_api::PatchShipNavError>> {
-        self.mutate();
         if flight_mode != self.nav.flight_mode {
             debug!(flight_mode = ?flight_mode, "Changing flight mode");
 
@@ -277,7 +267,6 @@ impl<T: Clone + Send + Sync> RustShip<T> {
         units: i32, // fuel units, not cargo units, 1 cargo unit = 100 fuel
         from_cargo: bool,
     ) -> error::Result<models::RefuelShip200Response> {
-        self.mutate();
 
         let refuel_data: models::RefuelShip200Response = api
             .refuel_ship(

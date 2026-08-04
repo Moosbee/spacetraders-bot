@@ -4,9 +4,9 @@ use space_traders_client::{
     models::{self},
 };
 
-use super::RustShip;
+use super::{Mutable, RustShip};
 
-impl<T: Clone + Send + Sync> RustShip<T> {
+impl<T: Clone + Send + Sync> RustShip<T, Mutable> {
     pub fn is_on_cooldown(&self) -> bool {
         if self.cooldown_expiration.is_some() {
             let t = self.cooldown_expiration.unwrap();
@@ -35,7 +35,6 @@ impl<T: Clone + Send + Sync> RustShip<T> {
         models::ExtractResources201Response,
         space_traders_client::apis::Error<ExtractResourcesError>,
     > {
-        self.mutate();
         let extraction = api.extract_resources(&self.symbol).await?;
 
         self.update_cooldown(&extraction.data.cooldown);
@@ -55,7 +54,6 @@ impl<T: Clone + Send + Sync> RustShip<T> {
             space_traders_client::apis::fleet_api::ExtractResourcesWithSurveyError,
         >,
     > {
-        self.mutate();
         let extraction = api
             .extract_resources_with_survey(&self.symbol, Some(survey.clone()))
             .await?;
@@ -74,7 +72,6 @@ impl<T: Clone + Send + Sync> RustShip<T> {
         models::SiphonResources201Response,
         space_traders_client::apis::Error<SiphonResourcesError>,
     > {
-        self.mutate();
         let extraction = api.siphon_resources(&self.symbol).await?;
 
         self.update_cooldown(&extraction.data.cooldown);
@@ -89,7 +86,6 @@ impl<T: Clone + Send + Sync> RustShip<T> {
         api: &space_traders_client::Api,
     ) -> Result<models::CreateSurvey201Response, space_traders_client::apis::Error<CreateSurveyError>>
     {
-        self.mutate();
         let survey = api.create_survey(&self.symbol).await?;
 
         self.update_cooldown(&survey.data.cooldown);
@@ -99,7 +95,6 @@ impl<T: Clone + Send + Sync> RustShip<T> {
     }
 
     pub fn update_cooldown(&mut self, cooldown: &models::Cooldown) {
-        self.mutate();
         let cool_text = cooldown.expiration.as_ref().map_or("", |v| v);
         self.cooldown_expiration = DateTime::parse_from_rfc3339(cool_text)
             .map(|op| op.to_utc())

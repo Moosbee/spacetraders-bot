@@ -4,33 +4,20 @@ use lockable::{AsyncLimit, Lockable, LockableHashMap, SyncLimit};
 use tokio::sync::RwLock;
 use utils::{Observer, Subject, safely_get_lock_mut_map};
 
-use super::{RustShip, my_ship_update};
+use super::{Immutable, Mutable, RustShip, my_ship_update};
 
 #[derive(Debug)]
 pub struct ShipManager<T: Clone + Send + Sync> {
-    locked_ships: LockableHashMap<String, RustShip<T>>,
-    copy: RwLock<HashMap<String, RustShip<T>>>,
-    mpsc_tx: tokio::sync::broadcast::Sender<RustShip<T>>,
-    mpsc_rx: tokio::sync::broadcast::Receiver<RustShip<T>>,
+    locked_ships: LockableHashMap<String, RustShip<T, Mutable>>,
+    copy: RwLock<HashMap<String, RustShip<T, Immutable>>>,
+    mpsc_tx: tokio::sync::broadcast::Sender<RustShip<T, Immutable>>,
+    mpsc_rx: tokio::sync::broadcast::Receiver<RustShip<T, Immutable>>,
     id: u32,
     broadcaster: my_ship_update::InterShipBroadcaster,
 }
 
-// impl Debug for ShipManager {
-//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-//         f.debug_struct("ShipManager")
-//             // .field("locked_ships", &self.locked_ships)
-//             // .field("copy", &self.copy)
-//             .field("mpsc_tx", &self.mpsc_tx)
-//             .field("mpsc_rx", &self.mpsc_rx)
-//             .field("id", &self.id)
-//             .field("broadcaster", &self.broadcaster)
-//             .finish()
-//     }
-// }
-
 pub type ShipGuard<'a, T> =
-    <LockableHashMap<String, RustShip<T>> as Lockable<String, RustShip<T>>>::Guard<'a>;
+    <LockableHashMap<String, RustShip<T, Mutable>> as Lockable<String, RustShip<T, Mutable>>>::Guard<'a>;
 
 impl<T: Clone + Send + Sync> PartialEq for ShipManager<T> {
     fn eq(&self, other: &Self) -> bool {
@@ -38,8 +25,8 @@ impl<T: Clone + Send + Sync> PartialEq for ShipManager<T> {
     }
 }
 
-impl<T: Clone + Send + Sync> Observer<RustShip<T>> for ShipManager<T> {
-    async fn update(&self, data: RustShip<T>) {
+impl<T: Clone + Send + Sync> Observer<RustShip<T, Immutable>> for ShipManager<T> {
+    async fn update(&self, data: RustShip<T, Immutable>) {
         let clone = data.clone();
         let symbol = clone.symbol.clone();
         {
@@ -77,16 +64,16 @@ impl<T: Clone + Send + Sync> ShipManager<T> {
         }
     }
 
-    pub fn get_rx(&self) -> tokio::sync::broadcast::Receiver<RustShip<T>> {
+    pub fn get_rx(&self) -> tokio::sync::broadcast::Receiver<RustShip<T, Immutable>> {
         self.mpsc_rx.resubscribe()
     }
 
-    pub async fn add_ship(me: &Arc<ShipManager<T>>, mut ship: RustShip<T>) {
+    pub async fn add_ship(me: &Arc<ShipManager<T>>, mut ship: RustShip<T, Mutable>) {
         ship.pubsub.register_observer(Arc::downgrade(me));
         me.copy
             .write()
             .await
-            .insert(ship.symbol.clone(), ship.clone());
+            .insert(ship.symbol.clone(), ship.to_immutable());
         let mut guard = me
             .locked_ships
             .async_lock(ship.symbol.clone(), AsyncLimit::no_limit())
@@ -96,12 +83,12 @@ impl<T: Clone + Send + Sync> ShipManager<T> {
         guard.insert(ship);
     }
 
-    pub fn get_clone(&self, symbol: &str) -> Option<RustShip<T>> {
+    pub fn get_clone(&self, symbol: &str) -> Option<RustShip<T, Immutable>> {
         let map = self.copy.try_read().unwrap();
         map.get(symbol).cloned()
     }
 
-    pub async fn get_all_clone(&self) -> HashMap<String, RustShip<T>> {
+    pub async fn get_all_clone(&self) -> HashMap<String, RustShip<T, Immutable>> {
         let erg = {
             let map = self.copy.try_read();
             let map = match map {
@@ -121,7 +108,6 @@ impl<T: Clone + Send + Sync> ShipManager<T> {
     ///
     /// This function is async because it might wait for other tasks that have locked the ship.
     pub async fn get_mut(&self, symbol: &str) -> ShipGuard<'_, T> {
-        // self.locked_ships.get(symbol)
         safely_get_lock_mut_map(&self.locked_ships, symbol.to_owned()).await
     }
 

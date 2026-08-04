@@ -7,15 +7,15 @@ use tokio_util::sync::CancellationToken;
 use tracing::instrument;
 
 use async_graphql::{
+    EmptySubscription, Schema,
     dataloader::DataLoader,
     http::{GraphQLPlaygroundConfig, GraphiQLSource},
-    EmptySubscription, Schema,
 };
 use async_graphql_warp::{GraphQLBadRequest, GraphQLResponse};
-use warp::{http::Response as HttpResponse, Filter, Rejection};
+use warp::{Filter, Rejection, http::Response as HttpResponse};
 
 use crate::{
-    control_api::graphql::{mutations::MutationRoot, AllShipLoader, QueryRoot},
+    control_api::graphql::{AllShipLoader, QueryRoot, mutations::MutationRoot},
     manager::Manager,
     utils::ConductorContext,
 };
@@ -23,14 +23,18 @@ use crate::{
 pub struct ControlApiServer {
     context: ConductorContext,
     fast_cancellation_token: CancellationToken,
-    ship_rx: Option<tokio::sync::broadcast::Receiver<ship::MyShip>>,
+    ship_rx: Option<
+        tokio::sync::broadcast::Receiver<ship::RustShip<ship::status::ShipStatus, ship::Immutable>>,
+    >,
     socket_address: String,
 }
 
 impl ControlApiServer {
     pub fn new(
         context: ConductorContext,
-        ship_rx: tokio::sync::broadcast::Receiver<ship::MyShip>,
+        ship_rx: tokio::sync::broadcast::Receiver<
+            ship::RustShip<ship::status::ShipStatus, ship::Immutable>,
+        >,
         fast_cancellation_token: CancellationToken,
         socket_address: String,
     ) -> Self {

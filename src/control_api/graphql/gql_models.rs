@@ -3440,13 +3440,63 @@ impl crate::utils::RunInfo {
 #[graphql(name = "Ship")]
 #[graphql(complex)]
 pub struct GQLShip {
-    #[graphql(flatten)]
+    pub registration_role: space_traders_client::models::ShipRole,
+    pub symbol: String,
+    pub display_name: String,
+    pub engine_speed: i32,
+    pub purchase_id: Option<i64>,
+    pub cooldown_expiration: Option<chrono::DateTime<chrono::Utc>>,
+    pub cooldown: Option<i32>,
+    pub cargo: ship::CargoState,
+    pub fuel: ship::FuelState,
+    pub engine: space_traders_client::models::ship_engine::Symbol,
+    pub reactor: space_traders_client::models::ship_reactor::Symbol,
+    pub frame: space_traders_client::models::ship_frame::Symbol,
+    pub conditions: ship::ConditionState,
+    #[graphql(skip)]
     ship: ship::RustShip<ShipStatus>,
 }
 
 impl From<ship::RustShip<ShipStatus>> for GQLShip {
     fn from(value: ship::RustShip<ShipStatus>) -> Self {
-        GQLShip { ship: value }
+        GQLShip {
+            registration_role: value.registration_role,
+            symbol: value.symbol.clone(),
+            display_name: value.display_name.clone(),
+            engine_speed: value.engine_speed,
+            purchase_id: value.purchase_id,
+            cooldown_expiration: value.cooldown_expiration,
+            cooldown: value.cooldown,
+            cargo: value.cargo.clone(),
+            fuel: value.fuel.clone(),
+            engine: value.engine,
+            reactor: value.reactor,
+            frame: value.frame,
+            conditions: value.conditions.clone(),
+            ship: value,
+        }
+    }
+}
+
+impl From<ship::RustShip<ShipStatus, ship::Immutable>> for GQLShip {
+    fn from(value: ship::RustShip<ShipStatus, ship::Immutable>) -> Self {
+        let mutable: ship::RustShip<ShipStatus> = value.into_mutable();
+        GQLShip {
+            registration_role: mutable.registration_role,
+            symbol: mutable.symbol.clone(),
+            display_name: mutable.display_name.clone(),
+            engine_speed: mutable.engine_speed,
+            purchase_id: mutable.purchase_id,
+            cooldown_expiration: mutable.cooldown_expiration,
+            cooldown: mutable.cooldown,
+            cargo: mutable.cargo.clone(),
+            fuel: mutable.fuel.clone(),
+            engine: mutable.engine,
+            reactor: mutable.reactor,
+            frame: mutable.frame,
+            conditions: mutable.conditions.clone(),
+            ship: mutable,
+        }
     }
 }
 
@@ -3462,7 +3512,7 @@ impl GQLShip {
 
         let waypoints = context
             .scrapping_manager
-            .get_info(self.ship.clone())
+            .get_info(self.ship.to_immutable().into_mutable())
             .await?;
         Ok(waypoints
             .into_iter()
@@ -4055,7 +4105,10 @@ impl ScrappingManagerInfo {
         let ship = context.ship_manager.get_clone(&ship_symbol);
 
         if let Some(ship_clone) = ship {
-            let waypoints = context.scrapping_manager.get_info(ship_clone).await?;
+            let waypoints = context
+                .scrapping_manager
+                .get_info(ship_clone.into_mutable())
+                .await?;
             Ok(waypoints
                 .into_iter()
                 .map(|f| ScrapInfo {

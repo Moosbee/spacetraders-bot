@@ -8,7 +8,7 @@ use space_traders_client::models::JettisonRequest;
 
 use crate::error;
 
-use super::RustShip;
+use super::{Mutable, RustShip};
 
 enum Mode {
     Sell,
@@ -44,7 +44,7 @@ impl CargoState {
     }
 }
 
-impl<T: Clone + Send + Sync> RustShip<T> {
+impl<T: Clone + Send + Sync> RustShip<T, Mutable> {
     pub async fn purchase_cargo(
         &mut self,
         api: &space_traders_client::Api,
@@ -54,7 +54,6 @@ impl<T: Clone + Send + Sync> RustShip<T> {
         reason: database::TransactionReason,
         update_funds_fn: impl Fn(i64) + Clone,
     ) -> error::Result<i64> {
-        self.mutate();
         let market_info = self.get_market_info(api, database_pool).await?;
         let purchase_volumes = self.calculate_volumes(units, &market_info, symbol)?;
         let mut total_cost = 0;
@@ -86,7 +85,6 @@ impl<T: Clone + Send + Sync> RustShip<T> {
         reason: database::TransactionReason,
         update_funds_fn: impl Fn(i64) + Clone,
     ) -> error::Result<i64> {
-        self.mutate();
         let market_info = self.get_market_info(api, database_pool).await?;
         let sell_volumes = self.calculate_volumes(units, &market_info, symbol)?;
 
@@ -177,7 +175,6 @@ impl<T: Clone + Send + Sync> RustShip<T> {
         reason: database::TransactionReason,
         update_funds_fn: impl Fn(i64) + Clone,
     ) -> error::Result<database::MarketTransaction> {
-        self.mutate();
         let trade_data = match r_type {
             Mode::Sell => {
                 let sell_data: space_traders_client::models::SellCargo201Response = api
@@ -212,20 +209,12 @@ impl<T: Clone + Send + Sync> RustShip<T> {
 
         update_funds_fn(trade_data.agent.credits);
 
-        database::Agent::upsert(
-            database_pool,
-            &database::Agent::from(*trade_data.agent),
-        )
-        .await?;
+        database::Agent::upsert(database_pool, &database::Agent::from(*trade_data.agent)).await?;
 
         let transaction: database::MarketTransaction =
             database::MarketTransaction::try_from(trade_data.transaction.as_ref().clone())?
                 .with(reason);
-        database::MarketTransaction::upsert(
-            database_pool,
-            &transaction,
-        )
-        .await?;
+        database::MarketTransaction::upsert(database_pool, &transaction).await?;
 
         Ok(transaction)
     }
@@ -237,7 +226,6 @@ impl<T: Clone + Send + Sync> RustShip<T> {
         units: i32,
         api: &space_traders_client::Api,
     ) -> Result<space_traders_client::models::DeliverContract200Response, error::Error> {
-        self.mutate();
         let delivery_result: space_traders_client::models::DeliverContract200Response = api
             .deliver_contract(
                 contract_id,
@@ -261,7 +249,6 @@ impl<T: Clone + Send + Sync> RustShip<T> {
         units: i32,
         api: &space_traders_client::Api,
     ) -> Result<space_traders_client::models::SupplyConstruction201Response, error::Error> {
-        self.mutate();
         let delivery_result: space_traders_client::models::SupplyConstruction201Response = api
             .supply_construction(
                 &self.nav.system_symbol,
@@ -287,7 +274,6 @@ impl<T: Clone + Send + Sync> RustShip<T> {
         api: &space_traders_client::Api,
         target_ship: &str,
     ) -> crate::error::Result<space_traders_client::models::TransferCargo200Response> {
-        self.mutate();
         let old_units = self.cargo.get_amount(&trade_symbol);
         if old_units < units {
             return Err("Not enough cargo to transfer".into());
@@ -315,7 +301,6 @@ impl<T: Clone + Send + Sync> RustShip<T> {
         trade_symbol: space_traders_client::models::TradeSymbol,
         units: i32,
     ) -> error::Result<()> {
-        self.mutate();
         let jettison_data: space_traders_client::models::Jettison200Response = api
             .jettison(
                 &self.symbol,
