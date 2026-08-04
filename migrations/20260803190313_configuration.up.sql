@@ -1,2 +1,2 @@
 ALTER TABLE fleet
-ADD COLUMN chart_only_jump_gates BOOLEAN NOT NULL DEFAULT FALSE;
+ADD COLUMN chart_only_jump_gates BOOLEAN DEFAULT FALSE;

@@ -6,3 +6,4 @@
 /db_backup
 log.txt
 log*.txt
+*log.txt

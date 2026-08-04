@@ -35,32 +35,16 @@ pub async fn populate_system(
     .await?
     .items; // we can assume that there is a maximum of one fleet per type per system
 
-    // Match exploration fleet
+    // Match charting fleet
     update_fleet(
         context,
         system_fleets.exploration_fleet,
         current_fleets
             .iter()
             .find(|f| {
-                f.fleet_type == database::FleetType::Scrapping
+                f.fleet_type == database::FleetType::Charting
                     && f.get_charting_config()
                         .map(|c| c.chart_only_jump_gates)
-                        .unwrap_or(false)
-            })
-            .cloned(),
-    )
-    .await?;
-
-    // Match scrapping fleet
-    update_fleet(
-        context,
-        system_fleets.scrapping_fleet,
-        current_fleets
-            .iter()
-            .find(|f| {
-                f.fleet_type == database::FleetType::Scrapping
-                    && f.get_charting_config()
-                        .map(|c| !c.chart_only_jump_gates)
                         .unwrap_or(false)
             })
             .cloned(),
@@ -73,7 +57,23 @@ pub async fn populate_system(
         system_fleets.charting_fleet,
         current_fleets
             .iter()
-            .find(|f| f.fleet_type == database::FleetType::Charting)
+            .find(|f| {
+                f.fleet_type == database::FleetType::Charting
+                    && f.get_charting_config()
+                        .map(|c| !c.chart_only_jump_gates)
+                        .unwrap_or(false)
+            })
+            .cloned(),
+    )
+    .await?;
+
+    // Match scrapping fleet
+    update_fleet(
+        context,
+        system_fleets.scrapping_fleet,
+        current_fleets
+            .iter()
+            .find(|f| f.fleet_type == database::FleetType::Scrapping)
             .cloned(),
     )
     .await?;
