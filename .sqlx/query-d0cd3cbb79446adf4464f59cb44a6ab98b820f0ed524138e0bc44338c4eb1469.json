@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                        SELECT COUNT(*) as \"count!\"\n                        FROM trade_route\n                        WHERE purchase_waypoint = $1\n                    ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "count!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "d0cd3cbb79446adf4464f59cb44a6ab98b820f0ed524138e0bc44338c4eb1469"
+}

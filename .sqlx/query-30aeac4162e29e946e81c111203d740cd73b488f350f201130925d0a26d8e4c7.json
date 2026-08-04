@@ -1,0 +1,41 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                        SELECT DISTINCT ON (waypoint_symbol)\n                            id,\n                            waypoint_symbol,\n                            modifications_fee,\n                            created_at\n                        FROM shipyard\n                        ORDER BY waypoint_symbol, created_at DESC\n                        LIMIT $1 OFFSET $2\n                    ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "waypoint_symbol",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "modifications_fee",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 3,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "30aeac4162e29e946e81c111203d740cd73b488f350f201130925d0a26d8e4c7"
+}

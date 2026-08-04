@@ -1,0 +1,48 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                SELECT\n                  id,\n                  waypoint_from as \"from\",\n                  waypoint_to as \"to\",\n                  created_at,\n                  updated_at\n                FROM jump_gate_connections\n                WHERE waypoint_from LIKE ($1 || '-%')\n                ORDER BY updated_at DESC, id DESC\n                LIMIT $2 OFFSET $3\n              ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "from",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "to",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 4,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "1478bb461167b3357302af9e5f421177ad89c16bd9a9d059b4de7195a6ab75db"
+}

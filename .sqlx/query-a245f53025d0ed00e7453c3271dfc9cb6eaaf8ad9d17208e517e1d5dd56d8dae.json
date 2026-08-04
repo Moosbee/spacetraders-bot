@@ -1,0 +1,20 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                        SELECT COUNT(*) as \"count!\"\n                        FROM construction_shipment\n                    ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "count!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "a245f53025d0ed00e7453c3271dfc9cb6eaaf8ad9d17208e517e1d5dd56d8dae"
+}

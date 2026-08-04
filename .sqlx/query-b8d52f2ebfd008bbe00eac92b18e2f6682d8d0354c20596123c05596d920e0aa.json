@@ -1,0 +1,33 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                        SELECT COUNT(*) as \"count!\"\n                        FROM surveys\n                        WHERE size = $1\n                    ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "count!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        {
+          "Custom": {
+            "name": "survey_size",
+            "kind": {
+              "Enum": [
+                "SMALL",
+                "MODERATE",
+                "LARGE"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "b8d52f2ebfd008bbe00eac92b18e2f6682d8d0354c20596123c05596d920e0aa"
+}

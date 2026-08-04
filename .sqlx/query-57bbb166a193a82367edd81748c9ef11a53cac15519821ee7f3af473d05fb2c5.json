@@ -1,0 +1,38 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                DELETE FROM frame_info\n                WHERE symbol = $1\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        {
+          "Custom": {
+            "name": "ship_frame_symbol",
+            "kind": {
+              "Enum": [
+                "FRAME_PROBE",
+                "FRAME_DRONE",
+                "FRAME_INTERCEPTOR",
+                "FRAME_RACER",
+                "FRAME_FIGHTER",
+                "FRAME_FRIGATE",
+                "FRAME_SHUTTLE",
+                "FRAME_EXPLORER",
+                "FRAME_MINER",
+                "FRAME_LIGHT_FREIGHTER",
+                "FRAME_HEAVY_FREIGHTER",
+                "FRAME_TRANSPORT",
+                "FRAME_DESTROYER",
+                "FRAME_CRUISER",
+                "FRAME_CARRIER",
+                "FRAME_BULK_FREIGHTER"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "57bbb166a193a82367edd81748c9ef11a53cac15519821ee7f3af473d05fb2c5"
+}
