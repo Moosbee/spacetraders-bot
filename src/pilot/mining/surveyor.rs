@@ -3,7 +3,6 @@ use std::{
     sync::{atomic::AtomicI32, Arc},
 };
 
-use database::DatabaseConnectorAsync;
 use ship::status::MiningShipAssignment;
 use tracing::instrument;
 
@@ -75,18 +74,29 @@ impl SurveyPilot {
 
         let ship_after = ship.snapshot(&self.context.database_pool).await?;
 
-        let all_surveys = surveys
-            .data
-            .surveys
-            .into_iter()
-            .map(|f| database::Survey::from_model(f, ship_before, ship_after, ship.symbol.clone()))
-            .collect::<database::Result<Vec<_>, _>>()?;
-
-        database::Survey::insert_bulk(
-            &self.context.database_pool,
-            &all_surveys,
-        )
-        .await?;
+        let event = database::ShipEvent {
+            id: 0,
+            ship_symbol: ship.symbol.clone(),
+            event_type: "survey".to_string(),
+            event_data: sqlx::types::Json(serde_json::json!({
+                "waypoint_symbol": ship.nav.waypoint_symbol,
+                "survey_count": surveys.data.surveys.len(),
+                "surveys": surveys.data.surveys.iter().map(|s| serde_json::json!({
+                    "signature": s.signature,
+                    "symbol": s.symbol,
+                    "size": s.size.to_string(),
+                    "expiration": s.expiration.to_string(),
+                    "deposits": s.deposits.iter().map(|d| d.symbol.to_string()).collect::<Vec<_>>(),
+                })).collect::<Vec<_>>(),
+            })),
+            state_before: sqlx::types::Json(serde_json::json!({"snapshot_id": ship_before})),
+            state_after: Some(sqlx::types::Json(
+                serde_json::json!({"snapshot_id": ship_after}),
+            )),
+            duration_ms: None,
+            created_at: chrono::Utc::now(),
+        };
+        database::ShipEvent::insert(&self.context.database_pool, &event).await?;
 
         self.count
             .fetch_add(1, std::sync::atomic::Ordering::Relaxed);

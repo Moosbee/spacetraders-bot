@@ -40,14 +40,14 @@ pub enum ConnectionType {
     Navigate { nav_mode: models::ShipNavFlightMode },
 }
 
-#[derive(Debug, Clone, serde::Serialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub enum ConcreteConnection {
     JumpGate(JumpConnection),
     Warp(WarpConnection),
     Navigate(NavigateConnection),
 }
 
-#[derive(Debug, Clone, serde::Serialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct JumpConnection {
     pub start_symbol: String,
     pub end_symbol: String,
@@ -55,7 +55,7 @@ pub struct JumpConnection {
     pub cooldown_time: f64,
 }
 
-#[derive(Debug, Clone, serde::Serialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct WarpConnection {
     pub start_symbol: String,
     pub end_symbol: String,
@@ -67,7 +67,7 @@ pub struct WarpConnection {
     pub end_is_marketplace: bool,
 }
 
-#[derive(Debug, Clone, serde::Serialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct NavigateConnection {
     pub start_symbol: String,
     pub end_symbol: String,
@@ -79,14 +79,14 @@ pub struct NavigateConnection {
     pub end_is_marketplace: bool,
 }
 
-#[derive(Debug, Clone, serde::Serialize, SimpleObject)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, SimpleObject)]
 pub struct Refuel {
     pub fuel_needed: i32,
     pub fuel_required: i32,
     pub start_is_marketplace: bool,
 }
 
-#[derive(Clone, Default, serde::Serialize, Debug)]
+#[derive(Clone, Default, serde::Serialize, serde::Deserialize, Debug)]
 pub struct Route {
     pub connections: Vec<ConcreteConnection>,
     pub total_distance: f64,

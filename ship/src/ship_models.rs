@@ -144,8 +144,13 @@ impl<T: Debug + Clone + Send + Sync> Debug for RustShip<T> {
     }
 }
 
-impl<T: Clone + Send + Sync> From<&RustShip<T>> for database::ShipState {
+impl<T: Clone + Send + Sync + serde::Serialize> From<&RustShip<T>> for database::ShipState {
     fn from(value: &RustShip<T>) -> Self {
+        let status_json = serde_json::to_value(&value.status).unwrap_or(serde_json::Value::Null);
+        let auto_pilot_json = value.nav.auto_pilot.as_ref().map(|ap| {
+            sqlx::types::Json(serde_json::to_value(ap).unwrap_or(serde_json::Value::Null))
+        });
+
         Self {
             id: 0,
             symbol: value.symbol.clone(),
@@ -180,31 +185,8 @@ impl<T: Clone + Send + Sync> From<&RustShip<T>> for database::ShipState {
             route_destination_system: value.nav.route.destination_system_symbol.clone(),
             route_origin_symbol: value.nav.route.origin_symbol.clone(),
             route_origin_system: value.nav.route.origin_system_symbol.clone(),
-            auto_pilot_arrival: value.nav.auto_pilot.as_ref().map(|t| t.arrival),
-            auto_pilot_departure_time: value.nav.auto_pilot.as_ref().map(|t| t.departure_time),
-            auto_pilot_destination_symbol: value
-                .nav
-                .auto_pilot
-                .as_ref()
-                .map(|t| t.destination_symbol.clone()),
-            auto_pilot_destination_system_symbol: value
-                .nav
-                .auto_pilot
-                .as_ref()
-                .map(|t| t.destination_system_symbol.clone()),
-            auto_pilot_origin_symbol: value
-                .nav
-                .auto_pilot
-                .as_ref()
-                .map(|t| t.origin_symbol.clone()),
-            auto_pilot_origin_system_symbol: value
-                .nav
-                .auto_pilot
-                .as_ref()
-                .map(|t| t.origin_system_symbol.clone()),
-            auto_pilot_distance: value.nav.auto_pilot.as_ref().map(|t| t.distance),
-            auto_pilot_fuel_cost: value.nav.auto_pilot.as_ref().map(|t| t.fuel_cost),
-            auto_pilot_travel_time: value.nav.auto_pilot.as_ref().map(|t| t.travel_time),
+            status: sqlx::types::Json(status_json),
+            auto_pilot: auto_pilot_json,
             created_at: Utc::now(),
         }
     }
@@ -270,11 +252,7 @@ impl<T: Clone + Send + Sync> RustShip<T> {
         assignment_id: Option<i64>,
     ) -> Result<database::ShipInfo> {
         self.mutate();
-        let db_ship = database::ShipInfo::get_by_id(
-            &database_pool,
-            &self.symbol,
-        )
-        .await?;
+        let db_ship = database::ShipInfo::get_by_id(&database_pool, &self.symbol).await?;
         let ship_info = match db_ship {
             Some(db_ship) => db_ship,
             None => {
@@ -296,11 +274,7 @@ impl<T: Clone + Send + Sync> RustShip<T> {
                     assignment_id,
                     temp_assignment_id: None,
                 };
-                database::ShipInfo::upsert(
-                    &database_pool,
-                    &ship_info,
-                )
-                .await?;
+                database::ShipInfo::upsert(&database_pool, &ship_info).await?;
                 ship_info
             }
         };
@@ -326,21 +300,11 @@ impl<T: Clone + Send + Sync> RustShip<T> {
         ship: models::ShipyardShip,
         database_pool: &database::DbPool,
     ) -> Result<()> {
-        database::EngineInfo::upsert(
-            database_pool,
-            &database::EngineInfo::from(*ship.engine),
-        )
-        .await?;
-        database::FrameInfo::upsert(
-            database_pool,
-            &database::FrameInfo::from(*ship.frame),
-        )
-        .await?;
-        database::ReactorInfo::upsert(
-            database_pool,
-            &database::ReactorInfo::from(*ship.reactor),
-        )
-        .await?;
+        database::EngineInfo::upsert(database_pool, &database::EngineInfo::from(*ship.engine))
+            .await?;
+        database::FrameInfo::upsert(database_pool, &database::FrameInfo::from(*ship.frame)).await?;
+        database::ReactorInfo::upsert(database_pool, &database::ReactorInfo::from(*ship.reactor))
+            .await?;
 
         database::ModuleInfo::insert_bulk(
             database_pool,
@@ -371,21 +335,11 @@ impl<T: Clone + Send + Sync> RustShip<T> {
         ship: models::Ship,
         database_pool: &database::DbPool,
     ) -> Result<()> {
-        database::EngineInfo::upsert(
-            database_pool,
-            &database::EngineInfo::from(*ship.engine),
-        )
-        .await?;
-        database::FrameInfo::upsert(
-            database_pool,
-            &database::FrameInfo::from(*ship.frame),
-        )
-        .await?;
-        database::ReactorInfo::upsert(
-            database_pool,
-            &database::ReactorInfo::from(*ship.reactor),
-        )
-        .await?;
+        database::EngineInfo::upsert(database_pool, &database::EngineInfo::from(*ship.engine))
+            .await?;
+        database::FrameInfo::upsert(database_pool, &database::FrameInfo::from(*ship.frame)).await?;
+        database::ReactorInfo::upsert(database_pool, &database::ReactorInfo::from(*ship.reactor))
+            .await?;
 
         database::ModuleInfo::insert_bulk(
             database_pool,
@@ -411,7 +365,9 @@ impl<T: Clone + Send + Sync> RustShip<T> {
         .await?;
         Ok(())
     }
+}
 
+impl<T: Clone + Send + Sync + serde::Serialize> RustShip<T> {
     pub async fn snapshot(&self, database_pool: &database::DbPool) -> Result<i64> {
         let state = database::ShipState::from(self);
 

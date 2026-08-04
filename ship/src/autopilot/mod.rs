@@ -29,7 +29,7 @@ use crate::error::Result;
 
 use super::RustShip;
 
-impl<T: Clone + Send + Sync> RustShip<T> {
+impl<T: Clone + Send + Sync + serde::Serialize> RustShip<T> {
     pub async fn nav_to(
         &mut self,
         waypoint: &str,
@@ -77,68 +77,63 @@ impl<T: Clone + Send + Sync> RustShip<T> {
         let route2 = route.clone();
         let reson2 = reason.clone();
         let update_funds_fn2 = update_funds_fn.clone();
-        let wp_action = async move |shipi: &mut RustShip<_>,
-                                    start_waypoint: String,
-                                    end_waypoint: String| {
-            let start = database::Waypoint::get_by_id(
-                &database_pool2,
-                &start_waypoint,
-            )
-            .await?;
+        let wp_action =
+            async move |shipi: &mut RustShip<_>, start_waypoint: String, end_waypoint: String| {
+                let start = database::Waypoint::get_by_id(&database_pool2, &start_waypoint).await?;
 
-            if let Some(start) = start {
-                if update_market && start.is_marketplace() {
-                    shipi.update_market(&api2, &database_pool2).await?;
-                }
-                if prepare && start.is_marketplace() {
-                    let mut is_last_marketplace = true;
+                if let Some(start) = start {
+                    if update_market && start.is_marketplace() {
+                        shipi.update_market(&api2, &database_pool2).await?;
+                    }
+                    if prepare && start.is_marketplace() {
+                        let mut is_last_marketplace = true;
 
-                    for connection in route2.connections.iter().rev() {
-                        match connection {
-                            connection::ConcreteConnection::JumpGate(_jump_connection) => {
-                                is_last_marketplace = false;
-                                break;
-                            }
-                            connection::ConcreteConnection::Warp(warp_connection) => {
-                                if warp_connection.start_symbol == start_waypoint {
+                        for connection in route2.connections.iter().rev() {
+                            match connection {
+                                connection::ConcreteConnection::JumpGate(_jump_connection) => {
+                                    is_last_marketplace = false;
                                     break;
                                 }
-                                if warp_connection.end_is_marketplace
-                                    || warp_connection.start_is_marketplace
-                                {
-                                    is_last_marketplace = false;
+                                connection::ConcreteConnection::Warp(warp_connection) => {
+                                    if warp_connection.start_symbol == start_waypoint {
+                                        break;
+                                    }
+                                    if warp_connection.end_is_marketplace
+                                        || warp_connection.start_is_marketplace
+                                    {
+                                        is_last_marketplace = false;
+                                    }
                                 }
-                            }
-                            connection::ConcreteConnection::Navigate(navigate_connection) => {
-                                if navigate_connection.start_symbol == start_waypoint {
-                                    break;
-                                }
-                                if navigate_connection.end_is_marketplace
-                                    || navigate_connection.start_is_marketplace
-                                {
-                                    is_last_marketplace = false;
+                                connection::ConcreteConnection::Navigate(navigate_connection) => {
+                                    if navigate_connection.start_symbol == start_waypoint {
+                                        break;
+                                    }
+                                    if navigate_connection.end_is_marketplace
+                                        || navigate_connection.start_is_marketplace
+                                    {
+                                        is_last_marketplace = false;
+                                    }
                                 }
                             }
                         }
-                    }
-                    if is_last_marketplace {
-                        shipi.ensure_docked(&api2).await?;
-                        shipi
-                            .purchase_cargo(
-                                &api2,
-                                &models::TradeSymbol::Fuel,
-                                1,
-                                &database_pool2,
-                                reson2.clone(),
-                                update_funds_fn2.clone(),
-                            )
-                            .await?;
+                        if is_last_marketplace {
+                            shipi.ensure_docked(&api2).await?;
+                            shipi
+                                .purchase_cargo(
+                                    &api2,
+                                    &models::TradeSymbol::Fuel,
+                                    1,
+                                    &database_pool2,
+                                    reson2.clone(),
+                                    update_funds_fn2.clone(),
+                                )
+                                .await?;
+                        }
                     }
                 }
-            }
 
-            Ok(())
-        };
+                Ok(())
+            };
 
         self.fly_route(
             route,
@@ -177,7 +172,7 @@ impl<T: Clone + Send + Sync> RustShip<T> {
     }
 }
 
-#[derive(Clone, Default, serde::Serialize, async_graphql::SimpleObject)]
+#[derive(Clone, Default, serde::Serialize, serde::Deserialize, async_graphql::SimpleObject)]
 #[graphql(name = "ShipAutopilotState")]
 pub struct AutopilotState {
     pub arrival: DateTime<Utc>,

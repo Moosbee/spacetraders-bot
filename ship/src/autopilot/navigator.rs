@@ -10,7 +10,7 @@ use super::connection::{
     ConcreteConnection, JumpConnection, NavigateConnection, Refuel, Route, WarpConnection,
 };
 
-impl<T: Clone + Send + Sync> RustShip<T> {
+impl<T: Clone + Send + Sync + serde::Serialize> RustShip<T> {
     pub async fn fly_route(
         &mut self,
         route: Route,
@@ -126,11 +126,11 @@ impl<T: Clone + Send + Sync> RustShip<T> {
 
         self.ensure_undocked(api).await?;
 
-        let before = self.snapshot(database_pool).await?;
+        self.snapshot(database_pool).await?;
 
         let jump_data = self.jump(api, &connection.end_symbol).await?;
 
-        let after = self.snapshot(database_pool).await?;
+        self.snapshot(database_pool).await?;
 
         update_funds_fn(jump_data.data.agent.credits);
 
@@ -143,24 +143,27 @@ impl<T: Clone + Send + Sync> RustShip<T> {
         let transaction =
             database::MarketTransaction::try_from(jump_data.data.transaction.as_ref().clone())?
                 .with(reason.clone());
-        database::MarketTransaction::upsert(
-            database_pool,
-            &transaction,
-        )
-        .await?;
+        database::MarketTransaction::upsert(database_pool, &transaction).await?;
 
-        let ship_jump = database::ShipJump {
+        let ship_event = database::ShipEvent {
             id: 0,
             ship_symbol: self.symbol.clone(),
-            from: connection.start_symbol,
-            to: connection.end_symbol,
-            distance: connection.distance.round() as i64,
-            ship_before: before,
-            ship_after: after,
+            event_type: "jump".to_string(),
+            event_data: sqlx::types::Json(serde_json::json!({
+                "from": connection.start_symbol,
+                "to": connection.end_symbol,
+                "distance": connection.distance.round() as i64,
+            })),
+            state_before: sqlx::types::Json(
+                serde_json::to_value(&database::ShipState::from(&*self)).unwrap_or_default(),
+            ),
+            state_after: Some(sqlx::types::Json(
+                serde_json::to_value(&database::ShipState::from(&*self)).unwrap_or_default(),
+            )),
+            duration_ms: None,
+            created_at: Utc::now(),
         };
-
-        database::ShipJump::upsert(database_pool, &ship_jump)
-            .await?;
+        database::ShipEvent::insert(database_pool, &ship_event).await?;
 
         Ok(())
     }
@@ -216,24 +219,30 @@ impl<T: Clone + Send + Sync> RustShip<T> {
 
         let end_id = self.snapshot(database_pool).await?;
 
-        let rote = database::Route {
+        let ship_event = database::ShipEvent {
             id: 0,
             ship_symbol: self.symbol.clone(),
-            from: self.nav.waypoint_symbol.clone(),
-            to: connection.end_symbol.clone(),
-            nav_mode: self.nav.flight_mode.to_string(),
-            distance: connection.distance,
-            fuel_cost: nav_data.data.fuel.consumed.map(|f| f.amount).unwrap_or(0),
-            travel_time: ((self.nav.route.arrival - self.nav.route.departure_time)
-                .num_milliseconds() as f64)
-                / 1000.0,
-            ship_info_before: Some(start_id),
-            ship_info_after: Some(end_id),
+            event_type: "warp".to_string(),
+            event_data: sqlx::types::Json(serde_json::json!({
+                "from": connection.start_symbol,
+                "to": connection.end_symbol,
+                "nav_mode": self.nav.flight_mode.to_string(),
+                "distance": connection.distance,
+                "fuel_cost": nav_data.data.fuel.consumed.map(|f| f.amount).unwrap_or(0),
+                "travel_time": ((self.nav.route.arrival - self.nav.route.departure_time).num_milliseconds() as f64) / 1000.0,
+                "state_id_before": start_id,
+                "state_id_after": end_id,
+            })),
+            state_before: sqlx::types::Json(serde_json::json!({"snapshot_id": start_id})),
+            state_after: Some(sqlx::types::Json(
+                serde_json::json!({"snapshot_id": end_id}),
+            )),
+            duration_ms: Some(
+                (self.nav.route.arrival - self.nav.route.departure_time).num_milliseconds(),
+            ),
             created_at: now,
         };
-
-        database::Route::upsert(database_pool, &rote)
-            .await?;
+        database::ShipEvent::insert(database_pool, &ship_event).await?;
 
         Ok(())
     }
@@ -292,24 +301,30 @@ impl<T: Clone + Send + Sync> RustShip<T> {
             tracing::debug!(events = ?nav_data.data.events, "Nav Events");
         }
 
-        let rote = database::Route {
+        let ship_event = database::ShipEvent {
             id: 0,
             ship_symbol: self.symbol.clone(),
-            from: self.nav.waypoint_symbol.clone(),
-            to: connection.end_symbol.clone(),
-            nav_mode: self.nav.flight_mode.to_string(),
-            distance: connection.distance,
-            fuel_cost: nav_data.data.fuel.consumed.map(|f| f.amount).unwrap_or(0),
-            travel_time: ((self.nav.route.arrival - self.nav.route.departure_time)
-                .num_milliseconds() as f64)
-                / 1000.0,
-            ship_info_before: Some(start_id),
-            ship_info_after: Some(end_id),
+            event_type: "navigate".to_string(),
+            event_data: sqlx::types::Json(serde_json::json!({
+                "from": connection.start_symbol,
+                "to": connection.end_symbol,
+                "nav_mode": self.nav.flight_mode.to_string(),
+                "distance": connection.distance,
+                "fuel_cost": nav_data.data.fuel.consumed.map(|f| f.amount).unwrap_or(0),
+                "travel_time": ((self.nav.route.arrival - self.nav.route.departure_time).num_milliseconds() as f64) / 1000.0,
+                "state_id_before": start_id,
+                "state_id_after": end_id,
+            })),
+            state_before: sqlx::types::Json(serde_json::json!({"snapshot_id": start_id})),
+            state_after: Some(sqlx::types::Json(
+                serde_json::json!({"snapshot_id": end_id}),
+            )),
+            duration_ms: Some(
+                (self.nav.route.arrival - self.nav.route.departure_time).num_milliseconds(),
+            ),
             created_at: now,
         };
-
-        database::Route::upsert(database_pool, &rote)
-            .await?;
+        database::ShipEvent::insert(database_pool, &ship_event).await?;
 
         Ok(())
     }
@@ -408,11 +423,7 @@ impl<T: Clone + Send + Sync> RustShip<T> {
                 refuel_data.data.transaction.as_ref().clone(),
             )?
             .with(reason.clone());
-            database::MarketTransaction::upsert(
-                database_pool,
-                &transaction,
-            )
-            .await?;
+            database::MarketTransaction::upsert(database_pool, &transaction).await?;
         }
 
         if refuel.restock_amount > 0 {
@@ -453,11 +464,7 @@ impl<T: Clone + Send + Sync> RustShip<T> {
                 refuel_data.data.transaction.as_ref().clone(),
             )?
             .with(reason.clone());
-            database::MarketTransaction::upsert(
-                database_pool,
-                &transaction,
-            )
-            .await?;
+            database::MarketTransaction::upsert(database_pool, &transaction).await?;
         }
 
         if refuel.restock_amount > 0 {

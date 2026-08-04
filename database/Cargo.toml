@@ -15,6 +15,7 @@ sqlx = { version = "0.8", features = [
   "chrono",
 ] }
 chrono = { version = "0.4.38", features = ["serde"] }
+serde_json = "1"
 itertools = "0.14.0"
 thiserror = "2.0.6"
 tracing = "0.1.41"

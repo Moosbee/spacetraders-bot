@@ -642,62 +642,6 @@ impl GQLEngineInfo {
 }
 
 #[derive(Debug, Clone, async_graphql::SimpleObject)]
-#[graphql(name = "Extraction")]
-#[graphql(complex)]
-pub struct GQLExtraction {
-    #[graphql(flatten)]
-    extraction: database::Extraction,
-}
-
-impl From<database::Extraction> for GQLExtraction {
-    fn from(value: database::Extraction) -> Self {
-        GQLExtraction { extraction: value }
-    }
-}
-#[async_graphql::ComplexObject]
-impl GQLExtraction {
-    async fn waypoint<'ctx>(
-        &self,
-        ctx: &async_graphql::Context<'ctx>,
-    ) -> Result<Option<GQLWaypoint>> {
-        let data_loader = ctx.data::<DataLoader<database::WaypointLoader>>().unwrap();
-        let erg = data_loader
-            .load_one(self.extraction.waypoint_symbol.clone())
-            .await?;
-        Ok(into_gql(erg))
-    }
-
-    async fn survey<'ctx>(&self, ctx: &async_graphql::Context<'ctx>) -> Result<Option<GQLSurvey>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        if let Some(survey) = &self.extraction.survey {
-            let erg = database::Survey::get_by_signature(database_pool, survey).await?;
-            // Must convert before wrapping in Option
-            Ok(Some(GQLSurvey::from(erg)))
-        } else {
-            Ok(None)
-        }
-    }
-
-    async fn ship(&self, ctx: &async_graphql::Context<'_>) -> Result<Option<GQLShip>> {
-        let context = ctx.data::<crate::utils::ConductorContext>().unwrap();
-        let ship = context.ship_manager.get_clone(&self.extraction.ship_symbol);
-        Ok(ship.map(|f| f.into()))
-    }
-    async fn trade_symbol_info(&self) -> TradeSymbolInfo {
-        TradeSymbolInfo {
-            symbol: self.extraction.yield_symbol,
-        }
-    }
-}
-
-paginated_gql_object!(
-    GQLExtractionPage,
-    "ExtractionPage",
-    database::Extraction,
-    GQLExtraction
-);
-
-#[derive(Debug, Clone, async_graphql::SimpleObject)]
 #[graphql(name = "Fleet")]
 #[graphql(complex)]
 pub struct GQLFleet {
@@ -1434,74 +1378,6 @@ paginated_gql_object!(
 );
 
 #[derive(Debug, Clone, async_graphql::SimpleObject)]
-#[graphql(name = "Route")]
-#[graphql(complex)]
-pub struct GQLRoute {
-    #[graphql(flatten)]
-    route: database::Route,
-}
-
-impl From<database::Route> for GQLRoute {
-    fn from(value: database::Route) -> Self {
-        GQLRoute { route: value }
-    }
-}
-#[async_graphql::ComplexObject]
-impl GQLRoute {
-    async fn waypoint_from<'ctx>(
-        &self,
-        ctx: &async_graphql::Context<'ctx>,
-    ) -> Result<Option<GQLWaypoint>> {
-        let data_loader = ctx.data::<DataLoader<database::WaypointLoader>>().unwrap();
-        let erg = data_loader.load_one(self.route.from.clone()).await?;
-        Ok(into_gql(erg))
-    }
-
-    async fn waypoint_to<'ctx>(
-        &self,
-        ctx: &async_graphql::Context<'ctx>,
-    ) -> Result<Option<GQLWaypoint>> {
-        let data_loader = ctx.data::<DataLoader<database::WaypointLoader>>().unwrap();
-        let erg = data_loader.load_one(self.route.to.clone()).await?;
-        Ok(into_gql(erg))
-    }
-
-    async fn ship(&self, ctx: &async_graphql::Context<'_>) -> Result<Option<GQLShip>> {
-        let context = ctx.data::<crate::utils::ConductorContext>().unwrap();
-        let ship = context.ship_manager.get_clone(&self.route.ship_symbol);
-        Ok(ship.map(|f| f.into()))
-    }
-
-    async fn ship_state_after<'ctx>(
-        &self,
-        ctx: &async_graphql::Context<'ctx>,
-    ) -> Result<Option<GQLShipState>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let ship_state = if let Some(ship_state) = &self.route.ship_info_after {
-            database::ShipState::get_by_id(database_pool, ship_state).await?
-        } else {
-            None
-        };
-        Ok(into_gql(ship_state))
-    }
-
-    async fn ship_state_before<'ctx>(
-        &self,
-        ctx: &async_graphql::Context<'ctx>,
-    ) -> Result<Option<GQLShipState>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let ship_state = if let Some(ship_state) = &self.route.ship_info_before {
-            database::ShipState::get_by_id(database_pool, ship_state).await?
-        } else {
-            None
-        };
-        Ok(into_gql(ship_state))
-    }
-}
-
-paginated_gql_object!(GQLRoutePage, "RoutePage", database::Route, GQLRoute);
-
-#[derive(Debug, Clone, async_graphql::SimpleObject)]
 #[graphql(name = "ScrapTransaction")]
 #[graphql(complex)]
 pub struct GQLScrapTransaction {
@@ -1695,73 +1571,6 @@ impl GQLShipInfo {
 }
 
 #[derive(Debug, Clone, async_graphql::SimpleObject)]
-#[graphql(name = "ShipJump")]
-#[graphql(complex)]
-pub struct GQLShipJump {
-    #[graphql(flatten)]
-    ship_jump: database::ShipJump,
-}
-
-impl From<database::ShipJump> for GQLShipJump {
-    fn from(value: database::ShipJump) -> Self {
-        GQLShipJump { ship_jump: value }
-    }
-}
-#[async_graphql::ComplexObject]
-impl GQLShipJump {
-    async fn waypoint_from<'ctx>(
-        &self,
-        ctx: &async_graphql::Context<'ctx>,
-    ) -> Result<Option<GQLWaypoint>> {
-        let data_loader = ctx.data::<DataLoader<database::WaypointLoader>>().unwrap();
-        let erg = data_loader.load_one(self.ship_jump.from.clone()).await?;
-        Ok(into_gql(erg))
-    }
-
-    async fn waypoint_to<'ctx>(
-        &self,
-        ctx: &async_graphql::Context<'ctx>,
-    ) -> Result<Option<GQLWaypoint>> {
-        let data_loader = ctx.data::<DataLoader<database::WaypointLoader>>().unwrap();
-        let erg = data_loader.load_one(self.ship_jump.to.clone()).await?;
-        Ok(into_gql(erg))
-    }
-
-    async fn ship(&self, ctx: &async_graphql::Context<'_>) -> Result<Option<GQLShip>> {
-        let context = ctx.data::<crate::utils::ConductorContext>().unwrap();
-        let ship = context.ship_manager.get_clone(&self.ship_jump.ship_symbol);
-        Ok(ship.map(|f| f.into()))
-    }
-
-    async fn ship_state_after<'ctx>(
-        &self,
-        ctx: &async_graphql::Context<'ctx>,
-    ) -> Result<Option<GQLShipState>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let ship_state =
-            database::ShipState::get_by_id(database_pool, &self.ship_jump.ship_after).await?;
-        Ok(into_gql(ship_state))
-    }
-
-    async fn ship_state_before<'ctx>(
-        &self,
-        ctx: &async_graphql::Context<'ctx>,
-    ) -> Result<Option<GQLShipState>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let ship_state =
-            database::ShipState::get_by_id(database_pool, &self.ship_jump.ship_before).await?;
-        Ok(into_gql(ship_state))
-    }
-}
-
-paginated_gql_object!(
-    GQLShipJumpPage,
-    "ShipJumpPage",
-    database::ShipJump,
-    GQLShipJump
-);
-
-#[derive(Debug, Clone, async_graphql::SimpleObject)]
 #[graphql(name = "ShipModificationTransaction")]
 #[graphql(complex)]
 pub struct GQLShipModificationTransaction {
@@ -1907,58 +1716,6 @@ impl GQLShipState {
         let system =
             database::System::get_by_id(database_pool, &self.ship_state.route_origin_system)
                 .await?;
-        Ok(into_gql(system))
-    }
-
-    async fn auto_pilot_destination_symbol<'ctx>(
-        &self,
-        ctx: &async_graphql::Context<'ctx>,
-    ) -> Result<Option<GQLWaypoint>> {
-        let data_loader = ctx.data::<DataLoader<database::WaypointLoader>>().unwrap();
-        let erg = if let Some(ap_dest) = &self.ship_state.auto_pilot_destination_symbol {
-            data_loader.load_one(ap_dest.clone()).await?
-        } else {
-            None
-        };
-        Ok(into_gql(erg))
-    }
-
-    async fn auto_pilot_destination_system_symbol<'ctx>(
-        &self,
-        ctx: &async_graphql::Context<'ctx>,
-    ) -> Result<Option<GQLSystem>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let system = if let Some(ap_dest) = &self.ship_state.auto_pilot_destination_system_symbol {
-            database::System::get_by_id(database_pool, ap_dest).await?
-        } else {
-            None
-        };
-        Ok(into_gql(system))
-    }
-
-    async fn auto_pilot_origin_symbol<'ctx>(
-        &self,
-        ctx: &async_graphql::Context<'ctx>,
-    ) -> Result<Option<GQLWaypoint>> {
-        let data_loader = ctx.data::<DataLoader<database::WaypointLoader>>().unwrap();
-        let erg = if let Some(ap_orig) = &self.ship_state.auto_pilot_origin_symbol {
-            data_loader.load_one(ap_orig.clone()).await?
-        } else {
-            None
-        };
-        Ok(into_gql(erg))
-    }
-
-    async fn auto_pilot_origin_system_symbol<'ctx>(
-        &self,
-        ctx: &async_graphql::Context<'ctx>,
-    ) -> Result<Option<GQLSystem>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let system = if let Some(ap_orig) = &self.ship_state.auto_pilot_origin_system_symbol {
-            database::System::get_by_id(database_pool, ap_orig).await?
-        } else {
-            None
-        };
         Ok(into_gql(system))
     }
 
@@ -2302,104 +2059,6 @@ paginated_gql_object!(
 );
 
 #[derive(Debug, Clone, async_graphql::SimpleObject)]
-#[graphql(name = "Survey")]
-#[graphql(complex)]
-pub struct GQLSurvey {
-    #[graphql(flatten)]
-    survey: database::Survey,
-}
-
-impl From<database::Survey> for GQLSurvey {
-    fn from(value: database::Survey) -> Self {
-        GQLSurvey { survey: value }
-    }
-}
-#[async_graphql::ComplexObject]
-impl GQLSurvey {
-    async fn percent(&self) -> Vec<SurveyPercent> {
-        self.survey
-            .get_percent()
-            .iter()
-            .map(|f| SurveyPercent {
-                symbol: f.0,
-                percent: f.1,
-            })
-            .collect()
-    }
-
-    async fn waypoint<'ctx>(
-        &self,
-        ctx: &async_graphql::Context<'ctx>,
-    ) -> Result<Option<GQLWaypoint>> {
-        let data_loader = ctx.data::<DataLoader<database::WaypointLoader>>().unwrap();
-        let erg = data_loader
-            .load_one(self.survey.waypoint_symbol.clone())
-            .await?;
-        Ok(into_gql(erg))
-    }
-
-    async fn extractions<'ctx>(
-        &self,
-        ctx: &async_graphql::Context<'ctx>,
-        page: Option<i64>,
-        page_size: Option<i64>,
-    ) -> Result<GQLExtractionPage> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let erg = database::Extraction::get_by_survey_symbol(
-            database_pool,
-            &self.survey.signature,
-            paginated_query(page, page_size),
-        )
-        .await?;
-        Ok(erg.into())
-    }
-
-    async fn ship(&self, ctx: &async_graphql::Context<'_>) -> Result<Option<GQLShip>> {
-        let context = ctx.data::<crate::utils::ConductorContext>().unwrap();
-        let ship = context.ship_manager.get_clone(&self.survey.ship_symbol);
-        Ok(ship.map(|f| f.into()))
-    }
-
-    async fn ship_state_before(
-        &self,
-        ctx: &async_graphql::Context<'_>,
-    ) -> Result<Option<GQLShipState>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let ship_state =
-            database::ShipState::get_by_id(database_pool, &self.survey.ship_info_before).await?;
-        Ok(into_gql(ship_state))
-    }
-
-    async fn ship_state_after(
-        &self,
-        ctx: &async_graphql::Context<'_>,
-    ) -> Result<Option<GQLShipState>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let ship_state =
-            database::ShipState::get_by_id(database_pool, &self.survey.ship_info_after).await?;
-        Ok(into_gql(ship_state))
-    }
-}
-
-paginated_gql_object!(GQLSurveyPage, "SurveyPage", database::Survey, GQLSurvey);
-
-#[derive(Debug, Clone, serde::Serialize, async_graphql::SimpleObject)]
-#[graphql(complex)]
-pub struct SurveyPercent {
-    pub symbol: models::TradeSymbol,
-    pub percent: f64,
-}
-
-#[async_graphql::ComplexObject]
-impl SurveyPercent {
-    async fn trade_symbol_info(&self) -> TradeSymbolInfo {
-        TradeSymbolInfo {
-            symbol: self.symbol,
-        }
-    }
-}
-
-#[derive(Debug, Clone, async_graphql::SimpleObject)]
 #[graphql(name = "System")]
 #[graphql(complex)]
 pub struct GQLSystem {
@@ -2599,38 +2258,6 @@ impl GQLSystem {
         )
         .await?;
         Ok(fleets.into())
-    }
-
-    async fn surveys(
-        &self,
-        ctx: &async_graphql::Context<'_>,
-        page: Option<i64>,
-        page_size: Option<i64>,
-    ) -> Result<GQLSurveyPage> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let history = database::Survey::get_by_system_symbol(
-            database_pool,
-            &self.system.symbol,
-            paginated_query(page, page_size),
-        )
-        .await?;
-        Ok(history.into())
-    }
-
-    async fn extractions(
-        &self,
-        ctx: &async_graphql::Context<'_>,
-        page: Option<i64>,
-        page_size: Option<i64>,
-    ) -> Result<GQLExtractionPage> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let history = database::Extraction::get_by_system_symbol(
-            database_pool,
-            &self.system.symbol,
-            paginated_query(page, page_size),
-        )
-        .await?;
-        Ok(history.into())
     }
 
     async fn construction_materials(
@@ -3177,38 +2804,6 @@ impl GQLWaypoint {
         Ok(history.into())
     }
 
-    async fn surveys(
-        &self,
-        ctx: &async_graphql::Context<'_>,
-        page: Option<i64>,
-        page_size: Option<i64>,
-    ) -> Result<GQLSurveyPage> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let history = database::Survey::get_by_waypoint_symbol(
-            database_pool,
-            &self.waypoint.symbol,
-            paginated_query(page, page_size),
-        )
-        .await?;
-        Ok(history.into())
-    }
-
-    async fn extractions(
-        &self,
-        ctx: &async_graphql::Context<'_>,
-        page: Option<i64>,
-        page_size: Option<i64>,
-    ) -> Result<GQLExtractionPage> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let history = database::Extraction::get_by_waypoint_symbol(
-            database_pool,
-            &self.waypoint.symbol,
-            paginated_query(page, page_size),
-        )
-        .await?;
-        Ok(history.into())
-    }
-
     async fn trade_routes_from(
         &self,
         ctx: &async_graphql::Context<'_>,
@@ -3631,72 +3226,6 @@ impl GQLShip {
         )
         .await?;
         Ok(reg.into())
-    }
-
-    async fn surveys<'ctx>(
-        &self,
-        ctx: &async_graphql::Context<'ctx>,
-        page: Option<i64>,
-        page_size: Option<i64>,
-    ) -> Result<GQLSurveyPage> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let reg = database::Survey::get_by_ship(
-            database_pool,
-            &self.ship.symbol,
-            paginated_query(page, page_size),
-        )
-        .await?;
-        Ok(reg.into())
-    }
-
-    async fn extractions<'ctx>(
-        &self,
-        ctx: &async_graphql::Context<'ctx>,
-        page: Option<i64>,
-        page_size: Option<i64>,
-    ) -> Result<GQLExtractionPage> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let reg = database::Extraction::get_by_ship(
-            database_pool,
-            &self.ship.symbol,
-            paginated_query(page, page_size),
-        )
-        .await?;
-        Ok(reg.into())
-    }
-
-    async fn routes<'ctx>(
-        &self,
-        ctx: &async_graphql::Context<'ctx>,
-        page: Option<i64>,
-        page_size: Option<i64>,
-    ) -> Result<GQLRoutePage> {
-        // Changed return type to GQLRoute
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let reg = database::Route::get_by_ship(
-            database_pool,
-            &self.ship.symbol,
-            paginated_query(page, page_size),
-        )
-        .await?;
-        Ok(reg.into()) // Added conversion
-    }
-
-    async fn ship_jumps<'ctx>(
-        &self,
-        ctx: &async_graphql::Context<'ctx>,
-        page: Option<i64>,
-        page_size: Option<i64>,
-    ) -> Result<GQLShipJumpPage> {
-        // Changed return type to GQLShipJump
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let reg = database::ShipJump::get_by_ship(
-            database_pool,
-            &self.ship.symbol,
-            paginated_query(page, page_size),
-        )
-        .await?;
-        Ok(reg.into()) // Added conversion
     }
 
     async fn engine_info<'ctx>(&self, ctx: &async_graphql::Context<'ctx>) -> Result<GQLEngineInfo> {

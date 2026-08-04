@@ -2,7 +2,6 @@ use std::sync::{atomic::AtomicI32, Arc};
 
 use database::DatabaseConnectorAsync;
 use futures::FutureExt;
-use rand::seq::SliceRandom;
 use ship::status::{ExtractorState, MiningShipAssignment};
 use space_traders_client::models;
 use tracing::debug;
@@ -277,212 +276,84 @@ impl ExtractionPilot {
 
         match action {
             ActionType::Extract => {
-                let survey: Option<database::Survey> = self.get_best_survey(ship).await?;
+                let simple_erg = ship.extract(&self.context.api).await;
 
-                if let Some(survey) = survey {
-                    let prefer_list =
-                        { self.context.config.read().await.mining_prefer_list.clone() };
+                match simple_erg {
+                    Err(space_traders_client::apis::Error::ResponseError(e)) => {
+                        let error_code = e.get_error_code();
+                        if error_code
+                            .map(|e| e == models::error_codes::SHIP_EXTRACT_DESTABILIZED_ERROR)
+                            .unwrap_or(false)
+                        {
+                            tracing::warn!(
+                                ship_symbol = ship.symbol,
+                                waypoint_symbol = ship.nav.waypoint_symbol,
+                                "Waypoint destabilized",
+                            );
 
-                    let count_a = survey.get_percent();
-                    let score_a = count_a
-                        .iter()
-                        .filter(|f| prefer_list.contains(&f.0))
-                        .map(|f| f.1)
-                        .sum::<f64>();
-                    debug!(survey_signature = %survey.signature, ship_symbol = %ship.symbol, score = score_a, "Using survey on ship");
-
-                    let survey_erg = ship
-                        .extract_with_survey(&self.context.api, &(&survey).into())
-                        .await;
-
-                    match survey_erg {
-                        Err(space_traders_client::apis::Error::ResponseError(e)) => {
-                            let error_code = e.get_error_code();
-                            if error_code
-                                .map(|code| {
-                                    code == models::error_codes::SHIP_EXTRACT_DESTABILIZED_ERROR
-                                })
-                                .unwrap_or(false)
-                            {
-                                tracing::warn!(
-                                    ship_symbol = ship.symbol,
-                                    waypoint_symbol = ship.nav.waypoint_symbol,
-                                    "Waypoint destabilized",
-                                );
-
-                                let new_wp = database::Waypoint::get_by_id(
-                                    &self.context.database_pool,
-                                    &ship.nav.waypoint_symbol,
-                                )
-                                .await?;
-                                let mut wp = if let Some(new_wp) = new_wp {
-                                    new_wp
-                                } else {
-                                    let new_wp = self
-                                        .context
-                                        .api
-                                        .get_waypoint(
-                                            &ship.nav.system_symbol,
-                                            &ship.nav.waypoint_symbol,
-                                        )
-                                        .await?;
-                                    (&(*new_wp.data)).into()
-                                };
-                                wp.unstable_since = Some(chrono::Utc::now());
-                                database::Waypoint::upsert(
-                                    &self.context.database_pool,
-                                    &wp,
-                                )
-                                .await?;
-                            } else if error_code
-                                .map(|code| {
-                                    code == models::error_codes::SHIP_SURVEY_EXHAUSTED_ERROR
-                                })
-                                .unwrap_or(false)
-                            {
-                                let mut survey = survey.clone();
-                                tracing::warn!(
-                                    signature = survey.signature,
-                                    ship_symbol = ship.symbol,
-                                    "Survey exhausted",
-                                );
-                                survey.exhausted_since = Some(chrono::Utc::now());
-                                database::Survey::upsert(
-                                    &self.context.database_pool,
-                                    &survey,
-                                )
-                                .await?;
-                            } else if error_code
-                                .map(|code| {
-                                    code == models::error_codes::SHIP_SURVEY_EXPIRATION_ERROR
-                                })
-                                .unwrap_or(false)
-                            {
-                                // no real action needed
-                                debug!("Survey {} has expired", survey.signature);
-                            } else {
-                                return Err(
-                                    space_traders_client::apis::Error::ResponseError(e).into()
-                                );
-                            }
-                        }
-                        Err(e) => return Err(e.into()),
-                        Ok(erg) => {
-                            let now = chrono::Utc::now();
-                            if true {
-                                ship.reload(&self.context.api).await?;
-                            }
-                            let after_state_id = ship.snapshot(&self.context.database_pool).await?;
-
-                            let extraction = database::Extraction {
-                                id: 0,
-                                ship_symbol: ship.symbol.clone(),
-                                waypoint_symbol: ship.nav.waypoint_symbol.clone(),
-                                ship_info_before: state_id,
-                                ship_info_after: after_state_id,
-                                siphon: false,
-                                yield_symbol: erg.data.extraction.r#yield.symbol,
-                                yield_units: erg.data.extraction.r#yield.units,
-                                survey: Some(survey.signature.clone()),
-                                created_at: now,
-                            };
-
-                            database::Extraction::upsert(
+                            let new_wp = database::Waypoint::get_by_id(
                                 &self.context.database_pool,
-                                &extraction,
+                                &ship.nav.waypoint_symbol,
                             )
                             .await?;
-
-                            tracing::info!(
-                                "Extracted on ship: {} erg {:?} events: {:?}",
-                                erg.data.extraction.ship_symbol,
-                                erg.data.extraction.r#yield,
-                                erg.data.events
+                            let mut wp = if let Some(new_wp) = new_wp {
+                                new_wp
+                            } else {
+                                let new_wp = self
+                                    .context
+                                    .api
+                                    .get_waypoint(
+                                        &ship.nav.system_symbol,
+                                        &ship.nav.waypoint_symbol,
+                                    )
+                                    .await?;
+                                (&(*new_wp.data)).into()
+                            };
+                            wp.unstable_since = Some(chrono::Utc::now());
+                            database::Waypoint::upsert(
+                                &self.context.database_pool,
+                                &wp,
+                            )
+                            .await?;
+                        } else {
+                            return Err(
+                                space_traders_client::apis::Error::ResponseError(e).into()
                             );
                         }
                     }
-                } else {
-                    let simple_erg = ship.extract(&self.context.api).await;
-
-                    match simple_erg {
-                        Err(space_traders_client::apis::Error::ResponseError(e)) => {
-                            let error_code = e.get_error_code();
-                            if error_code
-                                .map(|e| e == models::error_codes::SHIP_EXTRACT_DESTABILIZED_ERROR)
-                                .unwrap_or(false)
-                            {
-                                tracing::warn!(
-                                    ship_symbol = ship.symbol,
-                                    waypoint_symbol = ship.nav.waypoint_symbol,
-                                    "Waypoint destabilized",
-                                );
-
-                                let new_wp = database::Waypoint::get_by_id(
-                                    &self.context.database_pool,
-                                    &ship.nav.waypoint_symbol,
-                                )
-                                .await?;
-                                let mut wp = if let Some(new_wp) = new_wp {
-                                    new_wp
-                                } else {
-                                    let new_wp = self
-                                        .context
-                                        .api
-                                        .get_waypoint(
-                                            &ship.nav.system_symbol,
-                                            &ship.nav.waypoint_symbol,
-                                        )
-                                        .await?;
-                                    (&(*new_wp.data)).into()
-                                };
-                                wp.unstable_since = Some(chrono::Utc::now());
-                                database::Waypoint::upsert(
-                                    &self.context.database_pool,
-                                    &wp,
-                                )
-                                .await?;
-                            } else {
-                                return Err(
-                                    space_traders_client::apis::Error::ResponseError(e).into()
-                                );
-                            }
+                    Err(e) => return Err(e.into()),
+                    Ok(erg) => {
+                        let now = chrono::Utc::now();
+                        if true {
+                            ship.reload(&self.context.api).await?;
                         }
-                        Err(e) => return Err(e.into()),
-                        Ok(erg) => {
-                            let now = chrono::Utc::now();
-                            if true {
-                                ship.reload(&self.context.api).await?;
-                            }
-                            let after_state_id = ship.snapshot(&self.context.database_pool).await?;
+                        let after_state_id = ship.snapshot(&self.context.database_pool).await?;
 
-                            let extraction = database::Extraction {
-                                id: 0,
-                                ship_symbol: ship.symbol.clone(),
-                                waypoint_symbol: ship.nav.waypoint_symbol.clone(),
-                                ship_info_before: state_id,
-                                ship_info_after: after_state_id,
-                                siphon: false,
-                                yield_symbol: erg.data.extraction.r#yield.symbol,
-                                yield_units: erg.data.extraction.r#yield.units,
-                                survey: None,
-                                created_at: now,
-                            };
+                        let event = database::ShipEvent {
+                            id: 0,
+                            ship_symbol: ship.symbol.clone(),
+                            event_type: "extraction".to_string(),
+                            event_data: sqlx::types::Json(serde_json::json!({
+                                "waypoint_symbol": ship.nav.waypoint_symbol,
+                                "siphon": false,
+                                "yield_symbol": erg.data.extraction.r#yield.symbol.to_string(),
+                                "yield_units": erg.data.extraction.r#yield.units,
+                            })),
+                            state_before: sqlx::types::Json(serde_json::json!({"snapshot_id": state_id})),
+                            state_after: Some(sqlx::types::Json(serde_json::json!({"snapshot_id": after_state_id}))),
+                            duration_ms: None,
+                            created_at: now,
+                        };
+                        database::ShipEvent::insert(&self.context.database_pool, &event).await?;
 
-                            database::Extraction::upsert(
-                                &self.context.database_pool,
-                                &extraction,
-                            )
-                            .await?;
-
-                            tracing::info!(
-                                "Extracted on ship: {} erg {:?} events: {:?}",
-                                erg.data.extraction.ship_symbol,
-                                erg.data.extraction.r#yield,
-                                erg.data.events
-                            );
-                        }
+                        tracing::info!(
+                            "Extracted on ship: {} erg {:?} events: {:?}",
+                            erg.data.extraction.ship_symbol,
+                            erg.data.extraction.r#yield,
+                            erg.data.events
+                        );
                     }
-                };
+                }
             }
             ActionType::Siphon => {
                 let now = chrono::Utc::now();
@@ -493,25 +364,22 @@ impl ExtractionPilot {
 
                 let after_state_id = ship.snapshot(&self.context.database_pool).await?;
 
-                let extraction = database::Extraction {
+                let event = database::ShipEvent {
                     id: 0,
                     ship_symbol: ship.symbol.clone(),
-                    waypoint_symbol: ship.nav.waypoint_symbol.clone(),
-                    ship_info_before: state_id,
-                    ship_info_after: after_state_id,
-                    siphon: true,
-                    survey: None,
-
-                    yield_symbol: erg.data.siphon.r#yield.symbol,
-                    yield_units: erg.data.siphon.r#yield.units,
+                    event_type: "siphon".to_string(),
+                    event_data: sqlx::types::Json(serde_json::json!({
+                        "waypoint_symbol": ship.nav.waypoint_symbol,
+                        "siphon": true,
+                        "yield_symbol": erg.data.siphon.r#yield.symbol.to_string(),
+                        "yield_units": erg.data.siphon.r#yield.units,
+                    })),
+                    state_before: sqlx::types::Json(serde_json::json!({"snapshot_id": state_id})),
+                    state_after: Some(sqlx::types::Json(serde_json::json!({"snapshot_id": after_state_id}))),
+                    duration_ms: None,
                     created_at: now,
                 };
-
-                database::Extraction::upsert(
-                    &self.context.database_pool,
-                    &extraction,
-                )
-                .await?;
+                database::ShipEvent::insert(&self.context.database_pool, &event).await?;
 
                 tracing::info!(
                     "Siphoned on ship: {} erg {:?} events: {:?}",
@@ -659,36 +527,4 @@ impl ExtractionPilot {
         Ok(())
     }
 
-    async fn get_best_survey(&self, ship: &mut ship::MyShip) -> Result<Option<database::Survey>> {
-        let mut working_surveys = database::Survey::get_working_for_waypoint(
-            &self.context.database_pool,
-            &ship.nav.waypoint_symbol,
-            database::PaginatedQuery::unpaged(),
-        )
-        .await?
-        .items;
-
-        working_surveys.shuffle(&mut rand::thread_rng());
-
-        let prefer_list = { self.context.config.read().await.mining_prefer_list.clone() };
-
-        let best_survey = working_surveys.iter().max_by(|a, b| {
-            let count_a = a.get_percent();
-            let score_a = count_a
-                .iter()
-                .filter(|f| prefer_list.contains(&f.0))
-                .map(|f| f.1)
-                .sum::<f64>();
-            let count_b = b.get_percent();
-            let score_b = count_b
-                .iter()
-                .filter(|f| prefer_list.contains(&f.0))
-                .map(|f| f.1)
-                .sum::<f64>();
-
-            score_b.partial_cmp(&score_a).unwrap()
-        });
-
-        best_survey.cloned().map_or(Ok(None), |f| Ok(Some(f)))
-    }
 }
