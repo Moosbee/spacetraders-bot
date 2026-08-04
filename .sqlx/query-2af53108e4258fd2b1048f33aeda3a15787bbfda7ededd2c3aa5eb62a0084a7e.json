@@ -1,0 +1,44 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                        SELECT COUNT(*) as \"count!\"\n                        FROM shipyard_ship\n                        WHERE waypoint_symbol = $1 AND ship_type = $2\n                    ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "count!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        {
+          "Custom": {
+            "name": "ship_type",
+            "kind": {
+              "Enum": [
+                "SHIP_PROBE",
+                "SHIP_MINING_DRONE",
+                "SHIP_SIPHON_DRONE",
+                "SHIP_INTERCEPTOR",
+                "SHIP_LIGHT_HAULER",
+                "SHIP_COMMAND_FRIGATE",
+                "SHIP_EXPLORER",
+                "SHIP_HEAVY_FREIGHTER",
+                "SHIP_LIGHT_SHUTTLE",
+                "SHIP_ORE_HOUND",
+                "SHIP_REFINING_FREIGHTER",
+                "SHIP_SURVEYOR",
+                "SHIP_BULK_FREIGHTER"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "2af53108e4258fd2b1048f33aeda3a15787bbfda7ededd2c3aa5eb62a0084a7e"
+}

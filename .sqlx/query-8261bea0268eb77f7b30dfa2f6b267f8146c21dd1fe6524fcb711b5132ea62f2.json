@@ -1,0 +1,20 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                        SELECT COUNT(DISTINCT waypoint_symbol) as \"count!\"\n                        FROM shipyard\n                    ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "count!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "8261bea0268eb77f7b30dfa2f6b267f8146c21dd1fe6524fcb711b5132ea62f2"
+}

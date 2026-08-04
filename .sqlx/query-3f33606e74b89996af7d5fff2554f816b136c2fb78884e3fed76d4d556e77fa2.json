@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                    SELECT COUNT(*) as \"count!\"\n                    FROM jump_gate_connections\n                    WHERE waypoint_from LIKE ($1 || '-%')\n                    ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "count!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "3f33606e74b89996af7d5fff2554f816b136c2fb78884e3fed76d4d556e77fa2"
+}

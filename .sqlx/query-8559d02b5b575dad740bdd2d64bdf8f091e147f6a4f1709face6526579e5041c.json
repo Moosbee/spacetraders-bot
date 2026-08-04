@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                        SELECT COUNT(*) as \"count!\"\n                        FROM chart_transaction\n                        JOIN waypoint ON chart_transaction.waypoint_symbol = waypoint.symbol\n                        WHERE waypoint.system_symbol = $1\n                    ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "count!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "8559d02b5b575dad740bdd2d64bdf8f091e147f6a4f1709face6526579e5041c"
+}
