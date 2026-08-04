@@ -33,11 +33,12 @@ pub struct ConditionState {
     pub reactor: Condition,
 }
 
-pub type MyShip = RustShip<ShipStatus>;
-pub type MyShipInfo = RustShip<ShipStatus, Immutable>;
+pub type MyShip = RustShip<ShipStatus, Mutable>;
+pub type MyShipCopy = RustShip<ShipStatus, Immutable>;
 
-#[derive(serde::Serialize)]
-pub struct RustShip<T: Clone + Send + Sync, State: Send + Sync = Mutable> {
+#[derive(serde::Serialize, async_graphql::SimpleObject)]
+pub struct RustShip<T: Clone + Send + Sync, State: Send + Sync = Immutable> {
+    #[graphql(skip)]
     pub status: T,
     pub registration_role: ShipRole,
     pub symbol: String,
@@ -47,14 +48,17 @@ pub struct RustShip<T: Clone + Send + Sync, State: Send + Sync = Mutable> {
     pub cooldown_expiration: Option<DateTime<Utc>>,
     pub cooldown: Option<i32>,
     // Navigation state
+    #[graphql(skip)]
     pub nav: super::nav::NavigationState,
     // Cargo state
     pub cargo: CargoState,
     // Fuel state
     pub fuel: FuelState,
     // Mount state
+    #[graphql(skip)]
     pub mounts: MountState,
     // Modules state
+    #[graphql(skip)]
     pub modules: ModuleState,
     pub engine: models::ship_engine::Symbol,
     pub reactor: models::ship_reactor::Symbol,
@@ -62,10 +66,13 @@ pub struct RustShip<T: Clone + Send + Sync, State: Send + Sync = Mutable> {
     // Conditions
     pub conditions: ConditionState,
     #[serde(skip)]
+    #[graphql(skip)]
     pub broadcaster: InterShipBroadcaster,
     #[serde(skip)]
+    #[graphql(skip)]
     pub pubsub: Publisher<ShipManager<T>, RustShip<T, Immutable>>,
     #[serde(skip)]
+    #[graphql(skip)]
     pub _state: PhantomData<State>,
 }
 
@@ -97,33 +104,6 @@ impl<T: Default + Clone + Send + Sync> Default for RustShip<T, Mutable> {
 }
 
 impl<T: Clone + Send + Sync> Clone for RustShip<T, Immutable> {
-    fn clone(&self) -> Self {
-        Self {
-            status: self.status.clone(),
-            registration_role: self.registration_role,
-            display_name: self.display_name.clone(),
-            symbol: self.symbol.clone(),
-            purchase_id: self.purchase_id,
-            engine_speed: self.engine_speed,
-            cooldown_expiration: self.cooldown_expiration,
-            cooldown: self.cooldown,
-            modules: self.modules.clone(),
-            nav: self.nav.clone(),
-            cargo: self.cargo.clone(),
-            fuel: self.fuel.clone(),
-            mounts: self.mounts.clone(),
-            conditions: self.conditions.clone(),
-            broadcaster: self.broadcaster.clone(),
-            pubsub: Publisher::new(),
-            engine: self.engine,
-            reactor: self.reactor,
-            frame: self.frame,
-            _state: PhantomData,
-        }
-    }
-}
-
-impl<T: Clone + Send + Sync> Clone for RustShip<T, Mutable> {
     fn clone(&self) -> Self {
         Self {
             status: self.status.clone(),
@@ -235,124 +215,6 @@ impl<T: Clone + Send + Sync, State: Send + Sync> From<&RustShip<T, State>> for d
     }
 }
 
-// ========== Methods available on ALL states (both Mutable and Immutable) ==========
-
-impl<T: Clone + Send + Sync, State: Send + Sync> RustShip<T, State> {
-    /// Snapshot the current ship state to the database. Read-only, works on any state.
-    pub async fn snapshot(&self, database_pool: &database::DbPool) -> Result<i64> {
-        let state = database::ShipState::from(self);
-
-        let id = database::ShipState::insert_get_id(database_pool, &state).await?;
-
-        Ok(id)
-    }
-
-    /// Update ship component info in the database (static-like, doesn't use &self).
-    pub async fn update_info_db_shipyard(
-        ship: models::ShipyardShip,
-        database_pool: &database::DbPool,
-    ) -> Result<()> {
-        database::EngineInfo::upsert(database_pool, &database::EngineInfo::from(*ship.engine))
-            .await?;
-        database::FrameInfo::upsert(database_pool, &database::FrameInfo::from(*ship.frame)).await?;
-        database::ReactorInfo::upsert(database_pool, &database::ReactorInfo::from(*ship.reactor))
-            .await?;
-
-        database::ModuleInfo::insert_bulk(
-            database_pool,
-            &ship
-                .modules
-                .into_iter()
-                .map(database::ModuleInfo::from)
-                .collect::<HashSet<_>>()
-                .into_iter()
-                .collect::<Vec<_>>(),
-        )
-        .await?;
-        database::MountInfo::insert_bulk(
-            database_pool,
-            &ship
-                .mounts
-                .into_iter()
-                .map(database::MountInfo::from)
-                .collect::<HashSet<_>>()
-                .into_iter()
-                .collect::<Vec<_>>(),
-        )
-        .await?;
-        Ok(())
-    }
-
-    /// Update ship component info in the database (static-like, doesn't use &self).
-    pub async fn update_info_db(
-        ship: models::Ship,
-        database_pool: &database::DbPool,
-    ) -> Result<()> {
-        database::EngineInfo::upsert(database_pool, &database::EngineInfo::from(*ship.engine))
-            .await?;
-        database::FrameInfo::upsert(database_pool, &database::FrameInfo::from(*ship.frame)).await?;
-        database::ReactorInfo::upsert(database_pool, &database::ReactorInfo::from(*ship.reactor))
-            .await?;
-
-        database::ModuleInfo::insert_bulk(
-            database_pool,
-            &ship
-                .modules
-                .into_iter()
-                .map(database::ModuleInfo::from)
-                .collect::<HashSet<_>>()
-                .into_iter()
-                .collect::<Vec<_>>(),
-        )
-        .await?;
-        database::MountInfo::insert_bulk(
-            database_pool,
-            &ship
-                .mounts
-                .into_iter()
-                .map(database::MountInfo::from)
-                .collect::<HashSet<_>>()
-                .into_iter()
-                .collect::<Vec<_>>(),
-        )
-        .await?;
-        Ok(())
-    }
-}
-
-// ========== Methods only available on Immutable (cloned) ships ==========
-
-impl<T: Clone + Send + Sync> RustShip<T, Immutable> {
-    /// Convert this immutable snapshot into a mutable (independent) ship.
-    /// This is safe because the clone is already detached from the canonical original.
-    pub fn into_mutable(self) -> RustShip<T, Mutable> {
-        RustShip {
-            status: self.status,
-            registration_role: self.registration_role,
-            symbol: self.symbol,
-            display_name: self.display_name,
-            engine_speed: self.engine_speed,
-            purchase_id: self.purchase_id,
-            cooldown_expiration: self.cooldown_expiration,
-            cooldown: self.cooldown,
-            nav: self.nav,
-            cargo: self.cargo,
-            fuel: self.fuel,
-            mounts: self.mounts,
-            modules: self.modules,
-            engine: self.engine,
-            reactor: self.reactor,
-            frame: self.frame,
-            conditions: self.conditions,
-            broadcaster: self.broadcaster,
-            pubsub: self.pubsub,
-            _state: PhantomData,
-        }
-    }
-}
-
-// ========== Methods only available on Mutable (the original) ships ==========
-
 impl<T: Clone + Send + Sync> RustShip<T, Mutable> {
     /// Create an immutable snapshot of this ship for read-only use.
     pub fn to_immutable(&self) -> RustShip<T, Immutable> {
@@ -459,5 +321,90 @@ impl<T: Clone + Send + Sync> RustShip<T, Mutable> {
         self.display_name = ship_info.display_name;
         self.symbol = ship_info.symbol;
         self.purchase_id = ship_info.purchase_id;
+    }
+
+    /// Snapshot the current ship state to the database. Needs only be done by the real ship
+    pub async fn snapshot(&self, database_pool: &database::DbPool) -> Result<i64> {
+        let state = database::ShipState::from(self);
+
+        let id = database::ShipState::insert_get_id(database_pool, &state).await?;
+
+        Ok(id)
+    }
+}
+
+// ========== Methods available on ALL states (both Mutable and Immutable) ==========
+
+impl<T: Clone + Send + Sync, State: Send + Sync> RustShip<T, State> {
+    /// Update ship component info in the database (static-like, doesn't use &self).
+    pub async fn update_info_db_shipyard(
+        ship: models::ShipyardShip,
+        database_pool: &database::DbPool,
+    ) -> Result<()> {
+        database::EngineInfo::upsert(database_pool, &database::EngineInfo::from(*ship.engine))
+            .await?;
+        database::FrameInfo::upsert(database_pool, &database::FrameInfo::from(*ship.frame)).await?;
+        database::ReactorInfo::upsert(database_pool, &database::ReactorInfo::from(*ship.reactor))
+            .await?;
+
+        database::ModuleInfo::insert_bulk(
+            database_pool,
+            &ship
+                .modules
+                .into_iter()
+                .map(database::ModuleInfo::from)
+                .collect::<HashSet<_>>()
+                .into_iter()
+                .collect::<Vec<_>>(),
+        )
+        .await?;
+        database::MountInfo::insert_bulk(
+            database_pool,
+            &ship
+                .mounts
+                .into_iter()
+                .map(database::MountInfo::from)
+                .collect::<HashSet<_>>()
+                .into_iter()
+                .collect::<Vec<_>>(),
+        )
+        .await?;
+        Ok(())
+    }
+
+    /// Update ship component info in the database (static-like, doesn't use &self).
+    pub async fn update_info_db(
+        ship: models::Ship,
+        database_pool: &database::DbPool,
+    ) -> Result<()> {
+        database::EngineInfo::upsert(database_pool, &database::EngineInfo::from(*ship.engine))
+            .await?;
+        database::FrameInfo::upsert(database_pool, &database::FrameInfo::from(*ship.frame)).await?;
+        database::ReactorInfo::upsert(database_pool, &database::ReactorInfo::from(*ship.reactor))
+            .await?;
+
+        database::ModuleInfo::insert_bulk(
+            database_pool,
+            &ship
+                .modules
+                .into_iter()
+                .map(database::ModuleInfo::from)
+                .collect::<HashSet<_>>()
+                .into_iter()
+                .collect::<Vec<_>>(),
+        )
+        .await?;
+        database::MountInfo::insert_bulk(
+            database_pool,
+            &ship
+                .mounts
+                .into_iter()
+                .map(database::MountInfo::from)
+                .collect::<HashSet<_>>()
+                .into_iter()
+                .collect::<Vec<_>>(),
+        )
+        .await?;
+        Ok(())
     }
 }

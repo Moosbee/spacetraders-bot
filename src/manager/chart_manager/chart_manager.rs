@@ -125,7 +125,7 @@ impl ChartManager {
 
     async fn get_next_chart(
         &mut self,
-        ship_clone: ship::MyShip,
+        ship_clone: ship::MyShipCopy,
         chart_only_jump_gates: bool,
     ) -> std::result::Result<NextChartResp, Error> {
         let ship_waypoint = database::Waypoint::get_by_id(

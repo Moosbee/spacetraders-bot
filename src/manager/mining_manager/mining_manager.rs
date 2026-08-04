@@ -5,7 +5,7 @@ use tracing::debug;
 
 use crate::{
     error::Result,
-    manager::{mining_manager::mining_messages::MiningMessage, Manager},
+    manager::{Manager, mining_manager::mining_messages::MiningMessage},
     utils::ConductorContext,
 };
 
@@ -321,7 +321,7 @@ impl MiningManager {
         Ok(())
     }
 
-    async fn get_ships_at_waypoint(&self, waypoint_symbol: &str) -> Result<Vec<ship::MyShip>> {
+    async fn get_ships_at_waypoint(&self, waypoint_symbol: &str) -> Result<Vec<ship::MyShipCopy>> {
         debug!("Fetching ships at waypoint: {:?}", waypoint_symbol);
         Ok(self
             .context
@@ -332,14 +332,14 @@ impl MiningManager {
             .filter(|f| f.1.nav.waypoint_symbol == waypoint_symbol)
             .filter(|f| !f.1.nav.is_in_transit())
             .filter(|f| matches!(&f.1.status.status, ship::AssignmentStatus::Mining { .. }))
-            .map(|f| f.1.into_mutable())
+            .map(|f| f.1)
             .collect())
     }
 
     fn partition_ships_by_role(
         &self,
-        ships: Vec<ship::MyShip>,
-    ) -> (Vec<ship::MyShip>, Vec<ship::MyShip>) {
+        ships: Vec<ship::MyShipCopy>,
+    ) -> (Vec<ship::MyShipCopy>, Vec<ship::MyShipCopy>) {
         debug!("Partitioning ships by role");
         ships
             .into_iter()
@@ -350,17 +350,17 @@ impl MiningManager {
     ///
     /// # Arguments
     ///
-    /// * `ships` - A vector of `MyShip` instances to be filtered.
+    /// * `ships` - A vector of `MyShipCopy` instances to be filtered.
     ///
     /// # Returns
     ///
     /// A vector containing only the ships that have cargo units greater than zero.
-    fn filter_ships_with_cargo(&self, ships: Vec<ship::MyShip>) -> Vec<ship::MyShip> {
+    fn filter_ships_with_cargo(&self, ships: Vec<ship::MyShipCopy>) -> Vec<ship::MyShipCopy> {
         debug!("Filtering ships with cargo");
         ships.into_iter().filter(|f| f.cargo.units > 0).collect()
     }
 
-    fn filter_ships_with_space(&self, ships: Vec<ship::MyShip>) -> Vec<ship::MyShip> {
+    fn filter_ships_with_space(&self, ships: Vec<ship::MyShipCopy>) -> Vec<ship::MyShipCopy> {
         debug!("Filtering ships with space");
         ships
             .into_iter()
@@ -370,8 +370,8 @@ impl MiningManager {
 
     async fn execute_transfer(
         &mut self,
-        transport_ships: &[ship::MyShip],
-        extraction_ships: &[ship::MyShip],
+        transport_ships: &[ship::MyShipCopy],
+        extraction_ships: &[ship::MyShipCopy],
         trade_symbol: &models::TradeSymbol,
     ) -> Result<bool> {
         debug!("Executing transfer for trade symbol: {:?}", trade_symbol);
@@ -453,16 +453,11 @@ impl MiningManager {
         }
     }
 
-    async fn get_next_waypoint(&self, ship_clone: ship::MyShip) -> Result<String> {
+    async fn get_next_waypoint(&self, ship_clone: ship::MyShipCopy) -> Result<String> {
         debug!("Getting next waypoint for ship: {}", ship_clone.symbol);
-        let the_ships: std::collections::HashMap<String, ship::MyShip> = self
-            .context
-            .ship_manager
-            .get_all_clone()
-            .await
-            .into_iter()
-            .map(|(k, v)| (k, v.into_mutable()))
-            .collect();        let routes = self
+        let the_ships: std::collections::HashMap<String, ship::MyShipCopy> =
+            self.context.ship_manager.get_all_clone().await;
+        let routes = self
             .waypoint_manager
             .calculate_waypoint_urgencys(&the_ships);
 

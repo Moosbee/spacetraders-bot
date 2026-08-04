@@ -20,7 +20,7 @@ impl ConstructionManagerMessanger {
     #[tracing::instrument(skip(self, ship_clone), name = "ConstructionManagerMessanger::next_shipment", fields(ship = %ship_clone.symbol))]
     pub async fn next_shipment(
         &self,
-        ship_clone: ship::MyShip,
+        ship_clone: ship::MyShipCopy,
     ) -> Result<super::message::NextShipmentResp, crate::error::Error> {
         let (sender, callback) = tokio::sync::oneshot::channel();
 

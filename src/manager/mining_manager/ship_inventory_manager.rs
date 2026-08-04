@@ -20,7 +20,7 @@ impl ShipInventoryManager {
 
     pub fn determine_most_abundant_cargo(
         &self,
-        ships: &[ship::MyShip],
+        ships: &[ship::MyShipCopy],
     ) -> Option<models::TradeSymbol> {
         let cargo_totals = ships
             .iter()
@@ -40,7 +40,7 @@ impl ShipInventoryManager {
 
     pub fn find_best_extractor(
         &self,
-        ships: &[ship::MyShip],
+        ships: &[ship::MyShipCopy],
         trade_symbol: &models::TradeSymbol,
     ) -> Option<ShipInventory> {
         ships
@@ -54,7 +54,7 @@ impl ShipInventoryManager {
 
     pub fn find_best_transporter(
         &self,
-        ships: &[ship::MyShip],
+        ships: &[ship::MyShipCopy],
         trade_symbol: &models::TradeSymbol,
     ) -> Option<TransporterResult> {
         // First try to find a ship that already has some of the cargo

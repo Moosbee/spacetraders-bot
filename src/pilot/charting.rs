@@ -51,7 +51,7 @@ impl ChartPilot {
         let chart = self
             .context
             .chart_manager
-            .get_next(ship.clone(), charting_config.chart_only_jump_gates)
+            .get_next(ship.to_immutable(), charting_config.chart_only_jump_gates)
             .await?;
 
         debug!(chart = ?chart, "Next chart");

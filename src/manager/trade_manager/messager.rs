@@ -1,4 +1,4 @@
-use std::sync::{atomic::AtomicBool, Arc};
+use std::sync::{Arc, atomic::AtomicBool};
 
 use crate::error::Error;
 
@@ -20,13 +20,15 @@ impl TradeManagerMessanger {
 
     pub async fn get_route(
         &self,
-        ship: &ship::MyShip,
+        ship_clone: ship::MyShipCopy,
     ) -> Result<Option<database::TradeRoute>, Error> {
-        tracing::debug!(ship_symbol = %ship.symbol, "Requesting next trade route for ship");
+        tracing::debug!(ship_symbol = %ship_clone.symbol, "Requesting next trade route for ship");
         let (sender, receiver) = tokio::sync::oneshot::channel();
 
+        let ship_symbol = ship_clone.symbol.clone();
+
         let message = TradeManagerMessage::RequestNextTradeRoute {
-            ship_clone: ship.clone(),
+            ship_clone,
             callback: sender,
         };
 
@@ -35,13 +37,13 @@ impl TradeManagerMessanger {
             .await
             .map_err(|e| Error::General(format!("Failed to send message: {}", e)))?;
 
-        tracing::debug!(ship_symbol = %ship.symbol, "Requested next trade route for ship");
+        tracing::debug!(ship_symbol, "Requested next trade route for ship");
 
         let resp = receiver
             .await
             .map_err(|e| Error::General(format!("Failed to get trade get message: {}", e)))?;
 
-        tracing::debug!(ship_symbol = %ship.symbol, resp = ?resp, "Received trade route for ship");
+        tracing::debug!(ship_symbol, resp = ?resp, "Received trade route for ship");
         resp
     }
 

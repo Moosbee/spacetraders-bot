@@ -1,7 +1,7 @@
 #[derive(Debug)]
 pub enum ChartMessage {
     Next {
-        ship_clone: ship::MyShip,
+        ship_clone: ship::MyShipCopy,
         chart_only_jump_gates: bool,
         callback: tokio::sync::oneshot::Sender<Result<NextChartResp, crate::error::Error>>,
     },

@@ -11,7 +11,7 @@ pub enum ActionType {
 }
 
 impl ActionType {
-    pub fn get_action(ship_clone: &ship::MyShip) -> Option<ActionType> {
+    pub fn get_action(ship_clone: &ship::MyShipCopy) -> Option<ActionType> {
         match &ship_clone.status.status {
             ship::AssignmentStatus::Mining {
                 assignment: mining_ship_assignment,
@@ -47,7 +47,7 @@ impl PlaceFinder {
 
     pub async fn find(
         &self,
-        ship_clone: ship::MyShip,
+        ship_clone: ship::MyShipCopy,
         filter_fn: impl Fn(&database::Waypoint) -> bool,
         mining_places: &MiningPlaces,
         max_miners: usize,

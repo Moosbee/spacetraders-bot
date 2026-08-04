@@ -1,4 +1,4 @@
-use std::sync::{atomic::AtomicI32, Arc};
+use std::sync::{Arc, atomic::AtomicI32};
 
 use chrono::Utc;
 use database::DatabaseConnectorAsync;
@@ -52,7 +52,7 @@ impl ScraperPilot {
         let scrap = self
             .context
             .scrapping_manager
-            .get_next(ship.clone())
+            .get_next(ship.to_immutable())
             .await?;
 
         let (waypoint_symbol, date) = match scrap {
@@ -74,7 +74,7 @@ impl ScraperPilot {
         if let Err(err) = erg {
             self.context
                 .scrapping_manager
-                .fail(ship.clone(), waypoint_symbol)
+                .fail(ship.to_immutable(), waypoint_symbol)
                 .await?;
             return Err(err);
         }
@@ -136,7 +136,7 @@ impl ScraperPilot {
         if state == 0 {
             self.context
                 .scrapping_manager
-                .fail(ship.clone(), waypoint_symbol)
+                .fail(ship.to_immutable(), waypoint_symbol)
                 .await?;
 
             return Ok(());
@@ -174,7 +174,7 @@ impl ScraperPilot {
 
         self.context
             .scrapping_manager
-            .complete(ship.clone(), waypoint_symbol)
+            .complete(ship.to_immutable(), waypoint_symbol)
             .await?;
 
         ship.status.status = ship::AssignmentStatus::Scraper {
@@ -191,7 +191,7 @@ impl ScraperPilot {
         let temp_assignment = self
             .context
             .fleet_manager
-            .get_new_temp_assignment(ship)
+            .get_new_temp_assignment(ship.to_immutable())
             .await?;
         if temp_assignment.is_none() {
             tracing::warn!("No temp assignment available, skipping");

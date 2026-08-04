@@ -1,4 +1,4 @@
-use std::sync::{atomic::AtomicI32, Arc};
+use std::sync::{Arc, atomic::AtomicI32};
 
 use tokio::select;
 use tracing::debug;
@@ -48,7 +48,11 @@ impl TradingPilot {
 
         ship.notify(true).await;
 
-        let route = self.context.trade_manager.get_route(ship).await?;
+        let route = self
+            .context
+            .trade_manager
+            .get_route(ship.to_immutable())
+            .await?;
 
         if route.is_none() {
             self.wait(ship, pilot).await?;

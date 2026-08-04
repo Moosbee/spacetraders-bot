@@ -3,7 +3,7 @@ use space_traders_client::models;
 #[derive(Debug)]
 pub enum ConstructionMessage {
     RequestNextShipment {
-        ship_clone: ship::MyShip,
+        ship_clone: ship::MyShipCopy,
         callback: tokio::sync::oneshot::Sender<Result<NextShipmentResp, crate::error::Error>>,
     },
     FailedShipment {

@@ -1,4 +1,4 @@
-use std::sync::{atomic::AtomicI32, Arc};
+use std::sync::{Arc, atomic::AtomicI32};
 
 use space_traders_client::models;
 use tracing::debug;
@@ -44,7 +44,7 @@ impl ConstructionPilot {
         let shipment = self
             .context
             .construction_manager
-            .next_shipment(ship.clone())
+            .next_shipment(ship.to_immutable())
             .await?;
 
         debug!(shipment = ?shipment, "Next shipment");
@@ -138,7 +138,7 @@ impl ConstructionPilot {
         let temp_assignment = self
             .context
             .fleet_manager
-            .get_new_temp_assignment(ship)
+            .get_new_temp_assignment(ship.to_immutable())
             .await?;
         if temp_assignment.is_none() {
             warn!("No temp assignment available, skipping");

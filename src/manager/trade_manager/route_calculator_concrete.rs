@@ -15,7 +15,7 @@ impl ConcreteRouteCalculator {
     }
     pub fn calc(
         &mut self,
-        ship: &ship::MyShip,
+        ship: &ship::MyShipCopy,
         mut trade_route: ExtrapolatedTradeRoute,
         waypoints: &[database::Waypoint],
         fuel_cost: i32,
@@ -67,7 +67,7 @@ impl ConcreteRouteCalculator {
 
     fn calculate_route_statistics(
         &mut self,
-        ship: &ship::MyShip,
+        ship: &ship::MyShipCopy,
         trade_route: &ExtrapolatedTradeRoute,
         waypoints: &[database::Waypoint],
         fuel_cost: i32,
@@ -116,7 +116,7 @@ impl ConcreteRouteCalculator {
 
     fn find_route(
         &mut self,
-        ship: &ship::MyShip,
+        ship: &ship::MyShipCopy,
         waypoints: &HashMap<String, database::Waypoint>,
         sell_wp_symbol: &str,
         purchase_wp_symbol: &str,
@@ -131,7 +131,7 @@ impl ConcreteRouteCalculator {
 
     fn calculate_reoccurring_trip_stats(
         &self,
-        ship: &ship::MyShip,
+        ship: &ship::MyShipCopy,
         trade_route: &ExtrapolatedTradeRoute,
         total_distance: f64,
         total_fuel_cost: i32,
@@ -175,7 +175,7 @@ impl ConcreteRouteCalculator {
 
     fn calculate_trip_stats(
         &self,
-        ship: &ship::MyShip,
+        ship: &ship::MyShipCopy,
         trade_route: &ExtrapolatedTradeRoute,
         total_distance: f64,
         total_fuel_cost: i32,
@@ -222,7 +222,7 @@ impl ConcreteRouteCalculator {
 
     fn calculate_single_route_stats(
         &self,
-        ship: &ship::MyShip,
+        ship: &ship::MyShipCopy,
         route: &[ship::autopilot::SimpleConnection],
         fuel_cost: i32,
         antimatter_price: i32,

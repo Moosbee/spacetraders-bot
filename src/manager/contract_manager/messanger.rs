@@ -1,4 +1,4 @@
-use std::sync::{atomic::AtomicBool, Arc};
+use std::sync::{Arc, atomic::AtomicBool};
 use tracing::debug;
 
 use crate::{
@@ -6,7 +6,7 @@ use crate::{
     manager::contract_manager::ContractShipmentMessage,
 };
 
-use super::{message::ContractManagerMessage, NextShipmentResp};
+use super::{NextShipmentResp, message::ContractManagerMessage};
 
 #[derive(Debug, Clone)]
 pub struct ContractManagerMessanger {
@@ -22,11 +22,14 @@ impl ContractManagerMessanger {
         }
     }
 
-    #[tracing::instrument(skip(self, ship), name = "ContractManagerMessanger::request_next_shipment", fields(ship = %ship.symbol))]
-    pub async fn request_next_shipment(&self, ship: &ship::MyShip) -> Result<NextShipmentResp> {
+    #[tracing::instrument(skip(self, ship_clone), name = "ContractManagerMessanger::request_next_shipment", fields(ship = %ship_clone.symbol))]
+    pub async fn request_next_shipment(
+        &self,
+        ship_clone: ship::MyShipCopy,
+    ) -> Result<NextShipmentResp> {
         let (sender, receiver) = tokio::sync::oneshot::channel();
         let message = ContractShipmentMessage::RequestNext {
-            ship_clone: ship.clone(),
+            ship_clone,
             callback: sender,
             can_start_new_contract: true,
         };

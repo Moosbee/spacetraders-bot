@@ -170,7 +170,7 @@ impl SimplePathfinder {
         next: &database::Waypoint,
         current_route: &SimpleConnection,
         mode: &Mode,
-        end_waypoint: &database::Waypoint,
+        _end_waypoint: &database::Waypoint,
     ) -> SimpleConnection {
         let distance = distance_between_waypoints(current.into(), next.into());
         // let heuristic_cost =

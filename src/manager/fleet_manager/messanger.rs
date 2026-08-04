@@ -1,5 +1,5 @@
 use super::message::FleetManagerMessage;
-use std::sync::{atomic::AtomicBool, Arc};
+use std::sync::{Arc, atomic::AtomicBool};
 
 #[derive(Debug, Clone)]
 pub struct FleetManagerMessanger {
@@ -53,13 +53,13 @@ impl FleetManagerMessanger {
     #[tracing::instrument(skip(self, ship_clone), name = "FleetManagerMessanger::get_assignment", fields(ship = %ship_clone.symbol))]
     pub async fn get_new_assignment(
         &self,
-        ship_clone: &ship::MyShip,
+        ship_clone: ship::MyShipCopy,
     ) -> Result<Option<i64>, crate::error::Error> {
         let (sender, receiver) = tokio::sync::oneshot::channel();
         self.sender
             .send(FleetManagerMessage::GetNewAssignments {
                 callback: sender,
-                ship_clone: ship_clone.clone(),
+                ship_clone,
                 temp: false,
             })
             .await
@@ -74,13 +74,13 @@ impl FleetManagerMessanger {
     #[tracing::instrument(skip(self, ship_clone), name = "FleetManagerMessanger::get_temp_assignment", fields(ship = %ship_clone.symbol))]
     pub async fn get_new_temp_assignment(
         &self,
-        ship_clone: &ship::MyShip,
+        ship_clone: ship::MyShipCopy,
     ) -> Result<Option<i64>, crate::error::Error> {
         let (sender, receiver) = tokio::sync::oneshot::channel();
         self.sender
             .send(FleetManagerMessage::GetNewAssignments {
                 callback: sender,
-                ship_clone: ship_clone.clone(),
+                ship_clone,
                 temp: true,
             })
             .await
@@ -168,7 +168,7 @@ impl FleetManagerMessanger {
             match e {
                 tokio::sync::mpsc::error::SendTimeoutError::Timeout(_e) => return Ok(false),
                 tokio::sync::mpsc::error::SendTimeoutError::Closed(_e) => {
-                    return Err(crate::error::Error::General("Channel Closed".to_string()))
+                    return Err(crate::error::Error::General("Channel Closed".to_string()));
                 }
             }
         }
@@ -193,7 +193,7 @@ impl FleetManagerMessanger {
             match e {
                 tokio::sync::mpsc::error::TrySendError::Full(_e) => return Ok(false),
                 tokio::sync::mpsc::error::TrySendError::Closed(_e) => {
-                    return Err(crate::error::Error::General("Channel Closed".to_string()))
+                    return Err(crate::error::Error::General("Channel Closed".to_string()));
                 }
             }
         }
@@ -218,7 +218,7 @@ impl FleetManagerMessanger {
             match e {
                 tokio::sync::mpsc::error::TrySendError::Full(_e) => return Ok(false),
                 tokio::sync::mpsc::error::TrySendError::Closed(_e) => {
-                    return Err(crate::error::Error::General("Channel Closed".to_string()))
+                    return Err(crate::error::Error::General("Channel Closed".to_string()));
                 }
             }
         }

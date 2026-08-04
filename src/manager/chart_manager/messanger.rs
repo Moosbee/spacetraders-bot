@@ -20,7 +20,7 @@ impl ChartManagerMessanger {
     #[instrument(skip(self, ship_clone), name = "ChartManagerMessanger::get_next", fields(ship = %ship_clone.symbol))]
     pub async fn get_next(
         &self,
-        ship_clone: ship::MyShip,
+        ship_clone: ship::MyShipCopy,
         chart_only_jump_gates: bool,
     ) -> Result<NextChartResp, crate::error::Error> {
         let (sender, callback) = tokio::sync::oneshot::channel();

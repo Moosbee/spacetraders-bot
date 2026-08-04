@@ -1,6 +1,6 @@
 use std::{
     collections::HashMap,
-    sync::{atomic::AtomicI32, Arc},
+    sync::{Arc, atomic::AtomicI32},
 };
 
 use ship::status::{MiningShipAssignment, TransporterState};
@@ -68,17 +68,16 @@ impl TransportPilot {
         {
             let next_mining_waypoint = self.get_next_mining_waypoint(ship).await;
             debug!(next_mining_waypoint = ?next_mining_waypoint, "Next transport mining waypoint");
-            if next_mining_waypoint.is_err() {
-                let next_err = next_mining_waypoint.unwrap_err();
-                if let crate::error::Error::General(err_r) = &next_err {
-                    if err_r == "No routes found" {
-                        tracing::info!("No more mining waypoints");
-                        tokio::time::sleep(std::time::Duration::from_millis(
-                            1000 + rand::random::<u64>() % 500,
-                        ))
-                        .await;
-                        break;
-                    }
+            if let Err(next_err) = next_mining_waypoint {
+                if let crate::error::Error::General(err_r) = &next_err
+                    && err_r == "No routes found"
+                {
+                    tracing::info!("No more mining waypoints");
+                    tokio::time::sleep(std::time::Duration::from_millis(
+                        1000 + rand::random::<u64>() % 500,
+                    ))
+                    .await;
+                    break;
                 }
                 return Err(next_err);
             }
@@ -131,7 +130,11 @@ impl TransportPilot {
     }
 
     async fn get_next_mining_waypoint(&self, ship: &mut ship::MyShip) -> Result<String> {
-        let next_transport = self.context.mining_manager.get_next_transport(ship).await?;
+        let next_transport = self
+            .context
+            .mining_manager
+            .get_next_transport(ship.to_immutable())
+            .await?;
 
         debug!(next_transport = %next_transport, "Next transport mining waypoint");
 

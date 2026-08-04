@@ -4,7 +4,7 @@ use log::warn;
 use space_traders_client::models::{self};
 use utils::get_system_symbol;
 
-use crate::{RustShip, Mutable, error::Result};
+use crate::{Mutable, RustShip};
 
 use super::connection::{
     ConcreteConnection, JumpConnection, NavigateConnection, Refuel, Route, WarpConnection,
@@ -17,7 +17,8 @@ impl<T: Clone + Send + Sync> RustShip<T, Mutable> {
         reason: database::TransactionReason,
         database_pool: &database::DbPool,
         api: &space_traders_client::Api,
-        wp_action: impl AsyncFn(&mut RustShip<T, Mutable>, String, String) -> crate::error::Result<()> + Clone,
+        wp_action: impl AsyncFn(&mut RustShip<T, Mutable>, String, String) -> crate::error::Result<()>
+        + Clone,
         update_funds_fn: impl Fn(i64) + Clone,
     ) -> crate::error::Result<()> {
         self.set_auto_pilot(route.clone()).await?;
@@ -93,7 +94,7 @@ impl<T: Clone + Send + Sync> RustShip<T, Mutable> {
         reason: &database::TransactionReason,
         database_pool: &database::DbPool,
         api: &space_traders_client::Api,
-        wp_action: impl (AsyncFn(&mut RustShip<T, Mutable>, String, String) -> crate::error::Result<()>),
+        wp_action: impl AsyncFn(&mut RustShip<T, Mutable>, String, String) -> crate::error::Result<()>,
         update_funds_fn: impl Fn(i64) + Clone,
     ) -> crate::error::Result<()> {
         if self.nav.waypoint_symbol != connection.start_symbol {
@@ -143,11 +144,7 @@ impl<T: Clone + Send + Sync> RustShip<T, Mutable> {
         let transaction =
             database::MarketTransaction::try_from(jump_data.data.transaction.as_ref().clone())?
                 .with(reason.clone());
-        database::MarketTransaction::upsert(
-            database_pool,
-            &transaction,
-        )
-        .await?;
+        database::MarketTransaction::upsert(database_pool, &transaction).await?;
 
         let ship_jump = database::ShipJump {
             id: 0,
@@ -159,8 +156,7 @@ impl<T: Clone + Send + Sync> RustShip<T, Mutable> {
             ship_after: after,
         };
 
-        database::ShipJump::upsert(database_pool, &ship_jump)
-            .await?;
+        database::ShipJump::upsert(database_pool, &ship_jump).await?;
 
         Ok(())
     }
@@ -232,8 +228,7 @@ impl<T: Clone + Send + Sync> RustShip<T, Mutable> {
             created_at: now,
         };
 
-        database::Route::upsert(database_pool, &rote)
-            .await?;
+        database::Route::upsert(database_pool, &rote).await?;
 
         Ok(())
     }
@@ -308,8 +303,7 @@ impl<T: Clone + Send + Sync> RustShip<T, Mutable> {
             created_at: now,
         };
 
-        database::Route::upsert(database_pool, &rote)
-            .await?;
+        database::Route::upsert(database_pool, &rote).await?;
 
         Ok(())
     }
@@ -408,11 +402,7 @@ impl<T: Clone + Send + Sync> RustShip<T, Mutable> {
                 refuel_data.data.transaction.as_ref().clone(),
             )?
             .with(reason.clone());
-            database::MarketTransaction::upsert(
-                database_pool,
-                &transaction,
-            )
-            .await?;
+            database::MarketTransaction::upsert(database_pool, &transaction).await?;
         }
 
         if refuel.restock_amount > 0 {
@@ -453,11 +443,7 @@ impl<T: Clone + Send + Sync> RustShip<T, Mutable> {
                 refuel_data.data.transaction.as_ref().clone(),
             )?
             .with(reason.clone());
-            database::MarketTransaction::upsert(
-                database_pool,
-                &transaction,
-            )
-            .await?;
+            database::MarketTransaction::upsert(database_pool, &transaction).await?;
         }
 
         if refuel.restock_amount > 0 {

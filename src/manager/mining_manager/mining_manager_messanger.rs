@@ -1,4 +1,4 @@
-use std::sync::{atomic::AtomicBool, Arc};
+use std::sync::{Arc, atomic::AtomicBool};
 
 use tracing::debug;
 
@@ -30,16 +30,20 @@ impl MiningManagerMessanger {
         }
     }
 
-    #[tracing::instrument(skip(self, ship), name = "MiningManagerMessanger::get_waypoint", fields(ship = %ship.symbol))]
-    pub async fn get_waypoint(&self, ship: &ship::MyShip, is_syphon: bool) -> Result<String> {
+    #[tracing::instrument(skip(self, ship_clone), name = "MiningManagerMessanger::get_waypoint", fields(ship = %ship_clone.symbol))]
+    pub async fn get_waypoint(
+        &self,
+        ship_clone: ship::MyShipCopy,
+        is_syphon: bool,
+    ) -> Result<String> {
         let (sender, callback) = tokio::sync::oneshot::channel();
 
+        tracing::debug!(ship_symbol = %ship_clone.symbol, "Sending AssignWaypoint message for ship");
         let message = MiningMessage::AssignWaypoint(AssignWaypointMessage::AssignWaypoint {
-            ship_clone: ship.clone(),
+            ship_clone,
             callback: sender,
             is_syphon,
         });
-        tracing::debug!(ship_symbol = %ship.symbol, "Sending AssignWaypoint message for ship");
         self.sender.send(message).await.map_err(|e| {
             crate::error::Error::General(format!("Failed to send AssignWaypoint message: {}", e))
         })?;
@@ -52,16 +56,22 @@ impl MiningManagerMessanger {
         Ok(erg)
     }
 
-    #[tracing::instrument(skip(self, ship), name = "MiningManagerMessanger::notify_waypoint", fields(ship = %ship.symbol))]
-    pub async fn notify_waypoint(&self, ship: &ship::MyShip, is_syphon: bool) -> Result<String> {
+    #[tracing::instrument(skip(self, ship_clone), name = "MiningManagerMessanger::notify_waypoint", fields(ship = %ship_clone.symbol))]
+    pub async fn notify_waypoint(
+        &self,
+        ship_clone: ship::MyShipCopy,
+        is_syphon: bool,
+    ) -> Result<String> {
         let (sender, callback) = tokio::sync::oneshot::channel();
 
+        let ship_symbol = ship_clone.symbol.clone();
+
         let message = MiningMessage::AssignWaypoint(AssignWaypointMessage::NotifyWaypoint {
-            ship_clone: ship.clone(),
+            ship_clone,
             callback: sender,
             is_syphon,
         });
-        tracing::debug!(ship_symbol = %ship.symbol, "Sending NotifyWaypoint message for ship");
+        tracing::debug!(ship_symbol, "Sending NotifyWaypoint message for ship");
         self.sender.send(message).await.map_err(|e| {
             crate::error::Error::General(format!("Failed to send NotifyWaypoint message: {}", e))
         })?;
@@ -70,19 +80,21 @@ impl MiningManagerMessanger {
             crate::error::Error::General(format!("Failed to get NotifyWaypoint message: {}", e))
         })??;
 
-        tracing::debug!(ship_symbol = %ship.symbol, "Received notification response for ship");
+        tracing::debug!(ship_symbol, "Received notification response for ship");
         Ok(erg)
     }
 
-    #[tracing::instrument(skip(self, ship), name = "MiningManagerMessanger::unassign_waypoint", fields(ship = %ship.symbol))]
-    pub async fn unassign_waypoint(&self, ship: &ship::MyShip) -> Result<String> {
+    #[tracing::instrument(skip(self, ship_clone), name = "MiningManagerMessanger::unassign_waypoint", fields(ship = %ship_clone.symbol))]
+    pub async fn unassign_waypoint(&self, ship_clone: ship::MyShipCopy) -> Result<String> {
         let (sender, callback) = tokio::sync::oneshot::channel();
 
+        let ship_symbol = ship_clone.symbol.clone();
+
         let message = MiningMessage::AssignWaypoint(AssignWaypointMessage::UnassignWaypoint {
-            ship_clone: ship.clone(),
+            ship_clone,
             callback: sender,
         });
-        tracing::debug!(ship_symbol = %ship.symbol, "Sending UnassignWaypoint message for ship");
+        tracing::debug!(ship_symbol, "Sending UnassignWaypoint message for ship");
         self.sender.send(message).await.map_err(|e| {
             crate::error::Error::General(format!("Failed to send UnassignWaypoint message: {}", e))
         })?;
@@ -91,20 +103,20 @@ impl MiningManagerMessanger {
             crate::error::Error::General(format!("Failed to get UnassignWaypoint message: {}", e))
         })??;
 
-        tracing::debug!(ship_symbol = %ship.symbol, "Received unassignment response for ship");
+        tracing::debug!(ship_symbol, "Received unassignment response for ship");
         Ok(erg)
     }
 
-    #[tracing::instrument(skip(self, ship), name = "MiningManagerMessanger::get_next_transport", fields(ship = %ship.symbol))]
-    pub async fn get_next_transport(&self, ship: &ship::MyShip) -> Result<String> {
+    #[tracing::instrument(skip(self, ship_clone), name = "MiningManagerMessanger::get_next_transport", fields(ship = %ship_clone.symbol))]
+    pub async fn get_next_transport(&self, ship_clone: ship::MyShipCopy) -> Result<String> {
         let (sender, callback) = tokio::sync::oneshot::channel();
 
+        tracing::debug!(ship_symbol = %ship_clone.symbol, "Sending GetNextWaypoint message for ship");
         let message =
             MiningMessage::ExtractionNotification(ExtractionNotification::GetNextWaypoint {
-                ship_clone: ship.clone(),
+                ship_clone,
                 callback: sender,
             });
-        tracing::debug!(ship_symbol = %ship.symbol, "Sending GetNextWaypoint message for ship");
         self.sender.send(message).await.map_err(|e| {
             crate::error::Error::General(format!("Failed to send GetNextWaypoint message: {}", e))
         })?;

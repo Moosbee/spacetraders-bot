@@ -32,11 +32,11 @@ impl RouteCalculator {
 
     pub async fn get_best_route(
         &mut self,
-        ship: &ship::MyShip,
+        ship: &ship::MyShipCopy,
         running_routes: &RoutesTracker,
         mode: database::TradeMode,
     ) -> Result<Option<database::TradeRoute>, Error> {
-    tracing::debug!("Getting new best route");
+        tracing::debug!("Getting new best route");
         let (trade_goods, market_trade) = self.fetch_market_data(&ship.nav.system_symbol).await?;
 
         let possible_trades = self.gen_all_possible_trades(&trade_goods, &market_trade);
@@ -79,8 +79,8 @@ impl RouteCalculator {
             .filter(|route| route.trip.total_profit > config.trade_profit_threshold)
             .collect::<Vec<_>>();
 
-    tracing::debug!(routes_len = %routes.len(), "Calculated routes");
-    // tracing::debug!(routes = ?routes, "Routes detail");
+        tracing::debug!(routes_len = %routes.len(), "Calculated routes");
+        // tracing::debug!(routes = ?routes, "Routes detail");
 
         let route = routes
             .into_iter()
@@ -101,14 +101,13 @@ impl RouteCalculator {
         )
         .await?
         .items;
-        let market_trade =
-            database::MarketTrade::get_last_by_system(
-                &self.context.database_pool,
-                system_symbol,
-                database::PaginatedQuery::unpaged(),
-            )
-            .await?
-            .items;
+        let market_trade = database::MarketTrade::get_last_by_system(
+            &self.context.database_pool,
+            system_symbol,
+            database::PaginatedQuery::unpaged(),
+        )
+        .await?
+        .items;
         Ok((trade_goods, market_trade))
     }
 
@@ -122,7 +121,7 @@ impl RouteCalculator {
             .map(|t| ((t.symbol, t.waypoint_symbol.clone()), t.clone()))
             .collect::<HashMap<(models::TradeSymbol, String), database::MarketTradeGood>>();
 
-        let possible_trades = market_trade
+        market_trade
             .iter()
             .flat_map(|t| market_trade.iter().map(move |t2| (t, t2)))
             .filter(|t| t.0.symbol == t.1.symbol)
@@ -145,9 +144,7 @@ impl RouteCalculator {
                     sell: t2.clone(),
                 }
             })
-            .collect::<Vec<_>>();
-
-        possible_trades
+            .collect::<Vec<_>>()
     }
 
     fn extrapolate_trade_route(

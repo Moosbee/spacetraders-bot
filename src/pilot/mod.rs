@@ -257,11 +257,10 @@ impl Pilot {
             debug!(ship_symbol = %self.ship_symbol, "Ship has no assignment, piloting idle behavior");
             let ship_clone = self.context.ship_manager.get_clone(&ship_info.symbol);
             if let Some(ship_clone) = ship_clone {
-                let ship_mutable = ship_clone.into_mutable();
                 let assignment_id = self
                     .context
                     .fleet_manager
-                    .get_new_assignment(&ship_mutable)
+                    .get_new_assignment(ship_clone)
                     .await?;
                 debug!(ship_symbol = %self.ship_symbol, assignment_id = ?assignment_id, "Assigning ship to fleet");
             } else {

@@ -14,7 +14,7 @@ pub struct ShipCapabilities {
 
 impl ShipCapabilities {
     pub fn can_assign_ship(
-        ship_clone: &ship::MyShip,
+        ship_clone: &ship::MyShipCopy,
         assignment: &database::ShipAssignment,
     ) -> bool {
         let capabilities = Self::get_ship_capabilities(ship_clone);
@@ -62,7 +62,7 @@ impl ShipCapabilities {
             && self.warp_drive >= if assignment.warp_drive { 1 } else { 0 }
     }
 
-    fn get_ship_capabilities(ship_clone: &ship::MyShip) -> ShipCapabilities {
+    fn get_ship_capabilities(ship_clone: &ship::MyShipCopy) -> ShipCapabilities {
         let cargo = Self::cargo_from_modules(&ship_clone.modules.modules);
         let fuel = ship_clone.fuel.capacity;
         let survey = Self::survey_from_mounts(&ship_clone.mounts.mounts);

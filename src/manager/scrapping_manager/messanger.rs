@@ -18,7 +18,7 @@ impl ScrappingManagerMessanger {
     #[tracing::instrument(skip(self, ship_clone), name = "ScrappingManagerMessanger::get_next", fields(ship = %ship_clone.symbol))]
     pub async fn get_next(
         &self,
-        ship_clone: ship::MyShip,
+        ship_clone: ship::MyShipCopy,
     ) -> Result<super::message::ScrapResponse, crate::error::Error> {
         let (tx, rx) = tokio::sync::oneshot::channel();
         self.sender
@@ -35,7 +35,7 @@ impl ScrappingManagerMessanger {
     #[tracing::instrument(skip(self, ship_clone, waypoint_symbol), name = "ScrappingManagerMessanger::fail", fields(ship = %ship_clone.symbol, waypoint = %waypoint_symbol))]
     pub async fn fail(
         &self,
-        ship_clone: ship::MyShip,
+        ship_clone: ship::MyShipCopy,
         waypoint_symbol: String,
     ) -> Result<(), crate::error::Error> {
         self.sender
@@ -52,7 +52,7 @@ impl ScrappingManagerMessanger {
     #[tracing::instrument(skip(self, ship_clone, waypoint_symbol), name = "ScrappingManagerMessanger::complete", fields(ship = %ship_clone.symbol, waypoint = %waypoint_symbol))]
     pub async fn complete(
         &self,
-        ship_clone: ship::MyShip,
+        ship_clone: ship::MyShipCopy,
         waypoint_symbol: String,
     ) -> Result<(), crate::error::Error> {
         self.sender
@@ -69,7 +69,7 @@ impl ScrappingManagerMessanger {
     #[tracing::instrument(skip(self, ship_clone), name = "ScrappingManagerMessanger::get_info", fields(ship = %ship_clone.symbol))]
     pub(crate) async fn get_info(
         &self,
-        ship_clone: ship::MyShip,
+        ship_clone: ship::MyShipCopy,
     ) -> Result<Vec<(String, chrono::DateTime<chrono::Utc>)>, crate::error::Error> {
         let (tx, rx) = tokio::sync::oneshot::channel();
         self.sender

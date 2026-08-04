@@ -7,12 +7,12 @@ use space_traders_client::models::{self};
 
 use crate::{
     error::{self, Error, Result},
-    manager::{contract_manager::ContractShipmentMessage, Manager},
+    manager::{Manager, contract_manager::ContractShipmentMessage},
     utils::ConductorContext,
 };
 
 use super::{
-    message::ContractManagerMessage, messanger::ContractManagerMessanger, NextShipmentResp,
+    NextShipmentResp, message::ContractManagerMessage, messanger::ContractManagerMessanger,
 };
 
 pub type ContractManagerReceiver = tokio::sync::mpsc::Receiver<ContractManagerMessage>;
@@ -69,8 +69,8 @@ impl ContractManager {
             let in_db =
                 database::Contract::get_by_id(&self.context.database_pool, &contract.id).await?;
 
-            if let Some(existing_contract) = in_db {
-                if let Some(reserved_fund_id) = existing_contract.reserved_fund {
+            if let Some(existing_contract) = in_db
+                && let Some(reserved_fund_id) = existing_contract.reserved_fund {
                     let fund = database::ReservedFund::get_by_id(
                         &self.context.database_pool,
                         &reserved_fund_id,
@@ -78,7 +78,6 @@ impl ContractManager {
                     .await?;
                     self.reserved_funds = fund;
                 }
-            }
 
             database::Contract::insert_contract(
                 &self.context.database_pool,
@@ -181,7 +180,7 @@ impl ContractManager {
 
     async fn request_next_shipment(
         &mut self,
-        ship_clone: ship::MyShip,
+        ship_clone: ship::MyShipCopy,
         can_start_new_contract: bool,
     ) -> Result<NextShipmentResp> {
         debug!("Requesting next shipment for ship: {:?}", ship_clone.symbol);
@@ -350,8 +349,8 @@ impl ContractManager {
                     .await;
 
                 debug!("Calculated budget: {:?}", budget);
-                if budget.is_err() {
-                    if let Err(e) = budget {
+                if budget.is_err()
+                    && let Err(e) = budget {
                         if let crate::error::Error::NotEnoughFunds {
                             remaining_funds,
                             required_funds,
@@ -367,7 +366,6 @@ impl ContractManager {
                             return Err(e);
                         }
                     }
-                }
 
                 Some(budget.unwrap())
             } else {
@@ -416,7 +414,7 @@ impl ContractManager {
 
     fn calculate_purchase_volume(
         &self,
-        ship: &ship::MyShip,
+        ship: &ship::MyShipCopy,
         procurement: &models::ContractDeliverGood,
         trade_symbol: &models::TradeSymbol,
     ) -> (i32, i32) {
@@ -604,7 +602,7 @@ impl ContractManager {
     ///
     /// Returns `true` if a contract was started, `false` if no contract was
     /// available.
-    async fn get_new_contract(&mut self, ship_clone: &ship::MyShip) -> Result<bool> {
+    async fn get_new_contract(&mut self, ship_clone: &ship::MyShipCopy) -> Result<bool> {
         debug!("Negotiating new contract for ship: {:?}", ship_clone.symbol);
         if self.current_contract.is_some() || !self.running_shipments.is_empty() {
             panic!("Already running a contract");

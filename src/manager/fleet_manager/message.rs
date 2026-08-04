@@ -7,7 +7,7 @@ pub enum FleetMessage {
     },
     GetNewAssignments {
         callback: tokio::sync::oneshot::Sender<Option<i64>>,
-        ship_clone: ship::MyShip,
+        ship_clone: ship::MyShipCopy,
         temp: bool,
     },
     ReGenerateAssignments {

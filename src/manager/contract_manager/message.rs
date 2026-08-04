@@ -5,7 +5,7 @@ use crate::error::Result;
 #[derive(Debug)]
 pub enum ContractShipmentMessage {
     RequestNext {
-        ship_clone: ship::MyShip,
+        ship_clone: ship::MyShipCopy,
         can_start_new_contract: bool,
         callback: tokio::sync::oneshot::Sender<Result<NextShipmentResp>>,
     },

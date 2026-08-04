@@ -19,15 +19,11 @@ pub async fn update_shipyard(
         })
         .collect::<Vec<_>>();
 
-    database::ShipyardShipTypes::insert_bulk(
-        database_pool,
-        &ship_types,
-    )
-    .await?;
+    database::ShipyardShipTypes::insert_bulk(database_pool, &ship_types).await?;
 
     if let Some(ships) = shipyard.ships {
         for ship in ships.iter() {
-            ship::MyShip::update_info_db_shipyard((ship).clone(), database_pool).await?;
+            ship::MyShipCopy::update_info_db_shipyard((ship).clone(), database_pool).await?;
         }
 
         let shipyard_ships = ships
@@ -35,11 +31,7 @@ pub async fn update_shipyard(
             .map(|s| database::ShipyardShip::with_waypoint(s, &shipyard.symbol))
             .collect::<Vec<_>>();
 
-        database::ShipyardShip::insert_bulk(
-            database_pool,
-            &shipyard_ships,
-        )
-        .await?;
+        database::ShipyardShip::insert_bulk(database_pool, &shipyard_ships).await?;
     }
 
     if let Some(transactions) = shipyard.transactions {
@@ -47,11 +39,7 @@ pub async fn update_shipyard(
             .into_iter()
             .filter_map(|t| database::ShipyardTransaction::try_from(t).ok())
             .collect::<Vec<_>>();
-        database::ShipyardTransaction::insert_bulk(
-            database_pool,
-            &shipyard_transactions,
-        )
-        .await?
+        database::ShipyardTransaction::insert_bulk(database_pool, &shipyard_transactions).await?
     }
 
     Ok(())

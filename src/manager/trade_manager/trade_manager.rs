@@ -5,13 +5,13 @@ use tracing::debug;
 
 use crate::{
     error::Result,
-    manager::{trade_manager::message::TradeMessage, Manager},
+    manager::{Manager, trade_manager::message::TradeMessage},
     utils::ConductorContext,
 };
 
 use super::{
-    messager::TradeManagerMessanger, routes_calculator::RouteCalculator,
-    routes_tracker::RoutesTracker, TradeManagerMessage,
+    TradeManagerMessage, messager::TradeManagerMessanger, routes_calculator::RouteCalculator,
+    routes_tracker::RoutesTracker,
 };
 
 pub type TradeManagerReceiver = tokio::sync::mpsc::Receiver<TradeManagerMessage>;
@@ -138,7 +138,7 @@ impl TradeManager {
 
     async fn request_next_trade_route(
         &mut self,
-        ship_clone: ship::MyShip,
+        ship_clone: ship::MyShipCopy,
     ) -> Result<Option<database::TradeRoute>> {
         let unfinished_route = database::TradeRoute::get_unfinished(
             &self.context.database_pool,

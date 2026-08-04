@@ -458,7 +458,7 @@ impl FleetManager {
     )]
     async fn get_new_assignment(
         &mut self,
-        ship_clone: &ship::MyShip,
+        ship_clone: &ship::MyShipCopy,
         temp: bool,
     ) -> Result<Option<i64>> {
         // remove current assignment

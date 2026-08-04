@@ -27,8 +27,8 @@ pub use connection::WarpConnection;
 
 use crate::error::Result;
 
-use super::RustShip;
 use super::Mutable;
+use super::RustShip;
 
 impl<T: Clone + Send + Sync> RustShip<T, Mutable> {
     pub async fn nav_to(
@@ -77,14 +77,10 @@ impl<T: Clone + Send + Sync> RustShip<T, Mutable> {
         let route2 = route.clone();
         let reson2 = reason.clone();
         let update_funds_fn2 = update_funds_fn.clone();
-        let wp_action = async move |shipi: &mut RustShip<_>,
+        let wp_action = async move |shipi: &mut RustShip<_, Mutable>,
                                     start_waypoint: String,
-                                    end_waypoint: String| {
-            let start = database::Waypoint::get_by_id(
-                &database_pool2,
-                &start_waypoint,
-            )
-            .await?;
+                                    _end_waypoint: String| {
+            let start = database::Waypoint::get_by_id(&database_pool2, &start_waypoint).await?;
 
             if let Some(start) = start {
                 if update_market && start.is_marketplace() {
@@ -152,10 +148,11 @@ impl<T: Clone + Send + Sync> RustShip<T, Mutable> {
 
         Ok(())
     }
+}
 
+impl<T: Clone + Send + Sync, State: Send + Sync> RustShip<T, State> {
     pub fn get_pathfinder(
         &self,
-
         database_pool: &database::DbPool,
         api: &space_traders_client::Api,
     ) -> Option<Pathfinder> {

@@ -1,4 +1,4 @@
-use std::sync::{atomic::AtomicI32, Arc};
+use std::sync::{Arc, atomic::AtomicI32};
 
 use database::DatabaseConnectorAsync;
 use futures::FutureExt;
@@ -67,7 +67,7 @@ impl ExtractionPilot {
         let waypoint_symbol = self
             .context
             .mining_manager
-            .get_waypoint(ship, is_syphon)
+            .get_waypoint(ship.to_immutable(), is_syphon)
             .await?;
 
         tracing::Span::current().record("waypoint", &waypoint_symbol);
@@ -99,7 +99,7 @@ impl ExtractionPilot {
 
         self.context
             .mining_manager
-            .notify_waypoint(ship, is_syphon)
+            .notify_waypoint(ship.to_immutable(), is_syphon)
             .await?;
         let mut rec = self
             .context
@@ -111,7 +111,10 @@ impl ExtractionPilot {
 
         if i == 0 {
             debug!("Extraction Cancelled for ship: {}", ship.symbol);
-            self.context.mining_manager.unassign_waypoint(ship).await?;
+            self.context
+                .mining_manager
+                .unassign_waypoint(ship.to_immutable())
+                .await?;
             return Ok(());
         }
 
@@ -138,7 +141,10 @@ impl ExtractionPilot {
                 .await?;
             if i == 0 {
                 debug!("No extraction after waiting for ship: {}", ship.symbol);
-                self.context.mining_manager.unassign_waypoint(ship).await?;
+                self.context
+                    .mining_manager
+                    .unassign_waypoint(ship.to_immutable())
+                    .await?;
                 return Ok(());
             }
             0
@@ -181,7 +187,10 @@ impl ExtractionPilot {
 
         drop(rec);
 
-        self.context.mining_manager.unassign_waypoint(ship).await?;
+        self.context
+            .mining_manager
+            .unassign_waypoint(ship.to_immutable())
+            .await?;
 
         self.update_assignment(
             ship,

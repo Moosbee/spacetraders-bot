@@ -184,7 +184,7 @@ impl ConstructionManager {
 
     async fn request_next_shipment(
         &mut self,
-        ship_clone: ship::MyShip,
+        ship_clone: ship::MyShipCopy,
     ) -> std::result::Result<super::NextShipmentResp, crate::error::Error> {
         let shipments = database::ConstructionShipment::get_all_in_transit(
             &self.context.database_pool,
@@ -445,7 +445,7 @@ impl ConstructionManager {
     /// returns purchase volume and remaining volume
     fn calculate_purchase_volume(
         &self,
-        ship: &ship::MyShip,
+        ship: &ship::MyShipCopy,
         shipment: &database::ConstructionMaterial,
         trade_symbol: &models::TradeSymbol,
     ) -> (i32, i32) {

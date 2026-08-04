@@ -25,20 +25,20 @@ pub enum ScrapResponse {
 #[derive(Debug)]
 pub enum ScrapMessage {
     Next {
-        ship_clone: ship::MyShip,
+        ship_clone: ship::MyShipCopy,
         callback: tokio::sync::oneshot::Sender<ScrapResponse>,
     },
     Complete {
-        ship_clone: ship::MyShip,
+        ship_clone: ship::MyShipCopy,
         waypoint_symbol: String,
     },
     Fail {
         // or cancel
-        ship_clone: ship::MyShip,
+        ship_clone: ship::MyShipCopy,
         waypoint_symbol: String,
     },
     GetAll {
-        ship_clone: ship::MyShip,
+        ship_clone: ship::MyShipCopy,
 
         callback: tokio::sync::oneshot::Sender<Vec<(String, chrono::DateTime<chrono::Utc>)>>,
     },

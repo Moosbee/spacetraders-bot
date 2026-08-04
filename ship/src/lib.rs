@@ -28,7 +28,7 @@ pub use ship_models::ConditionState;
 pub use ship_models::Immutable;
 pub use ship_models::Mutable;
 pub use ship_models::MyShip;
-pub use ship_models::MyShipInfo;
+pub use ship_models::MyShipCopy;
 pub use ship_models::RustShip;
 pub use status::AssignmentStatus;
 pub use status::ShippingStatus;

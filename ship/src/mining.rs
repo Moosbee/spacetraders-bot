@@ -8,8 +8,7 @@ use super::{Mutable, RustShip};
 
 impl<T: Clone + Send + Sync> RustShip<T, Mutable> {
     pub fn is_on_cooldown(&self) -> bool {
-        if self.cooldown_expiration.is_some() {
-            let t = self.cooldown_expiration.unwrap();
+        if let Some(t) = self.cooldown_expiration {
             let t = t - Utc::now();
             let t = t.num_seconds();
             t > 0

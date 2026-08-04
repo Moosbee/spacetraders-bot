@@ -248,12 +248,12 @@ async fn generate_system_fleets(
     }
 
     // construction fleet
-    if is_headquarters_system && has_open_construction_site && construction_waypoint.is_some() {
+    if is_headquarters_system && has_open_construction_site && let Some(construction_waypoint) = construction_waypoint {
         system_fleets.construction_fleet = Some(
             database::Fleet::new(system_symbol.to_string(), true).with_config(
                 database::FleetConfig::Construction(database::ConstructionFleetConfig {
                     construction_ship_count: 1,
-                    construction_waypoint: construction_waypoint.unwrap(),
+                    construction_waypoint,
                 }),
             ),
         );
