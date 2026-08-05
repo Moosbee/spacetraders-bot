@@ -797,3 +797,142 @@ export const GET_MY_AGENT_MINI_INFO = graphql(/* GraphQL */ `
     }
   }
 `);
+
+export const GET_ALL_SHIPS = graphql(/* GraphQL */ `
+  query GetAllShips {
+    ships {
+      symbol
+      registrationRole
+      engineSpeed
+      nav {
+        status
+        systemSymbol
+        waypointSymbol
+        flightMode
+        route {
+          arrival
+          departureTime
+          originSymbol
+          originSystemSymbol
+          destinationSymbol
+          destinationSystemSymbol
+        }
+        autoPilot {
+          arrival
+          departureTime
+          originSymbol
+          originSystemSymbol
+          destinationSymbol
+          destinationSystemSymbol
+          distance
+          fuelCost
+          travelTime
+        }
+      }
+      cargo {
+        units
+        capacity
+        inventory {
+          symbol
+          units
+        }
+      }
+      fuel {
+        current
+        capacity
+      }
+      conditions {
+        engine {
+          condition
+          integrity
+        }
+        frame {
+          condition
+          integrity
+        }
+        reactor {
+          condition
+          integrity
+        }
+      }
+      cooldownExpiration
+      status {
+        assignmentId
+        tempAssignmentId
+        waitingForApi
+        waitingForManager
+        status {
+          __typename
+          ... on ChartingStatus {
+            cycle
+            waitingForManager
+            waypointSymbol
+          }
+          ... on ConstructionStatus {
+            cycle
+            shipmentId
+            shippingStatus
+            waitingForManager
+          }
+          ... on ContractStatus {
+            contractId
+            runId
+            cycle
+            shippingStatus
+            waitingForManager
+          }
+          ... on ManuelStatus {
+            controlled
+          }
+          ... on MiningStatus {
+            assignment {
+              __typename
+              ... on ExtractorAssignment {
+                extractions
+                state
+                waypointSymbol
+              }
+              ... on SiphonerAssignment {
+                extractions
+                state
+                waypointSymbol
+              }
+              ... on TransporterAssignment {
+                cycles
+                waypointSymbol
+              }
+              ... on SurveyorAssignment {
+                surveys
+                waypointSymbol
+              }
+              ... on IdleAssignment {
+                controlled
+              }
+              ... on UselessAssignment {
+                controlled
+              }
+            }
+          }
+          ... on ScraperStatus {
+            cycle
+            waitingForManager
+            waypointSymbol
+            scrapDate
+          }
+          ... on TraderStatus {
+            cycle
+            shipmentId
+            shippingStatus
+            waitingForManager
+            onSleep
+          }
+          ... on TransferStatus {
+            assignmentId
+            fleetId
+            systemSymbol
+          }
+        }
+      }
+    }
+  }
+`);

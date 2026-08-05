@@ -1,23 +1,36 @@
 import { Link } from "react-router-dom";
-import { SystemShipRole } from "../../models/ship";
+import { GetAllShipsQuery } from "../../gql/graphql";
 import Timer from "../Timer/Timer";
 
-const RoleRenderer = ({ status }: { status: SystemShipRole }) => {
+const RoleRenderer = ({
+  status,
+}: {
+  status: GetAllShipsQuery["ships"][number]["status"];
+}) => {
+  const inner = status.status;
+  const typename = inner.__typename;
+
   const renderContract = () => {
-    if (status.type === "Contract" && status.data !== null) {
-      const firstPart = status.data.contract_id?.slice(0, 3);
-      const lastPart = status.data.contract_id?.slice(-3);
+    if (typename === "ContractStatus") {
+      const firstPart = inner.contractId?.slice(0, 3);
+      const lastPart = inner.contractId?.slice(-3);
       return (
         <span>
-          <Link to={`/contracts/${status.data.contract_id}`}>
+          <Link to={`/contracts/${inner.contractId}`}>
             <span>{firstPart}</span>
             <span>...</span>
             <span>{lastPart}</span>
           </Link>
-          {status.data.waiting_for_manager ? "*" : ""} ({status.data.cycle})
+          {inner.waitingForManager ? "*" : ""} ({inner.cycle})
           <br />
           <span>
-            Shipment {status.data.run_id} - {status.data.shipping_status}
+            Shipment {inner.runId} -{" "}
+            {inner.shippingStatus === "DELIVERING" && "Delivering"}
+            {inner.shippingStatus === "IN_TRANSIT_TO_DELIVERY" &&
+              "Transit to D"}
+            {inner.shippingStatus === "IN_TRANSIT_TO_PURCHASE" &&
+              "Transit to P"}
+            {inner.shippingStatus === "PURCHASING" && "Purchasing"}
           </span>
         </span>
       );
@@ -26,15 +39,15 @@ const RoleRenderer = ({ status }: { status: SystemShipRole }) => {
   };
 
   const renderTrader = () => {
-    if (status.type === "Trader" && status.data !== null) {
+    if (typename === "TraderStatus") {
       return (
         <span>
           <span>
-            {status.data.shipment_id}
-            {status.data.waiting_for_manager ? "*" : ""} ({status.data.cycle})
+            {inner.shipmentId}
+            {inner.waitingForManager ? "*" : ""} ({inner.cycle})
           </span>
           <br />
-          <span>{status.data.shipping_status}</span>
+          <span>{inner.shippingStatus}</span>
         </span>
       );
     }
@@ -42,49 +55,48 @@ const RoleRenderer = ({ status }: { status: SystemShipRole }) => {
   };
 
   const renderMining = () => {
-    if (status.type === "Mining" && status.data !== null) {
-      switch (status.data.assignment.type) {
-        case "Extractor":
-        case "Siphoner":
+    if (typename === "MiningStatus") {
+      const assignment = inner.assignment;
+      const assignTypename = assignment.__typename;
+      switch (assignTypename) {
+        case "ExtractorAssignment":
+        case "SiphonerAssignment":
           return (
             <span>
-              {status.data.assignment.type} -{" "}
-              {status.data.assignment.data.extractions}
+              {assignTypename.replace("Assignment", "")} -{" "}
+              {assignment.extractions}
               <br />
-              {status.data.assignment.data.state} -{" "}
-              {status.data.assignment.data.waypoint_symbol}
+              {assignment.state} - {assignment.waypointSymbol}
             </span>
           );
 
-        case "Transporter":
+        case "TransporterAssignment":
           return (
             <span>
-              {status.data.assignment.type} -{" "}
-              {status.data.assignment.data.cycles}
+              {assignTypename.replace("Assignment", "")} - {assignment.cycles}
               <br />
-              {status.data.assignment.data.state} -{" "}
-              {status.data.assignment.data.waypoint_symbol}
+              {assignment.waypointSymbol}
             </span>
           );
 
-        case "Idle":
-        case "Surveyor":
-        case "Useless":
+        case "IdleAssignment":
+        case "SurveyorAssignment":
+        case "UselessAssignment":
         default:
-          return <span>{status.data.assignment.type}</span>;
+          return <span>{assignTypename.replace("Assignment", "")}</span>;
       }
     }
     return null;
   };
 
   const renderConstruction = () => {
-    if (status.type === "Construction" && status.data !== null) {
+    if (typename === "ConstructionStatus") {
       return (
         <span>
-          {status.data.shipment_id}
-          {status.data.waiting_for_manager ? "*" : ""} ({status.data.cycle})
+          {inner.shipmentId}
+          {inner.waitingForManager ? "*" : ""} ({inner.cycle})
           <br />
-          {status.data.shipping_status}
+          {inner.shippingStatus}
         </span>
       );
     }
@@ -92,13 +104,13 @@ const RoleRenderer = ({ status }: { status: SystemShipRole }) => {
   };
 
   const renderScraper = () => {
-    if (status.type === "Scraper" && status.data !== null) {
+    if (typename === "ScraperStatus") {
       return (
         <span>
-          {status.data.waiting_for_manager ? "*" : ""} ({status.data.cycle})
+          {inner.waitingForManager ? "*" : ""} ({inner.cycle})
           <br />
-          {status.data.waypoint_symbol}{" "}
-          {status.data.scrap_date && <Timer time={status.data.scrap_date} />}
+          {inner.waypointSymbol}{" "}
+          {inner.scrapDate && <Timer time={inner.scrapDate} />}
         </span>
       );
     }
@@ -106,15 +118,13 @@ const RoleRenderer = ({ status }: { status: SystemShipRole }) => {
   };
 
   const renderTransfer = () => {
-    if (status.type === "Transfer" && status.data !== null) {
+    if (typename === "TransferStatus") {
       return (
         <span>
-          ({status.data.id})
+          ({inner.assignmentId})
           <br />
-          {status.data.role}{" "}
-          <Link to={`/system/${status.data.system_symbol}`}>
-            {status.data.system_symbol}
-          </Link>
+          {inner.fleetId}{" "}
+          <Link to={`/system/${inner.systemSymbol}`}>{inner.systemSymbol}</Link>
         </span>
       );
     }
@@ -123,7 +133,7 @@ const RoleRenderer = ({ status }: { status: SystemShipRole }) => {
 
   return (
     <div>
-      <span>{status.type}</span>{" "}
+      <span>{typename?.replace("Status", "")}</span>{" "}
       {renderContract() ||
         renderTrader() ||
         renderMining() ||

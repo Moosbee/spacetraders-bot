@@ -529,8 +529,8 @@ function SystemsMap({
           const toGoNav = selectedSystem;
           const system = calcSystems[toGoNav];
           if (system && ref.current) {
-            const width = ref.current.width;
-            const height = ref.current.height;
+            const width = ref.current.clientWidth;
+            const height = ref.current.clientHeight;
 
             // const minRatio = Math.min(width, height);
             const maxRatio = Math.max(width, height);

@@ -1,3 +1,4 @@
+import { useQuery } from "@apollo/client/react";
 import {
   Button,
   Flex,
@@ -10,19 +11,18 @@ import {
 } from "antd";
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { backendUrl } from "../data";
 import PageTitle from "../features/PageTitle";
 import RoleRenderer from "../features/RoleRenderer/RoleRenderer";
 import Timer from "../features/Timer/Timer";
-import { ShipNavFlightMode, ShipNavStatus, ShipRole } from "../models/api";
-import RustShip from "../models/ship";
-import { useAppDispatch, useAppSelector } from "../redux/hooks";
 import {
-  resetShips,
-  selectAllShipsArray,
-  setShips,
-} from "../redux/slices/shipSlice";
-import { shallowEqual } from "../utils/utils";
+  GetAllShipsQuery,
+  ShipNavFlightMode,
+  ShipNavStatus,
+  ShipRole,
+} from "../gql/graphql";
+import { GET_ALL_SHIPS } from "../graphql/queries";
+
+type ShipData = GetAllShipsQuery["ships"][number];
 
 type TableRowSelection<T extends object = object> =
   TableProps<T>["rowSelection"];
@@ -30,138 +30,107 @@ type TableRowSelection<T extends object = object> =
 function Ships() {
   const [showCooldown, setShowCooldown] = useState(true);
   const [showCondition, setShowCondition] = useState(false);
-
   const [showSelection, setShowSelection] = useState<boolean>(false);
-
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
 
-  const ships = useAppSelector(selectAllShipsArray);
+  const { loading, data, refetch } = useQuery(GET_ALL_SHIPS);
+  const ships = data?.ships ?? [];
 
-  const dispatch = useAppDispatch();
-
-  // useEffect(() => {
-  //   fetch(`http://${backendUrl}/ships`)
-  //     .then((response) => response.json())
-  //     .then(setShips);
-  // }, [setShips]);
-
-  const columns: TableProps<RustShip>["columns"] = [
+  const columns: TableProps<ShipData>["columns"] = [
     {
       title: "Symbol",
       dataIndex: "symbol",
       key: "symbol",
       defaultSortOrder: "ascend",
-      render: (symbol, record) => (
-        <>
-          <Link to={`/ships/${symbol}`}>{symbol}</Link> (
-          {record.active ? "A" : "I"})
-        </>
-      ),
+      render: (symbol: string) => <Link to={`/ships/${symbol}`}>{symbol}</Link>,
       sorter: (a, b) =>
         Number.parseInt(a.symbol.split("-")[1], 16) -
         Number.parseInt(b.symbol.split("-")[1], 16),
-      // https://github.com/ant-design/ant-design/issues/23763
-      shouldCellUpdate: (record, prevRecord) =>
-        !shallowEqual(record, prevRecord),
     },
     {
       title: "Status",
-      // dataIndex: "status",
       key: "status",
       render: (_role, record) => <RoleRenderer status={record.status} />,
       sorter: (a, b) => {
-        const num = a.status.type.localeCompare(b.status.type);
+        const num = (a.status.status.__typename ?? "").localeCompare(
+          b.status.status.__typename ?? "",
+        );
         if (num === 0) {
-          if (a.status.type === "Mining" && b.status.type === "Mining") {
-            const data_a = a.status.data ?? "";
-            const data_b = b.status.data ?? "";
+          const aType = a.status.status.__typename;
+          const bType = b.status.status.__typename;
+          if (aType === "MiningStatus" && bType === "MiningStatus") {
+            const aAssign = a.status.status.assignment.__typename ?? "";
+            const bAssign = b.status.status.assignment.__typename ?? "";
             if (
-              data_a.assignment.type === "Transporter" &&
-              data_b.assignment.type === "Transporter"
+              aAssign === "TransporterAssignment" &&
+              bAssign === "TransporterAssignment"
             ) {
               return a.symbol.localeCompare(b.symbol);
             }
             if (
-              (data_a.assignment.type === "Siphoner" &&
-                data_b.assignment.type === "Siphoner") ||
-              (data_a.assignment.type === "Extractor" &&
-                data_b.assignment.type === "Extractor")
+              (aAssign === "SiphonerAssignment" &&
+                bAssign === "SiphonerAssignment") ||
+              (aAssign === "ExtractorAssignment" &&
+                bAssign === "ExtractorAssignment")
             ) {
-              return a.nav.waypoint_symbol.localeCompare(b.nav.waypoint_symbol);
+              return a.nav.waypointSymbol.localeCompare(b.nav.waypointSymbol);
             }
-            return data_a.assignment.type.localeCompare(data_b.assignment.type);
+            return aAssign.localeCompare(bAssign);
           }
-          if (a.status.type === "Trader" && b.status.type === "Trader") {
+          if (aType === "TraderStatus" && bType === "TraderStatus") {
             return a.symbol.localeCompare(b.symbol);
           }
-          if (a.status.type === "Transfer" && b.status.type === "Transfer") {
-            const num1 = a.status.data.role ?? "Transfer";
-            const num2 = b.status.data.role ?? "Transfer";
-            return num1.localeCompare(num2);
+          if (aType === "TransferStatus" && bType === "TransferStatus") {
+            return a.status.status.assignmentId - b.status.status.assignmentId;
           }
         }
         return num;
       },
-      // https://github.com/ant-design/ant-design/issues/23763
-      shouldCellUpdate: (record, prevRecord) =>
-        !shallowEqual(record, prevRecord),
     },
     {
       title: "Registration Role",
-      dataIndex: "registration_role",
-      key: "registration_role",
+      dataIndex: "registrationRole",
+      key: "registrationRole",
       filters: Object.values(ShipRole).map((role) => ({
         text: role,
         value: role,
       })),
-      onFilter: (value, record) => record.registration_role === value,
-      sorter: (a, b) => a.registration_role.localeCompare(b.registration_role),
-      // https://github.com/ant-design/ant-design/issues/23763
-      shouldCellUpdate: (record, prevRecord) =>
-        !shallowEqual(record, prevRecord),
+      onFilter: (value, record) => record.registrationRole === value,
+      sorter: (a, b) => a.registrationRole.localeCompare(b.registrationRole),
     },
 
     {
       title: "Current Waypoint",
-      dataIndex: ["nav", "waypoint_symbol"],
+      dataIndex: ["nav", "waypointSymbol"],
       key: "current_waypoint",
-      // https://github.com/ant-design/ant-design/issues/23763
-      shouldCellUpdate: (record, prevRecord) =>
-        !shallowEqual(record, prevRecord),
       sorter: (a, b) =>
-        a.nav.waypoint_symbol.localeCompare(b.nav.waypoint_symbol),
+        a.nav.waypointSymbol.localeCompare(b.nav.waypointSymbol),
       render: (value: string, record) => (
         <span>
-          <Link to={`/system/${record.nav.system_symbol}`}>
-            {record.nav.system_symbol}
+          <Link to={`/system/${record.nav.systemSymbol}`}>
+            {record.nav.systemSymbol}
           </Link>
-          <Link to={`/system/${record.nav.system_symbol}/${value}`}>
-            {record.nav.waypoint_symbol.replace(record.nav.system_symbol, "")}
+          <Link to={`/system/${record.nav.systemSymbol}/${value}`}>
+            {record.nav.waypointSymbol.replace(record.nav.systemSymbol, "")}
           </Link>
         </span>
       ),
     },
     {
       title: "Flight Mode",
-      dataIndex: ["nav", "flight_mode"],
-      key: "flight_mode",
-      // https://github.com/ant-design/ant-design/issues/23763
-      shouldCellUpdate: (record, prevRecord) =>
-        !shallowEqual(record, prevRecord),
+      dataIndex: ["nav", "flightMode"],
+      key: "flightMode",
       filters: Object.values(ShipNavFlightMode).map((role) => ({
         text: role,
         value: role,
       })),
-      onFilter: (value, record) => record.nav.flight_mode === value,
-      sorter: (a, b) => a.nav.flight_mode.localeCompare(b.nav.flight_mode),
+      onFilter: (value, record) => record.nav.flightMode === value,
+      sorter: (a, b) => a.nav.flightMode.localeCompare(b.nav.flightMode),
     },
     {
       title: "Navigation Status",
       dataIndex: ["nav", "status"],
       key: "nav_status",
-      // https://github.com/ant-design/ant-design/issues/23763
-      shouldCellUpdate: (record, prevRecord) =>
-        !shallowEqual(record, prevRecord),
       render: (value: ShipNavStatus, record) => (
         <span>
           {value}
@@ -171,21 +140,21 @@ function Ships() {
               (<Timer time={record.nav.route.arrival} />)
               <br />
               <span>
-                {record.nav.route.origin_system_symbol ==
-                record.nav.route.destination_system_symbol
-                  ? record.nav.route.origin_symbol.replace(
-                      record.nav.route.origin_system_symbol + "-",
-                      ""
+                {record.nav.route.originSystemSymbol ===
+                record.nav.route.destinationSystemSymbol
+                  ? record.nav.route.originSymbol.replace(
+                      record.nav.route.originSystemSymbol + "-",
+                      "",
                     )
-                  : record.nav.route.origin_symbol}{" "}
+                  : record.nav.route.originSymbol}{" "}
                 -{">"}{" "}
-                {record.nav.route.origin_system_symbol ==
-                record.nav.route.destination_system_symbol
-                  ? record.nav.route.destination_symbol.replace(
-                      record.nav.route.destination_system_symbol + "-",
-                      ""
+                {record.nav.route.originSystemSymbol ===
+                record.nav.route.destinationSystemSymbol
+                  ? record.nav.route.destinationSymbol.replace(
+                      record.nav.route.destinationSystemSymbol + "-",
+                      "",
                     )
-                  : record.nav.route.destination_symbol}
+                  : record.nav.route.destinationSymbol}
               </span>
             </>
           )}
@@ -205,7 +174,6 @@ function Ships() {
             return data_a - data_b;
           }
         }
-
         return num;
       },
     },
@@ -213,31 +181,27 @@ function Ships() {
     {
       title: "Autopilot",
       key: "autopilot",
-      // https://github.com/ant-design/ant-design/issues/23763
-      shouldCellUpdate: (record, prevRecord) =>
-        !shallowEqual(record, prevRecord),
       align: "center",
       render: (_value, record) => (
         <>
-          {record.nav.auto_pilot && (
+          {record.nav.autoPilot && (
             <span>
-              {record.nav.auto_pilot.origin_system_symbol ==
-              record.nav.auto_pilot.destination_system_symbol
-                ? record.nav.auto_pilot.origin_symbol.replace(
-                    record.nav.auto_pilot.origin_system_symbol + "-",
-                    ""
+              {record.nav.autoPilot.originSystemSymbol ==
+              record.nav.autoPilot.destinationSystemSymbol
+                ? record.nav.autoPilot.originSymbol.replace(
+                    record.nav.autoPilot.originSystemSymbol + "-",
+                    "",
                   )
-                : record.nav.auto_pilot.origin_symbol}{" "}
+                : record.nav.autoPilot.originSymbol}{" "}
               -{">"}{" "}
-              {record.nav.auto_pilot.origin_system_symbol ===
-              record.nav.auto_pilot.destination_system_symbol
-                ? record.nav.auto_pilot.destination_symbol.replace(
-                    record.nav.auto_pilot.destination_system_symbol + "-",
-                    ""
+              {record.nav.autoPilot.originSystemSymbol ===
+              record.nav.autoPilot.destinationSystemSymbol
+                ? record.nav.autoPilot.destinationSymbol.replace(
+                    record.nav.autoPilot.destinationSystemSymbol + "-",
+                    "",
                   )
-                : record.nav.auto_pilot.destination_symbol}
-              <br />(
-              <Timer time={record.nav.auto_pilot.arrival} />)
+                : record.nav.autoPilot.destinationSymbol}
+              <br />(<Timer time={record.nav.autoPilot.arrival} />)
             </span>
           )}
         </>
@@ -245,29 +209,23 @@ function Ships() {
     },
     {
       title: "Engine Speed",
-      dataIndex: "engine_speed",
-      key: "engine_speed",
-      // https://github.com/ant-design/ant-design/issues/23763
-      shouldCellUpdate: (record, prevRecord) =>
-        !shallowEqual(record, prevRecord),
-      sorter: (a, b) => a.engine_speed - b.engine_speed,
+      dataIndex: "engineSpeed",
+      key: "engineSpeed",
+      sorter: (a, b) => a.engineSpeed - b.engineSpeed,
       align: "right",
     },
     {
       title: "Cargo",
       dataIndex: ["cargo", "units"],
       key: "cargo_units",
-      // https://github.com/ant-design/ant-design/issues/23763
-      shouldCellUpdate: (record, prevRecord) =>
-        !shallowEqual(record, prevRecord),
       render: (value: number, record) => (
         <Popover
           content={
             <Flex vertical>
-              {Object.entries(record.cargo.inventory).map((item) => (
-                <Flex gap={6} justify="space-between" key={item[0]}>
-                  <span>{item[0]}</span>
-                  <span>{item[1]}</span>
+              {record.cargo.inventory.map((item) => (
+                <Flex gap={6} justify="space-between" key={item.symbol}>
+                  <span>{item.symbol}</span>
+                  <span>{item.units}</span>
                 </Flex>
               ))}
             </Flex>
@@ -286,17 +244,13 @@ function Ships() {
       render: (value: number, record) => `${value} / ${record.fuel.capacity}`,
       align: "right",
       sorter: (a, b) => a.fuel.capacity - b.fuel.capacity,
-      // https://github.com/ant-design/ant-design/issues/23763
-      shouldCellUpdate: (record, prevRecord) =>
-        !shallowEqual(record, prevRecord),
     },
     ...(showCondition
       ? [
           {
             title: "Conditions",
             key: "conditions",
-
-            render: (_value: unknown, record: RustShip) => (
+            render: (_value: unknown, record: ShipData) => (
               <Space>
                 <Progress
                   type="circle"
@@ -332,10 +286,6 @@ function Ships() {
                 />
               </Space>
             ),
-            // https://github.com/ant-design/ant-design/issues/23763
-            shouldCellUpdate: (record: RustShip, prevRecord: RustShip) =>
-              !shallowEqual(record, prevRecord),
-            // align: "right",
           },
         ]
       : []),
@@ -344,8 +294,8 @@ function Ships() {
       ? [
           {
             title: "Cooldown",
-            dataIndex: "cooldown_expiration",
-            key: "cooldown_expiration",
+            dataIndex: "cooldownExpiration",
+            key: "cooldownExpiration",
             render: (value: string | null) =>
               value && (
                 <span
@@ -357,9 +307,6 @@ function Ships() {
                   <Timer time={value} />
                 </span>
               ),
-            // https://github.com/ant-design/ant-design/issues/23763
-            shouldCellUpdate: (record: RustShip, prevRecord: RustShip) =>
-              !shallowEqual(record, prevRecord),
           },
         ]
       : []),
@@ -370,26 +317,9 @@ function Ships() {
     setSelectedRowKeys(newSelectedRowKeys);
   };
 
-  const rowSelection: TableRowSelection<RustShip> = {
+  const rowSelection: TableRowSelection<ShipData> = {
     selectedRowKeys,
     onChange: onSelectChange,
-    // selections: [
-    //   Table.SELECTION_ALL,
-    //   Table.SELECTION_INVERT,
-    //   Table.SELECTION_NONE,
-    //   {
-    //     key: "Manuel",
-    //     text: "Select Manuel Ships",
-    //     onSelect: (changeableRowKeys) => {
-    //       let newSelectedRowKeys = [];
-    //       newSelectedRowKeys = changeableRowKeys.filter((shipKey) => {
-    //         const ship = ships[shipKey as string];
-    //         return ship.role !== "Manuel";
-    //       });
-    //       setSelectedRowKeys(newSelectedRowKeys);
-    //     },
-    //   },
-    // ],
   };
 
   return (
@@ -397,16 +327,7 @@ function Ships() {
       <PageTitle title="All Ships" />
       <Space>
         <h2>All Ships</h2>
-        <Button onClick={() => dispatch(resetShips())}>Reset</Button>
-        <Button
-          onClick={() => {
-            fetch(`http://${backendUrl}/ships`)
-              .then((response) => response.json())
-              .then((ships: Record<string, RustShip>) =>
-                dispatch(setShips(ships))
-              );
-          }}
-        >
+        <Button onClick={() => refetch()} loading={loading}>
           Refresh
         </Button>
         <Switch
@@ -440,8 +361,6 @@ function Ships() {
           defaultPageSize: 100,
           showTotal: (total, range) => `${range[0]}-${range[1]} of ${total}`,
         }}
-
-        // virtual
       />
     </div>
   );
