@@ -171,6 +171,8 @@ async fn generate_system_fleets(
 
     let has_uncharted_waypoints = waypoints.iter().any(|w| !w.is_charted());
 
+    let use_exploration_fleet = context.config.read().await.use_exploration_fleet;
+
     let has_uncharted_marketplace_waypoints = waypoints
         .iter()
         .any(|w| w.is_marketplace() && !w.is_charted());
@@ -224,7 +226,7 @@ async fn generate_system_fleets(
         contract_fleet: None,
     };
 
-    if has_uncharted_jump_gates {
+    if has_uncharted_jump_gates && use_exploration_fleet {
         system_fleets.exploration_fleet = Some(
             database::Fleet::new(system_symbol.to_string(), true).with_config(
                 database::FleetConfig::Charting(database::ChartingFleetConfig {
@@ -248,7 +250,10 @@ async fn generate_system_fleets(
     }
 
     // construction fleet
-    if is_headquarters_system && has_open_construction_site && let Some(construction_waypoint) = construction_waypoint {
+    if is_headquarters_system
+        && has_open_construction_site
+        && let Some(construction_waypoint) = construction_waypoint
+    {
         system_fleets.construction_fleet = Some(
             database::Fleet::new(system_symbol.to_string(), true).with_config(
                 database::FleetConfig::Construction(database::ConstructionFleetConfig {

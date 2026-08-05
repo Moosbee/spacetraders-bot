@@ -2,8 +2,8 @@ use std::sync::Arc;
 
 use database::DbPool;
 use serde::{Deserialize, Serialize};
-use ship::status::ShipStatus;
 use ship::ShipManager;
+use ship::status::ShipStatus;
 use space_traders_client::models;
 use tokio::sync::RwLock;
 use tokio_util::sync::CancellationToken;
@@ -109,6 +109,8 @@ pub struct Config {
     pub expand: bool,
     pub ship_purchase_amount: i32,
 
+    pub use_exploration_fleet: bool,
+
     pub iron_reserve: i64,
 }
 impl Default for Config {
@@ -147,6 +149,7 @@ impl Default for Config {
             expand: false,
             ship_purchase_amount: 0,
             iron_reserve: 0,
+            use_exploration_fleet: false,
         }
     }
 }

@@ -127,6 +127,10 @@ impl MutationRoot {
                 cfg.ship_purchase_amount = v;
             }
 
+            if let Some(v) = input.use_exploration_fleet {
+                cfg.use_exploration_fleet = v;
+            }
+
             if let Some(v) = input.iron_reserve {
                 cfg.iron_reserve = v;
             }
@@ -554,6 +558,8 @@ struct InputConfig {
     pub ship_purchase_stop: Option<bool>,
     pub expand: Option<bool>,
     pub ship_purchase_amount: Option<i32>,
+
+    pub use_exploration_fleet: Option<bool>,
 
     pub iron_reserve: Option<i64>,
 }
