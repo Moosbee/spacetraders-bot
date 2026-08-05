@@ -660,21 +660,6 @@ impl QueryRoot {
         Ok(ship_assignments.into())
     }
 
-    async fn ship_transfer_requests<'ctx>(
-        &self,
-        ctx: &async_graphql::Context<'ctx>,
-        page: Option<i64>,
-        page_size: Option<i64>,
-    ) -> Result<gql_models::GQLShipTransferRequestPage> {
-        let context = ctx.data::<ConductorContext>()?;
-        let ship_transfer_requests = database::ShipTransferRequest::get_all(
-            &context.database_pool,
-            paginated_query(page, page_size),
-        )
-        .await?;
-        Ok(ship_transfer_requests.into())
-    }
-
     async fn reserved_funds<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
