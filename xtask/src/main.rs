@@ -20,7 +20,16 @@ enum Commands {
 
         #[arg(long)]
         total_lines: Option<u64>,
+
+        #[command(subcommand)]
+        commands: LogAnalysisCommand,
     },
+}
+
+#[derive(Subcommand)]
+enum LogAnalysisCommand {
+    ListErrors,
+    ListTopLevelSpans,
 }
 
 #[tokio::main]
@@ -29,7 +38,11 @@ async fn main() -> anyhow::Result<()> {
 
     match cli.command {
         Commands::SayHello => println!("Hello!"),
-        Commands::AnalyzeLogs { file, total_lines } => analyze_logs::run(&file, total_lines)?,
+        Commands::AnalyzeLogs {
+            file,
+            total_lines,
+            commands,
+        } => analyze_logs::run(&file, total_lines, commands)?,
     }
 
     Ok(())

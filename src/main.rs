@@ -59,7 +59,17 @@ async fn main() -> anyhow::Result<()> {
         let database_pool = create_database_pool(&database_url, readyset_url.as_ref()).await?;
 
         info!("Running database migrations");
-        sqlx::migrate!().run(&database_pool.database_pool).await?;
+        let migrate_result = sqlx::migrate!().run(&database_pool.database_pool).await;
+
+        if let Err(e) = migrate_result {
+            error!(error = ?e, "Error running database migrations");
+            match e {
+                sqlx::migrate::MigrateError::VersionMismatch(_) => {
+                    info!("Database migrations already applied")
+                }
+                _ => return Err(e.into()),
+            }
+        }
 
         wait_for_api().await?;
 
