@@ -193,6 +193,7 @@ type Config {
 	shipPurchaseStop: Boolean!
 	expand: Boolean!
 	shipPurchaseAmount: Int!
+	useExplorationFleet: Boolean!
 	ironReserve: Int!
 }
 
@@ -636,6 +637,7 @@ input InputConfig {
 	shipPurchaseStop: Boolean
 	expand: Boolean
 	shipPurchaseAmount: Int
+	useExplorationFleet: Boolean
 	ironReserve: Int
 }
 

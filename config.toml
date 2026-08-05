@@ -36,4 +36,5 @@ ship_purchase_percentile = 25.0
 trade_profit_threshold = 200
 expand = true
 ship_purchase_amount = 5
+use_exploration_fleet = false
 iron_reserve = 100000
