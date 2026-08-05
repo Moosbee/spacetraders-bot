@@ -6,8 +6,8 @@ use tracing::{debug, warn};
 use crate::{
     error::Result,
     manager::{
-        fleet_manager::{ship_capabilities::ShipCapabilities, ship_worth::ShipWorth},
         Manager,
+        fleet_manager::{ship_capabilities::ShipCapabilities, ship_worth::ShipWorth},
     },
     utils::ConductorContext,
 };
@@ -450,6 +450,16 @@ impl FleetManager {
 
         Ok(())
     }
+
+    // async fn create_transfer_request(
+    //     &self,
+    //     ship_symbol: String,
+    //     fleet: i32,
+    //     assignment: i64,
+    //     system_symbol: String,
+    // ) -> crate::error::Result<()> {
+    //     Ok(())
+    // }
 
     #[tracing::instrument(
         level = "info",

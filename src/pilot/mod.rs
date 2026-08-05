@@ -13,6 +13,7 @@ use mining::MiningPilot;
 use scraper::ScraperPilot;
 use tokio_util::sync::CancellationToken;
 use tracing::debug;
+use tracing::info;
 use tracing::instrument;
 use trading::TradingPilot;
 use utils::WaypointCan;
@@ -315,8 +316,47 @@ impl Pilot {
             return Ok(());
         }
 
-        self.execute_fly_to_system(ship, fleet, assignment, system)
+        database::ShipInfo::unassign_ship(&self.context.database_pool, &self.ship_symbol).await?;
+        database::ShipInfo::unassign_temp_ship(&self.context.database_pool, &self.ship_symbol)
             .await?;
+
+        tokio::time::sleep(std::time::Duration::from_millis(1000)).await;
+
+        info!(ship_symbol = %self.ship_symbol, system = %system, "Flying to system");
+
+        // check db if has transfer request with ship and fleet and not finished
+        // if yes assign transfer request to ship and execute it
+        // if not calculate fuel costs, reserve money create transfer request and assign it to ship and execute it
+        // if we don't have enought money unassign ship from assignment
+
+        let transfer_requests =
+            database::ShipTransferRequest::get_active_by_ship_fleet_and_assignment(
+                &self.context.database_pool,
+                &self.ship_symbol,
+                fleet.id,
+                assignment.id,
+            )
+            .await?;
+
+        if transfer_requests.len() > 1 {
+            return Err(Error::General(
+                "Multiple transfer requests found".to_string(),
+            ));
+        }
+
+        todo!("Transfer stuff not implemented yet");
+
+        // let transfer_request = match transfer_requests.first() {
+        //     Some(transfer_request) => Some(transfer_request),
+        //     None => None,
+        // };
+
+        // if let Some(transfer_request) = transfer_request {
+        //     self.execute_transfer_request(ship, fleet, assignment, transfer_request)
+        //         .await?;
+        //     return Ok(());
+        // } else {
+        // }
 
         Ok(())
     }
@@ -327,6 +367,7 @@ impl Pilot {
         ship: &mut ship::MyShip,
         fleet: &database::Fleet,
         assignment: &database::ShipAssignment,
+        transfer_request: database::ShipTransferRequest,
         system_symbol: String,
     ) -> crate::error::Result<()> {
         ship.status.status = ship::AssignmentStatus::Transfer {

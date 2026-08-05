@@ -1611,6 +1611,74 @@ impl GQLShipAssignment {
 }
 
 #[derive(Debug, Clone, async_graphql::SimpleObject)]
+#[graphql(name = "ShipTransferRequest")]
+#[graphql(complex)]
+pub struct GQLShipTransferRequest {
+    #[graphql(flatten)]
+    ship_transfer_request: database::ShipTransferRequest,
+}
+
+impl From<database::ShipTransferRequest> for GQLShipTransferRequest {
+    fn from(value: database::ShipTransferRequest) -> Self {
+        GQLShipTransferRequest {
+            ship_transfer_request: value,
+        }
+    }
+}
+
+paginated_gql_object!(
+    GQLShipTransferRequestPage,
+    "ShipTransferRequestPage",
+    database::ShipTransferRequest,
+    GQLShipTransferRequest
+);
+
+#[async_graphql::ComplexObject]
+impl GQLShipTransferRequest {
+    async fn ship<'ctx>(&self, ctx: &async_graphql::Context<'ctx>) -> Result<Option<GQLShip>> {
+        let context = ctx.data::<crate::utils::ConductorContext>().unwrap();
+        let ship = context
+            .ship_manager
+            .get_clone(&self.ship_transfer_request.ship_symbol);
+        Ok(ship.map(|f| f.into()))
+    }
+
+    async fn fleet<'ctx>(&self, ctx: &async_graphql::Context<'ctx>) -> Result<Option<GQLFleet>> {
+        let fleet_loader = ctx.data::<DataLoader<database::FleetLoader>>().unwrap();
+        let erg = fleet_loader
+            .load_one(self.ship_transfer_request.fleet_id)
+            .await?;
+        Ok(into_gql(erg))
+    }
+
+    async fn assignment<'ctx>(
+        &self,
+        ctx: &async_graphql::Context<'ctx>,
+    ) -> Result<Option<GQLShipAssignment>> {
+        let database_pool = ctx.data::<database::DbPool>().unwrap();
+        let erg = database::ShipAssignment::get_by_id(
+            database_pool,
+            self.ship_transfer_request.assignment_id,
+        )
+        .await?;
+        Ok(into_gql(erg))
+    }
+
+    async fn reserved_fund<'ctx>(
+        &self,
+        ctx: &async_graphql::Context<'ctx>,
+    ) -> Result<Option<GQLReservedFund>> {
+        let database_pool = ctx.data::<database::DbPool>().unwrap();
+        let erg = database::ReservedFund::get_by_id(
+            database_pool,
+            &self.ship_transfer_request.reserved_fund,
+        )
+        .await?;
+        Ok(into_gql(erg))
+    }
+}
+
+#[derive(Debug, Clone, async_graphql::SimpleObject)]
 #[graphql(name = "ShipInfo")]
 #[graphql(complex)]
 pub struct GQLShipInfo {
