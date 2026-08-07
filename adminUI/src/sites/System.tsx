@@ -18,18 +18,20 @@ import {
   Progress,
   Row,
   Space,
+  Switch,
   Table,
   TableProps,
 } from "antd";
+import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import MarketTradeGoodsPopover from "../features/MarketTradeGoods/MarketTradeGoodsPopover";
 import MoneyDisplay from "../features/MonyDisplay";
 import PageTitle from "../features/PageTitle";
 import Timer from "../features/Timer/Timer";
-import TransactionTable from "../features/TransactionTable/TransactionTable";
 import WaypointLink from "../features/WaypointLink";
 import {
   ActivityLevel,
+  MarketTradeGoodType,
   ShipType,
   SupplyLevel,
   TradeSymbol,
@@ -67,7 +69,6 @@ function System() {
   const dispatch = useAppDispatch();
 
   // if (dataState != "complete") return <p>Loading...</p>;
-  if (error) return <p>Error: {error.message}</p>;
 
   const system = data?.system
     ? {
@@ -93,12 +94,73 @@ function System() {
           marketTrades: waypoint.marketTrades.items,
           shipyardShips: waypoint.shipyardShips.items,
         })),
-        marketTransactions: data.system.marketTransactions.items,
         shipyardTransactions: data.system.shipyardTransactions.items,
         contractDeliveries: data.system.contractDeliveries.items,
         tradeRoutes: data.system.tradeRoutes.items,
       }
     : undefined;
+
+  const [hideFuelInMarketTrades, setHideFuelInMarketTrades] = useState(true);
+
+  const marketDistripution = useMemo(() => {
+    return system?.marketTrades
+      .map((trade) => trade.marketTradeGood?.supply)
+      .reduce(
+        (a, b) => {
+          if (b) {
+            a[b] += 1;
+            a["TOTAL"] += 1;
+          }
+          return a;
+        },
+        {
+          [SupplyLevel.Scarce]: 0,
+          [SupplyLevel.Limited]: 0,
+          [SupplyLevel.Moderate]: 0,
+          [SupplyLevel.High]: 0,
+          [SupplyLevel.Abundant]: 0,
+          TOTAL: 0,
+        } as Record<SupplyLevel | "TOTAL", number>,
+      );
+  }, [system?.marketTrades]);
+
+  const fuelCost = useMemo(() => {
+    const prices = (system?.marketTrades || [])
+      .filter((t) => t.symbol === "FUEL")
+      .map((t) => t.marketTradeGood?.purchasePrice)
+      .filter((p): p is number => p != null)
+      .sort((a, b) => a - b);
+    if (prices.length === 0) return null;
+    const min = prices[0];
+    const max = prices[prices.length - 1];
+    const avg = prices.reduce((s, p) => s + p, 0) / prices.length;
+    const mid = Math.floor(prices.length / 2);
+    const median =
+      prices.length % 2 === 0
+        ? (prices[mid - 1] + prices[mid]) / 2
+        : prices[mid];
+    return { min, max, avg, median };
+  }, [system?.marketTrades]);
+
+  const antimatterCost = useMemo(() => {
+    const prices = (system?.marketTrades || [])
+      .filter((t) => t.symbol === "ANTIMATTER")
+      .map((t) => t.marketTradeGood?.purchasePrice)
+      .filter((p): p is number => p != null)
+      .sort((a, b) => a - b);
+    if (prices.length === 0) return null;
+    const min = prices[0];
+    const max = prices[prices.length - 1];
+    const avg = prices.reduce((s, p) => s + p, 0) / prices.length;
+    const mid = Math.floor(prices.length / 2);
+    const median =
+      prices.length % 2 === 0
+        ? (prices[mid - 1] + prices[mid]) / 2
+        : prices[mid];
+    return { min, max, avg, median };
+  }, [system?.marketTrades]);
+
+  if (error) return <p>Error: {error.message}</p>;
 
   type GQLWaypoint = NonNullable<typeof system>["waypoints"][number];
 
@@ -446,6 +508,7 @@ function System() {
         text: trade_good,
         value: trade_good,
       })),
+      filterSearch: true,
       onFilter: (value, record) =>
         record.marketTrades?.some((t) => t.symbol === value) ?? false,
     },
@@ -677,6 +740,131 @@ function System() {
               </span>
             ),
           },
+          {
+            label: "Fuel Cost",
+            children: fuelCost ? (
+              <Flex vertical>
+                <Flex justify="space-between">
+                  Min <MoneyDisplay amount={Math.ceil(fuelCost.min)} />
+                </Flex>
+                <Flex justify="space-between">
+                  Max <MoneyDisplay amount={Math.ceil(fuelCost.max)} />
+                </Flex>
+                <Flex justify="space-between">
+                  Avg <MoneyDisplay amount={Math.ceil(fuelCost.avg)} />
+                </Flex>
+                <Flex justify="space-between">
+                  Median <MoneyDisplay amount={Math.ceil(fuelCost.median)} />
+                </Flex>
+              </Flex>
+            ) : (
+              "N/A"
+            ),
+          },
+          {
+            label: "Antimatter Cost",
+            children: antimatterCost ? (
+              <Flex vertical>
+                <Flex justify="space-between">
+                  Min <MoneyDisplay amount={Math.ceil(antimatterCost.min)} />
+                </Flex>
+                <Flex justify="space-between">
+                  Max <MoneyDisplay amount={Math.ceil(antimatterCost.max)} />
+                </Flex>
+                <Flex justify="space-between">
+                  Avg <MoneyDisplay amount={Math.ceil(antimatterCost.avg)} />
+                </Flex>
+                <Flex justify="space-between">
+                  Median{" "}
+                  <MoneyDisplay amount={Math.ceil(antimatterCost.median)} />
+                </Flex>
+              </Flex>
+            ) : (
+              "N/A"
+            ),
+          },
+          {
+            label: "Market Distribution",
+            children: (
+              <span>
+                <div className="grid grid-cols-[max-content_max-content_auto] gap-2">
+                  <span>SCARCE</span>
+                  <span className="text-right">
+                    {marketDistripution?.SCARCE}
+                  </span>
+                  <span>
+                    <Progress
+                      percent={
+                        ((marketDistripution?.SCARCE || 0) /
+                          (marketDistripution?.TOTAL || 1)) *
+                        100
+                      }
+                      size={"small"}
+                      showInfo={false}
+                    />
+                  </span>
+                  <span>LIMITED</span>
+                  <span className="text-right">
+                    {marketDistripution?.LIMITED}
+                  </span>
+                  <span>
+                    <Progress
+                      percent={
+                        ((marketDistripution?.LIMITED || 0) /
+                          (marketDistripution?.TOTAL || 1)) *
+                        100
+                      }
+                      size={"small"}
+                      showInfo={false}
+                    />
+                  </span>
+                  <span>MODERATE</span>
+                  <span className="text-right">
+                    {marketDistripution?.MODERATE}
+                  </span>
+                  <span>
+                    <Progress
+                      percent={
+                        ((marketDistripution?.MODERATE || 0) /
+                          (marketDistripution?.TOTAL || 1)) *
+                        100
+                      }
+                      size={"small"}
+                      showInfo={false}
+                    />
+                  </span>
+                  <span>HIGH</span>
+                  <span className="text-right">{marketDistripution?.HIGH}</span>
+                  <span>
+                    <Progress
+                      percent={
+                        ((marketDistripution?.HIGH || 0) /
+                          (marketDistripution?.TOTAL || 1)) *
+                        100
+                      }
+                      size={"small"}
+                      showInfo={false}
+                    />
+                  </span>
+                  <span>ABUNDANT</span>
+                  <span className="text-right">
+                    {marketDistripution?.ABUNDANT}
+                  </span>
+                  <span>
+                    <Progress
+                      percent={
+                        ((marketDistripution?.ABUNDANT || 0) /
+                          (marketDistripution?.TOTAL || 1)) *
+                        100
+                      }
+                      size={"small"}
+                      showInfo={false}
+                    />
+                  </span>
+                </div>
+              </span>
+            ),
+          },
         ]}
       />
 
@@ -693,6 +881,15 @@ function System() {
                 key: "waypointSymbol",
                 sorter: (a, b) =>
                   a.waypointSymbol.localeCompare(b.waypointSymbol),
+              },
+              {
+                title: "Last Updated",
+                dataIndex: "updatedAt",
+                key: "updatedAt",
+                sorter: (a, b) => a.updatedAt.localeCompare(b.updatedAt),
+                render: (updatedAt: string) => (
+                  <span>{new Date(updatedAt).toLocaleString()}</span>
+                ),
               },
               {
                 title: "trade Symbol",
@@ -791,16 +988,180 @@ function System() {
       <Divider />
       <Row gutter={10}>
         <Col span={15}>
-          <TransactionTable
-            transactions={system?.marketTransactions || []}
-            reasons={{
-              contract: false,
-              construction_shipment_id: false,
-              mining: false,
-              trade_route_id: false,
-            }}
+          <Table
             size="small"
-            title={() => "Market Transactions"}
+            title={() => (
+              <Flex justify="space-between">
+                <span>Market Trades</span>
+                <Space>
+                  Hide Fuel
+                  <Switch
+                    onChange={setHideFuelInMarketTrades}
+                    checked={hideFuelInMarketTrades}
+                  />
+                </Space>
+              </Flex>
+            )}
+            columns={[
+              {
+                title: "Waypoint",
+                dataIndex: "waypointSymbol",
+                key: "waypointSymbol",
+                render: (symbol: string) => (
+                  <WaypointLink waypoint={symbol}>{symbol}</WaypointLink>
+                ),
+                sorter: (a, b) =>
+                  a.waypointSymbol.localeCompare(b.waypointSymbol),
+                filters: [
+                  ...new Set(
+                    (system?.marketTrades || []).map((t) => t.waypointSymbol),
+                  ),
+                ].map((t) => ({
+                  text: t,
+                  value: t,
+                })),
+                onFilter: (value, record) => record.waypointSymbol === value,
+              },
+              {
+                title: "Symbol",
+                dataIndex: "symbol",
+                key: "symbol",
+                sorter: (a, b) => a.symbol.localeCompare(b.symbol),
+                filters: [
+                  ...new Set((system?.marketTrades || []).map((t) => t.symbol)),
+                ].map((t) => ({
+                  text: t,
+                  value: t,
+                })),
+                filterSearch: true,
+                onFilter: (value, record) => record.symbol === value,
+              },
+              {
+                title: "Type",
+                dataIndex: "type",
+                key: "type",
+                sorter: (a, b) => a.type.localeCompare(b.type),
+                filters: Object.values(MarketTradeGoodType).map((t) => ({
+                  text: t,
+                  value: t,
+                })),
+                onFilter: (value, record) => record.type === value,
+              },
+
+              {
+                title: "Supply",
+                key: "marketTradeGood?.supply",
+                render: (_, record) => record.marketTradeGood?.supply || "N/A",
+                sorter: (a, b) =>
+                  (a.marketTradeGood?.supply ?? "").localeCompare(
+                    b.marketTradeGood?.supply ?? "",
+                  ),
+                filters: Object.values(SupplyLevel).map((t) => ({
+                  text: t,
+                  value: t,
+                })),
+                onFilter: (value, record) =>
+                  record.marketTradeGood?.supply === value,
+              },
+              {
+                title: "Volume",
+                key: "marketTradeGood?.tradeVolume",
+                align: "right",
+                render: (_, record) =>
+                  record.marketTradeGood?.tradeVolume || "N/A",
+
+                sorter: (a, b) =>
+                  (a.marketTradeGood?.tradeVolume ?? 0) -
+                  (b.marketTradeGood?.tradeVolume ?? 0),
+              },
+              {
+                title: "Activity",
+                key: "activity",
+                render: (_, record) =>
+                  record.marketTradeGood?.activity || "N/A",
+                sorter: (a, b) =>
+                  (a.marketTradeGood?.activity ?? "").localeCompare(
+                    b.marketTradeGood?.activity ?? "",
+                  ),
+                filters: Object.values(ActivityLevel).map((t) => ({
+                  text: t,
+                  value: t,
+                })),
+                onFilter: (value, record) =>
+                  record.marketTradeGood?.activity === value,
+              },
+              {
+                title: "Purchase",
+                key: "marketTradeGood?.purchasePrice",
+                render: (_, record) =>
+                  record.type === "IMPORT" ? (
+                    record.marketTradeGood?.purchasePrice ? (
+                      <MoneyDisplay
+                        amount={record.marketTradeGood?.purchasePrice}
+                      />
+                    ) : (
+                      "N/A"
+                    )
+                  ) : (
+                    <b>
+                      {record.marketTradeGood?.purchasePrice ? (
+                        <MoneyDisplay
+                          amount={record.marketTradeGood?.purchasePrice}
+                        />
+                      ) : (
+                        "N/A"
+                      )}
+                    </b>
+                  ),
+                sorter: (a, b) =>
+                  (a.marketTradeGood?.purchasePrice || 0) -
+                  (b.marketTradeGood?.purchasePrice || 0),
+              },
+              {
+                title: "Sell",
+                key: "marketTradeGood?.sellPrice",
+                render: (_, record) =>
+                  record.type === "EXPORT" ? (
+                    record.marketTradeGood?.sellPrice ? (
+                      <MoneyDisplay
+                        amount={record.marketTradeGood?.sellPrice}
+                      />
+                    ) : (
+                      "N/A"
+                    )
+                  ) : (
+                    <b>
+                      {record.marketTradeGood?.sellPrice ? (
+                        <MoneyDisplay
+                          amount={record.marketTradeGood?.sellPrice}
+                        />
+                      ) : (
+                        "N/A"
+                      )}
+                    </b>
+                  ),
+                sorter: (a, b) =>
+                  (a.marketTradeGood?.sellPrice || 0) -
+                  (b.marketTradeGood?.sellPrice || 0),
+              },
+              {
+                title: "Created At",
+                dataIndex: "createdAt",
+                key: "createdAt",
+                render: (date: string) => new Date(date).toLocaleString(),
+                sorter: (a, b) =>
+                  new Date(a.createdAt).getTime() -
+                  new Date(b.createdAt).getTime(),
+              },
+            ]}
+            dataSource={(system?.marketTrades || []).filter(
+              (t) => !hideFuelInMarketTrades || t.symbol !== "FUEL",
+            )}
+            rowKey={(row) => row.symbol + row.waypointSymbol + row.type}
+            pagination={{
+              showTotal: (total, range) =>
+                `${range[0]}-${range[1]} of ${total}`,
+            }}
           />
         </Col>
         <Col span={9}>
@@ -885,6 +1246,7 @@ function System() {
             }}
           />
         </Col>
+        <Divider />
         <Col span={15}>
           <Table
             size="small"

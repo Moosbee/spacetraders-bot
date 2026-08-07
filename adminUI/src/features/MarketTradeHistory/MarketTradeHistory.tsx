@@ -1,4 +1,9 @@
 import {
+  ExportOutlined,
+  ImportOutlined,
+  InteractionOutlined,
+} from "@ant-design/icons";
+import {
   Checkbox,
   Col,
   DatePicker,
@@ -21,21 +26,31 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { TradeSymbol } from "../../models/api";
-import { MarketTradeGood } from "../../models/Market";
+import { TradeSymbol } from "../../gql/graphql";
 import { chartColors } from "../../utils/chartColors";
 import { cyrb53 } from "../../utils/utils";
+
+export interface TradeGoodEntry {
+  symbol: TradeSymbol;
+  type: string;
+  createdAt: string;
+  purchasePrice: number;
+  sellPrice: number;
+  tradeVolume: number;
+  supply: string;
+  activity?: string | null;
+}
 const { RangePicker } = DatePicker;
 
 function calcTradeHistory(
-  history: { [key in TradeSymbol]?: (MarketTradeGood & { datetime: Date })[] },
+  history: { [key in TradeSymbol]?: (TradeGoodEntry & { datetime: Date })[] },
   historyPoints: number,
   minDate: Date,
   maxDate: Date,
-  filterValues: TradeSymbol[]
+  filterValues: TradeSymbol[],
 ): {
   datetime: Date;
-  values: { [key in TradeSymbol]?: MarketTradeGood & { datetime: Date } };
+  values: { [key in TradeSymbol]?: TradeGoodEntry & { datetime: Date } };
 }[] {
   // If there are no entries in any history array, return empty array
   if (Object.values(history).every((arr) => !arr || arr.length === 0)) {
@@ -47,7 +62,7 @@ function calcTradeHistory(
   // For each history point, calculate the date and find the most recent value for each symbol
   for (let i = 0; i < historyPoints; i++) {
     const date = calcDate(historyPoints, i, minDate, maxDate);
-    const values: { [key: string]: MarketTradeGood & { datetime: Date } } = {};
+    const values: { [key: string]: TradeGoodEntry & { datetime: Date } } = {};
 
     // Process each symbol's history array
     for (const symbolStr in history) {
@@ -94,7 +109,7 @@ function calcDate(
   notches: number,
   notch: number,
   minDate: Date,
-  maxDate: Date
+  maxDate: Date,
 ): Date {
   // Validate inputs
   if (notches <= 0) {
@@ -124,8 +139,8 @@ function calcDate(
   return new Date(notchTime);
 }
 
-function MarketTradeHistory({ history }: { history: MarketTradeGood[] }) {
-  // const trade_history: Record<string, MarketTradeGood[]> = {};
+function MarketTradeHistory({ history }: { history: TradeGoodEntry[] }) {
+  // const trade_history: Record<string, TradeGoodEntry[]> = {};
 
   const {
     token: { colorBgElevated },
@@ -133,12 +148,12 @@ function MarketTradeHistory({ history }: { history: MarketTradeGood[] }) {
 
   const tradeHistory = useMemo(() => {
     const trade_history: {
-      [key in TradeSymbol]?: (MarketTradeGood & { datetime: Date })[];
+      [key in TradeSymbol]?: (TradeGoodEntry & { datetime: Date })[];
     } = {};
 
     for (let i = 0; i < history.length; i++) {
       const trade = history[i];
-      const new_trade = { ...trade, datetime: new Date(trade.created_at) };
+      const new_trade = { ...trade, datetime: new Date(trade.createdAt) };
       const good = trade_history[trade.symbol] || [];
       good.push(new_trade);
       trade_history[trade.symbol] = good;
@@ -146,7 +161,7 @@ function MarketTradeHistory({ history }: { history: MarketTradeGood[] }) {
 
     for (const symbol in trade_history) {
       trade_history[symbol as TradeSymbol]?.sort(
-        (a, b) => a.datetime.getTime() - b.datetime.getTime()
+        (a, b) => a.datetime.getTime() - b.datetime.getTime(),
       );
     }
 
@@ -168,7 +183,7 @@ function MarketTradeHistory({ history }: { history: MarketTradeGood[] }) {
         {
           minDate: new Date(Date.now() - 0),
           maxDate: new Date(0),
-        }
+        },
       ) || { minDate: new Date(), maxDate: new Date() };
     const minDateDayJs = dayjs(minDate);
     const maxDateDayJs = dayjs(maxDate);
@@ -196,9 +211,8 @@ function MarketTradeHistory({ history }: { history: MarketTradeGood[] }) {
       historyPoints,
       minDate,
       maxDate,
-      checkboxValue
+      checkboxValue,
     );
-    console.log("chtHist", chtHist, tradeHistory);
     return chtHist;
   }, [checkboxValue, historyPoints, maxDate, minDate, tradeHistory]);
 
@@ -214,7 +228,20 @@ function MarketTradeHistory({ history }: { history: MarketTradeGood[] }) {
     const value: CheckboxGroupProps["options"] = [];
     for (const symbol in tradeHistory) {
       value.push({
-        label: symbol,
+        label: (
+          <span className="text-nowrap">
+            {tradeHistory[symbol as TradeSymbol]?.[0]?.type === "IMPORT" && (
+              <ImportOutlined />
+            )}
+            {tradeHistory[symbol as TradeSymbol]?.[0]?.type === "EXPORT" && (
+              <ExportOutlined />
+            )}
+            {tradeHistory[symbol as TradeSymbol]?.[0]?.type === "EXCHANGE" && (
+              <InteractionOutlined />
+            )}{" "}
+            {symbol}
+          </span>
+        ),
         value: symbol,
         style: {
           color: colors[symbol],
@@ -255,11 +282,11 @@ function MarketTradeHistory({ history }: { history: MarketTradeGood[] }) {
         <span>
           From{" "}
           {new Date(
-            Math.max(minDate.getTime(), dateRange[0].toDate().getTime())
+            Math.max(minDate.getTime(), dateRange[0].toDate().getTime()),
           ).toLocaleString()}{" "}
           to{" "}
           {new Date(
-            Math.min(maxDate.getTime(), dateRange[1].toDate().getTime())
+            Math.min(maxDate.getTime(), dateRange[1].toDate().getTime()),
           ).toLocaleString()}
         </span>
       </Flex>
@@ -293,7 +320,6 @@ function MarketTradeHistory({ history }: { history: MarketTradeGood[] }) {
                       props.payload.length % 3 !== 0
                     )
                       return null;
-                    console.log("props", props);
                     const values = props.payload
                       .filter((p) => p.color && p.name && p.value)
                       .map((p) => ({
@@ -309,14 +335,22 @@ function MarketTradeHistory({ history }: { history: MarketTradeGood[] }) {
                       sellPrice: number;
                       purchasePrice: number;
                       tradeVolume: number;
+                      supply: string;
                     }[] = [];
                     for (let i = 0; i < values.length; i = i + 3) {
+                      const tradeSymbol = values[i].name.split(" ")[0];
+                      const supply =
+                        (
+                          props.payload[i]
+                            .payload as (typeof chartHistory)[number]
+                        )?.values?.[tradeSymbol as TradeSymbol]?.supply ?? "";
                       text.push({
-                        name: values[i].name.split(" ")[0],
+                        name: tradeSymbol,
                         color: values[i].color,
                         sellPrice: values[i + 2].value,
                         purchasePrice: values[i + 1].value,
                         tradeVolume: values[i].value,
+                        supply,
                       });
                     }
                     return (
@@ -333,7 +367,8 @@ function MarketTradeHistory({ history }: { history: MarketTradeGood[] }) {
                           <span key={i}>
                             <span style={{ color: t.color }}>
                               {t.name}: {t.sellPrice} -{">"} {t.purchasePrice} (
-                              {t.tradeVolume})
+                              {t.tradeVolume}
+                              {t.supply ? `, ${t.supply}` : ""})
                             </span>
                             <br />
                           </span>
@@ -372,13 +407,13 @@ function MarketTradeHistory({ history }: { history: MarketTradeGood[] }) {
                     dataKey={(entry: {
                       datetime: Date;
                       values: {
-                        [key in TradeSymbol]?: MarketTradeGood & {
+                        [key in TradeSymbol]?: TradeGoodEntry & {
                           datetime: Date;
                         };
                       };
                     }) => {
                       const val =
-                        entry.values[symbol as TradeSymbol]?.sell_price || 0;
+                        entry.values[symbol as TradeSymbol]?.sellPrice || 0;
                       return val;
                     }}
                     name={symbol + " sell"}
@@ -395,14 +430,13 @@ function MarketTradeHistory({ history }: { history: MarketTradeGood[] }) {
                     dataKey={(entry: {
                       datetime: Date;
                       values: {
-                        [key in TradeSymbol]?: MarketTradeGood & {
+                        [key in TradeSymbol]?: TradeGoodEntry & {
                           datetime: Date;
                         };
                       };
                     }) => {
                       const val =
-                        entry.values[symbol as TradeSymbol]?.purchase_price ||
-                        0;
+                        entry.values[symbol as TradeSymbol]?.purchasePrice || 0;
                       return val;
                     }}
                     name={symbol + " buy"}
@@ -418,13 +452,13 @@ function MarketTradeHistory({ history }: { history: MarketTradeGood[] }) {
                     dataKey={(entry: {
                       datetime: Date;
                       values: {
-                        [key in TradeSymbol]?: MarketTradeGood & {
+                        [key in TradeSymbol]?: TradeGoodEntry & {
                           datetime: Date;
                         };
                       };
                     }) => {
                       const val =
-                        entry.values[symbol as TradeSymbol]?.trade_volume || 0;
+                        entry.values[symbol as TradeSymbol]?.tradeVolume || 0;
                       return val;
                     }}
                     name={symbol + " volume"}

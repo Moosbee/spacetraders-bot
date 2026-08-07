@@ -377,6 +377,7 @@ export const GET_SYSTEM = graphql(/* GraphQL */ `
           tradeSymbol
           required
           fulfilled
+          updatedAt
           marketTransactionSummary {
             expenses
             purchaseUnits
@@ -442,20 +443,6 @@ export const GET_SYSTEM = graphql(/* GraphQL */ `
               purchasePrice
             }
           }
-        }
-      }
-      marketTransactions {
-        items {
-          id
-          waypointSymbol
-          shipSymbol
-          tradeSymbol
-          type
-          units
-          pricePerUnit
-          totalPrice
-          timestamp
-          contract_id
         }
       }
       shipyardTransactions {
@@ -686,6 +673,16 @@ export const GET_WAYPOINT = graphql(/* GraphQL */ `
           sellPrice
           type
           createdAt
+          history {
+            items {
+              createdAt
+              purchasePrice
+              sellPrice
+              tradeVolume
+              supply
+              activity
+            }
+          }
         }
       }
       constructionMaterials {
@@ -859,6 +856,8 @@ export const GET_ALL_SHIPS = graphql(/* GraphQL */ `
       status {
         assignmentId
         tempAssignmentId
+        fleetId
+        tempFleetId
         waitingForApi
         waitingForManager
         status {

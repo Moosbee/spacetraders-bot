@@ -88,6 +88,29 @@ function Ships() {
       },
     },
     {
+      title: "Fleet",
+      key: "fleetId",
+      filters: [
+        ...[
+          ...new Set(
+            ships
+              .map((ship) => ship.status?.fleetId)
+              .filter((id) => !!id)
+              .map((id) => id as unknown as number),
+          ),
+        ]
+          .toSorted((a, b) => a - b)
+          .map((id) => ({ text: id, value: id })),
+      ],
+      onFilter: (value, record) => record.status?.fleetId === value,
+      render: (_role, record) => (
+        <span>
+          {record.status?.fleetId} ({record.status.assignmentId})
+        </span>
+      ),
+      sorter: (a, b) => (a.status?.fleetId || 0) - (b.status?.fleetId || 0),
+    },
+    {
       title: "Registration Role",
       dataIndex: "registrationRole",
       key: "registrationRole",

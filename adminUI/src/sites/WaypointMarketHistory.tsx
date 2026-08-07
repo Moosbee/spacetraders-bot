@@ -1,26 +1,44 @@
+import { useQuery } from "@apollo/client/react";
 import { Button, Space } from "antd";
-import { useEffect, useState } from "react";
+import { useMemo } from "react";
 import { useParams } from "react-router-dom";
-import { backendUrl } from "../data";
-import MarketTradeHistory from "../features/MarketTradeHistory/MarketTradeHistory";
+import MarketTradeHistory, {
+  TradeGoodEntry,
+} from "../features/MarketTradeHistory/MarketTradeHistory";
 import PageTitle from "../features/PageTitle";
-import { WaypointResponse } from "../models/SQLWaypoint";
+import { GET_WAYPOINT } from "../graphql/queries";
 
 function WaypointMarketHistory() {
   const { systemID } = useParams();
   const { waypointID } = useParams();
 
-  const [waypoint, setWaypoint] = useState<WaypointResponse | null>(null);
+  const { loading, data, refetch } = useQuery(GET_WAYPOINT, {
+    variables: { waypointSymbol: waypointID || "" },
+  });
 
-  useEffect(() => {
-    fetch(`http://${backendUrl}/waypoints/${waypointID}`)
-      .then((response) => response.json())
-      .then((data) => {
-        console.log("waypoint", data);
+  const waypoint = data?.waypoint;
 
-        setWaypoint(data);
-      });
-  }, [waypointID]);
+  // Flatten marketTradeGoods history items into a single array with symbol+type
+  const tradeHistory = useMemo(() => {
+    if (!waypoint?.marketTradeGoods?.items) return [];
+    const result: TradeGoodEntry[] = [];
+    for (const good of waypoint.marketTradeGoods.items) {
+      if (!good.history?.items) continue;
+      for (const item of good.history.items) {
+        result.push({
+          symbol: good.symbol,
+          type: good.type,
+          createdAt: item.createdAt,
+          purchasePrice: item.purchasePrice,
+          sellPrice: item.sellPrice,
+          tradeVolume: item.tradeVolume,
+          supply: item.supply,
+          activity: item.activity,
+        });
+      }
+    }
+    return result;
+  }, [waypoint]);
 
   return (
     <div style={{ padding: "24px 24px" }}>
@@ -29,26 +47,11 @@ function WaypointMarketHistory() {
         <h2>
           Waypoint {waypointID} in {systemID}
         </h2>
-        <Button
-          onClick={() => {
-            fetch(`http://${backendUrl}/waypoints/${waypointID}`)
-              .then((response) => response.json())
-              .then((data) => {
-                console.log("waypoint", data);
-
-                setWaypoint(data);
-              });
-          }}
-        >
+        <Button onClick={() => refetch()} loading={loading}>
           Reload
         </Button>
       </Space>
-      {waypoint?.trade_good_history &&
-        waypoint.trade_good_history.length > 0 && (
-          <>
-            <MarketTradeHistory history={waypoint.trade_good_history} />
-          </>
-        )}
+      {tradeHistory.length > 0 && <MarketTradeHistory history={tradeHistory} />}
     </div>
   );
 }
