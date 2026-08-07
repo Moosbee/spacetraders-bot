@@ -163,11 +163,26 @@ impl ConcreteTradeRoute {
                 database::TradeMode::ProfitPerAPIRequest => None,
                 database::TradeMode::ProfitPerTrip => {
                     Some(self.trip.total_profit.cmp(&other.trip.total_profit))
-                } // database::TradeMode::MarketBalanced => {
-                  //     // TODO
-                  //     // prefer trades that trade from high supply to low supply the higher difference the better
-                  //     None
-                  // }
+                }
+                database::TradeMode::MarketBalanced => {
+                    // TODO
+                    // prefer trades that trade from high supply to low supply the higher difference the better
+
+                    // better if sell pw exporting
+                    // better if buy pw importing
+
+                    let purchase_good_a = self.route.purchase_good.as_ref().unwrap();
+                    let purchase_good_b = other.route.purchase_good.as_ref().unwrap();
+                    let sell_good_a = self.route.sell_good.as_ref().unwrap();
+                    let sell_good_b = other.route.sell_good.as_ref().unwrap();
+
+                    // todo calculate divv via the lenght not of a linear function but a curve to make it better to fill up scarce markets
+                    let route_a_diff =
+                        (purchase_good_a.supply as i32) - (sell_good_a.supply as i32);
+                    let route_b_diff =
+                        (purchase_good_b.supply as i32) - (sell_good_b.supply as i32);
+                    Some(route_a_diff.cmp(&route_b_diff))
+                }
             }
         }
     }

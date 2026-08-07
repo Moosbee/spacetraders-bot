@@ -21,6 +21,7 @@ impl TradeManagerMessanger {
     pub async fn get_route(
         &self,
         ship_clone: ship::MyShipCopy,
+        trading_config: database::TradingFleetConfig,
     ) -> Result<Option<database::TradeRoute>, Error> {
         tracing::debug!(ship_symbol = %ship_clone.symbol, "Requesting next trade route for ship");
         let (sender, receiver) = tokio::sync::oneshot::channel();
@@ -29,6 +30,7 @@ impl TradeManagerMessanger {
 
         let message = TradeManagerMessage::RequestNextTradeRoute {
             ship_clone,
+            trading_config,
             callback: sender,
         };
 

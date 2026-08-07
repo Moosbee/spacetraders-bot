@@ -24,13 +24,13 @@ impl TradingPilot {
         }
     }
 
-    #[instrument(level = "info", name = "spacetraders::pilot::trading::pilot_trading", skip(self, pilot, fleet, ship_assignment, _trading_config), fields(self.ship_symbol = %self.ship_symbol, trade_route, fleet_id = fleet.id, ship_assignment_id = ship_assignment.id))]
+    #[instrument(level = "info", name = "spacetraders::pilot::trading::pilot_trading", skip(self, pilot, fleet, ship_assignment, trading_config), fields(self.ship_symbol = %self.ship_symbol, trade_route, fleet_id = fleet.id, ship_assignment_id = ship_assignment.id))]
     pub async fn execute_pilot_circle(
         &self,
         pilot: &crate::pilot::Pilot,
         fleet: database::Fleet,
         ship_assignment: database::ShipAssignment,
-        _trading_config: database::TradingFleetConfig,
+        trading_config: database::TradingFleetConfig,
     ) -> Result<()> {
         let mut erg = pilot.context.ship_manager.get_mut(&self.ship_symbol).await;
         let ship = erg
@@ -51,7 +51,7 @@ impl TradingPilot {
         let route = self
             .context
             .trade_manager
-            .get_route(ship.to_immutable())
+            .get_route(ship.to_immutable(), trading_config)
             .await?;
 
         if route.is_none() {

@@ -9,7 +9,8 @@ struct SystemFleets {
     exploration_fleet: Option<database::Fleet>, // exists if there are >1 uncharted jump gates
     charting_fleet: Option<database::Fleet>,    // exists if there are >1 uncharted waypoints
     scrapping_fleet: Option<database::Fleet>,   // exists if there are >1 marketplaces
-    trading_fleet: Option<database::Fleet>, // exists if there are >1 marketplaces, and there are no uncharted marketplace waypoints, if it's a system with an construction site there are more ships
+    trading_fleet: Option<database::Fleet>, // exists if there are >1 marketplaces, and there are no uncharted marketplace waypoints
+    market_balance_fleet: Option<database::Fleet>, // exists if a construction fleet exists
     mining_fleet: Option<database::Fleet>,  // exists if a construction fleet exists
     construction_fleet: Option<database::Fleet>, // exists if it's the main system and in that system there is an unfinished construction site
     contract_fleet: Option<database::Fleet>, // exists if it's the main system and there is no other fleet present anywhere
@@ -95,7 +96,28 @@ pub async fn populate_system(
         system_fleets.trading_fleet,
         current_fleets
             .iter()
-            .find(|f| f.fleet_type == database::FleetType::Trading)
+            .find(|f| {
+                f.fleet_type == database::FleetType::Trading
+                    && f.get_trading_config()
+                        .map(|c| c.trade_mode != database::TradeMode::MarketBalanced)
+                        .unwrap_or(false)
+            })
+            .cloned(),
+    )
+    .await?;
+
+    // Match trading fleet
+    update_fleet(
+        context,
+        system_fleets.market_balance_fleet,
+        current_fleets
+            .iter()
+            .find(|f| {
+                f.fleet_type == database::FleetType::Trading
+                    && f.get_trading_config()
+                        .map(|c| c.trade_mode == database::TradeMode::MarketBalanced)
+                        .unwrap_or(false)
+            })
             .cloned(),
     )
     .await?;
@@ -221,6 +243,7 @@ async fn generate_system_fleets(
         charting_fleet: None,
         scrapping_fleet: None,
         trading_fleet: None,
+        market_balance_fleet: None,
         mining_fleet: None,
         construction_fleet: None,
         contract_fleet: None,
@@ -279,11 +302,7 @@ async fn generate_system_fleets(
 
     // trading fleet
     if market_count > 1 && !has_uncharted_marketplace_waypoints {
-        let ship_market_ratio = if system_fleets.construction_fleet.is_some() {
-            0.2
-        } else {
-            0.1
-        };
+        let ship_market_ratio = 0.1;
 
         let trade_mode = if system_fleets.construction_fleet.is_some() {
             database::TradeMode::ProfitPerHour
@@ -308,6 +327,42 @@ async fn generate_system_fleets(
         };
 
         system_fleets.trading_fleet = Some(
+            database::Fleet::new(system_symbol.to_string(), true).with_config(
+                database::FleetConfig::Trading(database::TradingFleetConfig {
+                    market_blacklist,
+                    market_prefer_list: vec![], // todo calculate based on construction needs
+                    purchase_multiplier: 2.0,
+                    ship_market_ratio,
+                    min_cargo_space: 40, // todo calculate based on markets
+                    trade_mode,
+                    trade_profit_threshold,
+                }),
+            ),
+        );
+    }
+
+    // market balance fleet
+    if market_count > 1
+        && !has_uncharted_marketplace_waypoints
+        && system_fleets.construction_fleet.is_some()
+    {
+        let ship_market_ratio = 0.1;
+
+        let trade_mode = database::TradeMode::MarketBalanced;
+
+        let trade_profit_threshold = -2000;
+
+        let market_blacklist = if system_fleets.construction_fleet.is_some() {
+            let goods = open_construction_site
+                .iter()
+                .map(|f| f.trade_symbol)
+                .collect::<HashSet<_>>();
+            goods.into_iter().collect()
+        } else {
+            vec![]
+        };
+
+        system_fleets.market_balance_fleet = Some(
             database::Fleet::new(system_symbol.to_string(), true).with_config(
                 database::FleetConfig::Trading(database::TradingFleetConfig {
                     market_blacklist,

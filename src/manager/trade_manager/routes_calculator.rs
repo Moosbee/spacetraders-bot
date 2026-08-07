@@ -34,7 +34,7 @@ impl RouteCalculator {
         &mut self,
         ship: &ship::MyShipCopy,
         running_routes: &RoutesTracker,
-        mode: database::TradeMode,
+        trading_config: database::TradingFleetConfig,
     ) -> Result<Option<database::TradeRoute>, Error> {
         tracing::debug!("Getting new best route");
         let (trade_goods, market_trade) = self.fetch_market_data(&ship.nav.system_symbol).await?;
@@ -63,7 +63,7 @@ impl RouteCalculator {
                     config.default_profit,
                 )
             })
-            .filter(|route| self.is_valid_route(route, &config.market_blacklist))
+            .filter(|route| self.is_valid_route(route, &trading_config.market_blacklist))
             .collect::<Vec<_>>()
             .into_iter()
             .map(|route| {
@@ -73,10 +73,10 @@ impl RouteCalculator {
                     &waypoints,
                     config.fuel_cost,
                     config.antimatter_price,
-                    config.purchase_multiplier,
+                    trading_config.purchase_multiplier,
                 )
             })
-            .filter(|route| route.trip.total_profit > config.trade_profit_threshold)
+            .filter(|route| route.trip.total_profit > trading_config.trade_profit_threshold)
             .collect::<Vec<_>>();
 
         tracing::debug!(routes_len = %routes.len(), "Calculated routes");
@@ -85,7 +85,7 @@ impl RouteCalculator {
         let route = routes
             .into_iter()
             .filter(|route| !running_routes.is_locked(&(*route).clone().into()))
-            .max_by(|a, b| a.compare(b, mode).unwrap());
+            .max_by(|a, b| a.compare(b, trading_config.trade_mode).unwrap());
 
         Ok(route.map(|route| route.into()))
     }

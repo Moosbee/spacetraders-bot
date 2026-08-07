@@ -4,6 +4,7 @@ use crate::error::Result;
 pub enum TradeMessage {
     RequestNextTradeRoute {
         ship_clone: ship::MyShipCopy,
+        trading_config: database::TradingFleetConfig,
         callback: tokio::sync::oneshot::Sender<Result<Option<database::TradeRoute>>>,
     },
     CompleteTradeRoute {

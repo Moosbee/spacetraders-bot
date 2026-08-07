@@ -116,9 +116,12 @@ impl TradeManager {
         match message {
             TradeMessage::RequestNextTradeRoute {
                 ship_clone,
+                trading_config,
                 callback,
             } => {
-                let route = self.request_next_trade_route(ship_clone).await;
+                let route = self
+                    .request_next_trade_route(ship_clone, trading_config)
+                    .await;
                 debug!("Sending route: {:?}", route);
                 let _send = callback.send(route);
             }
@@ -139,6 +142,7 @@ impl TradeManager {
     async fn request_next_trade_route(
         &mut self,
         ship_clone: ship::MyShipCopy,
+        trading_config: database::TradingFleetConfig,
     ) -> Result<Option<database::TradeRoute>> {
         let unfinished_route = database::TradeRoute::get_unfinished(
             &self.context.database_pool,
@@ -154,10 +158,9 @@ impl TradeManager {
         let next_route_potential = if !my_unfinished_routes.is_empty() {
             (Some(my_unfinished_routes[0].clone()), true)
         } else {
-            let mode = { self.context.config.read().await.trade_mode };
             (
                 self.calculator
-                    .get_best_route(&ship_clone, &self.routes_tracker, mode)
+                    .get_best_route(&ship_clone, &self.routes_tracker, trading_config)
                     .await?,
                 false,
             )

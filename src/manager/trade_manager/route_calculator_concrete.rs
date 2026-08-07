@@ -20,7 +20,7 @@ impl ConcreteRouteCalculator {
         waypoints: &[database::Waypoint],
         fuel_cost: i32,
         antimatter_price: i32,
-        purchase_multiplier: f32,
+        purchase_multiplier: f64,
     ) -> ConcreteTradeRoute {
         let max_transport = ship.cargo.capacity;
 
@@ -137,7 +137,7 @@ impl ConcreteRouteCalculator {
         total_fuel_cost: i32,
         total_travel_time: f64,
         fuel_cost: i32,
-        purchase_multiplier: f32,
+        purchase_multiplier: f64,
         api_requests: i32,
     ) -> TripStats {
         let trip_fuel_cost = (total_fuel_cost * 2) / 100 * fuel_cost;
@@ -145,7 +145,7 @@ impl ConcreteRouteCalculator {
         let trip_volume = ship
             .cargo
             .capacity
-            .min((trade_route.data.min_trade_volume as f32 * purchase_multiplier) as i32);
+            .min((trade_route.data.min_trade_volume as f64 * purchase_multiplier) as i32);
 
         let trip_total_cost = trade_route.data.purchase_price * trip_volume + trip_fuel_cost;
         let trip_total_profit = trade_route.data.sell_price * trip_volume - trip_total_cost;
@@ -184,7 +184,7 @@ impl ConcreteRouteCalculator {
         total_fuel_cost_to: i32,
         total_travel_time_to: f64,
         fuel_cost: i32,
-        purchase_multiplier: f32,
+        purchase_multiplier: f64,
         api_requests: i32,
     ) -> TripStats {
         let trip_fuel_cost = (total_fuel_cost * total_fuel_cost_to) / 100 * fuel_cost;
@@ -192,7 +192,7 @@ impl ConcreteRouteCalculator {
         let trip_volume = ship
             .cargo
             .capacity
-            .min((trade_route.data.min_trade_volume as f32 * purchase_multiplier) as i32);
+            .min((trade_route.data.min_trade_volume as f64 * purchase_multiplier) as i32);
 
         let trip_total_cost = trade_route.data.purchase_price * trip_volume + trip_fuel_cost;
         let trip_total_profit = trade_route.data.sell_price * trip_volume - trip_total_cost;
