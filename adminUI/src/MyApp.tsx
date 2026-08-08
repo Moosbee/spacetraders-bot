@@ -20,6 +20,7 @@ import MiningAssignments from "./sites/MiningAssignments";
 import PossibleTrades from "./sites/PossibleTrades";
 import ReservedFunds from "./sites/ReservedFunds";
 import Ship from "./sites/Ship";
+import ShipRoutes from "./sites/ShipRoutes";
 import Ships from "./sites/Ships";
 import ShipsToPurchase from "./sites/ShipsToPurchase";
 import Surveys from "./sites/Surveys";
@@ -131,6 +132,7 @@ function MyApp() {
                       path="/miningAssignments"
                       element={<MiningAssignments />}
                     />
+                    <Route path="/shipRoutes" element={<ShipRoutes />} />
                     <Route path="/reservedFunds" element={<ReservedFunds />} />
                     <Route path="/surveys" element={<Surveys />} />
                     <Route path="/config" element={<ConfigScreen />} />

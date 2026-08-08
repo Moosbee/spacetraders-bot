@@ -964,3 +964,34 @@ export const GET_ALL_SHIPS = graphql(/* GraphQL */ `
     }
   }
 `);
+
+export const GET_ALL_SHIP_ROUTES = graphql(/* GraphQL */ `
+  query GetAllShipsRoutes {
+    shipRoutes {
+      items {
+        id
+        from
+        to
+        shipSymbol
+        navMode
+        distance
+        fuelCost
+        travelTime
+        shipStateBefore {
+          id
+          engineSpeed
+          engineCondition
+          frameCondition
+          reactorCondition
+        }
+        shipStateAfter {
+          id
+          engineSpeed
+          engineCondition
+          frameCondition
+          reactorCondition
+        }
+      }
+    }
+  }
+`);

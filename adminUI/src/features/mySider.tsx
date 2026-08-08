@@ -188,6 +188,11 @@ const items: MenuItem[] = [
         key: "surveys",
         icon: <AuditOutlined />,
       },
+      {
+        label: <Link to="/shipRoutes">Ship Routes</Link>,
+        key: "shipRoutes",
+        icon: <RocketOutlined />,
+      },
     ],
   },
 ];
