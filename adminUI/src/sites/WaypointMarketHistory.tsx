@@ -1,18 +1,19 @@
 import { useQuery } from "@apollo/client/react";
 import { Button, Space } from "antd";
 import { useMemo } from "react";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import MarketTradeHistory, {
   TradeGoodEntry,
 } from "../features/MarketTradeHistory/MarketTradeHistory";
 import PageTitle from "../features/PageTitle";
-import { GET_WAYPOINT } from "../graphql/queries";
+import WaypointLink from "../features/WaypointLink";
+import { GET_WAYPOINT_HISTORY } from "../graphql/queries";
 
 function WaypointMarketHistory() {
   const { systemID } = useParams();
   const { waypointID } = useParams();
 
-  const { loading, data, refetch } = useQuery(GET_WAYPOINT, {
+  const { loading, data, refetch } = useQuery(GET_WAYPOINT_HISTORY, {
     variables: { waypointSymbol: waypointID || "" },
   });
 
@@ -20,11 +21,11 @@ function WaypointMarketHistory() {
 
   // Flatten marketTradeGoods history items into a single array with symbol+type
   const tradeHistory = useMemo(() => {
-    if (!waypoint?.marketTradeGoods?.items) return [];
+    if (!waypoint?.marketTrades?.items) return [];
     const result: TradeGoodEntry[] = [];
-    for (const good of waypoint.marketTradeGoods.items) {
-      if (!good.history?.items) continue;
-      for (const item of good.history.items) {
+    for (const good of waypoint.marketTrades.items) {
+      if (!good?.marketTradeGood?.history?.items) continue;
+      for (const item of good.marketTradeGood.history.items) {
         result.push({
           symbol: good.symbol,
           type: good.type,
@@ -45,13 +46,22 @@ function WaypointMarketHistory() {
       <PageTitle title={`Waypoint ${waypointID}`} />
       <Space>
         <h2>
-          Waypoint {waypointID} in {systemID}
+          Waypoint{" "}
+          <WaypointLink waypoint={waypointID ?? ""} systemSymbol={systemID}>
+            {waypointID}
+          </WaypointLink>{" "}
+          in <Link to={`/system/${systemID}`}>{systemID}</Link>
         </h2>
         <Button onClick={() => refetch()} loading={loading}>
           Reload
         </Button>
       </Space>
-      {tradeHistory.length > 0 && <MarketTradeHistory history={tradeHistory} />}
+      {tradeHistory.length > 0 && (
+        <MarketTradeHistory
+          history={tradeHistory}
+          marketTrades={waypoint?.marketTrades?.items || []}
+        />
+      )}
     </div>
   );
 }

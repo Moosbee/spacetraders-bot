@@ -673,16 +673,6 @@ export const GET_WAYPOINT = graphql(/* GraphQL */ `
           sellPrice
           type
           createdAt
-          history {
-            items {
-              createdAt
-              purchasePrice
-              sellPrice
-              tradeVolume
-              supply
-              activity
-            }
-          }
         }
       }
       constructionMaterials {
@@ -744,6 +734,45 @@ export const GET_WAYPOINT = graphql(/* GraphQL */ `
           price
           agentSymbol
           timestamp
+        }
+      }
+    }
+  }
+`);
+
+export const GET_WAYPOINT_HISTORY = graphql(/* GraphQL */ `
+  query GetWaypointHistory($waypointSymbol: String!) {
+    waypoint(symbol: $waypointSymbol) {
+      symbol
+      marketTrades {
+        items {
+          symbol
+          type
+          tradeSymbolInfo {
+            symbol
+            requires {
+              items {
+                symbol
+              }
+            }
+            requiredBy {
+              items {
+                symbol
+              }
+            }
+          }
+          marketTradeGood {
+            history {
+              items {
+                createdAt
+                purchasePrice
+                sellPrice
+                tradeVolume
+                supply
+                activity
+              }
+            }
+          }
         }
       }
     }

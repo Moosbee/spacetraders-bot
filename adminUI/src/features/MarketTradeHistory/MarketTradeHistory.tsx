@@ -26,7 +26,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { TradeSymbol } from "../../gql/graphql";
+import { GetWaypointHistoryQuery, TradeSymbol } from "../../gql/graphql";
 import { chartColors } from "../../utils/chartColors";
 import { cyrb53 } from "../../utils/utils";
 
@@ -139,7 +139,13 @@ function calcDate(
   return new Date(notchTime);
 }
 
-function MarketTradeHistory({ history }: { history: TradeGoodEntry[] }) {
+function MarketTradeHistory({
+  history,
+  marketTrades,
+}: {
+  history: TradeGoodEntry[];
+  marketTrades: GetWaypointHistoryQuery["waypoint"]["marketTrades"]["items"];
+}) {
   // const trade_history: Record<string, TradeGoodEntry[]> = {};
 
   const {
@@ -218,38 +224,33 @@ function MarketTradeHistory({ history }: { history: TradeGoodEntry[] }) {
 
   const colors = useMemo(() => {
     const colors: Record<string, string> = {};
-    for (const symbol in tradeHistory) {
-      colors[symbol] = chartColors[cyrb53(symbol, 8888) % chartColors.length];
+    for (const marketTrade of marketTrades) {
+      colors[marketTrade.symbol] =
+        chartColors[cyrb53(marketTrade.symbol, 8888) % chartColors.length];
     }
     return colors;
-  }, [tradeHistory]);
+  }, [marketTrades]);
 
   const checkboxValues: CheckboxGroupProps["options"] = useMemo(() => {
     const value: CheckboxGroupProps["options"] = [];
-    for (const symbol in tradeHistory) {
+    for (const marketTrade of marketTrades) {
       value.push({
         label: (
           <span className="text-nowrap">
-            {tradeHistory[symbol as TradeSymbol]?.[0]?.type === "IMPORT" && (
-              <ImportOutlined />
-            )}
-            {tradeHistory[symbol as TradeSymbol]?.[0]?.type === "EXPORT" && (
-              <ExportOutlined />
-            )}
-            {tradeHistory[symbol as TradeSymbol]?.[0]?.type === "EXCHANGE" && (
-              <InteractionOutlined />
-            )}{" "}
-            {symbol}
+            {marketTrade.type === "IMPORT" && <ImportOutlined />}
+            {marketTrade.type === "EXPORT" && <ExportOutlined />}
+            {marketTrade.type === "EXCHANGE" && <InteractionOutlined />}{" "}
+            {marketTrade.symbol}
           </span>
         ),
-        value: symbol,
+        value: marketTrade.symbol,
         style: {
-          color: colors[symbol],
+          color: colors[marketTrade.symbol],
         },
       });
     }
     return value;
-  }, [colors, tradeHistory]);
+  }, [colors, marketTrades]);
 
   return (
     <div>
@@ -292,7 +293,7 @@ function MarketTradeHistory({ history }: { history: TradeGoodEntry[] }) {
       </Flex>
       <Divider />
       <Row>
-        <Col span={2}>
+        <Col span={3}>
           <Checkbox.Group
             options={checkboxValues}
             // defaultValue={["Apple"]}
@@ -302,8 +303,33 @@ function MarketTradeHistory({ history }: { history: TradeGoodEntry[] }) {
               setCheckboxValue(v);
             }}
           />
+          <Divider />
+          <div className="flex flex-col gap-3">
+            {marketTrades
+              .filter((t) => t.type === "EXPORT")
+              .map((t) => (
+                <div
+                  key={t.symbol}
+                  className="flex flex-col border-2 border-(--border-color) px-2 py-1"
+                  style={
+                    {
+                      "--border-color": colors[t.symbol],
+                    } as React.CSSProperties
+                  }
+                >
+                  <span style={{ color: colors[t.symbol] }}>{t.symbol}</span>
+                  <span className="text-nowrap flex flex-col ml-5">
+                    {t.tradeSymbolInfo.requires.items.map((r) => (
+                      <span key={r.symbol} style={{ color: colors[r.symbol] }}>
+                        {r.symbol}
+                      </span>
+                    ))}
+                  </span>
+                </div>
+              ))}
+          </div>
         </Col>
-        <Col span={22}>
+        <Col span={21}>
           <div style={{ width: "100%", aspectRatio: "16/6" }}>
             <ResponsiveContainer width="100%" height="100%">
               <LineChart
