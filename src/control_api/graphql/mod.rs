@@ -750,6 +750,17 @@ impl QueryRoot {
         Ok(trade_route.into())
     }
 
+    async fn possible_trade_routes<'ctx>(
+        &self,
+        ctx: &async_graphql::Context<'ctx>,
+        _systems: Option<Vec<String>>,
+    ) -> Result<Vec<gql_models::GQLPossibleTradeRoute>> {
+        let _context = ctx.data::<ConductorContext>()?;
+
+        todo!()
+        // Ok(possible_trade_routes.into())
+    }
+
     async fn ship_infos<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
@@ -1142,6 +1153,14 @@ impl QueryRoot {
 
     async fn trade_symbol_infos(&self) -> Result<Vec<gql_models::TradeSymbolInfo>> {
         let trade_symbol_infos = models::TradeSymbol::iter().map(Into::into).collect();
+        Ok(trade_symbol_infos)
+    }
+
+    async fn trade_symbol_info(
+        &self,
+        trade_symbol: models::TradeSymbol,
+    ) -> Result<gql_models::TradeSymbolInfo> {
+        let trade_symbol_infos = trade_symbol.into();
         Ok(trade_symbol_infos)
     }
 

@@ -8,6 +8,7 @@ use super::{DatabaseConnectorAsync, DbPool, PaginatedQuery, PaginatedResult, run
 )]
 #[graphql(name = "DBMarketTradeGood")]
 pub struct MarketTradeGood {
+    pub id: i64,
     pub symbol: models::TradeSymbol,
     pub waypoint_symbol: String,
     pub r#type: models::market_trade_good::Type,
@@ -16,7 +17,6 @@ pub struct MarketTradeGood {
     pub activity: Option<models::ActivityLevel>,
     pub purchase_price: i32,
     pub sell_price: i32,
-    pub created: sqlx::types::chrono::DateTime<chrono::Utc>,
     pub created_at: sqlx::types::chrono::DateTime<chrono::Utc>,
 }
 
@@ -37,6 +37,7 @@ impl From<MarketTradeGood> for models::MarketTradeGood {
 impl MarketTradeGood {
     pub fn from(value: models::MarketTradeGood, waypoint_symbol: &str) -> Self {
         MarketTradeGood {
+            id: 0, // will be ignored for inserts
             activity: value.activity,
             purchase_price: value.purchase_price,
             sell_price: value.sell_price,
@@ -45,23 +46,18 @@ impl MarketTradeGood {
             trade_volume: value.trade_volume,
             r#type: value.r#type,
             waypoint_symbol: waypoint_symbol.to_string(),
-            created: sqlx::types::chrono::DateTime::<chrono::Utc>::MIN_UTC, // will be ignored for inserts
             created_at: sqlx::types::chrono::DateTime::<chrono::Utc>::MIN_UTC, // will be ignored for inserts
         }
     }
 }
 
 impl DatabaseConnectorAsync for MarketTradeGood {
-    type ID = (
-        String,
-        models::TradeSymbol,
-        sqlx::types::chrono::DateTime<chrono::Utc>,
-    );
+    type ID = i64;
 
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
     async fn insert_new(database_pool: &DbPool, item: &MarketTradeGood) -> crate::Result<Self::ID> {
         struct Inserted {
-            created_at: sqlx::types::chrono::DateTime<chrono::Utc>,
+            id: i64,
         }
 
         let inserted = sqlx::query_as!(
@@ -78,7 +74,7 @@ impl DatabaseConnectorAsync for MarketTradeGood {
                 sell_price
             )
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-            RETURNING created_at
+            RETURNING id
             "#,
             item.waypoint_symbol,
             item.symbol as models::TradeSymbol,
@@ -92,11 +88,7 @@ impl DatabaseConnectorAsync for MarketTradeGood {
         .fetch_one(&database_pool.database_pool)
         .await?;
 
-        Ok((
-            item.waypoint_symbol.clone(),
-            item.symbol,
-            inserted.created_at,
-        ))
+        Ok(inserted.id)
     }
 
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
@@ -193,8 +185,8 @@ impl DatabaseConnectorAsync for MarketTradeGood {
                     MarketTradeGood,
                     r#"
                     SELECT DISTINCT ON (symbol)
+                        id,
                         created_at,
-                        created,
                         waypoint_symbol,
                         symbol as "symbol: models::TradeSymbol",
                         "type" as "type: models::market_trade_good::Type",
@@ -204,7 +196,7 @@ impl DatabaseConnectorAsync for MarketTradeGood {
                         purchase_price,
                         sell_price
                     FROM public.market_trade_good
-                    ORDER BY symbol, created DESC
+                    ORDER BY symbol, created_at DESC
                     LIMIT $1 OFFSET $2
                 "#,
                     page_size,
@@ -219,8 +211,8 @@ impl DatabaseConnectorAsync for MarketTradeGood {
                     MarketTradeGood,
                     r#"
                     SELECT DISTINCT ON (symbol)
+                        id,
                         created_at,
-                        created,
                         waypoint_symbol,
                         symbol as "symbol: models::TradeSymbol",
                         "type" as "type: models::market_trade_good::Type",
@@ -230,7 +222,7 @@ impl DatabaseConnectorAsync for MarketTradeGood {
                         purchase_price,
                         sell_price
                     FROM public.market_trade_good
-                    ORDER BY symbol, created DESC
+                    ORDER BY symbol, created_at DESC
                 "#,
                 )
                 .fetch_all(database_pool.get_cache_pool())
@@ -245,7 +237,7 @@ impl DatabaseConnectorAsync for MarketTradeGood {
                         SELECT DISTINCT ON (symbol)
                             symbol
                         FROM public.market_trade_good
-                        ORDER BY symbol, created DESC
+                        ORDER BY symbol, created_at DESC
                     ) sub
                     "#
                 )
@@ -263,8 +255,8 @@ impl DatabaseConnectorAsync for MarketTradeGood {
             MarketTradeGood,
             r#"
             SELECT
+                id,
                 created_at,
-                created,
                 waypoint_symbol,
                 symbol as "symbol: models::TradeSymbol",
                 "type" as "type: models::market_trade_good::Type",
@@ -274,12 +266,10 @@ impl DatabaseConnectorAsync for MarketTradeGood {
                 purchase_price,
                 sell_price
             FROM public.market_trade_good
-            WHERE waypoint_symbol = $1 AND symbol = $2 AND created_at = $3
+            WHERE id = $1
             LIMIT 1
             "#,
-            &id.0,
-            &id.1 as &models::TradeSymbol,
-            &id.2
+            id
         )
         .fetch_optional(&database_pool.database_pool)
         .await?;
@@ -291,11 +281,9 @@ impl DatabaseConnectorAsync for MarketTradeGood {
         sqlx::query!(
             r#"
             DELETE FROM public.market_trade_good
-            WHERE waypoint_symbol = $1 AND symbol = $2 AND created_at = $3
+            WHERE id = $1
             "#,
-            &id.0,
-            &id.1 as &models::TradeSymbol,
-            &id.2
+            id
         )
         .execute(&database_pool.database_pool)
         .await?;
@@ -303,9 +291,7 @@ impl DatabaseConnectorAsync for MarketTradeGood {
     }
 
     fn set_id(&mut self, id: Self::ID) {
-        self.waypoint_symbol = id.0;
-        self.symbol = id.1;
-        self.created_at = id.2;
+        self.id = id;
     }
 }
 
@@ -323,8 +309,8 @@ impl MarketTradeGood {
                     MarketTradeGood,
                     r#"
                     SELECT
+                        id,
                         created_at,
-                        created,
                         waypoint_symbol,
                         symbol as "symbol: models::TradeSymbol",
                         "type" as "type: models::market_trade_good::Type",
@@ -335,7 +321,7 @@ impl MarketTradeGood {
                         sell_price
                     FROM public.market_trade_good
                     WHERE waypoint_symbol = $1
-                    ORDER BY created DESC
+                    ORDER BY created_at DESC
                     LIMIT $2 OFFSET $3
                 "#,
                     waypoint_symbol,
@@ -351,8 +337,8 @@ impl MarketTradeGood {
                     MarketTradeGood,
                     r#"
                     SELECT
+                        id,
                         created_at,
-                        created,
                         waypoint_symbol,
                         symbol as "symbol: models::TradeSymbol",
                         "type" as "type: models::market_trade_good::Type",
@@ -363,7 +349,7 @@ impl MarketTradeGood {
                         sell_price
                     FROM public.market_trade_good
                     WHERE waypoint_symbol = $1
-                    ORDER BY created DESC
+                    ORDER BY created_at DESC
                 "#,
                     waypoint_symbol,
                 )
@@ -402,8 +388,8 @@ impl MarketTradeGood {
                     MarketTradeGood,
                     r#"
                     SELECT
+                        id,
                         created_at,
-                        created,
                         waypoint_symbol,
                         symbol as "symbol: models::TradeSymbol",
                         "type" as "type: models::market_trade_good::Type",
@@ -414,7 +400,7 @@ impl MarketTradeGood {
                         sell_price
                     FROM public.market_trade_good
                     WHERE waypoint_symbol = $1 AND symbol = $2
-                    ORDER BY created DESC
+                    ORDER BY created_at DESC
                     LIMIT $3 OFFSET $4
                 "#,
                     waypoint_symbol,
@@ -431,8 +417,8 @@ impl MarketTradeGood {
                     MarketTradeGood,
                     r#"
                     SELECT
+                        id,
                         created_at,
-                        created,
                         waypoint_symbol,
                         symbol as "symbol: models::TradeSymbol",
                         "type" as "type: models::market_trade_good::Type",
@@ -443,7 +429,7 @@ impl MarketTradeGood {
                         sell_price
                     FROM public.market_trade_good
                     WHERE waypoint_symbol = $1 AND symbol = $2
-                    ORDER BY created DESC
+                    ORDER BY created_at DESC
                 "#,
                     waypoint_symbol,
                     *trade_symbol as models::TradeSymbol,
@@ -483,8 +469,8 @@ impl MarketTradeGood {
                     MarketTradeGood,
                     r#"
                     SELECT DISTINCT ON (symbol)
+                        id,
                         created_at,
-                        created,
                         waypoint_symbol,
                         symbol as "symbol: models::TradeSymbol",
                         "type" as "type: models::market_trade_good::Type",
@@ -495,7 +481,7 @@ impl MarketTradeGood {
                         sell_price
                     FROM public.market_trade_good
                     WHERE waypoint_symbol = $1
-                    ORDER BY symbol, created DESC
+                    ORDER BY symbol, created_at DESC
                     LIMIT $2 OFFSET $3
                 "#,
                     waypoint_symbol,
@@ -511,8 +497,8 @@ impl MarketTradeGood {
                     MarketTradeGood,
                     r#"
                     SELECT DISTINCT ON (symbol)
+                        id,
                         created_at,
-                        created,
                         waypoint_symbol,
                         symbol as "symbol: models::TradeSymbol",
                         "type" as "type: models::market_trade_good::Type",
@@ -523,7 +509,7 @@ impl MarketTradeGood {
                         sell_price
                     FROM public.market_trade_good
                     WHERE waypoint_symbol = $1
-                    ORDER BY symbol, created DESC
+                    ORDER BY symbol, created_at DESC
                 "#,
                     waypoint_symbol,
                 )
@@ -540,7 +526,7 @@ impl MarketTradeGood {
                             symbol
                         FROM public.market_trade_good
                         WHERE waypoint_symbol = $1
-                        ORDER BY symbol, created DESC
+                        ORDER BY symbol, created_at DESC
                     ) sub
                     "#,
                     waypoint_symbol
@@ -566,8 +552,8 @@ impl MarketTradeGood {
                     MarketTradeGood,
                     r#"
                 SELECT DISTINCT ON (waypoint_symbol)
+                    id,
                     created_at,
-                    created,
                     waypoint_symbol,
                     symbol as "symbol: models::TradeSymbol",
                     "type" as "type: models::market_trade_good::Type",
@@ -578,7 +564,7 @@ impl MarketTradeGood {
                     sell_price
                 FROM public.market_trade_good
                 WHERE symbol = $1::trade_symbol
-                ORDER BY waypoint_symbol, created DESC
+                ORDER BY waypoint_symbol, created_at DESC
                 LIMIT $2 OFFSET $3
                 "#,
                     *trade_symbol as models::TradeSymbol,
@@ -594,8 +580,8 @@ impl MarketTradeGood {
                     MarketTradeGood,
                     r#"
                 SELECT DISTINCT ON (waypoint_symbol)
+                    id,
                     created_at,
-                    created,
                     waypoint_symbol,
                     symbol as "symbol: models::TradeSymbol",
                     "type" as "type: models::market_trade_good::Type",
@@ -606,7 +592,7 @@ impl MarketTradeGood {
                     sell_price
                 FROM public.market_trade_good
                 WHERE symbol = $1::trade_symbol
-                ORDER BY waypoint_symbol, created DESC
+                ORDER BY waypoint_symbol, created_at DESC
                 "#,
                     *trade_symbol as models::TradeSymbol
                 )
@@ -623,7 +609,7 @@ impl MarketTradeGood {
                             waypoint_symbol
                         FROM public.market_trade_good
                         WHERE symbol = $1::trade_symbol
-                        ORDER BY waypoint_symbol, created DESC
+                        ORDER BY waypoint_symbol, created_at DESC
                     ) sub
                     "#,
                     *trade_symbol as models::TradeSymbol
@@ -645,8 +631,8 @@ impl MarketTradeGood {
             MarketTradeGood,
             r#"
             SELECT
+                id,
                 created_at,
-                created,
                 waypoint_symbol,
                 symbol as "symbol: models::TradeSymbol",
                 "type" as "type: models::market_trade_good::Type",
@@ -657,7 +643,7 @@ impl MarketTradeGood {
                 sell_price
             FROM public.market_trade_good
             WHERE waypoint_symbol = $1 AND symbol = $2
-            ORDER BY created DESC
+            ORDER BY created_at DESC
             LIMIT 1
         "#,
             waypoint_symbol,
@@ -680,8 +666,8 @@ impl MarketTradeGood {
                     MarketTradeGood,
                     r#"
                     SELECT DISTINCT ON (symbol, waypoint_symbol)
+                        id,
                         created_at,
-                        created,
                         waypoint_symbol,
                         symbol as "symbol: models::TradeSymbol",
                         "type" as "type: models::market_trade_good::Type",
@@ -691,7 +677,7 @@ impl MarketTradeGood {
                         purchase_price,
                         sell_price
                     FROM public.market_trade_good
-                    ORDER BY symbol, waypoint_symbol, created DESC
+                    ORDER BY symbol, waypoint_symbol, created_at DESC
                     LIMIT $1 OFFSET $2
                 "#,
                     page_size,
@@ -706,8 +692,8 @@ impl MarketTradeGood {
                     MarketTradeGood,
                     r#"
                     SELECT DISTINCT ON (symbol, waypoint_symbol)
+                        id,
                         created_at,
-                        created,
                         waypoint_symbol,
                         symbol as "symbol: models::TradeSymbol",
                         "type" as "type: models::market_trade_good::Type",
@@ -717,7 +703,7 @@ impl MarketTradeGood {
                         purchase_price,
                         sell_price
                     FROM public.market_trade_good
-                    ORDER BY symbol, waypoint_symbol, created DESC
+                    ORDER BY symbol, waypoint_symbol, created_at DESC
                 "#,
                 )
                 .fetch_all(database_pool.get_cache_pool())
@@ -733,7 +719,7 @@ impl MarketTradeGood {
                             symbol,
                             waypoint_symbol
                         FROM public.market_trade_good
-                        ORDER BY symbol, waypoint_symbol, created DESC
+                        ORDER BY symbol, waypoint_symbol, created_at DESC
                     ) sub
                     "#
                 )
@@ -758,8 +744,8 @@ impl MarketTradeGood {
                     MarketTradeGood,
                     r#"
                 SELECT DISTINCT ON (waypoint_symbol, market_trade_good.symbol)
+                    market_trade_good.id,
                     market_trade_good.created_at,
-                    market_trade_good.created,
                     market_trade_good.waypoint_symbol,
                     market_trade_good.symbol as "symbol: models::TradeSymbol",
                     market_trade_good."type" as "type: models::market_trade_good::Type",
@@ -770,7 +756,7 @@ impl MarketTradeGood {
                     market_trade_good.sell_price
                 FROM public.market_trade_good left join public.waypoint ON waypoint.symbol = market_trade_good.waypoint_symbol
                 WHERE waypoint.system_symbol = $1
-                ORDER BY waypoint_symbol, market_trade_good.symbol, created DESC
+                ORDER BY waypoint_symbol, market_trade_good.symbol, market_trade_good.created_at DESC
                 LIMIT $2 OFFSET $3
                 "#,
                     system_symbol,
@@ -786,8 +772,8 @@ impl MarketTradeGood {
                     MarketTradeGood,
                     r#"
                 SELECT DISTINCT ON (waypoint_symbol, market_trade_good.symbol)
+                    market_trade_good.id,
                     market_trade_good.created_at,
-                    market_trade_good.created,
                     market_trade_good.waypoint_symbol,
                     market_trade_good.symbol as "symbol: models::TradeSymbol",
                     market_trade_good."type" as "type: models::market_trade_good::Type",
@@ -798,7 +784,7 @@ impl MarketTradeGood {
                     market_trade_good.sell_price
                 FROM public.market_trade_good left join public.waypoint ON waypoint.symbol = market_trade_good.waypoint_symbol
                 WHERE waypoint.system_symbol = $1
-                ORDER BY waypoint_symbol, market_trade_good.symbol, created DESC
+                ORDER BY waypoint_symbol, market_trade_good.symbol, market_trade_good.created_at DESC
                 "#,
                     system_symbol
                 )
@@ -816,7 +802,7 @@ impl MarketTradeGood {
                             market_trade_good.symbol
                         FROM public.market_trade_good left join public.waypoint ON waypoint.symbol = market_trade_good.waypoint_symbol
                         WHERE waypoint.system_symbol = $1
-                        ORDER BY waypoint_symbol, market_trade_good.symbol, created DESC
+                        ORDER BY waypoint_symbol, market_trade_good.symbol, market_trade_good.created_at DESC
                     ) sub
                     "#,
                     system_symbol

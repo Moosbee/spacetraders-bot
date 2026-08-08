@@ -826,6 +826,7 @@ input MarketTradeBy @oneOf {
 }
 
 type MarketTradeGood {
+	id: Int!
 	symbol: TradeSymbol!
 	waypointSymbol: String!
 	type: MarketTradeGoodType!
@@ -834,7 +835,6 @@ type MarketTradeGood {
 	activity: ActivityLevel
 	purchasePrice: Int!
 	sellPrice: Int!
-	created: DateTime!
 	createdAt: DateTime!
 	waypoint: Waypoint
 	history(page: Int, pageSize: Int): MarketTradeGoodPage!
@@ -1103,6 +1103,11 @@ type NavigationState {
 	autoPilot: AutopilotState
 }
 
+type PossibleTradeRoute {
+	id: Int!
+	test: Boolean!
+}
+
 type QueryRoot {
 	runInfo: RunInfo!
 	apiCounts: Int!
@@ -1135,6 +1140,7 @@ type QueryRoot {
 	survey(signature: String!): Survey!
 	tradeRoutes(page: Int, pageSize: Int): TradeRoutePage!
 	tradeRoute(routeId: Int!): TradeRoute!
+	possibleTradeRoutes(systems: [String!]): [PossibleTradeRoute!]!
 	shipInfos(page: Int, pageSize: Int): ShipInfoPage!
 	shipInfo(symbol: String!): ShipInfo!
 	shipStates(by: ShipStateBy, page: Int, pageSize: Int): ShipStatePage!
@@ -1148,6 +1154,7 @@ type QueryRoot {
 	marketTrades(by: MarketTradeBy, page: Int, pageSize: Int): MarketTradePage!
 	marketTradeGoods(by: MarketTradeGoodBy, page: Int, pageSize: Int): MarketTradeGoodPage!
 	tradeSymbolInfos: [TradeSymbolInfo!]!
+	tradeSymbolInfo(tradeSymbol: TradeSymbol!): TradeSymbolInfo!
 	shipRoutes(page: Int, pageSize: Int): RoutePage!
 	budget: BudgetInfo!
 	chartManager: ChartManagerInfo!

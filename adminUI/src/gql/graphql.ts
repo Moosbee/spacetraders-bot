@@ -923,9 +923,9 @@ export type MarketTradeBy =
 export type MarketTradeGood = {
   __typename?: 'MarketTradeGood';
   activity?: Maybe<ActivityLevel>;
-  created: Scalars['DateTime']['output'];
   createdAt: Scalars['DateTime']['output'];
   history: MarketTradeGoodPage;
+  id: Scalars['Int']['output'];
   maps: MarketTradeGoodPage;
   marketTrade?: Maybe<MarketTrade>;
   marketTransactionSummary: TransactionSummary;
@@ -1261,6 +1261,12 @@ export type NavigationState = {
   waypointSymbol: Scalars['String']['output'];
 };
 
+export type PossibleTradeRoute = {
+  __typename?: 'PossibleTradeRoute';
+  id: Scalars['Int']['output'];
+  test: Scalars['Boolean']['output'];
+};
+
 export type QueryRoot = {
   __typename?: 'QueryRoot';
   agent: Agent;
@@ -1290,6 +1296,7 @@ export type QueryRoot = {
   marketTrades: MarketTradePage;
   marketTransactions: MarketTransactionPage;
   miningManager: MiningManagerInfo;
+  possibleTradeRoutes: Array<PossibleTradeRoute>;
   repairTransactions: RepairTransactionPage;
   reservedFunds: ReservedFundPage;
   runInfo: RunInfo;
@@ -1314,6 +1321,7 @@ export type QueryRoot = {
   tradeManager: TradeManagerInfo;
   tradeRoute: TradeRoute;
   tradeRoutes: TradeRoutePage;
+  tradeSymbolInfo: TradeSymbolInfo;
   tradeSymbolInfos: Array<TradeSymbolInfo>;
   waypoint: Waypoint;
   waypoints: WaypointPage;
@@ -1427,6 +1435,11 @@ export type QueryRootMarketTransactionsArgs = {
   by?: InputMaybe<MarketTransactionBy>;
   page?: InputMaybe<Scalars['Int']['input']>;
   pageSize?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type QueryRootPossibleTradeRoutesArgs = {
+  systems?: InputMaybe<Array<Scalars['String']['input']>>;
 };
 
 
@@ -1547,6 +1560,11 @@ export type QueryRootTradeRouteArgs = {
 export type QueryRootTradeRoutesArgs = {
   page?: InputMaybe<Scalars['Int']['input']>;
   pageSize?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type QueryRootTradeSymbolInfoArgs = {
+  tradeSymbol: TradeSymbol;
 };
 
 

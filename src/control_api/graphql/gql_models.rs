@@ -2931,6 +2931,20 @@ paginated_gql_object!(
 );
 
 #[derive(Debug, Clone, async_graphql::SimpleObject)]
+#[graphql(name = "PossibleTradeRoute")]
+#[graphql(complex)]
+pub struct GQLPossibleTradeRoute {
+    id: i64,
+}
+
+#[async_graphql::ComplexObject]
+impl GQLPossibleTradeRoute {
+    async fn test(&self, _ctx: &async_graphql::Context<'_>) -> Result<bool> {
+        Ok(false)
+    }
+}
+
+#[derive(Debug, Clone, async_graphql::SimpleObject)]
 #[graphql(name = "Waypoint")]
 #[graphql(complex)]
 pub struct GQLWaypoint {
