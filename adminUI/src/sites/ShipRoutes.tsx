@@ -32,11 +32,11 @@ function getInterSystemTravelStats(
       break;
   }
 
-  // const conditionMuliplier = 1;
+  const conditionMuliplier = 1;
   // const conditionMuliplier = 2 - 0.5 - 1 / (engineCondition + 1);
   // const conditionMuliplier = 1 / (-engineCondition + 2);
   // const conditionMuliplier = engineCondition * 0.5 + 0.5;
-  const conditionMuliplier = 0.5 * engineCondition * engineCondition + 0.5; // best so far
+  // const conditionMuliplier = 0.5 * engineCondition * engineCondition + 0.5; // best so far
   // const conditionMuliplier = 0.6 * engineCondition * engineCondition + 0.4; // not just overshooting but also undershooting
 
   const travelTime = Math.round(
@@ -275,6 +275,39 @@ function ShipRoutes() {
           }}
         >
           Refresh
+        </Button>
+        <Button
+          onClick={() => {
+            const a = document.createElement("a");
+            const routeText = routes
+              .filter(
+                (record) =>
+                  !(
+                    record.shipStateBefore?.engineCondition !==
+                      record.shipStateAfter?.engineCondition ||
+                    record.shipStateBefore?.frameCondition !==
+                      record.shipStateAfter?.frameCondition ||
+                    record.shipStateBefore?.reactorCondition !==
+                      record.shipStateAfter?.reactorCondition ||
+                    record.shipStateBefore?.engineSpeed !==
+                      record.shipStateAfter?.engineSpeed
+                  ),
+              )
+              .map(
+                (r) =>
+                  `${r.shipStateBefore?.engineSpeed}; ${r.navMode}; ${r.travelTime}; ${r.calcTravelTime}; ${r.shipStateBefore?.engineCondition};`,
+              )
+              .join("\n");
+            const text = `EngineSpeed; NavMode; TravelTime; CalcTravelTime; EngineCondition;\n${routeText}`;
+            const type = "text/csv;charset=utf-8;";
+            const name = "routes.csv";
+            const file = new Blob([text], { type: type });
+            a.href = URL.createObjectURL(file);
+            a.download = name;
+            a.click();
+          }}
+        >
+          Export
         </Button>
       </Space>
       <Table
