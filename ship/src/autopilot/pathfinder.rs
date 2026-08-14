@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use tracing::instrument;
 use utils::get_system_symbol;
 
 use crate::autopilot::{
@@ -51,6 +52,7 @@ impl NavigatorCache {
     }
 }
 
+#[instrument(level = "debug", skip(database_pool), err(Debug))]
 pub async fn get_route(
     database_pool: &database::DbPool,
     start_waypoint_symbol: &str,
@@ -62,6 +64,7 @@ pub async fn get_route(
     let start_system = get_system_symbol(start_waypoint_symbol);
     let end_system = get_system_symbol(end_waypoint_symbol);
     if start_system == end_system {
+        tracing::debug!(start = %start_waypoint_symbol, end = %end_waypoint_symbol, "Same system starting");
         let router = get_system_router(system_routers, &start_system, database_pool).await?;
         let route = router.find_route_system(
             start_waypoint_symbol,
@@ -73,6 +76,7 @@ pub async fn get_route(
         tracing::error!("TODO: jump gate router");
         todo!()
     } else {
+        tracing::debug!(start = %start_waypoint_symbol, end = %end_waypoint_symbol, "Different system starting");
         let mut route = Vec::new();
         // get jump gate router
         let jump_gate_router = get_jump_gate_router(database_pool, jump_gate_router).await?;

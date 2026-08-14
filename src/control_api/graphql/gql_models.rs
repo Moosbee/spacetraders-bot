@@ -8,7 +8,7 @@ use space_traders_client::models;
 use crate::{
     control_api::graphql::gql_ship::{GQLModules, GQLMounts, GQLNavigationState},
     error::Result,
-    manager::trade_manager::trade_route_calculator::TradeRouteCandidate,
+    manager::trade_manager::trade_route_calculator::{TradeRouteCandidate, TradeRouteProposal},
 };
 
 /// Utility function to convert a single optional database type to its GQL type.
@@ -2748,7 +2748,7 @@ impl GQLSystem {
         let (trade_goods, market_trade) =
             crate::manager::trade_manager::trade_route_calculator::fetch_market_data(
                 database_pool,
-                &[self.system.symbol.clone()],
+                std::slice::from_ref(&self.system.symbol),
             )
             .await?;
 
@@ -2967,19 +2967,32 @@ paginated_gql_object!(
 #[graphql(name = "TradeRouteCandidate")]
 #[graphql(complex)]
 pub struct GQLTradeRouteCandidate {
-    id: i64,
+    pub symbol: space_traders_client::models::TradeSymbol,
+    pub purchase_good: Option<database::MarketTradeGood>,
+    pub sell_good: Option<database::MarketTradeGood>,
+    pub purchase: database::MarketTrade,
+    pub sell: database::MarketTrade,
 }
 
 #[async_graphql::ComplexObject]
 impl GQLTradeRouteCandidate {
-    async fn test(&self, _ctx: &async_graphql::Context<'_>) -> Result<bool> {
-        Ok(false)
+    async fn trade_route_proposal(
+        &self,
+        _ctx: &async_graphql::Context<'_>,
+    ) -> Result<Option<GQLTradeRouteProposal>> {
+        todo!()
     }
 }
 
 impl From<TradeRouteCandidate> for GQLTradeRouteCandidate {
     fn from(value: TradeRouteCandidate) -> Self {
-        todo!()
+        GQLTradeRouteCandidate {
+            symbol: value.symbol,
+            purchase_good: value.purchase_good,
+            sell_good: value.sell_good,
+            purchase: value.purchase,
+            sell: value.sell,
+        }
     }
 }
 
@@ -2989,6 +3002,29 @@ paginated_gql_object!(
     TradeRouteCandidate,
     GQLTradeRouteCandidate
 );
+
+#[derive(Debug, Clone, async_graphql::SimpleObject)]
+#[graphql(name = "TradeRouteProposal")]
+#[graphql(complex)]
+pub struct GQLTradeRouteProposal {
+    #[graphql(flatten)]
+    trade_route_proposal: TradeRouteProposal,
+}
+
+#[async_graphql::ComplexObject]
+impl GQLTradeRouteProposal {
+    async fn trade_route_proposal(&self, _ctx: &async_graphql::Context<'_>) -> Result<bool> {
+        Ok(false)
+    }
+}
+
+impl From<TradeRouteProposal> for GQLTradeRouteProposal {
+    fn from(value: TradeRouteProposal) -> Self {
+        GQLTradeRouteProposal {
+            trade_route_proposal: value,
+        }
+    }
+}
 
 #[derive(Debug, Clone, async_graphql::SimpleObject)]
 #[graphql(name = "Waypoint")]

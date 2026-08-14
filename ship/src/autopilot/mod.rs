@@ -226,6 +226,7 @@ impl Debug for AutopilotState {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct ShipNavStats {
     pub max_fuel: u32,
     pub max_cargo: u32,

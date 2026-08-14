@@ -1,3 +1,4 @@
+mod data_loaders;
 mod gql_models;
 mod gql_ship;
 pub mod mutations;

@@ -31,11 +31,12 @@ impl SystemRouterCache {
         {
             debug!(
                 key = ?(start_symbol.to_string(), end_symbol.to_string(), config),
-                "Jump Route Cache miss"
+                "System Route Cache miss"
             );
             let route = self
                 .router
                 .find_route_system(start_symbol, end_symbol, &config);
+            debug!(route = ?route, "Route calculated");
             let route = route?;
             self.cache.insert(
                 (start_symbol.to_string(), end_symbol.to_string(), config),
@@ -109,6 +110,12 @@ impl SystemRouter {
         if !start_symbol.starts_with(&self.system_symbol)
             || !end_symbol.starts_with(&self.system_symbol)
         {
+            debug!(
+                start_symbol = ?start_symbol,
+                end_symbol = ?end_symbol,
+                system_symbol = ?self.system_symbol,
+                "Not in the same system"
+            );
             return None;
         }
         let mut unvisited = self.waypoints.clone();
@@ -160,6 +167,8 @@ impl SystemRouter {
             first = false;
         }
 
+        debug!(?visited, "Finished route");
+
         super::utils::get_route(visited, start_symbol.to_string(), end_symbol.to_string())
     }
 
@@ -174,7 +183,13 @@ impl SystemRouter {
     ) -> Option<bool> {
         visited.insert(current_route.end_symbol.clone(), current_route.clone());
 
-        let current = unvisited.remove(&current_route.end_symbol)?;
+        let current = unvisited.remove(&current_route.end_symbol);
+
+        if current.is_none() {
+            return Some(false);
+        }
+
+        let current = current?;
 
         if current.symbol == end_waypoint.symbol {
             return Some(true);

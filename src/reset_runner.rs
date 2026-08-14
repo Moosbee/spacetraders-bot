@@ -78,7 +78,7 @@ pub async fn run_reset(
     init_exports_to_imports(&context.api, &context.database_pool).await?;
 
     tracing::info!("Initializing systems for ship locations");
-    init_systems_with_ships(&context, &ships, false).await?;
+    init_systems_with_ships(&context, &ships, true).await?;
 
     tracing::info!("Ensuring main system fleets are populated");
     ensure_main_system_fleets(&context).await?;

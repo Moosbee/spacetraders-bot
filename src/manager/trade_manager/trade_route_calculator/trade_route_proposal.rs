@@ -1,4 +1,5 @@
-#[derive(Debug, Clone, PartialEq, Default)]
+#[derive(Debug, Clone, PartialEq, Default, async_graphql::SimpleObject)]
+#[graphql(name = "InternalTradeRouteProposal")]
 pub struct TradeRouteProposal {
     pub symbol: space_traders_client::models::TradeSymbol,
     pub purchase_good: Option<database::MarketTradeGood>,

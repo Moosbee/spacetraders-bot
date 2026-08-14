@@ -48,9 +48,34 @@ union AssignmentStatus = ConstructionStatus | TraderStatus | TransferStatus | Co
 type AutopilotRoute {
 	connections: [ConcreteConnection!]!
 	totalDistance: Float!
-	totalFuelCost: Float!
+	"""
+	time in seconds spent warping or navigating
+	"""
+	travelTime: Float!
+	totalJumpCooldownTime: Float!
 	totalTravelTime: Float!
 	totalApiRequests: Int!
+	"""
+	how many fuel tank units are needed
+	"""
+	totalFuel: Int!
+	"""
+	how many items of fuel are needed, 1 item of fuel = 100 fuel units in fuel tank
+	"""
+	totalRefuel: Int!
+	"""
+	how much all the items of fuel cost
+	"""
+	totalFuelCost: Int!
+	"""
+	how many items of anti-matter are needed
+	"""
+	totalAntiMatter: Int!
+	"""
+	how much all the items of anti-matter cost
+	"""
+	totalAntiMatterCost: Int!
+	totalCost: Int!
 }
 
 type AutopilotState {
@@ -409,6 +434,26 @@ type DBFleet {
 	updatedAt: DateTime!
 }
 
+type DBMarketTrade {
+	waypointSymbol: String!
+	symbol: TradeSymbol!
+	createdAt: DateTime!
+	type: MarketTradeGoodType!
+}
+
+type DBMarketTradeGood {
+	id: Int!
+	symbol: TradeSymbol!
+	waypointSymbol: String!
+	type: MarketTradeGoodType!
+	tradeVolume: Int!
+	supply: SupplyLevel!
+	activity: ActivityLevel
+	purchasePrice: Int!
+	sellPrice: Int!
+	createdAt: DateTime!
+}
+
 """
 Implement the DateTime<Utc> scalar
 
@@ -742,10 +787,10 @@ input InputTotalTradingConfig {
 	marketBlacklist: [TradeSymbol!]!
 	marketPreferList: [TradeSymbol!]!
 	purchaseMultiplier: Float!
-	shipMarketRatio: Float!
-	minCargoSpace: Int!
 	tradeMode: TradeMode!
 	tradeProfitThreshold: Int!
+	shipMarketRatio: Float!
+	minCargoSpace: Int!
 }
 
 input InputTradingConfig {
@@ -1103,11 +1148,6 @@ type NavigationState {
 	autoPilot: AutopilotState
 }
 
-type PossibleTradeRoute {
-	id: Int!
-	test: Boolean!
-}
-
 type QueryRoot {
 	runInfo: RunInfo!
 	apiCounts: Int!
@@ -1140,7 +1180,7 @@ type QueryRoot {
 	survey(signature: String!): Survey!
 	tradeRoutes(page: Int, pageSize: Int): TradeRoutePage!
 	tradeRoute(routeId: Int!): TradeRoute!
-	possibleTradeRoutes(systems: [String!]): [PossibleTradeRoute!]!
+	tradeRouteCandidates(systems: [String!], page: Int, pageSize: Int): TradeRouteCandidatePage!
 	shipInfos(page: Int, pageSize: Int): ShipInfoPage!
 	shipInfo(symbol: String!): ShipInfo!
 	shipStates(by: ShipStateBy, page: Int, pageSize: Int): ShipStatePage!
@@ -1179,7 +1219,13 @@ type ReactorInfo {
 }
 
 type Refuel {
+	"""
+	fuel needed to have in fuel tank to make the jump
+	"""
 	fuelNeeded: Int!
+	"""
+	how many items of fuel need to be in storage at this point to get to the next waypoint
+	"""
 	fuelRequired: Int!
 	startIsMarketplace: Boolean!
 }
@@ -1895,6 +1941,7 @@ type System {
 	jumpGateConnections(page: Int, pageSize: Int): JumpGateConnectionPage!
 	tradeRoutes(page: Int, pageSize: Int): TradeRoutePage!
 	ships: [Ship!]!
+	tradeRouteCandidates(page: Int, pageSize: Int): TradeRouteCandidatePage!
 	seenAgents: [KnownAgent!]!
 }
 
@@ -1942,10 +1989,14 @@ type TradeRoute {
 	SellWaypointSymbol: String!
 	status: ShipmentStatus!
 	tradeVolume: Int!
-	predictedPurchasePrice: Int!
-	predictedSellPrice: Int!
-	createdAt: DateTime!
+	purchaseTradeGoodId: Int
+	sellTradeGoodId: Int
+	estimatedFuel: Int
+	tradeMode: TradeMode!
 	reservedFund: Int
+	fleetId: Int
+	assignmentId: Int
+	createdAt: DateTime!
 	ship: Ship
 	sellWaypoint: Waypoint
 	purchaseWaypoint: Waypoint
@@ -1957,11 +2008,53 @@ type TradeRoute {
 	tradeSymbolInfo: TradeSymbolInfo!
 }
 
+type TradeRouteCandidate {
+	symbol: TradeSymbol!
+	purchaseGood: DBMarketTradeGood
+	sellGood: DBMarketTradeGood
+	purchase: DBMarketTrade!
+	sell: DBMarketTrade!
+	tradeRouteProposal: TradeRouteProposal
+}
+
+type TradeRouteCandidatePage {
+	items: [TradeRouteCandidate!]!
+	totalCount: Int!
+	page: Int!
+	pageSize: Int
+}
+
 type TradeRoutePage {
 	items: [TradeRoute!]!
 	totalCount: Int!
 	page: Int!
 	pageSize: Int
+}
+
+type TradeRouteProposal {
+	symbol: TradeSymbol!
+	purchaseGood: DBMarketTradeGood
+	sellGood: DBMarketTradeGood
+	purchase: DBMarketTrade!
+	sell: DBMarketTrade!
+	fuelUnits: Int!
+	time: Float!
+	distance: Float!
+	apiRequests: Int!
+	tradeVolume: Int!
+	travelCost: Int!
+	goodCost: Int!
+	totalCost: Int!
+	goodTotalSellPrice: Int!
+	goodProfit: Int!
+	totalProfit: Int!
+	"""
+	trips per hour, one trip is a roundtrip
+	"""
+	tripsPerHour: Float!
+	profitPerHour: Float!
+	profitPerApiRequest: Float!
+	tradeRouteProposal: Boolean!
 }
 
 """
@@ -2142,10 +2235,10 @@ type TradingConfig {
 	marketBlacklist: [TradeSymbol!]!
 	marketPreferList: [TradeSymbol!]!
 	purchaseMultiplier: Float!
-	shipMarketRatio: Float!
-	minCargoSpace: Int!
 	tradeMode: TradeMode!
 	tradeProfitThreshold: Int!
+	shipMarketRatio: Float!
+	minCargoSpace: Int!
 }
 
 type TransactionSummary {
