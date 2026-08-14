@@ -473,7 +473,7 @@ impl<T: Clone + Send + Sync> RustShip<T, Mutable> {
             arrival: Utc::now() + chrono::Duration::seconds(route.total_travel_time as i64),
             departure_time: Utc::now(),
             distance: route.total_distance,
-            fuel_cost: route.total_fuel_cost as i32,
+            fuel_cost: route.total_fuel_cost,
             travel_time: route.total_travel_time,
             route: route.clone(),
             destination_symbol,

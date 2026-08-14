@@ -2,14 +2,18 @@ use std::collections::HashMap;
 
 use utils::distance_between_waypoints;
 
-pub fn get_nearby_waypoints(
+pub fn get_nearby_waypoints_donut(
     waypoints: &HashMap<String, database::Waypoint>,
     start_waypoint: (i32, i32),
-    radius: f64,
+    min_radius: f64,
+    max_radius: f64,
 ) -> Vec<&database::Waypoint> {
     waypoints
         .values()
-        .filter(|w| distance_between_waypoints(start_waypoint, (w.x, w.y)) <= radius)
+        .filter(|w| {
+            let distance = distance_between_waypoints(start_waypoint, (w.x, w.y));
+            distance <= max_radius && distance > min_radius
+        })
         .collect()
 }
 
@@ -29,20 +33,52 @@ pub(crate) fn get_route(
     Some(route)
 }
 
-pub fn estimate_route_cost(
-    route: &[super::connection::SimpleConnection],
-    fuel_cost: i64,
-    antimatter_cost: i64,
-) -> i64 {
-    route.iter().fold(0, |acc, conn| {
-        acc + match conn.connection_type {
-            super::connection::ConnectionType::JumpGate => antimatter_cost,
-            super::connection::ConnectionType::Warp { .. } => {
-                fuel_cost * (conn.distance / 10.0).ceil() as i64
-            }
-            super::connection::ConnectionType::Navigate { .. } => {
-                fuel_cost * (conn.distance / 10.0).ceil() as i64
-            }
-        }
-    })
+use space_traders_client::models;
+
+#[derive(Debug, Clone)]
+pub struct TravelStats {
+    pub distance: f64,
+    pub fuel_cost: i32,
+    pub travel_time: f64,
+}
+
+pub fn get_travel_stats(
+    engine_speed: i32,
+    flight_mode: models::ShipNavFlightMode,
+    engine_condition: f64,
+    distance: f64,
+) -> TravelStats {
+    let (fuel_cost, multiplier) = calculate_fuel_and_multiplier(flight_mode, distance);
+    let travel_time = calculate_travel_time(distance, multiplier, engine_speed, engine_condition);
+
+    TravelStats {
+        distance,
+        fuel_cost,
+        travel_time,
+    }
+}
+
+fn calculate_fuel_and_multiplier(
+    flight_mode: models::ShipNavFlightMode,
+    distance: f64,
+) -> (i32, f64) {
+    match flight_mode {
+        models::ShipNavFlightMode::Burn => ((2.0 * distance.max(1.0)).ceil() as i32, 12.5),
+        models::ShipNavFlightMode::Cruise => ((distance.max(1.0)).ceil() as i32, 25.0),
+        models::ShipNavFlightMode::Stealth => ((distance.max(1.0)).ceil() as i32, 30.0),
+        models::ShipNavFlightMode::Drift => (1, 250.0),
+    }
+}
+
+pub fn calculate_jump_cooldown(distance: f64) -> f64 {
+    (15.0 + 0.3 * distance).round()
+}
+
+fn calculate_travel_time(
+    distance: f64,
+    multiplier: f64,
+    engine_speed: i32,
+    _engine_condition: f64,
+) -> f64 {
+    ((distance.max(1.0).round()) * (multiplier / (engine_speed as f64)) + 15.0).round()
 }

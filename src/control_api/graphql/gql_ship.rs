@@ -1,11 +1,11 @@
 use std::{collections::HashMap, sync::Arc};
 
-use async_graphql::{dataloader::DataLoader, Union};
+use async_graphql::{Union, dataloader::DataLoader};
 use database::DatabaseConnectorAsync;
 use ship::{
-    status::{ExtractorState, MiningShipAssignment, ShipStatus, TransporterState},
     AssignmentStatus, AutopilotState, ModuleState, MountState, NavigationState, RouteState,
     ShippingStatus,
+    status::{ExtractorState, MiningShipAssignment, ShipStatus, TransporterState},
 };
 use space_traders_client::models;
 use tracing::instrument;
@@ -153,7 +153,8 @@ impl ConstructionStatus {
     ) -> Result<Option<gql_models::GQLConstructionShipment>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
         if let Some(shipment_id) = self.shipment_id {
-            let erg = database::ConstructionShipment::get_by_id(database_pool, &shipment_id).await?;
+            let erg =
+                database::ConstructionShipment::get_by_id(database_pool, &shipment_id).await?;
             Ok(erg.map(|f| f.into()))
         } else {
             Ok(None)
@@ -513,11 +514,7 @@ impl GQLNavigationState {
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Option<gql_models::GQLSystem>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let erg = database::System::get_by_id(
-            database_pool,
-            &self.nav.system_symbol,
-        )
-        .await?;
+        let erg = database::System::get_by_id(database_pool, &self.nav.system_symbol).await?;
         Ok(erg.map(|f| f.into()))
     }
 
@@ -562,11 +559,8 @@ impl GQLRouteState {
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Option<gql_models::GQLSystem>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let erg = database::System::get_by_id(
-            database_pool,
-            &self.route.destination_system_symbol,
-        )
-        .await?;
+        let erg = database::System::get_by_id(database_pool, &self.route.destination_system_symbol)
+            .await?;
         Ok(erg.map(|f| f.into()))
     }
 
@@ -586,11 +580,8 @@ impl GQLRouteState {
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Option<gql_models::GQLSystem>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let erg = database::System::get_by_id(
-            database_pool,
-            &self.route.origin_system_symbol,
-        )
-        .await?;
+        let erg =
+            database::System::get_by_id(database_pool, &self.route.origin_system_symbol).await?;
         Ok(erg.map(|f| f.into()))
     }
 
@@ -631,11 +622,9 @@ impl GQLAutopilotState {
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Option<gql_models::GQLSystem>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let erg = database::System::get_by_id(
-            database_pool,
-            &self.auto_pilot.destination_system_symbol,
-        )
-        .await?;
+        let erg =
+            database::System::get_by_id(database_pool, &self.auto_pilot.destination_system_symbol)
+                .await?;
         Ok(erg.map(|f| f.into()))
     }
 
@@ -655,11 +644,8 @@ impl GQLAutopilotState {
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Option<gql_models::GQLSystem>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let erg = database::System::get_by_id(
-            database_pool,
-            &self.auto_pilot.origin_system_symbol,
-        )
-        .await?;
+        let erg = database::System::get_by_id(database_pool, &self.auto_pilot.origin_system_symbol)
+            .await?;
         Ok(erg.map(|f| f.into()))
     }
 
@@ -703,11 +689,7 @@ impl JumpConnectionGQL {
     ) -> Result<Option<gql_models::GQLSystem>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
         let system = get_system_symbol(&self.start_symbol);
-        let erg = database::System::get_by_id(
-            database_pool,
-            &system,
-        )
-        .await?;
+        let erg = database::System::get_by_id(database_pool, &system).await?;
         Ok(erg.map(|f| f.into()))
     }
 
@@ -726,11 +708,7 @@ impl JumpConnectionGQL {
     ) -> Result<Option<gql_models::GQLSystem>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
         let system = get_system_symbol(&self.end_symbol);
-        let erg = database::System::get_by_id(
-            database_pool,
-            &system,
-        )
-        .await?;
+        let erg = database::System::get_by_id(database_pool, &system).await?;
         Ok(erg.map(|f| f.into()))
     }
 }
@@ -766,11 +744,7 @@ impl WarpConnectionGQL {
     ) -> Result<Option<gql_models::GQLSystem>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
         let system = get_system_symbol(&self.start_symbol);
-        let erg = database::System::get_by_id(
-            database_pool,
-            &system,
-        )
-        .await?;
+        let erg = database::System::get_by_id(database_pool, &system).await?;
         Ok(erg.map(|f| f.into()))
     }
 
@@ -789,11 +763,7 @@ impl WarpConnectionGQL {
     ) -> Result<Option<gql_models::GQLSystem>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
         let system = get_system_symbol(&self.end_symbol);
-        let erg = database::System::get_by_id(
-            database_pool,
-            &system,
-        )
-        .await?;
+        let erg = database::System::get_by_id(database_pool, &system).await?;
         Ok(erg.map(|f| f.into()))
     }
 }
@@ -829,11 +799,7 @@ impl NavigateConnectionGQL {
     ) -> Result<Option<gql_models::GQLSystem>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
         let system = get_system_symbol(&self.start_symbol);
-        let erg = database::System::get_by_id(
-            database_pool,
-            &system,
-        )
-        .await?;
+        let erg = database::System::get_by_id(database_pool, &system).await?;
         Ok(erg.map(|f| f.into()))
     }
 
@@ -852,11 +818,7 @@ impl NavigateConnectionGQL {
     ) -> Result<Option<gql_models::GQLSystem>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
         let system = get_system_symbol(&self.end_symbol);
-        let erg = database::System::get_by_id(
-            database_pool,
-            &system,
-        )
-        .await?;
+        let erg = database::System::get_by_id(database_pool, &system).await?;
         Ok(erg.map(|f| f.into()))
     }
 }
@@ -874,9 +836,24 @@ pub enum ConcreteConnectionGQL {
 pub struct RouteGQL {
     pub connections: Vec<ConcreteConnectionGQL>,
     pub total_distance: f64,
-    pub total_fuel_cost: f64,
+    /// time in seconds spent warping or navigating
+    pub travel_time: f64,
+    // time in seconds spent having a jump cooldown
+    pub total_jump_cooldown_time: f64,
+    // time in seconds spent in traveling from start to end
     pub total_travel_time: f64,
     pub total_api_requests: i32,
+    /// how many fuel tank units are needed
+    pub total_fuel: i32,
+    /// how many items of fuel are needed, 1 item of fuel = 100 fuel units in fuel tank
+    pub total_refuel: i32,
+    /// how much all the items of fuel cost
+    pub total_fuel_cost: i32,
+    /// how many items of anti-matter are needed
+    pub total_anti_matter: i32,
+    /// how much all the items of anti-matter cost
+    pub total_anti_matter_cost: i32,
+    pub total_cost: i32,
 }
 
 impl From<ship::autopilot::JumpConnection> for JumpConnectionGQL {
@@ -941,9 +918,16 @@ impl From<ship::autopilot::Route> for RouteGQL {
         RouteGQL {
             connections: route.connections.into_iter().map(|c| c.into()).collect(),
             total_distance: route.total_distance,
-            total_fuel_cost: route.total_fuel_cost,
+            travel_time: route.travel_time,
+            total_jump_cooldown_time: route.total_jump_cooldown_time,
             total_travel_time: route.total_travel_time,
             total_api_requests: route.total_api_requests,
+            total_fuel: route.total_fuel,
+            total_refuel: route.total_refuel,
+            total_fuel_cost: route.total_fuel_cost,
+            total_anti_matter: route.total_anti_matter,
+            total_anti_matter_cost: route.total_anti_matter_cost,
+            total_cost: route.total_anti_matter_cost + route.total_fuel_cost,
         }
     }
 }

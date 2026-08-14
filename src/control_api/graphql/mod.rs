@@ -750,15 +750,55 @@ impl QueryRoot {
         Ok(trade_route.into())
     }
 
-    async fn possible_trade_routes<'ctx>(
+    async fn trade_route_candidates<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
-        _systems: Option<Vec<String>>,
-    ) -> Result<Vec<gql_models::GQLPossibleTradeRoute>> {
-        let _context = ctx.data::<ConductorContext>()?;
+        systems: Option<Vec<String>>,
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<gql_models::GQLTradeRouteCandidatePage> {
+        let context = ctx.data::<ConductorContext>()?;
 
-        todo!()
-        // Ok(possible_trade_routes.into())
+        let (trade_goods, market_trade) = match systems {
+            Some(systems) => {
+                crate::manager::trade_manager::trade_route_calculator::fetch_market_data(
+                    &context.database_pool,
+                    &systems,
+                )
+                .await?
+            }
+            None => {
+                let trade_goods = database::MarketTradeGood::get_last(
+                    &context.database_pool,
+                    database::PaginatedQuery::unpaged(),
+                )
+                .await?
+                .items;
+                let market_trade = database::MarketTrade::get_last(
+                    &context.database_pool,
+                    database::PaginatedQuery::unpaged(),
+                )
+                .await?
+                .items;
+                (trade_goods, market_trade)
+            }
+        };
+
+        let mut trade_routes: Vec<
+            crate::manager::trade_manager::trade_route_calculator::TradeRouteCandidate,
+        > = crate::manager::trade_manager::trade_route_calculator::gen_all_trade_route_candidates(
+            &trade_goods,
+            &market_trade,
+        );
+
+        trade_routes.sort_by(|a, b| {
+            a.symbol
+                .cmp(&b.symbol)
+                .then(a.sell.waypoint_symbol.cmp(&b.sell.waypoint_symbol))
+                .then(a.purchase.waypoint_symbol.cmp(&b.purchase.waypoint_symbol))
+        });
+
+        Ok(database::paginate_items(paginated_query(page, page_size), trade_routes)?.into())
     }
 
     async fn ship_infos<'ctx>(

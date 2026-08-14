@@ -5,14 +5,14 @@ use tracing::debug;
 
 use crate::{
     error::Result,
-    manager::{Manager, trade_manager::message::TradeMessage},
+    manager::{
+        Manager,
+        trade_manager::{message::TradeMessage, trade_route_calculator},
+    },
     utils::ConductorContext,
 };
 
-use super::{
-    TradeManagerMessage, messager::TradeManagerMessanger, routes_calculator::RouteCalculator,
-    routes_tracker::RoutesTracker,
-};
+use super::{TradeManagerMessage, messager::TradeManagerMessanger, routes_tracker::RoutesTracker};
 
 pub type TradeManagerReceiver = tokio::sync::mpsc::Receiver<TradeManagerMessage>;
 
@@ -24,7 +24,6 @@ pub struct TradeManager {
     context: ConductorContext,
     receiver: TradeManagerReceiver,
     routes_tracker: RoutesTracker,
-    calculator: RouteCalculator,
 }
 
 impl TradeManager {
@@ -59,7 +58,6 @@ impl TradeManager {
             context: context.clone(),
             receiver,
             routes_tracker: tracker,
-            calculator: RouteCalculator::new(context),
         })
     }
 
@@ -156,11 +154,10 @@ impl TradeManager {
             .collect::<Vec<_>>();
 
         let next_route_potential = if !my_unfinished_routes.is_empty() {
-            (Some(my_unfinished_routes[0].clone()), true)
+            (Some((my_unfinished_routes[0].clone(), 0)), true)
         } else {
             (
-                self.calculator
-                    .get_best_route(&ship_clone, &self.routes_tracker, trading_config)
+                self.get_best_ship_route(&ship_clone, trading_config)
                     .await?,
                 false,
             )
@@ -170,7 +167,7 @@ impl TradeManager {
             return Ok(None);
         }
 
-        let mut next_route = next_route_potential.0.unwrap();
+        let (mut next_route, next_route_total_expense) = next_route_potential.0.unwrap();
 
         let done = self.routes_tracker.lock(&next_route.clone().into());
 
@@ -182,13 +179,14 @@ impl TradeManager {
         }
 
         if next_route.reserved_fund.is_none() {
-            let total_expense =
-                (next_route.predicted_purchase_price * next_route.trade_volume) as i64;
-
             let reservation = self
                 .context
                 .budget_manager
-                .reserve_funds_with_remain(&self.context.database_pool, total_expense, 1_000)
+                .reserve_funds_with_remain(
+                    &self.context.database_pool,
+                    next_route_total_expense,
+                    1_000,
+                )
                 .await?;
 
             next_route.reserved_fund = Some(reservation.id);
@@ -256,6 +254,76 @@ impl TradeManager {
         let completed_route = trade_route.complete();
         database::TradeRoute::upsert(&self.context.database_pool, &completed_route).await?;
         Ok(completed_route)
+    }
+
+    async fn get_best_ship_route(
+        &self,
+        ship_clone: &ship::RustShip<ship::status::ShipStatus>,
+        trading_config: database::TradingFleetConfig,
+    ) -> Result<Option<(database::TradeRoute, i64)>> {
+        let trade_systems: Vec<String> =
+            trade_route_calculator::get_trade_systems(&trading_config, ship_clone);
+
+        let (trade_goods, market_trade) =
+            trade_route_calculator::fetch_market_data(&self.context.database_pool, &trade_systems)
+                .await?;
+
+        let trade_route_candidates_all =
+            trade_route_calculator::gen_all_trade_route_candidates(&trade_goods, &market_trade);
+
+        let trade_route_candidates_filtered = trade_route_calculator::filter_trade_route_candidates(
+            trade_route_candidates_all,
+            &trading_config.market_blacklist,
+        );
+
+        let config = self.context.config.read().await.clone();
+
+        let trade_route_proposals = trade_route_calculator::gen_trade_route_proposals(
+            &self.context.database_pool,
+            trade_route_candidates_filtered,
+            &trade_systems,
+            &ship_clone.get_nav_stats(),
+            trading_config.purchase_multiplier,
+            config.default_purchase_price,
+            config.default_sell_price,
+        )
+        .await?;
+
+        let trade_route_proposal = trade_route_calculator::get_best_trade_route_proposal(
+            trade_route_proposals,
+            |trp| trade_route_calculator::filter_trade_route_proposal(trp, &trading_config),
+            |trp1, trp2| {
+                trade_route_calculator::sort_trade_route_proposal(trp1, trp2, &trading_config)
+                    .unwrap_or(std::cmp::Ordering::Equal)
+            },
+        );
+
+        let expenses = trade_route_proposal
+            .as_ref()
+            .map(|trp| trp.total_cost as i64)
+            .unwrap_or(0);
+
+        let mut trade_route_db: Option<database::TradeRoute> = trade_route_proposal.map(Into::into);
+
+        match trade_route_db.as_mut() {
+            Some(v) => {
+                v.trade_mode = trading_config.trade_mode;
+                v.ship_symbol = ship_clone.symbol.to_string();
+                v.assignment_id = ship_clone
+                    .status
+                    .temp_assignment_id
+                    .or(ship_clone.status.assignment_id)
+                    .clone();
+                v.fleet_id = ship_clone
+                    .status
+                    .temp_fleet_id
+                    .or(ship_clone.status.fleet_id)
+                    .clone();
+            }
+            None => {}
+        }
+
+        Ok(trade_route_db.map(|tr_db| (tr_db, expenses)))
     }
 }
 

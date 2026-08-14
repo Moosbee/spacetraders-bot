@@ -2,17 +2,26 @@ use std::collections::HashMap;
 
 use space_traders_client::models::TradeSymbol;
 
-use super::routes::MinTradeRoute;
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct MinTradeRoute {
+    pub symbol: TradeSymbol,
+    pub purchase_wp_symbol: String,
+    pub sell_wp_symbol: String,
+}
 
-// pub struct MinTradeRoute {
-//     pub symbol: TradeSymbol,
-//     pub purchase_wp_symbol: String,
-//     pub sell_wp_symbol: String,
-// }
+impl From<database::TradeRoute> for MinTradeRoute {
+    fn from(route: database::TradeRoute) -> Self {
+        MinTradeRoute {
+            symbol: route.symbol,
+            purchase_wp_symbol: route.purchase_waypoint,
+            sell_wp_symbol: route.sell_waypoint,
+        }
+    }
+}
 
 type RouteLock = (TradeSymbol, String, bool);
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct RoutesTracker {
     routes: HashMap<RouteLock, bool>,
 }

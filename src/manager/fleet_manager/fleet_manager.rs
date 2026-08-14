@@ -6,8 +6,8 @@ use tracing::{debug, warn};
 use crate::{
     error::Result,
     manager::{
-        fleet_manager::{ship_capabilities::ShipCapabilities, ship_worth::ShipWorth},
         Manager,
+        fleet_manager::{ship_capabilities::ShipCapabilities, ship_worth::ShipWorth},
     },
     utils::ConductorContext,
 };
@@ -21,7 +21,7 @@ pub struct FleetManager {
     slow_cancel_token: tokio_util::sync::CancellationToken,
     receiver: FleetManagerReceiver,
     context: ConductorContext,
-    jump_gate: Option<ship::autopilot::jump_gate_nav::JumpPathfinder>,
+    jump_gate: Option<ship::autopilot::JumpGateRouterCache>,
 }
 
 impl FleetManager {
@@ -513,8 +513,15 @@ impl FleetManager {
 
         let conns = target_systems
             .iter()
-            .map(|end_system| (end_system, jump_gate.find_route(start_system, end_system)))
-            .map(|f| (f.0.clone(), f.1.iter().map(|conn| conn.cost).sum::<f64>()))
+            .map(|end_system| {
+                (
+                    end_system.clone(),
+                    jump_gate
+                        .find_jump_route(start_system, end_system, true)
+                        .map(|c| c.iter().map(|conn| conn.cost).sum::<f64>())
+                        .unwrap_or(f64::MAX),
+                )
+            })
             .collect::<HashMap<_, _>>();
 
         debug!(conns=?conns,"Calculated all connections");
@@ -567,21 +574,15 @@ impl FleetManager {
         }
     }
 
-    async fn get_jump_navigator(
-        &mut self,
-    ) -> Result<&mut ship::autopilot::jump_gate_nav::JumpPathfinder> {
+    async fn get_jump_navigator(&mut self) -> Result<&mut ship::autopilot::JumpGateRouterCache> {
         if self.jump_gate.is_none() {
-            let connections = ship::autopilot::jump_gate_nav::generate_all_connections(
-                &self.context.database_pool,
-            )
-            .await?
-            .into_iter()
-            .filter(|c| !c.under_construction_a && !c.under_construction_b)
-            .collect::<Vec<_>>();
-            let jump_gate: ship::autopilot::jump_gate_nav::JumpPathfinder =
-                ship::autopilot::jump_gate_nav::JumpPathfinder::new(connections);
+            let connections =
+                ship::autopilot::generate_all_connections(&self.context.database_pool).await?;
+            let jump_gate_router = ship::autopilot::JumpGateRouterCache::new(
+                ship::autopilot::JumpGateRouter::new(connections.0, connections.1),
+            );
 
-            self.jump_gate = Some(jump_gate);
+            self.jump_gate = Some(jump_gate_router);
         }
         if let Some(navigator) = &mut self.jump_gate {
             Ok(navigator)
@@ -724,13 +725,13 @@ impl FleetManager {
                     .filter(|(_shipyard_ship, capability)| capability.capable(assignment))
                     .map(|(shipyard_ship, _)| shipyard_ship)
                     .filter_map(|shipyard_ship| {
-                        Some(ShipWorth::new(
+                        ShipWorth::new(
                             assignment,
                             shipyard_ship,
                             fleets.get(&assignment.fleet_id)?,
                             jump_gate,
                             antimatter_price,
-                        ))
+                        )
                     })
                     .filter(|sh| {
                         sh.total_price < (sh.assignment.max_purchase_price as i64)

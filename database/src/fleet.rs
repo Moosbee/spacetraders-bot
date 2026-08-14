@@ -1819,10 +1819,12 @@ pub struct TradingConfig {
     pub market_blacklist: Vec<models::TradeSymbol>,
     pub market_prefer_list: Vec<models::TradeSymbol>,
     pub purchase_multiplier: f64,
-    pub ship_market_ratio: f64,
-    pub min_cargo_space: i32,
     pub trade_mode: TradeMode,
     pub trade_profit_threshold: i32,
+
+    // needed for assignment generation
+    pub ship_market_ratio: f64,
+    pub min_cargo_space: i32,
 }
 
 #[derive(

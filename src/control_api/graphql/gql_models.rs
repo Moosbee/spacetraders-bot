@@ -8,6 +8,7 @@ use space_traders_client::models;
 use crate::{
     control_api::graphql::gql_ship::{GQLModules, GQLMounts, GQLNavigationState},
     error::Result,
+    manager::trade_manager::trade_route_calculator::TradeRouteCandidate,
 };
 
 /// Utility function to convert a single optional database type to its GQL type.
@@ -2736,6 +2737,38 @@ impl GQLSystem {
             .collect())
     }
 
+    async fn trade_route_candidates<'ctx>(
+        &self,
+        ctx: &async_graphql::Context<'ctx>,
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<GQLTradeRouteCandidatePage> {
+        let database_pool = ctx.data::<database::DbPool>().unwrap();
+
+        let (trade_goods, market_trade) =
+            crate::manager::trade_manager::trade_route_calculator::fetch_market_data(
+                database_pool,
+                &[self.system.symbol.clone()],
+            )
+            .await?;
+
+        let mut trade_routes: Vec<
+            crate::manager::trade_manager::trade_route_calculator::TradeRouteCandidate,
+        > = crate::manager::trade_manager::trade_route_calculator::gen_all_trade_route_candidates(
+            &trade_goods,
+            &market_trade,
+        );
+
+        trade_routes.sort_by(|a, b| {
+            a.symbol
+                .cmp(&b.symbol)
+                .then(a.sell.waypoint_symbol.cmp(&b.sell.waypoint_symbol))
+                .then(a.purchase.waypoint_symbol.cmp(&b.purchase.waypoint_symbol))
+        });
+
+        Ok(database::paginate_items(paginated_query(page, page_size), trade_routes)?.into())
+    }
+
     async fn seen_agents(&self, ctx: &async_graphql::Context<'_>) -> Result<Vec<KnownAgent>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
         let system_market_transactions = database::MarketTransaction::get_by_system(
@@ -2931,18 +2964,31 @@ paginated_gql_object!(
 );
 
 #[derive(Debug, Clone, async_graphql::SimpleObject)]
-#[graphql(name = "PossibleTradeRoute")]
+#[graphql(name = "TradeRouteCandidate")]
 #[graphql(complex)]
-pub struct GQLPossibleTradeRoute {
+pub struct GQLTradeRouteCandidate {
     id: i64,
 }
 
 #[async_graphql::ComplexObject]
-impl GQLPossibleTradeRoute {
+impl GQLTradeRouteCandidate {
     async fn test(&self, _ctx: &async_graphql::Context<'_>) -> Result<bool> {
         Ok(false)
     }
 }
+
+impl From<TradeRouteCandidate> for GQLTradeRouteCandidate {
+    fn from(value: TradeRouteCandidate) -> Self {
+        todo!()
+    }
+}
+
+paginated_gql_object!(
+    GQLTradeRouteCandidatePage,
+    "TradeRouteCandidatePage",
+    TradeRouteCandidate,
+    GQLTradeRouteCandidate
+);
 
 #[derive(Debug, Clone, async_graphql::SimpleObject)]
 #[graphql(name = "Waypoint")]

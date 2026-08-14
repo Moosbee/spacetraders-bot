@@ -2,19 +2,17 @@ use ::utils::WaypointCan;
 use chrono::{DateTime, Utc};
 use database::DatabaseConnectorAsync;
 use database::TransactionReason;
-use pathfinder::Pathfinder;
 use space_traders_client::models;
 
 use std::fmt::Debug;
 
 mod connection;
-mod instructor;
-pub mod jump_gate_nav;
+mod jump_gate_router;
 mod nav_mode;
 mod navigator;
 mod pathfinder;
-mod simple_pathfinding;
-mod stats;
+mod system_router;
+mod travel_price;
 mod utils;
 
 pub use connection::ConcreteConnection;
@@ -24,6 +22,16 @@ pub use connection::Refuel;
 pub use connection::Route;
 pub use connection::SimpleConnection;
 pub use connection::WarpConnection;
+pub use connection::assemble_route;
+
+pub use jump_gate_router::JumpGateRouter;
+pub use jump_gate_router::JumpGateRouterCache;
+pub use jump_gate_router::generate_all_connections;
+pub use nav_mode::NavMode;
+pub use pathfinder::NavigatorCache;
+pub use travel_price::SimpleTravelPriceCalc;
+pub use travel_price::TravelPriceCache;
+pub use travel_price::TravelPriceCalc;
 
 use crate::error::Result;
 
@@ -62,15 +70,26 @@ impl<T: Clone + Send + Sync> RustShip<T, Mutable> {
         api: &space_traders_client::Api,
         update_funds_fn: impl Fn(i64) + Clone,
     ) -> Result<()> {
-        let pathfinder = self
-            .get_pathfinder(database_pool, api)
-            .ok_or("Failed to get pathfinder")?;
-
+        let mut pathfinder = pathfinder::NavigatorCache::default();
         let found_route = pathfinder
-            .get_route(&self.nav.waypoint_symbol, waypoint)
+            .get_route(
+                database_pool,
+                &self.nav.waypoint_symbol,
+                waypoint,
+                &self.get_nav_stats(),
+            )
+            .await?
+            .ok_or(crate::error::Error::General("No route found".to_string()))?;
+
+        let mut price_calc = travel_price::TravelPriceCache::new(database_pool.clone());
+
+        price_calc
+            .preload_system_prices(&self.nav.system_symbol)
             .await?;
 
-        let route = self.assemble_route(&found_route).await?;
+        let route =
+            connection::assemble_route(&found_route, &self.get_nav_stats(), &mut price_calc)
+                .await?;
 
         let database_pool2 = database_pool.clone();
         let api2 = api.clone();
@@ -151,26 +170,25 @@ impl<T: Clone + Send + Sync> RustShip<T, Mutable> {
 }
 
 impl<T: Clone + Send + Sync, State: Send + Sync> RustShip<T, State> {
-    pub fn get_pathfinder(
-        &self,
-        database_pool: &database::DbPool,
-        api: &space_traders_client::Api,
-    ) -> Option<Pathfinder> {
-        Some(Pathfinder {
-            range: self.fuel.capacity as u32,
-            nav_mode: nav_mode::NavMode::BurnAndCruiseAndDrift,
-            start_range: (self.fuel.current as u32
-                + self.cargo.get_amount(&models::TradeSymbol::Fuel) as u32)
-                .min(self.fuel.capacity as u32),
-            only_markets: true,
+    pub fn get_nav_stats(&self) -> ShipNavStats {
+        ShipNavStats {
             can_warp: self.modules.modules.iter().any(|module| {
                 module == &models::ship_module::Symbol::WarpDriveI
                     || module == &models::ship_module::Symbol::WarpDriveIi
                     || module == &models::ship_module::Symbol::WarpDriveIii
             }),
-            database_pool: database_pool.clone(),
-            api: api.clone(),
-        })
+            engine_condition: self.conditions.engine.condition,
+            engine_speed: self.engine_speed,
+            max_cargo: self.cargo.capacity as u32,
+            max_fuel: self.fuel.capacity as u32,
+            only_markets: true,
+            start_range: Some(
+                (self.fuel.current as u32
+                    + self.cargo.get_amount(&models::TradeSymbol::Fuel) as u32)
+                    .min(self.fuel.capacity as u32),
+            ),
+            nav_mode: nav_mode::NavMode::BurnAndCruiseAndDrift,
+        }
     }
 }
 
@@ -206,4 +224,15 @@ impl Debug for AutopilotState {
             .field("travel_time", &self.travel_time)
             .finish_non_exhaustive()
     }
+}
+
+pub struct ShipNavStats {
+    pub max_fuel: u32,
+    pub max_cargo: u32,
+    pub start_range: Option<u32>,
+    pub only_markets: bool,
+    pub can_warp: bool,
+    pub engine_speed: i32,
+    pub engine_condition: f64,
+    pub nav_mode: nav_mode::NavMode,
 }

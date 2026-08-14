@@ -1,0 +1,236 @@
+#[derive(Debug, Clone, PartialEq, Default)]
+pub struct TradeRouteProposal {
+    pub symbol: space_traders_client::models::TradeSymbol,
+    pub purchase_good: Option<database::MarketTradeGood>,
+    pub sell_good: Option<database::MarketTradeGood>,
+    pub purchase: database::MarketTrade,
+    pub sell: database::MarketTrade,
+
+    pub fuel_units: i32,
+    pub time: f64,
+    pub distance: f64,
+    pub api_requests: i32,
+
+    pub trade_volume: i32,
+
+    pub travel_cost: i32,
+    pub good_cost: i32,
+    pub total_cost: i32,
+    pub good_total_sell_price: i32,
+    pub good_profit: i32,
+    pub total_profit: i32,
+
+    /// trips per hour, one trip is a roundtrip
+    pub trips_per_hour: f64,
+    pub profit_per_hour: f64,
+    pub profit_per_api_request: f64,
+}
+
+impl From<TradeRouteProposal> for database::TradeRoute {
+    fn from(value: TradeRouteProposal) -> Self {
+        database::TradeRoute {
+            symbol: value.symbol,
+            status: database::ShipmentStatus::InTransit,
+            trade_volume: value.trade_volume,
+            purchase_waypoint: value.purchase.waypoint_symbol,
+            sell_waypoint: value.sell.waypoint_symbol,
+            purchase_trade_good_id: value.purchase_good.map(|g| g.id),
+            sell_trade_good_id: value.sell_good.map(|g| g.id),
+            ..Default::default()
+        }
+    }
+}
+
+pub(crate) async fn gen_trade_route_proposal(
+    database_pool: &database::DbPool,
+    trade_route_candidate: super::TradeRouteCandidate,
+    ship_stats: &ship::autopilot::ShipNavStats,
+    purchase_multiplier: f64,
+    fallback_purchase_price: i32,
+    fallback_sell_price: i32,
+    navigator_cache: &mut ship::autopilot::NavigatorCache,
+    travel_price_cache: &mut ship::autopilot::TravelPriceCache,
+) -> Result<Option<TradeRouteProposal>, crate::error::Error> {
+    // calculate route between buy and sell wp
+    let route = navigator_cache
+        .get_route(
+            database_pool,
+            &trade_route_candidate.purchase.waypoint_symbol,
+            &trade_route_candidate.sell.waypoint_symbol,
+            ship_stats,
+        )
+        .await?;
+    if route.is_none() {
+        return Ok(None);
+    }
+    // calculate travel cost, based on wp fuel data
+    let trip_information: TripInformation =
+        gen_trip_information(&route.unwrap(), &ship_stats, travel_price_cache).await?;
+    // calculate trade volume
+    let min_trade_volume = trade_route_candidate
+        .purchase_good
+        .as_ref()
+        .map(|t| t.trade_volume)
+        .unwrap_or(i32::MAX)
+        .min(
+            trade_route_candidate
+                .sell_good
+                .as_ref()
+                .map(|t| t.trade_volume)
+                .unwrap_or(i32::MAX),
+        );
+    let trip_volume = ship_stats
+        .max_cargo
+        .min((min_trade_volume as f64 * purchase_multiplier) as u32) as i32;
+    // calculate key figures
+    let purchase_unit_price = trade_route_candidate
+        .purchase_good
+        .as_ref()
+        .map(|f| f.sell_price)
+        .unwrap_or(fallback_purchase_price);
+    let sell_unit_price = trade_route_candidate
+        .sell_good
+        .as_ref()
+        .map(|f| f.purchase_price)
+        .unwrap_or(fallback_sell_price);
+
+    let travel_cost = trip_information.total_travel_cost;
+    let good_cost = trip_volume * purchase_unit_price;
+    let total_cost = good_cost + travel_cost;
+    let good_total_sell_price = trip_volume * sell_unit_price;
+    let revenue = good_total_sell_price;
+    let good_profit = good_total_sell_price - total_cost;
+    let total_profit = revenue - total_cost;
+
+    let roundtrip_time = trip_information.total_time * 2.0;
+    let trips_per_hour = 3600.0 / roundtrip_time;
+    let profit_per_hour = total_profit as f64 / roundtrip_time;
+    let profit_per_api_request = total_profit as f64 / trip_information.total_api_requests as f64;
+
+    // assemble proposal
+    Ok(Some(TradeRouteProposal {
+        symbol: trade_route_candidate.symbol,
+        purchase_good: trade_route_candidate.purchase_good,
+        sell_good: trade_route_candidate.sell_good,
+        purchase: trade_route_candidate.purchase,
+        sell: trade_route_candidate.sell,
+        fuel_units: trip_information.total_fuel_units + trip_information.total_antimatter_units,
+        time: trip_information.total_time,
+        distance: trip_information.total_distance,
+        api_requests: trip_information.total_api_requests,
+        trade_volume: trip_volume,
+
+        travel_cost,
+        good_cost,
+        total_cost,
+        good_total_sell_price,
+        good_profit,
+        total_profit,
+
+        trips_per_hour,
+        profit_per_hour,
+        profit_per_api_request,
+    }))
+}
+
+async fn gen_trip_information(
+    route: &[ship::autopilot::SimpleConnection],
+    ship_stats: &ship::autopilot::ShipNavStats,
+    travel_price_cache: &mut ship::autopilot::TravelPriceCache,
+) -> Result<TripInformation, crate::error::Error> {
+    let route = ship::autopilot::assemble_route(route, ship_stats, travel_price_cache).await?;
+
+    Ok(TripInformation {
+        total_time: route.total_travel_time,
+        total_distance: route.total_distance,
+        total_api_requests: route.total_api_requests,
+        total_fuel_units: route.total_refuel,
+        total_antimatter_units: route.total_anti_matter,
+        total_fuel_cost: route.total_fuel_cost,
+        total_antimatter_cost: route.total_anti_matter_cost,
+        total_travel_cost: route.total_fuel_cost + route.total_anti_matter_cost,
+    })
+}
+
+pub struct TripInformation {
+    // trip time in seconds
+    pub total_time: f64,
+    pub total_distance: f64,
+    pub total_api_requests: i32,
+    pub total_fuel_units: i32,
+    pub total_antimatter_units: i32,
+    pub total_fuel_cost: i32,
+    pub total_antimatter_cost: i32,
+    pub total_travel_cost: i32,
+}
+
+pub fn filter_trade_route_proposal(
+    trade_route_proposal: &TradeRouteProposal,
+    trading_config: &database::TradingFleetConfig,
+) -> bool {
+    trade_route_proposal.total_profit > trading_config.trade_profit_threshold
+}
+
+pub fn sort_trade_route_proposal(
+    trade_route_proposal_a: &TradeRouteProposal,
+    trade_route_proposal_b: &TradeRouteProposal,
+    trading_config: &database::TradingFleetConfig,
+) -> Option<std::cmp::Ordering> {
+    // sorts how filled-in a trade route proposal is
+    match (
+        &trade_route_proposal_a.sell_good,
+        &trade_route_proposal_b.sell_good,
+    ) {
+        (Some(_), None) => return Some(std::cmp::Ordering::Greater),
+        (None, Some(_)) => return Some(std::cmp::Ordering::Less),
+        _ => {}
+    }
+
+    match (
+        &trade_route_proposal_a.purchase_good,
+        &trade_route_proposal_b.purchase_good,
+    ) {
+        (Some(_), None) => return Some(std::cmp::Ordering::Greater),
+        (None, Some(_)) => return Some(std::cmp::Ordering::Less),
+        _ => {}
+    }
+
+    // either both are Some or both are None
+
+    if trade_route_proposal_a.purchase_good.is_none()
+        && trade_route_proposal_b.purchase_good.is_none()
+        && trade_route_proposal_a.sell_good.is_none()
+        && trade_route_proposal_b.sell_good.is_none()
+    {
+        return Some(std::cmp::Ordering::Equal);
+    }
+
+    match trading_config.trade_mode {
+        database::TradeMode::ProfitPerHour => trade_route_proposal_a
+            .profit_per_hour
+            .partial_cmp(&trade_route_proposal_b.profit_per_hour),
+        database::TradeMode::ProfitPerAPIRequest => trade_route_proposal_a
+            .profit_per_api_request
+            .partial_cmp(&trade_route_proposal_b.profit_per_api_request),
+        database::TradeMode::ProfitPerTrip => trade_route_proposal_a
+            .total_profit
+            .partial_cmp(&trade_route_proposal_b.total_profit),
+        database::TradeMode::MarketBalanced => {
+            // TODO
+            // prefer trades that trade from high supply to low supply the higher difference the better
+
+            // better if sell pw exporting
+            // better if buy pw importing
+
+            let purchase_good_a = trade_route_proposal_a.purchase_good.as_ref().unwrap();
+            let purchase_good_b = trade_route_proposal_b.purchase_good.as_ref().unwrap();
+            let sell_good_a = trade_route_proposal_a.sell_good.as_ref().unwrap();
+            let sell_good_b = trade_route_proposal_b.sell_good.as_ref().unwrap();
+
+            // todo calculate divide via the length not of a linear function but a curve to make it better to fill up scarce markets
+            let route_a_diff = (purchase_good_a.supply as i32) - (sell_good_a.supply as i32);
+            let route_b_diff = (purchase_good_b.supply as i32) - (sell_good_b.supply as i32);
+            Some(route_a_diff.cmp(&route_b_diff))
+        }
+    }
+}

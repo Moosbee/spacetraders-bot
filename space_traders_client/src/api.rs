@@ -31,7 +31,6 @@ use crate::apis::systems_api::{
 use crate::apis::{Error, ResponseContent, ResponseContentEntity};
 use crate::models::{self, FactionSymbol, System};
 use crate::models::{Register201ResponseData, RegisterRequest};
-use log::debug;
 use std::time::Duration;
 
 use crate::rate_limiter::PriorityRateLimiter;
@@ -51,7 +50,7 @@ macro_rules! rate_limit_retry {
                 if response_content.status == reqwest::StatusCode::TOO_MANY_REQUESTS
                     && response_content.get_error_code() == Some(429)
                 {
-                    debug!(
+                    tracing::warn!(
                         "Rate limited on {}, retrying after delay...",
                         stringify!($name)
                     );
@@ -195,7 +194,7 @@ impl Api {
             agents.extend(page.data);
             let total = page.meta.total;
 
-            debug!(
+            tracing::debug!(
                 "limit: {}, page {} of {}, agents: {} of {}",
                 limit,
                 current_page,
@@ -351,7 +350,7 @@ impl Api {
             contracts.extend(page.data);
             let total = page.meta.total;
 
-            debug!(
+            tracing::debug!(
                 "limit: {}, page {} of {}, contracts: {} of {}",
                 limit,
                 current_page,
@@ -414,7 +413,7 @@ impl Api {
             factions.extend(page.data);
             let total = page.meta.total;
 
-            debug!(
+            tracing::debug!(
                 "limit: {}, page {} of {}, factions: {} of {}",
                 limit,
                 current_page,
@@ -681,7 +680,7 @@ impl Api {
             ships.extend(page.data);
             let total = page.meta.total;
 
-            debug!(
+            tracing::debug!(
                 "limit: {}, page {} of {}, ships: {} of {}",
                 limit,
                 current_page,
@@ -1355,7 +1354,7 @@ impl Api {
             waypoints.extend(page.data);
             let total = page.meta.total;
 
-            debug!(
+            tracing::debug!(
                 "limit: {}, page {} of {}, waypoints: {} of {}",
                 limit,
                 current_page,
@@ -1402,7 +1401,7 @@ impl Api {
             systems.extend(page.data);
             let total = page.meta.total;
 
-            debug!(
+            tracing::debug!(
                 "limit: {}, page {} of {}, systems: {} of {}",
                 limit,
                 current_page,
@@ -1418,7 +1417,7 @@ impl Api {
             current_page += 1;
         }
 
-        debug!("total systems: {}", systems.len());
+        tracing::debug!("total systems: {}", systems.len());
 
         Ok(systems)
     }

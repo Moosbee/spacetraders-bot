@@ -1,10 +1,8 @@
 mod message;
 mod messager;
-mod route_calculator_concrete;
-mod routes;
-mod routes_calculator;
 mod routes_tracker;
 mod trade_manager;
+pub mod trade_route_calculator;
 
 pub use message::TradeManagerMessage;
 pub use messager::TradeManagerMessanger;
