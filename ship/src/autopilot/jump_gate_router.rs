@@ -11,7 +11,7 @@ use tracing::debug;
 
 use crate::error::Result;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct GateConnection {
     pub jump_gate_waypoint_a: String,
     pub system_pos_a: (i32, i32),

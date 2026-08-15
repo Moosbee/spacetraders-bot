@@ -4566,6 +4566,7 @@ dependencies = [
  "dotenvy",
  "serde",
  "serde_json",
+ "ship",
  "space_traders_client",
  "sqlx",
  "tokio",

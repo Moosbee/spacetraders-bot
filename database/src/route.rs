@@ -3,7 +3,7 @@ use tracing::instrument;
 
 use super::{DatabaseConnectorAsync, PaginatedQuery, PaginatedResult, run_paginated_query};
 
-#[derive(Debug, Clone, PartialEq, async_graphql::SimpleObject)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, async_graphql::SimpleObject)]
 #[graphql(name = "DBRoute")]
 pub struct Route {
     pub id: i32,

@@ -3,6 +3,8 @@ name = "utils"
 version = "0.1.0"
 edition = "2024"
 
+[features]
+test-support = []
 
 [dependencies]
 space_traders_client = { path = "../space_traders_client" }

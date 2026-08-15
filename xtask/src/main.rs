@@ -25,8 +25,9 @@ enum Commands {
         #[command(subcommand)]
         commands: LogAnalysisCommand,
     },
-    ExportSystemWaypoints {
-        system: String,
+    Export {
+        #[command(subcommand)]
+        command: ExportCommand,
     },
 }
 
@@ -34,6 +35,18 @@ enum Commands {
 enum LogAnalysisCommand {
     ListErrors,
     ListTopLevelSpans,
+}
+
+#[derive(Subcommand)]
+enum ExportCommand {
+    /// Export all waypoints (optionally filtered by system)
+    Waypoints { system: Option<String> },
+    /// Export all systems
+    Systems,
+    /// Export jump gate connections
+    JumpConnections,
+    /// Export all ship routes
+    Routes,
 }
 
 #[tokio::main]
@@ -48,9 +61,14 @@ async fn main() -> anyhow::Result<()> {
             total_lines,
             commands,
         } => analyze_logs::run(&file, total_lines, commands)?,
-        Commands::ExportSystemWaypoints { system } => {
-            exports::export_system_waypoints(&system).await?
-        }
+        Commands::Export { command } => match command {
+            ExportCommand::Waypoints { system } => {
+                exports::export_waypoints(system.as_deref()).await?
+            }
+            ExportCommand::Systems => exports::export_systems().await?,
+            ExportCommand::JumpConnections => exports::export_jump_connections().await?,
+            ExportCommand::Routes => exports::export_routes().await?,
+        },
     }
 
     Ok(())
