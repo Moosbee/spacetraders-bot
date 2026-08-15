@@ -1,3 +1,5 @@
+pub mod tests;
+
 use std::fmt::Debug;
 use std::sync::Weak;
 

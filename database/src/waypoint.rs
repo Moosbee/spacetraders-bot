@@ -7,7 +7,15 @@ use async_graphql::dataloader::Loader;
 
 use super::{DatabaseConnectorAsync, DbPool, PaginatedQuery, PaginatedResult, run_paginated_query};
 
-#[derive(Clone, Debug, Default, PartialEq, serde::Serialize, async_graphql::SimpleObject)]
+#[derive(
+    Clone,
+    Debug,
+    Default,
+    PartialEq,
+    serde::Serialize,
+    serde::Deserialize,
+    async_graphql::SimpleObject,
+)]
 #[graphql(name = "DBWaypoint")]
 pub struct Waypoint {
     pub symbol: String,

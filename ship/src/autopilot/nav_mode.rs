@@ -17,6 +17,7 @@ pub enum NavMode {
     BurnAndCruiseAndDrift,
 }
 
+#[derive(Debug)]
 pub struct Mode {
     pub radius: f64,
     pub cost_multiplier: f64,
@@ -70,13 +71,13 @@ impl NavMode {
     }
     fn get_modes(&self, all_modes: Modes) -> Vec<Mode> {
         let mut modes = Vec::new();
-        if self.is_burn_mode() {
+        if self.is_burn_mode() && all_modes.burn.radius != -1.0 {
             modes.push(all_modes.burn);
         }
-        if self.is_cruise_mode() {
+        if self.is_cruise_mode() && all_modes.cruise.radius != -1.0 {
             modes.push(all_modes.cruise);
         }
-        if self.is_drift_mode() {
+        if self.is_drift_mode() && all_modes.drift.radius != -1.0 {
             modes.push(all_modes.drift);
         }
         modes

@@ -2,6 +2,7 @@
 use clap::{Parser, Subcommand};
 
 mod analyze_logs;
+mod exports;
 mod log_utils;
 
 #[derive(Parser)]
@@ -24,6 +25,9 @@ enum Commands {
         #[command(subcommand)]
         commands: LogAnalysisCommand,
     },
+    ExportSystemWaypoints {
+        system: String,
+    },
 }
 
 #[derive(Subcommand)]
@@ -35,6 +39,7 @@ enum LogAnalysisCommand {
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
+    let _erg = dotenvy::dotenv();
 
     match cli.command {
         Commands::SayHello => println!("Hello!"),
@@ -43,6 +48,9 @@ async fn main() -> anyhow::Result<()> {
             total_lines,
             commands,
         } => analyze_logs::run(&file, total_lines, commands)?,
+        Commands::ExportSystemWaypoints { system } => {
+            exports::export_system_waypoints(&system).await?
+        }
     }
 
     Ok(())
