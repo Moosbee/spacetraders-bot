@@ -38,6 +38,8 @@ function resizeCanvas(canvas: HTMLCanvasElement) {
   return false;
 }
 
+const HIGHLIGHTED_SYSTEMS: string[] = [];
+
 function drawSystems(
   canvas: HTMLCanvasElement,
   systems: Record<string, { system: GQLSystem; xOne: number; yOne: number }>,
@@ -148,6 +150,11 @@ function drawSystems(
       {
         active: selectedSystem === system.symbol,
         selected: config.highlightSelectedSystem,
+        color: style.selectedSystemHighlightColor,
+      },
+      {
+        active: HIGHLIGHTED_SYSTEMS.some((value) => value == system.symbol),
+        selected: false,
         color: style.selectedSystemHighlightColor,
       },
       {

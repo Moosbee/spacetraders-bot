@@ -14,8 +14,9 @@ pub fn get_jump_gate_connections<T: DeserializeOwned>() -> GateConnections<T> {
     serde_json::from_str(text).unwrap()
 }
 
+#[cfg(any(test, feature = "test-support"))]
 #[derive(Debug, serde::Deserialize)]
-struct GateConnections<T> {
-    connections: Vec<T>,
-    system_to_gate_mapping: HashMap<String, String>,
+pub struct GateConnections<T> {
+    pub connections: Vec<T>,
+    pub system_to_gate_mapping: HashMap<String, String>,
 }

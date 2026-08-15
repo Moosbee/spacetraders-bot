@@ -193,14 +193,19 @@ impl JumpGateRouter {
             let gate = JumpConnection {
                 start_system: from_system.to_string(),
                 end_system: conn.get_other_system(from_system).1,
-                cost: conn.distance,
+                cost: conn.distance + 45.0,
                 conn,
             };
             let next_cost = Reverse((gate.cost * 1_000_000.0) as i64);
             to_visit.push(gate, next_cost);
         }
 
-        while let Some((conn, _)) = to_visit.pop() {
+        while let Some((conn, _)) = to_visit.pop()
+            && !unvisited.is_empty()
+        {
+            if visited.contains_key(&conn.end_system) {
+                continue;
+            }
             visited.insert(conn.end_system.clone(), conn.clone());
             if conn.end_system == to_system {
                 return Some(Self::get_route(
@@ -212,7 +217,7 @@ impl JumpGateRouter {
             let conns =
                 Self::get_connections(&conn.end_system, &mut unvisited, no_under_construction);
             for next_conn in conns {
-                let next_cost = conn.cost + next_conn.distance;
+                let next_cost = conn.cost + next_conn.distance + 45.0;
                 let next_conn = JumpConnection {
                     start_system: conn.end_system.to_string(),
                     end_system: next_conn.get_other_system(&conn.end_system).1,
@@ -356,4 +361,134 @@ pub async fn generate_all_connections(
         .collect::<Vec<_>>();
 
     Ok((connections, system_to_gate_mapping))
+}
+
+#[cfg(test)]
+mod tests {
+    use test_log::test;
+
+    use tracing::info;
+    use utils::tests::{GateConnections, get_jump_gate_connections};
+
+    use super::{GateConnection, JumpGateRouter, JumpGateRouterCache};
+
+    /// Build a router from the real, exported jump gate test data.
+    fn router() -> JumpGateRouter {
+        let GateConnections {
+            connections,
+            system_to_gate_mapping,
+        } = get_jump_gate_connections::<GateConnection>();
+        JumpGateRouter::new(connections, system_to_gate_mapping)
+    }
+
+    #[test]
+    fn direct_connection_is_single_hop() {
+        let router = router();
+
+        let route = router
+            .find_jump_route("X1-GP63", "X1-VX7", false)
+            .expect("X1-GP63 and X1-VX7 are directly connected");
+
+        assert_eq!(route.len(), 1);
+        let conn = &route[0];
+        assert_eq!(conn.start_system, "X1-GP63");
+        assert_eq!(conn.end_system, "X1-VX7");
+        assert_eq!(
+            conn.conn.get_other_system("X1-GP63"),
+            ("X1-VX7-Z19D".to_string(), "X1-VX7".to_string())
+        );
+    }
+
+    #[test]
+    fn route_is_contiguous() {
+        let router = router();
+
+        let route = router
+            .find_jump_route("X1-GP63", "X1-MU84", false)
+            .expect("both systems are in the same connected component");
+
+        assert!(!route.is_empty());
+        assert_eq!(route.first().unwrap().start_system, "X1-GP63");
+        assert_eq!(route.last().unwrap().end_system, "X1-MU84");
+
+        for window in route.windows(2) {
+            assert_eq!(window[0].end_system, window[1].start_system);
+        }
+    }
+
+    #[test]
+    fn route_is_best_possible() {
+        let router = router();
+
+        let route = router
+            .find_jump_route("X1-GP63", "X1-MU84", true)
+            .expect("both systems are in the same connected component");
+
+        info!("Route: {:#?}", route);
+
+        assert_eq!(route.len(), 58);
+    }
+
+    #[test]
+    fn no_route_between_disconnected_systems() {
+        let router = router();
+
+        // X1-FR26 belongs to a tiny, isolated cluster of four systems.
+        assert!(
+            router
+                .find_jump_route("X1-FR26", "X1-GP63", false)
+                .is_none()
+        );
+        assert!(
+            router
+                .find_jump_route("X1-GP63", "X1-FR26", false)
+                .is_none()
+        );
+    }
+
+    #[test]
+    fn under_construction_gates_are_skipped_when_requested() {
+        let router = router();
+
+        // All of X1-JP44's jump gates are under construction on its side.
+        let with_construction = router
+            .find_jump_route("X1-JP44", "X1-BX88", false)
+            .expect("route should exist when under-construction gates are allowed");
+        assert!(!with_construction.is_empty());
+
+        assert!(
+            router.find_jump_route("X1-JP44", "X1-BX88", true).is_none(),
+            "route should be None when all of X1-JP44's gates are under construction"
+        );
+    }
+
+    #[test]
+    fn get_jump_gate_returns_gate_waypoint() {
+        let router = router();
+
+        assert_eq!(
+            router.get_jump_gate("X1-GP63").as_deref(),
+            Some("X1-GP63-A11A")
+        );
+        assert_eq!(
+            router.get_jump_gate("X1-JP44").as_deref(),
+            Some("X1-JP44-I60")
+        );
+        assert_eq!(router.get_jump_gate("unknown-system"), None);
+    }
+
+    #[test]
+    fn cache_returns_route_and_hits_cache_on_second_call() {
+        let mut cache = JumpGateRouterCache::new(router());
+
+        let first = cache
+            .find_jump_route("X1-GP63", "X1-MU84", false)
+            .expect("route should exist")
+            .to_vec();
+        let second = cache
+            .find_jump_route("X1-GP63", "X1-MU84", false)
+            .expect("cached route should exist");
+
+        assert_eq!(first.as_slice(), second);
+    }
 }

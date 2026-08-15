@@ -165,7 +165,9 @@ impl SystemRouter {
 
         let mut first = !start_waypoint.is_marketplace();
 
-        while let Some((current_route, _)) = to_visit.pop() {
+        while let Some((current_route, _)) = to_visit.pop()
+            && !unvisited.is_empty()
+        {
             if self.process_current_node(
                 &current_route,
                 &mut to_visit,
