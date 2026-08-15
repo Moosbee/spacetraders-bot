@@ -490,8 +490,6 @@ export const GET_SYSTEM = graphql(/* GraphQL */ `
           SellWaypointSymbol
           status
           tradeVolume
-          predictedPurchasePrice
-          predictedSellPrice
           createdAt
         }
       }

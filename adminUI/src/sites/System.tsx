@@ -47,7 +47,6 @@ import {
   setSelectedSystemSymbol,
 } from "../redux/slices/mapSlice";
 import { message } from "../utils/antdMessage";
-import { cn } from "../utils/utils";
 import { systemIcons } from "../utils/waypointColors";
 
 function System() {
@@ -1564,94 +1563,94 @@ function System() {
                   (a.marketTransactionSummary?.expenses || 0) -
                   (b.marketTransactionSummary?.expenses || 0),
               },
-              {
-                title: "Profit",
-                key: "profit",
-                align: "right",
-                render: (_, record) => (
-                  <Popover
-                    content={
-                      <Flex flex={1} vertical>
-                        <span className="font-bold">Prediction</span>
-                        <Flex justify="space-between" gap={10}>
-                          <span>Income:</span>{" "}
-                          <MoneyDisplay
-                            amount={
-                              record.predictedSellPrice * record.tradeVolume ||
-                              0
-                            }
-                          />
-                        </Flex>
-                        <Flex justify="space-between" gap={10}>
-                          <span>Expenses:</span>{" "}
-                          <MoneyDisplay
-                            amount={
-                              record.predictedPurchasePrice *
-                                record.tradeVolume || 0
-                            }
-                          />
-                        </Flex>
-                        <Flex justify="space-between" gap={10}>
-                          <span>Profit:</span>{" "}
-                          <MoneyDisplay
-                            amount={
-                              (record.predictedSellPrice * record.tradeVolume ||
-                                0) -
-                              (record.predictedPurchasePrice *
-                                record.tradeVolume || 0)
-                            }
-                          />
-                        </Flex>
-                        <span className="font-bold">Summary</span>
-                        <Flex justify="space-between" gap={10}>
-                          <span>Income:</span>{" "}
-                          <MoneyDisplay
-                            amount={
-                              record.marketTransactionSummary?.income || 0
-                            }
-                          />
-                        </Flex>
-                        <Flex justify="space-between" gap={10}>
-                          <span>Expenses:</span>{" "}
-                          <MoneyDisplay
-                            amount={
-                              record.marketTransactionSummary?.expenses || 0
-                            }
-                          />
-                        </Flex>
-                        <Flex justify="space-between" gap={10}>
-                          <span>Profit:</span>{" "}
-                          <MoneyDisplay
-                            amount={
-                              (record.marketTransactionSummary?.income || 0) -
-                              (record.marketTransactionSummary?.expenses || 0)
-                            }
-                          />
-                        </Flex>
-                      </Flex>
-                    }
-                  >
-                    <MoneyDisplay
-                      amount={
-                        (record.marketTransactionSummary?.income || 0) -
-                        (record.marketTransactionSummary?.expenses || 0)
-                      }
-                      className={cn(
-                        (record.marketTransactionSummary?.income || 0) -
-                          (record.marketTransactionSummary?.expenses || 0) >
-                          0
-                          ? "text-current"
-                          : "text-red-600",
-                      )}
-                    />
-                  </Popover>
-                ),
-                sorter: (a, b) =>
-                  (a.marketTransactionSummary?.income || 0) -
-                  (a.marketTransactionSummary?.expenses || 0) -
-                  (b.marketTransactionSummary?.income || 0) +
-                  (b.marketTransactionSummary?.expenses || 0),
-              },
+              // {
+              //   title: "Profit",
+              //   key: "profit",
+              //   align: "right",
+              //   render: (_, record) => (
+              //     <Popover
+              //       content={
+              //         <Flex flex={1} vertical>
+              //           <span className="font-bold">Prediction</span>
+              //           <Flex justify="space-between" gap={10}>
+              //             <span>Income:</span>{" "}
+              //             <MoneyDisplay
+              //               amount={
+              //                 record.predictedSellPrice * record.tradeVolume ||
+              //                 0
+              //               }
+              //             />
+              //           </Flex>
+              //           <Flex justify="space-between" gap={10}>
+              //             <span>Expenses:</span>{" "}
+              //             <MoneyDisplay
+              //               amount={
+              //                 record.predictedPurchasePrice *
+              //                   record.tradeVolume || 0
+              //               }
+              //             />
+              //           </Flex>
+              //           <Flex justify="space-between" gap={10}>
+              //             <span>Profit:</span>{" "}
+              //             <MoneyDisplay
+              //               amount={
+              //                 (record.predictedSellPrice * record.tradeVolume ||
+              //                   0) -
+              //                 (record.predictedPurchasePrice *
+              //                   record.tradeVolume || 0)
+              //               }
+              //             />
+              //           </Flex>
+              //           <span className="font-bold">Summary</span>
+              //           <Flex justify="space-between" gap={10}>
+              //             <span>Income:</span>{" "}
+              //             <MoneyDisplay
+              //               amount={
+              //                 record.marketTransactionSummary?.income || 0
+              //               }
+              //             />
+              //           </Flex>
+              //           <Flex justify="space-between" gap={10}>
+              //             <span>Expenses:</span>{" "}
+              //             <MoneyDisplay
+              //               amount={
+              //                 record.marketTransactionSummary?.expenses || 0
+              //               }
+              //             />
+              //           </Flex>
+              //           <Flex justify="space-between" gap={10}>
+              //             <span>Profit:</span>{" "}
+              //             <MoneyDisplay
+              //               amount={
+              //                 (record.marketTransactionSummary?.income || 0) -
+              //                 (record.marketTransactionSummary?.expenses || 0)
+              //               }
+              //             />
+              //           </Flex>
+              //         </Flex>
+              //       }
+              //     >
+              //       <MoneyDisplay
+              //         amount={
+              //           (record.marketTransactionSummary?.income || 0) -
+              //           (record.marketTransactionSummary?.expenses || 0)
+              //         }
+              //         className={cn(
+              //           (record.marketTransactionSummary?.income || 0) -
+              //             (record.marketTransactionSummary?.expenses || 0) >
+              //             0
+              //             ? "text-current"
+              //             : "text-red-600",
+              //         )}
+              //       />
+              //     </Popover>
+              //   ),
+              //   sorter: (a, b) =>
+              //     (a.marketTransactionSummary?.income || 0) -
+              //     (a.marketTransactionSummary?.expenses || 0) -
+              //     (b.marketTransactionSummary?.income || 0) +
+              //     (b.marketTransactionSummary?.expenses || 0),
+              // },
             ]}
             dataSource={system?.tradeRoutes || []}
             rowKey={(row) => row.id.toString()}

@@ -33,6 +33,7 @@ function getInterSystemTravelStats(
   }
 
   const conditionMuliplier = 1;
+  void engineCondition;
   // const conditionMuliplier = 2 - 0.5 - 1 / (engineCondition + 1);
   // const conditionMuliplier = 1 / (-engineCondition + 2);
   // const conditionMuliplier = engineCondition * 0.5 + 0.5;
