@@ -442,7 +442,7 @@ function SystemMarkets() {
         </Row>
         <Divider />
         <Row gutter={10}>
-          <Col span={16}>
+          <Col span={15}>
             <Table
               size="small"
               title={() => "Trade Fleets"}
@@ -453,7 +453,6 @@ function SystemMarkets() {
                   dataIndex: "id",
                   key: "id",
                   sorter: (a, b) => a.id - b.id,
-                  defaultSortOrder: "descend",
                 },
                 {
                   title: "Fleet Type",
@@ -608,7 +607,7 @@ function SystemMarkets() {
               ]}
             />
           </Col>
-          <Col span={8}>
+          <Col span={9}>
             <Table
               size="small"
               title={() => "Tradeing Ships"}
@@ -663,7 +662,7 @@ function SystemMarkets() {
                   title: "Fleet (tmp)",
                   key: "fleet",
                   render: (_, record) =>
-                    `${record.status.fleetId} (${record.status.tempFleetId})`,
+                    `${record.status.fleetId}${record.status.tempFleetId ? ` (${record.status.tempFleetId})` : ""}`,
                   sorter: (a, b) =>
                     (a.status?.fleetId || 0) - (b.status?.fleetId || 0),
                 },
@@ -671,7 +670,7 @@ function SystemMarkets() {
                   title: "Assignment (tmp)",
                   key: "assignment",
                   render: (_, record) =>
-                    `${record.status.assignmentId} (${record.status.tempAssignmentId})`,
+                    `${record.status.assignmentId}${record.status.tempAssignmentId ? ` (${record.status.tempAssignmentId})` : ""}`,
                   sorter: (a, b) =>
                     (a.status?.assignmentId || 0) -
                     (b.status?.assignmentId || 0),

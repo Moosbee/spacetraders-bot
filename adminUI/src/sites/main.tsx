@@ -349,7 +349,7 @@ function Main() {
                   </ul>
                 </div>
                 <div className="overflow-hidden w-full">
-                  <ul className="">
+                  <ul className="flex justify-around gap-4">
                     {data.ships.length <= 5 ? (
                       <>
                         {data.ships.map((ship) => (
