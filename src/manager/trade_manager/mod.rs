@@ -6,6 +6,7 @@ pub mod trade_route_calculator;
 
 pub use message::TradeManagerMessage;
 pub use messager::TradeManagerMessanger;
+pub use routes_tracker::RouteLock;
 pub use trade_manager::TradeManager;
 pub use trade_manager::TradeManagerReceiver;
 // pub use trade_manager::TradeMessage;

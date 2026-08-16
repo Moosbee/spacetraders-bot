@@ -1,5 +1,7 @@
+#[cfg(any(test, feature = "test-support"))]
 use std::collections::HashMap;
 
+#[cfg(any(test, feature = "test-support"))]
 use serde::de::DeserializeOwned;
 
 #[cfg(any(test, feature = "test-support"))]

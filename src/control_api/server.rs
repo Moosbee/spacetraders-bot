@@ -1,6 +1,5 @@
 use std::time::Duration;
 
-use database::AssignmentsByFleetLoader;
 use futures::FutureExt;
 use std::convert::Infallible;
 use tokio_util::sync::CancellationToken;
@@ -15,7 +14,11 @@ use async_graphql_warp::{GraphQLBadRequest, GraphQLResponse};
 use warp::{Filter, Rejection, http::Response as HttpResponse};
 
 use crate::{
-    control_api::graphql::{AllShipLoader, QueryRoot, mutations::MutationRoot},
+    control_api::graphql::{
+        QueryRoot,
+        data_loaders::{AllShipLoader, TradeRouteProposalLoader},
+        mutations::MutationRoot,
+    },
     manager::Manager,
     utils::ConductorContext,
 };
@@ -83,9 +86,13 @@ impl ControlApiServer {
                 tokio::spawn,
             ))
             .data(DataLoader::new(
-                AssignmentsByFleetLoader::new(database_pool.clone()),
+                database::AssignmentsByFleetLoader::new(database_pool.clone()),
                 tokio::spawn,
             ))
+            .data(
+                DataLoader::new(TradeRouteProposalLoader::new(context.clone()), tokio::spawn)
+                    .max_batch_size(100000),
+            )
             .data(context)
             .data(database_pool)
             .finish();

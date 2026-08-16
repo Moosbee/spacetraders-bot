@@ -2,7 +2,7 @@ use space_traders_client::models;
 
 use crate::manager::trade_manager::routes_tracker::MinTradeRoute;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash, Eq, PartialEq)]
 pub struct TradeRouteCandidate {
     pub symbol: space_traders_client::models::TradeSymbol,
     pub purchase_good: Option<database::MarketTradeGood>,

@@ -4,7 +4,7 @@ use tracing::instrument;
 use super::{DatabaseConnectorAsync, DbPool, PaginatedQuery, PaginatedResult, run_paginated_query};
 
 #[derive(
-    Debug, Clone, sqlx::FromRow, PartialEq, Eq, serde::Serialize, async_graphql::SimpleObject,
+    Debug, Clone, sqlx::FromRow, PartialEq, Eq, serde::Serialize, async_graphql::SimpleObject, Hash,
 )]
 #[graphql(name = "DBMarketTradeGood")]
 pub struct MarketTradeGood {

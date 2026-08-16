@@ -1,3 +1,5 @@
+use std::collections::{HashMap, HashSet};
+
 use crate::error::Result;
 
 #[derive(Debug)]
@@ -10,6 +12,9 @@ pub enum TradeMessage {
     CompleteTradeRoute {
         trade_route: database::TradeRoute,
         callback: tokio::sync::oneshot::Sender<Result<database::TradeRoute>>,
+    },
+    GetLockedRoutes {
+        callback: tokio::sync::oneshot::Sender<HashSet<super::routes_tracker::RouteLock>>,
     },
 }
 

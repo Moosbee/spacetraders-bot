@@ -229,7 +229,7 @@ impl Debug for AutopilotState {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, async_graphql::InputObject)]
 pub struct ShipNavStats {
     pub max_fuel: u32,
     pub max_cargo: u32,
@@ -240,3 +240,47 @@ pub struct ShipNavStats {
     pub engine_condition: f64,
     pub nav_mode: nav_mode::NavMode,
 }
+
+impl Default for ShipNavStats {
+    fn default() -> Self {
+        Self {
+            // default ship is command ship
+            max_fuel: 400,
+            max_cargo: 40,
+            start_range: None,
+            only_markets: true,
+            can_warp: false,
+            engine_speed: 36,
+            engine_condition: 1.0,
+            nav_mode: NavMode::BurnAndCruiseAndDrift,
+        }
+    }
+}
+
+impl std::hash::Hash for ShipNavStats {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.max_fuel.hash(state);
+        self.max_cargo.hash(state);
+        self.start_range.hash(state);
+        self.only_markets.hash(state);
+        self.can_warp.hash(state);
+        self.engine_speed.hash(state);
+        // self.engine_condition.hash(state);
+        self.nav_mode.hash(state);
+    }
+}
+
+impl PartialEq for ShipNavStats {
+    fn eq(&self, other: &Self) -> bool {
+        self.max_fuel == other.max_fuel
+            && self.max_cargo == other.max_cargo
+            && self.start_range == other.start_range
+            && self.only_markets == other.only_markets
+            && self.can_warp == other.can_warp
+            && self.engine_speed == other.engine_speed
+            // && self.engine_condition == other.engine_condition
+            && self.nav_mode == other.nav_mode
+    }
+}
+
+impl Eq for ShipNavStats {}

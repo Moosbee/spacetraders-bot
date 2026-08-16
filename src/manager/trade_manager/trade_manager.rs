@@ -1,3 +1,5 @@
+use std::collections::{HashMap, HashSet};
+
 use database::{DatabaseConnectorAsync, PaginatedQuery};
 use space_traders_client::models;
 use tokio::select;
@@ -130,6 +132,11 @@ impl TradeManager {
                 let route = self.complete_trade_route(trade_route).await;
                 debug!("Sending route: {:?}", route);
                 let _send = callback.send(route);
+            }
+            TradeMessage::GetLockedRoutes { callback } => {
+                let routes = self.get_locked_routes().await;
+                debug!("Sending routes: {:?}", routes);
+                let _send = callback.send(routes);
             }
         }
         self.context.trade_manager.set_busy(false);
@@ -289,9 +296,19 @@ impl TradeManager {
         )
         .await?;
 
+        let spendable = self
+            .context
+            .budget_manager
+            .get_spendable_funds_with_remain(10000)
+            .await;
+
         let trade_route_proposal = trade_route_calculator::get_best_trade_route_proposal(
             trade_route_proposals,
-            |trp| trade_route_calculator::filter_trade_route_proposal(trp, &trading_config),
+            |trp| {
+                trade_route_calculator::filter_trade_route_proposal(trp, &trading_config)
+                    && !self.routes_tracker.is_locked(&(trp.into()))
+                    && (trp.total_cost as i64) <= spendable
+            },
             |trp1, trp2| {
                 trade_route_calculator::sort_trade_route_proposal(trp1, trp2, &trading_config)
                     .unwrap_or(std::cmp::Ordering::Equal)
@@ -305,25 +322,24 @@ impl TradeManager {
 
         let mut trade_route_db: Option<database::TradeRoute> = trade_route_proposal.map(Into::into);
 
-        match trade_route_db.as_mut() {
-            Some(v) => {
-                v.trade_mode = trading_config.trade_mode;
-                v.ship_symbol = ship_clone.symbol.to_string();
-                v.assignment_id = ship_clone
-                    .status
-                    .temp_assignment_id
-                    .or(ship_clone.status.assignment_id)
-                    .clone();
-                v.fleet_id = ship_clone
-                    .status
-                    .temp_fleet_id
-                    .or(ship_clone.status.fleet_id)
-                    .clone();
-            }
-            None => {}
+        if let Some(v) = trade_route_db.as_mut() {
+            v.trade_mode = trading_config.trade_mode;
+            v.ship_symbol = ship_clone.symbol.to_string();
+            v.assignment_id = ship_clone
+                .status
+                .temp_assignment_id
+                .or(ship_clone.status.assignment_id);
+            v.fleet_id = ship_clone
+                .status
+                .temp_fleet_id
+                .or(ship_clone.status.fleet_id);
         }
 
         Ok(trade_route_db.map(|tr_db| (tr_db, expenses)))
+    }
+
+    async fn get_locked_routes(&self) -> HashSet<super::routes_tracker::RouteLock> {
+        self.routes_tracker.get_locked_routes()
     }
 }
 

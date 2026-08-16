@@ -1122,6 +1122,16 @@ type MutationRoot {
 	shutdown(global: Boolean, run: Boolean, slowManagers: Boolean, fastManagers: Boolean, slowShips: Boolean, fastShips: Boolean): GqlcancellationTokens!
 }
 
+enum NavMode {
+	BURN
+	CRUISE
+	DRIFT
+	BURN_AND_CRUISE
+	CRUISE_AND_DRIFT
+	BURN_AND_DRIFT
+	BURN_AND_CRUISE_AND_DRIFT
+}
+
 type NavigateConnection {
 	startSymbol: String!
 	endSymbol: String!
@@ -1288,6 +1298,12 @@ type Route {
 	ship: Ship
 	shipStateAfter: ShipState
 	shipStateBefore: ShipState
+}
+
+type RouteLock {
+	symbol: TradeSymbol!
+	wpSymbol: String!
+	isEnd: Boolean!
 }
 
 type RoutePage {
@@ -1583,6 +1599,22 @@ enum ShipNavFlightMode {
 	STEALTH
 	CRUISE
 	BURN
+}
+
+input ShipNavStats {
+	maxFuel: Int!
+	maxCargo: Int!
+	startRange: Int
+	onlyMarkets: Boolean!
+	canWarp: Boolean!
+	engineSpeed: Int!
+	engineCondition: Float!
+	navMode: NavMode!
+}
+
+input ShipNavStatsSource @oneOf {
+	ship: String
+	shipNavStats: ShipNavStats
 }
 
 """
@@ -1972,6 +2004,7 @@ enum SystemType {
 type TradeManagerInfo {
 	busy: Boolean!
 	channelState: ChannelInfo!
+	lockedRoutes: [RouteLock!]!
 }
 
 enum TradeMode {
@@ -2005,7 +2038,11 @@ type TradeRoute {
 	marketTransactionSummary: TransactionSummary!
 	purchaseMarketTradeGood: MarketTradeGood
 	sellMarketTradeGood: MarketTradeGood
+	purchaseMarketTradeGoodCurrent: MarketTradeGood
+	sellMarketTradeGoodCurrent: MarketTradeGood
 	tradeSymbolInfo: TradeSymbolInfo!
+	fleet: Fleet
+	assignment: ShipAssignment
 }
 
 type TradeRouteCandidate {
@@ -2014,7 +2051,12 @@ type TradeRouteCandidate {
 	sellGood: DBMarketTradeGood
 	purchase: DBMarketTrade!
 	sell: DBMarketTrade!
-	tradeRouteProposal: TradeRouteProposal
+	tradeRouteProposal(source: ShipNavStatsSource, purchaseMultiplier: Float): TradeRouteProposal
+	purchaseMarketTradeGood: MarketTradeGood
+	sellMarketTradeGood: MarketTradeGood
+	tradeSymbolInfo: TradeSymbolInfo!
+	purchaseWaypoint: Waypoint
+	sellWaypoint: Waypoint
 }
 
 type TradeRouteCandidatePage {
@@ -2054,7 +2096,12 @@ type TradeRouteProposal {
 	tripsPerHour: Float!
 	profitPerHour: Float!
 	profitPerApiRequest: Float!
-	tradeRouteProposal: Boolean!
+	tradeRouteCandidate: TradeRouteCandidate!
+	purchaseMarketTradeGood: MarketTradeGood
+	sellMarketTradeGood: MarketTradeGood
+	tradeSymbolInfo: TradeSymbolInfo!
+	purchaseWaypoint: Waypoint
+	sellWaypoint: Waypoint
 }
 
 """

@@ -10,6 +10,7 @@ pub use trade_route_candidate::TradeRouteCandidate;
 pub use trade_route_proposal::TradeRouteProposal;
 
 pub use trade_route_proposal::filter_trade_route_proposal;
+pub use trade_route_proposal::gen_trade_route_proposal;
 pub use trade_route_proposal::sort_trade_route_proposal;
 
 pub(crate) fn get_trade_systems(
@@ -97,7 +98,7 @@ pub(crate) fn filter_trade_route_candidates(
 ) -> Vec<TradeRouteCandidate> {
     trade_route_candidates_all
         .into_iter()
-        .filter(|trade_route_candidate| trade_route_candidate.is_valid(&blacklist))
+        .filter(|trade_route_candidate| trade_route_candidate.is_valid(blacklist))
         .collect()
 }
 
@@ -132,7 +133,7 @@ pub(crate) async fn gen_trade_route_proposals(
         let proposal = trade_route_proposal::gen_trade_route_proposal(
             database_pool,
             trade_route_candidate,
-            &ship_stats,
+            ship_stats,
             purchase_multiplier,
             fallback_purchase_price,
             fallback_sell_price,

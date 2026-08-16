@@ -1,4 +1,7 @@
-use std::sync::{Arc, atomic::AtomicBool};
+use std::{
+    collections::{HashMap, HashSet},
+    sync::{Arc, atomic::AtomicBool},
+};
 
 use crate::error::Error;
 
@@ -72,6 +75,15 @@ impl TradeManagerMessanger {
 
         tracing::debug!(resp = ?resp, "Completed trade route");
         resp
+    }
+
+    pub async fn get_locked_routes(&self) -> HashSet<super::routes_tracker::RouteLock> {
+        let (sender, receiver) = tokio::sync::oneshot::channel();
+        self.sender
+            .send(TradeManagerMessage::GetLockedRoutes { callback: sender })
+            .await
+            .unwrap();
+        receiver.await.unwrap()
     }
 
     pub fn is_busy(&self) -> bool {

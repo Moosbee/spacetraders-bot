@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use async_graphql::dataloader::DataLoader;
 use database::DatabaseConnectorAsync;
@@ -8,7 +8,10 @@ use space_traders_client::models;
 use crate::{
     control_api::graphql::gql_ship::{GQLModules, GQLMounts, GQLNavigationState},
     error::Result,
-    manager::trade_manager::trade_route_calculator::{TradeRouteCandidate, TradeRouteProposal},
+    manager::trade_manager::{
+        RouteLock,
+        trade_route_calculator::{TradeRouteCandidate, TradeRouteProposal},
+    },
 };
 
 /// Utility function to convert a single optional database type to its GQL type.
@@ -746,7 +749,9 @@ impl GQLFleet {
     async fn all_ships<'ctx>(&self, ctx: &async_graphql::Context<'ctx>) -> Result<Vec<GQLShip>> {
         // let context = ctx.data::<crate::utils::ConductorContext>().unwrap();
         // let all_ships = context.ship_manager.get_all_clone().await;
-        let ship_loader = ctx.data::<DataLoader<super::AllShipLoader>>().unwrap();
+        let ship_loader = ctx
+            .data::<DataLoader<super::data_loaders::AllShipLoader>>()
+            .unwrap();
         let all_ships = ship_loader.load_one(()).await?.unwrap();
         let ships = all_ships
             .into_values()
@@ -758,7 +763,9 @@ impl GQLFleet {
         Ok(ships.into_iter().map(|s| s.into()).collect())
     }
     async fn ships<'ctx>(&self, ctx: &async_graphql::Context<'ctx>) -> Result<Vec<GQLShip>> {
-        let ship_loader = ctx.data::<DataLoader<super::AllShipLoader>>().unwrap();
+        let ship_loader = ctx
+            .data::<DataLoader<super::data_loaders::AllShipLoader>>()
+            .unwrap();
         let all_ships = ship_loader.load_one(()).await?.unwrap();
         let ships = all_ships
             .into_values()
@@ -767,7 +774,9 @@ impl GQLFleet {
         Ok(ships.into_iter().map(|s| s.into()).collect())
     }
     async fn temp_ships<'ctx>(&self, ctx: &async_graphql::Context<'ctx>) -> Result<Vec<GQLShip>> {
-        let ship_loader = ctx.data::<DataLoader<super::AllShipLoader>>().unwrap();
+        let ship_loader = ctx
+            .data::<DataLoader<super::data_loaders::AllShipLoader>>()
+            .unwrap();
         let all_ships = ship_loader.load_one(()).await?.unwrap();
         let ships = all_ships
             .into_values()
@@ -1580,7 +1589,9 @@ impl GQLShipAssignment {
     }
 
     async fn ship<'ctx>(&self, ctx: &async_graphql::Context<'ctx>) -> Result<Option<GQLShip>> {
-        let ship_loader = ctx.data::<DataLoader<super::AllShipLoader>>().unwrap();
+        let ship_loader = ctx
+            .data::<DataLoader<super::data_loaders::AllShipLoader>>()
+            .unwrap();
         let all_ships = ship_loader.load_one(()).await?.unwrap();
         let ship = all_ships.into_values().find(|ship| {
             ship.status.assignment_id == Some(self.ship_assignment.id)
@@ -1593,7 +1604,9 @@ impl GQLShipAssignment {
         &self,
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Option<GQLShip>> {
-        let ship_loader = ctx.data::<DataLoader<super::AllShipLoader>>().unwrap();
+        let ship_loader = ctx
+            .data::<DataLoader<super::data_loaders::AllShipLoader>>()
+            .unwrap();
         let all_ships = ship_loader.load_one(()).await?.unwrap();
         let ship = all_ships
             .into_values()
@@ -1602,7 +1615,9 @@ impl GQLShipAssignment {
     }
 
     async fn temp_ship<'ctx>(&self, ctx: &async_graphql::Context<'ctx>) -> Result<Option<GQLShip>> {
-        let ship_loader = ctx.data::<DataLoader<super::AllShipLoader>>().unwrap();
+        let ship_loader = ctx
+            .data::<DataLoader<super::data_loaders::AllShipLoader>>()
+            .unwrap();
         let all_ships = ship_loader.load_one(()).await?.unwrap();
         let ship = all_ships
             .into_values()
@@ -2280,7 +2295,9 @@ impl GQLShipyardTransaction {
     }
 
     async fn ship(&self, ctx: &async_graphql::Context<'_>) -> Result<Option<GQLShip>> {
-        let ship_loader = ctx.data::<DataLoader<super::AllShipLoader>>().unwrap();
+        let ship_loader = ctx
+            .data::<DataLoader<super::data_loaders::AllShipLoader>>()
+            .unwrap();
         let all_ships = ship_loader.load_one(()).await?.unwrap();
         let ship = all_ships
             .into_values()
@@ -2728,7 +2745,9 @@ impl GQLSystem {
     }
 
     async fn ships(&self, ctx: &async_graphql::Context<'_>) -> Result<Vec<GQLShip>> {
-        let ship_loader = ctx.data::<DataLoader<super::AllShipLoader>>().unwrap();
+        let ship_loader = ctx
+            .data::<DataLoader<super::data_loaders::AllShipLoader>>()
+            .unwrap();
         let all_ships = ship_loader.load_one(()).await?.unwrap();
         Ok(all_ships
             .into_values()
@@ -2926,6 +2945,34 @@ impl GQLTradeRoute {
         ctx: &async_graphql::Context<'_>,
     ) -> Result<Option<GQLMarketTradeGood>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
+        let market_trade_good =
+            if let Some(purchase_trade_good_id) = &self.trade_route.purchase_trade_good_id {
+                database::MarketTradeGood::get_by_id(database_pool, purchase_trade_good_id).await?
+            } else {
+                None
+            };
+        Ok(into_gql(market_trade_good))
+    }
+
+    async fn sell_market_trade_good(
+        &self,
+        ctx: &async_graphql::Context<'_>,
+    ) -> Result<Option<GQLMarketTradeGood>> {
+        let database_pool = ctx.data::<database::DbPool>().unwrap();
+        let market_trade_good =
+            if let Some(sell_trade_good_id) = &self.trade_route.sell_trade_good_id {
+                database::MarketTradeGood::get_by_id(database_pool, sell_trade_good_id).await?
+            } else {
+                None
+            };
+        Ok(into_gql(market_trade_good))
+    }
+
+    async fn purchase_market_trade_good_current(
+        &self,
+        ctx: &async_graphql::Context<'_>,
+    ) -> Result<Option<GQLMarketTradeGood>> {
+        let database_pool = ctx.data::<database::DbPool>().unwrap();
         let market_trade_good = database::MarketTradeGood::get_by_last_waypoint_and_trade_symbol(
             database_pool,
             &self.trade_route.purchase_waypoint,
@@ -2935,7 +2982,7 @@ impl GQLTradeRoute {
         Ok(into_gql(market_trade_good))
     }
 
-    async fn sell_market_trade_good(
+    async fn sell_market_trade_good_current(
         &self,
         ctx: &async_graphql::Context<'_>,
     ) -> Result<Option<GQLMarketTradeGood>> {
@@ -2953,6 +3000,29 @@ impl GQLTradeRoute {
         TradeSymbolInfo {
             symbol: self.trade_route.symbol,
         }
+    }
+
+    async fn fleet(&self, ctx: &async_graphql::Context<'_>) -> Result<Option<GQLFleet>> {
+        let database_pool = ctx.data::<database::DbPool>().unwrap();
+        let erg = if let Some(fleet_id) = self.trade_route.fleet_id {
+            database::Fleet::get_by_id(database_pool, fleet_id).await?
+        } else {
+            None
+        };
+        Ok(into_gql(erg))
+    }
+
+    async fn assignment(
+        &self,
+        ctx: &async_graphql::Context<'_>,
+    ) -> Result<Option<GQLShipAssignment>> {
+        let database_pool = ctx.data::<database::DbPool>().unwrap();
+        let erg = if let Some(assignment_id) = self.trade_route.assignment_id {
+            database::ShipAssignment::get_by_id(database_pool, assignment_id).await?
+        } else {
+            None
+        };
+        Ok(into_gql(erg))
     }
 }
 
@@ -2974,13 +3044,109 @@ pub struct GQLTradeRouteCandidate {
     pub sell: database::MarketTrade,
 }
 
+#[derive(Debug, Clone, async_graphql::OneofObject)]
+pub enum ShipNavStatsSource {
+    Ship(String),
+    ShipNavStats(ship::autopilot::ShipNavStats),
+}
+
 #[async_graphql::ComplexObject]
 impl GQLTradeRouteCandidate {
     async fn trade_route_proposal(
         &self,
-        _ctx: &async_graphql::Context<'_>,
+        ctx: &async_graphql::Context<'_>,
+        source: Option<ShipNavStatsSource>,
+        purchase_multiplier: Option<f64>,
     ) -> Result<Option<GQLTradeRouteProposal>> {
-        todo!()
+        let data_loader = ctx.data::<DataLoader<crate::control_api::graphql::data_loaders::TradeRouteProposalLoader>>().unwrap();
+
+        let ship_stats: ship::autopilot::ShipNavStats = if let Some(source) = source {
+            match source {
+                ShipNavStatsSource::Ship(symbol) => {
+                    let ship_loader = ctx
+                        .data::<DataLoader<super::data_loaders::AllShipLoader>>()
+                        .unwrap();
+                    let all_ships = ship_loader.load_one(()).await?.unwrap();
+                    let ship = all_ships.into_values().find(|ship| ship.symbol == symbol);
+                    if let Some(ship) = ship {
+                        ship.get_nav_stats()
+                    } else {
+                        ship::autopilot::ShipNavStats::default()
+                    }
+                }
+                ShipNavStatsSource::ShipNavStats(ship_nav_stats) => ship_nav_stats,
+            }
+        } else {
+            ship::autopilot::ShipNavStats::default()
+        };
+
+        let key = crate::control_api::graphql::data_loaders::TradeRouteProposalConfig {
+            trade_route_candidate: TradeRouteCandidate {
+                symbol: self.symbol,
+                purchase_good: self.purchase_good.clone(),
+                sell_good: self.sell_good.clone(),
+                purchase: self.purchase.clone(),
+                sell: self.sell.clone(),
+            },
+            purchase_multiplier: purchase_multiplier.unwrap_or(2.0),
+            ship_stats,
+        };
+        let proposal = data_loader.load_one(key).await?;
+
+        Ok(into_gql(proposal))
+    }
+
+    async fn purchase_market_trade_good(
+        &self,
+        ctx: &async_graphql::Context<'_>,
+    ) -> Result<Option<GQLMarketTradeGood>> {
+        let database_pool = ctx.data::<database::DbPool>().unwrap();
+        let market_trade_good = database::MarketTradeGood::get_by_last_waypoint_and_trade_symbol(
+            database_pool,
+            &self.purchase.waypoint_symbol,
+            &self.symbol,
+        )
+        .await?;
+        Ok(into_gql(market_trade_good))
+    }
+
+    async fn sell_market_trade_good(
+        &self,
+        ctx: &async_graphql::Context<'_>,
+    ) -> Result<Option<GQLMarketTradeGood>> {
+        let database_pool = ctx.data::<database::DbPool>().unwrap();
+        let market_trade_good = database::MarketTradeGood::get_by_last_waypoint_and_trade_symbol(
+            database_pool,
+            &self.sell.waypoint_symbol,
+            &self.symbol,
+        )
+        .await?;
+        Ok(into_gql(market_trade_good))
+    }
+
+    async fn trade_symbol_info(&self) -> TradeSymbolInfo {
+        TradeSymbolInfo {
+            symbol: self.symbol,
+        }
+    }
+
+    async fn purchase_waypoint(
+        &self,
+        ctx: &async_graphql::Context<'_>,
+    ) -> Result<Option<GQLWaypoint>> {
+        let data_loader = ctx.data::<DataLoader<database::WaypointLoader>>().unwrap();
+        let waypoint = data_loader
+            .load_one(self.purchase.waypoint_symbol.clone())
+            .await?;
+        Ok(into_gql(waypoint))
+    }
+
+    async fn sell_waypoint(&self, ctx: &async_graphql::Context<'_>) -> Result<Option<GQLWaypoint>> {
+        let data_loader = ctx.data::<DataLoader<database::WaypointLoader>>().unwrap();
+        let waypoint = data_loader
+            .load_one(self.sell.waypoint_symbol.clone())
+            .await?;
+        Ok(into_gql(waypoint))
     }
 }
 
@@ -3013,8 +3179,70 @@ pub struct GQLTradeRouteProposal {
 
 #[async_graphql::ComplexObject]
 impl GQLTradeRouteProposal {
-    async fn trade_route_proposal(&self, _ctx: &async_graphql::Context<'_>) -> Result<bool> {
-        Ok(false)
+    async fn trade_route_candidate(
+        &self,
+        _ctx: &async_graphql::Context<'_>,
+    ) -> Result<GQLTradeRouteCandidate> {
+        Ok(GQLTradeRouteCandidate {
+            symbol: self.trade_route_proposal.symbol,
+            purchase_good: self.trade_route_proposal.purchase_good.clone(),
+            sell_good: self.trade_route_proposal.sell_good.clone(),
+            purchase: self.trade_route_proposal.purchase.clone(),
+            sell: self.trade_route_proposal.sell.clone(),
+        })
+    }
+
+    async fn purchase_market_trade_good(
+        &self,
+        ctx: &async_graphql::Context<'_>,
+    ) -> Result<Option<GQLMarketTradeGood>> {
+        let database_pool = ctx.data::<database::DbPool>().unwrap();
+        let market_trade_good = database::MarketTradeGood::get_by_last_waypoint_and_trade_symbol(
+            database_pool,
+            &self.trade_route_proposal.purchase.waypoint_symbol,
+            &self.trade_route_proposal.symbol,
+        )
+        .await?;
+        Ok(into_gql(market_trade_good))
+    }
+
+    async fn sell_market_trade_good(
+        &self,
+        ctx: &async_graphql::Context<'_>,
+    ) -> Result<Option<GQLMarketTradeGood>> {
+        let database_pool = ctx.data::<database::DbPool>().unwrap();
+        let market_trade_good = database::MarketTradeGood::get_by_last_waypoint_and_trade_symbol(
+            database_pool,
+            &self.trade_route_proposal.sell.waypoint_symbol,
+            &self.trade_route_proposal.symbol,
+        )
+        .await?;
+        Ok(into_gql(market_trade_good))
+    }
+
+    async fn trade_symbol_info(&self) -> TradeSymbolInfo {
+        TradeSymbolInfo {
+            symbol: self.trade_route_proposal.symbol,
+        }
+    }
+
+    async fn purchase_waypoint(
+        &self,
+        ctx: &async_graphql::Context<'_>,
+    ) -> Result<Option<GQLWaypoint>> {
+        let data_loader = ctx.data::<DataLoader<database::WaypointLoader>>().unwrap();
+        let waypoint = data_loader
+            .load_one(self.trade_route_proposal.purchase.waypoint_symbol.clone())
+            .await?;
+        Ok(into_gql(waypoint))
+    }
+
+    async fn sell_waypoint(&self, ctx: &async_graphql::Context<'_>) -> Result<Option<GQLWaypoint>> {
+        let data_loader = ctx.data::<DataLoader<database::WaypointLoader>>().unwrap();
+        let waypoint = data_loader
+            .load_one(self.trade_route_proposal.sell.waypoint_symbol.clone())
+            .await?;
+        Ok(into_gql(waypoint))
     }
 }
 
@@ -3057,7 +3285,9 @@ impl GQLWaypoint {
     }
 
     async fn ships(&self, ctx: &async_graphql::Context<'_>) -> Result<Vec<GQLShip>> {
-        let ship_loader = ctx.data::<DataLoader<super::AllShipLoader>>().unwrap();
+        let ship_loader = ctx
+            .data::<DataLoader<super::data_loaders::AllShipLoader>>()
+            .unwrap();
         let all_ships = ship_loader.load_one(()).await?.unwrap();
         Ok(all_ships
             .into_values()
@@ -4199,6 +4429,12 @@ impl TradeManagerInfo {
     ) -> Result<crate::utils::ChannelInfo> {
         let context = ctx.data::<crate::utils::ConductorContext>().unwrap();
         Ok(context.trade_manager.get_channel_state())
+    }
+
+    async fn locked_routes(&self, ctx: &async_graphql::Context<'_>) -> Result<HashSet<RouteLock>> {
+        let context = ctx.data::<crate::utils::ConductorContext>().unwrap();
+        let locked_routes = context.trade_manager.get_locked_routes().await;
+        Ok(locked_routes)
     }
 }
 

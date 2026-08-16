@@ -682,7 +682,13 @@ function System() {
                 >
                   <Link to={`/fleets/${fleet.id}`}>
                     {fleet.fleetType}_{fleet.id} ({fleet.active ? "A" : "I"}) (
-                    {fleet.assignments.length})
+                    {fleet.assignments.length}){" "}
+                    {fleet.config.__typename === "TradingConfig"
+                      ? `(${fleet.config.tradeMode})`
+                      : ""}
+                    {fleet.config.__typename === "ChartingConfig"
+                      ? `(${fleet.config.chartOnlyJumpGates ? "Gate" : "System"})`
+                      : ""}
                   </Link>
                 </Popover>
               </List.Item>

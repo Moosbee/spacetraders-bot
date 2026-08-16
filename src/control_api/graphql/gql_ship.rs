@@ -1,5 +1,3 @@
-use std::{collections::HashMap, sync::Arc};
-
 use async_graphql::{Union, dataloader::DataLoader};
 use database::DatabaseConnectorAsync;
 use ship::{
@@ -8,7 +6,6 @@ use ship::{
     status::{ExtractorState, MiningShipAssignment, ShipStatus, TransporterState},
 };
 use space_traders_client::models;
-use tracing::instrument;
 use utils::get_system_symbol;
 
 use crate::{control_api::graphql::gql_models, error::Result};
@@ -929,30 +926,5 @@ impl From<ship::autopilot::Route> for RouteGQL {
             total_anti_matter_cost: route.total_anti_matter_cost,
             total_cost: route.total_anti_matter_cost + route.total_fuel_cost,
         }
-    }
-}
-
-pub struct AllShipLoader(crate::utils::ConductorContext);
-
-impl AllShipLoader {
-    pub fn new(context: crate::utils::ConductorContext) -> Self {
-        Self(context)
-    }
-}
-
-impl async_graphql::dataloader::Loader<()> for AllShipLoader {
-    type Value = HashMap<String, ship::RustShip<ShipStatus, ship::Immutable>>;
-    type Error = Arc<crate::error::Error>;
-
-    #[instrument(level = "trace", skip(self, _keys))]
-    async fn load(
-        &self,
-        _keys: &[()],
-    ) -> std::result::Result<HashMap<(), Self::Value>, Self::Error> {
-        // let context = ctx.data::<crate::utils::ConductorContext>().unwrap();
-        let mut map = HashMap::new();
-        let all_ships = self.0.ship_manager.get_all_clone().await;
-        map.insert((), all_ships);
-        Ok(map)
     }
 }

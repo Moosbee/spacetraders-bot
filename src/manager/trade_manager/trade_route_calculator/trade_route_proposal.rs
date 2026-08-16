@@ -42,7 +42,17 @@ impl From<TradeRouteProposal> for database::TradeRoute {
     }
 }
 
-pub(crate) async fn gen_trade_route_proposal(
+impl From<&TradeRouteProposal> for crate::manager::trade_manager::routes_tracker::MinTradeRoute {
+    fn from(value: &TradeRouteProposal) -> Self {
+        Self {
+            symbol: value.symbol.clone(),
+            purchase_wp_symbol: value.purchase.waypoint_symbol.clone(),
+            sell_wp_symbol: value.sell.waypoint_symbol.clone(),
+        }
+    }
+}
+
+pub async fn gen_trade_route_proposal(
     database_pool: &database::DbPool,
     trade_route_candidate: super::TradeRouteCandidate,
     ship_stats: &ship::autopilot::ShipNavStats,
@@ -66,7 +76,7 @@ pub(crate) async fn gen_trade_route_proposal(
     }
     // calculate travel cost, based on wp fuel data
     let trip_information: TripInformation =
-        gen_trip_information(&route.unwrap(), &ship_stats, travel_price_cache).await?;
+        gen_trip_information(&route.unwrap(), ship_stats, travel_price_cache).await?;
     // calculate trade volume
     let min_trade_volume = trade_route_candidate
         .purchase_good

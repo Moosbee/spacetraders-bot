@@ -1,4 +1,4 @@
-mod data_loaders;
+pub mod data_loaders;
 mod gql_models;
 mod gql_ship;
 pub mod mutations;
@@ -9,8 +9,6 @@ use space_traders_client::models;
 use std::collections::{HashMap, HashSet};
 use strum::IntoEnumIterator;
 use utils::WaypointCan;
-
-pub use gql_ship::AllShipLoader;
 
 use crate::{
     control_api::graphql::gql_models::GQLShip,

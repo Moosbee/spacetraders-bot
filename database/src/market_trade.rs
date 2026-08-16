@@ -7,7 +7,7 @@ use super::{
 };
 
 #[derive(
-    Debug, Clone, sqlx::FromRow, PartialEq, Eq, serde::Serialize, async_graphql::SimpleObject,
+    Debug, Clone, sqlx::FromRow, PartialEq, Eq, serde::Serialize, async_graphql::SimpleObject, Hash,
 )]
 #[graphql(name = "DBMarketTrade")]
 pub struct MarketTrade {

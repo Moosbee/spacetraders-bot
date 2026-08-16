@@ -6,7 +6,7 @@ struct Modes {
     drift: Mode,
 }
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Hash, async_graphql::Enum)]
 pub enum NavMode {
     Burn,
     Cruise,

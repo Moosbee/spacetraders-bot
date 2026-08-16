@@ -308,6 +308,15 @@ export const GET_SYSTEM = graphql(/* GraphQL */ `
               extractor
             }
           }
+          config {
+            __typename
+            ... on TradingConfig {
+              tradeMode
+            }
+            ... on ChartingConfig {
+              chartOnlyJumpGates
+            }
+          }
           createdAt
           updatedAt
         }
