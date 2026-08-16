@@ -242,6 +242,24 @@ function Waypoint() {
       label: "Has Marketplace",
       children: <p>{waypoint?.hasMarketplace ? "Yes" : "No"}</p>,
     },
+    {
+      key: "lastScrap",
+      label: "Last Scrap",
+      children: (
+        <p>
+          <Timer time={waypoint?.lastScrap || ""} />
+        </p>
+      ),
+    },
+    {
+      key: "nextScrap",
+      label: "Next Scrap",
+      children: (
+        <p>
+          <Timer time={waypoint?.nextScrap || ""} />
+        </p>
+      ),
+    },
   ];
 
   if (waypoint?.isUnderConstruction) {

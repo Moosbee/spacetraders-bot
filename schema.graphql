@@ -434,26 +434,6 @@ type DBFleet {
 	updatedAt: DateTime!
 }
 
-type DBMarketTrade {
-	waypointSymbol: String!
-	symbol: TradeSymbol!
-	createdAt: DateTime!
-	type: MarketTradeGoodType!
-}
-
-type DBMarketTradeGood {
-	id: Int!
-	symbol: TradeSymbol!
-	waypointSymbol: String!
-	type: MarketTradeGoodType!
-	tradeVolume: Int!
-	supply: SupplyLevel!
-	activity: ActivityLevel
-	purchasePrice: Int!
-	sellPrice: Int!
-	createdAt: DateTime!
-}
-
 """
 Implement the DateTime<Utc> scalar
 
@@ -1812,6 +1792,9 @@ type ShipyardShip {
 	waypoint: Waypoint
 	history(page: Int, pageSize: Int): ShipyardShipPage!
 	shipyardTransactions(page: Int, pageSize: Int): ShipyardTransactionPage!
+	engineInfo: EngineInfo!
+	frameInfo: FrameInfo!
+	reactorInfo: ReactorInfo!
 	tradeSymbolInfo: TradeSymbolInfo!
 }
 
@@ -2047,11 +2030,11 @@ type TradeRoute {
 
 type TradeRouteCandidate {
 	symbol: TradeSymbol!
-	purchaseGood: DBMarketTradeGood
-	sellGood: DBMarketTradeGood
-	purchase: DBMarketTrade!
-	sell: DBMarketTrade!
 	tradeRouteProposal(source: ShipNavStatsSource, purchaseMultiplier: Float): TradeRouteProposal
+	purchase: MarketTrade!
+	sell: MarketTrade!
+	purchaseGood: MarketTradeGood
+	sellGood: MarketTradeGood
 	purchaseMarketTradeGood: MarketTradeGood
 	sellMarketTradeGood: MarketTradeGood
 	tradeSymbolInfo: TradeSymbolInfo!
@@ -2075,10 +2058,6 @@ type TradeRoutePage {
 
 type TradeRouteProposal {
 	symbol: TradeSymbol!
-	purchaseGood: DBMarketTradeGood
-	sellGood: DBMarketTradeGood
-	purchase: DBMarketTrade!
-	sell: DBMarketTrade!
 	fuelUnits: Int!
 	time: Float!
 	distance: Float!
@@ -2097,6 +2076,10 @@ type TradeRouteProposal {
 	profitPerHour: Float!
 	profitPerApiRequest: Float!
 	tradeRouteCandidate: TradeRouteCandidate!
+	purchase: MarketTrade!
+	sell: MarketTrade!
+	purchaseGood: MarketTradeGood
+	sellGood: MarketTradeGood
 	purchaseMarketTradeGood: MarketTradeGood
 	sellMarketTradeGood: MarketTradeGood
 	tradeSymbolInfo: TradeSymbolInfo!

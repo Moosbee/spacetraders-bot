@@ -497,6 +497,22 @@ export const GET_SYSTEM = graphql(/* GraphQL */ `
           shipSymbol
           PurchaseWaypointSymbol
           SellWaypointSymbol
+          tradeMode
+          purchaseMarketTradeGood {
+            tradeVolume
+            supply
+            activity
+            purchasePrice
+            sellPrice
+          }
+          sellMarketTradeGood {
+            tradeVolume
+            supply
+            activity
+            purchasePrice
+            sellPrice
+          }
+          estimatedFuel
           status
           tradeVolume
           createdAt
@@ -521,6 +537,184 @@ export const GET_SYSTEM = graphql(/* GraphQL */ `
           tempFleetId
           status {
             __typename
+          }
+        }
+      }
+    }
+  }
+`);
+
+export const GET_SYSTEM_MARKETS = graphql(/* GraphQL */ `
+  query GetSystemMarkets($systemSymbol: String!) {
+    system(symbol: $systemSymbol) {
+      symbol
+      fleets {
+        items {
+          id
+          fleetType
+          active
+          assignments {
+            items {
+              id
+              siphon
+              warpDrive
+              fleetId
+              priority
+              maxPurchasePrice
+              creditsThreshold
+              disabled
+              rangeMin
+              cargoMin
+              survey
+              extractor
+            }
+          }
+          config {
+            __typename
+            ... on TradingConfig {
+              tradeMode
+              marketBlacklist
+              marketPreferList
+              purchaseMultiplier
+              tradeProfitThreshold
+              shipMarketRatio
+              minCargoSpace
+            }
+          }
+          createdAt
+          updatedAt
+        }
+      }
+      ships {
+        symbol
+        nav {
+          waypointSymbol
+          status
+        }
+        fuel {
+          capacity
+        }
+        cargo {
+          capacity
+        }
+        engineSpeed
+        status {
+          assignmentId
+          fleetId
+          tempAssignmentId
+          tempFleetId
+          status {
+            __typename
+          }
+        }
+      }
+      marketTrades {
+        items {
+          waypointSymbol
+          symbol
+          createdAt
+          type
+          tradeSymbolInfo {
+            symbol
+            requires {
+              items {
+                symbol
+              }
+            }
+            requiredBy {
+              items {
+                symbol
+              }
+            }
+          }
+          marketTradeGood {
+            symbol
+            waypointSymbol
+            type
+            tradeVolume
+            supply
+            activity
+            purchasePrice
+            sellPrice
+            createdAt
+          }
+        }
+      }
+      tradeRoutes {
+        items {
+          id
+          marketTransactionSummary {
+            expenses
+            income
+          }
+          symbol
+          shipSymbol
+          PurchaseWaypointSymbol
+          SellWaypointSymbol
+          tradeMode
+          purchaseMarketTradeGood {
+            tradeVolume
+            supply
+            activity
+            purchasePrice
+            sellPrice
+          }
+          sellMarketTradeGood {
+            tradeVolume
+            supply
+            activity
+            purchasePrice
+            sellPrice
+          }
+          estimatedFuel
+          status
+          tradeVolume
+          createdAt
+        }
+      }
+      tradeRouteCandidates {
+        items {
+          symbol
+          purchase {
+            symbol
+            waypointSymbol
+            type
+          }
+          sell {
+            symbol
+            waypointSymbol
+            type
+          }
+          tradeRouteProposal {
+            symbol
+            travelCost
+            goodCost
+            totalCost
+            goodTotalSellPrice
+            goodProfit
+            totalProfit
+            tripsPerHour
+            profitPerHour
+            profitPerApiRequest
+            fuelUnits
+            time
+            distance
+            apiRequests
+            tradeVolume
+            purchaseGood {
+              tradeVolume
+              supply
+              activity
+              purchasePrice
+              sellPrice
+            }
+            sellGood {
+              tradeVolume
+              supply
+              activity
+              purchasePrice
+              sellPrice
+            }
           }
         }
       }
