@@ -5,14 +5,18 @@ import {
 } from "@ant-design/icons";
 import { useQuery } from "@apollo/client/react";
 import {
+  AutoComplete,
   Button,
   Col,
   Descriptions,
   Divider,
   Flex,
+  InputNumber,
   Popover,
   Progress,
   Row,
+  Segmented,
+  Select,
   Space,
   Spin,
   Switch,
@@ -28,6 +32,8 @@ import {
   FleetType,
   GetSystemMarketsQuery,
   MarketTradeGoodType,
+  NavMode,
+  ShipNavStats,
   SupplyLevel,
   TradeMode,
   TradeSymbol,
@@ -35,19 +41,63 @@ import {
 import { GET_SYSTEM_MARKETS } from "../graphql/queries";
 import { cn, Prettify } from "../utils/utils";
 
+function parseMultiplier(input: string): number | undefined {
+  const trimmed = input.trim();
+  if (trimmed === "") return undefined;
+  const value = Number(trimmed);
+  return Number.isFinite(value) ? value : undefined;
+}
+
+const DEFAULT_SHIP_NAV_STATS: ShipNavStats = {
+  maxFuel: 100,
+  maxCargo: 100,
+  startRange: undefined,
+  onlyMarkets: false,
+  canWarp: false,
+  engineSpeed: 30,
+  engineCondition: 1,
+  navMode: NavMode.Cruise,
+};
+
 function SystemMarkets() {
   const { systemID } = useParams();
 
   const [hideFuelInTradeRouteCandidates, setHideFuelInTradeRouteCandidates] =
     useState(true);
   const [hideFuelInMarketTrades, setHideFuelInMarketTrades] = useState(true);
+  const [selectedShipSymbol, setSelectedShipSymbol] = useState<
+    string | undefined
+  >(undefined);
+  const [purchaseMultiplierInput, setPurchaseMultiplierInput] = useState("");
+  const [sourceMode, setSourceMode] = useState<"ship" | "stats">("ship");
+  const [shipNavStats, setShipNavStats] = useState<ShipNavStats>({
+    ...DEFAULT_SHIP_NAV_STATS,
+  });
+  const [appliedShipNavStats, setAppliedShipNavStats] = useState<ShipNavStats>({
+    ...DEFAULT_SHIP_NAV_STATS,
+  });
 
-  const { loading, error, data, dataState, refetch } = useQuery(
-    GET_SYSTEM_MARKETS,
-    {
-      variables: { systemSymbol: systemID || "" },
+  const updateNavStats = <K extends keyof ShipNavStats>(
+    key: K,
+    value: ShipNavStats[K],
+  ) => {
+    setShipNavStats((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const source = useMemo(() => {
+    if (sourceMode === "ship") {
+      return selectedShipSymbol ? { ship: selectedShipSymbol } : undefined;
+    }
+    return { shipNavStats: appliedShipNavStats };
+  }, [sourceMode, selectedShipSymbol, appliedShipNavStats]);
+
+  const { loading, error, data, refetch } = useQuery(GET_SYSTEM_MARKETS, {
+    variables: {
+      systemSymbol: systemID || "",
+      source,
+      purchaseMultiplier: parseMultiplier(purchaseMultiplierInput),
     },
-  );
+  });
 
   const marketDistripution = useMemo(() => {
     return data?.system.marketTrades.items
@@ -121,10 +171,9 @@ function SystemMarkets() {
     return opportunities;
   }, [data?.system.marketTrades.items]);
 
-  if (dataState != "complete") return <p>Loading...</p>;
   if (error) return <p>Error: {error.message}</p>;
 
-  const tradingFleets = (data.system.fleets.items || []).filter(
+  const tradingFleets = (data?.system.fleets.items || []).filter(
     (f) => f.fleetType === FleetType.Trading,
   ) as Prettify<
     Omit<
@@ -138,11 +187,15 @@ function SystemMarkets() {
     }
   >[];
 
-  const tradingShips = (data.system.ships || []).filter((s) =>
+  const tradingShips = (data?.system.ships || []).filter((s) =>
     tradingFleets.some(
       (f) => f.id === s.status.fleetId || f.id === s.status.tempFleetId,
     ),
   );
+
+  const purchaseMultipliers = [
+    ...new Set(tradingFleets.map((f) => f.config.purchaseMultiplier)),
+  ].sort((a, b) => a - b);
 
   return (
     <div style={{ padding: "24px 24px" }}>
@@ -657,7 +710,7 @@ function SystemMarkets() {
                     a.waypointSymbol.localeCompare(b.waypointSymbol),
                   filters: [
                     ...new Set(
-                      (data.system?.marketTrades.items || []).map(
+                      (data?.system?.marketTrades.items || []).map(
                         (t) => t.waypointSymbol,
                       ),
                     ),
@@ -674,7 +727,7 @@ function SystemMarkets() {
                   sorter: (a, b) => a.symbol.localeCompare(b.symbol),
                   filters: [
                     ...new Set(
-                      (data.system?.marketTrades.items || []).map(
+                      (data?.system?.marketTrades.items || []).map(
                         (t) => t.symbol,
                       ),
                     ),
@@ -804,7 +857,7 @@ function SystemMarkets() {
                     new Date(b.createdAt).getTime(),
                 },
               ]}
-              dataSource={(data.system?.marketTrades.items || []).filter(
+              dataSource={(data?.system?.marketTrades.items || []).filter(
                 (t) => !hideFuelInMarketTrades || t.symbol !== "FUEL",
               )}
               rowKey={(row) => row.symbol + row.waypointSymbol + row.type}
@@ -1021,7 +1074,7 @@ function SystemMarkets() {
                     (b.marketTransactionSummary?.expenses || 0),
                 },
               ]}
-              dataSource={data.system.tradeRoutes.items || []}
+              dataSource={data?.system.tradeRoutes.items || []}
               rowKey={(row) => row.id.toString()}
               title={() => "Trade Routes"}
               pagination={{
@@ -1047,7 +1100,7 @@ function SystemMarkets() {
                   sorter: (a, b) => a.symbol.localeCompare(b.symbol),
                   filters: [
                     ...new Set(
-                      data.system?.tradeRouteCandidates.items.map(
+                      data?.system?.tradeRouteCandidates.items.map(
                         (candidate) => candidate.symbol,
                       ),
                     ),
@@ -1406,7 +1459,9 @@ function SystemMarkets() {
                 row.purchase.waypointSymbol +
                 row.sell.waypointSymbol
               }
-              dataSource={(data.system.tradeRouteCandidates.items || []).filter(
+              dataSource={(
+                data?.system.tradeRouteCandidates.items || []
+              ).filter(
                 (candidate) =>
                   !hideFuelInTradeRouteCandidates ||
                   candidate.symbol !== "FUEL",
@@ -1427,15 +1482,134 @@ function SystemMarkets() {
                   `${range[0]}-${range[1]} of ${total}`,
               }}
               title={() => (
-                <Flex justify="space-between">
+                <Flex justify="space-between" gap={8} wrap>
                   <span>Trade Route Candidates</span>
-                  <Space>
-                    Hide Fuel
-                    <Switch
-                      onChange={setHideFuelInTradeRouteCandidates}
-                      checked={hideFuelInTradeRouteCandidates}
-                    />
-                  </Space>
+                  <Flex vertical gap={4} align="flex-end">
+                    <Space wrap>
+                      <Segmented
+                        size="small"
+                        value={sourceMode}
+                        onChange={(value) =>
+                          setSourceMode(value as "ship" | "stats")
+                        }
+                        options={[
+                          { label: "Ship", value: "ship" },
+                          { label: "Stats", value: "stats" },
+                        ]}
+                      />
+                      {sourceMode === "ship" && (
+                        <Select
+                          allowClear
+                          showSearch
+                          placeholder="Default stats"
+                          style={{ minWidth: 180 }}
+                          value={selectedShipSymbol}
+                          onChange={(value) => setSelectedShipSymbol(value)}
+                          options={tradingShips.map((s) => ({
+                            label: s.symbol,
+                            value: s.symbol,
+                          }))}
+                        />
+                      )}
+                      <span>Multiplier</span>
+                      <AutoComplete
+                        allowClear
+                        placeholder="Auto"
+                        style={{ width: 120 }}
+                        value={purchaseMultiplierInput}
+                        onChange={(value) =>
+                          setPurchaseMultiplierInput(value ?? "")
+                        }
+                        options={purchaseMultipliers.map((m) => ({
+                          label: String(m),
+                          value: String(m),
+                        }))}
+                      />
+                      <span>Hide Fuel</span>
+                      <Switch
+                        onChange={setHideFuelInTradeRouteCandidates}
+                        checked={hideFuelInTradeRouteCandidates}
+                      />
+                    </Space>
+                    {sourceMode === "stats" && (
+                      <Space wrap size={4}>
+                        <InputNumber
+                          size="small"
+                          addonBefore="Fuel"
+                          value={shipNavStats.maxFuel}
+                          onChange={(value) =>
+                            updateNavStats("maxFuel", value ?? 0)
+                          }
+                        />
+                        <InputNumber
+                          size="small"
+                          addonBefore="Cargo"
+                          value={shipNavStats.maxCargo}
+                          onChange={(value) =>
+                            updateNavStats("maxCargo", value ?? 0)
+                          }
+                        />
+                        <InputNumber
+                          size="small"
+                          addonBefore="Range"
+                          value={shipNavStats.startRange ?? undefined}
+                          onChange={(value) =>
+                            updateNavStats("startRange", value ?? undefined)
+                          }
+                        />
+                        <InputNumber
+                          size="small"
+                          addonBefore="Speed"
+                          value={shipNavStats.engineSpeed}
+                          onChange={(value) =>
+                            updateNavStats("engineSpeed", value ?? 0)
+                          }
+                        />
+                        <InputNumber
+                          size="small"
+                          addonBefore="Cond"
+                          step={0.1}
+                          value={shipNavStats.engineCondition}
+                          onChange={(value) =>
+                            updateNavStats("engineCondition", value ?? 0)
+                          }
+                        />
+                        <Select
+                          size="small"
+                          style={{ width: 170 }}
+                          value={shipNavStats.navMode}
+                          onChange={(value) => updateNavStats("navMode", value)}
+                          options={Object.values(NavMode).map((m) => ({
+                            label: m,
+                            value: m,
+                          }))}
+                        />
+                        <span>Markets</span>
+                        <Switch
+                          size="small"
+                          checked={shipNavStats.onlyMarkets}
+                          onChange={(checked) =>
+                            updateNavStats("onlyMarkets", checked)
+                          }
+                        />
+                        <span>Warp</span>
+                        <Switch
+                          size="small"
+                          checked={shipNavStats.canWarp}
+                          onChange={(checked) =>
+                            updateNavStats("canWarp", checked)
+                          }
+                        />
+                        <Button
+                          size="small"
+                          type="primary"
+                          onClick={() => setAppliedShipNavStats(shipNavStats)}
+                        >
+                          Apply
+                        </Button>
+                      </Space>
+                    )}
+                  </Flex>
                 </Flex>
               )}
             />

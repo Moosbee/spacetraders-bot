@@ -545,7 +545,11 @@ export const GET_SYSTEM = graphql(/* GraphQL */ `
 `);
 
 export const GET_SYSTEM_MARKETS = graphql(/* GraphQL */ `
-  query GetSystemMarkets($systemSymbol: String!) {
+  query GetSystemMarkets(
+    $systemSymbol: String!
+    $source: ShipNavStatsSource
+    $purchaseMultiplier: Float
+  ) {
     system(symbol: $systemSymbol) {
       symbol
       fleets {
@@ -685,7 +689,10 @@ export const GET_SYSTEM_MARKETS = graphql(/* GraphQL */ `
             waypointSymbol
             type
           }
-          tradeRouteProposal {
+          tradeRouteProposal(
+            source: $source
+            purchaseMultiplier: $purchaseMultiplier
+          ) {
             symbol
             travelCost
             goodCost
