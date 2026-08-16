@@ -2,9 +2,13 @@
 #[graphql(name = "InternalTradeRouteProposal")]
 pub struct TradeRouteProposal {
     pub symbol: space_traders_client::models::TradeSymbol,
+    #[graphql(skip)]
     pub purchase_good: Option<database::MarketTradeGood>,
+    #[graphql(skip)]
     pub sell_good: Option<database::MarketTradeGood>,
+    #[graphql(skip)]
     pub purchase: database::MarketTrade,
+    #[graphql(skip)]
     pub sell: database::MarketTrade,
 
     pub fuel_units: i32,
@@ -37,6 +41,7 @@ impl From<TradeRouteProposal> for database::TradeRoute {
             sell_waypoint: value.sell.waypoint_symbol,
             purchase_trade_good_id: value.purchase_good.map(|g| g.id),
             sell_trade_good_id: value.sell_good.map(|g| g.id),
+            estimated_fuel: Some(value.travel_cost),
             ..Default::default()
         }
     }
@@ -97,12 +102,12 @@ pub async fn gen_trade_route_proposal(
     let purchase_unit_price = trade_route_candidate
         .purchase_good
         .as_ref()
-        .map(|f| f.sell_price)
+        .map(|f| f.purchase_price)
         .unwrap_or(fallback_purchase_price);
     let sell_unit_price = trade_route_candidate
         .sell_good
         .as_ref()
-        .map(|f| f.purchase_price)
+        .map(|f| f.sell_price)
         .unwrap_or(fallback_sell_price);
 
     let travel_cost = trip_information.total_travel_cost;
@@ -113,7 +118,7 @@ pub async fn gen_trade_route_proposal(
     let good_profit = good_total_sell_price - total_cost;
     let total_profit = revenue - total_cost;
 
-    let roundtrip_time = trip_information.total_time * 2.0;
+    let roundtrip_time = (trip_information.total_time) * 2.0;
     let trips_per_hour = 3600.0 / roundtrip_time;
     let profit_per_hour = total_profit as f64 / roundtrip_time;
     let profit_per_api_request = total_profit as f64 / trip_information.total_api_requests as f64;
@@ -152,9 +157,9 @@ async fn gen_trip_information(
     let route = ship::autopilot::assemble_route(route, ship_stats, travel_price_cache).await?;
 
     Ok(TripInformation {
-        total_time: route.total_travel_time,
+        total_time: route.total_travel_time + 1.0,
         total_distance: route.total_distance,
-        total_api_requests: route.total_api_requests,
+        total_api_requests: route.total_api_requests + 2,
         total_fuel_units: route.total_refuel,
         total_antimatter_units: route.total_anti_matter,
         total_fuel_cost: route.total_fuel_cost,

@@ -2184,6 +2184,35 @@ impl GQLShipyardShip {
         Ok(history.into())
     }
 
+    async fn engine_info<'ctx>(&self, ctx: &async_graphql::Context<'ctx>) -> Result<GQLEngineInfo> {
+        // Changed return type to GQLEngineInfo
+        let database_pool = ctx.data::<database::DbPool>().unwrap();
+        let reg =
+            database::EngineInfo::get_by_symbol(database_pool, &self.shipyard_ship.engine_type)
+                .await?;
+        Ok(GQLEngineInfo::from(reg)) // Added conversion
+    }
+
+    async fn frame_info<'ctx>(&self, ctx: &async_graphql::Context<'ctx>) -> Result<GQLFrameInfo> {
+        // Changed return type to GQLFrameInfo
+        let database_pool = ctx.data::<database::DbPool>().unwrap();
+        let reg = database::FrameInfo::get_by_symbol(database_pool, &self.shipyard_ship.frame_type)
+            .await?;
+        Ok(GQLFrameInfo::from(reg)) // Added conversion
+    }
+
+    async fn reactor_info<'ctx>(
+        &self,
+        ctx: &async_graphql::Context<'ctx>,
+    ) -> Result<GQLReactorInfo> {
+        // Changed return type to GQLReactorInfo
+        let database_pool = ctx.data::<database::DbPool>().unwrap();
+        let reg =
+            database::ReactorInfo::get_by_symbol(database_pool, &self.shipyard_ship.reactor_type)
+                .await?;
+        Ok(GQLReactorInfo::from(reg)) // Added conversion
+    }
+
     async fn trade_symbol_info(&self) -> TradeSymbolInfo {
         TradeSymbolInfo {
             symbol: self.shipyard_ship.ship_type.into(),
@@ -3038,9 +3067,13 @@ paginated_gql_object!(
 #[graphql(complex)]
 pub struct GQLTradeRouteCandidate {
     pub symbol: space_traders_client::models::TradeSymbol,
+    #[graphql(skip)]
     pub purchase_good: Option<database::MarketTradeGood>,
+    #[graphql(skip)]
     pub sell_good: Option<database::MarketTradeGood>,
+    #[graphql(skip)]
     pub purchase: database::MarketTrade,
+    #[graphql(skip)]
     pub sell: database::MarketTrade,
 }
 
@@ -3094,6 +3127,22 @@ impl GQLTradeRouteCandidate {
         let proposal = data_loader.load_one(key).await?;
 
         Ok(into_gql(proposal))
+    }
+
+    async fn purchase(&self) -> Result<GQLMarketTrade> {
+        Ok(self.purchase.clone().into())
+    }
+
+    async fn sell(&self) -> Result<GQLMarketTrade> {
+        Ok(self.sell.clone().into())
+    }
+
+    async fn purchase_good(&self) -> Result<Option<GQLMarketTradeGood>> {
+        Ok(into_gql(self.purchase_good.clone()))
+    }
+
+    async fn sell_good(&self) -> Result<Option<GQLMarketTradeGood>> {
+        Ok(into_gql(self.sell_good.clone()))
     }
 
     async fn purchase_market_trade_good(
@@ -3190,6 +3239,22 @@ impl GQLTradeRouteProposal {
             purchase: self.trade_route_proposal.purchase.clone(),
             sell: self.trade_route_proposal.sell.clone(),
         })
+    }
+
+    async fn purchase(&self) -> Result<GQLMarketTrade> {
+        Ok(self.trade_route_proposal.purchase.clone().into())
+    }
+
+    async fn sell(&self) -> Result<GQLMarketTrade> {
+        Ok(self.trade_route_proposal.sell.clone().into())
+    }
+
+    async fn purchase_good(&self) -> Result<Option<GQLMarketTradeGood>> {
+        Ok(into_gql(self.trade_route_proposal.purchase_good.clone()))
+    }
+
+    async fn sell_good(&self) -> Result<Option<GQLMarketTradeGood>> {
+        Ok(into_gql(self.trade_route_proposal.sell_good.clone()))
     }
 
     async fn purchase_market_trade_good(
