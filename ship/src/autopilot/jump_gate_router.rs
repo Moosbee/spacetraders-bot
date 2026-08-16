@@ -182,6 +182,10 @@ impl JumpGateRouter {
         to_system: &str,
         no_under_construction: bool,
     ) -> Option<Vec<JumpConnection>> {
+        if from_system == to_system {
+            return Some(Vec::new());
+        }
+
         let mut unvisited: Vec<GateConnection> = self.all_connections.clone();
         let mut to_visit: PriorityQueue<JumpConnection, Reverse<i64>> = PriorityQueue::new();
         let mut visited: HashMap<String, JumpConnection> = HashMap::new();
@@ -459,6 +463,25 @@ mod tests {
         assert!(
             router.find_jump_route("X1-JP44", "X1-BX88", true).is_none(),
             "route should be None when all of X1-JP44's gates are under construction"
+        );
+    }
+
+    #[test]
+    fn same_system_returns_empty_vector_for_route() {
+        let router = router();
+
+        assert!(
+            router
+                .find_jump_route("X1-JP44", "X1-JP44", true)
+                .unwrap()
+                .is_empty()
+        );
+
+        assert!(
+            router
+                .find_jump_route("X1-BX88", "X1-BX88", true)
+                .unwrap()
+                .is_empty()
         );
     }
 
