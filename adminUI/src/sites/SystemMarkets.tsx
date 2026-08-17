@@ -26,6 +26,7 @@ import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import MoneyDisplay from "../features/MonyDisplay";
 import PageTitle from "../features/PageTitle";
+import MarketSupplyChainFlow from "../features/SupplyChainVisual/MarketSupplyChainFlow";
 import WaypointLink from "../features/WaypointLink";
 import {
   ActivityLevel,
@@ -610,7 +611,7 @@ function SystemMarkets() {
           <Col span={9}>
             <Table
               size="small"
-              title={() => "Tradeing Ships"}
+              title={() => "Trading Ships"}
               dataSource={tradingShips}
               columns={[
                 {
@@ -676,6 +677,17 @@ function SystemMarkets() {
                     (b.status?.assignmentId || 0),
                 },
               ]}
+            />
+          </Col>
+        </Row>
+        <Divider />
+
+        <Row gutter={10}>
+          <Col span={24}>
+            <MarketSupplyChainFlow
+              marketTrades={(data?.system?.marketTrades.items || []).filter(
+                (t) => t.symbol !== "FUEL",
+              )}
             />
           </Col>
         </Row>
