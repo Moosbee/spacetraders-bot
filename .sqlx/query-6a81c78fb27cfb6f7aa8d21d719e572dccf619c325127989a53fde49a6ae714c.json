@@ -403,7 +403,8 @@
               "Enum": [
                 "ProfitPerHour",
                 "ProfitPerAPIRequest",
-                "ProfitPerTrip"
+                "ProfitPerTrip",
+                "MarketBalanced"
               ]
             }
           }
@@ -874,7 +875,7 @@
       true,
       true,
       true,
-      false,
+      true,
       true,
       true,
       true

@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                        SELECT COUNT(1) as \"count!\"\n                        FROM trade_route\n                        WHERE sell_waypoint LIKE ($1 || '-%') OR purchase_waypoint LIKE ($1 || '-%')\n                    ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "count!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "c81903e0546ea2a378ae059ca0192aa21e059efb309a879f9c49f0dc7b0db732"
+}
