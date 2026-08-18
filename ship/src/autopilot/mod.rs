@@ -82,7 +82,12 @@ impl<T: Clone + Send + Sync> RustShip<T, Mutable> {
                 &self.get_nav_stats(),
             )
             .await?
-            .ok_or(crate::error::Error::General("No route found".to_string()))?;
+            .ok_or(crate::error::Error::NoRouteFound {
+                symbol: self.symbol.clone(),
+                from: self.nav.waypoint_symbol.clone(),
+                to: waypoint.to_string(),
+                nav_stats: self.get_nav_stats(),
+            })?;
 
         let mut price_calc = travel_price::TravelPriceCache::new(database_pool.clone());
 

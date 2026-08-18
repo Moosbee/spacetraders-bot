@@ -5,4 +5,4 @@ rustflags = ["--cfg", "tokio_unstable"]
 linker = "rust-lld.exe"
 
 [alias]
-xtask = "run --package xtask --"
+xtask = "run --package xtask --release --"

@@ -7,7 +7,7 @@ use std::{
 use database::DatabaseConnectorAsync;
 use priority_queue::PriorityQueue;
 
-use tracing::debug;
+use tracing::{debug, instrument};
 
 use crate::error::Result;
 
@@ -115,6 +115,11 @@ impl JumpGateRouterCache {
         }
     }
 
+    #[instrument(
+        level = "debug",
+        name = "ship::autopilot::jump_gate_router::find_jump_route",
+        skip(self)
+    )]
     pub fn find_jump_route<'a>(
         &'a mut self,
         from_system: &str,

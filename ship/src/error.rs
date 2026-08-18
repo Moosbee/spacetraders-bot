@@ -8,6 +8,14 @@ pub enum Error {
 
     #[error("General error: {0}")]
     General(String),
+
+    #[error("No route found for {symbol} from {from} to {to} with nav stats {nav_stats:?}")]
+    NoRouteFound {
+        symbol: String,
+        from: String,
+        to: String,
+        nav_stats: crate::autopilot::ShipNavStats,
+    },
 }
 
 impl From<&str> for Error {

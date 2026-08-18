@@ -83,20 +83,28 @@ pub async fn get_route(
         // get jump gate of start system
         let start_jump_gate = jump_gate_router.get_jump_gate(&start_system);
         if start_jump_gate.is_none() {
+            tracing::debug!(start_jump_gate = start_system, "No start jump gate found");
             return Ok(None);
         };
         let start_jump_gate = start_jump_gate.unwrap();
         // get jump gate of end system
         let end_jump_gate = jump_gate_router.get_jump_gate(&end_system);
         if end_jump_gate.is_none() {
+            tracing::debug!(end_jump_gate = end_system, "No end jump gate found");
             return Ok(None);
         };
         let end_jump_gate = end_jump_gate.unwrap();
 
         // get route from jump gate of start system to jump gate of end system
-        let jump_gate_route =
-            jump_gate_router.find_jump_route(&start_jump_gate, &end_jump_gate, true);
+        let jump_gate_route = jump_gate_router.find_jump_route(&start_system, &end_system, true);
         if jump_gate_route.is_none() {
+            tracing::debug!(
+                start_jump_gate = start_jump_gate,
+                end_jump_gate = end_jump_gate,
+                start_system = start_system,
+                end_system = end_system,
+                "No jump gate route found"
+            );
             return Ok(None);
         }
         // get route from start waypoint to jump gate of start system
@@ -108,6 +116,7 @@ pub async fn get_route(
             ship_stats.into(),
         );
         if start_route.is_none() {
+            tracing::debug!(start_jump_gate = start_jump_gate, "No start route found");
             return Ok(None);
         };
         route.extend(start_route.unwrap().iter().cloned());
@@ -135,6 +144,7 @@ pub async fn get_route(
             ship_stats.into(),
         );
         if end_route.is_none() {
+            tracing::debug!(end_jump_gate = end_jump_gate, "No end route found");
             return Ok(None);
         }
         route.extend(end_route.unwrap().iter().cloned());
@@ -158,6 +168,12 @@ async fn get_jump_gate_router<'a>(
         .ok_or("No jump gate router")?)
 }
 
+#[instrument(
+    level = "debug",
+    name = "ship::autopilot::pathfinder::get_system_router",
+    skip(database_pool, system_routers),
+    err(Debug)
+)]
 async fn get_system_router<'a>(
     system_routers: &'a mut HashMap<String, SystemRouterCache>,
     system_symbol: &str,

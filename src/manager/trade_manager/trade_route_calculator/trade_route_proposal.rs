@@ -120,7 +120,7 @@ pub async fn gen_trade_route_proposal(
 
     let roundtrip_time = (trip_information.total_time) * 2.0;
     let trips_per_hour = 3600.0 / roundtrip_time;
-    let profit_per_hour = total_profit as f64 / roundtrip_time;
+    let profit_per_hour = total_profit as f64 / trips_per_hour;
     let profit_per_api_request = total_profit as f64 / trip_information.total_api_requests as f64;
 
     // assemble proposal
