@@ -545,11 +545,7 @@ export const GET_SYSTEM = graphql(/* GraphQL */ `
 `);
 
 export const GET_SYSTEM_MARKETS = graphql(/* GraphQL */ `
-  query GetSystemMarkets(
-    $systemSymbol: String!
-    $source: ShipNavStatsSource
-    $purchaseMultiplier: Float
-  ) {
+  query GetSystemMarkets($systemSymbol: String!) {
     system(symbol: $systemSymbol) {
       symbol
       fleets {
@@ -676,6 +672,18 @@ export const GET_SYSTEM_MARKETS = graphql(/* GraphQL */ `
           createdAt
         }
       }
+    }
+  }
+`);
+
+export const GET_SYSTEM_TRADE_ROUTE_CANDIDATES = graphql(/* GraphQL */ `
+  query GetSystemTradeRouteCandidates(
+    $systemSymbol: String!
+    $source: ShipNavStatsSource
+    $purchaseMultiplier: Float
+  ) {
+    system(symbol: $systemSymbol) {
+      symbol
       tradeRouteCandidates {
         items {
           symbol

@@ -93,6 +93,10 @@ function MarketSupplyChainVisual({
               id: t1.symbol + t2.symbol + t1.waypointSymbol + t2.waypointSymbol,
               source: t1.symbol + t1.waypointSymbol,
               target: t2.symbol + t2.waypointSymbol,
+              style: {
+                strokeWidth: 2,
+                stroke: "#E9FF1F",
+              },
             })),
           ...marketTrades
             .filter(
@@ -100,12 +104,18 @@ function MarketSupplyChainVisual({
                 t2.waypointSymbol === t1.waypointSymbol &&
                 t2.tradeSymbolInfo.requires.items.some(
                   (r) => r.symbol === t1.symbol,
-                ),
+                ) &&
+                t1.type === MarketTradeGoodType.Import &&
+                t2.type === MarketTradeGoodType.Export,
             )
             .map((t2) => ({
               id: t1.symbol + t2.symbol + t1.waypointSymbol + t2.waypointSymbol,
               source: t1.symbol + t1.waypointSymbol,
               target: t2.symbol + t2.waypointSymbol,
+              style: {
+                strokeWidth: 2,
+                stroke: "#E9FF1F",
+              },
             })),
         ];
       })

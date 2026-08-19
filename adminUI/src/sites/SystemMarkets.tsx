@@ -3,7 +3,7 @@ import {
   SortDescendingOutlined,
   TruckOutlined,
 } from "@ant-design/icons";
-import { useQuery } from "@apollo/client/react";
+import { useLazyQuery, useQuery } from "@apollo/client/react";
 import {
   AutoComplete,
   Button,
@@ -39,7 +39,10 @@ import {
   TradeMode,
   TradeSymbol,
 } from "../gql/graphql";
-import { GET_SYSTEM_MARKETS } from "../graphql/queries";
+import {
+  GET_SYSTEM_MARKETS,
+  GET_SYSTEM_TRADE_ROUTE_CANDIDATES,
+} from "../graphql/queries";
 import { cn, Prettify } from "../utils/utils";
 
 function parseMultiplier(input: string): number | undefined {
@@ -95,10 +98,27 @@ function SystemMarkets() {
   const { loading, error, data, refetch } = useQuery(GET_SYSTEM_MARKETS, {
     variables: {
       systemSymbol: systemID || "",
-      source,
-      purchaseMultiplier: parseMultiplier(purchaseMultiplierInput),
     },
   });
+
+  const [
+    loadTradeRouteCandidates,
+    {
+      loading: tradeRouteCandidatesLoading,
+      error: tradeRouteCandidatesError,
+      data: tradeRouteCandidatesData,
+    },
+  ] = useLazyQuery(GET_SYSTEM_TRADE_ROUTE_CANDIDATES);
+
+  const loadTradeRouteCandidatesData = () => {
+    loadTradeRouteCandidates({
+      variables: {
+        systemSymbol: systemID || "",
+        source,
+        purchaseMultiplier: parseMultiplier(purchaseMultiplierInput),
+      },
+    });
+  };
 
   const marketDistripution = useMemo(() => {
     return data?.system.marketTrades.items
@@ -1103,6 +1123,7 @@ function SystemMarkets() {
         <Row>
           <Col span={24}>
             <Table
+              loading={tradeRouteCandidatesLoading}
               columns={[
                 {
                   title: "Symbol",
@@ -1111,9 +1132,10 @@ function SystemMarkets() {
                   sorter: (a, b) => a.symbol.localeCompare(b.symbol),
                   filters: [
                     ...new Set(
-                      data?.system?.tradeRouteCandidates.items.map(
-                        (candidate) => candidate.symbol,
-                      ),
+                      (
+                        tradeRouteCandidatesData?.system.tradeRouteCandidates
+                          .items || []
+                      ).map((candidate) => candidate.symbol),
                     ),
                   ].map((symbol) => ({
                     text: symbol,
@@ -1471,7 +1493,8 @@ function SystemMarkets() {
                 row.sell.waypointSymbol
               }
               dataSource={(
-                data?.system.tradeRouteCandidates.items || []
+                tradeRouteCandidatesData?.system.tradeRouteCandidates.items ||
+                []
               ).filter(
                 (candidate) =>
                   !hideFuelInTradeRouteCandidates ||
@@ -1494,7 +1517,14 @@ function SystemMarkets() {
               }}
               title={() => (
                 <Flex justify="space-between" gap={8} wrap>
-                  <span>Trade Route Candidates</span>
+                  <Flex vertical gap={4}>
+                    <span>Trade Route Candidates</span>
+                    {tradeRouteCandidatesError && (
+                      <span className="text-red-600">
+                        {tradeRouteCandidatesError.message}
+                      </span>
+                    )}
+                  </Flex>
                   <Flex vertical gap={4} align="flex-end">
                     <Space wrap>
                       <Segmented
@@ -1541,6 +1571,13 @@ function SystemMarkets() {
                         onChange={setHideFuelInTradeRouteCandidates}
                         checked={hideFuelInTradeRouteCandidates}
                       />
+                      <Button
+                        size="small"
+                        type="primary"
+                        onClick={loadTradeRouteCandidatesData}
+                      >
+                        {tradeRouteCandidatesData ? "Refresh" : "Load"}
+                      </Button>
                     </Space>
                     {sourceMode === "stats" && (
                       <Space wrap size={4}>

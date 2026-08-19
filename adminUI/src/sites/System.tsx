@@ -125,6 +125,20 @@ function System() {
       );
   }, [system?.marketTrades]);
 
+  const marketOpportunities = useMemo(() => {
+    const opportunities = (system?.marketTrades || []).reduce(
+      (a, b) => {
+        a[b.symbol] = a[b.symbol] || 0;
+        a[b.symbol] += 1;
+
+        return a;
+      },
+      {} as Record<TradeSymbol, number>,
+    );
+
+    return opportunities;
+  }, [system?.marketTrades]);
+
   const fuelCost = useMemo(() => {
     const prices = (system?.marketTrades || [])
       .filter((t) => t.symbol === "FUEL")
@@ -299,6 +313,28 @@ function System() {
           .filter((wp) => wp.hasShipyard)
           .filter((wp) => wp.chartedOn).length
       }/${system?.waypoints.filter((wp) => wp.hasShipyard).length}`,
+    },
+    {
+      label: "Unique Trade Goods",
+      key: "uniqueTradeSymbols",
+      children: `${Object.keys(marketOpportunities).length}`,
+    },
+    {
+      label: "Market Opportunities",
+      key: "marketOpportunities",
+      children: (
+        <span>
+          {Object.entries(marketOpportunities)
+            .filter((s) => s[0] !== "FUEL")
+            .reduce((a, b) => a + (b[1] * (b[1] - 1)) / 2, 0)}{" "}
+          (
+          {Object.entries(marketOpportunities).reduce(
+            (a, b) => a + (b[1] * (b[1] - 1)) / 2,
+            0,
+          )}
+          )
+        </span>
+      ),
     },
   ];
 
