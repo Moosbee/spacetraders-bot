@@ -6,3 +6,4 @@ linker = "rust-lld.exe"
 
 [alias]
 xtask = "run --package xtask --release --"
+xtaskdev = "run --package xtask --"

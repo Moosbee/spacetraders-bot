@@ -33,6 +33,8 @@ impl<T> Error<T> {
 pub struct ResponseContent<T> {
     pub status: reqwest::StatusCode,
     pub content: String,
+    pub url: String,
+    pub method: reqwest::Method,
     pub entity: Option<ResponseContentEntity<T>>,
 }
 
@@ -219,6 +221,8 @@ impl<T: serde::Serialize> From<Error<T>> for ApiError {
             Error::ResponseError(e) => ApiError::ResponseError(ResponseContent {
                 status: e.status,
                 content: e.content,
+                url: e.url,
+                method: e.method,
                 entity: e.entity.map(|e| {
                     let serial_data: Result<serde_json::Value, serde_json::Error> =
                         serde_json::to_value(&e.error.data);
@@ -292,6 +296,8 @@ mod tests {
     fn response_error_test() {
         let error: ResponseContent<()> = ResponseContent {
             status: reqwest::StatusCode::CONFLICT,
+            url: "".to_string(),
+            method: hyper::Method::GET,
             entity: None,
             content: "{\"error\":{\"message\":\"Ship extract failed. Survey X1-RU19-ZC5X-B781FB has been exhausted.\",\"code\":4224}}".to_string(),
         };

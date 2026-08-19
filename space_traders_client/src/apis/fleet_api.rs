@@ -298,6 +298,8 @@ pub async fn create_chart(
     };
 
     let local_var_req = local_var_req_builder.build()?;
+        let req_method = local_var_req.method().clone();
+    let req_url = local_var_req.url().to_string();
     let local_var_resp = local_var_client.execute(local_var_req).await?;
 
     let local_var_status = local_var_resp.status();
@@ -309,6 +311,8 @@ pub async fn create_chart(
         let local_var_entity: Option<ResponseContentEntity<CreateChartError>> =
             serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent {
+            method: req_method,
+            url: req_url,
             status: local_var_status,
             content: local_var_content,
             entity: local_var_entity,
@@ -343,6 +347,8 @@ pub async fn create_ship_ship_scan(
     };
 
     let local_var_req = local_var_req_builder.build()?;
+        let req_method = local_var_req.method().clone();
+    let req_url = local_var_req.url().to_string();
     let local_var_resp = local_var_client.execute(local_var_req).await?;
 
     let local_var_status = local_var_resp.status();
@@ -354,6 +360,8 @@ pub async fn create_ship_ship_scan(
         let local_var_entity: Option<ResponseContentEntity<CreateShipShipScanError>> =
             serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent {
+            method: req_method,
+            url: req_url,
             status: local_var_status,
             content: local_var_content,
             entity: local_var_entity,
@@ -388,6 +396,8 @@ pub async fn create_ship_system_scan(
     };
 
     let local_var_req = local_var_req_builder.build()?;
+        let req_method = local_var_req.method().clone();
+    let req_url = local_var_req.url().to_string();
     let local_var_resp = local_var_client.execute(local_var_req).await?;
 
     let local_var_status = local_var_resp.status();
@@ -399,6 +409,8 @@ pub async fn create_ship_system_scan(
         let local_var_entity: Option<ResponseContentEntity<CreateShipSystemScanError>> =
             serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent {
+            method: req_method,
+            url: req_url,
             status: local_var_status,
             content: local_var_content,
             entity: local_var_entity,
@@ -433,6 +445,8 @@ pub async fn create_ship_waypoint_scan(
     };
 
     let local_var_req = local_var_req_builder.build()?;
+        let req_method = local_var_req.method().clone();
+    let req_url = local_var_req.url().to_string();
     let local_var_resp = local_var_client.execute(local_var_req).await?;
 
     let local_var_status = local_var_resp.status();
@@ -444,6 +458,8 @@ pub async fn create_ship_waypoint_scan(
         let local_var_entity: Option<ResponseContentEntity<CreateShipWaypointScanError>> =
             serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent {
+            method: req_method,
+            url: req_url,
             status: local_var_status,
             content: local_var_content,
             entity: local_var_entity,
@@ -478,6 +494,8 @@ pub async fn create_survey(
     };
 
     let local_var_req = local_var_req_builder.build()?;
+        let req_method = local_var_req.method().clone();
+    let req_url = local_var_req.url().to_string();
     let local_var_resp = local_var_client.execute(local_var_req).await?;
 
     let local_var_status = local_var_resp.status();
@@ -489,6 +507,8 @@ pub async fn create_survey(
         let local_var_entity: Option<ResponseContentEntity<CreateSurveyError>> =
             serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent {
+            method: req_method,
+            url: req_url,
             status: local_var_status,
             content: local_var_content,
             entity: local_var_entity,
@@ -523,6 +543,8 @@ pub async fn dock_ship(
     };
 
     let local_var_req = local_var_req_builder.build()?;
+        let req_method = local_var_req.method().clone();
+    let req_url = local_var_req.url().to_string();
     let local_var_resp = local_var_client.execute(local_var_req).await?;
 
     let local_var_status = local_var_resp.status();
@@ -534,6 +556,8 @@ pub async fn dock_ship(
         let local_var_entity: Option<ResponseContentEntity<DockShipError>> =
             serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent {
+            method: req_method,
+            url: req_url,
             status: local_var_status,
             content: local_var_content,
             entity: local_var_entity,
@@ -568,6 +592,8 @@ pub async fn extract_resources(
     };
 
     let local_var_req = local_var_req_builder.build()?;
+        let req_method = local_var_req.method().clone();
+    let req_url = local_var_req.url().to_string();
     let local_var_resp = local_var_client.execute(local_var_req).await?;
 
     let local_var_status = local_var_resp.status();
@@ -579,6 +605,8 @@ pub async fn extract_resources(
         let local_var_entity: Option<ResponseContentEntity<ExtractResourcesError>> =
             serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent {
+            method: req_method,
+            url: req_url,
             status: local_var_status,
             content: local_var_content,
             entity: local_var_entity,
@@ -615,6 +643,8 @@ pub async fn extract_resources_with_survey(
     local_var_req_builder = local_var_req_builder.json(&survey);
 
     let local_var_req = local_var_req_builder.build()?;
+        let req_method = local_var_req.method().clone();
+    let req_url = local_var_req.url().to_string();
     let local_var_resp = local_var_client.execute(local_var_req).await?;
 
     let local_var_status = local_var_resp.status();
@@ -626,6 +656,8 @@ pub async fn extract_resources_with_survey(
         let local_var_entity: Option<ResponseContentEntity<ExtractResourcesWithSurveyError>> =
             serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent {
+            method: req_method,
+            url: req_url,
             status: local_var_status,
             content: local_var_content,
             entity: local_var_entity,
@@ -660,6 +692,8 @@ pub async fn get_mounts(
     };
 
     let local_var_req = local_var_req_builder.build()?;
+        let req_method = local_var_req.method().clone();
+    let req_url = local_var_req.url().to_string();
     let local_var_resp = local_var_client.execute(local_var_req).await?;
 
     let local_var_status = local_var_resp.status();
@@ -671,6 +705,8 @@ pub async fn get_mounts(
         let local_var_entity: Option<ResponseContentEntity<GetMountsError>> =
             serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent {
+            method: req_method,
+            url: req_url,
             status: local_var_status,
             content: local_var_content,
             entity: local_var_entity,
@@ -705,6 +741,8 @@ pub async fn get_my_ship(
     };
 
     let local_var_req = local_var_req_builder.build()?;
+        let req_method = local_var_req.method().clone();
+    let req_url = local_var_req.url().to_string();
     let local_var_resp = local_var_client.execute(local_var_req).await?;
 
     let local_var_status = local_var_resp.status();
@@ -716,6 +754,8 @@ pub async fn get_my_ship(
         let local_var_entity: Option<ResponseContentEntity<GetMyShipError>> =
             serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent {
+            method: req_method,
+            url: req_url,
             status: local_var_status,
             content: local_var_content,
             entity: local_var_entity,
@@ -750,6 +790,8 @@ pub async fn get_my_ship_cargo(
     };
 
     let local_var_req = local_var_req_builder.build()?;
+        let req_method = local_var_req.method().clone();
+    let req_url = local_var_req.url().to_string();
     let local_var_resp = local_var_client.execute(local_var_req).await?;
 
     let local_var_status = local_var_resp.status();
@@ -761,6 +803,8 @@ pub async fn get_my_ship_cargo(
         let local_var_entity: Option<ResponseContentEntity<GetMyShipCargoError>> =
             serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent {
+            method: req_method,
+            url: req_url,
             status: local_var_status,
             content: local_var_content,
             entity: local_var_entity,
@@ -800,6 +844,8 @@ pub async fn get_my_ships(
     };
 
     let local_var_req = local_var_req_builder.build()?;
+        let req_method = local_var_req.method().clone();
+    let req_url = local_var_req.url().to_string();
     let local_var_resp = local_var_client.execute(local_var_req).await?;
 
     let local_var_status = local_var_resp.status();
@@ -811,6 +857,8 @@ pub async fn get_my_ships(
         let local_var_entity: Option<ResponseContentEntity<GetMyShipsError>> =
             serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent {
+            method: req_method,
+            url: req_url,
             status: local_var_status,
             content: local_var_content,
             entity: local_var_entity,
@@ -845,6 +893,8 @@ pub async fn get_repair_ship(
     };
 
     let local_var_req = local_var_req_builder.build()?;
+        let req_method = local_var_req.method().clone();
+    let req_url = local_var_req.url().to_string();
     let local_var_resp = local_var_client.execute(local_var_req).await?;
 
     let local_var_status = local_var_resp.status();
@@ -856,6 +906,8 @@ pub async fn get_repair_ship(
         let local_var_entity: Option<ResponseContentEntity<GetRepairShipError>> =
             serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent {
+            method: req_method,
+            url: req_url,
             status: local_var_status,
             content: local_var_content,
             entity: local_var_entity,
@@ -890,6 +942,8 @@ pub async fn get_scrap_ship(
     };
 
     let local_var_req = local_var_req_builder.build()?;
+        let req_method = local_var_req.method().clone();
+    let req_url = local_var_req.url().to_string();
     let local_var_resp = local_var_client.execute(local_var_req).await?;
 
     let local_var_status = local_var_resp.status();
@@ -901,6 +955,8 @@ pub async fn get_scrap_ship(
         let local_var_entity: Option<ResponseContentEntity<GetScrapShipError>> =
             serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent {
+            method: req_method,
+            url: req_url,
             status: local_var_status,
             content: local_var_content,
             entity: local_var_entity,
@@ -935,6 +991,8 @@ pub async fn get_ship_cooldown(
     };
 
     let local_var_req = local_var_req_builder.build()?;
+        let req_method = local_var_req.method().clone();
+    let req_url = local_var_req.url().to_string();
     let local_var_resp = local_var_client.execute(local_var_req).await?;
 
     let local_var_status = local_var_resp.status();
@@ -946,6 +1004,8 @@ pub async fn get_ship_cooldown(
         let local_var_entity: Option<ResponseContentEntity<GetShipCooldownError>> =
             serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent {
+            method: req_method,
+            url: req_url,
             status: local_var_status,
             content: local_var_content,
             entity: local_var_entity,
@@ -980,6 +1040,8 @@ pub async fn get_ship_modules(
     };
 
     let local_var_req = local_var_req_builder.build()?;
+        let req_method = local_var_req.method().clone();
+    let req_url = local_var_req.url().to_string();
     let local_var_resp = local_var_client.execute(local_var_req).await?;
 
     let local_var_status = local_var_resp.status();
@@ -991,6 +1053,8 @@ pub async fn get_ship_modules(
         let local_var_entity: Option<ResponseContentEntity<GetShipModulesError>> =
             serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent {
+            method: req_method,
+            url: req_url,
             status: local_var_status,
             content: local_var_content,
             entity: local_var_entity,
@@ -1025,6 +1089,8 @@ pub async fn get_ship_nav(
     };
 
     let local_var_req = local_var_req_builder.build()?;
+        let req_method = local_var_req.method().clone();
+    let req_url = local_var_req.url().to_string();
     let local_var_resp = local_var_client.execute(local_var_req).await?;
 
     let local_var_status = local_var_resp.status();
@@ -1036,6 +1102,8 @@ pub async fn get_ship_nav(
         let local_var_entity: Option<ResponseContentEntity<GetShipNavError>> =
             serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent {
+            method: req_method,
+            url: req_url,
             status: local_var_status,
             content: local_var_content,
             entity: local_var_entity,
@@ -1072,6 +1140,8 @@ pub async fn install_mount(
     local_var_req_builder = local_var_req_builder.json(&install_mount_request);
 
     let local_var_req = local_var_req_builder.build()?;
+        let req_method = local_var_req.method().clone();
+    let req_url = local_var_req.url().to_string();
     let local_var_resp = local_var_client.execute(local_var_req).await?;
 
     let local_var_status = local_var_resp.status();
@@ -1083,6 +1153,8 @@ pub async fn install_mount(
         let local_var_entity: Option<ResponseContentEntity<InstallMountError>> =
             serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent {
+            method: req_method,
+            url: req_url,
             status: local_var_status,
             content: local_var_content,
             entity: local_var_entity,
@@ -1119,6 +1191,8 @@ pub async fn install_ship_module(
     local_var_req_builder = local_var_req_builder.json(&install_ship_module_request);
 
     let local_var_req = local_var_req_builder.build()?;
+        let req_method = local_var_req.method().clone();
+    let req_url = local_var_req.url().to_string();
     let local_var_resp = local_var_client.execute(local_var_req).await?;
 
     let local_var_status = local_var_resp.status();
@@ -1130,6 +1204,8 @@ pub async fn install_ship_module(
         let local_var_entity: Option<ResponseContentEntity<InstallShipModuleError>> =
             serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent {
+            method: req_method,
+            url: req_url,
             status: local_var_status,
             content: local_var_content,
             entity: local_var_entity,
@@ -1166,6 +1242,8 @@ pub async fn jettison(
     local_var_req_builder = local_var_req_builder.json(&jettison_request);
 
     let local_var_req = local_var_req_builder.build()?;
+        let req_method = local_var_req.method().clone();
+    let req_url = local_var_req.url().to_string();
     let local_var_resp = local_var_client.execute(local_var_req).await?;
 
     let local_var_status = local_var_resp.status();
@@ -1177,6 +1255,8 @@ pub async fn jettison(
         let local_var_entity: Option<ResponseContentEntity<JettisonError>> =
             serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent {
+            method: req_method,
+            url: req_url,
             status: local_var_status,
             content: local_var_content,
             entity: local_var_entity,
@@ -1213,6 +1293,8 @@ pub async fn jump_ship(
     local_var_req_builder = local_var_req_builder.json(&jump_ship_request);
 
     let local_var_req = local_var_req_builder.build()?;
+        let req_method = local_var_req.method().clone();
+    let req_url = local_var_req.url().to_string();
     let local_var_resp = local_var_client.execute(local_var_req).await?;
 
     let local_var_status = local_var_resp.status();
@@ -1224,6 +1306,8 @@ pub async fn jump_ship(
         let local_var_entity: Option<ResponseContentEntity<JumpShipError>> =
             serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent {
+            method: req_method,
+            url: req_url,
             status: local_var_status,
             content: local_var_content,
             entity: local_var_entity,
@@ -1260,6 +1344,8 @@ pub async fn navigate_ship(
     local_var_req_builder = local_var_req_builder.json(&navigate_ship_request);
 
     let local_var_req = local_var_req_builder.build()?;
+        let req_method = local_var_req.method().clone();
+    let req_url = local_var_req.url().to_string();
     let local_var_resp = local_var_client.execute(local_var_req).await?;
 
     let local_var_status = local_var_resp.status();
@@ -1271,6 +1357,8 @@ pub async fn navigate_ship(
         let local_var_entity: Option<ResponseContentEntity<NavigateShipError>> =
             serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent {
+            method: req_method,
+            url: req_url,
             status: local_var_status,
             content: local_var_content,
             entity: local_var_entity,
@@ -1305,6 +1393,8 @@ pub async fn negotiate_contract(
     };
 
     let local_var_req = local_var_req_builder.build()?;
+        let req_method = local_var_req.method().clone();
+    let req_url = local_var_req.url().to_string();
     let local_var_resp = local_var_client.execute(local_var_req).await?;
 
     let local_var_status = local_var_resp.status();
@@ -1316,6 +1406,8 @@ pub async fn negotiate_contract(
         let local_var_entity: Option<ResponseContentEntity<NegotiateContractError>> =
             serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent {
+            method: req_method,
+            url: req_url,
             status: local_var_status,
             content: local_var_content,
             entity: local_var_entity,
@@ -1350,6 +1442,8 @@ pub async fn orbit_ship(
     };
 
     let local_var_req = local_var_req_builder.build()?;
+        let req_method = local_var_req.method().clone();
+    let req_url = local_var_req.url().to_string();
     let local_var_resp = local_var_client.execute(local_var_req).await?;
 
     let local_var_status = local_var_resp.status();
@@ -1361,6 +1455,8 @@ pub async fn orbit_ship(
         let local_var_entity: Option<ResponseContentEntity<OrbitShipError>> =
             serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent {
+            method: req_method,
+            url: req_url,
             status: local_var_status,
             content: local_var_content,
             entity: local_var_entity,
@@ -1397,6 +1493,8 @@ pub async fn patch_ship_nav(
     local_var_req_builder = local_var_req_builder.json(&patch_ship_nav_request);
 
     let local_var_req = local_var_req_builder.build()?;
+        let req_method = local_var_req.method().clone();
+    let req_url = local_var_req.url().to_string();
     let local_var_resp = local_var_client.execute(local_var_req).await?;
 
     let local_var_status = local_var_resp.status();
@@ -1408,6 +1506,8 @@ pub async fn patch_ship_nav(
         let local_var_entity: Option<ResponseContentEntity<PatchShipNavError>> =
             serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent {
+            method: req_method,
+            url: req_url,
             status: local_var_status,
             content: local_var_content,
             entity: local_var_entity,
@@ -1444,6 +1544,8 @@ pub async fn purchase_cargo(
     local_var_req_builder = local_var_req_builder.json(&purchase_cargo_request);
 
     let local_var_req = local_var_req_builder.build()?;
+        let req_method = local_var_req.method().clone();
+    let req_url = local_var_req.url().to_string();
     let local_var_resp = local_var_client.execute(local_var_req).await?;
 
     let local_var_status = local_var_resp.status();
@@ -1455,6 +1557,8 @@ pub async fn purchase_cargo(
         let local_var_entity: Option<ResponseContentEntity<PurchaseCargoError>> =
             serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent {
+            method: req_method,
+            url: req_url,
             status: local_var_status,
             content: local_var_content,
             entity: local_var_entity,
@@ -1486,6 +1590,8 @@ pub async fn purchase_ship(
     local_var_req_builder = local_var_req_builder.json(&purchase_ship_request);
 
     let local_var_req = local_var_req_builder.build()?;
+        let req_method = local_var_req.method().clone();
+    let req_url = local_var_req.url().to_string();
     let local_var_resp = local_var_client.execute(local_var_req).await?;
 
     let local_var_status = local_var_resp.status();
@@ -1497,6 +1603,8 @@ pub async fn purchase_ship(
         let local_var_entity: Option<ResponseContentEntity<PurchaseShipError>> =
             serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent {
+            method: req_method,
+            url: req_url,
             status: local_var_status,
             content: local_var_content,
             entity: local_var_entity,
@@ -1533,6 +1641,8 @@ pub async fn refuel_ship(
     local_var_req_builder = local_var_req_builder.json(&refuel_ship_request);
 
     let local_var_req = local_var_req_builder.build()?;
+        let req_method = local_var_req.method().clone();
+    let req_url = local_var_req.url().to_string();
     let local_var_resp = local_var_client.execute(local_var_req).await?;
 
     let local_var_status = local_var_resp.status();
@@ -1544,6 +1654,8 @@ pub async fn refuel_ship(
         let local_var_entity: Option<ResponseContentEntity<RefuelShipError>> =
             serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent {
+            method: req_method,
+            url: req_url,
             status: local_var_status,
             content: local_var_content,
             entity: local_var_entity,
@@ -1580,6 +1692,8 @@ pub async fn remove_mount(
     local_var_req_builder = local_var_req_builder.json(&remove_mount_request);
 
     let local_var_req = local_var_req_builder.build()?;
+        let req_method = local_var_req.method().clone();
+    let req_url = local_var_req.url().to_string();
     let local_var_resp = local_var_client.execute(local_var_req).await?;
 
     let local_var_status = local_var_resp.status();
@@ -1591,6 +1705,8 @@ pub async fn remove_mount(
         let local_var_entity: Option<ResponseContentEntity<RemoveMountError>> =
             serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent {
+            method: req_method,
+            url: req_url,
             status: local_var_status,
             content: local_var_content,
             entity: local_var_entity,
@@ -1627,6 +1743,8 @@ pub async fn remove_ship_module(
     local_var_req_builder = local_var_req_builder.json(&remove_ship_module_request);
 
     let local_var_req = local_var_req_builder.build()?;
+        let req_method = local_var_req.method().clone();
+    let req_url = local_var_req.url().to_string();
     let local_var_resp = local_var_client.execute(local_var_req).await?;
 
     let local_var_status = local_var_resp.status();
@@ -1638,6 +1756,8 @@ pub async fn remove_ship_module(
         let local_var_entity: Option<ResponseContentEntity<RemoveShipModuleError>> =
             serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent {
+            method: req_method,
+            url: req_url,
             status: local_var_status,
             content: local_var_content,
             entity: local_var_entity,
@@ -1672,6 +1792,8 @@ pub async fn repair_ship(
     };
 
     let local_var_req = local_var_req_builder.build()?;
+        let req_method = local_var_req.method().clone();
+    let req_url = local_var_req.url().to_string();
     let local_var_resp = local_var_client.execute(local_var_req).await?;
 
     let local_var_status = local_var_resp.status();
@@ -1683,6 +1805,8 @@ pub async fn repair_ship(
         let local_var_entity: Option<ResponseContentEntity<RepairShipError>> =
             serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent {
+            method: req_method,
+            url: req_url,
             status: local_var_status,
             content: local_var_content,
             entity: local_var_entity,
@@ -1717,6 +1841,8 @@ pub async fn scrap_ship(
     };
 
     let local_var_req = local_var_req_builder.build()?;
+        let req_method = local_var_req.method().clone();
+    let req_url = local_var_req.url().to_string();
     let local_var_resp = local_var_client.execute(local_var_req).await?;
 
     let local_var_status = local_var_resp.status();
@@ -1728,6 +1854,8 @@ pub async fn scrap_ship(
         let local_var_entity: Option<ResponseContentEntity<ScrapShipError>> =
             serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent {
+            method: req_method,
+            url: req_url,
             status: local_var_status,
             content: local_var_content,
             entity: local_var_entity,
@@ -1764,6 +1892,8 @@ pub async fn sell_cargo(
     local_var_req_builder = local_var_req_builder.json(&sell_cargo_request);
 
     let local_var_req = local_var_req_builder.build()?;
+        let req_method = local_var_req.method().clone();
+    let req_url = local_var_req.url().to_string();
     let local_var_resp = local_var_client.execute(local_var_req).await?;
 
     let local_var_status = local_var_resp.status();
@@ -1775,6 +1905,8 @@ pub async fn sell_cargo(
         let local_var_entity: Option<ResponseContentEntity<SellCargoError>> =
             serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent {
+            method: req_method,
+            url: req_url,
             status: local_var_status,
             content: local_var_content,
             entity: local_var_entity,
@@ -1811,6 +1943,8 @@ pub async fn ship_refine(
     local_var_req_builder = local_var_req_builder.json(&ship_refine_request);
 
     let local_var_req = local_var_req_builder.build()?;
+        let req_method = local_var_req.method().clone();
+    let req_url = local_var_req.url().to_string();
     let local_var_resp = local_var_client.execute(local_var_req).await?;
 
     let local_var_status = local_var_resp.status();
@@ -1822,6 +1956,8 @@ pub async fn ship_refine(
         let local_var_entity: Option<ResponseContentEntity<ShipRefineError>> =
             serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent {
+            method: req_method,
+            url: req_url,
             status: local_var_status,
             content: local_var_content,
             entity: local_var_entity,
@@ -1856,6 +1992,8 @@ pub async fn siphon_resources(
     };
 
     let local_var_req = local_var_req_builder.build()?;
+        let req_method = local_var_req.method().clone();
+    let req_url = local_var_req.url().to_string();
     let local_var_resp = local_var_client.execute(local_var_req).await?;
 
     let local_var_status = local_var_resp.status();
@@ -1867,6 +2005,8 @@ pub async fn siphon_resources(
         let local_var_entity: Option<ResponseContentEntity<SiphonResourcesError>> =
             serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent {
+            method: req_method,
+            url: req_url,
             status: local_var_status,
             content: local_var_content,
             entity: local_var_entity,
@@ -1903,6 +2043,8 @@ pub async fn transfer_cargo(
     local_var_req_builder = local_var_req_builder.json(&transfer_cargo_request);
 
     let local_var_req = local_var_req_builder.build()?;
+        let req_method = local_var_req.method().clone();
+    let req_url = local_var_req.url().to_string();
     let local_var_resp = local_var_client.execute(local_var_req).await?;
 
     let local_var_status = local_var_resp.status();
@@ -1914,6 +2056,8 @@ pub async fn transfer_cargo(
         let local_var_entity: Option<ResponseContentEntity<TransferCargoError>> =
             serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent {
+            method: req_method,
+            url: req_url,
             status: local_var_status,
             content: local_var_content,
             entity: local_var_entity,
@@ -1950,6 +2094,8 @@ pub async fn warp_ship(
     local_var_req_builder = local_var_req_builder.json(&navigate_ship_request);
 
     let local_var_req = local_var_req_builder.build()?;
+        let req_method = local_var_req.method().clone();
+    let req_url = local_var_req.url().to_string();
     let local_var_resp = local_var_client.execute(local_var_req).await?;
 
     let local_var_status = local_var_resp.status();
@@ -1961,6 +2107,8 @@ pub async fn warp_ship(
         let local_var_entity: Option<ResponseContentEntity<WarpShipError>> =
             serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent {
+            method: req_method,
+            url: req_url,
             status: local_var_status,
             content: local_var_content,
             entity: local_var_entity,

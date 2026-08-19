@@ -81,6 +81,8 @@ pub async fn accept_contract(
     };
 
     let local_var_req = local_var_req_builder.build()?;
+        let req_method = local_var_req.method().clone();
+    let req_url = local_var_req.url().to_string();
     let local_var_resp = local_var_client.execute(local_var_req).await?;
 
     let local_var_status = local_var_resp.status();
@@ -92,6 +94,8 @@ pub async fn accept_contract(
         let local_var_entity: Option<ResponseContentEntity<AcceptContractError>> =
             serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent {
+            method: req_method,
+            url: req_url,
             status: local_var_status,
             content: local_var_content,
             entity: local_var_entity,
@@ -128,6 +132,8 @@ pub async fn deliver_contract(
     local_var_req_builder = local_var_req_builder.json(&deliver_contract_request);
 
     let local_var_req = local_var_req_builder.build()?;
+        let req_method = local_var_req.method().clone();
+    let req_url = local_var_req.url().to_string();
     let local_var_resp = local_var_client.execute(local_var_req).await?;
 
     let local_var_status = local_var_resp.status();
@@ -139,6 +145,8 @@ pub async fn deliver_contract(
         let local_var_entity: Option<ResponseContentEntity<DeliverContractError>> =
             serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent {
+            method: req_method,
+            url: req_url,
             status: local_var_status,
             content: local_var_content,
             entity: local_var_entity,
@@ -173,6 +181,8 @@ pub async fn fulfill_contract(
     };
 
     let local_var_req = local_var_req_builder.build()?;
+        let req_method = local_var_req.method().clone();
+    let req_url = local_var_req.url().to_string();
     let local_var_resp = local_var_client.execute(local_var_req).await?;
 
     let local_var_status = local_var_resp.status();
@@ -184,6 +194,8 @@ pub async fn fulfill_contract(
         let local_var_entity: Option<ResponseContentEntity<FulfillContractError>> =
             serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent {
+            method: req_method,
+            url: req_url,
             status: local_var_status,
             content: local_var_content,
             entity: local_var_entity,
@@ -218,6 +230,8 @@ pub async fn get_contract(
     };
 
     let local_var_req = local_var_req_builder.build()?;
+        let req_method = local_var_req.method().clone();
+    let req_url = local_var_req.url().to_string();
     let local_var_resp = local_var_client.execute(local_var_req).await?;
 
     let local_var_status = local_var_resp.status();
@@ -229,6 +243,8 @@ pub async fn get_contract(
         let local_var_entity: Option<ResponseContentEntity<GetContractError>> =
             serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent {
+            method: req_method,
+            url: req_url,
             status: local_var_status,
             content: local_var_content,
             entity: local_var_entity,
@@ -268,6 +284,8 @@ pub async fn get_contracts(
     };
 
     let local_var_req = local_var_req_builder.build()?;
+        let req_method = local_var_req.method().clone();
+    let req_url = local_var_req.url().to_string();
     let local_var_resp = local_var_client.execute(local_var_req).await?;
 
     let local_var_status = local_var_resp.status();
@@ -279,6 +297,8 @@ pub async fn get_contracts(
         let local_var_entity: Option<ResponseContentEntity<GetContractsError>> =
             serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent {
+            method: req_method,
+            url: req_url,
             status: local_var_status,
             content: local_var_content,
             entity: local_var_entity,
@@ -313,6 +333,8 @@ pub async fn negotiate_contract(
     };
 
     let local_var_req = local_var_req_builder.build()?;
+        let req_method = local_var_req.method().clone();
+    let req_url = local_var_req.url().to_string();
     let local_var_resp = local_var_client.execute(local_var_req).await?;
 
     let local_var_status = local_var_resp.status();
@@ -324,6 +346,8 @@ pub async fn negotiate_contract(
         let local_var_entity: Option<ResponseContentEntity<NegotiateContractError>> =
             serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent {
+            method: req_method,
+            url: req_url,
             status: local_var_status,
             content: local_var_content,
             entity: local_var_entity,
