@@ -22,7 +22,6 @@ pub enum ScrapResponse {
     },
 }
 
-#[derive(Debug)]
 pub enum ScrapMessage {
     Next {
         ship_clone: ship::MyShipCopy,
@@ -42,6 +41,77 @@ pub enum ScrapMessage {
 
         callback: tokio::sync::oneshot::Sender<Vec<(String, chrono::DateTime<chrono::Utc>)>>,
     },
+}
+
+impl std::fmt::Debug for ScrapMessage {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Next {
+                ship_clone,
+                callback,
+            } => f
+                .debug_struct("Next")
+                .field(
+                    "ship_clone",
+                    &format!(
+                        "{} @ {}/{}",
+                        ship_clone.symbol,
+                        ship_clone.nav.system_symbol,
+                        ship_clone.nav.waypoint_symbol
+                    ),
+                )
+                .field("callback", callback)
+                .finish(),
+            Self::Complete {
+                ship_clone,
+                waypoint_symbol,
+            } => f
+                .debug_struct("Complete")
+                .field(
+                    "ship_clone",
+                    &format!(
+                        "{} @ {}/{}",
+                        ship_clone.symbol,
+                        ship_clone.nav.system_symbol,
+                        ship_clone.nav.waypoint_symbol
+                    ),
+                )
+                .field("waypoint_symbol", waypoint_symbol)
+                .finish(),
+            Self::Fail {
+                ship_clone,
+                waypoint_symbol,
+            } => f
+                .debug_struct("Fail")
+                .field(
+                    "ship_clone",
+                    &format!(
+                        "{} @ {}/{}",
+                        ship_clone.symbol,
+                        ship_clone.nav.system_symbol,
+                        ship_clone.nav.waypoint_symbol
+                    ),
+                )
+                .field("waypoint_symbol", waypoint_symbol)
+                .finish(),
+            Self::GetAll {
+                ship_clone,
+                callback,
+            } => f
+                .debug_struct("GetAll")
+                .field(
+                    "ship_clone",
+                    &format!(
+                        "{} @ {}/{}",
+                        ship_clone.symbol,
+                        ship_clone.nav.system_symbol,
+                        ship_clone.nav.waypoint_symbol
+                    ),
+                )
+                .field("callback", callback)
+                .finish(),
+        }
+    }
 }
 
 impl std::fmt::Display for ScrapMessage {

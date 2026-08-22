@@ -1055,10 +1055,14 @@ impl QueryRoot {
 
         let mut connection_map: HashMap<(String, String), gql_models::GateConn> = HashMap::new();
 
+        let mut waypoints = HashSet::new();
+
         for connection in connections {
             let mut pair = [connection.from.clone(), connection.to.clone()];
             pair.sort(); // Ensure the pair is always in a consistent order
             let entry = connection_map.entry((pair[0].clone(), pair[1].clone()));
+            waypoints.insert(pair[0].clone());
+            waypoints.insert(pair[1].clone());
 
             let entry = entry.or_insert_with(|| gql_models::GateConn {
                 point_a_symbol: pair[0].clone(),
@@ -1077,12 +1081,11 @@ impl QueryRoot {
             }
         }
 
-        let gate_waypoints = database::Waypoint::get_all(
+        let gate_waypoints = database::Waypoint::get_by_symbols(
             &context.database_pool,
-            database::PaginatedQuery::unpaged(),
+            &waypoints.iter().map(|s| s.as_str()).collect::<Vec<_>>(),
         )
         .await?
-        .items
         .into_iter()
         .filter(|w| w.is_jump_gate())
         .map(|w| (w.symbol.clone(), w))

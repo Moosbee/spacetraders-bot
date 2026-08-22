@@ -16,7 +16,9 @@ use warp::{Filter, Rejection, http::Response as HttpResponse};
 use crate::{
     control_api::graphql::{
         QueryRoot,
-        data_loaders::{AllShipLoader, TradeRouteProposalLoader},
+        data_loaders::{
+            AllShipLoader, ShipsAssignmentLoader, ShipsPerSystemLoader, TradeRouteProposalLoader,
+        },
         mutations::MutationRoot,
     },
     manager::Manager,
@@ -83,6 +85,14 @@ impl ControlApiServer {
             ))
             .data(DataLoader::new(
                 AllShipLoader::new(context.clone()),
+                tokio::spawn,
+            ))
+            .data(DataLoader::new(
+                ShipsPerSystemLoader::new(context.clone()),
+                tokio::spawn,
+            ))
+            .data(DataLoader::new(
+                ShipsAssignmentLoader::new(context.clone()),
                 tokio::spawn,
             ))
             .data(DataLoader::new(

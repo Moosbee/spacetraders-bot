@@ -746,14 +746,15 @@ impl GQLFleet {
         page: Option<i64>,
         page_size: Option<i64>,
     ) -> Result<GQLShipAssignmentPage> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let erg = database::ShipAssignment::get_by_fleet_id(
-            database_pool,
-            self.fleet.id,
-            paginated_query(page, page_size),
-        )
-        .await?;
-        Ok(erg.into())
+        let loader = ctx
+            .data::<DataLoader<database::AssignmentsByFleetLoader>>()
+            .unwrap();
+        let assignments = loader
+            .load_one(self.fleet.id)
+            .await?
+            .unwrap_or_else(Vec::new);
+
+        Ok(database::paginate_items(paginated_query(page, page_size), assignments)?.into())
     }
 
     async fn all_ships<'ctx>(&self, ctx: &async_graphql::Context<'ctx>) -> Result<Vec<GQLShip>> {
@@ -1605,16 +1606,16 @@ impl GQLShipAssignment {
         Ok(into_gql(erg))
     }
 
-    async fn ship<'ctx>(&self, ctx: &async_graphql::Context<'ctx>) -> Result<Option<GQLShip>> {
+    async fn ship<'ctx>(&self, ctx: &async_graphql::Context<'ctx>) -> Result<Vec<GQLShip>> {
         let ship_loader = ctx
-            .data::<DataLoader<super::data_loaders::AllShipLoader>>()
+            .data::<DataLoader<super::data_loaders::ShipsAssignmentLoader>>()
             .unwrap();
-        let all_ships = ship_loader.load_one(()).await?.unwrap();
-        let ship = all_ships.into_values().find(|ship| {
-            ship.status.assignment_id == Some(self.ship_assignment.id)
-                || ship.status.temp_assignment_id == Some(self.ship_assignment.id)
-        });
-        Ok(ship.map(|f| f.into()))
+        let all_ships = ship_loader
+            .load_one(self.ship_assignment.id)
+            .await?
+            .unwrap();
+
+        Ok(into_gql_vec(all_ships))
     }
 
     async fn permanent_ship<'ctx>(
@@ -2485,14 +2486,19 @@ impl GQLSystem {
         page: Option<i64>,
         page_size: Option<i64>,
     ) -> Result<GQLWaypointPage> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let waypoints = database::Waypoint::get_by_system(
-            database_pool,
-            &self.system.symbol,
+        // needs dataloader
+        let loader = ctx
+            .data::<DataLoader<database::WaypointSystemLoader>>()
+            .unwrap();
+        let waypoints_unpaginated = loader
+            .load_one(self.system.symbol.clone())
+            .await?
+            .unwrap_or_else(|| Vec::new());
+        Ok(database::paginate_items(
             paginated_query(page, page_size),
-        )
-        .await?;
-        Ok(waypoints.into())
+            waypoints_unpaginated.into_iter().collect(),
+        )?
+        .into())
     }
 
     async fn market_transactions<'ctx>(
@@ -2656,13 +2662,16 @@ impl GQLSystem {
         page: Option<i64>,
         page_size: Option<i64>,
     ) -> Result<GQLFleetPage> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let fleets = database::Fleet::get_by_system(
-            database_pool,
-            &self.system.symbol,
-            paginated_query(page, page_size),
-        )
-        .await?;
+        // needs dataloader
+        let loader = ctx
+            .data::<DataLoader<database::FleetBySystemLoader>>()
+            .unwrap();
+        let fleets_unpaginated = loader
+            .load_one(self.system.symbol.clone())
+            .await?
+            .unwrap_or_else(|| Vec::new());
+        let fleets =
+            database::paginate_items(paginated_query(page, page_size), fleets_unpaginated)?;
         Ok(fleets.into())
     }
 
@@ -2793,14 +2802,13 @@ impl GQLSystem {
 
     async fn ships(&self, ctx: &async_graphql::Context<'_>) -> Result<Vec<GQLShip>> {
         let ship_loader = ctx
-            .data::<DataLoader<super::data_loaders::AllShipLoader>>()
+            .data::<DataLoader<super::data_loaders::ShipsPerSystemLoader>>()
             .unwrap();
-        let all_ships = ship_loader.load_one(()).await?.unwrap();
-        Ok(all_ships
-            .into_values()
-            .filter(|ship| ship.nav.system_symbol == self.system.symbol)
-            .map(|ship| ship.into())
-            .collect())
+        let all_ships = ship_loader
+            .load_one(self.system.symbol.clone())
+            .await?
+            .unwrap();
+        Ok(all_ships.into_iter().map(|ship| ship.into()).collect())
     }
 
     async fn trade_route_candidates<'ctx>(
