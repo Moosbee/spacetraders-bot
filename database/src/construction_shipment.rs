@@ -1,3 +1,7 @@
+use std::collections::HashMap;
+use std::sync::Arc;
+
+use async_graphql::dataloader::Loader;
 use space_traders_client::models;
 use tracing::instrument;
 
@@ -5,6 +9,61 @@ use super::{
     DatabaseConnectorAsync, DbPool, PaginatedQuery, PaginatedResult, ShipmentStatus,
     run_paginated_query,
 };
+
+pub struct ConstructionShipmentLoader(DbPool);
+
+impl ConstructionShipmentLoader {
+    pub fn new(database_pool: DbPool) -> Self {
+        Self(database_pool)
+    }
+
+    async fn get_by_ids(
+        database_pool: &DbPool,
+        ids: &[i64],
+    ) -> crate::Result<Vec<ConstructionShipment>> {
+        let erg = sqlx::query_as!(
+            ConstructionShipment,
+            r#"
+                SELECT
+                  id,
+                  material_id,
+                  construction_site_waypoint,
+                  ship_symbol,
+                  trade_symbol as "trade_symbol: models::TradeSymbol",
+                  units,
+                  purchase_waypoint,
+                  created_at,
+                  updated_at,
+                  status as "status: ShipmentStatus",
+                  reserved_fund
+                FROM construction_shipment
+                WHERE id = ANY($1)
+            "#,
+            &ids
+        )
+        .fetch_all(database_pool.get_cache_pool())
+        .await?;
+        Ok(erg)
+    }
+}
+
+impl Loader<i64> for ConstructionShipmentLoader {
+    type Value = ConstructionShipment;
+    type Error = Arc<crate::Error>;
+
+    #[instrument(level = "trace", skip(self, keys))]
+    async fn load(
+        &self,
+        keys: &[i64],
+    ) -> std::result::Result<HashMap<i64, Self::Value>, Self::Error> {
+        let ids: Vec<i64> = keys.to_vec();
+        let mut map = HashMap::new();
+        for shipment in Self::get_by_ids(&self.0, &ids).await? {
+            map.insert(shipment.id, shipment);
+        }
+        Ok(map)
+    }
+}
 
 #[derive(Debug, Clone, serde::Serialize, async_graphql::SimpleObject)]
 #[graphql(name = "DBConstructionShipment")]

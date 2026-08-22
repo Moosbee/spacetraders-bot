@@ -1,6 +1,60 @@
+use std::collections::HashMap;
+use std::sync::Arc;
+
+use async_graphql::dataloader::Loader;
 use tracing::instrument;
 
-use crate::{DatabaseConnectorAsync, PaginatedQuery, PaginatedResult, run_paginated_query};
+use crate::{DatabaseConnectorAsync, DbPool, PaginatedQuery, PaginatedResult, run_paginated_query};
+
+pub struct ReservedFundLoader(DbPool);
+
+impl ReservedFundLoader {
+    pub fn new(database_pool: DbPool) -> Self {
+        Self(database_pool)
+    }
+
+    async fn get_by_ids(
+        database_pool: &DbPool,
+        ids: &[i64],
+    ) -> crate::Result<Vec<ReservedFund>> {
+        let result = sqlx::query_as!(
+            ReservedFund,
+            r#"
+                SELECT
+                    id,
+                    amount,
+                    status as "status: FundStatus",
+                    actual_amount,
+                    created_at,
+                    updated_at
+                FROM reserved_funds
+                WHERE id = ANY($1)
+            "#,
+            &ids
+        )
+        .fetch_all(database_pool.get_cache_pool())
+        .await?;
+        Ok(result)
+    }
+}
+
+impl Loader<i64> for ReservedFundLoader {
+    type Value = ReservedFund;
+    type Error = Arc<crate::Error>;
+
+    #[instrument(level = "trace", skip(self, keys))]
+    async fn load(
+        &self,
+        keys: &[i64],
+    ) -> std::result::Result<HashMap<i64, Self::Value>, Self::Error> {
+        let ids: Vec<i64> = keys.to_vec();
+        let mut map = HashMap::new();
+        for reserved_fund in Self::get_by_ids(&self.0, &ids).await? {
+            map.insert(reserved_fund.id, reserved_fund);
+        }
+        Ok(map)
+    }
+}
 
 #[derive(Debug, Clone, serde::Serialize, async_graphql::SimpleObject)]
 #[graphql(name = "DBReservedFund")]

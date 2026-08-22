@@ -1,10 +1,66 @@
-use std::{collections::HashMap, str::FromStr};
+use std::{collections::HashMap, str::FromStr, sync::Arc};
 
+use async_graphql::dataloader::Loader;
 use chrono::{DateTime, Utc};
 use space_traders_client::models::{self};
 use tracing::instrument;
 
 use crate::{DatabaseConnectorAsync, DbPool, PaginatedQuery, PaginatedResult, run_paginated_query};
+
+pub struct SurveyLoader(DbPool);
+
+impl SurveyLoader {
+    pub fn new(database_pool: DbPool) -> Self {
+        Self(database_pool)
+    }
+
+    async fn get_by_signatures(
+        database_pool: &DbPool,
+        signatures: &[&str],
+    ) -> crate::Result<Vec<Survey>> {
+        let erg = sqlx::query_as!(
+            Survey,
+            r#"
+                SELECT
+                  signature,
+                  ship_info_before,
+                  ship_info_after,
+                  ship_symbol,
+                  waypoint_symbol,
+                  deposits as "deposits: Vec<models::TradeSymbol>",
+                  expiration,
+                  size as "size: models::SurveySize",
+                  exhausted_since,
+                  created_at,
+                  updated_at
+                FROM surveys
+                WHERE signature = ANY($1)
+            "#,
+            signatures as &[&str]
+        )
+        .fetch_all(database_pool.get_cache_pool())
+        .await?;
+        Ok(erg)
+    }
+}
+
+impl Loader<String> for SurveyLoader {
+    type Value = Survey;
+    type Error = Arc<crate::Error>;
+
+    #[instrument(level = "trace", skip(self, keys))]
+    async fn load(
+        &self,
+        keys: &[String],
+    ) -> std::result::Result<HashMap<String, Self::Value>, Self::Error> {
+        let signatures: Vec<&str> = keys.iter().map(String::as_str).collect();
+        let mut map = HashMap::new();
+        for survey in Self::get_by_signatures(&self.0, &signatures).await? {
+            map.insert(survey.signature.clone(), survey);
+        }
+        Ok(map)
+    }
+}
 
 #[derive(Debug, Clone, serde::Serialize, async_graphql::SimpleObject)]
 #[graphql(name = "DBSurvey")]

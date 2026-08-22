@@ -1,8 +1,65 @@
+use std::collections::HashMap;
+use std::sync::Arc;
+
+use async_graphql::dataloader::Loader;
 use chrono::{DateTime, Utc};
 use space_traders_client::models;
 use tracing::instrument;
 
 use super::{DatabaseConnectorAsync, DbPool, PaginatedQuery, PaginatedResult, run_paginated_query};
+
+pub struct ContractLoader(DbPool);
+
+impl ContractLoader {
+    pub fn new(database_pool: DbPool) -> Self {
+        Self(database_pool)
+    }
+
+    async fn get_by_ids(
+        database_pool: &DbPool,
+        ids: &[&str],
+    ) -> crate::Result<Vec<Contract>> {
+        let erg = sqlx::query_as!(
+            Contract,
+            r#"SELECT
+              id,
+              faction_symbol,
+              contract_type as "contract_type: models::contract::Type",
+              accepted,
+              fulfilled,
+              deadline_to_accept,
+              on_accepted,
+              on_fulfilled,
+              deadline,
+              updated_at,
+              created_at,
+              reserved_fund
+            FROM public.contract WHERE id = ANY($1)"#,
+            ids as &[&str]
+        )
+        .fetch_all(database_pool.get_cache_pool())
+        .await?;
+        Ok(erg)
+    }
+}
+
+impl Loader<String> for ContractLoader {
+    type Value = Contract;
+    type Error = Arc<crate::Error>;
+
+    #[instrument(level = "trace", skip(self, keys))]
+    async fn load(
+        &self,
+        keys: &[String],
+    ) -> std::result::Result<HashMap<String, Self::Value>, Self::Error> {
+        let ids: Vec<&str> = keys.iter().map(String::as_str).collect();
+        let mut map = HashMap::new();
+        for contract in Self::get_by_ids(&self.0, &ids).await? {
+            map.insert(contract.id.clone(), contract);
+        }
+        Ok(map)
+    }
+}
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, async_graphql::SimpleObject)]
 #[graphql(name = "DBContract")]

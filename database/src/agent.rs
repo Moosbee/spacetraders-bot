@@ -1,7 +1,64 @@
+use std::collections::HashMap;
+use std::sync::Arc;
+
+use async_graphql::dataloader::Loader;
 use itertools::Itertools;
 use tracing::instrument;
 
 use super::{DatabaseConnectorAsync, DbPool, PaginatedQuery, PaginatedResult, run_paginated_query};
+
+pub struct AgentLoader(DbPool);
+
+impl AgentLoader {
+    pub fn new(database_pool: DbPool) -> Self {
+        Self(database_pool)
+    }
+
+    async fn get_last_by_symbols(
+        database_pool: &DbPool,
+        symbols: &[&str],
+    ) -> crate::Result<Vec<Agent>> {
+        let erg = sqlx::query_as!(
+            Agent,
+            r#"
+            SELECT DISTINCT ON (symbol)
+                id,
+                symbol,
+                account_id,
+                headquarters,
+                credits,
+                starting_faction,
+                ship_count,
+                created_at
+            FROM agent
+            WHERE symbol = ANY($1)
+            ORDER BY symbol ASC, created_at DESC
+            "#,
+            symbols as &[&str]
+        )
+        .fetch_all(database_pool.get_cache_pool())
+        .await?;
+        Ok(erg)
+    }
+}
+
+impl Loader<String> for AgentLoader {
+    type Value = Agent;
+    type Error = Arc<crate::Error>;
+
+    #[instrument(level = "trace", skip(self, keys))]
+    async fn load(
+        &self,
+        keys: &[String],
+    ) -> std::result::Result<HashMap<String, Self::Value>, Self::Error> {
+        let symbols: Vec<&str> = keys.iter().map(String::as_str).collect();
+        let mut map = HashMap::new();
+        for agent in Self::get_last_by_symbols(&self.0, &symbols).await? {
+            map.insert(agent.symbol.clone(), agent);
+        }
+        Ok(map)
+    }
+}
 
 #[derive(Debug, Clone, serde::Serialize, async_graphql::SimpleObject)]
 #[graphql(name = "DBAgent")]

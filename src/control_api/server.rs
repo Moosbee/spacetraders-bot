@@ -89,6 +89,62 @@ impl ControlApiServer {
                 database::AssignmentsByFleetLoader::new(database_pool.clone()),
                 tokio::spawn,
             ))
+            .data(DataLoader::new(
+                database::SystemLoader::new(database_pool.clone()),
+                tokio::spawn,
+            ))
+            .data(DataLoader::new(
+                database::ContractLoader::new(database_pool.clone()),
+                tokio::spawn,
+            ))
+            .data(DataLoader::new(
+                database::TradeRouteLoader::new(database_pool.clone()),
+                tokio::spawn,
+            ))
+            .data(DataLoader::new(
+                database::ReservedFundLoader::new(database_pool.clone()),
+                tokio::spawn,
+            ))
+            .data(DataLoader::new(
+                database::ConstructionShipmentLoader::new(database_pool.clone()),
+                tokio::spawn,
+            ))
+            .data(DataLoader::new(
+                database::ConstructionMaterialLoader::new(database_pool.clone()),
+                tokio::spawn,
+            ))
+            .data(DataLoader::new(
+                database::ShipStateLoader::new(database_pool.clone()),
+                tokio::spawn,
+            ))
+            .data(DataLoader::new(
+                database::ShipyardTransactionLoader::new(database_pool.clone()),
+                tokio::spawn,
+            ))
+            .data(DataLoader::new(
+                database::ShipAssignmentLoader::new(database_pool.clone()),
+                tokio::spawn,
+            ))
+            .data(DataLoader::new(
+                database::SurveyLoader::new(database_pool.clone()),
+                tokio::spawn,
+            ))
+            .data(DataLoader::new(
+                database::AgentLoader::new(database_pool.clone()),
+                tokio::spawn,
+            ))
+            .data(DataLoader::new(
+                database::MarketTradeGoodLoader::new(database_pool.clone()),
+                tokio::spawn,
+            ))
+            .data(DataLoader::new(
+                database::MarketTradeGoodByWaypointAndSymbolLoader::new(database_pool.clone()),
+                tokio::spawn,
+            ))
+            .data(DataLoader::new(
+                database::ShipyardLoader::new(database_pool.clone()),
+                tokio::spawn,
+            ))
             .data(
                 DataLoader::new(TradeRouteProposalLoader::new(context.clone()), tokio::spawn)
                     .max_batch_size(100000),

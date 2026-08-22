@@ -1,5 +1,7 @@
 use std::collections::HashMap;
+use std::sync::Arc;
 
+use async_graphql::dataloader::Loader;
 use chrono::{DateTime, Utc};
 use space_traders_client::models;
 use tracing::instrument;
@@ -8,6 +10,89 @@ use super::{DatabaseConnectorAsync, DbPool, PaginatedQuery, PaginatedResult, run
 
 // #[derive(sqlx::FromRow)]
 type CargoInv = HashMap<models::TradeSymbol, i32>;
+
+pub struct ShipStateLoader(DbPool);
+
+impl ShipStateLoader {
+    pub fn new(database_pool: DbPool) -> Self {
+        Self(database_pool)
+    }
+
+    async fn get_by_ids(database_pool: &DbPool, ids: &[i64]) -> crate::Result<Vec<ShipState>> {
+        let erg = sqlx::query_as!(
+            ShipState,
+            r#"
+                SELECT
+                  id,
+                  symbol,
+                  display_name,
+                  engine_speed,
+                  engine_condition,
+                  engine_integrity,
+                  frame_condition,
+                  frame_integrity,
+                  reactor_condition,
+                  reactor_integrity,
+                  fuel_capacity,
+                  fuel_current,
+                  cargo_capacity,
+                  cargo_units,
+                  cargo_inventory as "cargo_inventory: sqlx::types::Json<CargoInv>",
+                  mounts as "mounts: Vec<models::ship_mount::Symbol>",
+                  modules as "modules: Vec<models::ship_module::Symbol>",
+                  reactor_symbol as "reactor_symbol: models::ship_reactor::Symbol",
+                  frame_symbol as "frame_symbol: models::ship_frame::Symbol",
+                  engine_symbol as "engine_symbol: models::ship_engine::Symbol",
+                  cooldown_expiration,
+                  cooldown,
+                  flight_mode,
+                  nav_status,
+                  system_symbol,
+                  waypoint_symbol,
+                  route_arrival,
+                  route_departure,
+                  route_destination_symbol,
+                  route_destination_system,
+                  route_origin_symbol,
+                  route_origin_system,
+                  auto_pilot_arrival,
+                  auto_pilot_departure_time,
+                  auto_pilot_destination_symbol,
+                  auto_pilot_destination_system_symbol,
+                  auto_pilot_origin_symbol,
+                  auto_pilot_origin_system_symbol,
+                  auto_pilot_distance,
+                  auto_pilot_fuel_cost,
+                  auto_pilot_travel_time,
+                  created_at
+                FROM ship_state
+                WHERE id = ANY($1)
+            "#,
+            &ids
+        )
+        .fetch_all(database_pool.get_cache_pool())
+        .await?;
+        Ok(erg)
+    }
+}
+
+impl Loader<i64> for ShipStateLoader {
+    type Value = ShipState;
+    type Error = Arc<crate::Error>;
+
+    #[instrument(level = "trace", skip(self, keys))]
+    async fn load(
+        &self,
+        keys: &[i64],
+    ) -> std::result::Result<HashMap<i64, Self::Value>, Self::Error> {
+        let ids: Vec<i64> = keys.to_vec();
+        let mut map = HashMap::new();
+        for ship_state in Self::get_by_ids(&self.0, &ids).await? {
+            map.insert(ship_state.id, ship_state);
+        }
+        Ok(map)
+    }
+}
 
 #[derive(Debug, Clone, async_graphql::SimpleObject)]
 #[graphql(name = "DBShipState")]

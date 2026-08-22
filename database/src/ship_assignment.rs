@@ -5,6 +5,62 @@ use tracing::instrument;
 
 use crate::{DatabaseConnectorAsync, DbPool, PaginatedQuery, PaginatedResult, run_paginated_query};
 
+pub struct ShipAssignmentLoader(DbPool);
+
+impl ShipAssignmentLoader {
+    pub fn new(database_pool: DbPool) -> Self {
+        Self(database_pool)
+    }
+
+    async fn get_by_ids(
+        database_pool: &DbPool,
+        ids: &[i64],
+    ) -> crate::Result<Vec<ShipAssignment>> {
+        let erg = sqlx::query_as!(
+            ShipAssignment,
+            r#"
+                SELECT
+                  id,
+                  fleet_id,
+                  priority,
+                  max_purchase_price,
+                  credits_threshold,
+                  disabled,
+                  range_min,
+                  cargo_min,
+                  survey,
+                  extractor,
+                  siphon,
+                  warp_drive
+                FROM ship_assignment
+                WHERE id = ANY($1)
+            "#,
+            &ids
+        )
+        .fetch_all(database_pool.get_cache_pool())
+        .await?;
+        Ok(erg)
+    }
+}
+
+impl Loader<i64> for ShipAssignmentLoader {
+    type Value = ShipAssignment;
+    type Error = Arc<crate::Error>;
+
+    #[instrument(level = "trace", skip(self, keys))]
+    async fn load(
+        &self,
+        keys: &[i64],
+    ) -> std::result::Result<HashMap<i64, Self::Value>, Self::Error> {
+        let ids: Vec<i64> = keys.to_vec();
+        let mut map = HashMap::new();
+        for assignment in Self::get_by_ids(&self.0, &ids).await? {
+            map.insert(assignment.id, assignment);
+        }
+        Ok(map)
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, async_graphql::SimpleObject)]
 #[graphql(name = "DBShipAssignment")]
 pub struct ShipAssignment {

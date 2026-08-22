@@ -1,3 +1,7 @@
+use std::collections::HashMap;
+use std::sync::Arc;
+
+use async_graphql::dataloader::Loader;
 use space_traders_client::models;
 use tracing::instrument;
 
@@ -5,6 +9,61 @@ use super::{
     DatabaseConnectorAsync, DbPool, PaginatedQuery, PaginatedResult, ShipmentStatus,
     run_paginated_query,
 };
+
+pub struct TradeRouteLoader(DbPool);
+
+impl TradeRouteLoader {
+    pub fn new(database_pool: DbPool) -> Self {
+        Self(database_pool)
+    }
+
+    async fn get_by_ids(database_pool: &DbPool, ids: &[i32]) -> crate::Result<Vec<TradeRoute>> {
+        let erg = sqlx::query_as!(
+            TradeRoute,
+            r#"
+                SELECT
+                  id,
+                  symbol as "symbol: models::TradeSymbol",
+                  ship_symbol,
+                  purchase_waypoint,
+                  sell_waypoint,
+                  status as "status: ShipmentStatus",
+                  trade_volume,
+                  purchase_trade_good_id,
+                  sell_trade_good_id,
+                  estimated_fuel,
+                  trade_mode as "trade_mode: crate::TradeMode",
+                  reserved_fund,
+                  fleet_id,
+                  assignment_id,
+                  created_at
+                 FROM trade_route WHERE id = ANY($1)
+            "#,
+            &ids
+        )
+        .fetch_all(database_pool.get_cache_pool())
+        .await?;
+        Ok(erg)
+    }
+}
+
+impl Loader<i32> for TradeRouteLoader {
+    type Value = TradeRoute;
+    type Error = Arc<crate::Error>;
+
+    #[instrument(level = "trace", skip(self, keys))]
+    async fn load(
+        &self,
+        keys: &[i32],
+    ) -> std::result::Result<HashMap<i32, Self::Value>, Self::Error> {
+        let ids: Vec<i32> = keys.to_vec();
+        let mut map = HashMap::new();
+        for trade_route in Self::get_by_ids(&self.0, &ids).await? {
+            map.insert(trade_route.id, trade_route);
+        }
+        Ok(map)
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, async_graphql::SimpleObject)]
 #[graphql(name = "DBTradeRoute")]

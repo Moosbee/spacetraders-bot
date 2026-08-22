@@ -1,7 +1,62 @@
+use std::collections::HashMap;
+use std::sync::Arc;
+
+use async_graphql::dataloader::Loader;
 use space_traders_client::models;
 use tracing::instrument;
 
 use super::{DatabaseConnectorAsync, DbPool, PaginatedQuery, PaginatedResult, run_paginated_query};
+
+pub struct SystemLoader(DbPool);
+
+impl SystemLoader {
+    pub fn new(database_pool: DbPool) -> Self {
+        Self(database_pool)
+    }
+
+    async fn get_by_symbols(
+        database_pool: &DbPool,
+        symbols: &[&str],
+    ) -> crate::Result<Vec<System>> {
+        let erg = sqlx::query_as!(
+            System,
+            r#"
+            SELECT
+                symbol,
+                constellation,
+                population_disabled,
+                sector_symbol,
+                system_type as "system_type: models::SystemType",
+                x,
+                y
+            FROM system
+            WHERE symbol = ANY($1)
+            "#,
+            symbols as &[&str]
+        )
+        .fetch_all(database_pool.get_cache_pool())
+        .await?;
+        Ok(erg)
+    }
+}
+
+impl Loader<String> for SystemLoader {
+    type Value = System;
+    type Error = Arc<crate::Error>;
+
+    #[instrument(level = "trace", skip(self, keys))]
+    async fn load(
+        &self,
+        keys: &[String],
+    ) -> std::result::Result<HashMap<String, Self::Value>, Self::Error> {
+        let symbols: Vec<&str> = keys.iter().map(String::as_str).collect();
+        let mut map = HashMap::new();
+        for system in Self::get_by_symbols(&self.0, &symbols).await? {
+            map.insert(system.symbol.clone(), system);
+        }
+        Ok(map)
+    }
+}
 
 #[derive(Clone, Debug, PartialEq, serde::Serialize, async_graphql::SimpleObject)]
 #[graphql(name = "DBSystem")]

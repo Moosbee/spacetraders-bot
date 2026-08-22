@@ -1,7 +1,132 @@
+use std::collections::HashMap;
+use std::sync::Arc;
+
+use async_graphql::dataloader::Loader;
 use space_traders_client::models;
 use tracing::instrument;
 
 use super::{DatabaseConnectorAsync, DbPool, PaginatedQuery, PaginatedResult, run_paginated_query};
+
+pub struct MarketTradeGoodLoader(DbPool);
+
+impl MarketTradeGoodLoader {
+    pub fn new(database_pool: DbPool) -> Self {
+        Self(database_pool)
+    }
+
+    async fn get_by_ids(
+        database_pool: &DbPool,
+        ids: &[i64],
+    ) -> crate::Result<Vec<MarketTradeGood>> {
+        let items = sqlx::query_as!(
+            MarketTradeGood,
+            r#"
+            SELECT
+                id,
+                created_at,
+                waypoint_symbol,
+                symbol as "symbol: models::TradeSymbol",
+                "type" as "type: models::market_trade_good::Type",
+                trade_volume,
+                supply as "supply: models::SupplyLevel",
+                activity as "activity: models::ActivityLevel",
+                purchase_price,
+                sell_price
+            FROM public.market_trade_good
+            WHERE id = ANY($1)
+            "#,
+            &ids
+        )
+        .fetch_all(database_pool.get_cache_pool())
+        .await?;
+        Ok(items)
+    }
+}
+
+impl Loader<i64> for MarketTradeGoodLoader {
+    type Value = MarketTradeGood;
+    type Error = Arc<crate::Error>;
+
+    #[instrument(level = "trace", skip(self, keys))]
+    async fn load(
+        &self,
+        keys: &[i64],
+    ) -> std::result::Result<HashMap<i64, Self::Value>, Self::Error> {
+        let ids: Vec<i64> = keys.to_vec();
+        let mut map = HashMap::new();
+        for good in Self::get_by_ids(&self.0, &ids).await? {
+            map.insert(good.id, good);
+        }
+        Ok(map)
+    }
+}
+
+pub type MarketTradeGoodKey = (String, models::TradeSymbol);
+
+pub struct MarketTradeGoodByWaypointAndSymbolLoader(DbPool);
+
+impl MarketTradeGoodByWaypointAndSymbolLoader {
+    pub fn new(database_pool: DbPool) -> Self {
+        Self(database_pool)
+    }
+
+    async fn get_last_by_waypoint_and_trade_symbols(
+        database_pool: &DbPool,
+        waypoints: &[String],
+        trade_symbols: &[String],
+    ) -> crate::Result<Vec<MarketTradeGood>> {
+        let items = sqlx::query_as!(
+            MarketTradeGood,
+            r#"
+            SELECT DISTINCT ON (waypoint_symbol, symbol)
+                id,
+                created_at,
+                waypoint_symbol,
+                symbol as "symbol: models::TradeSymbol",
+                "type" as "type: models::market_trade_good::Type",
+                trade_volume,
+                supply as "supply: models::SupplyLevel",
+                activity as "activity: models::ActivityLevel",
+                purchase_price,
+                sell_price
+            FROM public.market_trade_good
+            WHERE waypoint_symbol = ANY($1) AND symbol::text = ANY($2)
+            ORDER BY waypoint_symbol, symbol, created_at DESC
+            "#,
+            waypoints,
+            trade_symbols
+        )
+        .fetch_all(database_pool.get_cache_pool())
+        .await?;
+        Ok(items)
+    }
+}
+
+impl Loader<MarketTradeGoodKey> for MarketTradeGoodByWaypointAndSymbolLoader {
+    type Value = MarketTradeGood;
+    type Error = Arc<crate::Error>;
+
+    #[instrument(level = "trace", skip(self, keys))]
+    async fn load(
+        &self,
+        keys: &[MarketTradeGoodKey],
+    ) -> std::result::Result<HashMap<MarketTradeGoodKey, Self::Value>, Self::Error> {
+        let waypoints: Vec<String> = keys.iter().map(|k| k.0.clone()).collect();
+        let trade_symbols: Vec<String> = keys.iter().map(|k| k.1.to_string()).collect();
+
+        let mut map = HashMap::new();
+        for good in Self::get_last_by_waypoint_and_trade_symbols(
+            &self.0,
+            &waypoints,
+            &trade_symbols,
+        )
+        .await?
+        {
+            map.insert((good.waypoint_symbol.clone(), good.symbol), good);
+        }
+        Ok(map)
+    }
+}
 
 #[derive(
     Debug, Clone, sqlx::FromRow, PartialEq, Eq, serde::Serialize, async_graphql::SimpleObject, Hash,

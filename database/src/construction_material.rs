@@ -1,8 +1,63 @@
+use std::collections::HashMap;
+use std::sync::Arc;
+
+use async_graphql::dataloader::Loader;
 use chrono::{DateTime, Utc};
 use space_traders_client::models;
 use tracing::instrument;
 
 use super::{DatabaseConnectorAsync, DbPool, PaginatedQuery, PaginatedResult, run_paginated_query};
+
+pub struct ConstructionMaterialLoader(DbPool);
+
+impl ConstructionMaterialLoader {
+    pub fn new(database_pool: DbPool) -> Self {
+        Self(database_pool)
+    }
+
+    async fn get_by_ids(
+        database_pool: &DbPool,
+        ids: &[i64],
+    ) -> crate::Result<Vec<ConstructionMaterial>> {
+        let erg = sqlx::query_as!(
+            ConstructionMaterial,
+            r#"
+                SELECT
+                  id,
+                  waypoint_symbol,
+                  trade_symbol as "trade_symbol: models::TradeSymbol",
+                  required,
+                  fulfilled,
+                  created_at,
+                  updated_at
+                FROM construction_material
+                WHERE id = ANY($1)
+            "#,
+            &ids
+        )
+        .fetch_all(database_pool.get_cache_pool())
+        .await?;
+        Ok(erg)
+    }
+}
+
+impl Loader<i64> for ConstructionMaterialLoader {
+    type Value = ConstructionMaterial;
+    type Error = Arc<crate::Error>;
+
+    #[instrument(level = "trace", skip(self, keys))]
+    async fn load(
+        &self,
+        keys: &[i64],
+    ) -> std::result::Result<HashMap<i64, Self::Value>, Self::Error> {
+        let ids: Vec<i64> = keys.to_vec();
+        let mut map = HashMap::new();
+        for material in Self::get_by_ids(&self.0, &ids).await? {
+            map.insert(material.id, material);
+        }
+        Ok(map)
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, async_graphql::SimpleObject)]
 #[graphql(name = "DBConstructionMaterial")]

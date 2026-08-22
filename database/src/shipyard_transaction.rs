@@ -1,10 +1,63 @@
+use std::collections::HashMap;
 use std::str::FromStr;
+use std::sync::Arc;
 
+use async_graphql::dataloader::Loader;
 use chrono::{DateTime, Utc};
 use space_traders_client::models;
 use tracing::instrument;
 
-use super::{DatabaseConnectorAsync, PaginatedQuery, PaginatedResult, run_paginated_query};
+use super::{DatabaseConnectorAsync, DbPool, PaginatedQuery, PaginatedResult, run_paginated_query};
+
+pub struct ShipyardTransactionLoader(DbPool);
+
+impl ShipyardTransactionLoader {
+    pub fn new(database_pool: DbPool) -> Self {
+        Self(database_pool)
+    }
+
+    async fn get_by_ids(
+        database_pool: &DbPool,
+        ids: &[i64],
+    ) -> crate::Result<Vec<ShipyardTransaction>> {
+        let erg = sqlx::query_as!(
+            ShipyardTransaction,
+            r#"
+            SELECT
+                id,
+                waypoint_symbol,
+                ship_type as "ship_type: models::ShipType",
+                price,
+                agent_symbol,
+                "timestamp"
+            FROM shipyard_transaction
+            WHERE id = ANY($1)
+            "#,
+            &ids
+        )
+        .fetch_all(database_pool.get_cache_pool())
+        .await?;
+        Ok(erg)
+    }
+}
+
+impl Loader<i64> for ShipyardTransactionLoader {
+    type Value = ShipyardTransaction;
+    type Error = Arc<crate::Error>;
+
+    #[instrument(level = "trace", skip(self, keys))]
+    async fn load(
+        &self,
+        keys: &[i64],
+    ) -> std::result::Result<HashMap<i64, Self::Value>, Self::Error> {
+        let ids: Vec<i64> = keys.to_vec();
+        let mut map = HashMap::new();
+        for transaction in Self::get_by_ids(&self.0, &ids).await? {
+            map.insert(transaction.id, transaction);
+        }
+        Ok(map)
+    }
+}
 
 #[derive(Clone, Debug, PartialEq, serde::Serialize, async_graphql::SimpleObject)]
 #[graphql(name = "DBShipyardTransaction")]

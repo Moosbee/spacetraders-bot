@@ -1,7 +1,57 @@
-use super::{DatabaseConnectorAsync, PaginatedQuery, PaginatedResult, run_paginated_query};
+use std::collections::HashMap;
+use std::sync::Arc;
+
+use async_graphql::dataloader::Loader;
 use chrono::{DateTime, Utc};
 use space_traders_client::models;
 use tracing::instrument;
+
+use super::{DatabaseConnectorAsync, DbPool, PaginatedQuery, PaginatedResult, run_paginated_query};
+
+pub struct ShipyardLoader(DbPool);
+
+impl ShipyardLoader {
+    pub fn new(database_pool: DbPool) -> Self {
+        Self(database_pool)
+    }
+
+    async fn get_by_ids(database_pool: &DbPool, ids: &[i64]) -> crate::Result<Vec<Shipyard>> {
+        let erg = sqlx::query_as!(
+            Shipyard,
+            r#"
+            SELECT
+                id,
+                waypoint_symbol,
+                modifications_fee,
+                created_at
+            FROM shipyard
+            WHERE id = ANY($1)
+            "#,
+            &ids
+        )
+        .fetch_all(database_pool.get_cache_pool())
+        .await?;
+        Ok(erg)
+    }
+}
+
+impl Loader<i64> for ShipyardLoader {
+    type Value = Shipyard;
+    type Error = Arc<crate::Error>;
+
+    #[instrument(level = "trace", skip(self, keys))]
+    async fn load(
+        &self,
+        keys: &[i64],
+    ) -> std::result::Result<HashMap<i64, Self::Value>, Self::Error> {
+        let ids: Vec<i64> = keys.to_vec();
+        let mut map = HashMap::new();
+        for shipyard in Self::get_by_ids(&self.0, &ids).await? {
+            map.insert(shipyard.id, shipyard);
+        }
+        Ok(map)
+    }
+}
 
 #[derive(Clone, Debug, PartialEq, serde::Serialize, async_graphql::SimpleObject)]
 #[graphql(name = "DBShipyard")]

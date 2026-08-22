@@ -1,7 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
 use async_graphql::dataloader::DataLoader;
-use database::DatabaseConnectorAsync;
 use ship::status::ShipStatus;
 use space_traders_client::models;
 
@@ -101,9 +100,9 @@ impl GQLAgent {
         &self,
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Option<GQLSystem>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
         let system = utils::get_system_symbol(&self.agent.headquarters);
-        let erg = database::System::get_by_id(database_pool, &system).await?;
+        let data_loader = ctx.data::<DataLoader<database::SystemLoader>>().unwrap();
+        let erg = data_loader.load_one(system).await?;
         Ok(into_gql(erg))
     }
 }
@@ -283,12 +282,12 @@ impl GQLConstructionShipment {
         &self,
         ctx: &async_graphql::Context<'_>,
     ) -> Result<Option<GQLConstructionMaterial>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let material = database::ConstructionMaterial::get_by_id(
-            database_pool,
-            &self.construction_shipment.material_id,
-        )
-        .await?;
+        let data_loader = ctx
+            .data::<DataLoader<database::ConstructionMaterialLoader>>()
+            .unwrap();
+        let material = data_loader
+            .load_one(self.construction_shipment.material_id)
+            .await?;
         Ok(material.map(|f| f.into()))
     }
 
@@ -304,9 +303,11 @@ impl GQLConstructionShipment {
         &self,
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Option<GQLReservedFund>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
+        let data_loader = ctx
+            .data::<DataLoader<database::ReservedFundLoader>>()
+            .unwrap();
         let erg = if let Some(reserved_fund) = self.construction_shipment.reserved_fund {
-            database::ReservedFund::get_by_id(database_pool, &reserved_fund).await?
+            data_loader.load_one(reserved_fund).await?
         } else {
             None
         };
@@ -333,13 +334,15 @@ impl GQLConstructionShipment {
         &self,
         ctx: &async_graphql::Context<'_>,
     ) -> Result<Option<GQLMarketTradeGood>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let market_trade_good = database::MarketTradeGood::get_by_last_waypoint_and_trade_symbol(
-            database_pool,
-            &self.construction_shipment.purchase_waypoint,
-            &self.construction_shipment.trade_symbol,
-        )
-        .await?;
+        let data_loader = ctx
+            .data::<DataLoader<database::MarketTradeGoodByWaypointAndSymbolLoader>>()
+            .unwrap();
+        let market_trade_good = data_loader
+            .load_one((
+                self.construction_shipment.purchase_waypoint.clone(),
+                self.construction_shipment.trade_symbol,
+            ))
+            .await?;
         Ok(into_gql(market_trade_good))
     }
 
@@ -437,9 +440,11 @@ impl GQLContract {
         &self,
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Option<GQLReservedFund>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
+        let data_loader = ctx
+            .data::<DataLoader<database::ReservedFundLoader>>()
+            .unwrap();
         let erg = if let Some(reserved_fund) = self.contract.reserved_fund {
-            database::ReservedFund::get_by_id(database_pool, &reserved_fund).await?
+            data_loader.load_one(reserved_fund).await?
         } else {
             None
         };
@@ -490,8 +495,9 @@ impl From<database::ContractDelivery> for GQLContractDelivery {
 #[async_graphql::ComplexObject]
 impl GQLContractDelivery {
     async fn contract(&self, ctx: &async_graphql::Context<'_>) -> Result<Option<GQLContract>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let erg = database::Contract::get_by_id(database_pool, &self.contract_delivery.contract_id)
+        let data_loader = ctx.data::<DataLoader<database::ContractLoader>>().unwrap();
+        let erg = data_loader
+            .load_one(self.contract_delivery.contract_id.clone())
             .await?;
         Ok(into_gql(erg))
     }
@@ -560,8 +566,9 @@ impl GQLContractShipment {
         &self,
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Option<GQLContract>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let erg = database::Contract::get_by_id(database_pool, &self.contract_shipment.contract_id)
+        let data_loader = ctx.data::<DataLoader<database::ContractLoader>>().unwrap();
+        let erg = data_loader
+            .load_one(self.contract_shipment.contract_id.clone())
             .await?;
         Ok(into_gql(erg))
     }
@@ -600,13 +607,15 @@ impl GQLContractShipment {
         &self,
         ctx: &async_graphql::Context<'_>,
     ) -> Result<Option<GQLMarketTradeGood>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let market_trade_good = database::MarketTradeGood::get_by_last_waypoint_and_trade_symbol(
-            database_pool,
-            &self.contract_shipment.purchase_symbol,
-            &self.contract_shipment.trade_symbol,
-        )
-        .await?;
+        let data_loader = ctx
+            .data::<DataLoader<database::MarketTradeGoodByWaypointAndSymbolLoader>>()
+            .unwrap();
+        let market_trade_good = data_loader
+            .load_one((
+                self.contract_shipment.purchase_symbol.clone(),
+                self.contract_shipment.trade_symbol,
+            ))
+            .await?;
         Ok(into_gql(market_trade_good))
     }
     async fn trade_symbol_info(&self) -> TradeSymbolInfo {
@@ -672,11 +681,10 @@ impl GQLExtraction {
     }
 
     async fn survey<'ctx>(&self, ctx: &async_graphql::Context<'ctx>) -> Result<Option<GQLSurvey>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
+        let data_loader = ctx.data::<DataLoader<database::SurveyLoader>>().unwrap();
         if let Some(survey) = &self.extraction.survey {
-            let erg = database::Survey::get_by_signature(database_pool, survey).await?;
-            // Must convert before wrapping in Option
-            Ok(Some(GQLSurvey::from(erg)))
+            let erg = data_loader.load_one(survey.clone()).await?;
+            Ok(erg.map(GQLSurvey::from))
         } else {
             Ok(None)
         }
@@ -725,8 +733,10 @@ impl GQLFleet {
     }
 
     async fn system<'ctx>(&self, ctx: &async_graphql::Context<'ctx>) -> Result<Option<GQLSystem>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let erg = database::System::get_by_id(database_pool, &self.fleet.system_symbol).await?;
+        let data_loader = ctx.data::<DataLoader<database::SystemLoader>>().unwrap();
+        let erg = data_loader
+            .load_one(self.fleet.system_symbol.clone())
+            .await?;
         Ok(into_gql(erg))
     }
 
@@ -858,9 +868,9 @@ impl GQLJumpGateConnection {
         &self,
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Option<GQLSystem>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
         let system = utils::get_system_symbol(&self.jump_gate_connection.from);
-        let erg = database::System::get_by_id(database_pool, &system).await?;
+        let data_loader = ctx.data::<DataLoader<database::SystemLoader>>().unwrap();
+        let erg = data_loader.load_one(system).await?;
         Ok(into_gql(erg))
     }
 
@@ -868,9 +878,9 @@ impl GQLJumpGateConnection {
         &self,
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Option<GQLSystem>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
         let system = utils::get_system_symbol(&self.jump_gate_connection.to);
-        let erg = database::System::get_by_id(database_pool, &system).await?;
+        let data_loader = ctx.data::<DataLoader<database::SystemLoader>>().unwrap();
+        let erg = data_loader.load_one(system).await?;
         Ok(into_gql(erg))
     }
 }
@@ -976,13 +986,15 @@ impl GQLMarketTrade {
         &self,
         ctx: &async_graphql::Context<'_>,
     ) -> Result<Option<GQLMarketTradeGood>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let erg = database::MarketTradeGood::get_by_last_waypoint_and_trade_symbol(
-            database_pool,
-            &self.market_trade.waypoint_symbol,
-            &self.market_trade.symbol,
-        )
-        .await?;
+        let data_loader = ctx
+            .data::<DataLoader<database::MarketTradeGoodByWaypointAndSymbolLoader>>()
+            .unwrap();
+        let erg = data_loader
+            .load_one((
+                self.market_trade.waypoint_symbol.clone(),
+                self.market_trade.symbol,
+            ))
+            .await?;
         Ok(into_gql(erg))
     }
 
@@ -1186,9 +1198,9 @@ impl GQLMarketTransaction {
     }
 
     pub async fn contract(&self, ctx: &async_graphql::Context<'_>) -> Result<Option<GQLContract>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
+        let data_loader = ctx.data::<DataLoader<database::ContractLoader>>().unwrap();
         let contract = if let Some(contract) = self.market_transaction.contract.clone() {
-            database::Contract::get_by_id(database_pool, &contract).await?
+            data_loader.load_one(contract).await?
         } else {
             None
         };
@@ -1199,9 +1211,11 @@ impl GQLMarketTransaction {
         &self,
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Option<GQLTradeRoute>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
+        let data_loader = ctx
+            .data::<DataLoader<database::TradeRouteLoader>>()
+            .unwrap();
         let trade_route = if let Some(trade_route) = self.market_transaction.trade_route {
-            database::TradeRoute::get_by_id(database_pool, &trade_route).await?
+            data_loader.load_one(trade_route).await?
         } else {
             None
         };
@@ -1225,14 +1239,15 @@ impl GQLMarketTransaction {
         &self,
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Option<GQLConstructionShipment>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let construction_shipment = if let Some(construction_shipment) =
-            self.market_transaction.construction
-        {
-            database::ConstructionShipment::get_by_id(database_pool, &construction_shipment).await?
-        } else {
-            None
-        };
+        let data_loader = ctx
+            .data::<DataLoader<database::ConstructionShipmentLoader>>()
+            .unwrap();
+        let construction_shipment =
+            if let Some(construction_shipment) = self.market_transaction.construction {
+                data_loader.load_one(construction_shipment).await?
+            } else {
+                None
+            };
         Ok(into_gql(construction_shipment))
     }
 
@@ -1240,13 +1255,15 @@ impl GQLMarketTransaction {
         &self,
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Option<GQLMarketTradeGood>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let trade_good = database::MarketTradeGood::get_by_last_waypoint_and_trade_symbol(
-            database_pool,
-            &self.market_transaction.waypoint_symbol,
-            &self.market_transaction.trade_symbol,
-        )
-        .await?;
+        let data_loader = ctx
+            .data::<DataLoader<database::MarketTradeGoodByWaypointAndSymbolLoader>>()
+            .unwrap();
+        let trade_good = data_loader
+            .load_one((
+                self.market_transaction.waypoint_symbol.clone(),
+                self.market_transaction.trade_symbol,
+            ))
+            .await?;
         Ok(into_gql(trade_good))
     }
 
@@ -1486,9 +1503,9 @@ impl GQLRoute {
         &self,
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Option<GQLShipState>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let ship_state = if let Some(ship_state) = &self.route.ship_info_after {
-            database::ShipState::get_by_id(database_pool, ship_state).await?
+        let data_loader = ctx.data::<DataLoader<database::ShipStateLoader>>().unwrap();
+        let ship_state = if let Some(ship_state) = self.route.ship_info_after {
+            data_loader.load_one(ship_state).await?
         } else {
             None
         };
@@ -1499,9 +1516,9 @@ impl GQLRoute {
         &self,
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Option<GQLShipState>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let ship_state = if let Some(ship_state) = &self.route.ship_info_before {
-            database::ShipState::get_by_id(database_pool, ship_state).await?
+        let data_loader = ctx.data::<DataLoader<database::ShipStateLoader>>().unwrap();
+        let ship_state = if let Some(ship_state) = self.route.ship_info_before {
+            data_loader.load_one(ship_state).await?
         } else {
             None
         };
@@ -1674,9 +1691,11 @@ impl GQLShipInfo {
         &self,
         ctx: &async_graphql::Context<'_>,
     ) -> Result<Option<GQLShipAssignment>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
+        let data_loader = ctx
+            .data::<DataLoader<database::ShipAssignmentLoader>>()
+            .unwrap();
         let erg = if let Some(assignment_id) = self.ship_info.assignment_id {
-            database::ShipAssignment::get_by_id(database_pool, assignment_id).await?
+            data_loader.load_one(assignment_id).await?
         } else {
             None
         };
@@ -1687,9 +1706,11 @@ impl GQLShipInfo {
         &self,
         ctx: &async_graphql::Context<'_>,
     ) -> Result<Option<GQLShipAssignment>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
+        let data_loader = ctx
+            .data::<DataLoader<database::ShipAssignmentLoader>>()
+            .unwrap();
         let erg = if let Some(assignment_id) = self.ship_info.temp_assignment_id {
-            database::ShipAssignment::get_by_id(database_pool, assignment_id).await?
+            data_loader.load_one(assignment_id).await?
         } else {
             None
         };
@@ -1700,9 +1721,11 @@ impl GQLShipInfo {
         &self,
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Option<GQLShipyardTransaction>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
+        let data_loader = ctx
+            .data::<DataLoader<database::ShipyardTransactionLoader>>()
+            .unwrap();
         let erg = if let Some(transaction_id) = self.ship_info.purchase_id {
-            Some(database::ShipyardTransaction::get_by_id(database_pool, transaction_id).await?)
+            data_loader.load_one(transaction_id).await?
         } else {
             None
         };
@@ -1753,9 +1776,8 @@ impl GQLShipJump {
         &self,
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Option<GQLShipState>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let ship_state =
-            database::ShipState::get_by_id(database_pool, &self.ship_jump.ship_after).await?;
+        let data_loader = ctx.data::<DataLoader<database::ShipStateLoader>>().unwrap();
+        let ship_state = data_loader.load_one(self.ship_jump.ship_after).await?;
         Ok(into_gql(ship_state))
     }
 
@@ -1763,9 +1785,8 @@ impl GQLShipJump {
         &self,
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Option<GQLShipState>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let ship_state =
-            database::ShipState::get_by_id(database_pool, &self.ship_jump.ship_before).await?;
+        let data_loader = ctx.data::<DataLoader<database::ShipStateLoader>>().unwrap();
+        let ship_state = data_loader.load_one(self.ship_jump.ship_before).await?;
         Ok(into_gql(ship_state))
     }
 }
@@ -1865,9 +1886,10 @@ impl GQLShipState {
         &self,
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Option<GQLSystem>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let system =
-            database::System::get_by_id(database_pool, &self.ship_state.system_symbol).await?;
+        let data_loader = ctx.data::<DataLoader<database::SystemLoader>>().unwrap();
+        let system = data_loader
+            .load_one(self.ship_state.system_symbol.clone())
+            .await?;
         Ok(into_gql(system))
     }
 
@@ -1897,10 +1919,10 @@ impl GQLShipState {
         &self,
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Option<GQLSystem>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let system =
-            database::System::get_by_id(database_pool, &self.ship_state.route_destination_system)
-                .await?;
+        let data_loader = ctx.data::<DataLoader<database::SystemLoader>>().unwrap();
+        let system = data_loader
+            .load_one(self.ship_state.route_destination_system.clone())
+            .await?;
         Ok(into_gql(system))
     }
 
@@ -1919,10 +1941,10 @@ impl GQLShipState {
         &self,
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Option<GQLSystem>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let system =
-            database::System::get_by_id(database_pool, &self.ship_state.route_origin_system)
-                .await?;
+        let data_loader = ctx.data::<DataLoader<database::SystemLoader>>().unwrap();
+        let system = data_loader
+            .load_one(self.ship_state.route_origin_system.clone())
+            .await?;
         Ok(into_gql(system))
     }
 
@@ -1943,9 +1965,9 @@ impl GQLShipState {
         &self,
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Option<GQLSystem>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
+        let data_loader = ctx.data::<DataLoader<database::SystemLoader>>().unwrap();
         let system = if let Some(ap_dest) = &self.ship_state.auto_pilot_destination_system_symbol {
-            database::System::get_by_id(database_pool, ap_dest).await?
+            data_loader.load_one(ap_dest.clone()).await?
         } else {
             None
         };
@@ -1969,9 +1991,9 @@ impl GQLShipState {
         &self,
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Option<GQLSystem>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
+        let data_loader = ctx.data::<DataLoader<database::SystemLoader>>().unwrap();
         let system = if let Some(ap_orig) = &self.ship_state.auto_pilot_origin_system_symbol {
-            database::System::get_by_id(database_pool, ap_orig).await?
+            data_loader.load_one(ap_orig.clone()).await?
         } else {
             None
         };
@@ -2238,10 +2260,10 @@ impl From<database::ShipyardShipTypes> for GQLShipyardShipTypes {
 #[async_graphql::ComplexObject]
 impl GQLShipyardShipTypes {
     async fn shipyard(&self, ctx: &async_graphql::Context<'_>) -> Result<Option<GQLShipyard>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let erg =
-            database::Shipyard::get_by_id(database_pool, &self.shipyard_ship_types.shipyard_id)
-                .await?;
+        let data_loader = ctx.data::<DataLoader<database::ShipyardLoader>>().unwrap();
+        let erg = data_loader
+            .load_one(self.shipyard_ship_types.shipyard_id)
+            .await?;
         Ok(into_gql(erg))
     }
 
@@ -2300,12 +2322,10 @@ impl GQLShipyardTransaction {
     }
 
     async fn agent<'ctx>(&self, ctx: &async_graphql::Context<'ctx>) -> Result<Option<GQLAgent>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let agent = database::Agent::get_last_by_symbol(
-            database_pool,
-            &self.shipyard_transaction.agent_symbol,
-        )
-        .await?;
+        let data_loader = ctx.data::<DataLoader<database::AgentLoader>>().unwrap();
+        let agent = data_loader
+            .load_one(self.shipyard_transaction.agent_symbol.clone())
+            .await?;
         Ok(into_gql(agent))
     }
 
@@ -2411,9 +2431,8 @@ impl GQLSurvey {
         &self,
         ctx: &async_graphql::Context<'_>,
     ) -> Result<Option<GQLShipState>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let ship_state =
-            database::ShipState::get_by_id(database_pool, &self.survey.ship_info_before).await?;
+        let data_loader = ctx.data::<DataLoader<database::ShipStateLoader>>().unwrap();
+        let ship_state = data_loader.load_one(self.survey.ship_info_before).await?;
         Ok(into_gql(ship_state))
     }
 
@@ -2421,9 +2440,8 @@ impl GQLSurvey {
         &self,
         ctx: &async_graphql::Context<'_>,
     ) -> Result<Option<GQLShipState>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let ship_state =
-            database::ShipState::get_by_id(database_pool, &self.survey.ship_info_after).await?;
+        let data_loader = ctx.data::<DataLoader<database::ShipStateLoader>>().unwrap();
+        let ship_state = data_loader.load_one(self.survey.ship_info_after).await?;
         Ok(into_gql(ship_state))
     }
 }
@@ -2876,8 +2894,8 @@ struct KnownAgent {
 #[async_graphql::ComplexObject]
 impl KnownAgent {
     async fn agent(&self, ctx: &async_graphql::Context<'_>) -> Result<Option<GQLAgent>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let agent = database::Agent::get_last_by_symbol(database_pool, &self.symbol).await?;
+        let data_loader = ctx.data::<DataLoader<database::AgentLoader>>().unwrap();
+        let agent = data_loader.load_one(self.symbol.clone()).await?;
         Ok(into_gql(agent))
     }
 }
@@ -2930,10 +2948,12 @@ impl GQLTradeRoute {
         &self,
         ctx: &async_graphql::Context<'_>,
     ) -> Result<Option<GQLReservedFund>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
+        let data_loader = ctx
+            .data::<DataLoader<database::ReservedFundLoader>>()
+            .unwrap();
 
         let reservation = if let Some(reservation_id) = self.trade_route.reserved_fund {
-            database::ReservedFund::get_by_id(database_pool, &reservation_id).await?
+            data_loader.load_one(reservation_id).await?
         } else {
             None
         };
@@ -2973,10 +2993,12 @@ impl GQLTradeRoute {
         &self,
         ctx: &async_graphql::Context<'_>,
     ) -> Result<Option<GQLMarketTradeGood>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
+        let data_loader = ctx
+            .data::<DataLoader<database::MarketTradeGoodLoader>>()
+            .unwrap();
         let market_trade_good =
-            if let Some(purchase_trade_good_id) = &self.trade_route.purchase_trade_good_id {
-                database::MarketTradeGood::get_by_id(database_pool, purchase_trade_good_id).await?
+            if let Some(purchase_trade_good_id) = self.trade_route.purchase_trade_good_id {
+                data_loader.load_one(purchase_trade_good_id).await?
             } else {
                 None
             };
@@ -2987,10 +3009,12 @@ impl GQLTradeRoute {
         &self,
         ctx: &async_graphql::Context<'_>,
     ) -> Result<Option<GQLMarketTradeGood>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
+        let data_loader = ctx
+            .data::<DataLoader<database::MarketTradeGoodLoader>>()
+            .unwrap();
         let market_trade_good =
-            if let Some(sell_trade_good_id) = &self.trade_route.sell_trade_good_id {
-                database::MarketTradeGood::get_by_id(database_pool, sell_trade_good_id).await?
+            if let Some(sell_trade_good_id) = self.trade_route.sell_trade_good_id {
+                data_loader.load_one(sell_trade_good_id).await?
             } else {
                 None
             };
@@ -3001,13 +3025,15 @@ impl GQLTradeRoute {
         &self,
         ctx: &async_graphql::Context<'_>,
     ) -> Result<Option<GQLMarketTradeGood>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let market_trade_good = database::MarketTradeGood::get_by_last_waypoint_and_trade_symbol(
-            database_pool,
-            &self.trade_route.purchase_waypoint,
-            &self.trade_route.symbol,
-        )
-        .await?;
+        let data_loader = ctx
+            .data::<DataLoader<database::MarketTradeGoodByWaypointAndSymbolLoader>>()
+            .unwrap();
+        let market_trade_good = data_loader
+            .load_one((
+                self.trade_route.purchase_waypoint.clone(),
+                self.trade_route.symbol,
+            ))
+            .await?;
         Ok(into_gql(market_trade_good))
     }
 
@@ -3015,13 +3041,15 @@ impl GQLTradeRoute {
         &self,
         ctx: &async_graphql::Context<'_>,
     ) -> Result<Option<GQLMarketTradeGood>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let market_trade_good = database::MarketTradeGood::get_by_last_waypoint_and_trade_symbol(
-            database_pool,
-            &self.trade_route.sell_waypoint,
-            &self.trade_route.symbol,
-        )
-        .await?;
+        let data_loader = ctx
+            .data::<DataLoader<database::MarketTradeGoodByWaypointAndSymbolLoader>>()
+            .unwrap();
+        let market_trade_good = data_loader
+            .load_one((
+                self.trade_route.sell_waypoint.clone(),
+                self.trade_route.symbol,
+            ))
+            .await?;
         Ok(into_gql(market_trade_good))
     }
 
@@ -3032,9 +3060,9 @@ impl GQLTradeRoute {
     }
 
     async fn fleet(&self, ctx: &async_graphql::Context<'_>) -> Result<Option<GQLFleet>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
+        let data_loader = ctx.data::<DataLoader<database::FleetLoader>>().unwrap();
         let erg = if let Some(fleet_id) = self.trade_route.fleet_id {
-            database::Fleet::get_by_id(database_pool, fleet_id).await?
+            data_loader.load_one(fleet_id).await?
         } else {
             None
         };
@@ -3045,9 +3073,11 @@ impl GQLTradeRoute {
         &self,
         ctx: &async_graphql::Context<'_>,
     ) -> Result<Option<GQLShipAssignment>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
+        let data_loader = ctx
+            .data::<DataLoader<database::ShipAssignmentLoader>>()
+            .unwrap();
         let erg = if let Some(assignment_id) = self.trade_route.assignment_id {
-            database::ShipAssignment::get_by_id(database_pool, assignment_id).await?
+            data_loader.load_one(assignment_id).await?
         } else {
             None
         };
@@ -3149,13 +3179,12 @@ impl GQLTradeRouteCandidate {
         &self,
         ctx: &async_graphql::Context<'_>,
     ) -> Result<Option<GQLMarketTradeGood>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let market_trade_good = database::MarketTradeGood::get_by_last_waypoint_and_trade_symbol(
-            database_pool,
-            &self.purchase.waypoint_symbol,
-            &self.symbol,
-        )
-        .await?;
+        let data_loader = ctx
+            .data::<DataLoader<database::MarketTradeGoodByWaypointAndSymbolLoader>>()
+            .unwrap();
+        let market_trade_good = data_loader
+            .load_one((self.purchase.waypoint_symbol.clone(), self.symbol))
+            .await?;
         Ok(into_gql(market_trade_good))
     }
 
@@ -3163,13 +3192,12 @@ impl GQLTradeRouteCandidate {
         &self,
         ctx: &async_graphql::Context<'_>,
     ) -> Result<Option<GQLMarketTradeGood>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let market_trade_good = database::MarketTradeGood::get_by_last_waypoint_and_trade_symbol(
-            database_pool,
-            &self.sell.waypoint_symbol,
-            &self.symbol,
-        )
-        .await?;
+        let data_loader = ctx
+            .data::<DataLoader<database::MarketTradeGoodByWaypointAndSymbolLoader>>()
+            .unwrap();
+        let market_trade_good = data_loader
+            .load_one((self.sell.waypoint_symbol.clone(), self.symbol))
+            .await?;
         Ok(into_gql(market_trade_good))
     }
 
@@ -3261,13 +3289,15 @@ impl GQLTradeRouteProposal {
         &self,
         ctx: &async_graphql::Context<'_>,
     ) -> Result<Option<GQLMarketTradeGood>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let market_trade_good = database::MarketTradeGood::get_by_last_waypoint_and_trade_symbol(
-            database_pool,
-            &self.trade_route_proposal.purchase.waypoint_symbol,
-            &self.trade_route_proposal.symbol,
-        )
-        .await?;
+        let data_loader = ctx
+            .data::<DataLoader<database::MarketTradeGoodByWaypointAndSymbolLoader>>()
+            .unwrap();
+        let market_trade_good = data_loader
+            .load_one((
+                self.trade_route_proposal.purchase.waypoint_symbol.clone(),
+                self.trade_route_proposal.symbol,
+            ))
+            .await?;
         Ok(into_gql(market_trade_good))
     }
 
@@ -3275,13 +3305,15 @@ impl GQLTradeRouteProposal {
         &self,
         ctx: &async_graphql::Context<'_>,
     ) -> Result<Option<GQLMarketTradeGood>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let market_trade_good = database::MarketTradeGood::get_by_last_waypoint_and_trade_symbol(
-            database_pool,
-            &self.trade_route_proposal.sell.waypoint_symbol,
-            &self.trade_route_proposal.symbol,
-        )
-        .await?;
+        let data_loader = ctx
+            .data::<DataLoader<database::MarketTradeGoodByWaypointAndSymbolLoader>>()
+            .unwrap();
+        let market_trade_good = data_loader
+            .load_one((
+                self.trade_route_proposal.sell.waypoint_symbol.clone(),
+                self.trade_route_proposal.symbol,
+            ))
+            .await?;
         Ok(into_gql(market_trade_good))
     }
 
@@ -3343,9 +3375,10 @@ paginated_gql_object!(
 #[async_graphql::ComplexObject]
 impl GQLWaypoint {
     async fn system(&self, ctx: &async_graphql::Context<'_>) -> Result<Option<GQLSystem>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let system =
-            database::System::get_by_id(database_pool, &self.waypoint.system_symbol).await?;
+        let data_loader = ctx.data::<DataLoader<database::SystemLoader>>().unwrap();
+        let system = data_loader
+            .load_one(self.waypoint.system_symbol.clone())
+            .await?;
         Ok(into_gql(system))
     }
 
@@ -3802,8 +3835,8 @@ impl crate::manager::budget_manager::BudgetInfo {
 #[async_graphql::ComplexObject]
 impl crate::utils::RunInfo {
     async fn agent(&self, ctx: &async_graphql::Context<'_>) -> Result<Option<GQLAgent>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let agent = database::Agent::get_last_by_symbol(database_pool, &self.agent_symbol).await?;
+        let data_loader = ctx.data::<DataLoader<database::AgentLoader>>().unwrap();
+        let agent = data_loader.load_one(self.agent_symbol.clone()).await?;
         Ok(into_gql(agent))
     }
 
@@ -3820,9 +3853,9 @@ impl crate::utils::RunInfo {
         &self,
         ctx: &async_graphql::Context<'_>,
     ) -> Result<Option<GQLSystem>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
         let system_symbol = utils::get_system_symbol(&self.headquarters);
-        let system = database::System::get_by_id(database_pool, &system_symbol).await?;
+        let data_loader = ctx.data::<DataLoader<database::SystemLoader>>().unwrap();
+        let system = data_loader.load_one(system_symbol).await?;
         Ok(into_gql(system))
     }
 }
@@ -3876,11 +3909,14 @@ impl GQLShip {
         &self,
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Option<GQLShipyardTransaction>> {
-        // Changed return type to GQLShipyardTransaction
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
+        let data_loader = ctx
+            .data::<DataLoader<database::ShipyardTransactionLoader>>()
+            .unwrap();
         if let Some(purchase_id) = self.ship.purchase_id {
-            let erg = database::ShipyardTransaction::get_by_id(database_pool, purchase_id).await?;
-            Ok(Some(erg.into())) // Added conversion
+            Ok(data_loader
+                .load_one(purchase_id)
+                .await?
+                .map(|erg| erg.into()))
         } else {
             Ok(None)
         }
