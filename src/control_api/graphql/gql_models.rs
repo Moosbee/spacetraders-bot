@@ -2807,7 +2807,7 @@ impl GQLSystem {
         let all_ships = ship_loader
             .load_one(self.system.symbol.clone())
             .await?
-            .unwrap();
+            .unwrap_or_else(Vec::new);
         Ok(all_ships.into_iter().map(|ship| ship.into()).collect())
     }
 

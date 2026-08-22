@@ -1,4 +1,4 @@
-use std::{env, str::FromStr, time::Duration};
+use std::{collections::HashMap, env, str::FromStr, time::Duration};
 
 use database::{DatabaseConnectorAsync, DbPool, PaginatedQuery};
 use serde_json::json;
@@ -57,20 +57,28 @@ pub async fn export_routes() -> anyhow::Result<()> {
         .filter_map(|f| f)
         .collect::<Vec<i64>>();
     eprintln!("Fetching ship states... {}", ship_state_ids.len());
-    let ship_states = database::ShipState::get_by_ids(&database_pool, &ship_state_ids).await?;
+    let ship_states = database::ShipState::get_by_ids(&database_pool, &ship_state_ids)
+        .await?
+        .into_iter()
+        .map(|f| (f.id, f))
+        .collect::<HashMap<i64, database::ShipState>>();
 
     // we will print it as a CSV with semi-colons as delimiters
     let mut output = String::new();
     output.push_str( // ;ShipSymbol;From;To;CreatedAt;
-        "ID;Distance;NavMode;EngineSpeed;CalcTravelTime;RealTravelTime;TimeDiff;TimeDiffPercent;CalcFuelCost;RealFuelCost;EngineConditionBefore;FrameConditionBefore;ReactorConditionBefore;EngineConditionAfter;FrameConditionAfter;ReactorConditionAfter;Incident;"
+        "ID; Distance; NavMode; EngineSpeed; CalcTravelTime; RealTravelTime; TimeDiff; TimeDiffPercent; CalcFuelCost; RealFuelCost; EngineConditionBefore; FrameConditionBefore; ReactorConditionBefore; EngineConditionAfter; FrameConditionAfter; ReactorConditionAfter; Incident;\n"
     );
     for route in routes.items {
-        let ship_state_before = ship_states
-            .iter()
-            .find(|f| Some(f.id) == route.ship_info_before);
-        let ship_state_after = ship_states
-            .iter()
-            .find(|f| Some(f.id) == route.ship_info_after);
+        let ship_state_before = if let Some(id) = route.ship_info_before {
+            ship_states.get(&id)
+        } else {
+            None
+        };
+        let ship_state_after = if let Some(id) = route.ship_info_after {
+            ship_states.get(&id)
+        } else {
+            None
+        };
         if ship_state_before.is_none() || ship_state_after.is_none() {
             continue;
         }
@@ -156,7 +164,7 @@ fn get_csv_line(values: &[&dyn std::fmt::Display]) -> String {
         .iter()
         .map(|f| format!("{}", f))
         .collect::<Vec<String>>()
-        .join(";");
+        .join("; ");
     format!("{};\n", text)
 }
 
