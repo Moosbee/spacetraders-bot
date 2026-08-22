@@ -108,9 +108,9 @@ impl FleetManager {
                 let erg = self
                     .handle_scrapper_at_shipyard(&waypoint_symbol, &ship_symbol)
                     .await;
-                callback.send(ship_symbol).map_err(|e| {
-                    crate::error::Error::General(format!("Failed to send message: {:?}", e))
-                })?;
+                if let Err(send_err) = callback.send(ship_symbol) {
+                    warn!(send_err =? send_err, "Failed to send message");
+                }
                 erg?;
             }
             crate::manager::fleet_manager::message::FleetMessage::GetNewAssignments {
@@ -119,17 +119,17 @@ impl FleetManager {
                 temp,
             } => {
                 let erg = self.get_new_assignment(&ship_clone, temp).await?;
-                callback.send(erg).map_err(|e| {
-                    crate::error::Error::General(format!("Failed to send message: {:?}", e))
-                })?;
+                if let Err(send_err) = callback.send(erg) {
+                    warn!(send_err =? send_err, "Failed to send message");
+                }
             }
             crate::manager::fleet_manager::message::FleetMessage::ReGenerateAssignments {
                 callback,
             } => {
                 self.re_generate_assignments(RegenFleetBy::All).await?;
-                callback.send(()).map_err(|e| {
-                    crate::error::Error::General(format!("Failed to send message: {:?}", e))
-                })?;
+                if let Err(send_err) = callback.send(()) {
+                    warn!(send_err =? send_err, "Failed to send message");
+                }
             }
             crate::manager::fleet_manager::message::FleetMessage::ReGenerateFleetAssignments {
                 callback,
@@ -137,9 +137,9 @@ impl FleetManager {
             } => {
                 self.re_generate_assignments(RegenFleetBy::Fleet(fleet_id))
                     .await?;
-                callback.send(()).map_err(|e| {
-                    crate::error::Error::General(format!("Failed to send message: {:?}", e))
-                })?;
+                if let Err(send_err) = callback.send(()) {
+                    warn!(send_err =? send_err, "Failed to send message");
+                }
             }
             crate::manager::fleet_manager::message::FleetMessage::ReGenerateSystemAssignments {
                 callback,
@@ -147,9 +147,9 @@ impl FleetManager {
             } => {
                 self.re_generate_assignments(RegenFleetBy::System(system_symbol))
                     .await?;
-                callback.send(()).map_err(|e| {
-                    crate::error::Error::General(format!("Failed to send message: {:?}", e))
-                })?;
+                if let Err(send_err) = callback.send(()) {
+                    warn!(send_err =? send_err, "Failed to send message");
+                }
             }
             crate::manager::fleet_manager::message::FleetMessage::PopulateSystem {
                 callback,
@@ -162,9 +162,9 @@ impl FleetManager {
                 .await?;
                 self.re_generate_assignments(RegenFleetBy::System(system_symbol))
                     .await?;
-                callback.send(()).map_err(|e| {
-                    crate::error::Error::General(format!("Failed to send message: {:?}", e))
-                })?;
+                if let Err(send_err) = callback.send(()) {
+                    warn!(send_err =? send_err, "Failed to send message");
+                }
             }
             crate::manager::fleet_manager::message::FleetMessage::PopulateFromJumpGate {
                 callback,
@@ -172,9 +172,9 @@ impl FleetManager {
             } => {
                 self.handle_populate_from_jump_gate(&jump_gate_symbol)
                     .await?;
-                callback.send(()).map_err(|e| {
-                    crate::error::Error::General(format!("Failed to send message: {:?}", e))
-                })?;
+                if let Err(send_err) = callback.send(()) {
+                    warn!(send_err =? send_err, "Failed to send message");
+                }
             }
         }
         self.context.fleet_manager.set_busy(false);

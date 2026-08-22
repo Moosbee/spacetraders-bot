@@ -131,6 +131,19 @@ const RoleRenderer = ({
     return null;
   };
 
+  const renderCharting = () => {
+    if (typename === "ChartingStatus") {
+      return (
+        <span>
+          {inner.waitingForManager ? "*" : ""} ({inner.cycle})
+          <br />
+          {inner.waypointSymbol}
+        </span>
+      );
+    }
+    return null;
+  };
+
   return (
     <div>
       <span>{typename?.replace("Status", "")}</span>{" "}
@@ -139,7 +152,8 @@ const RoleRenderer = ({
         renderMining() ||
         renderConstruction() ||
         renderScraper() ||
-        renderTransfer()}
+        renderTransfer() ||
+        renderCharting()}
     </div>
   );
 };

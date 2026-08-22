@@ -76,6 +76,12 @@ impl ChartPilot {
         Ok(())
     }
 
+    #[instrument(
+        level = "info",
+        name = "spacetraders::pilot::charting::start_chart",
+        fields(self.ship_symbol = %self.ship_symbol),
+        skip(self, ship)
+    )]
     async fn start_chart(
         &self,
         ship: &mut ship::MyShip,

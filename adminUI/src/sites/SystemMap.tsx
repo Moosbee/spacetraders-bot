@@ -1,5 +1,5 @@
 import { useQuery } from "@apollo/client/react";
-import { Button, Dropdown, Spin } from "antd";
+import { Button, Dropdown, Result, Spin } from "antd";
 import { useState } from "react";
 import PageTitle from "../features/PageTitle";
 import SystemsMap from "../features/SystemsMap/SystemsMap";
@@ -35,8 +35,25 @@ function SysMap() {
     useQuery(GET_SYSTEM_MAP_DATA);
   const [config, setConfig] = useState<MapConfig>(defaultConfig);
 
+  if (error) {
+    return (
+      <div style={{ width: "100%", height: "100%", position: "relative" }}>
+        <PageTitle title={`Systems Map`} />
+        <Result
+          status="error"
+          title="System Map Error"
+          subTitle={`Error: ${error.message}`}
+          extra={[
+            <Button key="tryAgain" type="primary" onClick={() => refetch()}>
+              Try Again
+            </Button>,
+          ]}
+        ></Result>
+      </div>
+    );
+  }
+
   if (dataState != "complete") return <p>Loading... {dataState}</p>;
-  if (error) return <p>Error: {error.message}</p>;
 
   const mapData = {
     systems: data.systems.items.map((system) => ({

@@ -1,4 +1,4 @@
-import { useQuery } from "@apollo/client/react";
+import { useLazyQuery } from "@apollo/client/react";
 import type { MenuProps } from "antd";
 import {
   Avatar,
@@ -46,19 +46,17 @@ function MyHeader({ Header }: { Header: typeof AntHeaderHeader }) {
 
   const dispatch = useAppDispatch();
 
-  const {
-    loading: apiCountLoading,
-    data: apiCount,
-    refetch: apiCountRefetch,
-  } = useQuery(GET_API_COUNT, {
+  const [
+    loadAPICount,
+    { loading: apiCountLoading, data: apiCount, refetch: apiCountRefetch },
+  ] = useLazyQuery(GET_API_COUNT, {
     // initialFetchPolicy: "standby",
   });
 
-  const {
-    loading: myAgentLoading,
-    data: myAgentData,
-    refetch: myAgentRefetch,
-  } = useQuery(GET_MY_AGENT_MINI_INFO, {
+  const [
+    loadMyAgent,
+    { loading: myAgentLoading, data: myAgentData, refetch: myAgentRefetch },
+  ] = useLazyQuery(GET_MY_AGENT_MINI_INFO, {
     // initialFetchPolicy: "standby",
   });
 
@@ -150,7 +148,11 @@ function MyHeader({ Header }: { Header: typeof AntHeaderHeader }) {
               <Col span={12} style={{ textAlign: "center" }}>
                 <Button
                   onClick={() => {
-                    myAgentRefetch();
+                    if (myAgentData) {
+                      myAgentRefetch();
+                    } else {
+                      loadMyAgent();
+                    }
                   }}
                 >
                   Refresh
@@ -229,7 +231,11 @@ function MyHeader({ Header }: { Header: typeof AntHeaderHeader }) {
         <Space>
           <Button
             onClick={() => {
-              apiCountRefetch();
+              if (apiCount) {
+                apiCountRefetch();
+              } else {
+                loadAPICount();
+              }
             }}
             loading={apiCountLoading}
           >

@@ -17,7 +17,7 @@ impl ChartManagerMessanger {
         }
     }
 
-    #[instrument(skip(self, ship_clone), name = "ChartManagerMessanger::get_next", fields(ship = %ship_clone.symbol))]
+    #[instrument(skip(self, ship_clone), name = "ChartManagerMessanger::get_next", fields(ship = %ship_clone.symbol, next_chart))]
     pub async fn get_next(
         &self,
         ship_clone: ship::MyShipCopy,
@@ -38,6 +38,8 @@ impl ChartManagerMessanger {
         let resp = callback.await.map_err(|e| {
             crate::error::Error::General(format!("Failed to receive message: {}", e))
         })??;
+
+        tracing::Span::current().record("next_chart", format!("{:?}", resp));
 
         Ok(resp)
     }
