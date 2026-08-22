@@ -1218,3 +1218,41 @@ export const GET_ALL_SHIP_ROUTES = graphql(/* GraphQL */ `
     }
   }
 `);
+
+export const GET_ALL_TRADE_ROUTES = graphql(/* GraphQL */ `
+  query GetAllTradeRoutes {
+    tradeRoutes {
+      items {
+        id
+        createdAt
+        symbol
+        shipSymbol
+        PurchaseWaypointSymbol
+        SellWaypointSymbol
+        status
+        tradeMode
+        tradeVolume
+        reservedFund
+        estimatedFuel
+        marketTransactionSummary {
+          expenses
+          income
+        }
+        purchaseMarketTradeGood {
+          tradeVolume
+          supply
+          activity
+          purchasePrice
+          sellPrice
+        }
+        sellMarketTradeGood {
+          tradeVolume
+          supply
+          activity
+          purchasePrice
+          sellPrice
+        }
+      }
+    }
+  }
+`);

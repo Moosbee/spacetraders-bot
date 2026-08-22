@@ -114,7 +114,7 @@ function MarketSupplyChainVisual({
               target: t2.symbol + t2.waypointSymbol,
               style: {
                 strokeWidth: 2,
-                stroke: "#E9FF1F",
+                stroke: "#E81FFF",
               },
             })),
         ];

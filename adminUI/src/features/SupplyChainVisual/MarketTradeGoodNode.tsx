@@ -1,6 +1,7 @@
 import { Handle, NodeProps, Position } from "@xyflow/react";
 import { theme } from "antd";
-import { GetSystemMarketsQuery } from "../../gql/graphql";
+import { GetSystemMarketsQuery, SupplyLevel } from "../../gql/graphql";
+import { cn } from "../../utils/utils";
 import MoneyDisplay from "../MonyDisplay";
 
 function MarketTradeGoodNode({
@@ -19,7 +20,19 @@ function MarketTradeGoodNode({
   return (
     <div
       style={{ background: colorBgElevated }}
-      className="rounded-md p-1  border-transparent in-[.selected]:border-4 in-[.selected]:border-yellow-500"
+      className={cn(
+        "rounded-md p-1  border-transparent in-[.selected]:border-4 in-[.selected]:border-yellow-500",
+        tradeGood.marketTradeGood?.supply === SupplyLevel.Scarce &&
+          "border-b-4 border-b-red-500",
+        tradeGood.marketTradeGood?.supply === SupplyLevel.Limited &&
+          "border-b-4 border-b-orange-500",
+        tradeGood.marketTradeGood?.supply === SupplyLevel.Moderate &&
+          "border-b-4 border-b-amber-500",
+        tradeGood.marketTradeGood?.supply === SupplyLevel.High &&
+          "border-b-4 border-b-blue-500",
+        tradeGood.marketTradeGood?.supply === SupplyLevel.Abundant &&
+          "border-b-4 border-b-green-500",
+      )}
     >
       <div className="flex flex-col">
         <span>

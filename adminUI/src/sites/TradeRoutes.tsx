@@ -1,23 +1,34 @@
+import { useQuery } from "@apollo/client/react";
 import { Button, Space, Table, TableProps } from "antd";
-import { useEffect, useState } from "react";
-import { backendUrl } from "../data";
+import { Link } from "react-router-dom";
 import MoneyDisplay from "../features/MonyDisplay";
 import PageTitle from "../features/PageTitle";
 import WaypointLink from "../features/WaypointLink";
-import { TradeRoute } from "../models/TradeRoute";
+import {
+  GetAllTradeRoutesQuery,
+  ShipmentStatus,
+  TradeMode,
+  TradeSymbol,
+} from "../gql/graphql";
+import { GET_ALL_TRADE_ROUTES } from "../graphql/queries";
+
+type TradeRoute = NonNullable<
+  GetAllTradeRoutesQuery["tradeRoutes"]
+>["items"][number];
+
+const predictedProfit = (route: TradeRoute) =>
+  (route.sellMarketTradeGood?.sellPrice ?? 0) * route.tradeVolume -
+  (route.purchaseMarketTradeGood?.purchasePrice ?? 0) * route.tradeVolume -
+  (route.estimatedFuel ?? 0);
+
+const actualProfit = (route: TradeRoute) =>
+  (route.marketTransactionSummary.income ?? 0) -
+  (route.marketTransactionSummary.expenses ?? 0);
 
 function TradeRoutes() {
-  const [tradeRoutes, setTradeRoutes] = useState<TradeRoute[] | null>(null);
+  const { loading, error, data, refetch } = useQuery(GET_ALL_TRADE_ROUTES);
 
-  useEffect(() => {
-    fetch(`http://${backendUrl}/tradeRoutes`)
-      .then((response) => response.json())
-      .then((data) => {
-        console.log("tradeRoutes", data);
-
-        setTradeRoutes(data);
-      });
-  }, []);
+  const tradeRoutes = data?.tradeRoutes.items ?? [];
 
   const columns: TableProps<TradeRoute>["columns"] = [
     {
@@ -28,208 +39,206 @@ function TradeRoutes() {
       defaultSortOrder: "descend",
     },
     {
+      title: "Created At",
+      dataIndex: "createdAt",
+      key: "createdAt",
+      render: (date: string) => new Date(date).toLocaleString(),
+      sorter: (a, b) =>
+        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+    },
+    {
       title: "Trade Symbol",
       dataIndex: "symbol",
       key: "symbol",
       sorter: (a, b) => a.symbol.localeCompare(b.symbol),
+      filters: Object.values(TradeSymbol).map((symbol) => ({
+        text: symbol,
+        value: symbol,
+      })),
+      filterSearch: true,
+      onFilter: (value, record) => record.symbol === value,
     },
     {
-      title: "Ship Symbol",
-      dataIndex: "ship_symbol",
-      key: "ship_symbol",
-      sorter: (a, b) => a.ship_symbol.localeCompare(b.ship_symbol),
+      title: "Ship",
+      dataIndex: "shipSymbol",
+      key: "shipSymbol",
+      render: (symbol: string) => <Link to={`/ships/${symbol}`}>{symbol}</Link>,
+      sorter: (a, b) => a.shipSymbol.localeCompare(b.shipSymbol),
     },
     {
       title: "Purchase Waypoint",
-      dataIndex: "purchase_waypoint",
-      key: "purchase_waypoint",
-      sorter: (a, b) => a.purchase_waypoint.localeCompare(b.purchase_waypoint),
-      render: (value) => <WaypointLink waypoint={value}>{value}</WaypointLink>,
+      dataIndex: "PurchaseWaypointSymbol",
+      key: "PurchaseWaypointSymbol",
+      render: (symbol: string) => (
+        <WaypointLink waypoint={symbol}>{symbol}</WaypointLink>
+      ),
+      sorter: (a, b) =>
+        a.PurchaseWaypointSymbol.localeCompare(b.PurchaseWaypointSymbol),
     },
     {
       title: "Sell Waypoint",
-      dataIndex: "sell_waypoint",
-      key: "sell_waypoint",
-      sorter: (a, b) => a.sell_waypoint.localeCompare(b.sell_waypoint),
-      render: (value) => <WaypointLink waypoint={value}>{value}</WaypointLink>,
+      dataIndex: "SellWaypointSymbol",
+      key: "SellWaypointSymbol",
+      render: (symbol: string) => (
+        <WaypointLink waypoint={symbol}>{symbol}</WaypointLink>
+      ),
+      sorter: (a, b) =>
+        a.SellWaypointSymbol.localeCompare(b.SellWaypointSymbol),
     },
     {
       title: "Status",
       dataIndex: "status",
       key: "status",
-      render: (value) => value,
-      sorter: (a, b) => (a.status === b.status ? 0 : a.status ? -1 : 1),
-      filters: [
-        { text: "Delivered", value: "Delivered" },
-        { text: "InTransit", value: "InTransit" },
-        { text: "Failed", value: "Failed" },
-      ],
+      sorter: (a, b) => a.status.localeCompare(b.status),
+      filters: Object.values(ShipmentStatus).map((status) => ({
+        text: status,
+        value: status,
+      })),
       onFilter: (value, record) => record.status === value,
     },
     {
-      title: "Trade Volume",
-      dataIndex: "trade_volume",
-      key: "trade_volume",
-      sorter: (a, b) => a.trade_volume - b.trade_volume,
+      title: "Trade Mode",
+      dataIndex: "tradeMode",
+      key: "tradeMode",
+      sorter: (a, b) => a.tradeMode.localeCompare(b.tradeMode),
+      filters: Object.values(TradeMode).map((mode) => ({
+        text: mode,
+        value: mode,
+      })),
+      onFilter: (value, record) => record.tradeMode === value,
+    },
+    {
+      title: "Volume",
+      dataIndex: "tradeVolume",
+      key: "tradeVolume",
       align: "right",
+      sorter: (a, b) => a.tradeVolume - b.tradeVolume,
     },
     {
       title: "Reserved Fund",
-      dataIndex: "reserved_fund",
-      key: "reserved_fund",
-      align: "right",
-      render: (value) => value,
-      sorter: (a, b) => (a.reserved_fund || 0) - (b.reserved_fund || 0),
-    },
-    {
-      title: "Predicted Purchase Price",
-      dataIndex: "predicted_purchase_price",
-      key: "predicted_purchase_price",
-      render: (value, record) => (
-        <MoneyDisplay amount={value * record.trade_volume} />
+      dataIndex: "reservedFund",
+      key: "reservedFund",
+      render: (value: number | null | undefined) => (
+        <MoneyDisplay amount={value ?? 0} />
       ),
       align: "right",
-      sorter: (a, b) => a.predicted_purchase_price - b.predicted_purchase_price,
+      sorter: (a, b) => (a.reservedFund ?? 0) - (b.reservedFund ?? 0),
     },
     {
-      title: "Predicted Sell Price",
-      dataIndex: "predicted_sell_price",
-      key: "predicted_sell_price",
-      render: (value, record) => (
-        <MoneyDisplay amount={value * record.trade_volume} />
-      ),
-      align: "right",
-      sorter: (a, b) => a.predicted_sell_price - b.predicted_sell_price,
-    },
-    // {
-    //   title: "Sum",
-    //   dataIndex: "sum",
-    //   key: "sum",
-    //   render: (value) => <MoneyDisplay amount={value} />,
-    //   align: "right",
-    //   sorter: (a, b) => a.sum - b.sum,
-    // },
-    {
-      title: "Predicted Profit",
-      dataIndex: "",
-      key: "predicted_profit",
+      title: "Purchase Cost",
+      key: "purchaseCost",
       render: (_, record) => (
         <MoneyDisplay
           amount={
-            record.predicted_sell_price * record.trade_volume -
-            record.predicted_purchase_price * record.trade_volume
+            (record.purchaseMarketTradeGood?.purchasePrice ?? 0) *
+            record.tradeVolume
           }
         />
       ),
       align: "right",
       sorter: (a, b) =>
-        a.predicted_sell_price * a.trade_volume -
-        a.predicted_purchase_price * a.trade_volume -
-        (b.predicted_sell_price * b.trade_volume -
-          b.predicted_purchase_price * b.trade_volume),
+        (a.purchaseMarketTradeGood?.purchasePrice ?? 0) * a.tradeVolume -
+        (b.purchaseMarketTradeGood?.purchasePrice ?? 0) * b.tradeVolume,
     },
     {
-      title: "Delta",
-      dataIndex: "",
-      key: "delta",
+      title: "Sell Revenue",
+      key: "sellRevenue",
+      render: (_, record) => (
+        <MoneyDisplay
+          amount={
+            (record.sellMarketTradeGood?.sellPrice ?? 0) * record.tradeVolume
+          }
+        />
+      ),
+      align: "right",
+      sorter: (a, b) =>
+        (a.sellMarketTradeGood?.sellPrice ?? 0) * a.tradeVolume -
+        (b.sellMarketTradeGood?.sellPrice ?? 0) * b.tradeVolume,
+    },
+    {
+      title: "Est. Fuel",
+      dataIndex: "estimatedFuel",
+      key: "estimatedFuel",
+      render: (value: number | null | undefined) => (
+        <MoneyDisplay amount={value ?? 0} />
+      ),
+      align: "right",
+      sorter: (a, b) => (a.estimatedFuel ?? 0) - (b.estimatedFuel ?? 0),
+    },
+    {
+      title: "Predicted Profit",
+      key: "predictedProfit",
+      render: (_, record) => <MoneyDisplay amount={predictedProfit(record)} />,
+      align: "right",
+      sorter: (a, b) => predictedProfit(a) - predictedProfit(b),
+    },
+    {
+      title: "Expenses",
+      key: "expenses",
+      render: (_, record) => (
+        <MoneyDisplay amount={record.marketTransactionSummary?.expenses ?? 0} />
+      ),
+      align: "right",
+      sorter: (a, b) =>
+        (a.marketTransactionSummary?.expenses ?? 0) -
+        (b.marketTransactionSummary?.expenses ?? 0),
+    },
+    {
+      title: "Income",
+      key: "income",
+      render: (_, record) => (
+        <MoneyDisplay amount={record.marketTransactionSummary?.income ?? 0} />
+      ),
+      align: "right",
+      sorter: (a, b) =>
+        (a.marketTransactionSummary?.income ?? 0) -
+        (b.marketTransactionSummary?.income ?? 0),
+    },
+    {
+      title: "Profit",
+      key: "profit",
       render: (_, record) => {
-        const predicted_purchase_price =
-          record.predicted_purchase_price * record.trade_volume;
-        const predicted_sell_price =
-          record.predicted_sell_price * record.trade_volume;
-
-        const predicted_profit =
-          predicted_sell_price - predicted_purchase_price;
-        const actual_profit = record.profit;
-
-        const delta = actual_profit - predicted_profit;
-
+        const profit = actualProfit(record);
         return (
           <MoneyDisplay
-            amount={delta}
-            // style={{ color: delta < 0 ? "red" : "currentColor" }}
+            amount={profit}
+            style={{ color: profit < 0 ? "red" : "currentColor" }}
           />
         );
       },
       align: "right",
-      sorter: (a, b) => {
-        const a_predicted_purchase_price =
-          a.predicted_purchase_price * a.trade_volume;
-        const a_predicted_sell_price = a.predicted_sell_price * a.trade_volume;
-
-        const a_predicted_profit =
-          a_predicted_sell_price - a_predicted_purchase_price;
-        const a_actual_profit = a.profit;
-
-        const a_delta = a_actual_profit - a_predicted_profit;
-
-        const b_predicted_purchase_price =
-          b.predicted_purchase_price * b.trade_volume;
-        const b_predicted_sell_price = b.predicted_sell_price * b.trade_volume;
-
-        const b_predicted_profit =
-          b_predicted_sell_price - b_predicted_purchase_price;
-        const b_actual_profit = b.profit;
-
-        const b_delta = b_actual_profit - b_predicted_profit;
-
-        return a_delta - b_delta;
-      },
+      sorter: (a, b) => actualProfit(a) - actualProfit(b),
     },
     {
-      title: "Expenses",
-      dataIndex: "expenses",
-      key: "expenses",
-      render: (value) => <MoneyDisplay amount={value} />,
-      align: "right",
-      sorter: (a, b) => a.expenses - b.expenses,
-    },
-    {
-      title: "Income",
-      dataIndex: "income",
-      key: "income",
-      render: (value) => <MoneyDisplay amount={value} />,
-      align: "right",
-      sorter: (a, b) => a.income - b.income,
-    },
-    {
-      title: "Profit",
-      dataIndex: "profit",
-      key: "profit",
-      render: (value) => (
-        <MoneyDisplay
-          amount={value}
-          style={{ color: value < 0 ? "red" : "currentColor" }}
-        />
+      title: "Delta",
+      key: "delta",
+      render: (_, record) => (
+        <MoneyDisplay amount={actualProfit(record) - predictedProfit(record)} />
       ),
       align: "right",
-      sorter: (a, b) => a.profit - b.profit,
+      sorter: (a, b) =>
+        actualProfit(a) -
+        predictedProfit(a) -
+        (actualProfit(b) - predictedProfit(b)),
     },
   ];
 
   return (
     <div style={{ padding: "24px 24px" }}>
-      <PageTitle title="TradeRoutes" />
+      <PageTitle title={`TradeRoutes ${tradeRoutes.length}`} />
       <Space>
-        <h1>TradeRoutes</h1>
-        <Button
-          onClick={() => {
-            fetch(`http://${backendUrl}/tradeRoutes`)
-              .then((response) => response.json())
-              .then((data) => {
-                console.log("Contract", data);
-
-                setTradeRoutes(data);
-              });
-          }}
-        >
+        <h1>TradeRoutes {tradeRoutes.length}</h1>
+        <Button loading={loading} onClick={() => refetch()}>
           Refresh
         </Button>
       </Space>
+      {error && <p>Error: {error.message}</p>}
       <Table
-        dataSource={tradeRoutes || []}
+        dataSource={tradeRoutes}
         columns={columns}
         rowKey="id"
+        loading={loading}
+        scroll={{ x: "max-content" }}
         pagination={{
           showSizeChanger: true,
           pageSizeOptions: ["10", "20", "50", "100", "200", "500", "1000"],
