@@ -934,6 +934,7 @@ type MarketTransaction {
 	"""
 	timestamp: DateTime!
 	"""
+	Whether the transaction was for fuel or antimatter for travel.
 	The reason for the transaction.
 	pub reason: TransactionReason,
 	"""
@@ -1191,6 +1192,7 @@ type QueryRoot {
 	constructionManager: ConstructionManagerInfo!
 	contractManager: ContractManagerInfo!
 	fleetManager: FleetManagerInfo!
+	shipProcurementManager: ShipProcurementManagerInfo!
 	miningManager: MiningManagerInfo!
 	scrappingManager: ScrappingManagerInfo!
 	tradeManager: TradeManagerInfo!
@@ -1605,6 +1607,12 @@ enum ShipNavStatus {
 	IN_TRANSIT
 	IN_ORBIT
 	DOCKED
+}
+
+type ShipProcurementManagerInfo {
+	busy: Boolean!
+	shouldRegenJumpGate: Boolean!
+	channelState: ChannelInfo!
 }
 
 """

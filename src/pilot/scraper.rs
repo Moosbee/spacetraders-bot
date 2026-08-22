@@ -126,7 +126,7 @@ impl ScraperPilot {
 
         if waypoint.is_shipyard() {
             self.context
-                .fleet_manager
+                .ship_procurement_manager
                 .at_shipyard(ship.nav.waypoint_symbol.clone(), ship.symbol.clone())
                 .await?;
         }

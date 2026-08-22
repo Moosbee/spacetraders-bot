@@ -1,10 +1,5 @@
 #[derive(Debug)]
 pub enum FleetMessage {
-    ScrapperAtShipyard {
-        waypoint_symbol: String,
-        ship_symbol: String,
-        callback: tokio::sync::oneshot::Sender<String>,
-    },
     GetNewAssignments {
         callback: tokio::sync::oneshot::Sender<Option<i64>>,
         ship_clone: ship::MyShipCopy,
@@ -32,3 +27,12 @@ pub enum FleetMessage {
 }
 
 pub type FleetManagerMessage = FleetMessage;
+
+#[derive(Debug)]
+pub enum ShipProcurementMessage {
+    ScrapperAtShipyard {
+        waypoint_symbol: String,
+        ship_symbol: String,
+        callback: tokio::sync::oneshot::Sender<String>,
+    },
+}

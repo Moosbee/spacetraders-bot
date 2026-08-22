@@ -104,6 +104,13 @@ export const GET_MAIN_SITE_DATA = graphql(/* GraphQL */ `
         state
       }
     }
+    shipProcurementManager {
+      busy
+      channelState {
+        usedCapacity
+        state
+      }
+    }
     tradeManager {
       busy
       channelState {

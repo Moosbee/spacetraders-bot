@@ -1,4 +1,4 @@
-use super::message::FleetManagerMessage;
+use super::message::{FleetManagerMessage, ShipProcurementMessage};
 use std::sync::{Arc, atomic::AtomicBool};
 
 #[derive(Debug, Clone)]
@@ -13,40 +13,6 @@ impl FleetManagerMessanger {
             sender,
             busy: Arc::new(AtomicBool::new(false)),
         }
-    }
-
-    #[tracing::instrument(skip(self, waypoint_symbol, ship_symbol), name = "FleetManagerMessanger::at_shipyard", fields(waypoint = %waypoint_symbol, ship = %ship_symbol))]
-    pub async fn at_shipyard(
-        &self,
-        waypoint_symbol: String,
-        ship_symbol: String,
-    ) -> Result<(), crate::error::Error> {
-        let (sender, receiver) = tokio::sync::oneshot::channel();
-        let erg = self
-            .sender
-            .send_timeout(
-                FleetManagerMessage::ScrapperAtShipyard {
-                    waypoint_symbol,
-                    ship_symbol,
-                    callback: sender,
-                },
-                tokio::time::Duration::from_millis(5000),
-            )
-            .await;
-        if let Err(e) = erg {
-            match e {
-                tokio::sync::mpsc::error::SendTimeoutError::Timeout(_e) => return Ok(()),
-                tokio::sync::mpsc::error::SendTimeoutError::Closed(_e) => {
-                    // return Err(crate::error::Error::General("Channel closed".to_string()))
-                    return Ok(());
-                }
-            }
-        }
-        let _erg = receiver
-            .await
-            .map_err(|e| crate::error::Error::General(e.to_string()))?;
-
-        Ok(())
     }
 
     /// gets the best assignment for a ship, sets it directly in the database and returns the assignment id
@@ -233,6 +199,90 @@ impl FleetManagerMessanger {
     }
     pub fn set_busy(&self, busy: bool) -> bool {
         self.busy.swap(busy, std::sync::atomic::Ordering::Relaxed)
+    }
+    pub fn get_channel_state(&self) -> crate::utils::ChannelInfo {
+        let state = if self.sender.is_closed() {
+            crate::utils::ChannelState::Closed
+        } else {
+            crate::utils::ChannelState::Open
+        };
+
+        let max_capacity = self.sender.max_capacity();
+        let free_capacity = self.sender.capacity();
+        let used_capacity = max_capacity - free_capacity;
+
+        crate::utils::ChannelInfo {
+            state,
+            total_capacity: max_capacity,
+            used_capacity,
+            free_capacity,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct ShipProcurementMessanger {
+    sender: tokio::sync::mpsc::Sender<ShipProcurementMessage>,
+    busy: Arc<AtomicBool>,
+    regen_jump_gates: Arc<AtomicBool>,
+}
+
+impl ShipProcurementMessanger {
+    pub fn new(sender: tokio::sync::mpsc::Sender<ShipProcurementMessage>) -> Self {
+        Self {
+            sender,
+            busy: Arc::new(AtomicBool::new(false)),
+            regen_jump_gates: Arc::new(AtomicBool::new(false)),
+        }
+    }
+
+    #[tracing::instrument(skip(self, waypoint_symbol, ship_symbol), name = "ShipProcurementMessanger::at_shipyard", fields(waypoint = %waypoint_symbol, ship = %ship_symbol))]
+    pub async fn at_shipyard(
+        &self,
+        waypoint_symbol: String,
+        ship_symbol: String,
+    ) -> Result<(), crate::error::Error> {
+        let (sender, receiver) = tokio::sync::oneshot::channel();
+        let erg = self
+            .sender
+            .send_timeout(
+                ShipProcurementMessage::ScrapperAtShipyard {
+                    waypoint_symbol,
+                    ship_symbol,
+                    callback: sender,
+                },
+                tokio::time::Duration::from_millis(5000),
+            )
+            .await;
+        if let Err(e) = erg {
+            match e {
+                tokio::sync::mpsc::error::SendTimeoutError::Timeout(_e) => return Ok(()),
+                tokio::sync::mpsc::error::SendTimeoutError::Closed(_e) => {
+                    // return Err(crate::error::Error::General("Channel closed".to_string()))
+                    return Ok(());
+                }
+            }
+        }
+        let _erg = receiver
+            .await
+            .map_err(|e| crate::error::Error::General(e.to_string()))?;
+
+        Ok(())
+    }
+
+    pub fn is_busy(&self) -> bool {
+        self.busy.load(std::sync::atomic::Ordering::Relaxed)
+    }
+    pub fn set_busy(&self, busy: bool) -> bool {
+        self.busy.swap(busy, std::sync::atomic::Ordering::Relaxed)
+    }
+    pub fn set_regen_jump_gates(&self, regen_jump_gates: bool) -> bool {
+        self.regen_jump_gates
+            .swap(regen_jump_gates, std::sync::atomic::Ordering::Relaxed)
+    }
+    pub fn get_regen_jump_gates(&self) -> bool {
+        self.regen_jump_gates
+            .load(std::sync::atomic::Ordering::Relaxed)
     }
     pub fn get_channel_state(&self) -> crate::utils::ChannelInfo {
         let state = if self.sender.is_closed() {

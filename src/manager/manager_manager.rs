@@ -1,10 +1,15 @@
 use crate::{
     control_api,
     manager::{
-        self, chart_manager::ChartManager, construction_manager::ConstructionManager,
-        contract_manager::ContractManager, fleet_manager::FleetManager,
-        mining_manager::MiningManager, scrapping_manager::ScrappingManager,
-        ship_task::ShipTaskHandler, trade_manager::TradeManager,
+        self,
+        chart_manager::ChartManager,
+        construction_manager::ConstructionManager,
+        contract_manager::ContractManager,
+        fleet_manager::{FleetManager, ShipProcurementManager},
+        mining_manager::MiningManager,
+        scrapping_manager::ScrappingManager,
+        ship_task::ShipTaskHandler,
+        trade_manager::TradeManager,
     },
 };
 
@@ -15,6 +20,7 @@ pub struct ManagerManager {
     scrapping_manager: ScrappingManager,
     trade_manager: TradeManager,
     fleet_manager: FleetManager,
+    ship_procurement_manager: ShipProcurementManager,
     chart_manager: ChartManager,
     ship_task_handler: ShipTaskHandler,
     control_api: control_api::server::ControlApiServer,
@@ -29,6 +35,7 @@ impl ManagerManager {
         scrapping_manager: ScrappingManager,
         trade_manager: TradeManager,
         fleet_manager: FleetManager,
+        ship_procurement_manager: ShipProcurementManager,
         chart_manager: ChartManager,
         ship_task_handler: ShipTaskHandler,
         control_api: control_api::server::ControlApiServer,
@@ -40,6 +47,7 @@ impl ManagerManager {
             scrapping_manager,
             trade_manager,
             fleet_manager,
+            ship_procurement_manager,
             chart_manager,
             ship_task_handler,
             control_api,
@@ -54,6 +62,7 @@ impl ManagerManager {
             scrapping_manager: ManagersHandle::init(self.scrapping_manager),
             trade_manager: ManagersHandle::init(self.trade_manager),
             fleet_manager: ManagersHandle::init(self.fleet_manager),
+            ship_procurement_manager: ManagersHandle::init(self.ship_procurement_manager),
             chart_manager: ManagersHandle::init(self.chart_manager),
             ship_task_handler: ManagersHandle::init(self.ship_task_handler),
             control_api: ManagersHandle::init(self.control_api),
@@ -126,6 +135,7 @@ pub struct ManagerHandels {
     scrapping_manager: ManagersHandle<ScrappingManager>,
     trade_manager: ManagersHandle<TradeManager>,
     fleet_manager: ManagersHandle<FleetManager>,
+    ship_procurement_manager: ManagersHandle<ShipProcurementManager>,
     chart_manager: ManagersHandle<ChartManager>,
     ship_task_handler: ManagersHandle<ShipTaskHandler>,
     control_api: ManagersHandle<control_api::server::ControlApiServer>,
@@ -150,6 +160,8 @@ impl ManagerHandels {
                 .wait(global_cancel_token, run_cancel_token),
             self.fleet_manager
                 .wait(global_cancel_token, run_cancel_token),
+            self.ship_procurement_manager
+                .wait(global_cancel_token, run_cancel_token),
             self.chart_manager
                 .wait(global_cancel_token, run_cancel_token),
             self.ship_task_handler
@@ -164,6 +176,7 @@ impl ManagerHandels {
             Some(scrapping_manager),
             Some(trade_manager),
             Some(fleet_manager),
+            Some(ship_procurement_manager),
             Some(chart_manager),
             Some(ship_task_handler),
             Some(control_api),
@@ -176,6 +189,7 @@ impl ManagerHandels {
                 scrapping_manager.0,
                 trade_manager.0,
                 fleet_manager.0,
+                ship_procurement_manager.0,
                 chart_manager.0,
                 ship_task_handler.0,
                 control_api.0,

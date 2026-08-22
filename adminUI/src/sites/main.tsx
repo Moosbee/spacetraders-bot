@@ -215,6 +215,7 @@ function Main() {
                           }
                         />
                       </Col>
+
                       <Col span={6}>
                         <Statistic
                           valueStyle={{
@@ -247,6 +248,28 @@ function Main() {
                           suffix={
                             <Spin
                               spinning={data.contractManager.busy}
+                              size="small"
+                            />
+                          }
+                        />
+                      </Col>
+                      <Col span={6}>
+                        <Statistic
+                          valueStyle={{
+                            color:
+                              data.shipProcurementManager.channelState.state ===
+                              "CLOSED"
+                                ? "red"
+                                : "currentColor",
+                          }}
+                          title="Procurement"
+                          value={
+                            data.shipProcurementManager.channelState
+                              .usedCapacity
+                          }
+                          suffix={
+                            <Spin
+                              spinning={data.shipProcurementManager.busy}
                               size="small"
                             />
                           }

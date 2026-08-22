@@ -1613,7 +1613,7 @@ impl GQLShipAssignment {
         let all_ships = ship_loader
             .load_one(self.ship_assignment.id)
             .await?
-            .unwrap();
+            .unwrap_or_default();
 
         Ok(into_gql_vec(all_ships))
     }
@@ -4385,6 +4385,34 @@ impl FleetManagerInfo {
     ) -> Result<crate::utils::ChannelInfo> {
         let context = ctx.data::<crate::utils::ConductorContext>().unwrap();
         Ok(context.fleet_manager.get_channel_state())
+    }
+}
+
+pub struct ShipProcurementManagerInfo;
+impl ShipProcurementManagerInfo {
+    pub fn new() -> Self {
+        ShipProcurementManagerInfo
+    }
+}
+
+#[async_graphql::Object]
+impl ShipProcurementManagerInfo {
+    async fn busy(&self, ctx: &async_graphql::Context<'_>) -> Result<bool> {
+        let context = ctx.data::<crate::utils::ConductorContext>().unwrap();
+        Ok(context.ship_procurement_manager.is_busy())
+    }
+
+    async fn should_regen_jump_gate(&self, ctx: &async_graphql::Context<'_>) -> Result<bool> {
+        let context = ctx.data::<crate::utils::ConductorContext>().unwrap();
+        Ok(context.ship_procurement_manager.get_regen_jump_gates())
+    }
+
+    async fn channel_state(
+        &self,
+        ctx: &async_graphql::Context<'_>,
+    ) -> Result<crate::utils::ChannelInfo> {
+        let context = ctx.data::<crate::utils::ConductorContext>().unwrap();
+        Ok(context.ship_procurement_manager.get_channel_state())
     }
 }
 

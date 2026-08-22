@@ -1240,6 +1240,9 @@ impl QueryRoot {
     async fn fleet_manager(&self) -> gql_models::FleetManagerInfo {
         gql_models::FleetManagerInfo::new()
     }
+    async fn ship_procurement_manager(&self) -> gql_models::ShipProcurementManagerInfo {
+        gql_models::ShipProcurementManagerInfo::new()
+    }
     async fn mining_manager(&self) -> gql_models::MiningManagerInfo {
         gql_models::MiningManagerInfo::new()
     }

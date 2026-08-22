@@ -15,7 +15,7 @@ use crate::{
         chart_manager::ChartManager,
         construction_manager::ConstructionManager,
         contract_manager::ContractManager,
-        fleet_manager::FleetManager,
+        fleet_manager::{FleetManager, ShipProcurementManager},
         manager_manager::ManagerManager,
         mining_manager::MiningManager,
         scrapping_manager::{self, ScrappingManager},
@@ -368,6 +368,7 @@ async fn init_min_context(
     let trade_manager_data = TradeManager::create();
     let chart_manager = ChartManager::create();
     let fleet_manager = FleetManager::create();
+    let ship_procurement_manager = ShipProcurementManager::create();
     let ship_task_handler = ShipTaskHandler::create();
 
     let budget_manager = manager::budget_manager::BudgetManager::default();
@@ -395,6 +396,7 @@ async fn init_min_context(
         scrapping_manager: scrapping_manager_data.1,
         trade_manager: trade_manager_data.1,
         fleet_manager: fleet_manager.1,
+        ship_procurement_manager: ship_procurement_manager.1,
         chart_manager: chart_manager.1,
         budget_manager: Arc::new(budget_manager),
         run_info: Arc::new(RwLock::new(RunInfo::default())),
@@ -410,6 +412,7 @@ async fn init_min_context(
         trade_manager: trade_manager_data.0,
         chart_manager: chart_manager.0,
         fleet_manager: fleet_manager.0,
+        ship_procurement_manager: ship_procurement_manager.0,
         ship_task: ship_task_handler.0,
         transfer_manager: mining_manager_data.2,
     };
@@ -425,6 +428,7 @@ struct ManagerReceiver {
     trade_manager: manager::trade_manager::TradeManagerReceiver,
     chart_manager: manager::chart_manager::ChartManagerReceiver,
     fleet_manager: manager::fleet_manager::FleetManagerReceiver,
+    ship_procurement_manager: manager::fleet_manager::ShipProcurementReceiver,
     ship_task: manager::ship_task::ShipTaskHandlerReceiver,
     transfer_manager: Arc<manager::mining_manager::TransferManager>,
 }
@@ -488,6 +492,13 @@ async fn init_managers(
         manager_receivers.fleet_manager,
     );
 
+    let ship_procurement_manager = ShipProcurementManager::new(
+        fast_manager_cancel_token.child_token(),
+        slow_manager_cancel_token.child_token(),
+        context.clone(),
+        manager_receivers.ship_procurement_manager,
+    );
+
     let ship_task_handler = ShipTaskHandler::new(
         fast_ship_cancel_token.clone(),
         slow_ship_cancel_token.clone(),
@@ -512,6 +523,7 @@ async fn init_managers(
         scrapping_manager,
         trade_manager,
         fleet_manager,
+        ship_procurement_manager,
         chart_manager,
         ship_task_handler,
         control_api,
