@@ -128,7 +128,10 @@ pub async fn safely_get_lock_mut_map<K, V>(
 where
     K: std::hash::Hash + Eq + Clone + Debug,
 {
-    let result = map.try_lock(key.clone(), SyncLimit::no_limit()).unwrap();
+    let result = map
+        .try_lock(key.clone(), SyncLimit::no_limit())
+        .ok()
+        .flatten();
 
     if let Some(guard) = result {
         guard
