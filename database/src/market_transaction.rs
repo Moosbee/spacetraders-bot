@@ -34,6 +34,8 @@ pub struct MarketTransaction {
     pub total_price: i32,
     /// The timestamp of the transaction.
     pub timestamp: DateTime<Utc>,
+    /// Whether the transaction was for fuel or antimatter for travel.
+    // pub is_fuel: bool,
     /// The reason for the transaction.
     /// pub reason: TransactionReason,
     #[graphql(name = "contract_id")]

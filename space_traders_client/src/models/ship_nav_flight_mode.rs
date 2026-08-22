@@ -10,6 +10,7 @@
 
 use crate::models;
 use serde::{Deserialize, Serialize};
+use strum_macros::EnumString;
 
 /// ShipNavFlightMode : The ship's set speed when traveling between waypoints or systems.
 /// The ship's set speed when traveling between waypoints or systems.
@@ -25,15 +26,20 @@ use serde::{Deserialize, Serialize};
     Serialize,
     Deserialize,
     async_graphql::Enum,
+    EnumString,
 )]
 pub enum ShipNavFlightMode {
     #[serde(rename = "DRIFT")]
+    #[strum(serialize = "DRIFT")]
     Drift,
     #[serde(rename = "STEALTH")]
+    #[strum(serialize = "STEALTH")]
     Stealth,
     #[serde(rename = "CRUISE")]
+    #[strum(serialize = "CRUISE")]
     Cruise,
     #[serde(rename = "BURN")]
+    #[strum(serialize = "BURN")]
     Burn,
 }
 

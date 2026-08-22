@@ -35,6 +35,7 @@ pub use system_router::SystemRouterConfig;
 pub use travel_price::SimpleTravelPriceCalc;
 pub use travel_price::TravelPriceCache;
 pub use travel_price::TravelPriceCalc;
+pub use utils::get_travel_stats;
 
 use crate::error::Result;
 

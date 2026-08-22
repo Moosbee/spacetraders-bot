@@ -1413,7 +1413,7 @@ type ShipAssignment {
 	siphon: Boolean!
 	warpDrive: Boolean!
 	fleet: Fleet
-	ship: Ship
+	ship: [Ship!]!
 	permanentShip: Ship
 	tempShip: Ship
 }
