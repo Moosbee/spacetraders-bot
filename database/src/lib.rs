@@ -60,6 +60,7 @@ pub use export_import::ExportImportMapping;
 pub use extraction::Extraction;
 pub use fleet::ChartingConfig as ChartingFleetConfig;
 pub use fleet::ConstructionConfig as ConstructionFleetConfig;
+pub use fleet::ConstructionMode;
 pub use fleet::ContractConfig as ContractFleetConfig;
 pub use fleet::Fleet;
 pub use fleet::FleetBySystemLoader;

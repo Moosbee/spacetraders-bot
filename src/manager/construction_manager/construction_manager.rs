@@ -4,7 +4,7 @@ use std::{
 };
 
 use chrono::Utc;
-use database::{DatabaseConnectorAsync, PaginatedQuery};
+use database::{ConstructionFleetConfig, DatabaseConnectorAsync, PaginatedQuery};
 use space_traders_client::models::{self};
 use tracing::debug;
 use utils::{WaypointCan, get_system_symbol};
@@ -151,8 +151,11 @@ impl ConstructionManager {
             ConstructionMessage::RequestNextShipment {
                 ship_clone,
                 callback,
+                construction_config,
             } => {
-                let next_shipment = self.request_next_shipment(ship_clone).await;
+                let next_shipment = self
+                    .request_next_shipment(ship_clone, construction_config)
+                    .await;
 
                 debug!("Got shipment: {:?}", next_shipment);
 
@@ -185,6 +188,7 @@ impl ConstructionManager {
     async fn request_next_shipment(
         &mut self,
         ship_clone: ship::MyShipCopy,
+        construction_config: ConstructionFleetConfig,
     ) -> std::result::Result<super::NextShipmentResp, crate::error::Error> {
         let shipments = database::ConstructionShipment::get_all_in_transit(
             &self.context.database_pool,
@@ -241,7 +245,15 @@ impl ConstructionManager {
         //     .min_by_key(|c| ((c.fulfilled as f64 / c.required as f64) * 10000.0) as i64)
         //     .unwrap();
 
-        let mut materials = Vec::new();
+        // (construction_material, trade_symbol, (waypoint_symbol, price, supply), purchase_volume, remaining, total_price)
+        let mut materials: Vec<(
+            database::ConstructionMaterial,
+            models::TradeSymbol,
+            (String, Option<i32>, Option<models::SupplyLevel>),
+            i32,
+            i32,
+            i32,
+        )> = Vec::new();
 
         for material in construction_materials.iter() {
             let trade_symbol = material.trade_symbol;
@@ -273,7 +285,12 @@ impl ConstructionManager {
             purchase_volume,
             remaining,
             _total_price,
-        ) = materials.into_iter().min_by_key(|m| m.4).unwrap();
+        ) = materials
+            .into_iter()
+            .min_by(|a, b| {
+                compare_construction_materials(a, b, &construction_config.construction_mode)
+            })
+            .unwrap();
 
         let reservation = if let Some(purchase_price) = purchase_symbol.1 {
             debug!("Calculated purchase price: {}", purchase_price);
@@ -461,7 +478,7 @@ impl ConstructionManager {
         &self,
         trade_symbol: &models::TradeSymbol,
         system_symbol: &str,
-    ) -> Result<(String, Option<i32>)> {
+    ) -> Result<(String, Option<i32>, Option<models::SupplyLevel>)> {
         debug!(
             "Getting purchase waypoint for trade symbol: {:?}",
             trade_symbol
@@ -518,7 +535,46 @@ impl ConstructionManager {
         Ok((
             first_market.0.waypoint_symbol.clone(),
             first_market.1.as_ref().map(|t| t.purchase_price),
+            first_market.1.as_ref().map(|t| t.supply),
         ))
+    }
+}
+
+fn compare_construction_materials(
+    // (construction_material, trade_symbol, (waypoint_symbol, price, supply), purchase_volume, remaining, total_price)
+    a: &(
+        database::ConstructionMaterial,
+        models::TradeSymbol,
+        (String, Option<i32>, Option<models::SupplyLevel>),
+        i32,
+        i32,
+        i32,
+    ),
+    // (construction_material, trade_symbol, (waypoint_symbol, price, supply), purchase_volume, remaining, total_price)
+    b: &(
+        database::ConstructionMaterial,
+        models::TradeSymbol,
+        (String, Option<i32>, Option<models::SupplyLevel>),
+        i32,
+        i32,
+        i32,
+    ),
+    construction_mode: &database::ConstructionMode,
+) -> Ordering {
+    match construction_mode {
+        database::ConstructionMode::LowestPurchaseCost => a.5.cmp(&b.5),
+        database::ConstructionMode::LowestAbsoluteProgress => a.0.fulfilled.cmp(&b.0.fulfilled),
+        database::ConstructionMode::LowestPercentProgress => {
+            let a_percent = (a.0.fulfilled as f64 / a.0.required as f64) * 100.0;
+            let b_percent = (b.0.fulfilled as f64 / b.0.required as f64) * 100.0;
+            a_percent.partial_cmp(&b_percent).unwrap()
+        }
+        database::ConstructionMode::BestPurchaseSupply => {
+            a.2.2
+                .unwrap_or(models::SupplyLevel::Moderate)
+                .cmp(&b.2.2.unwrap_or(models::SupplyLevel::Moderate))
+                .reverse()
+        }
     }
 }
 
@@ -535,5 +591,185 @@ impl Manager for ConstructionManager {
 
     fn get_cancel_token(&self) -> &tokio_util::sync::CancellationToken {
         &self.slow_cancel_token
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::cmp::Ordering;
+
+    use space_traders_client::models::{SupplyLevel, TradeSymbol};
+
+    use super::*;
+
+    fn material(fulfilled: i32, required: i32) -> database::ConstructionMaterial {
+        database::ConstructionMaterial {
+            id: 1,
+            waypoint_symbol: "X1-TEST".to_string(),
+            trade_symbol: TradeSymbol::Iron,
+            required,
+            fulfilled,
+            created_at: chrono::Utc::now(),
+            updated_at: chrono::Utc::now(),
+        }
+    }
+
+    fn entry(
+        fulfilled: i32,
+        required: i32,
+        supply: Option<SupplyLevel>,
+        purchase_volume: i32,
+        remaining: i32,
+        total_price: i32,
+    ) -> (
+        database::ConstructionMaterial,
+        TradeSymbol,
+        (String, Option<i32>, Option<SupplyLevel>),
+        i32,
+        i32,
+        i32,
+    ) {
+        (
+            material(fulfilled, required),
+            TradeSymbol::Iron,
+            ("X1-MARKET".to_string(), Some(100), supply),
+            purchase_volume,
+            remaining,
+            total_price,
+        )
+    }
+
+    #[test]
+    fn lowest_purchase_cost_orders_by_total_price() {
+        let cheap = entry(0, 100, None, 10, 100, 500);
+        let expensive = entry(0, 100, None, 10, 100, 900);
+
+        assert_eq!(
+            compare_construction_materials(
+                &cheap,
+                &expensive,
+                &database::ConstructionMode::LowestPurchaseCost
+            ),
+            Ordering::Less
+        );
+        assert_eq!(
+            compare_construction_materials(
+                &expensive,
+                &cheap,
+                &database::ConstructionMode::LowestPurchaseCost
+            ),
+            Ordering::Greater
+        );
+        assert_eq!(
+            compare_construction_materials(
+                &cheap,
+                &cheap,
+                &database::ConstructionMode::LowestPurchaseCost
+            ),
+            Ordering::Equal
+        );
+    }
+
+    #[test]
+    fn lowest_absolute_progress_orders_by_fulfilled() {
+        let less_progress = entry(10, 100, None, 5, 90, 100);
+        let more_progress = entry(50, 100, None, 5, 50, 100);
+
+        assert_eq!(
+            compare_construction_materials(
+                &less_progress,
+                &more_progress,
+                &database::ConstructionMode::LowestAbsoluteProgress
+            ),
+            Ordering::Less
+        );
+        assert_eq!(
+            compare_construction_materials(
+                &more_progress,
+                &less_progress,
+                &database::ConstructionMode::LowestAbsoluteProgress
+            ),
+            Ordering::Greater
+        );
+    }
+
+    #[test]
+    fn lowest_percent_progress_orders_by_percent_not_absolute() {
+        let low_pct = entry(10, 100, None, 5, 90, 100);
+        let high_pct = entry(20, 100, None, 5, 80, 100);
+
+        assert_eq!(
+            compare_construction_materials(
+                &low_pct,
+                &high_pct,
+                &database::ConstructionMode::LowestPercentProgress
+            ),
+            Ordering::Less
+        );
+    }
+
+    #[test]
+    fn lowest_percent_progress_uses_ratio() {
+        // 5/10 = 50% vs 40/100 = 40%: absolute progress favors the latter, percent favors it too.
+        let high_pct = entry(5, 10, None, 5, 5, 100);
+        let low_pct = entry(40, 100, None, 5, 60, 100);
+
+        assert_eq!(
+            compare_construction_materials(
+                &high_pct,
+                &low_pct,
+                &database::ConstructionMode::LowestPercentProgress
+            ),
+            Ordering::Greater
+        );
+    }
+
+    #[test]
+    fn best_purchase_supply_prefers_higher_supply() {
+        let low = entry(0, 100, Some(SupplyLevel::Limited), 10, 100, 100);
+        let high = entry(0, 100, Some(SupplyLevel::Abundant), 10, 100, 100);
+
+        assert_eq!(
+            compare_construction_materials(
+                &low,
+                &high,
+                &database::ConstructionMode::BestPurchaseSupply
+            ),
+            Ordering::Greater
+        );
+        assert_eq!(
+            compare_construction_materials(
+                &high,
+                &low,
+                &database::ConstructionMode::BestPurchaseSupply
+            ),
+            Ordering::Less
+        );
+    }
+
+    #[test]
+    fn best_purchase_supply_treats_missing_supply_as_moderate() {
+        let none = entry(0, 100, None, 10, 100, 100);
+        let scarce = entry(0, 100, Some(SupplyLevel::Scarce), 10, 100, 100);
+        let moderate = entry(0, 100, Some(SupplyLevel::Moderate), 10, 100, 100);
+
+        // None defaults to Moderate, which outranks Scarce.
+        assert_eq!(
+            compare_construction_materials(
+                &scarce,
+                &none,
+                &database::ConstructionMode::BestPurchaseSupply
+            ),
+            Ordering::Greater
+        );
+        // None and Moderate are equivalent.
+        assert_eq!(
+            compare_construction_materials(
+                &none,
+                &moderate,
+                &database::ConstructionMode::BestPurchaseSupply
+            ),
+            Ordering::Equal
+        );
     }
 }

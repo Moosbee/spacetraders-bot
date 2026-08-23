@@ -282,6 +282,7 @@ async fn generate_system_fleets(
                 database::FleetConfig::Construction(database::ConstructionFleetConfig {
                     construction_ship_count: 1,
                     construction_waypoint,
+                    construction_mode: database::ConstructionMode::LowestPurchaseCost,
                 }),
             ),
         );
@@ -326,6 +327,12 @@ async fn generate_system_fleets(
             vec![]
         };
 
+        let min_cargo_space = if system_fleets.construction_fleet.is_some() {
+            80
+        } else {
+            40 // todo calculate based on markets
+        };
+
         system_fleets.trading_fleet = Some(
             database::Fleet::new(system_symbol.to_string(), true).with_config(
                 database::FleetConfig::Trading(database::TradingFleetConfig {
@@ -333,7 +340,7 @@ async fn generate_system_fleets(
                     market_prefer_list: vec![], // todo calculate based on construction needs
                     purchase_multiplier: 2.0,
                     ship_market_ratio,
-                    min_cargo_space: 40, // todo calculate based on markets
+                    min_cargo_space,
                     trade_mode,
                     trade_profit_threshold,
                 }),

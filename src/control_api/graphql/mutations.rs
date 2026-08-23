@@ -268,6 +268,7 @@ impl MutationRoot {
                         id,
                         cfg.construction_ship_count,
                         cfg.construction_waypoint,
+                        cfg.construction_mode,
                     )
                     .await
                     .map_err(|e| super::GraphiQLError::IO(e.to_string()))?;
@@ -624,6 +625,7 @@ impl InputFleetConfig {
                 database::FleetConfig::Construction(database::ConstructionFleetConfig {
                     construction_ship_count: cfg.construction_ship_count?,
                     construction_waypoint: cfg.construction_waypoint?,
+                    construction_mode: cfg.construction_mode?,
                 })
             }
             InputFleetConfig::Contract(cfg) => {
@@ -685,6 +687,7 @@ pub struct InputChartingConfig {
 pub struct InputConstructionConfig {
     pub construction_ship_count: Option<i32>,
     pub construction_waypoint: Option<String>,
+    pub construction_mode: Option<database::ConstructionMode>,
 }
 
 #[derive(Debug, Clone, async_graphql::InputObject)]

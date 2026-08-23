@@ -83,6 +83,8 @@ pub struct Fleet {
     construction_ship_count: Option<i32>,
     #[graphql(skip)]
     construction_waypoint: Option<String>,
+    #[graphql(skip)]
+    construction_mode: Option<ConstructionMode>,
 
     // contract config
     #[graphql(skip)]
@@ -125,6 +127,7 @@ impl Default for Fleet {
             chart_only_jump_gates: None,
             construction_ship_count: None,
             construction_waypoint: None,
+            construction_mode: None,
             contract_ship_count: None,
         }
     }
@@ -228,13 +231,14 @@ impl DatabaseConnectorAsync for Fleet {
                                     chart_only_jump_gates,
                                     construction_ship_count,
                                     construction_waypoint,
+                                    construction_mode,
                                     contract_ship_count
                                 )
                                 VALUES (
                                     $1, $2::fleet_type, $3, NOW(), NOW(),
                                     $4, $5, $6, $7, $8, $9::trade_mode, $10,
                                     $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24,
-                                    $25, $26, $27, $28, $29, $30, $31
+                                    $25, $26, $27, $28, $29, $30, $31, $32
                                 )
                                 RETURNING id;
                         "#,
@@ -268,6 +272,7 @@ impl DatabaseConnectorAsync for Fleet {
                         &item.chart_only_jump_gates as &Option<bool>,
                         &item.construction_ship_count as &Option<i32>,
                         &item.construction_waypoint as &Option<String>,
+                        &item.construction_mode as &Option<ConstructionMode>,
                         &item.contract_ship_count as &Option<i32>,
                 )
                 .fetch_one(&database_pool.database_pool)
@@ -313,13 +318,14 @@ impl DatabaseConnectorAsync for Fleet {
                   chart_only_jump_gates,
                   construction_ship_count,
                   construction_waypoint,
+                  construction_mode,
                   contract_ship_count
                 )
                 VALUES (
                   $1, $2, $3::fleet_type, $4, NOW(), NOW(),
                   $5, $6, $7, $8, $9, $10::trade_mode, $11,
                   $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24,
-                  $25, $26, $27, $28, $29, $30, $31, $32
+                  $25, $26, $27, $28, $29, $30, $31, $32, $33
                 )
                 ON CONFLICT (id) DO UPDATE SET
                   system_symbol = EXCLUDED.system_symbol,
@@ -353,6 +359,7 @@ impl DatabaseConnectorAsync for Fleet {
                   chart_only_jump_gates = EXCLUDED.chart_only_jump_gates,
                   construction_ship_count = EXCLUDED.construction_ship_count,
                   construction_waypoint = EXCLUDED.construction_waypoint,
+                  construction_mode = EXCLUDED.construction_mode,
                   contract_ship_count = EXCLUDED.contract_ship_count;
             "#,
             &item.id,
@@ -386,6 +393,7 @@ impl DatabaseConnectorAsync for Fleet {
             &item.chart_only_jump_gates as &Option<bool>,
             &item.construction_ship_count as &Option<i32>,
             &item.construction_waypoint as &Option<String>,
+            &item.construction_mode as &Option<ConstructionMode>,
             &item.contract_ship_count as &Option<i32>,
         )
         .execute(&database_pool.database_pool)
@@ -451,6 +459,7 @@ impl DatabaseConnectorAsync for Fleet {
                           chart_only_jump_gates,
                           construction_ship_count,
                           construction_waypoint,
+                          construction_mode as "construction_mode: ConstructionMode",
                           contract_ship_count
                         FROM fleet
                         LIMIT $1 OFFSET $2
@@ -500,6 +509,7 @@ impl DatabaseConnectorAsync for Fleet {
                           chart_only_jump_gates,
                           construction_ship_count,
                           construction_waypoint,
+                          construction_mode as "construction_mode: ConstructionMode",
                           contract_ship_count
                         FROM fleet
                     "#
@@ -562,6 +572,7 @@ impl DatabaseConnectorAsync for Fleet {
                   chart_only_jump_gates,
                   construction_ship_count,
                   construction_waypoint,
+                  construction_mode as "construction_mode: ConstructionMode",
                   contract_ship_count
                 FROM fleet
                 WHERE id = $1
@@ -1003,6 +1014,7 @@ impl Fleet {
         id: i32,
         construction_ship_count: Option<i32>,
         construction_waypoint: Option<String>,
+        construction_mode: Option<ConstructionMode>,
     ) -> crate::Result<()> {
         let ft = FleetType::Construction;
         if construction_ship_count.is_some() {
@@ -1019,6 +1031,16 @@ impl Fleet {
             sqlx::query!(
                 r#"UPDATE fleet SET construction_waypoint = $1, fleet_type = $2::fleet_type, updated_at = NOW() WHERE id = $3"#,
                 &construction_waypoint as &Option<String>,
+                &ft as &FleetType,
+                id
+            )
+            .execute(&database_pool.database_pool)
+            .await?;
+        }
+        if construction_mode.is_some() {
+            sqlx::query!(
+                r#"UPDATE fleet SET construction_mode = $1::construction_mode, fleet_type = $2::fleet_type, updated_at = NOW() WHERE id = $3"#,
+                &construction_mode as &Option<ConstructionMode>,
                 &ft as &FleetType,
                 id
             )
@@ -1086,13 +1108,14 @@ impl Fleet {
                   chart_only_jump_gates,
                   construction_ship_count,
                   construction_waypoint,
+                  construction_mode,
                   contract_ship_count
                 )
                 VALUES (
                   $1, $2::fleet_type, $3, NOW(), NOW(),
                   $4, $5, $6, $7, $8, $9::trade_mode, $10,
                   $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24,
-                  $25, $26, $27, $28, $29, $30, $31
+                  $25, $26, $27, $28, $29, $30, $31, $32
                 )
                 RETURNING id;
             "#,
@@ -1126,6 +1149,7 @@ impl Fleet {
             &item.chart_only_jump_gates as &Option<bool>,
             &item.construction_ship_count as &Option<i32>,
             &item.construction_waypoint as &Option<String>,
+            &item.construction_mode as &Option<ConstructionMode>,
             &item.contract_ship_count as &Option<i32>,
         )
         .fetch_one(&database_pool.database_pool)
@@ -1177,6 +1201,7 @@ impl Fleet {
                 chart_only_jump_gates,
                 construction_ship_count,
                 construction_waypoint,
+                construction_mode as "construction_mode: ConstructionMode",
                 contract_ship_count
               FROM fleet
               WHERE id = ANY($1)
@@ -1238,6 +1263,7 @@ impl Fleet {
                           chart_only_jump_gates,
                           construction_ship_count,
                           construction_waypoint,
+                          construction_mode as "construction_mode: ConstructionMode",
                           contract_ship_count
                         FROM fleet
                         WHERE system_symbol = $1
@@ -1289,6 +1315,7 @@ impl Fleet {
                           chart_only_jump_gates,
                           construction_ship_count,
                           construction_waypoint,
+                          construction_mode as "construction_mode: ConstructionMode",
                           contract_ship_count
                         FROM fleet
                         WHERE system_symbol = $1
@@ -1358,6 +1385,7 @@ impl Fleet {
                   chart_only_jump_gates,
                   construction_ship_count,
                   construction_waypoint,
+                  construction_mode as "construction_mode: ConstructionMode",
                   contract_ship_count
                 FROM fleet
                 WHERE system_symbol = ANY($1)
@@ -1415,6 +1443,7 @@ impl Fleet {
                           chart_only_jump_gates,
                           construction_ship_count,
                           construction_waypoint,
+                          construction_mode as "construction_mode: ConstructionMode",
                           contract_ship_count
                         FROM fleet
                         WHERE fleet_type = $1
@@ -1466,6 +1495,7 @@ impl Fleet {
                           chart_only_jump_gates,
                           construction_ship_count,
                           construction_waypoint,
+                          construction_mode as "construction_mode: ConstructionMode",
                           contract_ship_count
                         FROM fleet
                         WHERE fleet_type = $1
@@ -1532,6 +1562,7 @@ impl Fleet {
                   chart_only_jump_gates,
                   construction_ship_count,
                   construction_waypoint,
+                  construction_mode as "construction_mode: ConstructionMode",
                   contract_ship_count
                 FROM fleet
                 WHERE id = $1
@@ -1644,6 +1675,7 @@ impl Fleet {
                 self.fleet_type = FleetType::Construction;
                 self.construction_ship_count = Some(cfg.construction_ship_count);
                 self.construction_waypoint = Some(cfg.construction_waypoint);
+                self.construction_mode = Some(cfg.construction_mode);
             }
             FleetConfig::Contract(cfg) => {
                 self.fleet_type = FleetType::Contract;
@@ -1735,6 +1767,7 @@ impl Fleet {
         Some(ConstructionConfig {
             construction_ship_count: self.construction_ship_count?,
             construction_waypoint: self.construction_waypoint.clone()?,
+            construction_mode: self.construction_mode?,
         })
     }
 
@@ -1874,6 +1907,29 @@ pub struct ChartingConfig {
 pub struct ConstructionConfig {
     pub construction_ship_count: i32,
     pub construction_waypoint: String,
+    pub construction_mode: ConstructionMode,
+}
+
+///How to choose the next construction shipment to make
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    Serialize,
+    Deserialize,
+    Default,
+    sqlx::Type,
+    PartialEq,
+    Eq,
+    async_graphql::Enum,
+)]
+#[sqlx(type_name = "construction_mode")]
+pub enum ConstructionMode {
+    #[default]
+    LowestPurchaseCost,
+    LowestAbsoluteProgress,
+    LowestPercentProgress,
+    BestPurchaseSupply,
 }
 
 #[derive(

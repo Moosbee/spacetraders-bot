@@ -26,13 +26,13 @@ impl ConstructionPilot {
         }
     }
 
-    #[instrument(level = "info", name = "spacetraders::pilot::construction::pilot_construction", skip(self, pilot, fleet, ship_assignment, _construction_config), fields(self.ship_symbol = %self.ship_symbol, construction_shipment, fleet_id = fleet.id, ship_assignment_id = ship_assignment.id))]
+    #[instrument(level = "info", name = "spacetraders::pilot::construction::pilot_construction", skip(self, pilot, fleet, ship_assignment, construction_config), fields(self.ship_symbol = %self.ship_symbol, construction_shipment, fleet_id = fleet.id, ship_assignment_id = ship_assignment.id))]
     pub async fn execute_pilot_circle(
         &self,
         pilot: &super::Pilot,
         fleet: database::Fleet,
         ship_assignment: database::ShipAssignment,
-        _construction_config: database::ConstructionFleetConfig,
+        construction_config: database::ConstructionFleetConfig,
     ) -> Result<()> {
         let mut erg = pilot.context.ship_manager.get_mut(&self.ship_symbol).await;
         let ship = erg
@@ -44,7 +44,7 @@ impl ConstructionPilot {
         let shipment = self
             .context
             .construction_manager
-            .next_shipment(ship.to_immutable())
+            .next_shipment(ship.to_immutable(), construction_config.clone())
             .await?;
 
         debug!(shipment = ?shipment, "Next shipment");

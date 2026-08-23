@@ -1,5 +1,6 @@
+use database::ConstructionFleetConfig;
 use space_traders_client::models;
-use std::sync::{atomic::AtomicBool, Arc};
+use std::sync::{Arc, atomic::AtomicBool};
 
 use super::message::{self, ConstructionManagerMessage};
 
@@ -21,11 +22,13 @@ impl ConstructionManagerMessanger {
     pub async fn next_shipment(
         &self,
         ship_clone: ship::MyShipCopy,
+        construction_config: ConstructionFleetConfig,
     ) -> Result<super::message::NextShipmentResp, crate::error::Error> {
         let (sender, callback) = tokio::sync::oneshot::channel();
 
         let message = message::ConstructionManagerMessage::RequestNextShipment {
             ship_clone,
+            construction_config,
             callback: sender,
         };
 
