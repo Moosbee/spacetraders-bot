@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                INSERT INTO scrap_transaction (\n                    waypoint_symbol,\n                    ship_symbol,\n                    total_price,\n                    \"timestamp\"\n                )\n                VALUES ($1, $2, $3, $4)\n                ON CONFLICT (waypoint_symbol, ship_symbol, \"timestamp\") DO NOTHING\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Varchar",
+        "Varchar",
+        "Int4",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "1acb64c91ce88d02c52f7d072f65cdb9d69d3053337d5ae970227841ac5c8eca"
+}

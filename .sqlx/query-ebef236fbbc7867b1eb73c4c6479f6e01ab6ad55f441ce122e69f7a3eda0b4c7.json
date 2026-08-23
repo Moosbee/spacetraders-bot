@@ -1,0 +1,53 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                        SELECT \n                            symbol,\n                            display_name,\n                            active,\n                            assignment_id,\n                            temp_assignment_id,\n                            purchase_id\n                        FROM ship_info\n                        LIMIT $1 OFFSET $2\n                    ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "symbol",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "display_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "active",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 3,
+        "name": "assignment_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 4,
+        "name": "temp_assignment_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 5,
+        "name": "purchase_id",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "ebef236fbbc7867b1eb73c4c6479f6e01ab6ad55f441ce122e69f7a3eda0b4c7"
+}

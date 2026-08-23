@@ -1,0 +1,189 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                INSERT INTO shipyard_ship (\n                    waypoint_symbol,\n                    ship_type,\n                    name,\n                    supply,\n                    activity,\n                    purchase_price,\n                    frame_type,\n                    frame_quality,\n                    reactor_type,\n                    reactor_quality,\n                    engine_type,\n                    engine_quality,\n                    modules,\n                    mounts,\n                    crew_requirement,\n                    crew_capacity\n                )\n                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)\n                ON CONFLICT (id) DO UPDATE\n                SET waypoint_symbol = EXCLUDED.waypoint_symbol,\n                    ship_type = EXCLUDED.ship_type,\n                    name = EXCLUDED.name,\n                    supply = EXCLUDED.supply,\n                    activity = EXCLUDED.activity,\n                    purchase_price = EXCLUDED.purchase_price,\n                    frame_type = EXCLUDED.frame_type,\n                    frame_quality = EXCLUDED.frame_quality,\n                    reactor_type = EXCLUDED.reactor_type,\n                    reactor_quality = EXCLUDED.reactor_quality,\n                    engine_type = EXCLUDED.engine_type,\n                    engine_quality = EXCLUDED.engine_quality,\n                    modules = EXCLUDED.modules,\n                    mounts = EXCLUDED.mounts,\n                    crew_requirement = EXCLUDED.crew_requirement,\n                    crew_capacity = EXCLUDED.crew_capacity,\n                    created_at = now()\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Varchar",
+        {
+          "Custom": {
+            "name": "ship_type",
+            "kind": {
+              "Enum": [
+                "SHIP_PROBE",
+                "SHIP_MINING_DRONE",
+                "SHIP_SIPHON_DRONE",
+                "SHIP_INTERCEPTOR",
+                "SHIP_LIGHT_HAULER",
+                "SHIP_COMMAND_FRIGATE",
+                "SHIP_EXPLORER",
+                "SHIP_HEAVY_FREIGHTER",
+                "SHIP_LIGHT_SHUTTLE",
+                "SHIP_ORE_HOUND",
+                "SHIP_REFINING_FREIGHTER",
+                "SHIP_SURVEYOR",
+                "SHIP_BULK_FREIGHTER"
+              ]
+            }
+          }
+        },
+        "Varchar",
+        {
+          "Custom": {
+            "name": "supply_level",
+            "kind": {
+              "Enum": [
+                "SCARCE",
+                "LIMITED",
+                "MODERATE",
+                "HIGH",
+                "ABUNDANT"
+              ]
+            }
+          }
+        },
+        {
+          "Custom": {
+            "name": "activity_level",
+            "kind": {
+              "Enum": [
+                "WEAK",
+                "GROWING",
+                "STRONG",
+                "RESTRICTED"
+              ]
+            }
+          }
+        },
+        "Int4",
+        {
+          "Custom": {
+            "name": "ship_frame_symbol",
+            "kind": {
+              "Enum": [
+                "FRAME_PROBE",
+                "FRAME_DRONE",
+                "FRAME_INTERCEPTOR",
+                "FRAME_RACER",
+                "FRAME_FIGHTER",
+                "FRAME_FRIGATE",
+                "FRAME_SHUTTLE",
+                "FRAME_EXPLORER",
+                "FRAME_MINER",
+                "FRAME_LIGHT_FREIGHTER",
+                "FRAME_HEAVY_FREIGHTER",
+                "FRAME_TRANSPORT",
+                "FRAME_DESTROYER",
+                "FRAME_CRUISER",
+                "FRAME_CARRIER",
+                "FRAME_BULK_FREIGHTER"
+              ]
+            }
+          }
+        },
+        "Float8",
+        {
+          "Custom": {
+            "name": "ship_reactor_symbol",
+            "kind": {
+              "Enum": [
+                "REACTOR_SOLAR_I",
+                "REACTOR_FUSION_I",
+                "REACTOR_FISSION_I",
+                "REACTOR_CHEMICAL_I",
+                "REACTOR_ANTIMATTER_I"
+              ]
+            }
+          }
+        },
+        "Float8",
+        {
+          "Custom": {
+            "name": "ship_engine_symbol",
+            "kind": {
+              "Enum": [
+                "ENGINE_IMPULSE_DRIVE_I",
+                "ENGINE_ION_DRIVE_I",
+                "ENGINE_ION_DRIVE_II",
+                "ENGINE_HYPER_DRIVE_I"
+              ]
+            }
+          }
+        },
+        "Float8",
+        {
+          "Custom": {
+            "name": "ship_module_symbol[]",
+            "kind": {
+              "Array": {
+                "Custom": {
+                  "name": "ship_module_symbol",
+                  "kind": {
+                    "Enum": [
+                      "MODULE_MINERAL_PROCESSOR_I",
+                      "MODULE_GAS_PROCESSOR_I",
+                      "MODULE_CARGO_HOLD_I",
+                      "MODULE_CARGO_HOLD_II",
+                      "MODULE_CARGO_HOLD_III",
+                      "MODULE_CREW_QUARTERS_I",
+                      "MODULE_ENVOY_QUARTERS_I",
+                      "MODULE_PASSENGER_CABIN_I",
+                      "MODULE_MICRO_REFINERY_I",
+                      "MODULE_ORE_REFINERY_I",
+                      "MODULE_FUEL_REFINERY_I",
+                      "MODULE_SCIENCE_LAB_I",
+                      "MODULE_JUMP_DRIVE_I",
+                      "MODULE_JUMP_DRIVE_II",
+                      "MODULE_JUMP_DRIVE_III",
+                      "MODULE_WARP_DRIVE_I",
+                      "MODULE_WARP_DRIVE_II",
+                      "MODULE_WARP_DRIVE_III",
+                      "MODULE_SHIELD_GENERATOR_I",
+                      "MODULE_SHIELD_GENERATOR_II"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "Custom": {
+            "name": "ship_mount_symbol[]",
+            "kind": {
+              "Array": {
+                "Custom": {
+                  "name": "ship_mount_symbol",
+                  "kind": {
+                    "Enum": [
+                      "MOUNT_GAS_SIPHON_I",
+                      "MOUNT_GAS_SIPHON_II",
+                      "MOUNT_GAS_SIPHON_III",
+                      "MOUNT_SURVEYOR_I",
+                      "MOUNT_SURVEYOR_II",
+                      "MOUNT_SURVEYOR_III",
+                      "MOUNT_SENSOR_ARRAY_I",
+                      "MOUNT_SENSOR_ARRAY_II",
+                      "MOUNT_SENSOR_ARRAY_III",
+                      "MOUNT_MINING_LASER_I",
+                      "MOUNT_MINING_LASER_II",
+                      "MOUNT_MINING_LASER_III",
+                      "MOUNT_LASER_CANNON_I",
+                      "MOUNT_MISSILE_LAUNCHER_I",
+                      "MOUNT_TURRET_I"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "Int4",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "1500fec1795aadb7a540957e6c95c3eb41c8989d0ef8fa15135623642922e4f8"
+}

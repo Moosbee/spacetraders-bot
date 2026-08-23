@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                    SELECT COUNT(*) as \"count!\"\n                    FROM (\n                        SELECT DISTINCT ON (waypoint_symbol, symbol)\n                            waypoint_symbol,\n                            symbol\n                        FROM public.market_trade\n                        WHERE waypoint_symbol = $1\n                        ORDER BY waypoint_symbol, symbol, created_at DESC\n                    ) sub\n                    ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "count!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "071616648d0bfe6025a9e8ff0061553989a8d2569f5585d027c139e064ed1dda"
+}

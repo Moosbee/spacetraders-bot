@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                SELECT id\n                FROM scrap_transaction\n                WHERE waypoint_symbol = $1\n                  AND ship_symbol = $2\n                  AND \"timestamp\" = $3\n                LIMIT 1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "930c4a28d9e2c8757263d3933f18a3eecbf1df7236fdce8ced3b433068ae7438"
+}

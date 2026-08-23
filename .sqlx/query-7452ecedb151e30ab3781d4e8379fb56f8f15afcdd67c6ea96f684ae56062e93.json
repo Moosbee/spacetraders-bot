@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                UPDATE route\n                SET\n                    ship_symbol = $1,\n                    \"from\" = $2,\n                    \"to\" = $3,\n                    distance = $4,\n                    nav_mode = $5,\n                    fuel_cost = $6,\n                    travel_time = $7,\n                    ship_info_before = $8,\n                    ship_info_after = $9\n                WHERE id = $10\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Varchar",
+        "Varchar",
+        "Varchar",
+        "Float8",
+        "Varchar",
+        "Int4",
+        "Float8",
+        "Int8",
+        "Int8",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "7452ecedb151e30ab3781d4e8379fb56f8f15afcdd67c6ea96f684ae56062e93"
+}

@@ -1,0 +1,178 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            select \n              sum(market_transaction.total_price) as \"all_sum: i32\",\n              sum(\n                  CASE\n                    WHEN market_transaction.type = 'PURCHASE' THEN market_transaction.total_price\n                    ELSE 0\n                  END\n                ) as \"all_expenses: i32\",\n              sum(\n                  CASE\n                    WHEN market_transaction.type = 'PURCHASE' THEN 0\n                    ELSE market_transaction.total_price\n                  END\n                ) as \"all_income: i32\",\n              sum(market_transaction.units) as \"all_units: i32\",\n              sum(\n                  CASE\n                    WHEN market_transaction.type = 'PURCHASE' THEN market_transaction.units\n                    ELSE 0\n                  END\n                ) as \"all_purchase_units: i32\",\n              sum(\n                  CASE\n                    WHEN market_transaction.type = 'SELL' THEN market_transaction.units\n                    ELSE 0\n                  END\n                ) as \"all_sell_units: i32\",\n              count(market_transaction.id) as \"all_transactions: i32\",\n              count(\n                  CASE\n                    WHEN market_transaction.type = 'PURCHASE' THEN market_transaction.id\n                    ELSE NULL\n                  END\n                ) as \"all_purchase_transactions: i32\",\n              count(\n                  CASE\n                    WHEN market_transaction.type = 'SELL' THEN market_transaction.id\n                    ELSE NULL\n                  END\n              ) as \"all_sell_transactions: i32\",\n              sum(market_transaction.total_price) FILTER (WHERE market_transaction.is_fuel) as \"fuel_sum: i32\",\n              sum(\n                  CASE\n                    WHEN market_transaction.type = 'PURCHASE' THEN market_transaction.total_price\n                    ELSE 0\n                  END\n                ) FILTER (WHERE market_transaction.is_fuel) as \"fuel_expenses: i32\",\n              sum(\n                  CASE\n                    WHEN market_transaction.type = 'PURCHASE' THEN 0\n                    ELSE market_transaction.total_price\n                  END\n                ) FILTER (WHERE market_transaction.is_fuel) as \"fuel_income: i32\",\n              sum(market_transaction.units) FILTER (WHERE market_transaction.is_fuel) as \"fuel_units: i32\",\n              sum(\n                  CASE\n                    WHEN market_transaction.type = 'PURCHASE' THEN market_transaction.units\n                    ELSE 0\n                  END\n                ) FILTER (WHERE market_transaction.is_fuel) as \"fuel_purchase_units: i32\",\n              sum(\n                  CASE\n                    WHEN market_transaction.type = 'SELL' THEN market_transaction.units\n                    ELSE 0\n                  END\n                ) FILTER (WHERE market_transaction.is_fuel) as \"fuel_sell_units: i32\",\n              count(market_transaction.id) FILTER (WHERE market_transaction.is_fuel) as \"fuel_transactions: i32\",\n              count(\n                  CASE\n                    WHEN market_transaction.type = 'PURCHASE' THEN market_transaction.id\n                    ELSE NULL\n                  END\n                ) FILTER (WHERE market_transaction.is_fuel) as \"fuel_purchase_transactions: i32\",\n              count(\n                  CASE\n                    WHEN market_transaction.type = 'SELL' THEN market_transaction.id\n                    ELSE NULL\n                  END\n              ) FILTER (WHERE market_transaction.is_fuel) as \"fuel_sell_transactions: i32\",\n              sum(market_transaction.total_price) FILTER (WHERE NOT market_transaction.is_fuel) as \"sum: i32\",\n              sum(\n                  CASE\n                    WHEN market_transaction.type = 'PURCHASE' THEN market_transaction.total_price\n                    ELSE 0\n                  END\n                ) FILTER (WHERE NOT market_transaction.is_fuel) as \"expenses: i32\",\n              sum(\n                  CASE\n                    WHEN market_transaction.type = 'PURCHASE' THEN 0\n                    ELSE market_transaction.total_price\n                  END\n                ) FILTER (WHERE NOT market_transaction.is_fuel) as \"income: i32\",\n              sum(market_transaction.units) FILTER (WHERE NOT market_transaction.is_fuel) as \"units: i32\",\n              sum(\n                  CASE\n                    WHEN market_transaction.type = 'PURCHASE' THEN market_transaction.units\n                    ELSE 0\n                  END\n                ) FILTER (WHERE NOT market_transaction.is_fuel) as \"purchase_units: i32\",\n              sum(\n                  CASE\n                    WHEN market_transaction.type = 'SELL' THEN market_transaction.units\n                    ELSE 0\n                  END\n                ) FILTER (WHERE NOT market_transaction.is_fuel) as \"sell_units: i32\",\n              count(market_transaction.id) FILTER (WHERE NOT market_transaction.is_fuel) as \"transactions: i32\",\n              count(\n                  CASE\n                    WHEN market_transaction.type = 'PURCHASE' THEN market_transaction.id\n                    ELSE NULL\n                  END\n                ) FILTER (WHERE NOT market_transaction.is_fuel) as \"purchase_transactions: i32\",\n              count(\n                  CASE\n                    WHEN market_transaction.type = 'SELL' THEN market_transaction.id\n                    ELSE NULL\n                  END\n              ) FILTER (WHERE NOT market_transaction.is_fuel) as \"sell_transactions: i32\"\n            from market_transaction\n            where contract = $1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "all_sum: i32",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "all_expenses: i32",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "all_income: i32",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "all_units: i32",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 4,
+        "name": "all_purchase_units: i32",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 5,
+        "name": "all_sell_units: i32",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 6,
+        "name": "all_transactions: i32",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 7,
+        "name": "all_purchase_transactions: i32",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 8,
+        "name": "all_sell_transactions: i32",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 9,
+        "name": "fuel_sum: i32",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 10,
+        "name": "fuel_expenses: i32",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 11,
+        "name": "fuel_income: i32",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 12,
+        "name": "fuel_units: i32",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 13,
+        "name": "fuel_purchase_units: i32",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 14,
+        "name": "fuel_sell_units: i32",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 15,
+        "name": "fuel_transactions: i32",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 16,
+        "name": "fuel_purchase_transactions: i32",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 17,
+        "name": "fuel_sell_transactions: i32",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 18,
+        "name": "sum: i32",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 19,
+        "name": "expenses: i32",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 20,
+        "name": "income: i32",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 21,
+        "name": "units: i32",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 22,
+        "name": "purchase_units: i32",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 23,
+        "name": "sell_units: i32",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 24,
+        "name": "transactions: i32",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 25,
+        "name": "purchase_transactions: i32",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 26,
+        "name": "sell_transactions: i32",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "416acb3e74fa0535b695f905122fe360d3994f7c4665503fdb41d4fd38d646b2"
+}

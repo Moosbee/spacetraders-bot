@@ -1,0 +1,120 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                SELECT\n                    symbol as \"symbol: models::ship_module::Symbol\",\n                    name,\n                    description,\n                    range,\n                    capacity,\n                    power_required,\n                    crew_required,\n                    slots_required\n                FROM module_info\n                WHERE symbol = $1\n                LIMIT 1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "symbol: models::ship_module::Symbol",
+        "type_info": {
+          "Custom": {
+            "name": "ship_module_symbol",
+            "kind": {
+              "Enum": [
+                "MODULE_MINERAL_PROCESSOR_I",
+                "MODULE_GAS_PROCESSOR_I",
+                "MODULE_CARGO_HOLD_I",
+                "MODULE_CARGO_HOLD_II",
+                "MODULE_CARGO_HOLD_III",
+                "MODULE_CREW_QUARTERS_I",
+                "MODULE_ENVOY_QUARTERS_I",
+                "MODULE_PASSENGER_CABIN_I",
+                "MODULE_MICRO_REFINERY_I",
+                "MODULE_ORE_REFINERY_I",
+                "MODULE_FUEL_REFINERY_I",
+                "MODULE_SCIENCE_LAB_I",
+                "MODULE_JUMP_DRIVE_I",
+                "MODULE_JUMP_DRIVE_II",
+                "MODULE_JUMP_DRIVE_III",
+                "MODULE_WARP_DRIVE_I",
+                "MODULE_WARP_DRIVE_II",
+                "MODULE_WARP_DRIVE_III",
+                "MODULE_SHIELD_GENERATOR_I",
+                "MODULE_SHIELD_GENERATOR_II"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "description",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "range",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "capacity",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 5,
+        "name": "power_required",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 6,
+        "name": "crew_required",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 7,
+        "name": "slots_required",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        {
+          "Custom": {
+            "name": "ship_module_symbol",
+            "kind": {
+              "Enum": [
+                "MODULE_MINERAL_PROCESSOR_I",
+                "MODULE_GAS_PROCESSOR_I",
+                "MODULE_CARGO_HOLD_I",
+                "MODULE_CARGO_HOLD_II",
+                "MODULE_CARGO_HOLD_III",
+                "MODULE_CREW_QUARTERS_I",
+                "MODULE_ENVOY_QUARTERS_I",
+                "MODULE_PASSENGER_CABIN_I",
+                "MODULE_MICRO_REFINERY_I",
+                "MODULE_ORE_REFINERY_I",
+                "MODULE_FUEL_REFINERY_I",
+                "MODULE_SCIENCE_LAB_I",
+                "MODULE_JUMP_DRIVE_I",
+                "MODULE_JUMP_DRIVE_II",
+                "MODULE_JUMP_DRIVE_III",
+                "MODULE_WARP_DRIVE_I",
+                "MODULE_WARP_DRIVE_II",
+                "MODULE_WARP_DRIVE_III",
+                "MODULE_SHIELD_GENERATOR_I",
+                "MODULE_SHIELD_GENERATOR_II"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "1f52d901accadf1ad07e9fadb960dadbd68f0da1c3f3b0f484041f71ecc59cfb"
+}
