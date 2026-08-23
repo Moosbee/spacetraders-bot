@@ -155,6 +155,7 @@ impl<T: Clone + Send + Sync> RustShip<T, Mutable> {
                                 &database_pool2,
                                 reson2.clone(),
                                 update_funds_fn2.clone(),
+                                true,
                             )
                             .await?;
                     }

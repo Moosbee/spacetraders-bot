@@ -53,6 +53,7 @@ impl<T: Clone + Send + Sync> RustShip<T, Mutable> {
         database_pool: &database::DbPool,
         reason: database::TransactionReason,
         update_funds_fn: impl Fn(i64) + Clone,
+        is_fuel: bool,
     ) -> error::Result<i64> {
         let market_info = self.get_market_info(api, database_pool).await?;
         let purchase_volumes = self.calculate_volumes(units, &market_info, symbol)?;
@@ -68,6 +69,7 @@ impl<T: Clone + Send + Sync> RustShip<T, Mutable> {
                     database_pool,
                     reason.clone(),
                     update_funds_fn.clone(),
+                    is_fuel,
                 )
                 .await?;
             total_cost += transaction.total_price as i64;
@@ -84,6 +86,7 @@ impl<T: Clone + Send + Sync> RustShip<T, Mutable> {
         database_pool: &database::DbPool,
         reason: database::TransactionReason,
         update_funds_fn: impl Fn(i64) + Clone,
+        is_fuel: bool,
     ) -> error::Result<i64> {
         let market_info = self.get_market_info(api, database_pool).await?;
         let sell_volumes = self.calculate_volumes(units, &market_info, symbol)?;
@@ -100,6 +103,7 @@ impl<T: Clone + Send + Sync> RustShip<T, Mutable> {
                     database_pool,
                     reason.clone(),
                     update_funds_fn.clone(),
+                    is_fuel,
                 )
                 .await?;
 
@@ -174,6 +178,7 @@ impl<T: Clone + Send + Sync> RustShip<T, Mutable> {
         database_pool: &database::DbPool,
         reason: database::TransactionReason,
         update_funds_fn: impl Fn(i64) + Clone,
+        is_fuel: bool,
     ) -> error::Result<database::MarketTransaction> {
         let trade_data = match r_type {
             Mode::Sell => {
@@ -213,7 +218,8 @@ impl<T: Clone + Send + Sync> RustShip<T, Mutable> {
 
         let transaction: database::MarketTransaction =
             database::MarketTransaction::try_from(trade_data.transaction.as_ref().clone())?
-                .with(reason);
+                .with(reason)
+                .set_fuel(is_fuel);
         database::MarketTransaction::upsert(database_pool, &transaction).await?;
 
         Ok(transaction)

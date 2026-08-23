@@ -143,7 +143,8 @@ impl<T: Clone + Send + Sync> RustShip<T, Mutable> {
 
         let transaction =
             database::MarketTransaction::try_from(jump_data.data.transaction.as_ref().clone())?
-                .with(reason.clone());
+                .with(reason.clone())
+                .set_fuel(true);
         database::MarketTransaction::upsert(database_pool, &transaction).await?;
 
         let ship_jump = database::ShipJump {
@@ -401,7 +402,8 @@ impl<T: Clone + Send + Sync> RustShip<T, Mutable> {
             let transaction = database::MarketTransaction::try_from(
                 refuel_data.data.transaction.as_ref().clone(),
             )?
-            .with(reason.clone());
+            .with(reason.clone())
+            .set_fuel(true);
             database::MarketTransaction::upsert(database_pool, &transaction).await?;
         }
 
@@ -413,6 +415,7 @@ impl<T: Clone + Send + Sync> RustShip<T, Mutable> {
                 database_pool,
                 reason.clone(),
                 update_funds_fn,
+                true,
             )
             .await?;
         }
@@ -442,7 +445,8 @@ impl<T: Clone + Send + Sync> RustShip<T, Mutable> {
             let transaction = database::MarketTransaction::try_from(
                 refuel_data.data.transaction.as_ref().clone(),
             )?
-            .with(reason.clone());
+            .with(reason.clone())
+            .set_fuel(true);
             database::MarketTransaction::upsert(database_pool, &transaction).await?;
         }
 

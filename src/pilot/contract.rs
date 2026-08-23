@@ -215,6 +215,7 @@ impl ContractPilot {
                 &self.context.database_pool,
                 database::TransactionReason::Contract(shipment.contract_id.clone()),
                 update_funds_fn,
+                false,
             )
             .await?;
 

@@ -446,6 +446,7 @@ impl TransportPilot {
                 database_pool,
                 reason.clone(),
                 update_funds_fn,
+                false,
             )
             .await?;
         }

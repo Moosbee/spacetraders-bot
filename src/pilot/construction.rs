@@ -210,6 +210,7 @@ impl ConstructionPilot {
                 &self.context.database_pool,
                 database::TransactionReason::Construction(shipment.id),
                 update_funds_fn,
+                false,
             )
             .await?;
 

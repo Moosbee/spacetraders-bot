@@ -228,6 +228,7 @@ impl TradingPilot {
                     &self.context.database_pool,
                     database::TransactionReason::TradeRoute(route.id),
                     update_funds_fn,
+                    false,
                 )
                 .await?;
 
@@ -302,6 +303,7 @@ impl TradingPilot {
             &self.context.database_pool,
             database::TransactionReason::TradeRoute(route.id),
             update_funds_fn,
+            false,
         )
         .await?;
 
