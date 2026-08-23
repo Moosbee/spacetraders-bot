@@ -171,3 +171,17 @@ fn get_csv_line(values: &[&dyn std::fmt::Display]) -> String {
 fn print_json<T: serde::Serialize>(value: &T) {
     println!("{}", serde_json::to_string_pretty(value).unwrap());
 }
+
+pub(crate) async fn generate_graphql() -> anyhow::Result<()> {
+    let schema = async_graphql::Schema::build(
+        spacetraders::control_api::QueryRoot,
+        spacetraders::control_api::MutationRoot,
+        async_graphql::EmptySubscription,
+    )
+    .finish();
+
+    println!("{}", schema.sdl());
+    tokio::fs::write("schema.graphql", schema.sdl()).await?;
+
+    Ok(())
+}

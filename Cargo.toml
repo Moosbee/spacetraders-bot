@@ -3,6 +3,9 @@ name = "spacetraders"
 version = "0.1.0"
 edition = "2024"
 
+[profile.release]
+debug = true
+
 [workspace]
 members = ["database", "ship", "space_traders_client", "utils", "xtask"]
 

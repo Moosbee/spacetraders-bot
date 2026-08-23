@@ -1,15 +1,6 @@
 #![recursion_limit = "256"]
 mod tests;
 
-mod control_api;
-mod db_administration;
-mod error;
-mod manager;
-mod open_telemetry;
-mod pilot;
-mod reset_runner;
-mod utils;
-
 use core::panic;
 use std::{env, num::NonZeroU32};
 
@@ -27,7 +18,9 @@ use tracing::{error, info};
 
 use tracing_subscriber::{fmt::format, layer::SubscriberExt};
 
-use crate::db_administration::{create_database_pool, export_database, reset_database};
+use spacetraders::db_administration::{create_database_pool, export_database, reset_database};
+use spacetraders::open_telemetry;
+use spacetraders::reset_runner;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {

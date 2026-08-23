@@ -29,6 +29,8 @@ enum Commands {
         #[command(subcommand)]
         command: ExportCommand,
     },
+    #[command(alias = "gql", alias = "generate-graphql")]
+    GenerateGraphQL,
 }
 
 #[derive(Subcommand)]
@@ -69,6 +71,7 @@ async fn main() -> anyhow::Result<()> {
             ExportCommand::JumpConnections => exports::export_jump_connections().await?,
             ExportCommand::Routes => exports::export_routes().await?,
         },
+        Commands::GenerateGraphQL => exports::generate_graphql().await?,
     }
 
     Ok(())
