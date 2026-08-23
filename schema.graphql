@@ -935,6 +935,9 @@ type MarketTransaction {
 	timestamp: DateTime!
 	"""
 	Whether the transaction was for fuel or antimatter for travel.
+	"""
+	isFuel: Boolean!
+	"""
 	The reason for the transaction.
 	pub reason: TransactionReason,
 	"""
@@ -2280,6 +2283,24 @@ type TradingConfig {
 }
 
 type TransactionSummary {
+	allSum: Int
+	allExpenses: Int
+	allIncome: Int
+	allUnits: Int
+	allPurchaseUnits: Int
+	allSellUnits: Int
+	allTransactions: Int
+	allPurchaseTransactions: Int
+	allSellTransactions: Int
+	fuelSum: Int
+	fuelExpenses: Int
+	fuelIncome: Int
+	fuelUnits: Int
+	fuelPurchaseUnits: Int
+	fuelSellUnits: Int
+	fuelTransactions: Int
+	fuelPurchaseTransactions: Int
+	fuelSellTransactions: Int
 	sum: Int
 	expenses: Int
 	income: Int

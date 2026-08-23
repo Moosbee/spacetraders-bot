@@ -1006,12 +1006,13 @@ export type MarketTransaction = {
   construction_shipment_id?: Maybe<Scalars['Int']['output']>;
   contract?: Maybe<Contract>;
   /**
-   * Whether the transaction was for fuel or antimatter for travel.
    * The reason for the transaction.
    * pub reason: TransactionReason,
    */
   contract_id?: Maybe<Scalars['String']['output']>;
   id: Scalars['Int']['output'];
+  /** Whether the transaction was for fuel or antimatter for travel. */
+  isFuel: Scalars['Boolean']['output'];
   marketTradeGood?: Maybe<MarketTradeGood>;
   miningWaypoint?: Maybe<Waypoint>;
   mining_waypoint_symbol?: Maybe<Scalars['String']['output']>;
@@ -3000,7 +3001,25 @@ export type TradingConfig = {
 
 export type TransactionSummary = {
   __typename?: 'TransactionSummary';
+  allExpenses?: Maybe<Scalars['Int']['output']>;
+  allIncome?: Maybe<Scalars['Int']['output']>;
+  allPurchaseTransactions?: Maybe<Scalars['Int']['output']>;
+  allPurchaseUnits?: Maybe<Scalars['Int']['output']>;
+  allSellTransactions?: Maybe<Scalars['Int']['output']>;
+  allSellUnits?: Maybe<Scalars['Int']['output']>;
+  allSum?: Maybe<Scalars['Int']['output']>;
+  allTransactions?: Maybe<Scalars['Int']['output']>;
+  allUnits?: Maybe<Scalars['Int']['output']>;
   expenses?: Maybe<Scalars['Int']['output']>;
+  fuelExpenses?: Maybe<Scalars['Int']['output']>;
+  fuelIncome?: Maybe<Scalars['Int']['output']>;
+  fuelPurchaseTransactions?: Maybe<Scalars['Int']['output']>;
+  fuelPurchaseUnits?: Maybe<Scalars['Int']['output']>;
+  fuelSellTransactions?: Maybe<Scalars['Int']['output']>;
+  fuelSellUnits?: Maybe<Scalars['Int']['output']>;
+  fuelSum?: Maybe<Scalars['Int']['output']>;
+  fuelTransactions?: Maybe<Scalars['Int']['output']>;
+  fuelUnits?: Maybe<Scalars['Int']['output']>;
   income?: Maybe<Scalars['Int']['output']>;
   purchaseTransactions?: Maybe<Scalars['Int']['output']>;
   purchaseUnits?: Maybe<Scalars['Int']['output']>;
