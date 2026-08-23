@@ -395,9 +395,9 @@ export const GET_SYSTEM = graphql(/* GraphQL */ `
           fulfilled
           updatedAt
           marketTransactionSummary {
-            expenses
-            purchaseUnits
-            purchaseTransactions
+            allExpenses
+            allPurchaseUnits
+            allPurchaseTransactions
           }
         }
       }
@@ -488,7 +488,7 @@ export const GET_SYSTEM = graphql(/* GraphQL */ `
             onAccepted
             deadline
             marketTransactionSummary {
-              expenses
+              allExpenses
             }
           }
         }
@@ -497,8 +497,8 @@ export const GET_SYSTEM = graphql(/* GraphQL */ `
         items {
           id
           marketTransactionSummary {
-            expenses
-            income
+            allExpenses
+            allIncome
           }
           symbol
           shipSymbol
@@ -651,8 +651,8 @@ export const GET_SYSTEM_MARKETS = graphql(/* GraphQL */ `
         items {
           id
           marketTransactionSummary {
-            expenses
-            income
+            allExpenses
+            allIncome
           }
           symbol
           shipSymbol
@@ -906,9 +906,9 @@ export const GET_WAYPOINT = graphql(/* GraphQL */ `
           fulfilled
           updatedAt
           marketTransactionSummary {
-            expenses
-            purchaseUnits
-            purchaseTransactions
+            allExpenses
+            allPurchaseUnits
+            allPurchaseTransactions
           }
         }
       }
@@ -1235,8 +1235,8 @@ export const GET_ALL_TRADE_ROUTES = graphql(/* GraphQL */ `
         reservedFund
         estimatedFuel
         marketTransactionSummary {
-          expenses
-          income
+          allExpenses
+          allIncome
         }
         purchaseMarketTradeGood {
           tradeVolume

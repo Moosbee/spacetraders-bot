@@ -963,13 +963,14 @@ function System() {
                 render: (_, record) => (
                   <span>
                     {(
-                      record.marketTransactionSummary.purchaseTransactions || 0
+                      record.marketTransactionSummary.allPurchaseTransactions ||
+                      0
                     ).toLocaleString()}
                   </span>
                 ),
                 sorter: (a, b) =>
-                  (a.marketTransactionSummary.purchaseTransactions || 0) -
-                  (b.marketTransactionSummary.purchaseTransactions || 0),
+                  (a.marketTransactionSummary.allPurchaseTransactions || 0) -
+                  (b.marketTransactionSummary.allPurchaseTransactions || 0),
                 align: "right",
               },
               {
@@ -978,13 +979,13 @@ function System() {
                 render: (_, record) => (
                   <span>
                     {(
-                      record.marketTransactionSummary.purchaseUnits || 0
+                      record.marketTransactionSummary.allPurchaseUnits || 0
                     ).toLocaleString()}
                   </span>
                 ),
                 sorter: (a, b) =>
-                  (a.marketTransactionSummary.purchaseUnits || 0) -
-                  (b.marketTransactionSummary.purchaseUnits || 0),
+                  (a.marketTransactionSummary.allPurchaseUnits || 0) -
+                  (b.marketTransactionSummary.allPurchaseUnits || 0),
                 align: "right",
               },
               {
@@ -992,12 +993,12 @@ function System() {
                 key: "expenses",
                 render: (_, record) => (
                   <MoneyDisplay
-                    amount={record.marketTransactionSummary.expenses || 0}
+                    amount={record.marketTransactionSummary.allExpenses || 0}
                   />
                 ),
                 sorter: (a, b) =>
-                  (a.marketTransactionSummary.expenses || 0) -
-                  (b.marketTransactionSummary.expenses || 0),
+                  (a.marketTransactionSummary.allExpenses || 0) -
+                  (b.marketTransactionSummary.allExpenses || 0),
                 align: "right",
               },
               {
@@ -1613,13 +1614,13 @@ function System() {
                 render: (_, record) => (
                   <span>
                     <MoneyDisplay
-                      amount={record.marketTransactionSummary?.expenses || 0}
+                      amount={record.marketTransactionSummary?.allExpenses || 0}
                     />
                   </span>
                 ),
                 sorter: (a, b) =>
-                  (a.marketTransactionSummary?.expenses || 0) -
-                  (b.marketTransactionSummary?.expenses || 0),
+                  (a.marketTransactionSummary?.allExpenses || 0) -
+                  (b.marketTransactionSummary?.allExpenses || 0),
               },
               {
                 title: "Profit",
@@ -1669,7 +1670,7 @@ function System() {
                           <span>Income:</span>{" "}
                           <MoneyDisplay
                             amount={
-                              record.marketTransactionSummary?.income || 0
+                              record.marketTransactionSummary?.allIncome || 0
                             }
                           />
                         </Flex>
@@ -1677,7 +1678,7 @@ function System() {
                           <span>Expenses:</span>{" "}
                           <MoneyDisplay
                             amount={
-                              record.marketTransactionSummary?.expenses || 0
+                              record.marketTransactionSummary?.allExpenses || 0
                             }
                           />
                         </Flex>
@@ -1685,8 +1686,10 @@ function System() {
                           <span>Profit:</span>{" "}
                           <MoneyDisplay
                             amount={
-                              (record.marketTransactionSummary?.income || 0) -
-                              (record.marketTransactionSummary?.expenses || 0)
+                              (record.marketTransactionSummary?.allIncome ||
+                                0) -
+                              (record.marketTransactionSummary?.allExpenses ||
+                                0)
                             }
                           />
                         </Flex>
@@ -1695,12 +1698,12 @@ function System() {
                   >
                     <MoneyDisplay
                       amount={
-                        (record.marketTransactionSummary?.income || 0) -
-                        (record.marketTransactionSummary?.expenses || 0)
+                        (record.marketTransactionSummary?.allIncome || 0) -
+                        (record.marketTransactionSummary?.allExpenses || 0)
                       }
                       className={cn(
-                        (record.marketTransactionSummary?.income || 0) -
-                          (record.marketTransactionSummary?.expenses || 0) >
+                        (record.marketTransactionSummary?.allIncome || 0) -
+                          (record.marketTransactionSummary?.allExpenses || 0) >
                           0
                           ? "text-current"
                           : "text-red-600",
@@ -1709,10 +1712,10 @@ function System() {
                   </Popover>
                 ),
                 sorter: (a, b) =>
-                  (a.marketTransactionSummary?.income || 0) -
-                  (a.marketTransactionSummary?.expenses || 0) -
-                  (b.marketTransactionSummary?.income || 0) +
-                  (b.marketTransactionSummary?.expenses || 0),
+                  (a.marketTransactionSummary?.allIncome || 0) -
+                  (a.marketTransactionSummary?.allExpenses || 0) -
+                  (b.marketTransactionSummary?.allIncome || 0) +
+                  (b.marketTransactionSummary?.allExpenses || 0),
               },
             ]}
             dataSource={system?.tradeRoutes || []}
@@ -1824,7 +1827,7 @@ function System() {
                           <MoneyDisplay
                             amount={
                               record.contract?.marketTransactionSummary
-                                .expenses || 0
+                                .allExpenses || 0
                             }
                           />
                         </Flex>
@@ -1839,7 +1842,7 @@ function System() {
                               (record.contract?.onFulfilled || 0) +
                               (record.contract?.onAccepted || 0) -
                               (record.contract?.marketTransactionSummary
-                                .expenses || 0)
+                                .allExpenses || 0)
                             }
                           />
                         </Flex>
@@ -1850,14 +1853,14 @@ function System() {
                       amount={
                         (record.contract?.onFulfilled || 0) +
                         (record.contract?.onAccepted || 0) -
-                        (record.contract?.marketTransactionSummary.expenses ||
-                          0)
+                        (record.contract?.marketTransactionSummary
+                          .allExpenses || 0)
                       }
                       className={
                         (record.contract?.onFulfilled || 0) +
                           (record.contract?.onAccepted || 0) -
-                          (record.contract?.marketTransactionSummary.expenses ||
-                            0) >
+                          (record.contract?.marketTransactionSummary
+                            .allExpenses || 0) >
                         0
                           ? "text-current"
                           : "text-red-600"
@@ -1868,10 +1871,10 @@ function System() {
                 sorter: (a, b) =>
                   (a.contract?.onFulfilled || 0) +
                   (a.contract?.onAccepted || 0) -
-                  (a.contract?.marketTransactionSummary.expenses || 0) -
+                  (a.contract?.marketTransactionSummary.allExpenses || 0) -
                   (b.contract?.onFulfilled || 0) -
                   (b.contract?.onAccepted || 0) +
-                  (b.contract?.marketTransactionSummary.expenses || 0),
+                  (b.contract?.marketTransactionSummary.allExpenses || 0),
               },
               {
                 title: "Deadline",

@@ -502,13 +502,13 @@ function Waypoint() {
       render: (_, record) => (
         <span>
           {(
-            record.marketTransactionSummary.purchaseTransactions || 0
+            record.marketTransactionSummary.allPurchaseTransactions || 0
           ).toLocaleString()}
         </span>
       ),
       sorter: (a, b) =>
-        (a.marketTransactionSummary.purchaseTransactions || 0) -
-        (b.marketTransactionSummary.purchaseTransactions || 0),
+        (a.marketTransactionSummary.allPurchaseTransactions || 0) -
+        (b.marketTransactionSummary.allPurchaseTransactions || 0),
       align: "right",
     },
     {
@@ -517,24 +517,26 @@ function Waypoint() {
       render: (_, record) => (
         <span>
           {(
-            record.marketTransactionSummary.purchaseUnits || 0
+            record.marketTransactionSummary.allPurchaseUnits || 0
           ).toLocaleString()}
         </span>
       ),
       sorter: (a, b) =>
-        (a.marketTransactionSummary.purchaseUnits || 0) -
-        (b.marketTransactionSummary.purchaseUnits || 0),
+        (a.marketTransactionSummary.allPurchaseUnits || 0) -
+        (b.marketTransactionSummary.allPurchaseUnits || 0),
       align: "right",
     },
     {
       title: "expenses",
       key: "expenses",
       render: (_, record) => (
-        <MoneyDisplay amount={record.marketTransactionSummary.expenses || 0} />
+        <MoneyDisplay
+          amount={record.marketTransactionSummary.allExpenses || 0}
+        />
       ),
       sorter: (a, b) =>
-        (a.marketTransactionSummary.expenses || 0) -
-        (b.marketTransactionSummary.expenses || 0),
+        (a.marketTransactionSummary.allExpenses || 0) -
+        (b.marketTransactionSummary.allExpenses || 0),
       align: "right",
     },
     {

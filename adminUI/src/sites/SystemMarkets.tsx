@@ -1001,13 +1001,15 @@ function SystemMarkets() {
                   render: (_, record) => (
                     <span>
                       <MoneyDisplay
-                        amount={record.marketTransactionSummary?.expenses || 0}
+                        amount={
+                          record.marketTransactionSummary?.allExpenses || 0
+                        }
                       />
                     </span>
                   ),
                   sorter: (a, b) =>
-                    (a.marketTransactionSummary?.expenses || 0) -
-                    (b.marketTransactionSummary?.expenses || 0),
+                    (a.marketTransactionSummary?.allExpenses || 0) -
+                    (b.marketTransactionSummary?.allExpenses || 0),
                 },
                 {
                   title: "Profit",
@@ -1059,7 +1061,7 @@ function SystemMarkets() {
                             <span>Income:</span>{" "}
                             <MoneyDisplay
                               amount={
-                                record.marketTransactionSummary?.income || 0
+                                record.marketTransactionSummary?.allIncome || 0
                               }
                             />
                           </Flex>
@@ -1067,7 +1069,8 @@ function SystemMarkets() {
                             <span>Expenses:</span>{" "}
                             <MoneyDisplay
                               amount={
-                                record.marketTransactionSummary?.expenses || 0
+                                record.marketTransactionSummary?.allExpenses ||
+                                0
                               }
                             />
                           </Flex>
@@ -1075,8 +1078,10 @@ function SystemMarkets() {
                             <span>Profit:</span>{" "}
                             <MoneyDisplay
                               amount={
-                                (record.marketTransactionSummary?.income || 0) -
-                                (record.marketTransactionSummary?.expenses || 0)
+                                (record.marketTransactionSummary?.allIncome ||
+                                  0) -
+                                (record.marketTransactionSummary?.allExpenses ||
+                                  0)
                               }
                             />
                           </Flex>
@@ -1085,12 +1090,13 @@ function SystemMarkets() {
                     >
                       <MoneyDisplay
                         amount={
-                          (record.marketTransactionSummary?.income || 0) -
-                          (record.marketTransactionSummary?.expenses || 0)
+                          (record.marketTransactionSummary?.allIncome || 0) -
+                          (record.marketTransactionSummary?.allExpenses || 0)
                         }
                         className={cn(
-                          (record.marketTransactionSummary?.income || 0) -
-                            (record.marketTransactionSummary?.expenses || 0) >
+                          (record.marketTransactionSummary?.allIncome || 0) -
+                            (record.marketTransactionSummary?.allExpenses ||
+                              0) >
                             0
                             ? "text-current"
                             : "text-red-600",
@@ -1099,10 +1105,10 @@ function SystemMarkets() {
                     </Popover>
                   ),
                   sorter: (a, b) =>
-                    (a.marketTransactionSummary?.income || 0) -
-                    (a.marketTransactionSummary?.expenses || 0) -
-                    (b.marketTransactionSummary?.income || 0) +
-                    (b.marketTransactionSummary?.expenses || 0),
+                    (a.marketTransactionSummary?.allIncome || 0) -
+                    (a.marketTransactionSummary?.allExpenses || 0) -
+                    (b.marketTransactionSummary?.allIncome || 0) +
+                    (b.marketTransactionSummary?.allExpenses || 0),
                 },
               ]}
               dataSource={data?.system.tradeRoutes.items || []}

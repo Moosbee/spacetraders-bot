@@ -22,8 +22,8 @@ const predictedProfit = (route: TradeRoute) =>
   (route.estimatedFuel ?? 0);
 
 const actualProfit = (route: TradeRoute) =>
-  (route.marketTransactionSummary.income ?? 0) -
-  (route.marketTransactionSummary.expenses ?? 0);
+  (route.marketTransactionSummary.allIncome ?? 0) -
+  (route.marketTransactionSummary.allExpenses ?? 0);
 
 function TradeRoutes() {
   const { loading, error, data, refetch } = useQuery(GET_ALL_TRADE_ROUTES);
@@ -176,23 +176,27 @@ function TradeRoutes() {
       title: "Expenses",
       key: "expenses",
       render: (_, record) => (
-        <MoneyDisplay amount={record.marketTransactionSummary?.expenses ?? 0} />
+        <MoneyDisplay
+          amount={record.marketTransactionSummary?.allExpenses ?? 0}
+        />
       ),
       align: "right",
       sorter: (a, b) =>
-        (a.marketTransactionSummary?.expenses ?? 0) -
-        (b.marketTransactionSummary?.expenses ?? 0),
+        (a.marketTransactionSummary?.allExpenses ?? 0) -
+        (b.marketTransactionSummary?.allExpenses ?? 0),
     },
     {
       title: "Income",
       key: "income",
       render: (_, record) => (
-        <MoneyDisplay amount={record.marketTransactionSummary?.income ?? 0} />
+        <MoneyDisplay
+          amount={record.marketTransactionSummary?.allIncome ?? 0}
+        />
       ),
       align: "right",
       sorter: (a, b) =>
-        (a.marketTransactionSummary?.income ?? 0) -
-        (b.marketTransactionSummary?.income ?? 0),
+        (a.marketTransactionSummary?.allIncome ?? 0) -
+        (b.marketTransactionSummary?.allIncome ?? 0),
     },
     {
       title: "Profit",
