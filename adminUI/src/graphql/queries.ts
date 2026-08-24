@@ -1256,3 +1256,30 @@ export const GET_ALL_TRADE_ROUTES = graphql(/* GraphQL */ `
     }
   }
 `);
+
+export const GET_OPEN_ASSIGNMENTS = graphql(/* GraphQL */ `
+  query GetOpenAssignments {
+    shipAssignments(by: { open: true }) {
+      items {
+        id
+        siphon
+        warpDrive
+        fleet {
+          id
+          fleetType
+          active
+          systemSymbol
+        }
+        fleetId
+        priority
+        maxPurchasePrice
+        creditsThreshold
+        disabled
+        rangeMin
+        cargoMin
+        survey
+        extractor
+      }
+    }
+  }
+`);
