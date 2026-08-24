@@ -1283,3 +1283,104 @@ export const GET_OPEN_ASSIGNMENTS = graphql(/* GraphQL */ `
     }
   }
 `);
+
+export const GET_CONTRACTS = graphql(/* GraphQL */ `
+  query GetContracts {
+    contracts {
+      items {
+        id
+        factionSymbol
+        contractType
+        accepted
+        fulfilled
+        deadlineToAccept
+        onAccepted
+        onFulfilled
+        deadline
+        marketTransactionSummary {
+          allExpenses
+          allIncome
+        }
+      }
+    }
+    contractManager {
+      runningShipments {
+        id
+        shipSymbol
+        tradeSymbol
+        units
+        destinationSymbol
+        purchaseSymbol
+        createdAt
+        updatedAt
+        status
+      }
+    }
+  }
+`);
+
+export const GET_CONTRACT = graphql(/* GraphQL */ `
+  query GetContract($contractId: String!) {
+    contract(symbol: $contractId) {
+      id
+      contractType
+      accepted
+      deadlineToAccept
+      factionSymbol
+      fulfilled
+      deadline
+      onAccepted
+      onFulfilled
+      marketTransactionSummary {
+        expenses
+        fuelExpenses
+        allExpenses
+        allIncome
+      }
+      reservation {
+        id
+        amount
+        actualAmount
+        status
+      }
+      deliveries {
+        items {
+          contractId
+          tradeSymbol
+          destinationSymbol
+          unitsRequired
+          unitsFulfilled
+        }
+      }
+      shipments {
+        items {
+          id
+          shipSymbol
+          tradeSymbol
+          units
+          destinationSymbol
+          purchaseSymbol
+          createdAt
+          updatedAt
+          status
+        }
+      }
+      marketTransactions {
+        items {
+          id
+          waypointSymbol
+          shipSymbol
+          tradeSymbol
+          type
+          units
+          pricePerUnit
+          totalPrice
+          timestamp
+          contract_id
+          trade_route_id
+          mining_waypoint_symbol
+        }
+      }
+    }
+  }
+`);

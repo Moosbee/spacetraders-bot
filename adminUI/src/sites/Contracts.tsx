@@ -1,61 +1,56 @@
+import { useQuery } from "@apollo/client/react";
 import { Button, Divider, Space, Table, TableProps } from "antd";
-import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { backendUrl } from "../data";
 import MoneyDisplay from "../features/MonyDisplay";
 import PageTitle from "../features/PageTitle";
 import WaypointLink from "../features/WaypointLink";
-import { Contract } from "../models/Contract";
-import { ContractShipment } from "../models/SQLContract";
+import { GetContractsQuery } from "../gql/graphql";
+import { GET_CONTRACTS } from "../graphql/queries";
+
+type GQLContract = GetContractsQuery["contracts"]["items"][number];
 
 function Contracts() {
-  const [contractResp, setContract] = useState<Contract[] | null>(null);
-  const [runningContractShipments, setRunningContractShipments] = useState<
-    ContractShipment[] | null
-  >(null);
+  const { loading, error, data, dataState, refetch } = useQuery(GET_CONTRACTS);
 
-  useEffect(() => {
-    fetch(`http://${backendUrl}/contracts`)
-      .then((response) => response.json())
-      .then((data) => {
-        console.log("setContract", data);
+  if (dataState !== "complete") return <p>Loading...</p>;
+  if (error) return <p>Error: {error.message}</p>;
 
-        setContract(data);
-      });
-    fetch(`http://${backendUrl}/insights/contract/shipments`)
-      .then((response) => response.json())
-      .then((data) => {
-        console.log("setRunningContractShipments", data);
+  const contracts = data.contracts.items;
+  const runningContractShipments = data.contractManager.runningShipments;
 
-        setRunningContractShipments(data.shipments);
-      });
-  }, []);
+  const totalIncome = (c: GQLContract) =>
+    c.onAccepted + c.onFulfilled + (c.marketTransactionSummary.allIncome ?? 0);
+  const totalExpenses = (c: GQLContract) =>
+    c.marketTransactionSummary.allExpenses ?? 0;
+  const netProfit = (c: GQLContract) => totalIncome(c) - totalExpenses(c);
 
-  const columns: TableProps<Contract>["columns"] = [
+  const columns: TableProps<GQLContract>["columns"] = [
     {
       title: "ID",
       dataIndex: "id",
       key: "id",
-      render: (value) => <Link to={`/contracts/${value}`}>{value}</Link>,
+      render: (value: string) => (
+        <Link to={`/contracts/${value}`}>{value}</Link>
+      ),
       sorter: (a, b) => a.id.localeCompare(b.id),
     },
     {
       title: "Faction",
-      dataIndex: "faction_symbol",
-      key: "faction_symbol",
-      sorter: (a, b) => a.faction_symbol.localeCompare(b.faction_symbol),
+      dataIndex: "factionSymbol",
+      key: "factionSymbol",
+      sorter: (a, b) => a.factionSymbol.localeCompare(b.factionSymbol),
     },
     {
       title: "Type",
-      dataIndex: "contract_type",
-      key: "contract_type",
-      sorter: (a, b) => a.faction_symbol.localeCompare(b.faction_symbol),
+      dataIndex: "contractType",
+      key: "contractType",
+      sorter: (a, b) => a.contractType.localeCompare(b.contractType),
     },
     {
       title: "Accepted",
       dataIndex: "accepted",
       key: "accepted",
-      render: (value) => (value ? "Yes" : "No"), // Render boolean as "Yes" or "No"
+      render: (value: boolean) => (value ? "Yes" : "No"),
       sorter: (a, b) => (a.accepted === b.accepted ? 0 : a.accepted ? -1 : 1),
       filters: [
         { text: "Yes", value: true },
@@ -67,7 +62,7 @@ function Contracts() {
       title: "Fulfilled",
       dataIndex: "fulfilled",
       key: "fulfilled",
-      render: (value) => (value ? "Yes" : "No"), // Render boolean as "Yes" or "No"
+      render: (value: boolean) => (value ? "Yes" : "No"),
       sorter: (a, b) =>
         a.fulfilled === b.fulfilled ? 0 : a.fulfilled ? -1 : 1,
       filters: [
@@ -78,67 +73,71 @@ function Contracts() {
     },
     {
       title: "Deadline to Accept",
-      dataIndex: "deadline_to_accept",
-      key: "deadline_to_accept",
-      render: (value) => new Date(value).toLocaleString(),
-      sorter: (a, b) =>
-        new Date(a.deadline_to_accept).getTime() -
-        new Date(b.deadline_to_accept).getTime(),
+      dataIndex: "deadlineToAccept",
+      key: "deadlineToAccept",
+      render: (value: string | null | undefined) =>
+        value ? new Date(value).toLocaleString() : "N/A",
+      sorter: (a, b) => {
+        const av = a.deadlineToAccept
+          ? new Date(a.deadlineToAccept).getTime()
+          : 0;
+        const bv = b.deadlineToAccept
+          ? new Date(b.deadlineToAccept).getTime()
+          : 0;
+        return av - bv;
+      },
       defaultSortOrder: "descend",
     },
     {
       title: "Deadline",
       dataIndex: "deadline",
       key: "deadline",
-      render: (value) => new Date(value).toLocaleString(),
+      render: (value: string) => new Date(value).toLocaleString(),
       sorter: (a, b) =>
         new Date(a.deadline).getTime() - new Date(b.deadline).getTime(),
     },
     {
       title: "On Accepted",
-      dataIndex: "on_accepted",
-      key: "on_accepted",
-      render: (value) => <MoneyDisplay amount={value} />,
+      dataIndex: "onAccepted",
+      key: "onAccepted",
+      render: (value: number) => <MoneyDisplay amount={value} />,
       align: "right",
-      sorter: (a, b) => a.on_accepted - b.on_accepted,
+      sorter: (a, b) => a.onAccepted - b.onAccepted,
     },
     {
       title: "On Fulfilled",
-      dataIndex: "on_fulfilled",
-      key: "on_fulfilled",
-      render: (value) => <MoneyDisplay amount={value} />,
+      dataIndex: "onFulfilled",
+      key: "onFulfilled",
+      render: (value: number) => <MoneyDisplay amount={value} />,
       align: "right",
-      sorter: (a, b) => a.on_fulfilled - b.on_fulfilled,
+      sorter: (a, b) => a.onFulfilled - b.onFulfilled,
     },
 
     {
       title: "Total Profit",
-      dataIndex: "totalprofit",
-      key: "totalprofit",
-      render: (value) => <MoneyDisplay amount={value} />,
+      key: "totalProfit",
+      render: (_, record) => <MoneyDisplay amount={totalIncome(record)} />,
       align: "right",
-      sorter: (a, b) => a.totalprofit - b.totalprofit,
+      sorter: (a, b) => totalIncome(a) - totalIncome(b),
     },
     {
       title: "Total Expenses",
-      dataIndex: "total_expenses",
-      key: "total_expenses",
-      render: (value) => <MoneyDisplay amount={value} />,
+      key: "totalExpenses",
+      render: (_, record) => <MoneyDisplay amount={totalExpenses(record)} />,
       align: "right",
-      sorter: (a, b) => a.total_expenses - b.total_expenses,
+      sorter: (a, b) => totalExpenses(a) - totalExpenses(b),
     },
     {
       title: "Net Profit",
-      dataIndex: "net_profit",
-      key: "net_profit",
-      render: (value) => (
+      key: "netProfit",
+      render: (_, record) => (
         <MoneyDisplay
-          amount={value}
-          style={{ color: value < 0 ? "red" : "currentColor" }}
+          amount={netProfit(record)}
+          style={{ color: netProfit(record) < 0 ? "red" : "currentColor" }}
         />
       ),
       align: "right",
-      sorter: (a, b) => a.net_profit - b.net_profit,
+      sorter: (a, b) => netProfit(a) - netProfit(b),
     },
   ];
 
@@ -149,20 +148,7 @@ function Contracts() {
         <h1>Contracts</h1>
         <Button
           onClick={() => {
-            fetch(`http://${backendUrl}/contracts`)
-              .then((response) => response.json())
-              .then((data) => {
-                console.log("Contract", data);
-
-                setContract(data);
-              });
-            fetch(`http://${backendUrl}/insights/contract/shipments`)
-              .then((response) => response.json())
-              .then((data) => {
-                console.log("setRunningContractShipments", data);
-
-                setRunningContractShipments(data.shipments);
-              });
+            refetch();
           }}
         >
           Refresh
@@ -171,6 +157,7 @@ function Contracts() {
       <Table
         title={() => "Running Contract Shipments"}
         size="small"
+        loading={loading}
         rowKey={(id) => id.id}
         columns={[
           {
@@ -180,13 +167,13 @@ function Contracts() {
           },
           {
             title: "Ship Symbol",
-            dataIndex: "ship_symbol",
-            key: "ship_symbol",
+            dataIndex: "shipSymbol",
+            key: "shipSymbol",
           },
           {
             title: "Trade Symbol",
-            dataIndex: "trade_symbol",
-            key: "trade_symbol",
+            dataIndex: "tradeSymbol",
+            key: "tradeSymbol",
           },
           {
             title: "Units",
@@ -195,31 +182,31 @@ function Contracts() {
           },
           {
             title: "Destination Symbol",
-            dataIndex: "destination_symbol",
-            key: "destination_symbol",
-            render: (symbol) => (
+            dataIndex: "destinationSymbol",
+            key: "destinationSymbol",
+            render: (symbol: string) => (
               <WaypointLink waypoint={symbol}>{symbol}</WaypointLink>
             ),
           },
           {
             title: "Purchase Symbol",
-            dataIndex: "purchase_symbol",
-            key: "purchase_symbol",
-            render: (symbol) => (
+            dataIndex: "purchaseSymbol",
+            key: "purchaseSymbol",
+            render: (symbol: string) => (
               <WaypointLink waypoint={symbol}>{symbol}</WaypointLink>
             ),
           },
           {
             title: "Created At",
-            dataIndex: "created_at",
-            key: "created_at",
-            render: (date) => new Date(date).toLocaleString(),
+            dataIndex: "createdAt",
+            key: "createdAt",
+            render: (date: string) => new Date(date).toLocaleString(),
           },
           {
             title: "Updated At",
-            dataIndex: "updated_at",
-            key: "updated_at",
-            render: (date) => new Date(date).toLocaleString(),
+            dataIndex: "updatedAt",
+            key: "updatedAt",
+            render: (date: string) => new Date(date).toLocaleString(),
           },
           {
             title: "Status",
@@ -227,13 +214,14 @@ function Contracts() {
             key: "status",
           },
         ]}
-        dataSource={runningContractShipments || []}
+        dataSource={runningContractShipments}
       ></Table>
       <Divider />
       <Table
         title={() => "Contracts"}
-        dataSource={contractResp || []}
+        dataSource={contracts}
         columns={columns}
+        loading={loading}
         rowKey="id"
         pagination={{
           showSizeChanger: true,
