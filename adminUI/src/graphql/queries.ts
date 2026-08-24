@@ -1384,3 +1384,61 @@ export const GET_CONTRACT = graphql(/* GraphQL */ `
     }
   }
 `);
+
+export const GET_MINING_ASSIGNMENTS = graphql(/* GraphQL */ `
+  query GetMiningAssignments {
+    miningManager {
+      busy
+      channelState {
+        usedCapacity
+        state
+      }
+      getAssignments {
+        waypointSymbol
+        assignedShips {
+          shipSymbol
+          level
+        }
+        lastUpdated
+      }
+    }
+    fleets(by: { type: MINING }) {
+      items {
+        id
+        systemSymbol
+        fleetType
+        active
+        assignments {
+          items {
+            id
+            priority
+            rangeMin
+            cargoMin
+            ship {
+              symbol
+            }
+          }
+        }
+        config {
+          __typename
+          ... on MiningConfig {
+            miningEjectList
+            miningTransportersPerWaypoint
+            minTransporterCargoSpace
+            minMiningCargoSpace
+            minSiphonCargoSpace
+            miningPreferList
+            ignoreEngineeredAsteroids
+            stopAllUnstable
+            unstableSinceTimeout
+            miningWaypoints
+            syphonWaypoints
+            minersPerWaypoint
+            siphonersPerWaypoint
+            surveyersPerWaypoint
+          }
+        }
+      }
+    }
+  }
+`);

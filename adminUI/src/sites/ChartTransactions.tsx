@@ -24,12 +24,12 @@ function ChartTransactions() {
     ),
   );
 
-  const chartTransactions = data?.chartTransactions.items || [];
-
   const calculatePrices = useCallback(() => {
     const newTraitToPriceMap: Record<WaypointTraitSymbol, number> = {
       ...traitToPriceMap,
     };
+
+    const chartTransactions = data?.chartTransactions.items || [];
 
     /*
     assumption:
