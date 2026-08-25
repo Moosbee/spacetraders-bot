@@ -4,8 +4,6 @@ const config: CodegenConfig = {
   overwrite: true,
   schema: "../schema.graphql",
   documents: "src/**/*.{ts,tsx}",
-  watch: true,
-
   generates: {
     "src/gql/": {
       preset: "client",

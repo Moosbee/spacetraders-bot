@@ -313,6 +313,9 @@ export const GET_SYSTEM = graphql(/* GraphQL */ `
               cargoMin
               survey
               extractor
+              ship {
+                symbol
+              }
             }
           }
           config {

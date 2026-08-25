@@ -122,6 +122,13 @@ function SystemMarkets() {
 
   const marketDistripution = useMemo(() => {
     return data?.system.marketTrades.items
+      .filter(
+        (trade) =>
+          !(
+            trade.type === MarketTradeGoodType.Exchange &&
+            trade.symbol === "FUEL"
+          ),
+      )
       .map((trade) => trade.marketTradeGood?.supply)
       .reduce(
         (a, b) => {

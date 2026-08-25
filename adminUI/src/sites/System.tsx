@@ -105,6 +105,13 @@ function System() {
 
   const marketDistripution = useMemo(() => {
     return system?.marketTrades
+      .filter(
+        (trade) =>
+          !(
+            trade.type === MarketTradeGoodType.Exchange &&
+            trade.symbol === "FUEL"
+          ),
+      )
       .map((trade) => trade.marketTradeGood?.supply)
       .reduce(
         (a, b) => {
@@ -670,7 +677,10 @@ function System() {
           />
         </Card>
 
-        <Card size="small" title="Ships in System">
+        <Card
+          size="small"
+          title={`Ships in System (${system?.ships?.length || 0})`}
+        >
           <List
             size="small"
             style={{ maxHeight: "200px", overflowY: "auto" }}
@@ -696,7 +706,10 @@ function System() {
             )}
           />
         </Card>
-        <Card size="small" title="Fleets in System">
+        <Card
+          size="small"
+          title={`Fleets in System (${system?.fleets?.length || 0} - ${system?.fleets?.flatMap((f) => f.assignments).length || 0})`}
+        >
           <List
             size="small"
             style={{ maxHeight: "200px", overflowY: "auto" }}
@@ -723,6 +736,7 @@ function System() {
                 >
                   <Link to={`/fleets/${fleet.id}`}>
                     {fleet.fleetType}_{fleet.id} ({fleet.active ? "A" : "I"}) (
+                    {fleet.assignments.filter((asgmt) => asgmt.ship).length}/
                     {fleet.assignments.length}){" "}
                     {fleet.config.__typename === "TradingConfig"
                       ? `(${fleet.config.tradeMode})`
