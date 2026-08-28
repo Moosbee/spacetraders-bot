@@ -51,6 +51,41 @@ function Ships() {
       title: "Status",
       key: "status",
       render: (_role, record) => <RoleRenderer status={record.status} />,
+      filters: [
+        {
+          text: "Charting",
+          value: "ChartingStatus",
+        },
+        {
+          text: "Construction",
+          value: "ConstructionStatus",
+        },
+        {
+          text: "Contract",
+          value: "ContractStatus",
+        },
+        {
+          text: "Manuel",
+          value: "ManuelStatus",
+        },
+        {
+          text: "Mining",
+          value: "MiningStatus",
+        },
+        {
+          text: "Scraper",
+          value: "ScraperStatus",
+        },
+        {
+          text: "Trader",
+          value: "TraderStatus",
+        },
+        {
+          text: "Transfer",
+          value: "TransferStatus",
+        },
+      ],
+      onFilter: (value, record) => record.status.status.__typename === value,
       sorter: (a, b) => {
         const num = (a.status.status.__typename ?? "").localeCompare(
           b.status.status.__typename ?? "",

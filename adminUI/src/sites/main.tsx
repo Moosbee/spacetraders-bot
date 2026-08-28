@@ -377,14 +377,20 @@ function Main() {
                       <>
                         {data.ships.map((ship) => (
                           <li key={ship.symbol} className="whitespace-nowrap">
-                            {ship.symbol}
+                            <Link to={`ships/${ship.symbol}`}>
+                              {ship.symbol}
+                            </Link>
                           </li>
                         ))}
                       </>
                     ) : (
                       <>
                         <TextLoop
-                          texts={data.ships.map((ship) => ship.symbol)}
+                          texts={data.ships.map((ship) => (
+                            <Link to={`ships/${ship.symbol}`}>
+                              {ship.symbol}
+                            </Link>
+                          ))}
                           duration={data.ships.length * 1.5}
                           direction="left-to-right"
                         />

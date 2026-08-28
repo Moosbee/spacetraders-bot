@@ -48,7 +48,7 @@ function MyHeader({ Header }: { Header: typeof AntHeaderHeader }) {
 
   const [
     loadAPICount,
-    { loading: apiCountLoading, data: apiCount, refetch: apiCountRefetch },
+    { loading: apiCountLoading, data: apiCountData, refetch: apiCountRefetch },
   ] = useLazyQuery(GET_API_COUNT, {
     // initialFetchPolicy: "standby",
   });
@@ -63,6 +63,9 @@ function MyHeader({ Header }: { Header: typeof AntHeaderHeader }) {
   const {
     token: { colorBgContainer, colorTextDescription },
   } = theme.useToken();
+
+  const apiCount = apiCountData?.apiCounts ?? undefined;
+  const apiSeconds = apiCount ? apiCount / 2 : 0;
 
   const settingsItems: MenuProps["items"] = [
     {
@@ -239,7 +242,14 @@ function MyHeader({ Header }: { Header: typeof AntHeaderHeader }) {
             }}
             loading={apiCountLoading}
           >
-            API Count: {apiCount?.apiCounts || 0}
+            API Count{" "}
+            {apiCount && (
+              <>
+                : {apiCount} (
+                {apiSeconds > 60 && `${Math.floor(apiSeconds / 60)}m `}{" "}
+                {apiSeconds % 60} s)
+              </>
+            )}
           </Button>
           <Dropdown trigger={["click"]} menu={{ items: settingsItems }}>
             <Button>

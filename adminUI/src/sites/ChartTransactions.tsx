@@ -87,15 +87,19 @@ function ChartTransactions() {
     });
 
     setTraitToPriceMap(newTraitToPriceMap);
-  }, [chartTransactions, traitToPriceMap]);
+  }, [data?.chartTransactions.items, traitToPriceMap]);
 
   if (error) return <p>Error: {error.message}</p>;
 
   return (
     <div style={{ padding: "24px 24px" }}>
-      <PageTitle title={`Chart Transactions ${chartTransactions.length}`} />
+      <PageTitle
+        title={`Chart Transactions ${(data?.chartTransactions.items || []).length}`}
+      />
       <Space>
-        <h1>Chart Transactions {chartTransactions.length}</h1>
+        <h1>
+          Chart Transactions {(data?.chartTransactions.items || []).length}
+        </h1>
         <Button
           onClick={() => {
             refetch();
@@ -117,7 +121,7 @@ function ChartTransactions() {
           <Table
             rowKey={(id) => id.waypointSymbol}
             loading={loading}
-            dataSource={chartTransactions}
+            dataSource={data?.chartTransactions.items || []}
             columns={[
               {
                 title: "Waypoint",
@@ -136,7 +140,9 @@ function ChartTransactions() {
 
                 filters: [
                   ...new Set(
-                    chartTransactions.map((t) => t.waypointSymbol || ""),
+                    (data?.chartTransactions.items || []).map(
+                      (t) => t.waypointSymbol || "",
+                    ),
                   ),
                 ].map((t) => ({
                   text: t,
@@ -154,7 +160,11 @@ function ChartTransactions() {
                 sorter: (a, b) =>
                   (a.shipSymbol || "").localeCompare(b.shipSymbol || ""),
                 filters: [
-                  ...new Set(chartTransactions.map((t) => t.shipSymbol || "")),
+                  ...new Set(
+                    (data?.chartTransactions.items || []).map(
+                      (t) => t.shipSymbol || "",
+                    ),
+                  ),
                 ].map((t) => ({
                   text: t,
                   value: t,
@@ -185,12 +195,23 @@ function ChartTransactions() {
                     title={
                       <Flex vertical>
                         {record.waypoint?.traits.map((t) => (
-                          <span>{t}</span>
+                          <span key={t}>{t}</span>
                         ))}
                       </Flex>
                     }
+                    className="flex justify-between"
                   >
-                    {record.waypoint?.traits.length}
+                    <span>
+                      {record.waypoint?.traits
+                        .map((t) =>
+                          t
+                            .split("_")
+                            .map((t) => t[0])
+                            .join(""),
+                        )
+                        .join(", ")}
+                    </span>
+                    <span>{record.waypoint?.traits.length}</span>
                   </Popover>
                 ),
                 sorter: (a, b) =>
