@@ -25,7 +25,10 @@ sequenceDiagram
 ```
 
 ## Todo
-- better budgeting system
-- pathfinding for SATELLITE is broken
-- finish transport manager
-- rework manuel controle
+- update budgeting system to include ship transfers
+- rework Manuel control
+- update mining transfer system
+- speed up ShipProcurementManager
+- connect transactions with fleets
+- fix marketTransactionSummary fuel display
+- rewrite database provider to properly use inversion of controle
