@@ -9,6 +9,7 @@ import {
   TableProps,
   theme,
 } from "antd";
+import { Fragment } from "react/jsx-runtime";
 import { ResponsiveContainer, Tooltip, Treemap } from "recharts";
 import { ShipModuleSymbol, TradeSymbol } from "../../gql/graphql";
 import { ShipData } from "../../sites/Ship";
@@ -18,8 +19,6 @@ const REQUIREMENT_COLORS: Record<string, string> = {
   Crew: "#8884d8",
   Slots: "#82ca9d",
 };
-
-const LEFTOVER_COLOR = "#bfbfbf";
 
 function RequirementTreemapCell({
   x = 0,
@@ -69,14 +68,14 @@ function RequirementTreemapCell({
           >
             <div className="text-center wrap-break-word">
               {name.split("_").map((item, i) => (
-                <>
+                <Fragment key={item}>
                   {i > 0 && (
                     <>
                       _<wbr />
                     </>
                   )}
                   {item}
-                </>
+                </Fragment>
               ))}
               {canShowTwoLines ? <br /> : " "}
               {value}
@@ -90,7 +89,7 @@ function RequirementTreemapCell({
 
 function ShipComponents({ ship }: { ship: ShipData }) {
   const {
-    token: { colorBgElevated },
+    token: { colorBgElevated, colorBgContainer },
   } = theme.useToken();
 
   const mountColumns: TableProps<
@@ -264,7 +263,7 @@ function ShipComponents({ ship }: { ship: ShipData }) {
     {
       name: "Leftover",
       size: Math.max(0, (ship.reactorInfo.powerOutput ?? 0) - totalPower),
-      fill: LEFTOVER_COLOR,
+      fill: colorBgContainer,
     },
   ];
   const crewRequirements = [
@@ -272,7 +271,7 @@ function ShipComponents({ ship }: { ship: ShipData }) {
     {
       name: "Leftover",
       size: Math.max(0, crewCapacity - totalCrew),
-      fill: LEFTOVER_COLOR,
+      fill: colorBgContainer,
     },
   ];
   const slotsRequirements = [
@@ -280,7 +279,7 @@ function ShipComponents({ ship }: { ship: ShipData }) {
     {
       name: "Leftover",
       size: Math.max(0, ship.frameInfo.moduleSlots - totalSlots),
-      fill: LEFTOVER_COLOR,
+      fill: colorBgContainer,
     },
   ];
 
