@@ -37,6 +37,13 @@ enum Commands {
 enum LogAnalysisCommand {
     ListErrors,
     ListTopLevelSpans,
+    ListSqlx,
+    /// Split the log into one file per top-level span
+    SplitTopLevelSpans {
+        /// Output directory for the split log files
+        #[arg(long, default_value = "split_logs")]
+        output_dir: String,
+    },
 }
 
 #[derive(Subcommand)]

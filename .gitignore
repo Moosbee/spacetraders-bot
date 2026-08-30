@@ -7,3 +7,5 @@
 log.txt
 log*.txt
 *log.txt
+/split_logs
+*.log
