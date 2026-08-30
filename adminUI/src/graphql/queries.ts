@@ -813,6 +813,16 @@ export const GET_SYSTEM_MAP = graphql(/* GraphQL */ `
       }
       ships {
         symbol
+        status {
+          waitingForManager
+          waitingForApi
+          status {
+            __typename
+            ... on ScraperStatus {
+              scrapDate
+            }
+          }
+        }
         nav {
           waypointSymbol
           status
@@ -1079,6 +1089,11 @@ export const GET_ALL_SHIPS = graphql(/* GraphQL */ `
           distance
           fuelCost
           travelTime
+          route {
+            connections{
+              __typename
+            }
+          }
         }
       }
       cargo {
@@ -1187,6 +1202,432 @@ export const GET_ALL_SHIPS = graphql(/* GraphQL */ `
           }
         }
       }
+    }
+  }
+`);
+
+export const GET_SHIP = graphql(/* GraphQL */ `
+  query GetShip($shipSymbol: String!) {
+    ship(symbol: $shipSymbol) {
+      symbol
+      registrationRole
+      engineSpeed
+      nav {
+        status
+        systemSymbol
+        waypointSymbol
+        flightMode
+        route {
+          arrival
+          departureTime
+          originSymbol
+          originSystemSymbol
+          destinationSymbol
+          destinationSystemSymbol
+        }
+        autoPilot {
+          arrival
+          departureTime
+          originSymbol
+          originSystemSymbol
+          destinationSymbol
+          destinationSystemSymbol
+          distance
+          fuelCost
+          travelTime
+          route {
+            totalAntiMatterCost
+            totalFuelCost
+            totalCost
+            totalAntiMatter
+            totalFuel
+            totalJumpCooldownTime
+            totalTravelTime
+            totalApiRequests
+            totalDistance
+            connections {
+              ... on NavigateConnection {
+                startSymbol
+                endSymbol
+                navMode
+                distance
+                travelTime
+                refuel {
+                  fuelNeeded
+                }
+              }
+              ... on JumpConnection {
+                startSymbol
+                endSymbol
+                distance
+                cooldownTime
+              }
+              ... on WarpConnection {
+                startSymbol
+                endSymbol
+                navMode
+                distance
+                travelTime
+                refuel {
+                  fuelNeeded
+                }
+              }
+            }
+          }
+        }
+      }
+      cargo {
+        units
+        capacity
+        inventory {
+          symbol
+          units
+        }
+      }
+      fuel {
+        current
+        capacity
+      }
+      conditions {
+        engine {
+          condition
+          integrity
+        }
+        frame {
+          condition
+          integrity
+        }
+        reactor {
+          condition
+          integrity
+        }
+      }
+      cooldownExpiration
+      status {
+        assignmentId
+        assignment {
+          __typename
+          id
+          siphon
+          warpDrive
+          fleetId
+          priority
+          maxPurchasePrice
+          creditsThreshold
+          disabled
+          rangeMin
+          cargoMin
+          survey
+          extractor
+        }
+        tempAssignmentId
+        tempAssignment {
+          __typename
+          id
+          siphon
+          warpDrive
+          fleetId
+          priority
+          maxPurchasePrice
+          creditsThreshold
+          disabled
+          rangeMin
+          cargoMin
+          survey
+          extractor
+        }
+        fleetId
+        fleet {
+          id
+          fleetType
+          active
+          systemSymbol
+        }
+        tempFleetId
+        tempFleet {
+          id
+          fleetType
+          active
+          systemSymbol
+        }
+        waitingForApi
+        waitingForManager
+        status {
+          __typename
+          ... on ChartingStatus {
+            cycle
+            waitingForManager
+            waypointSymbol
+          }
+          ... on ConstructionStatus {
+            cycle
+            shipmentId
+            shippingStatus
+            waitingForManager
+          }
+          ... on ContractStatus {
+            contractId
+            runId
+            cycle
+            shippingStatus
+            waitingForManager
+          }
+          ... on ManuelStatus {
+            controlled
+          }
+          ... on MiningStatus {
+            assignment {
+              __typename
+              ... on ExtractorAssignment {
+                extractions
+                state
+                waypointSymbol
+              }
+              ... on SiphonerAssignment {
+                extractions
+                state
+                waypointSymbol
+              }
+              ... on TransporterAssignment {
+                cycles
+                waypointSymbol
+              }
+              ... on SurveyorAssignment {
+                surveys
+                waypointSymbol
+              }
+              ... on IdleAssignment {
+                controlled
+              }
+              ... on UselessAssignment {
+                controlled
+              }
+            }
+          }
+          ... on ScraperStatus {
+            cycle
+            waitingForManager
+            waypointSymbol
+            scrapDate
+          }
+          ... on TraderStatus {
+            cycle
+            shipmentId
+            shippingStatus
+            waitingForManager
+            onSleep
+          }
+          ... on TransferStatus {
+            assignmentId
+            fleetId
+            systemSymbol
+          }
+        }
+      }
+      reactor
+      frame
+      possibleScraps {
+        waypointSymbol
+        date
+      }
+      purchaseTransaction {
+        id
+        waypointSymbol
+        shipType
+        price
+        timestamp
+      }
+      marketTransactionSummary {
+        allExpenses
+        allIncome
+        fuelExpenses
+        fuelPurchaseUnits
+        fuelPurchaseTransactions
+        purchaseUnits
+        sellUnits
+        purchaseTransactions
+        sellTransactions
+        allPurchaseUnits
+        allPurchaseTransactions
+      }
+      repairTransactions {
+        items {
+          id
+          waypointSymbol
+          shipSymbol
+          timestamp
+          totalPrice
+        }
+      }
+      shipModificationTransactions {
+        items {
+          id
+          waypointSymbol
+          shipSymbol
+          timestamp
+          tradeSymbol
+          totalPrice
+        }
+      }
+      chartTransactions {
+        items {
+          waypointSymbol
+          shipSymbol
+          totalPrice
+          timestamp
+          waypoint {
+            symbol
+            waypointType
+            traits
+          }
+        }
+      }
+      constructionShipments {
+        items {
+          id
+          tradeSymbol
+          materialId
+          constructionSiteWaypoint
+          shipSymbol
+          units
+          status
+          purchaseSiteWaypoint
+          createdAt
+          marketTransactionSummary {
+            allExpenses
+          }
+        }
+      }
+      contractShipments {
+        items {
+          id
+          contractId
+          shipSymbol
+          tradeSymbol
+          units
+          destinationSymbol
+          purchaseSymbol
+          createdAt
+          updatedAt
+          status
+        }
+      }
+      tradeRoutes {
+        items {
+          id
+          createdAt
+          symbol
+          shipSymbol
+          PurchaseWaypointSymbol
+          SellWaypointSymbol
+          status
+          tradeMode
+          tradeVolume
+          reservedFund
+          estimatedFuel
+          marketTransactionSummary {
+            allExpenses
+            allIncome
+          }
+          purchaseMarketTradeGood {
+            tradeVolume
+            supply
+            activity
+            purchasePrice
+            sellPrice
+          }
+          sellMarketTradeGood {
+            tradeVolume
+            supply
+            activity
+            purchasePrice
+            sellPrice
+          }
+        }
+      }
+      surveys {
+        items {
+          shipInfoBefore
+          updatedAt
+          shipInfoAfter
+          signature
+          size
+          waypointSymbol
+          deposits
+          exhaustedSince
+          createdAt
+          expiration
+        }
+      }
+      extractions {
+        items {
+          id
+          waypointSymbol
+          shipSymbol
+          shipInfoBefore
+          shipInfoAfter
+          siphon
+          yieldSymbol
+          yieldUnits
+          survey_signature
+        }
+      }
+      engineInfo {
+        symbol
+        speed
+        powerRequired
+        crewRequired
+        slotsRequired
+      }
+      frameInfo {
+        symbol
+        moduleSlots
+        mountingPoints
+        fuelCapacity
+        powerRequired
+        crewRequired
+        slotsRequired
+      }
+      reactorInfo {
+        symbol
+        powerOutput
+        powerRequired
+        crewRequired
+        slotsRequired
+      }
+      mounts {
+        mounts
+        mountInfos {
+          symbol
+          strength
+          deposits
+          powerRequired
+          crewRequired
+          slotsRequired
+        }
+      }
+      modules {
+        modules
+        moduleInfos {
+          symbol
+          capacity
+          range
+          powerRequired
+          crewRequired
+          slotsRequired
+        }
+      }
+      scrapTransactions {
+        items {
+          id
+          waypointSymbol
+          shipSymbol
+          timestamp
+          totalPrice
+        }
+      }
+      cooldown
+      engine
     }
   }
 `);

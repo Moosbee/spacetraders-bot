@@ -145,7 +145,7 @@ function MyHeader({ Header }: { Header: typeof AntHeaderHeader }) {
               </Col>
               <Col span={12} style={{ textAlign: "center" }}>
                 <MoneyDisplay
-                  amount={myAgentData?.runInfo.agent?.credits || -1}
+                  amount={myAgentData?.runInfo.agent?.credits ?? -1}
                 />
               </Col>
               <Col span={12} style={{ textAlign: "center" }}>
@@ -163,7 +163,7 @@ function MyHeader({ Header }: { Header: typeof AntHeaderHeader }) {
               </Col>
               <Col span={12} style={{ textAlign: "center" }}>
                 <MoneyDisplay
-                  amount={myAgentData?.budget.reservedAmount || -1}
+                  amount={myAgentData?.budget.reservedAmount ?? -1}
                 />
               </Col>
             </Row>
@@ -182,7 +182,7 @@ function MyHeader({ Header }: { Header: typeof AntHeaderHeader }) {
               {myAgentData?.runInfo.agent?.symbol}
               <Badge status={websocketConnected ? "success" : "error"} />
               <MoneyDisplay
-                amount={myAgentData?.runInfo.agent?.credits || -1}
+                amount={myAgentData?.runInfo.agent?.credits ?? -1}
               />
             </Space>
           </Link>

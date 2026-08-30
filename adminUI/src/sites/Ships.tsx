@@ -251,7 +251,7 @@ function Ships() {
                     "",
                   )
                 : record.nav.autoPilot.originSymbol}{" "}
-              -{">"}{" "}
+              -{">"} {record.nav.autoPilot.route.connections.length} -{">"}{" "}
               {record.nav.autoPilot.originSystemSymbol ===
               record.nav.autoPilot.destinationSystemSymbol
                 ? record.nav.autoPilot.destinationSymbol.replace(
@@ -264,6 +264,11 @@ function Ships() {
           )}
         </>
       ),
+      sorter: (a, b) => {
+        const data_a = a.nav.autoPilot?.route.connections.length ?? 0;
+        const data_b = b.nav.autoPilot?.route.connections.length ?? 0;
+        return data_a - data_b;
+      },
     },
     {
       title: "Engine Speed",
