@@ -50,6 +50,7 @@ impl<T> ResponseContent<T> {
                 content["error"]["code"] == 3100
                     && content["error"]["message"]
                         == "The universe is being reset. Please check back in a few minutes."
+                    || content["error"]["code"] == 4113
             }
             Err(_) => false,
         }
