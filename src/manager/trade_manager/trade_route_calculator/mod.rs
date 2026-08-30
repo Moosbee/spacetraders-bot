@@ -66,6 +66,14 @@ pub fn gen_all_trade_route_candidates(
         .map(|t| ((t.symbol, t.waypoint_symbol.clone()), t.clone()))
         .collect::<HashMap<(models::TradeSymbol, String), database::MarketTradeGood>>();
 
+    let waypoint_market_trades_map: HashMap<String, Vec<database::MarketTrade>> =
+        market_trade.iter().fold(HashMap::new(), |mut acc, e| {
+            acc.entry(e.waypoint_symbol.clone())
+                .or_insert(Vec::new())
+                .push(e.clone());
+            acc
+        });
+
     market_trade
         .iter()
         .flat_map(|t| market_trade.iter().map(move |t2| (t, t2)))
@@ -87,6 +95,14 @@ pub fn gen_all_trade_route_candidates(
                 sell_good: trade_good_2.cloned(),
                 purchase: t1.clone(),
                 sell: t2.clone(),
+                purchase_waypoint_market_trades: waypoint_market_trades_map
+                    .get(&t1.waypoint_symbol)
+                    .cloned()
+                    .unwrap_or_default(),
+                sell_waypoint_market_trades: waypoint_market_trades_map
+                    .get(&t2.waypoint_symbol)
+                    .cloned()
+                    .unwrap_or_default(),
             }
         })
         .collect::<Vec<_>>()

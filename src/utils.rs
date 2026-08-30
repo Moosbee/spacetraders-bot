@@ -18,6 +18,7 @@ use crate::manager::mining_manager::MiningManagerMessanger;
 use crate::manager::scrapping_manager::ScrappingManagerMessanger;
 use crate::manager::ship_task::ShipTaskMessanger;
 use crate::manager::trade_manager::TradeManagerMessanger;
+use crate::supply_chain_mapping::SupplyChainMapping;
 #[derive(Debug, Clone)]
 pub struct ConductorContext {
     pub api: space_traders_client::Api,
@@ -36,6 +37,7 @@ pub struct ConductorContext {
     pub run_info: Arc<RwLock<RunInfo>>,
     pub config: Arc<RwLock<Config>>,
     pub cancellation_tokens: Arc<CancellationTokens>,
+    pub supply_chain_mapping: Arc<SupplyChainMapping>,
 }
 
 #[derive(Debug, Clone)]

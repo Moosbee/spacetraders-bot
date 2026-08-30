@@ -1,3 +1,5 @@
+use crate::supply_chain_mapping::SupplyChainMapping;
+
 #[derive(Debug, Clone, PartialEq, Default, async_graphql::SimpleObject)]
 #[graphql(name = "InternalTradeRouteProposal")]
 pub struct TradeRouteProposal {
@@ -10,6 +12,11 @@ pub struct TradeRouteProposal {
     pub purchase: database::MarketTrade,
     #[graphql(skip)]
     pub sell: database::MarketTrade,
+
+    #[graphql(skip)]
+    pub purchase_waypoint_market_trades: Vec<database::MarketTrade>,
+    #[graphql(skip)]
+    pub sell_waypoint_market_trades: Vec<database::MarketTrade>,
 
     pub fuel_units: i32,
     pub time: f64,
@@ -130,6 +137,8 @@ pub async fn gen_trade_route_proposal(
         sell_good: trade_route_candidate.sell_good,
         purchase: trade_route_candidate.purchase,
         sell: trade_route_candidate.sell,
+        purchase_waypoint_market_trades: trade_route_candidate.purchase_waypoint_market_trades,
+        sell_waypoint_market_trades: trade_route_candidate.sell_waypoint_market_trades,
         fuel_units: trip_information.total_fuel_units + trip_information.total_antimatter_units,
         time: trip_information.total_time,
         distance: trip_information.total_distance,
@@ -191,6 +200,7 @@ pub fn sort_trade_route_proposal(
     trade_route_proposal_a: &TradeRouteProposal,
     trade_route_proposal_b: &TradeRouteProposal,
     trading_config: &database::TradingFleetConfig,
+    supply_chain_mapping: &SupplyChainMapping,
 ) -> Option<std::cmp::Ordering> {
     // sorts how filled-in a trade route proposal is
     match (
@@ -232,7 +242,26 @@ pub fn sort_trade_route_proposal(
             .total_profit
             .partial_cmp(&trade_route_proposal_b.total_profit),
         database::TradeMode::MarketBalanced => {
-            // TODO
+            // prefer trades that are imports for an export in the prefer list
+
+            // a preferable trade in this case is, if it's  an import to a item on the prefer list and the sell wp exports that same preferred item
+            let is_a_preferable = is_preferable_trade_route_proposal(
+                trade_route_proposal_a,
+                trading_config,
+                supply_chain_mapping,
+            );
+            let is_b_preferable = is_preferable_trade_route_proposal(
+                trade_route_proposal_b,
+                trading_config,
+                supply_chain_mapping,
+            );
+
+            match (is_a_preferable, is_b_preferable) {
+                (true, false) => return Some(std::cmp::Ordering::Greater),
+                (false, true) => return Some(std::cmp::Ordering::Less),
+                _ => {}
+            }
+
             // prefer trades that trade from high supply to low supply the higher difference the better
 
             // better if sell pw exporting
@@ -249,4 +278,22 @@ pub fn sort_trade_route_proposal(
             Some(route_a_diff.cmp(&route_b_diff))
         }
     }
+}
+
+/// a preferable trade in this case is, if it's  an import to a item on the prefer list and the sell wp exports that same preferred item
+fn is_preferable_trade_route_proposal(
+    trade_route_proposal: &TradeRouteProposal,
+    trading_config: &database::TradingFleetConfig,
+    supply_chain_mapping: &SupplyChainMapping,
+) -> bool {
+    let preferred_exports = trade_route_proposal
+        .sell_waypoint_market_trades
+        .iter()
+        .filter(|trade| trading_config.market_prefer_list.contains(&trade.symbol))
+        .collect::<Vec<_>>();
+    preferred_exports.iter().any(|m| {
+        supply_chain_mapping
+            .get_import_mapping(m.symbol)
+            .contains(&trade_route_proposal.symbol)
+    })
 }

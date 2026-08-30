@@ -3113,6 +3113,10 @@ pub struct GQLTradeRouteCandidate {
     pub purchase: database::MarketTrade,
     #[graphql(skip)]
     pub sell: database::MarketTrade,
+    #[graphql(skip)]
+    pub purchase_waypoint_market_trades: Vec<database::MarketTrade>,
+    #[graphql(skip)]
+    pub sell_waypoint_market_trades: Vec<database::MarketTrade>,
 }
 
 #[derive(Debug, Clone, async_graphql::OneofObject)]
@@ -3158,6 +3162,8 @@ impl GQLTradeRouteCandidate {
                 sell_good: self.sell_good.clone(),
                 purchase: self.purchase.clone(),
                 sell: self.sell.clone(),
+                purchase_waypoint_market_trades: self.purchase_waypoint_market_trades.clone(),
+                sell_waypoint_market_trades: self.sell_waypoint_market_trades.clone(),
             },
             purchase_multiplier: purchase_multiplier.unwrap_or(2.0),
             ship_stats,
@@ -3233,6 +3239,8 @@ impl GQLTradeRouteCandidate {
             .await?;
         Ok(into_gql(waypoint))
     }
+
+    // async fn purchase_waypoint_market_trades
 }
 
 impl From<TradeRouteCandidate> for GQLTradeRouteCandidate {
@@ -3243,6 +3251,8 @@ impl From<TradeRouteCandidate> for GQLTradeRouteCandidate {
             sell_good: value.sell_good,
             purchase: value.purchase,
             sell: value.sell,
+            purchase_waypoint_market_trades: value.purchase_waypoint_market_trades,
+            sell_waypoint_market_trades: value.sell_waypoint_market_trades,
         }
     }
 }
@@ -3274,6 +3284,14 @@ impl GQLTradeRouteProposal {
             sell_good: self.trade_route_proposal.sell_good.clone(),
             purchase: self.trade_route_proposal.purchase.clone(),
             sell: self.trade_route_proposal.sell.clone(),
+            purchase_waypoint_market_trades: self
+                .trade_route_proposal
+                .purchase_waypoint_market_trades
+                .clone(),
+            sell_waypoint_market_trades: self
+                .trade_route_proposal
+                .sell_waypoint_market_trades
+                .clone(),
         })
     }
 

@@ -9,6 +9,9 @@ pub struct TradeRouteCandidate {
     pub sell_good: Option<database::MarketTradeGood>,
     pub purchase: database::MarketTrade,
     pub sell: database::MarketTrade,
+
+    pub purchase_waypoint_market_trades: Vec<database::MarketTrade>,
+    pub sell_waypoint_market_trades: Vec<database::MarketTrade>,
 }
 impl TradeRouteCandidate {
     pub(crate) fn is_valid(&self, blacklist: &[models::TradeSymbol]) -> bool {

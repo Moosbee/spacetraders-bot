@@ -1,6 +1,7 @@
 use std::{collections::HashSet, num::NonZeroU32, str::FromStr, sync::Arc};
 
 use database::DatabaseConnectorAsync;
+use rand::seq::index::IndexVecIntoIter;
 use ship::ShipManager;
 use space_traders_client::models::{self};
 use tokio::sync::RwLock;
@@ -69,13 +70,13 @@ pub async fn run_reset(
     )
     .await?;
 
-    let context = populate_context(context, &my_agent, run_info).await?;
+    tracing::info!("Initializing export-import mappings");
+    let import_exports = init_exports_to_imports(&context.api, &context.database_pool).await?;
+
+    let context = populate_context(context, &my_agent, run_info, import_exports).await?;
 
     tracing::info!("Populating database with agent info");
     populate_database(&context, &my_agent).await?;
-
-    tracing::info!("Initializing export-import mappings");
-    init_exports_to_imports(&context.api, &context.database_pool).await?;
 
     tracing::info!("Initializing systems for ship locations");
     init_systems_with_ships(&context, &ships, false).await?;
@@ -182,6 +183,7 @@ async fn populate_context(
     mut context: ConductorContext,
     my_agent: &models::Agent,
     run_info: RunInfo,
+    import_exports: Vec<database::ExportImportMapping>,
 ) -> Result<ConductorContext, anyhow::Error> {
     let config: crate::utils::Config =
         toml_edit::de::from_str(&std::fs::read_to_string("config.toml").unwrap()).unwrap();
@@ -202,6 +204,8 @@ async fn populate_context(
 
     context.budget_manager = Arc::new(budget_manager);
 
+    context.supply_chain_mappings = Arc::new(SupplyChainMappings::new(import_exports));
+
     Ok(context)
 }
 
@@ -209,7 +213,7 @@ async fn populate_context(
 async fn init_exports_to_imports(
     api: &space_traders_client::Api,
     database_pool: &database::DbPool,
-) -> Result<(), anyhow::Error> {
+) -> Result<Vec<database::ExportImportMapping>, anyhow::Error> {
     let exports_to_imports: models::GetSupplyChain200Response =
         api.get_exports_to_imports().await?;
     let mappings = database::ExportImportMapping::generate_mapping(*exports_to_imports.data)?;
@@ -221,7 +225,7 @@ async fn init_exports_to_imports(
 
     database::ExportImportMapping::insert_bulk(database_pool, &mappings).await?;
     tracing::info!("Inserted export-import mappings into the database");
-    Ok(())
+    Ok(mappings)
 }
 #[instrument(skip(context, my_agent))]
 async fn populate_database(
@@ -402,6 +406,7 @@ async fn init_min_context(
         run_info: Arc::new(RwLock::new(RunInfo::default())),
         config: Arc::new(RwLock::new(crate::utils::Config::default())),
         cancellation_tokens: Arc::new(cancellation_tokens),
+        supply_chain_mapping: Arc::new(SupplyChainMapping::new(vec![])),
     };
 
     let manager_receiver = ManagerReceiver {

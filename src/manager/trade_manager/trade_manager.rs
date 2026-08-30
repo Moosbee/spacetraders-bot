@@ -310,8 +310,13 @@ impl TradeManager {
                     && (trp.total_cost as i64) <= spendable
             },
             |trp1, trp2| {
-                trade_route_calculator::sort_trade_route_proposal(trp1, trp2, &trading_config)
-                    .unwrap_or(std::cmp::Ordering::Equal)
+                trade_route_calculator::sort_trade_route_proposal(
+                    trp1,
+                    trp2,
+                    &trading_config,
+                    &self.context.supply_chain_mapping,
+                )
+                .unwrap_or(std::cmp::Ordering::Equal)
             },
         );
 
