@@ -9,6 +9,7 @@ use tokio_util::sync::CancellationToken;
 use tracing::instrument;
 use utils::{WaypointCan, get_system_symbol};
 
+use crate::supply_chain_mapping::SupplyChainMapping;
 use crate::{
     control_api,
     manager::{
@@ -204,7 +205,7 @@ async fn populate_context(
 
     context.budget_manager = Arc::new(budget_manager);
 
-    context.supply_chain_mappings = Arc::new(SupplyChainMappings::new(import_exports));
+    context.supply_chain_mapping = Arc::new(SupplyChainMapping::new(&import_exports));
 
     Ok(context)
 }
@@ -406,7 +407,7 @@ async fn init_min_context(
         run_info: Arc::new(RwLock::new(RunInfo::default())),
         config: Arc::new(RwLock::new(crate::utils::Config::default())),
         cancellation_tokens: Arc::new(cancellation_tokens),
-        supply_chain_mapping: Arc::new(SupplyChainMapping::new(vec![])),
+        supply_chain_mapping: Arc::new(SupplyChainMapping::new(&[])),
     };
 
     let manager_receiver = ManagerReceiver {

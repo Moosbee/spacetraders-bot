@@ -280,20 +280,169 @@ pub fn sort_trade_route_proposal(
     }
 }
 
-/// a preferable trade in this case is, if it's  an import to a item on the prefer list and the sell wp exports that same preferred item
+/// A preferable trade is one where the traded good is an import needed to
+/// produce an item on the prefer list, and the sell waypoint exports that
+/// same preferred item.
 fn is_preferable_trade_route_proposal(
     trade_route_proposal: &TradeRouteProposal,
     trading_config: &database::TradingFleetConfig,
     supply_chain_mapping: &SupplyChainMapping,
 ) -> bool {
-    let preferred_exports = trade_route_proposal
+    trade_route_proposal
         .sell_waypoint_market_trades
         .iter()
+        .filter(|trade| {
+            trade.r#type == space_traders_client::models::market_trade_good::Type::Export
+        })
         .filter(|trade| trading_config.market_prefer_list.contains(&trade.symbol))
-        .collect::<Vec<_>>();
-    preferred_exports.iter().any(|m| {
-        supply_chain_mapping
-            .get_import_mapping(m.symbol)
-            .contains(&trade_route_proposal.symbol)
-    })
+        .any(|preferred_export| {
+            supply_chain_mapping
+                .get_import_mapping(preferred_export.symbol)
+                .contains(&trade_route_proposal.symbol)
+        })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use space_traders_client::models::TradeSymbol;
+    use space_traders_client::models::market_trade_good::Type;
+
+    fn make_trading_config(prefer_list: Vec<TradeSymbol>) -> database::TradingFleetConfig {
+        database::TradingFleetConfig {
+            market_blacklist: vec![],
+            market_prefer_list: prefer_list,
+            purchase_multiplier: 1.0,
+            trade_mode: database::TradeMode::MarketBalanced,
+            trade_profit_threshold: 0,
+            ship_market_ratio: 1.0,
+            min_cargo_space: 0,
+        }
+    }
+
+    fn make_market_trade(symbol: TradeSymbol, r#type: Type) -> database::MarketTrade {
+        database::MarketTrade {
+            waypoint_symbol: "SELL_WP".to_string(),
+            symbol,
+            r#type,
+            ..Default::default()
+        }
+    }
+
+    fn make_proposal(
+        traded_symbol: TradeSymbol,
+        sell_waypoint_market_trades: Vec<database::MarketTrade>,
+    ) -> TradeRouteProposal {
+        TradeRouteProposal {
+            symbol: traded_symbol,
+            sell_waypoint_market_trades,
+            ..Default::default()
+        }
+    }
+
+    fn make_supply_chain_mapping(export: TradeSymbol, import: TradeSymbol) -> SupplyChainMapping {
+        SupplyChainMapping::new(&[database::ExportImportMapping {
+            export_symbol: export,
+            import_symbol: import,
+        }])
+    }
+
+    #[test]
+    fn true_when_traded_good_is_import_of_preferred_export() {
+        let config = make_trading_config(vec![TradeSymbol::AdvancedCircuitry]);
+        let mapping =
+            make_supply_chain_mapping(TradeSymbol::AdvancedCircuitry, TradeSymbol::Microprocessors);
+        let proposal = make_proposal(
+            TradeSymbol::Microprocessors,
+            vec![make_market_trade(
+                TradeSymbol::AdvancedCircuitry,
+                Type::Export,
+            )],
+        );
+
+        assert!(is_preferable_trade_route_proposal(
+            &proposal, &config, &mapping
+        ));
+    }
+
+    #[test]
+    fn false_when_traded_good_is_not_import_of_preferred_export() {
+        let config = make_trading_config(vec![TradeSymbol::AdvancedCircuitry]);
+        let mapping =
+            make_supply_chain_mapping(TradeSymbol::AdvancedCircuitry, TradeSymbol::Electronics);
+        let proposal = make_proposal(
+            TradeSymbol::Microprocessors,
+            vec![make_market_trade(
+                TradeSymbol::AdvancedCircuitry,
+                Type::Export,
+            )],
+        );
+
+        assert!(!is_preferable_trade_route_proposal(
+            &proposal, &config, &mapping
+        ));
+    }
+
+    #[test]
+    fn false_when_preferred_item_is_not_exported_by_sell_waypoint() {
+        let config = make_trading_config(vec![TradeSymbol::AdvancedCircuitry]);
+        let mapping =
+            make_supply_chain_mapping(TradeSymbol::AdvancedCircuitry, TradeSymbol::Microprocessors);
+        let proposal = make_proposal(
+            TradeSymbol::Microprocessors,
+            vec![make_market_trade(
+                TradeSymbol::AdvancedCircuitry,
+                Type::Import,
+            )],
+        );
+
+        assert!(!is_preferable_trade_route_proposal(
+            &proposal, &config, &mapping
+        ));
+    }
+
+    #[test]
+    fn false_when_sell_waypoint_has_no_preferred_trades() {
+        let config = make_trading_config(vec![TradeSymbol::AdvancedCircuitry]);
+        let mapping =
+            make_supply_chain_mapping(TradeSymbol::AdvancedCircuitry, TradeSymbol::Microprocessors);
+        let proposal = make_proposal(
+            TradeSymbol::Microprocessors,
+            vec![make_market_trade(TradeSymbol::Gold, Type::Export)],
+        );
+
+        assert!(!is_preferable_trade_route_proposal(
+            &proposal, &config, &mapping
+        ));
+    }
+
+    #[test]
+    fn false_when_prefer_list_is_empty() {
+        let config = make_trading_config(vec![]);
+        let mapping =
+            make_supply_chain_mapping(TradeSymbol::AdvancedCircuitry, TradeSymbol::Microprocessors);
+        let proposal = make_proposal(
+            TradeSymbol::Microprocessors,
+            vec![make_market_trade(
+                TradeSymbol::AdvancedCircuitry,
+                Type::Export,
+            )],
+        );
+
+        assert!(!is_preferable_trade_route_proposal(
+            &proposal, &config, &mapping
+        ));
+    }
+
+    #[test]
+    fn false_when_sell_waypoint_has_no_market_trades() {
+        let config = make_trading_config(vec![TradeSymbol::AdvancedCircuitry]);
+        let mapping =
+            make_supply_chain_mapping(TradeSymbol::AdvancedCircuitry, TradeSymbol::Microprocessors);
+        let proposal = make_proposal(TradeSymbol::Microprocessors, vec![]);
+
+        assert!(!is_preferable_trade_route_proposal(
+            &proposal, &config, &mapping
+        ));
+    }
 }

@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use space_traders_client::models;
 
+#[derive(Debug)]
 pub struct SupplyChainMapping {
     import_mapping: HashMap<models::TradeSymbol, Vec<models::TradeSymbol>>,
     export_mapping: HashMap<models::TradeSymbol, Vec<models::TradeSymbol>>,
@@ -14,13 +15,13 @@ impl SupplyChainMapping {
 
         for mapping in supply_chain_mapping.iter() {
             import_mapping
-                .entry(mapping.export_good.clone())
+                .entry(mapping.export_symbol.clone())
                 .or_insert(vec![])
-                .push(mapping.import_good.clone());
+                .push(mapping.import_symbol.clone());
             export_mapping
-                .entry(mapping.import_good.clone())
+                .entry(mapping.import_symbol.clone())
                 .or_insert(vec![])
-                .push(mapping.export_good.clone());
+                .push(mapping.export_symbol.clone());
         }
 
         Self {
@@ -31,11 +32,17 @@ impl SupplyChainMapping {
 
     /// gets the necessary imports to create the given export
     pub fn get_import_mapping(&self, export_good: models::TradeSymbol) -> &[models::TradeSymbol] {
-        self.import_mapping.get(&export_good).unwrap_or(&vec![])
+        self.import_mapping
+            .get(&export_good)
+            .map(Vec::as_slice)
+            .unwrap_or(&[])
     }
 
     /// returns the exports that need this import
     pub fn get_export_mapping(&self, import_good: models::TradeSymbol) -> &[models::TradeSymbol] {
-        self.export_mapping.get(&import_good).unwrap_or(&vec![])
+        self.export_mapping
+            .get(&import_good)
+            .map(Vec::as_slice)
+            .unwrap_or(&[])
     }
 }
