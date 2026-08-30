@@ -6,7 +6,6 @@ import {
   Descriptions,
   DescriptionsProps,
   Divider,
-  Empty,
   Flex,
   List,
   Popover,
@@ -27,6 +26,7 @@ import MoneyDisplay from "../features/MonyDisplay";
 import PageTitle from "../features/PageTitle";
 import RoleRenderer from "../features/RoleRenderer/RoleRenderer";
 import ShipCapabilityRadar from "../features/ShipCapabilityRadar/ShipCapabilityRadar";
+import ShipControls from "../features/ShipControl/ShipControls";
 import ShipComponents from "../features/ShipInfo/ShipComponents";
 import Timer from "../features/Timer/Timer";
 import WaypointLink from "../features/WaypointLink";
@@ -1272,7 +1272,7 @@ function ShipDetails({ ship }: { ship: ShipData }) {
         <Col span={6}>
           <div className="flex flex-col h-full">
             <Card size="small" title="Ship Controls">
-              <Empty description="Live ship data is not loaded yet. Manual controls will appear here once available." />
+              <ShipControls ship={ship} />
             </Card>
             <Divider size="middle" />
             <Table

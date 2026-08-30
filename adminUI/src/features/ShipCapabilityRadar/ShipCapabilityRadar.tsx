@@ -75,6 +75,7 @@ const RADAR_MAX: Record<string, number> = {
   Sensors: 3,
   Warp: 3,
   Refinery: 3,
+  Condition: 1,
 };
 
 const CARGO_TIERS = [0, 15, 40, 80, 150, 225, 490];
@@ -157,7 +158,16 @@ function ShipCapabilityRadar({ ship }: { ship: ShipData }) {
   } = theme.useToken();
 
   const radarData = [
-    { Capability: "Cargo", value: ship.cargo.capacity },
+    {
+      Capability: "Condition",
+      value:
+        ship.conditions.engine.condition *
+        ship.conditions.frame.condition *
+        ship.conditions.reactor.condition *
+        ship.conditions.engine.integrity *
+        ship.conditions.frame.integrity *
+        ship.conditions.reactor.integrity,
+    },
     { Capability: "Fuel", value: ship.fuel.capacity },
     { Capability: "Engine", value: ship.engineSpeed },
     {
@@ -168,6 +178,7 @@ function ShipCapabilityRadar({ ship }: { ship: ShipData }) {
       Capability: "Sensors",
       value: ship.mounts.mounts.reduce((a, m) => a + mountSensorScore(m), 0),
     },
+
     {
       Capability: "Warp",
       value: ship.modules.modules.reduce((a, m) => a + moduleWarpScore(m), 0),
@@ -179,6 +190,7 @@ function ShipCapabilityRadar({ ship }: { ship: ShipData }) {
         0,
       ),
     },
+    { Capability: "Cargo", value: ship.cargo.capacity },
   ].map((d) => ({
     ...d,
     max: RADAR_MAX[d.Capability],

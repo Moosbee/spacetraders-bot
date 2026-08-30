@@ -684,7 +684,9 @@ function System() {
           <List
             size="small"
             style={{ maxHeight: "200px", overflowY: "auto" }}
-            dataSource={system?.ships}
+            dataSource={system?.ships.toSorted((a, b) =>
+              a.symbol.localeCompare(b.symbol),
+            )}
             renderItem={(ship) => (
               <List.Item>
                 <Popover

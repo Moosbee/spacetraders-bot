@@ -299,5 +299,3 @@ function ShipControl({ ship }: { ship: RustShip }) {
     />
   );
 }
-
-export default ShipControl;
