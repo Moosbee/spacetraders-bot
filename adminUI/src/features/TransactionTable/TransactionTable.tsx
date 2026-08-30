@@ -78,6 +78,7 @@ function TransactionTable({
           value: type,
         })),
       onFilter: (value, record) => record.tradeSymbol === value,
+      render: (value) => <Link to={`/supplyChain/${value}`}>{value}</Link>,
     },
     {
       title: "Transaction Type",

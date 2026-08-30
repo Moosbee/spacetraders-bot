@@ -113,14 +113,23 @@ function shallowEqual(objA: any, objB: any) {
   return true;
 }
 
-export function cn(...inputs: ClassValue[]) {
+function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export { cyrb53, interpolatePosition, scaleNum, seedShuffle, shallowEqual };
+export { cn, cyrb53, interpolatePosition, scaleNum, seedShuffle, shallowEqual };
 
 type Prettify<T> = {
   [K in keyof T]: T[K];
 } & {};
 
-export type { Prettify };
+// make all properties optional recursively including nested objects.
+// keep in mind that this should be used on json / plain objects only.
+// otherwise, it will make class methods optional as well.
+type DeepPartial<T> = {
+  [P in keyof T]?: T[P] extends Array<infer I>
+    ? Array<DeepPartial<I>>
+    : DeepPartial<T[P]>;
+};
+
+export type { DeepPartial, Prettify };

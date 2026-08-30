@@ -1,6 +1,6 @@
 import { useQuery } from "@apollo/client/react";
 import { Button, Descriptions, Flex, Space, Table } from "antd";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import MoneyDisplay from "../features/MonyDisplay";
 import PageTitle from "../features/PageTitle";
 import TransactionTable from "../features/TransactionTable/TransactionTable";
@@ -185,6 +185,9 @@ function Contract() {
                 title: "Trade Symbol",
                 dataIndex: "tradeSymbol",
                 key: "tradeSymbol",
+                render: (value) => (
+                  <Link to={`/supplyChain/${value}`}>{value}</Link>
+                ),
               },
               {
                 title: "Units Fulfilled",
@@ -226,6 +229,9 @@ function Contract() {
               title: "Trade Symbol",
               dataIndex: "tradeSymbol",
               key: "tradeSymbol",
+              render: (value) => (
+                <Link to={`/supplyChain/${value}`}>{value}</Link>
+              ),
             },
             {
               title: "Units",

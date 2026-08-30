@@ -685,6 +685,7 @@ function ShipDetails({ ship }: { ship: ShipData }) {
         value: symbol,
       })),
       onFilter: (value, record) => record.tradeSymbol === value,
+      render: (value) => <Link to={`/supplyChain/${value}`}>{value}</Link>,
     },
     {
       title: "Timestamp",
@@ -860,6 +861,7 @@ function ShipDetails({ ship }: { ship: ShipData }) {
         value: symbol,
       })),
       onFilter: (value, record) => record.tradeSymbol === value,
+      render: (value) => <Link to={`/supplyChain/${value}`}>{value}</Link>,
     },
     {
       title: "Construction Site",
@@ -931,6 +933,7 @@ function ShipDetails({ ship }: { ship: ShipData }) {
         value: symbol,
       })),
       onFilter: (value, record) => record.tradeSymbol === value,
+      render: (value) => <Link to={`/supplyChain/${value}`}>{value}</Link>,
     },
     {
       title: "Units",

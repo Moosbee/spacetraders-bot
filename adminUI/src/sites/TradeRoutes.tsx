@@ -57,6 +57,7 @@ function TradeRoutes() {
       })),
       filterSearch: true,
       onFilter: (value, record) => record.symbol === value,
+      render: (value) => <Link to={`/supplyChain/${value}`}>{value}</Link>,
     },
     {
       title: "Ship",

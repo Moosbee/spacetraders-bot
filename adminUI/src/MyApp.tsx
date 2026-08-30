@@ -23,12 +23,14 @@ import Ship from "./sites/Ship";
 import ShipRoutes from "./sites/ShipRoutes";
 import Ships from "./sites/Ships";
 import ShipsToPurchase from "./sites/ShipsToPurchase";
+import SupplyChain from "./sites/SupplyChain";
 import Surveys from "./sites/Surveys";
 import System from "./sites/System";
 import SysMap from "./sites/SystemMap";
 import SystemMarkets from "./sites/SystemMarkets";
 import Systems from "./sites/Systems";
 import TradeRoutes from "./sites/TradeRoutes";
+import TradeSymbolInfo from "./sites/TradeSymbolInfo";
 import Waypoint from "./sites/Waypoint";
 import WpMap from "./sites/WaypointMap";
 import WaypointMarketHistory from "./sites/WaypointMarketHistory";
@@ -141,6 +143,12 @@ function MyApp() {
                     <Route path="/reservedFunds" element={<ReservedFunds />} />
                     <Route path="/surveys" element={<Surveys />} />
                     <Route path="/config" element={<ConfigScreen />} />
+
+                    <Route
+                      path="/supplyChain/:tradeSymbol"
+                      element={<TradeSymbolInfo />}
+                    />
+                    <Route path="/supplyChain" element={<SupplyChain />} />
 
                     <Route path="*" element={<ErrorPage />} />
                   </Routes>

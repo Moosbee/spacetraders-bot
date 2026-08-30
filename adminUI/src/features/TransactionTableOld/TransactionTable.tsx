@@ -26,7 +26,7 @@ function TransactionTable({
         (t) => ({
           text: t,
           value: t,
-        })
+        }),
       ),
       onFilter: (value, record) => record.waypoint_symbol === value,
     },
@@ -49,6 +49,7 @@ function TransactionTable({
           value: type,
         })),
       onFilter: (value, record) => record.trade_symbol === value,
+      render: (value) => <Link to={`/supplyChain/${value}`}>{value}</Link>,
     },
     {
       title: "Transaction Type",

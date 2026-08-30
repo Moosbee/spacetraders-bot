@@ -1090,7 +1090,7 @@ export const GET_ALL_SHIPS = graphql(/* GraphQL */ `
           fuelCost
           travelTime
           route {
-            connections{
+            connections {
               __typename
             }
           }
@@ -1881,6 +1881,121 @@ export const GET_MINING_ASSIGNMENTS = graphql(/* GraphQL */ `
             siphonersPerWaypoint
             surveyersPerWaypoint
           }
+        }
+      }
+    }
+  }
+`);
+
+export const GET_TOTAL_SUPPLY_CHAIN = graphql(/* GraphQL */ `
+  query GetTotalSupplyChain {
+    tradeSymbolInfos {
+      symbol
+      requires {
+        items {
+          symbol
+          requires {
+            items {
+              symbol
+              requires {
+                items {
+                  symbol
+                  requires {
+                    items {
+                      symbol
+                      requires {
+                        items {
+                          symbol
+                          requires {
+                            items {
+                              symbol
+                              requires {
+                                items {
+                                  symbol
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+      requiredBy {
+        items {
+          symbol
+        }
+      }
+    }
+  }
+`);
+
+export const GET_TRADE_SYMBOL_SUPPLY_CHAIN = graphql(/* GraphQL */ `
+  query GetTradeSymbolSupplyChain($tradeSymbol: TradeSymbol!) {
+    tradeSymbolInfo(tradeSymbol: $tradeSymbol) {
+      symbol
+      requires {
+        items {
+          symbol
+          requires {
+            items {
+              symbol
+              requires {
+                items {
+                  symbol
+                  requires {
+                    items {
+                      symbol
+                      requires {
+                        items {
+                          symbol
+                          requires {
+                            items {
+                              symbol
+                              requires {
+                                items {
+                                  symbol
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+      requiredBy {
+        items {
+          symbol
+        }
+      }
+    }
+    marketTrades(by: { tradeSymbol: $tradeSymbol }) {
+      items {
+        symbol
+        waypointSymbol
+        type
+        createdAt
+        marketTradeGood {
+          symbol
+          waypointSymbol
+          type
+          tradeVolume
+          supply
+          activity
+          purchasePrice
+          sellPrice
+          createdAt
         }
       }
     }

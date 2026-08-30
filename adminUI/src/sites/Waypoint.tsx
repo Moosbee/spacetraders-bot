@@ -481,6 +481,7 @@ function Waypoint() {
       dataIndex: "tradeSymbol",
       key: "tradeSymbol",
       sorter: (a, b) => a.tradeSymbol.localeCompare(b.tradeSymbol),
+      render: (value) => <Link to={`/supplyChain/${value}`}>{value}</Link>,
     },
     {
       title: "Required",

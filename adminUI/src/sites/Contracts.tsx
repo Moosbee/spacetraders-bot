@@ -174,6 +174,9 @@ function Contracts() {
             title: "Trade Symbol",
             dataIndex: "tradeSymbol",
             key: "tradeSymbol",
+            render: (value) => (
+              <Link to={`/supplyChain/${value}`}>{value}</Link>
+            ),
           },
           {
             title: "Units",

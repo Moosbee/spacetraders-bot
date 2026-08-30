@@ -738,8 +738,11 @@ function System() {
                 >
                   <Link to={`/fleets/${fleet.id}`}>
                     {fleet.fleetType}_{fleet.id} ({fleet.active ? "A" : "I"}) (
-                    {fleet.assignments.filter((asgmt) => asgmt.ship).length}/
-                    {fleet.assignments.length}){" "}
+                    {
+                      fleet.assignments.filter((asgmt) => asgmt.ship.length > 0)
+                        .length
+                    }
+                    /{fleet.assignments.length}){" "}
                     {fleet.config.__typename === "TradingConfig"
                       ? `(${fleet.config.tradeMode})`
                       : ""}
@@ -958,6 +961,9 @@ function System() {
                 dataIndex: "tradeSymbol",
                 key: "tradeSymbol",
                 sorter: (a, b) => a.tradeSymbol.localeCompare(b.tradeSymbol),
+                render: (value) => (
+                  <Link to={`/supplyChain/${value}`}>{value}</Link>
+                ),
               },
               {
                 title: "required",
@@ -1561,6 +1567,9 @@ function System() {
                   value: sym,
                 })),
                 onFilter: (value, record) => record.symbol === value,
+                render: (value) => (
+                  <Link to={`/supplyChain/${value}`}>{value}</Link>
+                ),
               },
               {
                 title: "Ship",
@@ -1771,6 +1780,9 @@ function System() {
                   value: sym,
                 })),
                 onFilter: (value, record) => record.tradeSymbol === value,
+                render: (value) => (
+                  <Link to={`/supplyChain/${value}`}>{value}</Link>
+                ),
               },
               {
                 title: "Destination",

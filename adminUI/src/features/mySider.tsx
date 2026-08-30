@@ -1,4 +1,5 @@
 import {
+  ApartmentOutlined,
   AuditOutlined,
   ContactsOutlined,
   DeliveredProcedureOutlined,
@@ -182,6 +183,11 @@ const items: MenuItem[] = [
         label: <Link to="/factions">Factions</Link>,
         key: "factions",
         icon: <TeamOutlined />,
+      },
+      {
+        label: <Link to="/supplyChain">Supply Chains</Link>,
+        key: "supplyChain",
+        icon: <ApartmentOutlined />,
       },
       {
         label: <Link to="/surveys">Surveys</Link>,

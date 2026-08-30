@@ -1,3 +1,5 @@
+import { TradeSymbol } from "../gql/graphql";
+
 // https://github.com/FloWi/rust-flwi-spacetraders-leaderboard/blob/main/flwi-spacetraders-leaderboard/src/utils/chartColors.ts
 export const chartColors = [
   // d3 category 20 scheme
@@ -36,3 +38,6 @@ export const chartColors = [
   "#66a61e",
   "#a6761d",
 ];
+
+export const chartColorTradeSymbol = (symbol: TradeSymbol) =>
+  chartColors[Object.values(TradeSymbol).indexOf(symbol) % chartColors.length];
