@@ -38,6 +38,12 @@ enum LogAnalysisCommand {
     ListErrors,
     ListTopLevelSpans,
     ListSqlx,
+    /// Aggregate per-span busy/idle duration stats (min/max/median/avg)
+    ListSpanStats {
+        /// Directory containing the split log files
+        #[arg(long, default_value = "split_logs")]
+        dir: String,
+    },
     /// Split the log into one file per top-level span
     SplitTopLevelSpans {
         /// Output directory for the split log files
