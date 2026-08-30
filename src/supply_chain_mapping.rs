@@ -45,4 +45,35 @@ impl SupplyChainMapping {
             .map(Vec::as_slice)
             .unwrap_or(&[])
     }
+
+    pub fn get_imports_recursive_until(
+        &self,
+        export_good: models::TradeSymbol,
+        until: &[models::TradeSymbol],
+    ) -> RecursiveImports {
+        RecursiveImports {
+            export: export_good,
+            imports: self
+                .get_import_mapping(export_good)
+                .iter()
+                .filter(|import| !until.contains(import))
+                .map(|import| self.get_imports_recursive_until(*import, until))
+                .collect(),
+        }
+    }
+}
+
+pub struct RecursiveImports {
+    pub export: models::TradeSymbol,
+    pub imports: Vec<RecursiveImports>,
+}
+
+impl RecursiveImports {
+    pub fn flatten(&self) -> Vec<models::TradeSymbol> {
+        let mut result = vec![self.export.clone()];
+        for import in &self.imports {
+            result.extend(import.flatten());
+        }
+        result
+    }
 }
