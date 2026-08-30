@@ -394,11 +394,36 @@ async fn generate_system_fleets(
             vec![]
         };
 
+        let market_prefer_list = if system_fleets.construction_fleet.is_some() {
+            let construction_goods = open_construction_site
+                .iter()
+                .map(|f| f.trade_symbol)
+                .collect::<HashSet<_>>();
+            let goods = construction_goods
+                .iter()
+                .flat_map(|g| {
+                    context
+                        .supply_chain_mapping
+                        .get_imports_recursive_until(
+                            *g,
+                            &[
+                                models::TradeSymbol::LiquidHydrogen,
+                                models::TradeSymbol::LiquidNitrogen,
+                            ],
+                        )
+                        .flatten()
+                })
+                .collect::<HashSet<_>>();
+            goods.into_iter().collect()
+        } else {
+            vec![]
+        };
+
         system_fleets.market_balance_fleet = Some(
             database::Fleet::new(system_symbol.to_string(), true).with_config(
                 database::FleetConfig::Trading(database::TradingFleetConfig {
                     market_blacklist,
-                    market_prefer_list: vec![], // todo calculate based on construction needs
+                    market_prefer_list,
                     purchase_multiplier: 2.0,
                     ship_market_ratio,
                     min_cargo_space: 40, // todo calculate based on markets
