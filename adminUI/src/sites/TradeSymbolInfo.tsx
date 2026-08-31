@@ -142,6 +142,9 @@ export default function TradeSymbolInfo() {
             title: "Symbol",
             dataIndex: "symbol",
             key: "symbol",
+            render: (value: string) => (
+              <Link to={`/supplyChain/${value}`}>{value}</Link>
+            ),
             sorter: (a, b) => a.symbol.localeCompare(b.symbol),
           },
           {

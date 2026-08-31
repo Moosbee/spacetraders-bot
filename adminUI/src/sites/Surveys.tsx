@@ -1,5 +1,6 @@
 import { useQuery } from "@apollo/client/react";
 import { Button, Space, Table, TableProps } from "antd";
+import { Link } from "react-router-dom";
 import PageTitle from "../features/PageTitle";
 import Timer from "../features/Timer/Timer";
 import WaypointLink from "../features/WaypointLink";
@@ -91,7 +92,11 @@ export default function Surveys() {
               }))
               .map(({ trade_symbol, percentage, count }) => (
                 <div key={trade_symbol}>
-                  {percentage}% {trade_symbol} ({count})
+                  {percentage}%{" "}
+                  <Link to={`/supplyChain/${trade_symbol}`}>
+                    {trade_symbol}
+                  </Link>{" "}
+                  ({count})
                 </div>
               ))}
           </>

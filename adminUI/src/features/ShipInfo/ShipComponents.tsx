@@ -9,6 +9,7 @@ import {
   TableProps,
   theme,
 } from "antd";
+import { Link } from "react-router-dom";
 import { Fragment } from "react/jsx-runtime";
 import { ResponsiveContainer, Tooltip, Treemap } from "recharts";
 import { ShipModuleSymbol, TradeSymbol } from "../../gql/graphql";
@@ -119,7 +120,9 @@ function ShipComponents({ ship }: { ship: ShipData }) {
             title={
               <Flex gap={2} vertical>
                 {value.map((d) => (
-                  <span key={d}>{d}</span>
+                  <Link key={d} to={`/supplyChain/${d}`}>
+                    {d}
+                  </Link>
                 ))}
               </Flex>
             }

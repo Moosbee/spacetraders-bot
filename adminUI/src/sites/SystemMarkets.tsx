@@ -420,6 +420,9 @@ function SystemMarkets() {
                   title: "Symbol",
                   dataIndex: "symbol",
                   key: "symbol",
+                  render: (value: string) => (
+                    <Link to={`/supplyChain/${value}`}>{value}</Link>
+                  ),
                   sorter: (a, b) => a.symbol.localeCompare(b.symbol),
                   filters: Object.keys(marketOpportunities).map((symbol) => ({
                     text: symbol,
@@ -762,6 +765,9 @@ function SystemMarkets() {
                   title: "Symbol",
                   dataIndex: "symbol",
                   key: "symbol",
+                  render: (value: string) => (
+                    <Link to={`/supplyChain/${value}`}>{value}</Link>
+                  ),
                   sorter: (a, b) => a.symbol.localeCompare(b.symbol),
                   filters: [
                     ...new Set(
@@ -1145,6 +1151,9 @@ function SystemMarkets() {
                   title: "Symbol",
                   dataIndex: "symbol",
                   key: "symbol",
+                  render: (value: string) => (
+                    <Link to={`/supplyChain/${value}`}>{value}</Link>
+                  ),
                   sorter: (a, b) => a.symbol.localeCompare(b.symbol),
                   filters: [
                     ...new Set(

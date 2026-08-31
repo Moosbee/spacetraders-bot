@@ -287,7 +287,7 @@ function Ships() {
             <Flex vertical>
               {record.cargo.inventory.map((item) => (
                 <Flex gap={6} justify="space-between" key={item.symbol}>
-                  <span>{item.symbol}</span>
+                  <Link to={`/supplyChain/${item.symbol}`}>{item.symbol}</Link>
                   <span>{item.units}</span>
                 </Flex>
               ))}

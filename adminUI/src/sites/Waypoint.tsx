@@ -289,6 +289,9 @@ function Waypoint() {
       title: "Symbol",
       dataIndex: "symbol",
       key: "symbol",
+      render: (value: string) => (
+        <Link to={`/supplyChain/${value}`}>{value}</Link>
+      ),
       sorter: (a, b) => a.symbol.localeCompare(b.symbol),
       filters: [
         ...new Set((waypoint?.marketTrades.items || []).map((t) => t.symbol)),
@@ -318,6 +321,9 @@ function Waypoint() {
       title: "Symbol",
       dataIndex: "symbol",
       key: "symbol",
+      render: (value: string) => (
+        <Link to={`/supplyChain/${value}`}>{value}</Link>
+      ),
       sorter: (a, b) => a.symbol.localeCompare(b.symbol),
       filters: [
         ...new Set(
@@ -635,15 +641,16 @@ function Waypoint() {
                   ) => (
                     <div className="flex flex-col">
                       {tradeGoods.map((tradeGood) => (
-                        <span
+                        <Link
                           className={cn(
                             // "not-last:border-b border-gray-600",
                             tradeGood.fulfilled ? "" : "text-red-700",
                           )}
                           key={tradeGood.symbol}
+                          to={`/supplyChain/${tradeGood.symbol}`}
                         >
                           {tradeGood.symbol}
-                        </span>
+                        </Link>
                       ))}
                     </div>
                   ),
@@ -652,7 +659,11 @@ function Waypoint() {
                   title: "Export",
                   dataIndex: "export",
                   key: "export",
-                  render: (tradeGood) => tradeGood.symbol,
+                  render: (tradeGood) => (
+                    <Link to={`/supplyChain/${tradeGood.symbol}`}>
+                      {tradeGood.symbol}
+                    </Link>
+                  ),
                 },
               ]}
             />

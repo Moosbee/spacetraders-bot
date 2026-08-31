@@ -1,5 +1,6 @@
 import { Space, Table } from "antd";
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { backendUrl } from "../data";
 import MoneyDisplay from "../features/MonyDisplay";
 import PageTitle from "../features/PageTitle";
@@ -31,7 +32,9 @@ export default function PossibleTrades() {
             title: "Symbol",
             dataIndex: "symbol",
             key: "symbol",
-            // render: (symbol) => <WaypointLink waypoint={symbol}>{symbol}</WaypointLink>,
+            render: (symbol: string) => (
+              <Link to={`/supplyChain/${symbol}`}>{symbol}</Link>
+            ),
             sorter: (a, b) => a.symbol.localeCompare(b.symbol),
           },
           {

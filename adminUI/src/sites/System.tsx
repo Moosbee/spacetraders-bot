@@ -1095,6 +1095,9 @@ function System() {
                 title: "Symbol",
                 dataIndex: "symbol",
                 key: "symbol",
+                render: (value: string) => (
+                  <Link to={`/supplyChain/${value}`}>{value}</Link>
+                ),
                 sorter: (a, b) => a.symbol.localeCompare(b.symbol),
                 filters: [
                   ...new Set((system?.marketTrades || []).map((t) => t.symbol)),

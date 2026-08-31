@@ -242,7 +242,7 @@ function ShipDetails({ ship }: { ship: ShipData }) {
             <Flex vertical>
               {ship.cargo.inventory.map((item) => (
                 <Flex gap={6} justify="space-between" key={item.symbol}>
-                  <span>{item.symbol}</span>
+                  <Link to={`/supplyChain/${item.symbol}`}>{item.symbol}</Link>
                   <span>{item.units}</span>
                 </Flex>
               ))}
@@ -421,6 +421,9 @@ function ShipDetails({ ship }: { ship: ShipData }) {
       title: "Symbol",
       dataIndex: "symbol",
       key: "symbol",
+      render: (value: string) => (
+        <Link to={`/supplyChain/${value}`}>{value}</Link>
+      ),
       sorter: (a, b) => a.symbol.localeCompare(b.symbol),
       filters: Object.values(TradeSymbol).map((symbol) => ({
         text: symbol,
@@ -1003,6 +1006,9 @@ function ShipDetails({ ship }: { ship: ShipData }) {
       title: "Symbol",
       dataIndex: "symbol",
       key: "symbol",
+      render: (value: string) => (
+        <Link to={`/supplyChain/${value}`}>{value}</Link>
+      ),
       filters: Object.values(TradeSymbol).map((symbol) => ({
         text: symbol,
         value: symbol,
@@ -1173,7 +1179,19 @@ function ShipDetails({ ship }: { ship: ShipData }) {
       title: "Deposits",
       dataIndex: "deposits",
       key: "deposits",
-      render: (value?: TradeSymbol[]) => (value ?? []).join(", ") || "N/A",
+      render: (value?: TradeSymbol[]) =>
+        value && value.length > 0 ? (
+          <span>
+            {value.map((symbol, i) => (
+              <span key={symbol}>
+                {i > 0 ? ", " : null}
+                <Link to={`/supplyChain/${symbol}`}>{symbol}</Link>
+              </span>
+            ))}
+          </span>
+        ) : (
+          "N/A"
+        ),
     },
     {
       title: "Info Before",
