@@ -4,6 +4,7 @@ import {
   UploadOutlined,
 } from "@ant-design/icons";
 import { Flex } from "antd";
+import { Link } from "react-router-dom";
 import { GetSystemQuery } from "../../gql/graphql";
 import MoneyDisplay from "../MonyDisplay";
 
@@ -21,7 +22,9 @@ function MarketTradeGoodsPopover({
         .filter((t) => t.type === "EXCHANGE")
         .map((trade_good) => (
           <Flex justify="space-between" key={trade_good.symbol}>
-            <span>{trade_good.symbol}</span>
+            <Link to={`/supplyChain/${trade_good.symbol}`}>
+              {trade_good.symbol}
+            </Link>
             <Flex gap={1} justify="end">
               <span className="text-nowrap">
                 <UploadOutlined />{" "}
@@ -52,7 +55,9 @@ function MarketTradeGoodsPopover({
         .filter((t) => t.type === "IMPORT")
         .map((trade_good) => (
           <Flex justify="space-between" key={trade_good.symbol}>
-            <span>{trade_good.symbol}</span>
+            <Link to={`/supplyChain/${trade_good.symbol}`}>
+              {trade_good.symbol}
+            </Link>
             <Flex gap={1} justify="end">
               <span className="text-nowrap">
                 <UploadOutlined />{" "}
@@ -83,7 +88,9 @@ function MarketTradeGoodsPopover({
         .filter((t) => t.type === "EXPORT")
         .map((trade_good) => (
           <Flex justify="space-between" key={trade_good.symbol}>
-            <span>{trade_good.symbol}</span>
+            <Link to={`/supplyChain/${trade_good.symbol}`}>
+              {trade_good.symbol}
+            </Link>
             <Flex gap={1} justify="end">
               <span className="text-nowrap font-bold">
                 <UploadOutlined />{" "}
@@ -129,11 +136,15 @@ function MarketTradeGoodsPopover({
                         : "text-red-700"
                     }`}
                   >
-                    {t.symbol}
+                    <Link to={`/supplyChain/${t.symbol}`}>{t.symbol}</Link>
                   </div>
                 ))}
               </div>
-              <div className="flex items-center">{trade_good.symbol}</div>
+              <div className="flex items-center">
+                <Link to={`/supplyChain/${trade_good.symbol}`}>
+                  {trade_good.symbol}
+                </Link>
+              </div>
             </div>
           ))}
       </div>

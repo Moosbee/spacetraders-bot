@@ -1,4 +1,5 @@
 import { TradeSymbol } from "../gql/graphql";
+import { cyrb53 } from "./utils";
 
 // https://github.com/FloWi/rust-flwi-spacetraders-leaderboard/blob/main/flwi-spacetraders-leaderboard/src/utils/chartColors.ts
 export const chartColors = [
@@ -40,4 +41,5 @@ export const chartColors = [
 ];
 
 export const chartColorTradeSymbol = (symbol: TradeSymbol) =>
-  chartColors[Object.values(TradeSymbol).indexOf(symbol) % chartColors.length];
+  // chartColors[Object.values(TradeSymbol).indexOf(symbol) % chartColors.length];
+  chartColors[cyrb53(symbol, 8888) % chartColors.length];

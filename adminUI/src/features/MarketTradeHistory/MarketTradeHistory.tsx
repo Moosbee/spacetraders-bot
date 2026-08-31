@@ -17,6 +17,7 @@ import {
 import { CheckboxGroupProps } from "antd/es/checkbox";
 import dayjs, { Dayjs } from "dayjs";
 import { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import {
   CartesianGrid,
   Line,
@@ -27,8 +28,7 @@ import {
   YAxis,
 } from "recharts";
 import { GetWaypointHistoryQuery, TradeSymbol } from "../../gql/graphql";
-import { chartColors } from "../../utils/chartColors";
-import { cyrb53 } from "../../utils/utils";
+import { chartColorTradeSymbol } from "../../utils/chartColors";
 
 export interface TradeGoodEntry {
   symbol: TradeSymbol;
@@ -222,15 +222,6 @@ function MarketTradeHistory({
     return chtHist;
   }, [checkboxValue, historyPoints, maxDate, minDate, tradeHistory]);
 
-  const colors = useMemo(() => {
-    const colors: Record<string, string> = {};
-    for (const marketTrade of marketTrades) {
-      colors[marketTrade.symbol] =
-        chartColors[cyrb53(marketTrade.symbol, 8888) % chartColors.length];
-    }
-    return colors;
-  }, [marketTrades]);
-
   const checkboxValues: CheckboxGroupProps["options"] = useMemo(() => {
     const value: CheckboxGroupProps["options"] = [];
     for (const marketTrade of marketTrades) {
@@ -245,12 +236,12 @@ function MarketTradeHistory({
         ),
         value: marketTrade.symbol,
         style: {
-          color: colors[marketTrade.symbol],
+          color: chartColorTradeSymbol(marketTrade.symbol),
         },
       });
     }
     return value;
-  }, [colors, marketTrades]);
+  }, [marketTrades]);
 
   return (
     <div>
@@ -313,16 +304,25 @@ function MarketTradeHistory({
                   className="flex flex-col border-2 border-(--border-color) px-2 py-1"
                   style={
                     {
-                      "--border-color": colors[t.symbol],
+                      "--border-color": chartColorTradeSymbol(t.symbol),
                     } as React.CSSProperties
                   }
                 >
-                  <span style={{ color: colors[t.symbol] }}>{t.symbol}</span>
+                  <Link
+                    style={{ color: chartColorTradeSymbol(t.symbol) }}
+                    to={`/supplyChain/${t.symbol}`}
+                  >
+                    {t.symbol}
+                  </Link>
                   <span className="text-nowrap flex flex-col ml-5">
                     {t.tradeSymbolInfo.requires.items.map((r) => (
-                      <span key={r.symbol} style={{ color: colors[r.symbol] }}>
+                      <Link
+                        key={r.symbol}
+                        style={{ color: chartColorTradeSymbol(r.symbol) }}
+                        to={`/supplyChain/${r.symbol}`}
+                      >
                         {r.symbol}
-                      </span>
+                      </Link>
                     ))}
                   </span>
                 </div>
@@ -443,7 +443,7 @@ function MarketTradeHistory({
                       return val;
                     }}
                     name={symbol + " sell"}
-                    stroke={colors[symbol]}
+                    stroke={chartColorTradeSymbol(symbol)}
                     dot={false}
                     yAxisId="left"
                   />
@@ -466,7 +466,7 @@ function MarketTradeHistory({
                       return val;
                     }}
                     name={symbol + " buy"}
-                    stroke={colors[symbol]}
+                    stroke={chartColorTradeSymbol(symbol)}
                     dot={false}
                     yAxisId="left"
                   />
@@ -488,7 +488,7 @@ function MarketTradeHistory({
                       return val;
                     }}
                     name={symbol + " volume"}
-                    stroke={colors[symbol]}
+                    stroke={chartColorTradeSymbol(symbol)}
                     dot={false}
                     yAxisId="right"
                   />
