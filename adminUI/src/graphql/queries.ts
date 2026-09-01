@@ -940,6 +940,7 @@ export const GET_WAYPOINT = graphql(/* GraphQL */ `
           trade_route_id
           mining_waypoint_symbol
           construction_shipment_id
+          isFuel
         }
       }
       shipyard {

@@ -2352,43 +2352,38 @@ impl DatabaseConnectorAsync for MarketTransaction {
             t_units,
             t_price_per_unit,
             t_total_price,
-            t_is_fuel,
-            t_timestamp,
-            t_contract,
-            t_trade_route,
-            t_mining,
-            t_construction,
-        ): (
+        ): (Vec<_>, Vec<_>, Vec<_>, Vec<_>, Vec<_>, Vec<_>, Vec<_>) =
+            itertools::multiunzip(items.iter().map(|item| {
+                (
+                    item.waypoint_symbol.clone(),
+                    item.ship_symbol.clone(),
+                    item.trade_symbol,
+                    item.r#type,
+                    item.units,
+                    item.price_per_unit,
+                    item.total_price,
+                )
+            }));
+
+        #[allow(clippy::type_complexity)]
+        let (t_is_fuel, t_timestamp, t_contract, t_trade_route, t_mining, t_construction):(
             Vec<_>,
             Vec<_>,
             Vec<_>,
             Vec<_>,
             Vec<_>,
             Vec<_>,
-            Vec<_>,
-            Vec<_>,
-            Vec<_>,
-            Vec<_>,
-            Vec<_>,
-            Vec<_>,
-            Vec<_>,
-        ) = itertools::multiunzip(items.iter().map(|item| {
-            (
-                item.waypoint_symbol.clone(),
-                item.ship_symbol.clone(),
-                item.trade_symbol,
-                item.r#type,
-                item.units,
-                item.price_per_unit,
-                item.total_price,
-                item.is_fuel,
-                item.timestamp,
-                item.contract.clone(),
-                item.trade_route,
-                item.mining.clone(),
-                item.construction,
-            )
-        }));
+        ) =
+            itertools::multiunzip(items.iter().map(|item| {
+                (
+                    item.is_fuel,
+                    item.timestamp,
+                    item.contract.clone(),
+                    item.trade_route,
+                    item.mining.clone(),
+                    item.construction,
+                )
+            }));
 
         sqlx::query!(
         r#"

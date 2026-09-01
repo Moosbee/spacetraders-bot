@@ -730,20 +730,16 @@ function Waypoint() {
             )}
         </Flex>
       </Flex>
-      {waypoint?.marketTransactions.items &&
-        waypoint.marketTransactions.items.length > 0 && <Divider />}
-      {waypoint?.marketTransactions.items &&
-        waypoint.marketTransactions.items.length > 0 && (
-          <TransactionTable
-            transactions={waypoint?.marketTransactions.items || []}
-            reasons={{
-              contract: true,
-              trade_route_id: true,
-              mining: true,
-              construction_shipment_id: true,
-            }}
-          />
-        )}
+      <Divider />
+      <TransactionTable
+        transactions={waypoint?.marketTransactions.items || []}
+        reasons={{
+          contract: true,
+          trade_route_id: true,
+          mining: true,
+          construction_shipment_id: true,
+        }}
+      />
       {(waypoint?.shipyard || waypoint?.shipyardShips) && <Divider />}
 
       <Flex align="stretch" justify="space-evenly" gap={24} id="shipyard">
@@ -805,7 +801,9 @@ function Waypoint() {
             />
           )}
       </Flex>
-      {(oldWaypoint?.shipyard || oldWaypoint?.ship_types) && <Divider />}
+      {(oldWaypoint?.shipyard || oldWaypoint?.ship_types?.length) && (
+        <Divider />
+      )}
       {oldWaypoint?.ships && oldWaypoint.ships.length > 0 && (
         <ShipyardShipTable
           ships={oldWaypoint?.ships}

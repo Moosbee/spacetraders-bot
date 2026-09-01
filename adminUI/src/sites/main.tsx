@@ -28,7 +28,6 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { backendUrl } from "../data";
 import PageTitle from "../features/PageTitle";
 import TextLoop from "../features/TextLoop/TextLoop";
 import { GET_MAIN_SITE_DATA } from "../graphql/queries";
@@ -706,12 +705,7 @@ function Main() {
           </Button>
           <Button
             onClick={() => {
-              fetch(`http://${backendUrl}/shutdown`, { method: "POST" }).then(
-                (response) => {
-                  console.log(response);
-                  alert("shutdown");
-                },
-              );
+              window.location.reload();
             }}
           >
             Shutdown

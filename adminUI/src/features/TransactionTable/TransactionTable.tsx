@@ -115,6 +115,23 @@ function TransactionTable({
       sorter: (a, b) => (a.totalPrice ?? 0) - (b.totalPrice ?? 0),
     },
     {
+      title: "Is Fuel",
+      dataIndex: "isFuel",
+      key: "isFuel",
+      render: (value) => (value ? "Yes" : "No"),
+      filters: [
+        {
+          text: "Yes",
+          value: true,
+        },
+        {
+          text: "No",
+          value: false,
+        },
+      ],
+      onFilter: (value, record) => record.isFuel === value,
+    },
+    {
       title: "Timestamp",
       dataIndex: "timestamp",
       key: "timestamp",
