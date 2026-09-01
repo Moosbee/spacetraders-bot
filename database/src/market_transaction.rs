@@ -2302,8 +2302,8 @@ impl DatabaseConnectorAsync for MarketTransaction {
     ) -> crate::Result<Self::ID> {
         let erg = sqlx::query!(
     r#"
-      INSERT INTO market_transaction (waypoint_symbol, ship_symbol, trade_symbol, "type", units, price_per_unit, total_price, "timestamp", contract, trade_route, mining, construction)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+      INSERT INTO market_transaction (waypoint_symbol, ship_symbol, trade_symbol, "type", units, price_per_unit, total_price, is_fuel, "timestamp", contract, trade_route, mining, construction)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
       ON CONFLICT (waypoint_symbol, ship_symbol, trade_symbol, "timestamp") DO UPDATE
       SET units = EXCLUDED.units,
       price_per_unit = EXCLUDED.price_per_unit,
@@ -2317,6 +2317,7 @@ impl DatabaseConnectorAsync for MarketTransaction {
     item.units,
     item.price_per_unit,
     item.total_price,
+    item.is_fuel,
     item.timestamp,
     item.contract,
     item.trade_route,
@@ -2351,12 +2352,14 @@ impl DatabaseConnectorAsync for MarketTransaction {
             t_units,
             t_price_per_unit,
             t_total_price,
+            t_is_fuel,
             t_timestamp,
             t_contract,
             t_trade_route,
             t_mining,
             t_construction,
         ): (
+            Vec<_>,
             Vec<_>,
             Vec<_>,
             Vec<_>,
@@ -2378,6 +2381,7 @@ impl DatabaseConnectorAsync for MarketTransaction {
                 item.units,
                 item.price_per_unit,
                 item.total_price,
+                item.is_fuel,
                 item.timestamp,
                 item.contract.clone(),
                 item.trade_route,
@@ -2388,7 +2392,7 @@ impl DatabaseConnectorAsync for MarketTransaction {
 
         sqlx::query!(
         r#"
-            INSERT INTO market_transaction (waypoint_symbol, ship_symbol,trade_symbol, "type", units, price_per_unit, total_price, "timestamp", contract, trade_route, mining, construction)
+            INSERT INTO market_transaction (waypoint_symbol, ship_symbol,trade_symbol, "type", units, price_per_unit, total_price, is_fuel, "timestamp", contract, trade_route, mining, construction)
               SELECT * FROM UNNEST(
                 $1::character varying[],
                 $2::character varying[],
@@ -2397,11 +2401,12 @@ impl DatabaseConnectorAsync for MarketTransaction {
                 $5::integer[],
                 $6::integer[],
                 $7::integer[],
-                $8::timestamp[],
-                $9::character varying[],
-                $10::integer[],
-                $11::character varying[],
-                $12::bigint[]
+                $8::boolean[],
+                $9::timestamp[],
+                $10::character varying[],
+                $11::integer[],
+                $12::character varying[],
+                $13::bigint[]
             )
             ON CONFLICT (waypoint_symbol, ship_symbol, trade_symbol, "timestamp") DO UPDATE
             SET units = EXCLUDED.units,
@@ -2415,6 +2420,7 @@ impl DatabaseConnectorAsync for MarketTransaction {
         &t_units,
         &t_price_per_unit,
         &t_total_price,
+        &t_is_fuel,
         &t_timestamp as &[DateTime<Utc>],
         &t_contract as &[Option<String>],
         &t_trade_route as &[Option<i32>],
