@@ -55,6 +55,7 @@ impl QueryRoot {
         let ship = context
             .ship_manager
             .get_clone(&symbol)
+            .await
             .ok_or(GraphiQLError::NotFound)?;
         Ok(ship.into())
     }

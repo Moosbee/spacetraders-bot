@@ -16,8 +16,10 @@ pub struct ShipManager<T: Clone + Send + Sync> {
     broadcaster: my_ship_update::InterShipBroadcaster,
 }
 
-pub type ShipGuard<'a, T> =
-    <LockableHashMap<String, RustShip<T, Mutable>> as Lockable<String, RustShip<T, Mutable>>>::Guard<'a>;
+pub type ShipGuard<'a, T> = <LockableHashMap<String, RustShip<T, Mutable>> as Lockable<
+    String,
+    RustShip<T, Mutable>,
+>>::Guard<'a>;
 
 impl<T: Clone + Send + Sync> PartialEq for ShipManager<T> {
     fn eq(&self, other: &Self) -> bool {
@@ -83,8 +85,15 @@ impl<T: Clone + Send + Sync> ShipManager<T> {
         guard.insert(ship);
     }
 
-    pub fn get_clone(&self, symbol: &str) -> Option<RustShip<T, Immutable>> {
-        let map = self.copy.try_read().unwrap();
+    pub async fn get_clone(&self, symbol: &str) -> Option<RustShip<T, Immutable>> {
+        let map = self.copy.try_read();
+        let map = match map {
+            Ok(m) => m,
+            Err(_) => {
+                tracing::warn!("Failed to get all ships waiting");
+                self.copy.read().await
+            }
+        };
         map.get(symbol).cloned()
     }
 

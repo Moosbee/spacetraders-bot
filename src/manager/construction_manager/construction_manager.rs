@@ -574,6 +574,7 @@ fn compare_construction_materials(
                 .unwrap_or(models::SupplyLevel::Moderate)
                 .cmp(&b.2.2.unwrap_or(models::SupplyLevel::Moderate))
                 .reverse()
+                .then_with(|| a.5.cmp(&b.5))
         }
     }
 }

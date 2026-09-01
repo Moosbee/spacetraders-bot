@@ -139,7 +139,8 @@ impl GQLChartTransaction {
         let context = ctx.data::<crate::utils::ConductorContext>().unwrap();
         let ship = context
             .ship_manager
-            .get_clone(&self.chart_transaction.ship_symbol);
+            .get_clone(&self.chart_transaction.ship_symbol)
+            .await;
         Ok(ship.map(|f| f.into()))
     }
 }
@@ -295,7 +296,8 @@ impl GQLConstructionShipment {
         let context = ctx.data::<crate::utils::ConductorContext>().unwrap();
         let ship = context
             .ship_manager
-            .get_clone(&self.construction_shipment.ship_symbol);
+            .get_clone(&self.construction_shipment.ship_symbol)
+            .await;
         Ok(ship.map(|f| f.into()))
     }
 
@@ -599,7 +601,8 @@ impl GQLContractShipment {
         let context = ctx.data::<crate::utils::ConductorContext>().unwrap();
         let ship = context
             .ship_manager
-            .get_clone(&self.contract_shipment.ship_symbol);
+            .get_clone(&self.contract_shipment.ship_symbol)
+            .await;
         Ok(ship.map(|f| f.into()))
     }
 
@@ -692,7 +695,10 @@ impl GQLExtraction {
 
     async fn ship(&self, ctx: &async_graphql::Context<'_>) -> Result<Option<GQLShip>> {
         let context = ctx.data::<crate::utils::ConductorContext>().unwrap();
-        let ship = context.ship_manager.get_clone(&self.extraction.ship_symbol);
+        let ship = context
+            .ship_manager
+            .get_clone(&self.extraction.ship_symbol)
+            .await;
         Ok(ship.map(|f| f.into()))
     }
     async fn trade_symbol_info(&self) -> TradeSymbolInfo {
@@ -1194,7 +1200,8 @@ impl GQLMarketTransaction {
         let context = ctx.data::<crate::utils::ConductorContext>().unwrap();
         let ship = context
             .ship_manager
-            .get_clone(&self.market_transaction.ship_symbol);
+            .get_clone(&self.market_transaction.ship_symbol)
+            .await;
         Ok(ship.map(|f| f.into()))
     }
 
@@ -1376,7 +1383,8 @@ impl GQLRepairTransaction {
         let context = ctx.data::<crate::utils::ConductorContext>().unwrap();
         let ship = context
             .ship_manager
-            .get_clone(&self.repair_transaction.ship_symbol);
+            .get_clone(&self.repair_transaction.ship_symbol)
+            .await;
         Ok(ship.map(|f| f.into()))
     }
 }
@@ -1496,7 +1504,10 @@ impl GQLRoute {
 
     async fn ship(&self, ctx: &async_graphql::Context<'_>) -> Result<Option<GQLShip>> {
         let context = ctx.data::<crate::utils::ConductorContext>().unwrap();
-        let ship = context.ship_manager.get_clone(&self.route.ship_symbol);
+        let ship = context
+            .ship_manager
+            .get_clone(&self.route.ship_symbol)
+            .await;
         Ok(ship.map(|f| f.into()))
     }
 
@@ -1561,7 +1572,8 @@ impl GQLScrapTransaction {
         let context = ctx.data::<crate::utils::ConductorContext>().unwrap();
         let ship = context
             .ship_manager
-            .get_clone(&self.scrap_transaction.ship_symbol);
+            .get_clone(&self.scrap_transaction.ship_symbol)
+            .await;
         Ok(ship.map(|f| f.into()))
     }
 }
@@ -1669,7 +1681,7 @@ paginated_gql_object!(
 impl GQLShipInfo {
     async fn ship<'ctx>(&self, ctx: &async_graphql::Context<'ctx>) -> Result<Option<GQLShip>> {
         let context = ctx.data::<crate::utils::ConductorContext>().unwrap();
-        let ship = context.ship_manager.get_clone(&self.ship_info.symbol);
+        let ship = context.ship_manager.get_clone(&self.ship_info.symbol).await;
         Ok(ship.map(|f| f.into()))
     }
 
@@ -1769,7 +1781,10 @@ impl GQLShipJump {
 
     async fn ship(&self, ctx: &async_graphql::Context<'_>) -> Result<Option<GQLShip>> {
         let context = ctx.data::<crate::utils::ConductorContext>().unwrap();
-        let ship = context.ship_manager.get_clone(&self.ship_jump.ship_symbol);
+        let ship = context
+            .ship_manager
+            .get_clone(&self.ship_jump.ship_symbol)
+            .await;
         Ok(ship.map(|f| f.into()))
     }
 
@@ -1831,7 +1846,8 @@ impl GQLShipModificationTransaction {
         let context = ctx.data::<crate::utils::ConductorContext>().unwrap();
         let ship = context
             .ship_manager
-            .get_clone(&self.ship_modification_transaction.ship_symbol);
+            .get_clone(&self.ship_modification_transaction.ship_symbol)
+            .await;
         Ok(ship.map(|f| f.into()))
     }
 
@@ -1878,7 +1894,10 @@ impl GQLShipState {
 
     async fn ship(&self, ctx: &async_graphql::Context<'_>) -> Result<Option<GQLShip>> {
         let context = ctx.data::<crate::utils::ConductorContext>().unwrap();
-        let ship = context.ship_manager.get_clone(&self.ship_state.symbol);
+        let ship = context
+            .ship_manager
+            .get_clone(&self.ship_state.symbol)
+            .await;
         Ok(ship.map(|f| f.into()))
     }
 
@@ -2424,7 +2443,10 @@ impl GQLSurvey {
 
     async fn ship(&self, ctx: &async_graphql::Context<'_>) -> Result<Option<GQLShip>> {
         let context = ctx.data::<crate::utils::ConductorContext>().unwrap();
-        let ship = context.ship_manager.get_clone(&self.survey.ship_symbol);
+        let ship = context
+            .ship_manager
+            .get_clone(&self.survey.ship_symbol)
+            .await;
         Ok(ship.map(|f| f.into()))
     }
 
@@ -2929,7 +2951,8 @@ impl GQLTradeRoute {
         let context = ctx.data::<crate::utils::ConductorContext>().unwrap();
         let ship = context
             .ship_manager
-            .get_clone(&self.trade_route.ship_symbol);
+            .get_clone(&self.trade_route.ship_symbol)
+            .await;
         Ok(ship.map(|f| f.into()))
     }
 
@@ -4509,7 +4532,7 @@ impl MiningAssignment {
 impl AssignedShip {
     async fn ship(&self, ctx: &async_graphql::Context<'_>) -> Result<Option<GQLShip>> {
         let context = ctx.data::<crate::utils::ConductorContext>().unwrap();
-        let ship = context.ship_manager.get_clone(&self.ship_symbol);
+        let ship = context.ship_manager.get_clone(&self.ship_symbol).await;
         Ok(ship.map(|s| s.into()))
     }
 }
@@ -4541,7 +4564,7 @@ impl ScrappingManagerInfo {
         ship_symbol: String,
     ) -> Result<Vec<ScrapInfo>> {
         let context = ctx.data::<crate::utils::ConductorContext>().unwrap();
-        let ship = context.ship_manager.get_clone(&ship_symbol);
+        let ship = context.ship_manager.get_clone(&ship_symbol).await;
 
         if let Some(ship_clone) = ship {
             let waypoints = context.scrapping_manager.get_info(ship_clone).await?;

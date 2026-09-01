@@ -1,3 +1,5 @@
+use space_traders_client::models;
+
 use crate::supply_chain_mapping::SupplyChainMapping;
 
 #[derive(Debug, Clone, PartialEq, Default, async_graphql::SimpleObject)]
@@ -273,11 +275,25 @@ pub fn sort_trade_route_proposal(
             let sell_good_b = trade_route_proposal_b.sell_good.as_ref().unwrap();
 
             // todo calculate divide via the length not of a linear function but a curve to make it better to fill up scarce markets
-            let route_a_diff = (purchase_good_a.supply as i32) - (sell_good_a.supply as i32);
-            let route_b_diff = (purchase_good_b.supply as i32) - (sell_good_b.supply as i32);
-            Some(route_a_diff.cmp(&route_b_diff))
+            // let route_a_diff = (purchase_good_a.supply as i32) - (sell_good_a.supply as i32);
+            // let route_b_diff = (purchase_good_b.supply as i32) - (sell_good_b.supply as i32);
+            // Some(route_a_diff.cmp(&route_b_diff))
+
+            let route_a_diff =
+                curve_score(purchase_good_a.supply) - curve_score(sell_good_a.supply);
+            let route_b_diff =
+                curve_score(purchase_good_b.supply) - curve_score(sell_good_b.supply);
+            Some(
+                route_a_diff
+                    .partial_cmp(&route_b_diff)
+                    .unwrap_or(std::cmp::Ordering::Equal),
+            )
         }
     }
+}
+
+fn curve_score(supply: models::SupplyLevel) -> f64 {
+    2f64.powi(4 - supply as i32)
 }
 
 /// A preferable trade is one where the traded good is an import needed to

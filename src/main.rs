@@ -113,12 +113,12 @@ async fn main() -> anyhow::Result<()> {
             reset_info.agent_symbol
         );
 
+        export_database(&database_url, &filename).await?;
+
         if global_cancel_token.is_cancelled() {
             info!("Global cancel token triggered, shutting down");
             break;
         }
-
-        export_database(&database_url, &filename).await?;
 
         reset_database(database_pool, &database_url).await?;
 

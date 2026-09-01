@@ -255,7 +255,7 @@ impl Pilot {
             }
         } else {
             debug!(ship_symbol = %self.ship_symbol, "Ship has no assignment, piloting idle behavior");
-            let ship_clone = self.context.ship_manager.get_clone(&ship_info.symbol);
+            let ship_clone = self.context.ship_manager.get_clone(&ship_info.symbol).await;
             if let Some(ship_clone) = ship_clone {
                 let assignment_id = self
                     .context
@@ -264,12 +264,12 @@ impl Pilot {
                     .await?;
                 debug!(ship_symbol = %self.ship_symbol, assignment_id = ?assignment_id, "Assigning ship to fleet");
             } else {
-                debug!(ship_symbol = %self.ship_symbol, "Ship not found in ship manager, sleeping");
-                tokio::time::sleep(std::time::Duration::from_millis(
-                    60_000 + rand::random::<u64>() % 1_000,
-                ))
-                .await;
+                debug!(ship_symbol = %self.ship_symbol, "Ship not found in ship manager");
             }
+            tokio::time::sleep(std::time::Duration::from_millis(
+                60_000 + rand::random::<u64>() % 1_000,
+            ))
+            .await;
         }
 
         Ok(())
