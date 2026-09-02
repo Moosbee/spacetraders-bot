@@ -436,15 +436,6 @@ enum ContractType {
 	SHUTTLE
 }
 
-type DBFleet {
-	id: Int!
-	systemSymbol: String!
-	fleetType: FleetType!
-	active: Boolean!
-	createdAt: DateTime!
-	updatedAt: DateTime!
-}
-
 """
 Implement the DateTime<Utc> scalar
 
@@ -1072,7 +1063,7 @@ type MutationRoot {
 	"""
 	Add a new fleet for a given system. Returns the created DB fleet.
 	"""
-	addFleet(systemSymbol: String!, active: Boolean!, config: InputTotalFleetConfig!): DBFleet!
+	addFleet(systemSymbol: String!, active: Boolean!, config: InputTotalFleetConfig!): Fleet!
 	"""
 	Remove a fleet.
 	"""
@@ -1080,7 +1071,7 @@ type MutationRoot {
 	"""
 	Edit basic fleet attributes and configuration. Fields that are None are left unchanged.
 	"""
-	editFleet(id: Int!, systemSymbol: String, active: Boolean, config: InputFleetConfig): DBFleet!
+	editFleet(id: Int!, systemSymbol: String, active: Boolean, config: InputFleetConfig): Fleet!
 	"""
 	Trigger a regeneration of fleet assignments. This will ask the FleetManager to rebuild assignments.
 	"""
@@ -1181,6 +1172,7 @@ type QueryRoot {
 	extraction(symbol: Int!): Extraction!
 	extractions(by: ExtractionBy, page: Int, pageSize: Int): ExtractionPage!
 	fleets(by: FleetBy, page: Int, pageSize: Int): FleetPage!
+	fleet(id: Int!): Fleet!
 	shipAssignments(by: ShipAssignmentBy, page: Int, pageSize: Int): ShipAssignmentPage!
 	reservedFunds(page: Int, pageSize: Int): ReservedFundPage!
 	surveys(by: SurveyBy, page: Int, pageSize: Int): SurveyPage!
@@ -1399,6 +1391,7 @@ type Ship {
 	reactor: ShipReactorSymbol!
 	frame: ShipFrameSymbol!
 	conditions: ConditionState!
+	shipInfo: ShipInfo
 	status: ShipStatus!
 	possibleScraps: [ScrapInfo!]!
 	purchaseTransaction: ShipyardTransaction
