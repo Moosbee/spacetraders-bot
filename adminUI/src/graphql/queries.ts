@@ -1914,6 +1914,50 @@ export const GET_MINING_ASSIGNMENTS = graphql(/* GraphQL */ `
   }
 `);
 
+export const GET_RESERVED_FUNDS = graphql(/* GraphQL */ `
+  query GetReservedFunds {
+    reservedFunds {
+      items {
+        id
+        amount
+        status
+        actualAmount
+        createdAt
+        updatedAt
+      }
+    }
+    budget {
+      currentFunds
+      ironReserve
+      reservedAmount
+      spendable
+      reservations {
+        id
+        amount
+        status
+        actualAmount
+        createdAt
+        updatedAt
+        contract {
+          items {
+            id
+          }
+        }
+        tradeRoute {
+          items {
+            id
+          }
+        }
+        constructionShipment {
+          items {
+            id
+          }
+        }
+      }
+    }
+  }
+`);
+
 export const GET_TOTAL_SUPPLY_CHAIN = graphql(/* GraphQL */ `
   query GetTotalSupplyChain {
     tradeSymbolInfos {
