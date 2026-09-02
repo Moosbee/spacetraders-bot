@@ -36,7 +36,6 @@ import WpMap from "./sites/WaypointMap";
 import WaypointMarketHistory from "./sites/WaypointMarketHistory";
 import Main from "./sites/main";
 import MessageAntD from "./utils/message";
-import WorkerLoader from "./workers/WorkerLoader";
 const { Header, Content, Sider } = Layout;
 
 export { Header as AntHeaderHeader, Sider as AntSiderSider };
@@ -52,8 +51,6 @@ function MyApp() {
   return (
     <>
       <MessageAntD />
-      <WorkerLoader />
-
       <ConfigProvider
         theme={{
           algorithm: isDarkMode ? darkAlgorithm : defaultAlgorithm,

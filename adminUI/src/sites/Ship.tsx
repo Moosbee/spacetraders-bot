@@ -55,7 +55,6 @@ function Ship() {
     variables: { shipSymbol: shipID || "" },
   });
 
-  // The live websocket model still drives the manual control panel.
   const ship = data?.ship;
 
   if (error) {
