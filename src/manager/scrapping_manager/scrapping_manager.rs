@@ -134,13 +134,13 @@ impl ScrappingManager {
 
         let system_count = database::System::get_all(
             &self.context.database_pool,
-            database::PaginatedQuery::new(0, Some(1)),
+            database::PaginatedQuery::new(1, Some(1)),
         )
         .await?
         .total_count as i32;
         let waypoint_count = database::Waypoint::get_all(
             &self.context.database_pool,
-            database::PaginatedQuery::new(0, Some(1)),
+            database::PaginatedQuery::new(1, Some(1)),
         )
         .await?
         .total_count as i32;
