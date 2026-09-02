@@ -1040,6 +1040,32 @@ export const GET_API_COUNT = graphql(/* GraphQL */ `
   }
 `);
 
+export const GET_MARKET_TRANSACTIONS = graphql(/* GraphQL */ `
+  query GetMarketTransactions($page: Int, $pageSize: Int) {
+    marketTransactions(page: $page, pageSize: $pageSize) {
+      page
+      pageSize
+      totalCount
+      items {
+        id
+        waypointSymbol
+        shipSymbol
+        tradeSymbol
+        type
+        units
+        pricePerUnit
+        totalPrice
+        timestamp
+        contract_id
+        trade_route_id
+        mining_waypoint_symbol
+        construction_shipment_id
+        isFuel
+      }
+    }
+  }
+`);
+
 export const GET_MY_AGENT_MINI_INFO = graphql(/* GraphQL */ `
   query GetMyAgentMiniInfo {
     runInfo {

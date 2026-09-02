@@ -60,16 +60,19 @@ function Ship() {
 
   if (error) {
     return (
-      <Result
-        status="error"
-        title="Ship Error"
-        subTitle={error.message}
-        extra={[
-          <Button key="retry" type="primary" onClick={() => refetch()}>
-            Try Again
-          </Button>,
-        ]}
-      />
+      <div style={{ padding: "24px 24px" }}>
+        <PageTitle title={`Ship ${shipID}`} />
+        <Result
+          status="error"
+          title="Ship Error"
+          subTitle={error.message}
+          extra={[
+            <Button key="retry" type="primary" onClick={() => refetch()}>
+              Try Again
+            </Button>,
+          ]}
+        />
+      </div>
     );
   }
 
