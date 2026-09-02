@@ -4579,6 +4579,82 @@ impl ScrappingManagerInfo {
             Ok(vec![])
         }
     }
+
+    async fn agent_scrapper_active(&self, ctx: &async_graphql::Context<'_>) -> Result<bool> {
+        let context = ctx.data::<crate::utils::ConductorContext>().unwrap();
+        Ok(context.scrapping_manager.is_agent_scrapper_active())
+    }
+
+    async fn agent_scrapper_busy(&self, ctx: &async_graphql::Context<'_>) -> Result<bool> {
+        let context = ctx.data::<crate::utils::ConductorContext>().unwrap();
+        Ok(context.scrapping_manager.is_agent_scrapper_busy())
+    }
+
+    async fn agent_scrapper_count(&self, ctx: &async_graphql::Context<'_>) -> Result<u32> {
+        let context = ctx.data::<crate::utils::ConductorContext>().unwrap();
+        Ok(context.scrapping_manager.get_agent_scrapper_count())
+    }
+
+    async fn system_scrapper_active(&self, ctx: &async_graphql::Context<'_>) -> Result<bool> {
+        let context = ctx.data::<crate::utils::ConductorContext>().unwrap();
+        Ok(context.scrapping_manager.is_system_scrapper_active().await)
+    }
+
+    async fn system_scrapper_state(
+        &self,
+        ctx: &async_graphql::Context<'_>,
+    ) -> Result<SystemScrappingState> {
+        let context = ctx.data::<crate::utils::ConductorContext>().unwrap();
+        let state = context.scrapping_manager.get_system_scrapper_state().await;
+        let gql_state = match state {
+            crate::manager::scrapping_manager::SystemScrapperState::Inactive => {
+                SystemScrappingState {
+                    state: SystemScrappingEnum::Inactive,
+                    total: 0,
+                    current: 0,
+                }
+            }
+            crate::manager::scrapping_manager::SystemScrapperState::ScrapSystems => {
+                SystemScrappingState {
+                    state: SystemScrappingEnum::ScrapSystems,
+                    total: 0,
+                    current: 0,
+                }
+            }
+            crate::manager::scrapping_manager::SystemScrapperState::ScrapWaypoints {
+                total,
+                current,
+            } => SystemScrappingState {
+                state: SystemScrappingEnum::ScrapWaypoints,
+                total,
+                current,
+            },
+            crate::manager::scrapping_manager::SystemScrapperState::ScrapJumpGates => {
+                SystemScrappingState {
+                    state: SystemScrappingEnum::ScrapJumpGates,
+                    total: 0,
+                    current: 0,
+                }
+            }
+        };
+
+        Ok(gql_state)
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, async_graphql::Enum)]
+enum SystemScrappingEnum {
+    Inactive,
+    ScrapSystems,
+    ScrapWaypoints,
+    ScrapJumpGates,
+}
+
+#[derive(Debug, Clone, async_graphql::SimpleObject)]
+struct SystemScrappingState {
+    state: SystemScrappingEnum,
+    total: u32,
+    current: u32,
 }
 
 #[derive(Debug, Clone, async_graphql::SimpleObject)]

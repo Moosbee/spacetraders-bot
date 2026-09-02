@@ -225,6 +225,7 @@ type Config {
 type ConstructionConfig {
 	constructionShipCount: Int!
 	constructionWaypoint: String!
+	constructionMode: ConstructionMode!
 }
 
 type ConstructionManagerInfo {
@@ -258,6 +259,16 @@ type ConstructionMaterialPage {
 	totalCount: Int!
 	page: Int!
 	pageSize: Int
+}
+
+"""
+How to choose the next construction shipment to make
+"""
+enum ConstructionMode {
+	LOWEST_PURCHASE_COST
+	LOWEST_ABSOLUTE_PROGRESS
+	LOWEST_PERCENT_PROGRESS
+	BEST_PURCHASE_SUPPLY
 }
 
 type ConstructionShipment {
@@ -669,6 +680,7 @@ input InputConfig {
 input InputConstructionConfig {
 	constructionShipCount: Int
 	constructionWaypoint: String
+	constructionMode: ConstructionMode
 }
 
 input InputContractConfig {
@@ -720,6 +732,7 @@ input InputTotalChartingConfig {
 input InputTotalConstructionConfig {
 	constructionShipCount: Int!
 	constructionWaypoint: String!
+	constructionMode: ConstructionMode!
 }
 
 input InputTotalContractConfig {
@@ -1318,6 +1331,8 @@ type RunInfo {
 	resetDate: DateTime!
 	nextResetDate: DateTime!
 	version: String!
+	totalSystems: Int!
+	totalWaypoints: Int!
 	agent: Agent
 	headquartersWaypoint: Waypoint
 	headquartersSystem: System
@@ -1363,6 +1378,11 @@ type ScrappingManagerInfo {
 	busy: Boolean!
 	channelState: ChannelInfo!
 	possibleScraps(shipSymbol: String!): [ScrapInfo!]!
+	agentScrapperActive: Boolean!
+	agentScrapperBusy: Boolean!
+	agentScrapperCount: Int!
+	systemScrapperActive: Boolean!
+	systemScrapperState: SystemScrappingState!
 }
 
 type Ship {
@@ -1976,6 +1996,19 @@ type SystemPage {
 	totalCount: Int!
 	page: Int!
 	pageSize: Int
+}
+
+enum SystemScrappingEnum {
+	INACTIVE
+	SCRAP_SYSTEMS
+	SCRAP_WAYPOINTS
+	SCRAP_JUMP_GATES
+}
+
+type SystemScrappingState {
+	state: SystemScrappingEnum!
+	total: Int!
+	current: Int!
 }
 
 """

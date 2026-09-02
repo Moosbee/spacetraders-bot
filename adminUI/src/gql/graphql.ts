@@ -240,6 +240,7 @@ export type Config = {
 
 export type ConstructionConfig = {
   __typename?: 'ConstructionConfig';
+  constructionMode: ConstructionMode;
   constructionShipCount: Scalars['Int']['output'];
   constructionWaypoint: Scalars['String']['output'];
 };
@@ -284,6 +285,14 @@ export type ConstructionMaterialPage = {
   pageSize?: Maybe<Scalars['Int']['output']>;
   totalCount: Scalars['Int']['output'];
 };
+
+/** How to choose the next construction shipment to make */
+export enum ConstructionMode {
+  BestPurchaseSupply = 'BEST_PURCHASE_SUPPLY',
+  LowestAbsoluteProgress = 'LOWEST_ABSOLUTE_PROGRESS',
+  LowestPercentProgress = 'LOWEST_PERCENT_PROGRESS',
+  LowestPurchaseCost = 'LOWEST_PURCHASE_COST'
+}
 
 export type ConstructionShipment = {
   __typename?: 'ConstructionShipment';
@@ -739,6 +748,7 @@ export type InputConfig = {
 };
 
 export type InputConstructionConfig = {
+  constructionMode?: InputMaybe<ConstructionMode>;
   constructionShipCount?: InputMaybe<Scalars['Int']['input']>;
   constructionWaypoint?: InputMaybe<Scalars['String']['input']>;
 };
@@ -789,6 +799,7 @@ export type InputTotalChartingConfig = {
 };
 
 export type InputTotalConstructionConfig = {
+  constructionMode: ConstructionMode;
   constructionShipCount: Scalars['Int']['input'];
   constructionWaypoint: Scalars['String']['input'];
 };
@@ -1742,6 +1753,8 @@ export type RunInfo = {
   nextResetDate: Scalars['DateTime']['output'];
   resetDate: Scalars['DateTime']['output'];
   startingFaction: FactionSymbol;
+  totalSystems: Scalars['Int']['output'];
+  totalWaypoints: Scalars['Int']['output'];
   version: Scalars['String']['output'];
 };
 
@@ -1788,9 +1801,14 @@ export type ScrapingConfig = {
 
 export type ScrappingManagerInfo = {
   __typename?: 'ScrappingManagerInfo';
+  agentScrapperActive: Scalars['Boolean']['output'];
+  agentScrapperBusy: Scalars['Boolean']['output'];
+  agentScrapperCount: Scalars['Int']['output'];
   busy: Scalars['Boolean']['output'];
   channelState: ChannelInfo;
   possibleScraps: Array<ScrapInfo>;
+  systemScrapperActive: Scalars['Boolean']['output'];
+  systemScrapperState: SystemScrappingState;
 };
 
 
@@ -2661,6 +2679,20 @@ export type SystemPage = {
   page: Scalars['Int']['output'];
   pageSize?: Maybe<Scalars['Int']['output']>;
   totalCount: Scalars['Int']['output'];
+};
+
+export enum SystemScrappingEnum {
+  Inactive = 'INACTIVE',
+  ScrapJumpGates = 'SCRAP_JUMP_GATES',
+  ScrapSystems = 'SCRAP_SYSTEMS',
+  ScrapWaypoints = 'SCRAP_WAYPOINTS'
+}
+
+export type SystemScrappingState = {
+  __typename?: 'SystemScrappingState';
+  current: Scalars['Int']['output'];
+  state: SystemScrappingEnum;
+  total: Scalars['Int']['output'];
 };
 
 /**

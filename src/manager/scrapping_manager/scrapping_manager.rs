@@ -1,13 +1,13 @@
 use std::{collections::HashMap, time::Duration, vec};
 
 use database::{DatabaseConnectorAsync, DbPool};
-use tracing::debug;
 use tracing::Instrument;
-use utils::{distance_between_waypoints, WaypointCan};
+use tracing::debug;
+use utils::{WaypointCan, distance_between_waypoints};
 
 use crate::{
     error::{Error, Result},
-    manager::{scrapping_manager::priority_calculator, Manager},
+    manager::{Manager, scrapping_manager::priority_calculator},
     utils::ConductorContext,
 };
 
@@ -112,13 +112,17 @@ impl ScrappingManager {
             let slow_cancel_token = self.slow_cancel_token.child_token();
             let fast_cancel_token = self.fast_cancel_token.child_token();
             let interval = 1000 * 60 * 60;
+            let scrapping_messanger = self.context.scrapping_manager.clone();
+
             tokio::spawn(async move {
                 let _erg = tokio::select! {
                   _ = fast_cancel_token.cancelled() => {
                     tracing::info!("ScrappingManager agent worker fast cancel token triggered");
                     Ok(())
                   },
-                  erg = Self::run_agent_worker(&api, &database_pool, slow_cancel_token, interval) => erg,
+                  erg = Self::run_agent_worker(&api, &database_pool, slow_cancel_token, interval,
+                    scrapping_messanger
+                ) => erg,
                 };
                 Ok(())
             })
@@ -127,12 +131,38 @@ impl ScrappingManager {
         };
 
         let erg = { self.context.config.read().await.update_all_systems };
+
+        let system_count = database::System::get_all(
+            &self.context.database_pool,
+            database::PaginatedQuery::new(0, Some(1)),
+        )
+        .await?
+        .total_count as i32;
+        let waypoint_count = database::Waypoint::get_all(
+            &self.context.database_pool,
+            database::PaginatedQuery::new(0, Some(1)),
+        )
+        .await?
+        .total_count as i32;
+
+        let has_no_left = { self.context.run_info.read().await.total_systems } == system_count && {
+            self.context.run_info.read().await.total_waypoints
+        }
+            == waypoint_count;
+
+        tracing::info!(
+            has_no_left = has_no_left,
+            system_scrapping_enabled = erg,
+            "Initializing System scrapping"
+        );
+
         let system_join_handle: tokio::task::JoinHandle<
             std::result::Result<(), crate::error::Error>,
-        > = if erg {
+        > = if erg && !has_no_left {
             let api = self.context.api.clone();
             let database_pool = self.context.database_pool.clone();
             let fast_cancel_token = self.fast_cancel_token.child_token();
+            let scrapping_messanger = self.context.scrapping_manager.clone();
 
             tokio::spawn(
                 async move {
@@ -141,7 +171,7 @@ impl ScrappingManager {
                         tracing::info!("ScrappingManager system worker fast cancel token triggered");
                         Ok(())
                       },
-                      erg = Self::run_system_worker(&api, &database_pool) => erg,
+                      erg = Self::run_system_worker(&api, &database_pool,scrapping_messanger) => erg,
                     }?;
 
                     Ok(())
@@ -167,11 +197,17 @@ impl ScrappingManager {
         database_pool: &DbPool,
         slow_cancel_token: tokio_util::sync::CancellationToken,
         interval: u64,
+        scrapping_messanger: ScrappingManagerMessanger,
     ) -> Result<()> {
+        scrapping_messanger.set_agent_scrapper_active(true);
         while !slow_cancel_token.is_cancelled() {
             tokio::time::sleep(Duration::from_millis(interval)).await;
+            scrapping_messanger.set_agent_scrapper_busy(true);
+            scrapping_messanger.increase_agent_scrapper_count();
             super::utils::update_all_agents(api, database_pool).await?;
+            scrapping_messanger.set_agent_scrapper_busy(false);
         }
+        scrapping_messanger.set_agent_scrapper_active(false);
 
         Ok(())
     }
@@ -228,9 +264,10 @@ impl ScrappingManager {
         let ship_symbol = self.scrap_waypoints.get(&waypoint_symbol);
 
         if let Some(ship_symbol) = ship_symbol
-            && ship_symbol == &ship_clone.symbol {
-                self.scrap_waypoints.remove(&waypoint_symbol);
-            }
+            && ship_symbol == &ship_clone.symbol
+        {
+            self.scrap_waypoints.remove(&waypoint_symbol);
+        }
 
         Ok(())
     }
@@ -243,9 +280,10 @@ impl ScrappingManager {
         let ship_symbol = self.scrap_waypoints.get(&waypoint_symbol);
 
         if let Some(ship_symbol) = ship_symbol
-            && ship_symbol == &ship_clone.symbol {
-                self.scrap_waypoints.remove(&waypoint_symbol);
-            }
+            && ship_symbol == &ship_clone.symbol
+        {
+            self.scrap_waypoints.remove(&waypoint_symbol);
+        }
 
         Ok(())
     }
@@ -363,20 +401,30 @@ impl ScrappingManager {
     async fn run_system_worker(
         api: &space_traders_client::Api,
         database_pool: &DbPool,
+        scrapping_messanger: ScrappingManagerMessanger,
     ) -> Result<()> {
-        crate::manager::scrapping_manager::utils::update_all_systems(database_pool, api).await?;
-        let gates =
-            database::Waypoint::get_all(database_pool, database::PaginatedQuery::unpaged())
-                .await?
-                .items
-                .into_iter()
-                .filter(|w| w.is_jump_gate())
-                .filter(|w| w.is_charted())
-                .map(|w| {
-                    let chart = w.is_charted();
-                    (w.system_symbol, w.symbol, chart)
-                })
-                .collect::<Vec<_>>();
+        crate::manager::scrapping_manager::utils::update_all_systems(
+            database_pool,
+            api,
+            &scrapping_messanger,
+        )
+        .await?;
+        let gates = database::Waypoint::get_all(database_pool, database::PaginatedQuery::unpaged())
+            .await?
+            .items
+            .into_iter()
+            .filter(|w| w.is_jump_gate())
+            .filter(|w| w.is_charted())
+            .map(|w| {
+                let chart = w.is_charted();
+                (w.system_symbol, w.symbol, chart)
+            })
+            .collect::<Vec<_>>();
+        scrapping_messanger
+            .set_system_scrapper_state(
+                crate::manager::scrapping_manager::messanger::SystemScrapperState::ScrapJumpGates,
+            )
+            .await;
         let jump_gates =
             crate::manager::scrapping_manager::utils::get_all_jump_gates(api, gates).await?;
 
@@ -384,6 +432,11 @@ impl ScrappingManager {
         crate::manager::scrapping_manager::utils::update_jump_gates(database_pool, jump_gates)
             .await?;
         debug!("Updated jump gates {}", jump_gates_len);
+        scrapping_messanger
+            .set_system_scrapper_state(
+                crate::manager::scrapping_manager::messanger::SystemScrapperState::Inactive,
+            )
+            .await;
 
         Ok(())
     }

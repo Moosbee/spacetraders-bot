@@ -160,11 +160,6 @@ const items: MenuItem[] = [
         key: "system/selected/selected",
         icon: <GlobalOutlined />,
       },
-      {
-        label: <Link to="/system/wpConfig">Wp Map Config</Link>,
-        key: "map",
-        icon: <FaIcon type="solid" icon="fa-location-dot" />,
-      },
     ],
   },
 

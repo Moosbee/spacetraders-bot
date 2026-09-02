@@ -1,7 +1,6 @@
 use std::{collections::HashSet, num::NonZeroU32, str::FromStr, sync::Arc};
 
 use database::DatabaseConnectorAsync;
-use rand::seq::index::IndexVecIntoIter;
 use ship::ShipManager;
 use space_traders_client::models::{self};
 use tokio::sync::RwLock;
@@ -174,6 +173,8 @@ async fn get_api_main_info(
             .unwrap(),
         next_reset_date: status.server_resets.next.clone().parse()?,
         version: status.version.clone(),
+        total_systems: status.stats.systems,
+        total_waypoints: status.stats.waypoints,
     };
 
     Ok((run_info, *my_agent.data, ships))

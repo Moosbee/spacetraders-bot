@@ -167,6 +167,8 @@ pub struct RunInfo {
     pub reset_date: chrono::DateTime<chrono::Utc>,
     pub next_reset_date: chrono::DateTime<chrono::Utc>,
     pub version: String,
+    pub total_systems: i32,
+    pub total_waypoints: i32,
 }
 impl Default for RunInfo {
     fn default() -> RunInfo {
@@ -177,6 +179,8 @@ impl Default for RunInfo {
             reset_date: chrono::Utc::now(),
             next_reset_date: chrono::Utc::now(),
             version: "".to_string(),
+            total_systems: 0,
+            total_waypoints: 0,
         }
     }
 }

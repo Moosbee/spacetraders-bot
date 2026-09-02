@@ -1,13 +1,19 @@
 use std::collections::HashMap;
 
 use database::DatabaseConnectorAsync;
-use space_traders_client::{models, Api};
+use space_traders_client::{Api, models};
 use tracing::debug;
 
 pub async fn update_all_systems(
     database_pool: &database::DbPool,
     api: &Api,
+    scrapping_messanger: &crate::manager::scrapping_manager::ScrappingManagerMessanger,
 ) -> crate::error::Result<()> {
+    scrapping_messanger
+        .set_system_scrapper_state(
+            crate::manager::scrapping_manager::messanger::SystemScrapperState::ScrapSystems,
+        )
+        .await;
     let all_systems = api.get_all_systems(20).await?;
     database::System::insert_bulk(
         database_pool,
@@ -20,10 +26,21 @@ pub async fn update_all_systems(
 
     debug!("Updating {} systems", all_systems.len());
 
-    for system in &all_systems {
-        let erg = update_system(database_pool, api, &system.symbol, false).await;
+    let count = all_systems.len();
+
+    for system in all_systems.iter().enumerate() {
+        scrapping_messanger
+            .set_system_scrapper_state(
+                crate::manager::scrapping_manager::messanger::SystemScrapperState::ScrapWaypoints {
+                    total: count as u32,
+                    current: system.0 as u32,
+                },
+            )
+            .await;
+
+        let erg = update_system(database_pool, api, &system.1.symbol, false).await;
         if let Err(e) = erg {
-            tracing::error!(system = %system.symbol, error = ?e, "Error updating system");
+            tracing::error!(system = %system.1.symbol, error = ?e, "Error updating system");
         }
     }
 

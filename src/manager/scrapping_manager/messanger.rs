@@ -1,10 +1,17 @@
 use super::message::ScrappingManagerMessage;
-use std::sync::{atomic::AtomicBool, Arc};
+use std::sync::{
+    Arc,
+    atomic::{AtomicBool, AtomicU32, Ordering},
+};
 
 #[derive(Debug, Clone)]
 pub struct ScrappingManagerMessanger {
     pub sender: tokio::sync::mpsc::Sender<ScrappingManagerMessage>,
     busy: Arc<AtomicBool>,
+    agent_scrapper_busy: Arc<AtomicBool>,
+    agent_scrapper_count: Arc<AtomicU32>,
+    agent_scrapper_active: Arc<AtomicBool>,
+    system_scrapper_state: Arc<tokio::sync::RwLock<SystemScrapperState>>,
 }
 
 impl ScrappingManagerMessanger {
@@ -12,6 +19,12 @@ impl ScrappingManagerMessanger {
         Self {
             sender,
             busy: Arc::new(AtomicBool::new(false)),
+            agent_scrapper_busy: Arc::new(AtomicBool::new(false)),
+            agent_scrapper_count: Arc::new(AtomicU32::new(0)),
+            agent_scrapper_active: Arc::new(AtomicBool::new(false)),
+            system_scrapper_state: Arc::new(tokio::sync::RwLock::new(
+                SystemScrapperState::Inactive,
+            )),
         }
     }
 
@@ -108,4 +121,48 @@ impl ScrappingManagerMessanger {
             free_capacity,
         }
     }
+
+    pub fn is_agent_scrapper_busy(&self) -> bool {
+        self.agent_scrapper_busy.load(Ordering::Relaxed)
+    }
+    pub fn get_agent_scrapper_count(&self) -> u32 {
+        self.agent_scrapper_count.load(Ordering::Relaxed)
+    }
+    pub fn is_agent_scrapper_active(&self) -> bool {
+        self.agent_scrapper_active.load(Ordering::Relaxed)
+    }
+    pub fn set_agent_scrapper_busy(&self, state: bool) -> bool {
+        self.agent_scrapper_busy.swap(state, Ordering::Relaxed)
+    }
+    pub fn increase_agent_scrapper_count(&self) -> bool {
+        self.agent_scrapper_count.fetch_add(1, Ordering::Relaxed);
+        true
+    }
+    pub fn set_agent_scrapper_active(&self, state: bool) -> bool {
+        self.agent_scrapper_active.swap(state, Ordering::Relaxed)
+    }
+
+    pub async fn is_system_scrapper_active(&self) -> bool {
+        let state = self.system_scrapper_state.read().await;
+        !matches!(&*state, SystemScrapperState::Inactive)
+    }
+
+    pub async fn get_system_scrapper_state(&self) -> SystemScrapperState {
+        let state = self.system_scrapper_state.read().await;
+        (*state).clone()
+    }
+
+    pub async fn set_system_scrapper_state(&self, state: SystemScrapperState) -> bool {
+        let mut current = self.system_scrapper_state.write().await;
+        *current = state;
+        true
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum SystemScrapperState {
+    Inactive,
+    ScrapSystems,
+    ScrapWaypoints { total: u32, current: u32 },
+    ScrapJumpGates,
 }
