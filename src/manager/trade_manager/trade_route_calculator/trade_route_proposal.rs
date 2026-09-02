@@ -280,9 +280,9 @@ pub fn sort_trade_route_proposal(
             // Some(route_a_diff.cmp(&route_b_diff))
 
             let route_a_diff =
-                curve_score(purchase_good_a.supply) - curve_score(sell_good_a.supply);
+                curve_score(sell_good_a.supply) - curve_score(purchase_good_a.supply);
             let route_b_diff =
-                curve_score(purchase_good_b.supply) - curve_score(sell_good_b.supply);
+                curve_score(sell_good_b.supply) - curve_score(purchase_good_b.supply);
             Some(
                 route_a_diff
                     .partial_cmp(&route_b_diff)
@@ -321,6 +321,7 @@ fn is_preferable_trade_route_proposal(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use space_traders_client::models::SupplyLevel;
     use space_traders_client::models::TradeSymbol;
     use space_traders_client::models::market_trade_good::Type;
 
@@ -460,5 +461,84 @@ mod tests {
         assert!(!is_preferable_trade_route_proposal(
             &proposal, &config, &mapping
         ));
+    }
+
+    #[test]
+    fn curve_score_maps_each_supply_level_to_a_power_of_two() {
+        assert_eq!(curve_score(SupplyLevel::Scarce), 16.0);
+        assert_eq!(curve_score(SupplyLevel::Limited), 8.0);
+        assert_eq!(curve_score(SupplyLevel::Moderate), 4.0);
+        assert_eq!(curve_score(SupplyLevel::High), 2.0);
+        assert_eq!(curve_score(SupplyLevel::Abundant), 1.0);
+    }
+
+    #[test]
+    fn curve_score_is_strictly_decreasing_as_supply_increases() {
+        let scores = [
+            SupplyLevel::Scarce,
+            SupplyLevel::Limited,
+            SupplyLevel::Moderate,
+            SupplyLevel::High,
+            SupplyLevel::Abundant,
+        ]
+        .map(curve_score);
+
+        for pair in scores.windows(2) {
+            assert!(pair[0] > pair[1], "expected {:?} > {:?}", pair[0], pair[1]);
+        }
+    }
+
+    fn make_trade_good(symbol: TradeSymbol, supply: SupplyLevel) -> database::MarketTradeGood {
+        database::MarketTradeGood::from(
+            models::MarketTradeGood::new(symbol, Type::Export, 100, supply, 100, 100),
+            "WP",
+        )
+    }
+
+    fn make_market_balanced_proposal(
+        symbol: TradeSymbol,
+        purchase_supply: SupplyLevel,
+        sell_supply: SupplyLevel,
+    ) -> TradeRouteProposal {
+        TradeRouteProposal {
+            symbol,
+            purchase_good: Some(make_trade_good(symbol, purchase_supply)),
+            sell_good: Some(make_trade_good(symbol, sell_supply)),
+            ..Default::default()
+        }
+    }
+
+    fn market_balanced_config() -> database::TradingFleetConfig {
+        make_trading_config(vec![])
+    }
+
+    fn empty_supply_chain_mapping() -> SupplyChainMapping {
+        SupplyChainMapping::new(&[])
+    }
+
+    #[test]
+    fn market_balanced_prefers_buying_abundant_and_selling_scarce() {
+        let config = market_balanced_config();
+        let mapping = empty_supply_chain_mapping();
+
+        let worse = make_market_balanced_proposal(
+            TradeSymbol::Gold,
+            SupplyLevel::Scarce,
+            SupplyLevel::Abundant,
+        );
+        let better = make_market_balanced_proposal(
+            TradeSymbol::Gold,
+            SupplyLevel::Abundant,
+            SupplyLevel::Scarce,
+        );
+
+        assert_eq!(
+            sort_trade_route_proposal(&better, &worse, &config, &mapping),
+            Some(std::cmp::Ordering::Greater)
+        );
+        assert_eq!(
+            sort_trade_route_proposal(&worse, &better, &config, &mapping),
+            Some(std::cmp::Ordering::Less)
+        );
     }
 }
