@@ -630,6 +630,18 @@ impl QueryRoot {
         Ok(fleets.into())
     }
 
+    async fn fleet<'ctx>(
+        &self,
+        ctx: &async_graphql::Context<'ctx>,
+        id: i32,
+    ) -> Result<gql_models::GQLFleet> {
+        let context = ctx.data::<ConductorContext>()?;
+        let fleet = database::Fleet::get_by_id(&context.database_pool, id)
+            .await?
+            .ok_or(GraphiQLError::NotFound)?;
+        Ok(fleet.into())
+    }
+
     async fn ship_assignments<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,

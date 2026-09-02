@@ -1,6 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
 use async_graphql::dataloader::DataLoader;
+use database::DatabaseConnectorAsync;
 use ship::status::ShipStatus;
 use space_traders_client::models;
 
@@ -3933,6 +3934,14 @@ impl From<ship::RustShip<ShipStatus, ship::Immutable>> for GQLShip {
 
 #[async_graphql::ComplexObject]
 impl GQLShip {
+    async fn ship_info(&self, ctx: &async_graphql::Context<'_>) -> Result<Option<GQLShipInfo>> {
+        let context = ctx.data::<crate::utils::ConductorContext>().unwrap();
+
+        let ship_info =
+            database::ShipInfo::get_by_id(&context.database_pool, &self.ship.symbol).await?;
+        Ok(into_gql(ship_info))
+    }
+
     async fn status(&self) -> Result<super::gql_ship::GQLShipStatus> {
         let status = self.ship.status.clone();
         Ok(status.into())

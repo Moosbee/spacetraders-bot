@@ -1,5 +1,8 @@
 use crate::{
-    control_api::{GraphiQLError, graphql::gql_models::GQLShipInfo},
+    control_api::{
+        GraphiQLError,
+        graphql::gql_models::{GQLFleet, GQLShipInfo},
+    },
     utils::ConductorContext,
 };
 use async_graphql::{Context, Object};
@@ -168,14 +171,14 @@ impl MutationRoot {
         system_symbol: String,
         active: bool,
         config: database::FleetConfig,
-    ) -> super::Result<database::Fleet> {
+    ) -> super::Result<GQLFleet> {
         let context = ctx.data::<ConductorContext>()?;
 
         let mut new_fleet = database::Fleet::new(system_symbol, active).with_config(config);
         let inserted_fleet_id =
             database::Fleet::insert_new(&context.database_pool, &new_fleet).await?;
         new_fleet.id = inserted_fleet_id;
-        Ok(new_fleet)
+        Ok(new_fleet.into())
     }
 
     /// Remove a fleet.
@@ -193,7 +196,7 @@ impl MutationRoot {
         system_symbol: Option<String>,
         active: Option<bool>,
         config: Option<InputFleetConfig>,
-    ) -> super::Result<database::Fleet> {
+    ) -> super::Result<GQLFleet> {
         let context = ctx.data::<ConductorContext>()?;
 
         // Update non-config fields via database helpers so SQL stays in the database crate
@@ -301,7 +304,7 @@ impl MutationRoot {
             .await?
             .ok_or(super::GraphiQLError::NotFound)?;
 
-        Ok(updated)
+        Ok(updated.into())
     }
 
     /// Trigger a regeneration of fleet assignments. This will ask the FleetManager to rebuild assignments.
