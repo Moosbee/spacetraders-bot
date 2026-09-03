@@ -63,3 +63,6 @@ async-graphql = { version = "7.0.17", features = ["chrono", "dataloader"] }
 async-graphql-warp = "7.0.17"
 pathfinding = "4.14.0"
 ordered-float = "5.1.0"
+
+[dev-dependencies]
+test-log = "0.2.21"

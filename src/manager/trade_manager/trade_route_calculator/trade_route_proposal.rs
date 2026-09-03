@@ -1,4 +1,5 @@
 use space_traders_client::models;
+use tracing::trace;
 
 use crate::supply_chain_mapping::SupplyChainMapping;
 
@@ -198,6 +199,7 @@ pub fn filter_trade_route_proposal(
     trade_route_proposal.total_profit > trading_config.trade_profit_threshold
 }
 
+/// used in max by
 pub fn sort_trade_route_proposal(
     trade_route_proposal_a: &TradeRouteProposal,
     trade_route_proposal_b: &TradeRouteProposal,
@@ -283,6 +285,22 @@ pub fn sort_trade_route_proposal(
                 curve_score(sell_good_a.supply) - curve_score(purchase_good_a.supply);
             let route_b_diff =
                 curve_score(sell_good_b.supply) - curve_score(purchase_good_b.supply);
+
+            trace!(
+                "purchase_a: {:?} {}, sell_a: {:?} {}, {}    purchase_b: {:?} {}, sell_b: {:?} {}, {}   Comp: {:?}",
+                purchase_good_a.supply,
+                curve_score(purchase_good_a.supply),
+                sell_good_a.supply,
+                curve_score(sell_good_a.supply),
+                route_a_diff,
+                purchase_good_b.supply,
+                curve_score(purchase_good_b.supply),
+                sell_good_b.supply,
+                curve_score(sell_good_b.supply),
+                route_b_diff,
+                route_a_diff.partial_cmp(&(route_b_diff)),
+            );
+
             Some(
                 route_a_diff
                     .partial_cmp(&route_b_diff)
@@ -320,6 +338,8 @@ fn is_preferable_trade_route_proposal(
 
 #[cfg(test)]
 mod tests {
+    use test_log::test;
+
     use super::*;
     use space_traders_client::models::SupplyLevel;
     use space_traders_client::models::TradeSymbol;
@@ -540,5 +560,87 @@ mod tests {
             sort_trade_route_proposal(&worse, &better, &config, &mapping),
             Some(std::cmp::Ordering::Less)
         );
+    }
+
+    #[test]
+    fn market_balanced_moderate_scarce_better_than_abundant_high() {
+        let config = market_balanced_config();
+        let mapping = empty_supply_chain_mapping();
+
+        let better = make_market_balanced_proposal(
+            TradeSymbol::Gold,
+            SupplyLevel::Moderate,
+            SupplyLevel::Scarce,
+        );
+        let worse = make_market_balanced_proposal(
+            TradeSymbol::Gold,
+            SupplyLevel::Abundant,
+            SupplyLevel::High,
+        );
+
+        assert_eq!(
+            sort_trade_route_proposal(&better, &worse, &config, &mapping),
+            Some(std::cmp::Ordering::Greater)
+        );
+        assert_eq!(
+            sort_trade_route_proposal(&worse, &better, &config, &mapping),
+            Some(std::cmp::Ordering::Less)
+        );
+    }
+
+    #[test]
+    #[ignore]
+    fn market_balanced_high_scarce_better_than_abundant_moderate() {
+        for purchase_a in [
+            SupplyLevel::Scarce,
+            SupplyLevel::Limited,
+            SupplyLevel::Moderate,
+            SupplyLevel::High,
+            SupplyLevel::Abundant,
+        ] {
+            for sell_a in [
+                SupplyLevel::Scarce,
+                SupplyLevel::Limited,
+                SupplyLevel::Moderate,
+                SupplyLevel::High,
+                SupplyLevel::Abundant,
+            ] {
+                for purchase_b in [
+                    SupplyLevel::Scarce,
+                    SupplyLevel::Limited,
+                    SupplyLevel::Moderate,
+                    SupplyLevel::High,
+                    SupplyLevel::Abundant,
+                ] {
+                    for sell_b in [
+                        SupplyLevel::Scarce,
+                        SupplyLevel::Limited,
+                        SupplyLevel::Moderate,
+                        SupplyLevel::High,
+                        SupplyLevel::Abundant,
+                    ] {
+                        let route_a_diff = curve_score(sell_a) - curve_score(purchase_a);
+                        let route_b_diff = curve_score(sell_b) - curve_score(purchase_b);
+
+                        trace!(
+                            "purchase_a: {:?} {}, sell_a: {:?} {}, {}    purchase_b: {:?} {}, sell_b: {:?} {}, {}   Comp: {:?}",
+                            purchase_a,
+                            curve_score(purchase_a),
+                            sell_a,
+                            curve_score(sell_a),
+                            route_a_diff,
+                            purchase_b,
+                            curve_score(purchase_b),
+                            sell_b,
+                            curve_score(sell_b),
+                            route_b_diff,
+                            route_a_diff.partial_cmp(&(route_b_diff)),
+                        );
+                    }
+                }
+            }
+        }
+
+        panic!()
     }
 }
