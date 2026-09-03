@@ -12,6 +12,7 @@ import {
 } from "antd";
 import { Link } from "react-router-dom";
 import PageTitle from "../features/PageTitle";
+import WaypointLink from "../features/WaypointLink";
 import { GetMiningAssignmentsQuery } from "../gql/graphql";
 import { GET_MINING_ASSIGNMENTS } from "../graphql/queries";
 
@@ -38,6 +39,7 @@ export default function MiningAssignments() {
       title: "ID",
       dataIndex: "id",
       key: "id",
+      render: (id: string) => <Link to={`/fleets/${id}`}>{id}</Link>,
     },
     {
       title: "System",
@@ -192,6 +194,7 @@ export default function MiningAssignments() {
           },
         ]}
       />
+      <Divider />
 
       <List
         loading={loading}
@@ -199,7 +202,13 @@ export default function MiningAssignments() {
         dataSource={assignments}
         renderItem={(item) => (
           <List.Item>
-            <Card title={item.waypointSymbol}>
+            <Card
+              title={
+                <WaypointLink waypoint={item.waypointSymbol}>
+                  {item.waypointSymbol}
+                </WaypointLink>
+              }
+            >
               <List
                 dataSource={item.assignedShips}
                 renderItem={(ship) => (

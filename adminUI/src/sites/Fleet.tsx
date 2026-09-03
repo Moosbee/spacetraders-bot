@@ -108,9 +108,7 @@ const shipColumns: TableProps<FleetShip>["columns"] = [
     title: "Symbol",
     dataIndex: "symbol",
     key: "symbol",
-    render: (symbol: string) => (
-      <WaypointLink waypoint={symbol}>{symbol}</WaypointLink>
-    ),
+    render: (symbol: string) => <Link to={`/ships/${symbol}`}>{symbol}</Link>,
     sorter: (a, b) => a.symbol.localeCompare(b.symbol),
   },
   {

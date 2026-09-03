@@ -2256,3 +2256,41 @@ export const GET_FLEET = graphql(/* GraphQL */ `
     }
   }
 `);
+
+export const GET_POSSIBLE_TRADES = graphql(/* GraphQL */ `
+  query GetPossibleTrades {
+    tradeRouteCandidates {
+      items {
+        symbol
+        purchase {
+          symbol
+          waypointSymbol
+          type
+          createdAt
+        }
+        sell {
+          symbol
+          waypointSymbol
+          type
+          createdAt
+        }
+        purchaseGood {
+          tradeVolume
+          supply
+          activity
+          purchasePrice
+          sellPrice
+          createdAt
+        }
+        sellGood {
+          tradeVolume
+          supply
+          activity
+          purchasePrice
+          sellPrice
+          createdAt
+        }
+      }
+    }
+  }
+`);
