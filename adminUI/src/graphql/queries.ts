@@ -2072,3 +2072,187 @@ export const GET_TRADE_SYMBOL_SUPPLY_CHAIN = graphql(/* GraphQL */ `
     }
   }
 `);
+
+export const GET_FLEETS = graphql(/* GraphQL */ `
+  query GetFleets {
+    fleets {
+      items {
+        id
+        systemSymbol
+        fleetType
+        active
+        config {
+          __typename
+          ... on MiningConfig {
+            miningEjectList
+            miningTransportersPerWaypoint
+            minTransporterCargoSpace
+            minMiningCargoSpace
+            minSiphonCargoSpace
+            miningPreferList
+            ignoreEngineeredAsteroids
+            stopAllUnstable
+            unstableSinceTimeout
+            miningWaypoints
+            syphonWaypoints
+            minersPerWaypoint
+            siphonersPerWaypoint
+            surveyersPerWaypoint
+          }
+          ... on TradingConfig {
+            marketBlacklist
+            marketPreferList
+            purchaseMultiplier
+            tradeMode
+            tradeProfitThreshold
+            shipMarketRatio
+            minCargoSpace
+          }
+          ... on ScrapingConfig {
+            shipMarketRatio
+            allowedRequests
+            notifyOnShipyard
+          }
+          ... on ChartingConfig {
+            chartingProbeCount
+            chartOnlyJumpGates
+          }
+          ... on ConstructionConfig {
+            constructionShipCount
+            constructionWaypoint
+            constructionMode
+          }
+          ... on ContractConfig {
+            contractShipCount
+          }
+          ... on ManuelConfig {
+            config
+          }
+        }
+        assignments {
+          items {
+            id
+            siphon
+            warpDrive
+            fleetId
+            priority
+            maxPurchasePrice
+            creditsThreshold
+            disabled
+            rangeMin
+            cargoMin
+            survey
+            extractor
+            ship {
+              symbol
+            }
+          }
+        }
+        allShips {
+          symbol
+        }
+      }
+    }
+  }
+`);
+
+export const GET_FLEET = graphql(/* GraphQL */ `
+  query GetFleet($fleetID: Int!) {
+    fleet(id: $fleetID) {
+      id
+      systemSymbol
+      fleetType
+      active
+      config {
+        __typename
+        ... on MiningConfig {
+          miningEjectList
+          miningTransportersPerWaypoint
+          minTransporterCargoSpace
+          minMiningCargoSpace
+          minSiphonCargoSpace
+          miningPreferList
+          ignoreEngineeredAsteroids
+          stopAllUnstable
+          unstableSinceTimeout
+          miningWaypoints
+          syphonWaypoints
+          minersPerWaypoint
+          siphonersPerWaypoint
+          surveyersPerWaypoint
+        }
+        ... on TradingConfig {
+          marketBlacklist
+          marketPreferList
+          purchaseMultiplier
+          tradeMode
+          tradeProfitThreshold
+          shipMarketRatio
+          minCargoSpace
+        }
+        ... on ScrapingConfig {
+          shipMarketRatio
+          allowedRequests
+          notifyOnShipyard
+        }
+        ... on ChartingConfig {
+          chartingProbeCount
+          chartOnlyJumpGates
+        }
+        ... on ConstructionConfig {
+          constructionShipCount
+          constructionWaypoint
+          constructionMode
+        }
+        ... on ContractConfig {
+          contractShipCount
+        }
+        ... on ManuelConfig {
+          config
+        }
+      }
+      assignments {
+        items {
+          id
+          siphon
+          warpDrive
+          fleetId
+          priority
+          maxPurchasePrice
+          creditsThreshold
+          disabled
+          rangeMin
+          cargoMin
+          survey
+          extractor
+          ship {
+            symbol
+          }
+        }
+      }
+      allShips {
+        symbol
+        nav {
+          waypointSymbol
+          status
+        }
+        fuel {
+          capacity
+        }
+        cargo {
+          capacity
+        }
+        engineSpeed
+        status {
+          assignmentId
+          fleetId
+          tempAssignmentId
+          tempFleetId
+          status {
+            __typename
+          }
+        }
+      }
+    }
+  }
+`);

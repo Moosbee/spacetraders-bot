@@ -15,6 +15,8 @@ import ConstructionShipments from "./sites/ConstructionShipments";
 import Contract from "./sites/Contract";
 import Contracts from "./sites/Contracts";
 import ErrorPage from "./sites/ErrorPage";
+import Fleet from "./sites/Fleet";
+import Fleets from "./sites/Fleets";
 import MarketTransactions from "./sites/MarketTransactions";
 import MiningAssignments from "./sites/MiningAssignments";
 import PossibleTrades from "./sites/PossibleTrades";
@@ -131,6 +133,9 @@ function MyApp() {
                       path="/shipsToPurchase"
                       element={<ShipsToPurchase />}
                     />
+
+                    <Route path="/fleets/:fleetID" element={<Fleet />} />
+                    <Route path="/fleets" element={<Fleets />} />
 
                     <Route
                       path="/miningAssignments"

@@ -1,8 +1,3 @@
-import {
-  NodeIndexOutlined,
-  SortDescendingOutlined,
-  TruckOutlined,
-} from "@ant-design/icons";
 import { useMutation, useQuery } from "@apollo/client/react";
 import {
   Alert,
@@ -24,6 +19,7 @@ import {
 } from "antd";
 import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import AssignmentsPopover from "../features/AssignmentsPopover/AssignmentsPopover";
 import MarketTradeGoodsPopover from "../features/MarketTradeGoods/MarketTradeGoodsPopover";
 import MoneyDisplay from "../features/MonyDisplay";
 import PageTitle from "../features/PageTitle";
@@ -719,22 +715,7 @@ function System() {
             renderItem={(fleet) => (
               <List.Item>
                 <Popover
-                  title={
-                    <Flex flex={1} vertical>
-                      {fleet.assignments.map((asgmt) => (
-                        <Flex key={asgmt.id} justify="space-between">
-                          {asgmt.id} {asgmt.disabled ? "D" : "A"}|
-                          <SortDescendingOutlined /> {asgmt.priority}|
-                          <NodeIndexOutlined /> {asgmt.rangeMin}|
-                          <TruckOutlined /> {asgmt.cargoMin}|
-                          {asgmt.extractor && "E|"}
-                          {asgmt.siphon && "SI|"}
-                          {asgmt.survey && "SU|"}
-                          {asgmt.warpDrive && "W|"}
-                        </Flex>
-                      ))}
-                    </Flex>
-                  }
+                  title={<AssignmentsPopover assignments={fleet.assignments} />}
                 >
                   <Link to={`/fleets/${fleet.id}`}>
                     {fleet.fleetType}_{fleet.id} ({fleet.active ? "A" : "I"}) (

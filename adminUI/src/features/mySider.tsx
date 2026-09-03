@@ -2,6 +2,7 @@ import {
   ApartmentOutlined,
   AuditOutlined,
   ContactsOutlined,
+  DatabaseOutlined,
   DeliveredProcedureOutlined,
   DollarOutlined,
   FileTextOutlined,
@@ -52,6 +53,11 @@ const items: MenuItem[] = [
         label: <Link to="/ships">Ships</Link>,
         key: "ships",
         icon: <RocketOutlined />,
+      },
+      {
+        label: <Link to="/fleets">Fleets</Link>,
+        key: "fleets",
+        icon: <DatabaseOutlined />,
       },
       {
         label: <Link to="/shipsToPurchase">Ships To Purchase</Link>,
