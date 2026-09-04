@@ -413,6 +413,7 @@ export const GET_SYSTEM = graphql(/* GraphQL */ `
       waypoints {
         items {
           symbol
+          systemSymbol
           faction
           modifiers
           chartedBy
@@ -1239,6 +1240,9 @@ export const GET_SHIP = graphql(/* GraphQL */ `
       symbol
       registrationRole
       engineSpeed
+      shipInfo {
+        active
+      }
       nav {
         status
         systemSymbol
@@ -1723,6 +1727,266 @@ export const GET_ALL_TRADE_ROUTES = graphql(/* GraphQL */ `
           purchasePrice
           sellPrice
         }
+      }
+    }
+  }
+`);
+
+export const GET_TRADE_ROUTE = graphql(/* GraphQL */ `
+  query GetTradeRoute($routeId: Int!) {
+    tradeRoute(routeId: $routeId) {
+      id
+      symbol
+      shipSymbol
+      PurchaseWaypointSymbol
+      SellWaypointSymbol
+      status
+      tradeVolume
+      purchaseTradeGoodId
+      sellTradeGoodId
+      estimatedFuel
+      tradeMode
+      reservedFund
+      fleetId
+      assignmentId
+      createdAt
+      ship {
+        symbol
+        registrationRole
+        nav {
+          status
+          systemSymbol
+          waypointSymbol
+        }
+      }
+      sellWaypoint {
+        symbol
+        systemSymbol
+        faction
+        modifiers
+        chartedBy
+        chartedOn
+        hasShipyard
+        hasMarketplace
+        x
+        y
+        lastScrap
+        nextScrap
+        waypointType
+        traits
+        isUnderConstruction
+        orbitals
+        orbits
+        marketTrades {
+          items {
+            symbol
+            type
+            tradeSymbolInfo {
+              symbol
+              requires {
+                items {
+                  symbol
+                }
+              }
+              requiredBy {
+                items {
+                  symbol
+                }
+              }
+            }
+            marketTradeGood {
+              tradeVolume
+              supply
+              activity
+              purchasePrice
+              sellPrice
+            }
+          }
+        }
+        shipyardShips {
+          items {
+            shipType
+            supply
+            activity
+            purchasePrice
+          }
+        }
+      }
+      purchaseWaypoint {
+        symbol
+        systemSymbol
+        faction
+        modifiers
+        chartedBy
+        chartedOn
+        hasShipyard
+        hasMarketplace
+        x
+        y
+        lastScrap
+        nextScrap
+        waypointType
+        traits
+        isUnderConstruction
+        orbitals
+        orbits
+        marketTrades {
+          items {
+            symbol
+            type
+            tradeSymbolInfo {
+              symbol
+              requires {
+                items {
+                  symbol
+                }
+              }
+              requiredBy {
+                items {
+                  symbol
+                }
+              }
+            }
+            marketTradeGood {
+              tradeVolume
+              supply
+              activity
+              purchasePrice
+              sellPrice
+            }
+          }
+        }
+        shipyardShips {
+          items {
+            shipType
+            supply
+            activity
+            purchasePrice
+          }
+        }
+      }
+      reservation {
+        id
+        amount
+        actualAmount
+        status
+        createdAt
+        updatedAt
+      }
+      transactions {
+        items {
+          id
+          waypointSymbol
+          shipSymbol
+          tradeSymbol
+          type
+          units
+          pricePerUnit
+          totalPrice
+          timestamp
+          contract_id
+          trade_route_id
+          mining_waypoint_symbol
+          construction_shipment_id
+          isFuel
+        }
+      }
+      marketTransactionSummary {
+        allExpenses
+        allIncome
+        expenses
+        fuelExpenses
+        purchaseTransactions
+        sellTransactions
+        purchaseUnits
+        sellUnits
+        allPurchaseUnits
+        allPurchaseTransactions
+        allSellUnits
+        allSellTransactions
+        fuelPurchaseUnits
+        fuelPurchaseTransactions
+      }
+      purchaseMarketTradeGood {
+        id
+        symbol
+        waypointSymbol
+        type
+        tradeVolume
+        supply
+        activity
+        purchasePrice
+        sellPrice
+        createdAt
+      }
+      sellMarketTradeGood {
+        id
+        symbol
+        waypointSymbol
+        type
+        tradeVolume
+        supply
+        activity
+        purchasePrice
+        sellPrice
+        createdAt
+      }
+      purchaseMarketTradeGoodCurrent {
+        id
+        symbol
+        waypointSymbol
+        type
+        tradeVolume
+        supply
+        activity
+        purchasePrice
+        sellPrice
+        createdAt
+      }
+      sellMarketTradeGoodCurrent {
+        id
+        symbol
+        waypointSymbol
+        type
+        tradeVolume
+        supply
+        activity
+        purchasePrice
+        sellPrice
+        createdAt
+      }
+      tradeSymbolInfo {
+        symbol
+        requires {
+          items {
+            symbol
+          }
+        }
+        requiredBy {
+          items {
+            symbol
+          }
+        }
+      }
+      fleet {
+        id
+        fleetType
+        active
+        systemSymbol
+      }
+      assignment {
+        id
+        fleetId
+        priority
+        rangeMin
+        cargoMin
+        maxPurchasePrice
+        creditsThreshold
+        disabled
+        siphon
+        warpDrive
+        survey
+        extractor
       }
     }
   }

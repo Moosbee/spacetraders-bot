@@ -172,7 +172,7 @@ function ShipDetails({ ship }: { ship: ShipData }) {
     {
       label: "Active",
       key: "active",
-      children: ship.status ? "Yes*" : "No*",
+      children: ship.shipInfo?.active ? "Yes" : "No",
     },
     {
       key: "system",
@@ -477,7 +477,11 @@ function ShipDetails({ ship }: { ship: ShipData }) {
     {
       key: "fleet",
       label: "Fleet",
-      children: ship.status.fleetId ?? "None",
+      children: ship.status.fleetId ? (
+        <Link to={`/fleet/${ship.status.fleetId}`}>{ship.status.fleetId}</Link>
+      ) : (
+        "None"
+      ),
     },
     {
       key: "fleetDetails",
@@ -499,7 +503,13 @@ function ShipDetails({ ship }: { ship: ShipData }) {
     {
       key: "tempFleet",
       label: "Temp Fleet",
-      children: ship.status.tempFleetId ?? "None",
+      children: ship.status.tempFleetId ? (
+        <Link to={`/fleet/${ship.status.tempFleetId}`}>
+          {ship.status.tempFleetId}
+        </Link>
+      ) : (
+        "None"
+      ),
     },
     {
       key: "tempFleetDetails",

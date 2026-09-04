@@ -1,5 +1,5 @@
 import { Button, List, Table, TableProps, Tooltip } from "antd";
-import { ShipyardShip } from "../../models/Shipyard";
+import { GetWaypointQuery } from "../../gql/graphql";
 import {
   ActivityLevel,
   ShipEngineSymbolEnum,
@@ -10,40 +10,35 @@ import {
 } from "../../models/api";
 import MoneyDisplay from "../MonyDisplay";
 
-function ShipyardShipTable({
-  ships,
-  onPurchase,
-}: {
-  ships: ShipyardShip[];
-  onPurchase: (ship: ShipyardShip) => void;
-}) {
+type ShipyardShip =
+  GetWaypointQuery["waypoint"]["shipyardShips"]["items"][number];
+
+function ShipyardShipTable({ ships }: { ships: ShipyardShip[] }) {
   const columns: TableProps<ShipyardShip>["columns"] = [
     {
       title: "Ship Type",
-      dataIndex: "ship_type",
-      key: "ship_type",
-      sorter: (a, b) => a.ship_type.localeCompare(b.ship_type),
-      filters: Object.values(ShipType).map((ship_type) => ({
-        text: ship_type,
-        value: ship_type,
+      dataIndex: "shipType",
+      key: "shipType",
+      sorter: (a, b) => a.shipType.localeCompare(b.shipType),
+      filters: Object.values(ShipType).map((shipType) => ({
+        text: shipType,
+        value: shipType,
       })),
-      onFilter: (value, record) => record.ship_type === value,
+      onFilter: (value, record) => record.shipType === value,
     },
     {
       title: "Action",
       dataIndex: "",
       key: "x",
-      render: (_value, record) => (
-        <Button onClick={() => onPurchase(record)}>Purchase</Button>
-      ),
+      render: () => <Button disabled>Purchase</Button>,
     },
     {
       title: "Purchase Price",
-      dataIndex: "purchase_price",
-      key: "purchase_price",
+      dataIndex: "purchasePrice",
+      key: "purchasePrice",
       align: "right",
       render: (price: number) => <MoneyDisplay amount={price} />,
-      sorter: (a, b) => a.purchase_price - b.purchase_price,
+      sorter: (a, b) => a.purchasePrice - b.purchasePrice,
     },
     {
       title: "Supply Level",
@@ -60,25 +55,18 @@ function ShipyardShipTable({
       title: "Activity",
       dataIndex: "activity",
       key: "activity",
-      sorter: (a, b) => a.activity.localeCompare(b.activity),
+      sorter: (a, b) => a.activity?.localeCompare(b.activity ?? "") ?? 0,
       filters: Object.values(ActivityLevel).map((activity) => ({
         text: activity,
         value: activity,
       })),
     },
     {
-      title: "Crew",
-      dataIndex: "crew_capacity",
-      key: "crew_capacity",
-      render: (_crew: number, record) =>
-        `${record.crew_requirement} / ${record.crew_capacity}`,
-    },
-    {
       title: "Engine Type",
       dataIndex: "engine_type",
       key: "engine_type",
       render: (engine: ShipEngineSymbolEnum, record) => (
-        <Tooltip title={`Quality: ${record.engine_quality}`}>{engine}</Tooltip>
+        <Tooltip title={`Quality: ${record.engine_type}`}>{engine}</Tooltip>
       ),
       sorter: (a, b) => a.engine_type.localeCompare(b.engine_type),
       filters: Object.values(ShipEngineSymbolEnum).map((engine) => ({

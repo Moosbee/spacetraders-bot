@@ -15,16 +15,14 @@ import {
   Space,
   Switch,
   Table,
-  TableProps,
 } from "antd";
 import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import AssignmentsPopover from "../features/AssignmentsPopover/AssignmentsPopover";
-import MarketTradeGoodsPopover from "../features/MarketTradeGoods/MarketTradeGoodsPopover";
 import MoneyDisplay from "../features/MonyDisplay";
 import PageTitle from "../features/PageTitle";
-import Timer from "../features/Timer/Timer";
 import WaypointLink from "../features/WaypointLink";
+import WaypointTable from "../features/WaypointTable/WaypointTable";
 import {
   ActivityLevel,
   MarketTradeGoodType,
@@ -32,9 +30,6 @@ import {
   SupplyLevel,
   TradeMode,
   TradeSymbol,
-  WaypointModifierSymbol,
-  WaypointTraitSymbol,
-  WaypointType,
 } from "../gql/graphql";
 import { REPOPULATE_SYSTEMS_WITH_FLEETS_FROM_SYSTEM } from "../graphql/mutations";
 import { GET_SYSTEM } from "../graphql/queries";
@@ -76,21 +71,8 @@ function System() {
         })),
         chartTransactions: data.system.chartTransactions.items,
         shipyardShips: data.system.shipyardShips.items,
-        marketTrades: data.system.marketTrades.items.map((trade) => ({
-          ...trade,
-          tradeSymbolInfo: {
-            ...trade.tradeSymbolInfo,
-            requires: trade.tradeSymbolInfo.requires.items,
-            requiredBy: trade.tradeSymbolInfo.requiredBy.items,
-          },
-        })),
         constructionMaterials: data.system.constructionMaterials.items,
         jumpGateConnections: data.system.jumpGateConnections.items,
-        waypoints: data.system.waypoints.items.map((waypoint) => ({
-          ...waypoint,
-          marketTrades: waypoint.marketTrades.items,
-          shipyardShips: waypoint.shipyardShips.items,
-        })),
         shipyardTransactions: data.system.shipyardTransactions.items,
         contractDeliveries: data.system.contractDeliveries.items,
         tradeRoutes: data.system.tradeRoutes.items,
@@ -100,7 +82,7 @@ function System() {
   const [hideFuelInMarketTrades, setHideFuelInMarketTrades] = useState(true);
 
   const marketDistripution = useMemo(() => {
-    return system?.marketTrades
+    return system?.marketTrades.items
       .filter(
         (trade) =>
           !(
@@ -129,7 +111,7 @@ function System() {
   }, [system?.marketTrades]);
 
   const marketOpportunities = useMemo(() => {
-    const opportunities = (system?.marketTrades || []).reduce(
+    const opportunities = (system?.marketTrades.items || []).reduce(
       (a, b) => {
         a[b.symbol] = a[b.symbol] || 0;
         a[b.symbol] += 1;
@@ -143,7 +125,7 @@ function System() {
   }, [system?.marketTrades]);
 
   const fuelCost = useMemo(() => {
-    const prices = (system?.marketTrades || [])
+    const prices = (system?.marketTrades.items || [])
       .filter((t) => t.symbol === "FUEL")
       .map((t) => t.marketTradeGood?.purchasePrice)
       .filter((p): p is number => p != null)
@@ -161,7 +143,7 @@ function System() {
   }, [system?.marketTrades]);
 
   const antimatterCost = useMemo(() => {
-    const prices = (system?.marketTrades || [])
+    const prices = (system?.marketTrades.items || [])
       .filter((t) => t.symbol === "ANTIMATTER")
       .map((t) => t.marketTradeGood?.purchasePrice)
       .filter((p): p is number => p != null)
@@ -179,8 +161,6 @@ function System() {
   }, [system?.marketTrades]);
 
   if (error) return <p>Error: {error.message}</p>;
-
-  type GQLWaypoint = NonNullable<typeof system>["waypoints"][number];
 
   const color = systemIcons[system?.systemType || "BLACK_HOLE"].color;
   const systemIcon = systemIcons[system?.systemType || "BLACK_HOLE"].icon;
@@ -295,27 +275,27 @@ function System() {
     {
       label: "Waypoints",
       key: "waypoints",
-      children: `${system?.waypoints.filter((wp) => wp.chartedOn).length}/${
-        system?.waypoints.length
+      children: `${system?.waypoints.items.filter((wp) => wp.chartedOn).length}/${
+        system?.waypoints.items.length
       }`,
     },
     {
       label: "Marketplaces",
       key: "marketplaces",
       children: `${
-        system?.waypoints
+        system?.waypoints.items
           .filter((wp) => wp.hasMarketplace)
           .filter((wp) => wp.chartedOn).length
-      }/${system?.waypoints.filter((wp) => wp.hasMarketplace).length}`,
+      }/${system?.waypoints.items.filter((wp) => wp.hasMarketplace).length}`,
     },
     {
       label: "Shipyards",
       key: "shipyards",
       children: `${
-        system?.waypoints
+        system?.waypoints.items
           .filter((wp) => wp.hasShipyard)
           .filter((wp) => wp.chartedOn).length
-      }/${system?.waypoints.filter((wp) => wp.hasShipyard).length}`,
+      }/${system?.waypoints.items.filter((wp) => wp.hasShipyard).length}`,
     },
     {
       label: "Unique Trade Goods",
@@ -338,307 +318,6 @@ function System() {
           )
         </span>
       ),
-    },
-  ];
-
-  const columns: TableProps<GQLWaypoint>["columns"] = [
-    {
-      title: "Symbol",
-      dataIndex: "symbol",
-      key: "symbol",
-      render: (symbol: string) => (
-        <WaypointLink waypoint={symbol}>{symbol}</WaypointLink>
-      ),
-      sorter: (a, b) => a.symbol.localeCompare(b.symbol),
-    },
-    {
-      title: "Type",
-      dataIndex: "waypointType",
-      key: "waypointType",
-      sorter: (a, b) => a.waypointType.localeCompare(b.waypointType),
-      filters: Object.values(WaypointType).map((type) => ({
-        text: type,
-        value: type,
-      })),
-      onFilter: (value, record) => record.waypointType === value,
-    },
-    {
-      title: "Pos X",
-      dataIndex: "x",
-      key: "x",
-      sorter: (a, b) => a.x - b.x,
-    },
-    {
-      title: "Pos Y",
-      dataIndex: "y",
-      key: "y",
-      sorter: (a, b) => a.y - b.y,
-    },
-    {
-      title: "Orbitals",
-      dataIndex: "orbitals",
-      key: "orbitals",
-      render: (orbitals: string[]) =>
-        orbitals.length > 0 ? (
-          <Flex gap={1} vertical>
-            {orbitals.map((symbol) => (
-              <WaypointLink waypoint={symbol} key={symbol}>
-                {symbol.replace(system?.symbol + "-", "")}
-              </WaypointLink>
-            ))}
-          </Flex>
-        ) : (
-          "None"
-        ), // List symbols of orbitals or "None"
-      sorter: (a, b) => a.orbitals.length - b.orbitals.length,
-    },
-    {
-      title: "Orbits",
-      dataIndex: "orbits",
-      key: "orbits",
-      render: (orbits: string) =>
-        orbits ? (
-          <WaypointLink waypoint={orbits}>
-            {orbits.replace(system?.symbol + "-", "")}
-          </WaypointLink>
-        ) : (
-          "N/A"
-        ), // Display "N/A" if undefined
-      sorter: (a, b) => (a.orbits ?? "").localeCompare(b.orbits ?? ""),
-    },
-    {
-      title: "Traits",
-      dataIndex: "traits",
-      key: "traits",
-      render: (traits) => (
-        <Popover
-          title={
-            <Flex gap={1} vertical>
-              {traits.map((trait: WaypointTraitSymbol) => (
-                <span key={trait}>{trait}</span>
-              ))}
-            </Flex>
-          }
-        >
-          {traits.length}
-        </Popover>
-      ), // List names of traits
-      sorter: (a, b) => a.traits.length - b.traits.length,
-      filters: Object.values(WaypointTraitSymbol).map((trait) => ({
-        text: trait,
-        value: trait,
-      })),
-      onFilter: (value, record) => record.traits.some((t) => t === value),
-    },
-    {
-      title: "Modifiers",
-      dataIndex: "modifiers",
-      key: "modifiers",
-      render: (modifiers) =>
-        modifiers && modifiers.length > 0 ? (
-          <span>
-            {modifiers?.map((modifier: WaypointModifierSymbol) => (
-              <span key={modifier}>{modifier}</span>
-            ))}
-          </span>
-        ) : (
-          "None"
-        ),
-      sorter: (a, b) => (a.modifiers?.length ?? 0) - (b.modifiers?.length ?? 0),
-      filters: Object.values(WaypointModifierSymbol).map((modifier) => ({
-        text: modifier,
-        value: modifier,
-      })),
-      onFilter: (value, record) =>
-        record.modifiers?.some((m) => m === value) ?? false,
-    },
-    {
-      title: "Scrap",
-      key: "nextScrap",
-      render: (_, record) =>
-        record.nextScrap && record.lastScrap ? (
-          <Popover
-            title={
-              <span>
-                {new Date(record.lastScrap).toLocaleString()} -{" "}
-                {Math.floor(
-                  (new Date(record.nextScrap).getTime() -
-                    new Date(record.lastScrap).getTime()) /
-                    1000 /
-                    60,
-                )}
-                min{" "}
-                {Math.floor(
-                  ((new Date(record.nextScrap).getTime() -
-                    new Date(record.lastScrap).getTime()) /
-                    1000) %
-                    60,
-                )}
-                s - {new Date(record.nextScrap).toLocaleString()}
-              </span>
-            }
-          >
-            T <Timer time={record.nextScrap} />
-          </Popover>
-        ) : (
-          "N/A"
-        ), // Display chart symbol or "N/A"
-      sorter: (a, b, sortOrder) =>
-        (a.nextScrap ?? (sortOrder == "ascend" ? "9" : "0")).localeCompare(
-          b.nextScrap ?? (sortOrder == "ascend" ? "9" : "0"),
-        ),
-    },
-    {
-      title: "Has Market",
-      dataIndex: "hasMarketplace",
-      key: "hasMarketplace",
-      render: (value) => (value ? "Yes" : "No"), // Render boolean as "Yes" or "No"
-      sorter: (a, b) => (a.hasMarketplace ? 1 : 0) - (b.hasMarketplace ? 1 : 0),
-      filters: [
-        { text: "Yes", value: true },
-        { text: "No", value: false },
-      ],
-      onFilter: (value, record) => record.hasMarketplace === value,
-    },
-    {
-      title: "Trade Goods",
-      dataIndex: "marketTrades",
-      key: "marketTrades",
-      render: (marketTrades: GQLWaypoint["marketTrades"]) =>
-        marketTrades && marketTrades.length > 0 ? (
-          <>
-            <Popover
-              content={<MarketTradeGoodsPopover marketTrades={marketTrades} />}
-            >
-              <Flex gap={1} flex={1} vertical>
-                {marketTrades.filter((t) => t.type === "EXCHANGE").length >
-                  0 && (
-                  <Flex justify="space-between">
-                    <span>EXCHANGE</span>
-                    <span>
-                      {marketTrades.filter((t) => t.type === "EXCHANGE").length}
-                    </span>
-                  </Flex>
-                )}
-                {marketTrades.filter((t) => t.type === "IMPORT").length > 0 && (
-                  <Flex justify="space-between">
-                    <span>IMPORT</span>
-                    <span>
-                      {marketTrades.filter((t) => t.type === "IMPORT").length}
-                    </span>
-                  </Flex>
-                )}
-                {marketTrades.filter((t) => t.type === "EXPORT").length > 0 && (
-                  <Flex justify="space-between">
-                    <span>EXPORT</span>
-                    <span>
-                      {marketTrades.filter((t) => t.type === "EXPORT").length}
-                    </span>
-                  </Flex>
-                )}
-              </Flex>
-            </Popover>
-          </>
-        ) : (
-          "None"
-        ),
-      sorter: (a, b) =>
-        (a.marketTrades?.length ?? 0) - (b.marketTrades?.length ?? 0),
-      filters: Object.values(TradeSymbol).map((trade_good) => ({
-        text: trade_good,
-        value: trade_good,
-      })),
-      filterSearch: true,
-      onFilter: (value, record) =>
-        record.marketTrades?.some((t) => t.symbol === value) ?? false,
-    },
-    {
-      title: "Has Shipyard",
-      dataIndex: "hasShipyard",
-      key: "hasShipyard",
-      render: (value) => (value ? "Yes" : "No"), // Render boolean as "Yes" or "No"
-      sorter: (a, b) => (a.hasShipyard ? 1 : 0) - (b.hasShipyard ? 1 : 0),
-      filters: [
-        { text: "Yes", value: true },
-        { text: "No", value: false },
-      ],
-      onFilter: (value, record) => record.hasShipyard === value,
-    },
-    {
-      title: "Shipyard Ships",
-      dataIndex: "shipyardShips",
-      key: "shipyardShips",
-      render: (value: GQLWaypoint["shipyardShips"]) => (
-        <Popover
-          title={
-            <Flex gap={1} vertical>
-              {value.map((ship) => (
-                <Flex justify="space-between" gap={4}>
-                  <span>{ship.shipType}</span>{" "}
-                  <span>
-                    <MoneyDisplay amount={ship.purchasePrice} />{" "}
-                    <span className="font-mono">{ship.supply.slice(0, 3)}</span>
-                  </span>
-                </Flex>
-              ))}
-            </Flex>
-          }
-        >
-          Ships {value.length}
-        </Popover>
-      ),
-      sorter: (a, b) =>
-        (a.shipyardShips.length ?? 0) - (b.shipyardShips.length ?? 0),
-      filters: [
-        ...[...new Set(system?.shipyardShips.map((ship) => ship.shipType))].map(
-          (sh) => ({
-            text: sh,
-            value: sh,
-          }),
-        ),
-      ],
-      onFilter: (value, record) => record.hasShipyard === value,
-    },
-    {
-      title: "Construction",
-      dataIndex: "isUnderConstruction",
-      key: "isUnderConstruction",
-      render: (value) => (value ? "Yes" : "No"), // Render boolean as "Yes" or "No"
-      sorter: (a, b) =>
-        (a.isUnderConstruction ? 1 : 0) - (b.isUnderConstruction ? 1 : 0),
-      filters: [
-        { text: "Yes", value: true },
-        { text: "No", value: false },
-      ],
-      onFilter: (value, record) => record.isUnderConstruction === value,
-    },
-    {
-      title: "Charted",
-      key: "charted",
-      render: (_, record) =>
-        record.chartedBy && record.chartedOn ? (
-          <Popover
-            title={
-              <span>
-                {record.chartedBy}
-                <br />
-                {new Date(record.chartedOn).toLocaleString()}
-              </span>
-            }
-          >
-            {record.chartedBy.split("-")[0]}
-          </Popover>
-        ) : (
-          "N/A"
-        ), // Display chart symbol or "N/A"
-      sorter: (a, b) => (a.chartedBy ?? "").localeCompare(b.chartedBy ?? ""),
-    },
-    {
-      title: "Faction",
-      dataIndex: "faction",
-      key: "faction",
-      render: (faction) => (faction ? faction : "N/A"), // Display faction symbol or "N/A"
-      sorter: (a, b) => (a.faction ?? "").localeCompare(b.faction ?? ""),
     },
   ];
 
@@ -1025,16 +704,7 @@ function System() {
           <Divider />
         </>
       )}
-      <Table
-        size="middle"
-        columns={columns}
-        title={() => "Waypoints"}
-        dataSource={system?.waypoints || []}
-        rowKey={(row) => row.symbol}
-        pagination={{
-          showTotal: (total, range) => `${range[0]}-${range[1]} of ${total}`,
-        }}
-      />
+      <WaypointTable waypoints={system?.waypoints.items || []} />
       <Divider />
       <Row gutter={10}>
         <Col span={15}>
@@ -1064,7 +734,9 @@ function System() {
                   a.waypointSymbol.localeCompare(b.waypointSymbol),
                 filters: [
                   ...new Set(
-                    (system?.marketTrades || []).map((t) => t.waypointSymbol),
+                    (system?.marketTrades.items || []).map(
+                      (t) => t.waypointSymbol,
+                    ),
                   ),
                 ].map((t) => ({
                   text: t,
@@ -1081,7 +753,9 @@ function System() {
                 ),
                 sorter: (a, b) => a.symbol.localeCompare(b.symbol),
                 filters: [
-                  ...new Set((system?.marketTrades || []).map((t) => t.symbol)),
+                  ...new Set(
+                    (system?.marketTrades.items || []).map((t) => t.symbol),
+                  ),
                 ].map((t) => ({
                   text: t,
                   value: t,
@@ -1207,7 +881,7 @@ function System() {
                   new Date(b.createdAt).getTime(),
               },
             ]}
-            dataSource={(system?.marketTrades || []).filter(
+            dataSource={(system?.marketTrades.items || []).filter(
               (t) => !hideFuelInMarketTrades || t.symbol !== "FUEL",
             )}
             rowKey={(row) => row.symbol + row.waypointSymbol + row.type}

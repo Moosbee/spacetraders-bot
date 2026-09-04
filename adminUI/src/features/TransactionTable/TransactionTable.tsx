@@ -78,6 +78,7 @@ function TransactionTable({
           value: type,
         })),
       onFilter: (value, record) => record.tradeSymbol === value,
+      filterSearch: true,
       render: (value) => <Link to={`/supplyChain/${value}`}>{value}</Link>,
     },
     {
@@ -186,7 +187,12 @@ function TransactionTable({
             title: "Trade Route",
             dataIndex: "trade_route_id",
             key: "trade_route_id",
-            render: (value: number | null) => (value !== null ? value : "N/A"), // Display "N/A" if null
+            render: (value: number | null) =>
+              value !== null ? (
+                <Link to={`/tradeRoutes/${value}`}>{value}</Link>
+              ) : (
+                "N/A"
+              ), // Display "N/A" if null
             sorter: (
               a: Partial<MarketTransaction>,
               b: Partial<MarketTransaction>,

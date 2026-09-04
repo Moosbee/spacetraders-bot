@@ -31,6 +31,7 @@ import System from "./sites/System";
 import SysMap from "./sites/SystemMap";
 import SystemMarkets from "./sites/SystemMarkets";
 import Systems from "./sites/Systems";
+import TradeRoute from "./sites/TradeRoute";
 import TradeRoutes from "./sites/TradeRoutes";
 import TradeSymbolInfo from "./sites/TradeSymbolInfo";
 import Waypoint from "./sites/Waypoint";
@@ -104,6 +105,10 @@ function MyApp() {
                       element={<Contract />}
                     />
                     <Route path="/tradeRoutes" element={<TradeRoutes />} />
+                    <Route
+                      path="/tradeRoutes/:routeId"
+                      element={<TradeRoute />}
+                    />
                     <Route
                       path="/possibleTrades"
                       element={<PossibleTrades />}

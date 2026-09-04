@@ -35,6 +35,7 @@ function TradeRoutes() {
       title: "ID",
       dataIndex: "id",
       key: "id",
+      render: (id: number) => <Link to={`/tradeRoutes/${id}`}>{id}</Link>,
       sorter: (a, b) => a.id - b.id,
       defaultSortOrder: "descend",
     },

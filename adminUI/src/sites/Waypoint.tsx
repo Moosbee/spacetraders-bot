@@ -19,7 +19,6 @@ import Timer from "../features/Timer/Timer";
 import WaypointLink from "../features/WaypointLink";
 
 import { useMutation, useQuery } from "@apollo/client/react";
-import { backendUrl } from "../data";
 import ShipyardShipTable from "../features/ShipyardShipTable/ShipyardShipTable";
 import TransactionTable from "../features/TransactionTable/TransactionTable";
 import {
@@ -32,7 +31,6 @@ import {
 import { REPOPULATE_SYSTEMS_WITH_FLEETS_FROM_JUMP_GATE } from "../graphql/mutations";
 import { GET_WAYPOINT } from "../graphql/queries";
 import { ShipType } from "../models/api";
-import { WaypointResponse } from "../models/SQLWaypoint";
 import { useAppDispatch, useAppSelector } from "../redux/hooks";
 import {
   selectSelectedWaypointSymbol,
@@ -64,9 +62,6 @@ function Waypoint() {
       error: repopulateSystemsFromJumpGatesError,
     },
   ] = useMutation(REPOPULATE_SYSTEMS_WITH_FLEETS_FROM_JUMP_GATE);
-
-  const oldWaypoint: WaypointResponse | null =
-    null as unknown as WaypointResponse;
 
   const waypoint = data?.waypoint;
 
@@ -801,52 +796,11 @@ function Waypoint() {
             />
           )}
       </Flex>
-      {(oldWaypoint?.shipyard || oldWaypoint?.ship_types?.length) && (
+      {(waypoint?.shipyard || waypoint?.shipyardShips.items.length) && (
         <Divider />
       )}
-      {oldWaypoint?.ships && oldWaypoint.ships.length > 0 && (
-        <ShipyardShipTable
-          ships={oldWaypoint?.ships}
-          onPurchase={(ship) => {
-            fetch(`http://${backendUrl}/ship/buy`, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                waypointSymbol: waypointID,
-                shipType: ship.ship_type,
-              }),
-            })
-              .then((response) => response.json())
-              .then(
-                (data: {
-                  shipSymbol: string;
-                  success: boolean;
-                  transaction: {
-                    agent_symbol: string;
-                    price: number;
-                    shipType: ShipType;
-                    timestamp: string;
-                    waypoint_symbol: string;
-                  };
-                }) => {
-                  console.log("Brought Ship", data);
-                  message.success(
-                    "Brought a " +
-                      data.shipSymbol +
-                      " for " +
-                      data.transaction.price +
-                      "$",
-                  );
-                },
-              )
-              .then(() => refetch())
-              .catch((error) => {
-                console.error("Error purchasing ship:", error);
-              });
-          }}
-        />
+      {waypoint?.shipyardShips && waypoint.shipyardShips.items.length > 0 && (
+        <ShipyardShipTable ships={waypoint?.shipyardShips.items || []} />
       )}
       <Divider />
       {(waypoint?.shipyardShipTypes || waypoint?.shipyardShips) && <Divider />}

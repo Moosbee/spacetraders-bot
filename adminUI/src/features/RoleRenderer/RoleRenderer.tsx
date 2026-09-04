@@ -43,7 +43,9 @@ const RoleRenderer = ({
       return (
         <span>
           <span>
-            {inner.shipmentId}
+            <Link to={`/tradeRoutes/${inner.shipmentId}`}>
+              {inner.shipmentId}
+            </Link>
             {inner.waitingForManager ? "*" : ""} ({inner.cycle})
           </span>
           <br />
