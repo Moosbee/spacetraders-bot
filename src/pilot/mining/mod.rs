@@ -30,13 +30,13 @@ impl MiningPilot {
         }
     }
 
-    #[instrument(level = "info", name = "spacetraders::pilot::mining::pilot_mining", skip(self, pilot, fleet, ship_assignment, _mining_config), fields(self.ship_symbol = %self.ship_symbol, fleet_id = fleet.id, ship_assignment_id = ship_assignment.id))]
+    #[instrument(level = "info", name = "spacetraders::pilot::mining::pilot_mining", skip(self, pilot, fleet, ship_assignment, mining_config), fields(self.ship_symbol = %self.ship_symbol, fleet_id = fleet.id, ship_assignment_id = ship_assignment.id))]
     pub async fn execute_pilot_circle(
         &self,
         pilot: &super::Pilot,
         fleet: database::Fleet,
         ship_assignment: database::ShipAssignment,
-        _mining_config: database::MiningFleetConfig,
+        mining_config: database::MiningFleetConfig,
     ) -> Result<()> {
         let mut erg = pilot.context.ship_manager.get_mut(&self.ship_symbol).await;
         let ship = erg
@@ -48,16 +48,20 @@ impl MiningPilot {
         if let ship::AssignmentStatus::Mining { assignment } = &ship.status.status {
             match assignment {
                 MiningShipAssignment::Extractor { .. } => {
-                    self.run_extractor_ship_worker(ship, pilot).await?
+                    self.run_extractor_ship_worker(ship, pilot, mining_config)
+                        .await?
                 }
                 MiningShipAssignment::Transporter { .. } => {
-                    self.run_transporter_ship_worker(ship, pilot).await?
+                    self.run_transporter_ship_worker(ship, pilot, mining_config)
+                        .await?
                 }
                 MiningShipAssignment::Siphoner { .. } => {
-                    self.run_siphoned_ship_worker(ship, pilot).await?
+                    self.run_siphoned_ship_worker(ship, pilot, mining_config)
+                        .await?
                 }
                 MiningShipAssignment::Surveyor { .. } => {
-                    self.run_surveyor_ship_worker(ship, pilot).await?
+                    self.run_surveyor_ship_worker(ship, pilot, mining_config)
+                        .await?
                 }
                 MiningShipAssignment::Idle => {}
                 MiningShipAssignment::Useless => {}
@@ -134,9 +138,10 @@ impl MiningPilot {
         &self,
         ship: &mut ship::MyShip,
         pilot: &super::Pilot,
+        mining_config: database::MiningFleetConfig,
     ) -> Result<()> {
         self.extraction
-            .execute_extraction_circle(ship, pilot, false)
+            .execute_extraction_circle(ship, pilot, false, &mining_config)
             .await
     }
 
@@ -144,6 +149,7 @@ impl MiningPilot {
         &self,
         ship: &mut ship::MyShip,
         pilot: &super::Pilot,
+        _mining_config: database::MiningFleetConfig,
     ) -> Result<()> {
         self.transport.execute_transport_circle(ship, pilot).await
     }
@@ -152,9 +158,10 @@ impl MiningPilot {
         &self,
         ship: &mut ship::MyShip,
         pilot: &super::Pilot,
+        mining_config: database::MiningFleetConfig,
     ) -> Result<()> {
         self.extraction
-            .execute_extraction_circle(ship, pilot, true)
+            .execute_extraction_circle(ship, pilot, true, &mining_config)
             .await
     }
 
@@ -162,6 +169,7 @@ impl MiningPilot {
         &self,
         ship: &mut ship::MyShip,
         pilot: &super::Pilot,
+        _mining_config: database::MiningFleetConfig,
     ) -> Result<()> {
         self.survey.execute_survey_circle(ship, pilot).await
     }

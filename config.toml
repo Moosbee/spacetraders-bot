@@ -2,39 +2,15 @@ control_start_sleep = 0
 control_active = true
 scrapper_start_sleep = 1000
 scrap_agents = false
-update_all_systems = false
+update_all_systems = true
 max_miners_per_waypoint = 12
-mining_eject_list = ["ICE_WATER", "AMMONIA_ICE", "ALUMINUM_ORE", "SILVER_ORE"]
-mining_prefer_list = [
-    "SILICON_CRYSTALS",
-    "COPPER_ORE",
-    "IRON_ORE",
-    "QUARTZ_SAND",
-]
 # max_update_interval = 1800 #60 * 30
 max_update_interval = 3600
-ignore_engineered_asteroids = true
-unstable_since_timeout = 10800
-stop_all_unstable = true
-extra_mining_transporter = 1
-fuel_cost = 72
 antimatter_price = 6000
-purchase_multiplier = 2.0
-market_blacklist = ["ADVANCED_CIRCUITRY", "FAB_MATS"]
 default_purchase_price = 100
 default_sell_price = 150
-default_profit = 50
-markup_percentage = 0.5
-margin_percentage = 0.33000001311302185
-markets_per_ship = 5
-mining_waypoints_per_system = 1
-mining_ships_per_waypoint = 12
-transport_capacity_per_waypoint = 80
-trade_mode = "ProfitPerHour"
 ship_purchase_stop = false
 ship_purchase_percentile = 25.0
-trade_profit_threshold = 200
 expand = true
-ship_purchase_amount = 5
 use_exploration_fleet = false
 iron_reserve = 100000

@@ -44,37 +44,9 @@ impl MutationRoot {
             if let Some(v) = input.max_miners_per_waypoint {
                 cfg.max_miners_per_waypoint = v;
             }
-            if let Some(v) = input.mining_eject_list {
-                cfg.mining_eject_list = v;
-            }
-            if let Some(v) = input.mining_prefer_list {
-                cfg.mining_prefer_list = v;
-            }
-            if let Some(v) = input.ignore_engineered_asteroids {
-                cfg.ignore_engineered_asteroids = v;
-            }
-            if let Some(v) = input.unstable_since_timeout {
-                cfg.unstable_since_timeout = v;
-            }
-            if let Some(v) = input.stop_all_unstable {
-                cfg.stop_all_unstable = v;
-            }
-            if let Some(v) = input.extra_mining_transporter {
-                cfg.extra_mining_transporter = v;
-            }
 
-            if let Some(v) = input.fuel_cost {
-                cfg.fuel_cost = v;
-            }
             if let Some(v) = input.antimatter_price {
                 cfg.antimatter_price = v;
-            }
-            if let Some(v) = input.purchase_multiplier {
-                cfg.purchase_multiplier = v;
-            }
-
-            if let Some(v) = input.market_blacklist {
-                cfg.market_blacklist = v;
             }
 
             if let Some(v) = input.default_purchase_price {
@@ -83,38 +55,8 @@ impl MutationRoot {
             if let Some(v) = input.default_sell_price {
                 cfg.default_sell_price = v;
             }
-            if let Some(v) = input.default_profit {
-                cfg.default_profit = v;
-            }
             if let Some(v) = input.max_update_interval {
                 cfg.max_update_interval = v;
-            }
-            if let Some(v) = input.markup_percentage {
-                cfg.markup_percentage = v;
-            }
-            if let Some(v) = input.margin_percentage {
-                cfg.margin_percentage = v;
-            }
-
-            if let Some(v) = input.markets_per_ship {
-                cfg.markets_per_ship = v;
-            }
-
-            if let Some(v) = input.mining_waypoints_per_system {
-                cfg.mining_waypoints_per_system = v;
-            }
-            if let Some(v) = input.mining_ships_per_waypoint {
-                cfg.mining_ships_per_waypoint = v;
-            }
-            if let Some(v) = input.transport_capacity_per_waypoint {
-                cfg.transport_capacity_per_waypoint = v;
-            }
-
-            if let Some(v) = input.trade_mode {
-                cfg.trade_mode = v;
-            }
-            if let Some(v) = input.trade_profit_threshold {
-                cfg.trade_profit_threshold = v;
             }
 
             if let Some(v) = input.ship_purchase_percentile {
@@ -125,9 +67,6 @@ impl MutationRoot {
             }
             if let Some(v) = input.expand {
                 cfg.expand = v;
-            }
-            if let Some(v) = input.ship_purchase_amount {
-                cfg.ship_purchase_amount = v;
             }
 
             if let Some(v) = input.use_exploration_fleet {
@@ -526,42 +465,17 @@ struct InputConfig {
     pub update_all_systems: Option<bool>,
 
     pub max_miners_per_waypoint: Option<u32>,
-    pub mining_eject_list: Option<Vec<models::TradeSymbol>>,
-    pub mining_prefer_list: Option<Vec<models::TradeSymbol>>,
-    pub ignore_engineered_asteroids: Option<bool>,
-    pub unstable_since_timeout: Option<i64>, // in seconds
-    pub stop_all_unstable: Option<bool>,
-    pub extra_mining_transporter: Option<i32>,
 
-    pub fuel_cost: Option<i32>,
     pub antimatter_price: Option<i32>,
-    pub purchase_multiplier: Option<f32>,
-
-    pub market_blacklist: Option<Vec<models::TradeSymbol>>,
 
     pub default_purchase_price: Option<i32>,
     pub default_sell_price: Option<i32>,
-    pub default_profit: Option<i32>,
 
     pub max_update_interval: Option<i32>,
-
-    // Markup and margin percentages (as decimals)
-    pub markup_percentage: Option<f32>,
-    pub margin_percentage: Option<f32>,
-
-    pub markets_per_ship: Option<i64>,
-
-    pub mining_waypoints_per_system: Option<i32>,
-    pub mining_ships_per_waypoint: Option<i32>,
-    pub transport_capacity_per_waypoint: Option<i32>,
-
-    pub trade_mode: Option<database::TradeMode>,
-    pub trade_profit_threshold: Option<i32>,
 
     pub ship_purchase_percentile: Option<f32>,
     pub ship_purchase_stop: Option<bool>,
     pub expand: Option<bool>,
-    pub ship_purchase_amount: Option<i32>,
 
     pub use_exploration_fleet: Option<bool>,
 

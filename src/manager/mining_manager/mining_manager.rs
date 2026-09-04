@@ -148,11 +148,12 @@ impl MiningManager {
                 ship_clone,
                 callback,
                 is_syphon,
+                mining_config,
             } => {
                 debug!("Assigning waypoint for ship: {}", ship_clone.symbol);
                 let erg = self
                     .waypoint_manager
-                    .assign_waypoint_syphon(ship_clone, is_syphon)
+                    .assign_waypoint_syphon(ship_clone, is_syphon, &mining_config)
                     .await;
                 debug!(
                     "Waypoint assignment result: {:?} is_syphon: {}",

@@ -1,5 +1,5 @@
 use anyhow::Result;
-use sqlx::{postgres::PgPoolOptions, Connection};
+use sqlx::{Connection, postgres::PgPoolOptions};
 use std::{path::Path, time::Duration};
 use tokio::process::Command;
 use tracing::{debug, error, info, instrument};

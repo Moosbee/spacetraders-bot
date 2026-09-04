@@ -56,18 +56,19 @@ impl ExtractionPilot {
         }
     }
 
-    #[instrument(level = "info", name = "spacetraders::pilot::mining::pilot_extraction", skip(self, pilot, ship), fields(self.ship_symbol = pilot.ship_symbol, waypoint))]
+    #[instrument(level = "info", name = "spacetraders::pilot::mining::pilot_extraction", skip(self, pilot, ship, mining_config), fields(self.ship_symbol = pilot.ship_symbol, waypoint))]
     pub async fn execute_extraction_circle(
         &self,
         ship: &mut ship::MyShip,
         pilot: &crate::pilot::Pilot,
         is_syphon: bool,
+        mining_config: &database::MiningFleetConfig,
     ) -> Result<()> {
         debug!("Executing extraction circle for ship: {}", ship.symbol);
         let waypoint_symbol = self
             .context
             .mining_manager
-            .get_waypoint(ship.to_immutable(), is_syphon)
+            .get_waypoint(ship.to_immutable(), is_syphon, mining_config.clone())
             .await?;
 
         tracing::Span::current().record("waypoint", &waypoint_symbol);
@@ -158,8 +159,8 @@ impl ExtractionPilot {
                 false,
             )
             .await;
-            self.extract(ship, is_syphon).await?;
-            self.eject_blacklist(ship).await?;
+            self.extract(ship, is_syphon, mining_config).await?;
+            self.eject_blacklist(ship, mining_config).await?;
 
             1
         };
@@ -266,7 +267,12 @@ impl ExtractionPilot {
         ship.cargo.units < ship.cargo.capacity
     }
 
-    async fn extract(&self, ship: &mut ship::MyShip, is_syphon: bool) -> Result<()> {
+    async fn extract(
+        &self,
+        ship: &mut ship::MyShip,
+        is_syphon: bool,
+        mining_config: &database::MiningFleetConfig,
+    ) -> Result<()> {
         debug!("Extracting on ship: {}", ship.symbol);
         if ship.is_on_cooldown() {
             debug!("Ship is on cooldown: {}", ship.symbol);
@@ -286,11 +292,11 @@ impl ExtractionPilot {
 
         match action {
             ActionType::Extract => {
-                let survey: Option<database::Survey> = self.get_best_survey(ship).await?;
+                let survey: Option<database::Survey> =
+                    self.get_best_survey(ship, mining_config).await?;
 
                 if let Some(survey) = survey {
-                    let prefer_list =
-                        { self.context.config.read().await.mining_prefer_list.clone() };
+                    let prefer_list = mining_config.mining_prefer_list.clone();
 
                     let count_a = survey.get_percent();
                     let score_a = count_a
@@ -525,10 +531,14 @@ impl ExtractionPilot {
         Ok(())
     }
 
-    async fn eject_blacklist(&self, ship: &mut ship::MyShip) -> Result<()> {
+    async fn eject_blacklist(
+        &self,
+        ship: &mut ship::MyShip,
+        mining_config: &database::MiningFleetConfig,
+    ) -> Result<()> {
         debug!("Ejecting blacklist on ship: {}", ship.symbol);
         let cargo = ship.cargo.inventory.clone();
-        let eject_list = &self.context.config.read().await.mining_eject_list;
+        let eject_list = &mining_config.mining_eject_list;
         for item in cargo.iter() {
             if eject_list.contains(item.0) {
                 debug!("Ejecting: {:?}", item);
@@ -652,7 +662,11 @@ impl ExtractionPilot {
         Ok(())
     }
 
-    async fn get_best_survey(&self, ship: &mut ship::MyShip) -> Result<Option<database::Survey>> {
+    async fn get_best_survey(
+        &self,
+        ship: &mut ship::MyShip,
+        mining_config: &database::MiningFleetConfig,
+    ) -> Result<Option<database::Survey>> {
         let mut working_surveys = database::Survey::get_working_for_waypoint(
             &self.context.database_pool,
             &ship.nav.waypoint_symbol,
@@ -663,7 +677,7 @@ impl ExtractionPilot {
 
         working_surveys.shuffle(&mut rand::thread_rng());
 
-        let prefer_list = { self.context.config.read().await.mining_prefer_list.clone() };
+        let prefer_list = mining_config.mining_prefer_list.clone();
 
         let best_survey = working_surveys.iter().max_by(|a, b| {
             let count_a = a.get_percent();

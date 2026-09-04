@@ -55,7 +55,7 @@ impl TransferManager {
         symbol: &str,
         sender: mpsc::Sender<TransportTransferRequest>,
     ) {
-    tracing::debug!(symbol = %symbol, "Adding transportation contact");
+        tracing::debug!(symbol = %symbol, "Adding transportation contact");
         self.transportation_contacts
             .insert(symbol.to_string(), sender);
     }

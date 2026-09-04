@@ -144,11 +144,7 @@ impl ShipCapabilities {
             .iter()
             .contains(&models::ship_module::Symbol::MineralProcessorI);
 
-        if mount > 0 && has_processor {
-            mount
-        } else {
-            0
-        }
+        if mount > 0 && has_processor { mount } else { 0 }
     }
 
     fn siphon_from_mounts_and_modules(
@@ -169,11 +165,7 @@ impl ShipCapabilities {
             .iter()
             .contains(&models::ship_module::Symbol::GasProcessorI);
 
-        if mount > 0 && has_processor {
-            mount
-        } else {
-            0
-        }
+        if mount > 0 && has_processor { mount } else { 0 }
     }
 
     fn warp_drive_from_modules(modules: &[models::ship_module::Symbol]) -> i32 {

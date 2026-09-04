@@ -1,6 +1,6 @@
 use std::{
     collections::HashMap,
-    sync::{atomic::AtomicI32, Arc},
+    sync::{Arc, atomic::AtomicI32},
 };
 
 use database::DatabaseConnectorAsync;
@@ -82,11 +82,7 @@ impl SurveyPilot {
             .map(|f| database::Survey::from_model(f, ship_before, ship_after, ship.symbol.clone()))
             .collect::<database::Result<Vec<_>, _>>()?;
 
-        database::Survey::insert_bulk(
-            &self.context.database_pool,
-            &all_surveys,
-        )
-        .await?;
+        database::Survey::insert_bulk(&self.context.database_pool, &all_surveys).await?;
 
         self.count
             .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
@@ -151,7 +147,7 @@ impl SurveyPilot {
 
         let wps = waypoints
             .iter()
-            .max_by(|s1, s2| s1.1 .1.cmp(&s2.1 .1).then(s1.1 .0.cmp(&s2.1 .0)));
+            .max_by(|s1, s2| s1.1.1.cmp(&s2.1.1).then(s1.1.0.cmp(&s2.1.0)));
 
         wps.map(|f| (**f.0).clone())
     }

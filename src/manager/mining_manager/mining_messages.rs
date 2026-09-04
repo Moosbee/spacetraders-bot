@@ -28,6 +28,7 @@ pub enum AssignWaypointMessage {
         // assigns a ship to a waypoint, ship might need to get there
         ship_clone: ship::MyShipCopy,
         is_syphon: bool,
+        mining_config: database::MiningFleetConfig,
         callback: tokio::sync::oneshot::Sender<Result<String>>,
     },
     NotifyWaypoint {
@@ -55,6 +56,7 @@ impl std::fmt::Display for AssignWaypointMessage {
             AssignWaypointMessage::AssignWaypoint {
                 ship_clone,
                 is_syphon,
+                mining_config: _,
                 callback: _,
             } => write!(
                 f,

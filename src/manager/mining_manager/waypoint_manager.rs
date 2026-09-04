@@ -36,6 +36,7 @@ impl WaypointManager {
         &mut self,
         ship_clone: ship::MyShipCopy,
         is_syphon: bool,
+        mining_config: &database::MiningFleetConfig,
     ) -> Result<String> {
         // let action: ActionType = ActionType::get_action(&ship_clone).ok_or("Invalid ship role")?;
         let action: ActionType = if is_syphon {
@@ -44,21 +45,18 @@ impl WaypointManager {
             ActionType::Extract
         };
 
-        self.assign_waypoint(&ship_clone, action).await
+        self.assign_waypoint(&ship_clone, action, mining_config)
+            .await
     }
     pub async fn assign_waypoint(
         &mut self,
         ship: &ship::MyShipCopy,
         action: ActionType,
+        mining_config: &database::MiningFleetConfig,
     ) -> Result<String> {
-        let (ignore_engineered_asteroids, unstable_since_timeout, stop_all_unstable) = {
-            let config = self.context.config.read().await;
-            (
-                config.ignore_engineered_asteroids,
-                config.unstable_since_timeout,
-                config.stop_all_unstable,
-            )
-        };
+        let ignore_engineered_asteroids = mining_config.ignore_engineered_asteroids;
+        let stop_all_unstable = mining_config.stop_all_unstable;
+        let unstable_since_timeout = mining_config.unstable_since_timeout as i64;
 
         if let Some((waypoint_symbol, _)) = self.places.get_ship(&ship.symbol) {
             let waypoint =

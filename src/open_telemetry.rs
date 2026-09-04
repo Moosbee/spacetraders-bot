@@ -1,6 +1,6 @@
-use opentelemetry::sdk::{trace, Resource};
+use opentelemetry::sdk::{Resource, trace};
 use opentelemetry::trace::TraceError;
-use opentelemetry::{runtime, KeyValue};
+use opentelemetry::{KeyValue, runtime};
 use opentelemetry_otlp::WithExportConfig;
 
 pub fn init_trace(otel_endpoint: String) -> Result<trace::Tracer, TraceError> {

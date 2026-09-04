@@ -70,14 +70,15 @@ impl ContractManager {
                 database::Contract::get_by_id(&self.context.database_pool, &contract.id).await?;
 
             if let Some(existing_contract) = in_db
-                && let Some(reserved_fund_id) = existing_contract.reserved_fund {
-                    let fund = database::ReservedFund::get_by_id(
-                        &self.context.database_pool,
-                        &reserved_fund_id,
-                    )
-                    .await?;
-                    self.reserved_funds = fund;
-                }
+                && let Some(reserved_fund_id) = existing_contract.reserved_fund
+            {
+                let fund = database::ReservedFund::get_by_id(
+                    &self.context.database_pool,
+                    &reserved_fund_id,
+                )
+                .await?;
+                self.reserved_funds = fund;
+            }
 
             database::Contract::insert_contract(
                 &self.context.database_pool,
@@ -350,22 +351,23 @@ impl ContractManager {
 
                 debug!("Calculated budget: {:?}", budget);
                 if budget.is_err()
-                    && let Err(e) = budget {
-                        if let crate::error::Error::NotEnoughFunds {
-                            remaining_funds,
-                            required_funds,
-                        } = e
-                        {
-                            debug!(
-                                "Not enough budget for purchase has {} needed {}",
-                                remaining_funds, required_funds
-                            );
-                            return Ok(super::NextShipmentResp::ComeBackLater);
-                        } else {
-                            debug!("Error reserving funds: {:?}", e);
-                            return Err(e);
-                        }
+                    && let Err(e) = budget
+                {
+                    if let crate::error::Error::NotEnoughFunds {
+                        remaining_funds,
+                        required_funds,
+                    } = e
+                    {
+                        debug!(
+                            "Not enough budget for purchase has {} needed {}",
+                            remaining_funds, required_funds
+                        );
+                        return Ok(super::NextShipmentResp::ComeBackLater);
+                    } else {
+                        debug!("Error reserving funds: {:?}", e);
+                        return Err(e);
                     }
+                }
 
                 Some(budget.unwrap())
             } else {

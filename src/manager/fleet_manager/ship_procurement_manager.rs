@@ -456,7 +456,8 @@ impl ShipProcurementManager {
     }
 
     async fn get_jump_navigator(&mut self) -> Result<&mut ship::autopilot::JumpGateRouterCache> {
-        if self.jump_gate.is_none() || self.context.ship_procurement_manager.get_regen_jump_gates() {
+        if self.jump_gate.is_none() || self.context.ship_procurement_manager.get_regen_jump_gates()
+        {
             let connections =
                 ship::autopilot::generate_all_connections(&self.context.database_pool).await?;
             let jump_gate_router = ship::autopilot::JumpGateRouterCache::new(
@@ -464,7 +465,9 @@ impl ShipProcurementManager {
             );
 
             self.jump_gate = Some(jump_gate_router);
-            self.context.ship_procurement_manager.set_regen_jump_gates(false);
+            self.context
+                .ship_procurement_manager
+                .set_regen_jump_gates(false);
         }
         if let Some(navigator) = &mut self.jump_gate {
             Ok(navigator)

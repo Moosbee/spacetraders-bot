@@ -30,11 +30,12 @@ impl MiningManagerMessanger {
         }
     }
 
-    #[tracing::instrument(skip(self, ship_clone), name = "MiningManagerMessanger::get_waypoint", fields(ship = %ship_clone.symbol))]
+    #[tracing::instrument(skip(self, ship_clone, mining_config), name = "MiningManagerMessanger::get_waypoint", fields(ship = %ship_clone.symbol))]
     pub async fn get_waypoint(
         &self,
         ship_clone: ship::MyShipCopy,
         is_syphon: bool,
+        mining_config: database::MiningFleetConfig,
     ) -> Result<String> {
         let (sender, callback) = tokio::sync::oneshot::channel();
 
@@ -43,6 +44,7 @@ impl MiningManagerMessanger {
             ship_clone,
             callback: sender,
             is_syphon,
+            mining_config,
         });
         self.sender.send(message).await.map_err(|e| {
             crate::error::Error::General(format!("Failed to send AssignWaypoint message: {}", e))

@@ -353,7 +353,7 @@ async fn generate_system_fleets(
         };
 
         let min_cargo_space = if system_fleets.construction_fleet.is_some() {
-            80
+            40
         } else {
             40 // todo calculate based on markets
         };
@@ -378,11 +378,11 @@ async fn generate_system_fleets(
         && !has_uncharted_marketplace_waypoints
         && system_fleets.construction_fleet.is_some()
     {
-        let ship_market_ratio = 0.1;
+        let ship_market_ratio = 0.05;
 
         let trade_mode = database::TradeMode::MarketBalanced;
 
-        let trade_profit_threshold = -2000;
+        let trade_profit_threshold = -200;
 
         let market_blacklist = if system_fleets.construction_fleet.is_some() {
             let goods = open_construction_site
@@ -426,7 +426,7 @@ async fn generate_system_fleets(
                     market_prefer_list,
                     purchase_multiplier: 2.0,
                     ship_market_ratio,
-                    min_cargo_space: 40, // todo calculate based on markets
+                    min_cargo_space: 80, // todo calculate based on markets
                     trade_mode,
                     trade_profit_threshold,
                 }),
@@ -436,13 +436,31 @@ async fn generate_system_fleets(
 
     // mining fleet
     if system_fleets.construction_fleet.is_some() {
-        let mining_prefer_list = vec![
-            // todo calculate based on construction needs
-            models::TradeSymbol::SiliconCrystals,
-            models::TradeSymbol::CopperOre,
-            models::TradeSymbol::IronOre,
-            models::TradeSymbol::QuartzSand,
-        ];
+        let construction_goods = open_construction_site
+            .iter()
+            .map(|f| f.trade_symbol)
+            .collect::<HashSet<_>>();
+        let goods = construction_goods
+            .iter()
+            .flat_map(|g| {
+                context
+                    .supply_chain_mapping
+                    .get_imports_recursive_until(
+                        *g,
+                        &[
+                            models::TradeSymbol::LiquidHydrogen,
+                            models::TradeSymbol::LiquidNitrogen,
+                        ],
+                    )
+                    .flatten()
+            })
+            .collect::<HashSet<_>>();
+
+        let mining_prefer_list = models::extraction_yield::EXTRACTABLE
+            .iter()
+            .filter(|s| goods.contains(s))
+            .cloned()
+            .collect::<Vec<_>>();
 
         let mining_eject_list = models::extraction_yield::EXTRACTABLE
             .iter()
@@ -460,10 +478,10 @@ async fn generate_system_fleets(
                     unstable_since_timeout: 10800,
                     mining_waypoints: 1,
                     syphon_waypoints: 1,
-                    miners_per_waypoint: 16,
+                    miners_per_waypoint: 10,
                     siphoners_per_waypoint: 6,
                     surveyers_per_waypoint: 1,
-                    mining_transporters_per_waypoint: 3,
+                    mining_transporters_per_waypoint: 2,
                     min_transporter_cargo_space: 80,
                     min_mining_cargo_space: 1,
                     min_siphon_cargo_space: 1,
