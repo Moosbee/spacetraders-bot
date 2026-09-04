@@ -192,32 +192,13 @@ type Config {
 	scrapAgents: Boolean!
 	updateAllSystems: Boolean!
 	maxMinersPerWaypoint: Int!
-	miningEjectList: [TradeSymbol!]!
-	miningPreferList: [TradeSymbol!]!
-	ignoreEngineeredAsteroids: Boolean!
-	unstableSinceTimeout: Int!
-	stopAllUnstable: Boolean!
-	extraMiningTransporter: Int!
-	fuelCost: Int!
 	antimatterPrice: Int!
-	purchaseMultiplier: Float!
-	marketBlacklist: [TradeSymbol!]!
 	defaultPurchasePrice: Int!
 	defaultSellPrice: Int!
-	defaultProfit: Int!
 	maxUpdateInterval: Int!
-	markupPercentage: Float!
-	marginPercentage: Float!
-	marketsPerShip: Int!
-	miningWaypointsPerSystem: Int!
-	miningShipsPerWaypoint: Int!
-	transportCapacityPerWaypoint: Int!
-	tradeMode: TradeMode!
-	tradeProfitThreshold: Int!
 	shipPurchasePercentile: Float!
 	shipPurchaseStop: Boolean!
 	expand: Boolean!
-	shipPurchaseAmount: Int!
 	useExplorationFleet: Boolean!
 	ironReserve: Int!
 }
@@ -638,32 +619,13 @@ input InputConfig {
 	scrapAgents: Boolean
 	updateAllSystems: Boolean
 	maxMinersPerWaypoint: Int
-	miningEjectList: [TradeSymbol!]
-	miningPreferList: [TradeSymbol!]
-	ignoreEngineeredAsteroids: Boolean
-	unstableSinceTimeout: Int
-	stopAllUnstable: Boolean
-	extraMiningTransporter: Int
-	fuelCost: Int
 	antimatterPrice: Int
-	purchaseMultiplier: Float
-	marketBlacklist: [TradeSymbol!]
 	defaultPurchasePrice: Int
 	defaultSellPrice: Int
-	defaultProfit: Int
 	maxUpdateInterval: Int
-	markupPercentage: Float
-	marginPercentage: Float
-	marketsPerShip: Int
-	miningWaypointsPerSystem: Int
-	miningShipsPerWaypoint: Int
-	transportCapacityPerWaypoint: Int
-	tradeMode: TradeMode
-	tradeProfitThreshold: Int
 	shipPurchasePercentile: Float
 	shipPurchaseStop: Boolean
 	expand: Boolean
-	shipPurchaseAmount: Int
 	useExplorationFleet: Boolean
 	ironReserve: Int
 }
