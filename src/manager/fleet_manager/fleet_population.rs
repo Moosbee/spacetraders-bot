@@ -194,6 +194,7 @@ async fn generate_system_fleets(
     let has_uncharted_waypoints = waypoints.iter().any(|w| !w.is_charted());
 
     let use_exploration_fleet = context.config.read().await.use_exploration_fleet;
+    let max_miners_per_waypoint = context.config.read().await.max_miners_per_waypoint;
 
     let has_uncharted_marketplace_waypoints = waypoints
         .iter()
@@ -378,11 +379,11 @@ async fn generate_system_fleets(
         && !has_uncharted_marketplace_waypoints
         && system_fleets.construction_fleet.is_some()
     {
-        let ship_market_ratio = 0.05;
+        let ship_market_ratio = 0.1;
 
         let trade_mode = database::TradeMode::MarketBalanced;
 
-        let trade_profit_threshold = -200;
+        let trade_profit_threshold = -2000;
 
         let market_blacklist = if system_fleets.construction_fleet.is_some() {
             let goods = open_construction_site
@@ -468,6 +469,8 @@ async fn generate_system_fleets(
             .cloned()
             .collect::<Vec<_>>();
 
+        let miners_per_waypoint = 16.min(max_miners_per_waypoint) as i32;
+
         system_fleets.mining_fleet = Some(
             database::Fleet::new(system_symbol.to_string(), true).with_config(
                 database::FleetConfig::Mining(database::MiningFleetConfig {
@@ -478,7 +481,7 @@ async fn generate_system_fleets(
                     unstable_since_timeout: 10800,
                     mining_waypoints: 1,
                     syphon_waypoints: 1,
-                    miners_per_waypoint: 10,
+                    miners_per_waypoint,
                     siphoners_per_waypoint: 6,
                     surveyers_per_waypoint: 1,
                     mining_transporters_per_waypoint: 2,
