@@ -132,6 +132,8 @@ async fn main() -> anyhow::Result<()> {
 async fn wait_for_api() -> Result<(), anyhow::Error> {
     let waiting_api = space_traders_client::Api::new(None, 500, NonZeroU32::new(2).unwrap());
 
+    let mut working_calls = 0u32;
+
     loop {
         let status = waiting_api.get_status().await;
 
@@ -145,10 +147,15 @@ async fn wait_for_api() -> Result<(), anyhow::Error> {
 
         if working {
             info!("API is working");
-            break;
+            working_calls = working_calls + 1;
+
+            if working_calls >= 3 {
+                info!("API is ready");
+                break;
+            }
         }
 
-        tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+        tokio::time::sleep(std::time::Duration::from_secs(20)).await;
     }
 
     Ok(())

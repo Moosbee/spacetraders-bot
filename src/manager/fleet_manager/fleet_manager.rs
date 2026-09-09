@@ -384,7 +384,7 @@ impl FleetManager {
         )
         .await?;
 
-        if waypoint.unwrap().is_under_construction || self.context.config.read().await.expand {
+        if waypoint.unwrap().is_under_construction || !self.context.config.read().await.expand {
             return Ok(());
         }
 
