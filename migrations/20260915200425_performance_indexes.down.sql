@@ -1,0 +1,4 @@
+-- Add down migration script here
+DROP INDEX market_trade_symbol_waypoint_symbol_created_at_idx;
+DROP INDEX market_trade_waypoint_symbol_symbol_created_at_idx;
+DROP INDEX waypoint_system_symbol_idx;

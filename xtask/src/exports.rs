@@ -151,8 +151,10 @@ async fn connect() -> anyhow::Result<DbPool> {
     let database_url = env::var("DATABASE_URL").unwrap();
 
     let database_pool = PgPoolOptions::new()
-        .max_connections(20)
+        .max_connections(40)
+        .min_connections(4)
         .acquire_timeout(Duration::from_secs(120))
+        .idle_timeout(Duration::from_secs(300))
         .connect(&database_url)
         .await?;
 

@@ -11,8 +11,10 @@ pub async fn create_database_pool(
 ) -> Result<database::DbPool, anyhow::Error> {
     info!("Creating database connection pool");
     let database_pool = PgPoolOptions::new()
-        .max_connections(20)
+        .max_connections(40)
+        .min_connections(4)
         .acquire_timeout(Duration::from_secs(120))
+        .idle_timeout(Duration::from_secs(300))
         .connect(database_url)
         .await?;
     debug!("Database pool created successfully");
@@ -21,8 +23,10 @@ pub async fn create_database_pool(
         debug!(%readyset_url, "Creating Readyset connection pool");
         Some(
             PgPoolOptions::new()
-                .max_connections(20)
+                .max_connections(40)
+                .min_connections(4)
                 .acquire_timeout(Duration::from_secs(120))
+                .idle_timeout(Duration::from_secs(300))
                 .connect(readyset_url)
                 .await?,
         )
