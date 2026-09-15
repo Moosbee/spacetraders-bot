@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n                    SELECT DISTINCT ON (symbol)\n                        id,\n                        created_at,\n                        waypoint_symbol,\n                        symbol as \"symbol: models::TradeSymbol\",\n                        \"type\" as \"type: models::market_trade_good::Type\",\n                        trade_volume,\n                        supply as \"supply: models::SupplyLevel\",\n                        activity as \"activity: models::ActivityLevel\",\n                        purchase_price,\n                        sell_price\n                    FROM public.market_trade_good\n                    ORDER BY symbol, created_at DESC\n                    LIMIT $1 OFFSET $2\n                ",
+  "query": "\n                    SELECT\n                        id,\n                        created_at,\n                        waypoint_symbol,\n                        symbol as \"symbol: models::TradeSymbol\",\n                        \"type\" as \"type: models::market_trade_good::Type\",\n                        trade_volume,\n                        supply as \"supply: models::SupplyLevel\",\n                        activity as \"activity: models::ActivityLevel\",\n                        purchase_price,\n                        sell_price\n                    FROM public.market_trade_good\n                    ORDER BY created_at DESC\n                ",
   "describe": {
     "columns": [
       {
@@ -244,10 +244,7 @@
       }
     ],
     "parameters": {
-      "Left": [
-        "Int8",
-        "Int8"
-      ]
+      "Left": []
     },
     "nullable": [
       false,
@@ -262,5 +259,5 @@
       false
     ]
   },
-  "hash": "7c1d90c6b3495775fbf8dfac3f7787509172b1012714336a15003edc06f11d2c"
+  "hash": "63b680c4cf93b4ae71a8caf7bd4c7b7e76163cd13d069365d614ec677e5dc2ec"
 }
