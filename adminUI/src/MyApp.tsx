@@ -10,13 +10,13 @@ import Agents from "./sites/Agents";
 import BulkActions from "./sites/BulkActions";
 import ChartTransactions from "./sites/ChartTransactions";
 import { ConfigScreen } from "./sites/Config";
-import ConstructionMaterials from "./sites/ConstructionMaterials";
-import ConstructionShipments from "./sites/ConstructionShipments";
+import Construction from "./sites/Construction";
 import Contract from "./sites/Contract";
 import Contracts from "./sites/Contracts";
 import ErrorPage from "./sites/ErrorPage";
 import Fleet from "./sites/Fleet";
 import Fleets from "./sites/Fleets";
+import MarketTradeGoods from "./sites/MarketTradeGoods";
 import MarketTransactions from "./sites/MarketTransactions";
 import MiningAssignments from "./sites/MiningAssignments";
 import PossibleTrades from "./sites/PossibleTrades";
@@ -25,6 +25,7 @@ import Ship from "./sites/Ship";
 import ShipRoutes from "./sites/ShipRoutes";
 import Ships from "./sites/Ships";
 import ShipsToPurchase from "./sites/ShipsToPurchase";
+import ShipyardShips from "./sites/ShipyardShips";
 import SupplyChain from "./sites/SupplyChain";
 import Surveys from "./sites/Surveys";
 import System from "./sites/System";
@@ -121,23 +122,21 @@ function MyApp() {
                       path="/transactions/chart"
                       element={<ChartTransactions />}
                     />
+                    <Route
+                      path="/marketTradeGoods"
+                      element={<MarketTradeGoods />}
+                    />
 
                     <Route path="/agents/:agentID" element={<Agent />} />
                     <Route path="/agents" element={<Agents />} />
 
-                    <Route
-                      path="/construction/Materials"
-                      element={<ConstructionMaterials />}
-                    />
-                    <Route
-                      path="/construction/shipments"
-                      element={<ConstructionShipments />}
-                    />
+                    <Route path="/construction" element={<Construction />} />
 
                     <Route
                       path="/shipsToPurchase"
                       element={<ShipsToPurchase />}
                     />
+                    <Route path="/shipyardShips" element={<ShipyardShips />} />
 
                     <Route path="/fleets/:fleetID" element={<Fleet />} />
                     <Route path="/fleets" element={<Fleets />} />

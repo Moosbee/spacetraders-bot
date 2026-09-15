@@ -1,4 +1,4 @@
-import { useQuery } from "@apollo/client/react";
+import { useMutation, useQuery } from "@apollo/client/react";
 import {
   Button,
   Col,
@@ -19,6 +19,7 @@ import MoneyDisplay from "../features/MonyDisplay";
 import PageTitle from "../features/PageTitle";
 import WaypointLink from "../features/WaypointLink";
 import { GetFleetQuery } from "../gql/graphql";
+import { REGENERATE_FLEET_ASSIGNMENTS } from "../graphql/mutations";
 import { GET_FLEET } from "../graphql/queries";
 
 type FleetData = GetFleetQuery["fleet"];
@@ -163,6 +164,13 @@ function Fleet() {
     variables: { fleetID: Number(fleetID) },
   });
 
+  const [
+    regenerateFleetAssignments,
+    { loading: regenerateLoading, error: regenerateError },
+  ] = useMutation(REGENERATE_FLEET_ASSIGNMENTS, {
+    refetchQueries: [GET_FLEET],
+  });
+
   const fleet = data?.fleet;
 
   if (error) {
@@ -195,6 +203,16 @@ function Fleet() {
           </h1>
           <Button onClick={() => refetch()} loading={loading}>
             Refresh
+          </Button>
+          <Button
+            onClick={() =>
+              regenerateFleetAssignments({
+                variables: { fleet_id: Number(fleetID) },
+              })
+            }
+            loading={regenerateLoading}
+          >
+            Regenerate Assignments
           </Button>
         </Space>
         <Divider />

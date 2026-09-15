@@ -12,7 +12,7 @@ import {
 import { Link } from "react-router-dom";
 import AssignmentsPopover from "../features/AssignmentsPopover/AssignmentsPopover";
 import PageTitle from "../features/PageTitle";
-import { GetFleetsQuery } from "../gql/graphql";
+import { FleetType, GetFleetsQuery } from "../gql/graphql";
 import { GET_FLEETS } from "../graphql/queries";
 
 type FleetRecord = GetFleetsQuery["fleets"]["items"][number];
@@ -79,6 +79,11 @@ function Fleets() {
       dataIndex: "fleetType",
       key: "fleetType",
       sorter: (a, b) => a.fleetType.localeCompare(b.fleetType),
+      filters: Object.values(FleetType).map((type) => ({
+        text: type,
+        value: type,
+      })),
+      onFilter: (value, record) => record.fleetType === value,
     },
     {
       title: "Active",

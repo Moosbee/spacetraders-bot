@@ -2558,3 +2558,108 @@ export const GET_POSSIBLE_TRADES = graphql(/* GraphQL */ `
     }
   }
 `);
+
+export const GET_CONSTRUCTION = graphql(/* GraphQL */ `
+  query GetConstruction {
+    constructionMaterials {
+      items {
+        id
+        waypointSymbol
+        tradeSymbol
+        required
+        fulfilled
+        createdAt
+        updatedAt
+        marketTransactionSummary {
+          allExpenses
+          allIncome
+          allSum
+        }
+      }
+    }
+    constructionShipments {
+      items {
+        id
+        materialId
+        constructionSiteWaypoint
+        shipSymbol
+        tradeSymbol
+        units
+        purchaseSiteWaypoint
+        status
+        createdAt
+        updatedAt
+        marketTransactionSummary {
+          allExpenses
+          allIncome
+          allSum
+        }
+      }
+    }
+    constructionManager {
+      busy
+      runningShipments {
+        id
+        materialId
+        constructionSiteWaypoint
+        shipSymbol
+        tradeSymbol
+        units
+        purchaseSiteWaypoint
+        status
+        createdAt
+        updatedAt
+        marketTransactionSummary {
+          allExpenses
+          allIncome
+          allSum
+        }
+      }
+    }
+  }
+`);
+
+export const GET_ALL_LATEST_MARKET_TRADE_GOODS = graphql(/* GraphQL */ `
+  query AllLatestMarketTradeGoods {
+    marketTradeGoods {
+      items {
+        id
+        symbol
+        waypointSymbol
+        type
+        tradeVolume
+        supply
+        activity
+        purchasePrice
+        sellPrice
+        createdAt
+      }
+    }
+  }
+`);
+
+export const GET_ALL_LATEST_SHIPYARD_SHIPS = graphql(/* GraphQL */ `
+  query AllLatestShipyardShips {
+    shipyardShips {
+      items {
+        id
+        waypointSymbol
+        shipType
+        name
+        supply
+        activity
+        purchasePrice
+        frameType
+        frameQuality
+        reactorType
+        reactorQuality
+        engineType
+        engineQuality
+        modules
+        mounts
+        crewCapacity
+        crewRequirement
+      }
+    }
+  }
+`);

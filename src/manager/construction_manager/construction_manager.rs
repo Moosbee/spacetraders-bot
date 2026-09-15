@@ -398,6 +398,15 @@ impl ConstructionManager {
             .map(|m| database::ConstructionMaterial::from(m, &construction.symbol))
             .collect::<Vec<_>>();
 
+        let was_last_shipment_of_material = materials
+            .iter()
+            .find(|m| {
+                m.trade_symbol == shipment.trade_symbol
+                    && m.waypoint_symbol == shipment.construction_site_waypoint
+            })
+            .map(|f| f.fulfilled == f.required)
+            .unwrap_or(false);
+
         database::ConstructionMaterial::insert_bulk(&self.context.database_pool, &materials)
             .await?;
 
@@ -435,12 +444,20 @@ impl ConstructionManager {
 
         let waypoint = shipment.construction_site_waypoint.clone();
 
+        let system_waypoint = get_system_symbol(&waypoint);
+
+        if was_last_shipment_of_material {
+            self.context
+                .fleet_manager
+                .populate_system(system_waypoint.clone())
+                .await?;
+        }
+
         if materials
             .iter()
             .filter(|c| c.waypoint_symbol == waypoint)
             .all(|c| c.fulfilled == c.required)
         {
-            let system_waypoint = get_system_symbol(&waypoint);
             let wp = self
                 .context
                 .api

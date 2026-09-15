@@ -15,7 +15,6 @@ import {
   SettingOutlined,
   ShoppingCartOutlined,
   TeamOutlined,
-  TruckOutlined,
 } from "@ant-design/icons";
 import type { MenuProps } from "antd";
 import { Menu } from "antd";
@@ -63,6 +62,11 @@ const items: MenuItem[] = [
         label: <Link to="/shipsToPurchase">Ships To Purchase</Link>,
         key: "shipsToPurchase",
         icon: <FaIcon type="solid" icon="fa-cart-plus" />,
+      },
+      {
+        label: <Link to="/shipyardShips">Shipyard Ships</Link>,
+        key: "shipyardShips",
+        icon: <RocketOutlined />,
       },
       {
         label: <Link to="/fleet/selected">Selected Ship</Link>,
@@ -118,26 +122,19 @@ const items: MenuItem[] = [
         key: "reservedFunds",
         icon: <DollarOutlined />,
       },
+      {
+        label: <Link to="/marketTradeGoods">Market Trade Goods</Link>,
+        key: "marketTradeGoods",
+        icon: <ShoppingCartOutlined />,
+      },
     ],
   },
 
   // Construction
   {
+    label: <Link to="/construction">Construction</Link>,
     key: "construction",
-    label: "Construction",
     icon: <FaIcon type="regular" icon="fa-person-digging" />,
-    children: [
-      {
-        label: <Link to="/construction/Materials">Constructions</Link>,
-        key: "construction/Materials",
-        icon: <FaIcon type="regular" icon="fa-person-digging" />,
-      },
-      {
-        label: <Link to="/construction/shipments">Construction Shipments</Link>,
-        key: "construction/shipments",
-        icon: <TruckOutlined />,
-      },
-    ],
   },
 
   // Universe & Navigation

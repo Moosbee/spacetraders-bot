@@ -15,3 +15,9 @@ export const REPOPULATE_SYSTEMS_WITH_FLEETS_FROM_SYSTEM = graphql(
     }
   `,
 );
+
+export const REGENERATE_FLEET_ASSIGNMENTS = graphql(/* GraphQL */ `
+  mutation RegenerateFleetAssignments($fleet_id: Int!) {
+    regenerateFleetAssignments(by: { fleet: $fleet_id })
+  }
+`);

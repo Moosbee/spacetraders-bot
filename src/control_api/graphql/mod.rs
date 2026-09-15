@@ -1201,7 +1201,7 @@ impl QueryRoot {
                 }
             }
         } else {
-            database::MarketTradeGood::get_all(&context.database_pool, query).await
+            database::MarketTradeGood::get_last(&context.database_pool, query).await
         }?;
         Ok(market_trade_goods.into())
     }

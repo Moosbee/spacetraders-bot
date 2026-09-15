@@ -115,12 +115,9 @@ impl Loader<MarketTradeGoodKey> for MarketTradeGoodByWaypointAndSymbolLoader {
         let trade_symbols: Vec<String> = keys.iter().map(|k| k.1.to_string()).collect();
 
         let mut map = HashMap::new();
-        for good in Self::get_last_by_waypoint_and_trade_symbols(
-            &self.0,
-            &waypoints,
-            &trade_symbols,
-        )
-        .await?
+        for good in
+            Self::get_last_by_waypoint_and_trade_symbols(&self.0, &waypoints, &trade_symbols)
+                .await?
         {
             map.insert((good.waypoint_symbol.clone(), good.symbol), good);
         }
@@ -309,7 +306,7 @@ impl DatabaseConnectorAsync for MarketTradeGood {
                 let items = sqlx::query_as!(
                     MarketTradeGood,
                     r#"
-                    SELECT DISTINCT ON (symbol)
+                    SELECT
                         id,
                         created_at,
                         waypoint_symbol,
@@ -321,7 +318,7 @@ impl DatabaseConnectorAsync for MarketTradeGood {
                         purchase_price,
                         sell_price
                     FROM public.market_trade_good
-                    ORDER BY symbol, created_at DESC
+                    ORDER BY created_at DESC
                     LIMIT $1 OFFSET $2
                 "#,
                     page_size,
@@ -335,7 +332,7 @@ impl DatabaseConnectorAsync for MarketTradeGood {
                 let items = sqlx::query_as!(
                     MarketTradeGood,
                     r#"
-                    SELECT DISTINCT ON (symbol)
+                    SELECT
                         id,
                         created_at,
                         waypoint_symbol,
@@ -347,7 +344,7 @@ impl DatabaseConnectorAsync for MarketTradeGood {
                         purchase_price,
                         sell_price
                     FROM public.market_trade_good
-                    ORDER BY symbol, created_at DESC
+                    ORDER BY created_at DESC
                 "#,
                 )
                 .fetch_all(database_pool.get_cache_pool())
@@ -359,10 +356,10 @@ impl DatabaseConnectorAsync for MarketTradeGood {
                     r#"
                     SELECT COUNT(*) as "count!"
                     FROM (
-                        SELECT DISTINCT ON (symbol)
+                        SELECT
                             symbol
                         FROM public.market_trade_good
-                        ORDER BY symbol, created_at DESC
+                        ORDER BY created_at DESC
                     ) sub
                     "#
                 )
