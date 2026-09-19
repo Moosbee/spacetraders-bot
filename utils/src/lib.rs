@@ -265,6 +265,6 @@ pub fn get_random_faction() -> space_traders_client::models::FactionSymbol {
         16 => space_traders_client::models::FactionSymbol::Ancients,
         17 => space_traders_client::models::FactionSymbol::Shadow,
         18 => space_traders_client::models::FactionSymbol::Ethereal,
-        _ => space_traders_client::models::FactionSymbol::Cosmic,
+        _ => get_random_faction(),
     }
 }

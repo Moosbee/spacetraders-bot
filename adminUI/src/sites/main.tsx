@@ -83,7 +83,7 @@ function Main() {
     }
     fleetsByType[fleet.fleetType].assignmentCount += fleet.assignments.length;
     fleetsByType[fleet.fleetType].openAssignmentCount +=
-      fleet.assignments.filter((f) => !f.ship).length;
+      fleet.assignments.filter((f) => (f.ship ?? []).length == 0).length;
   });
 
   const fleets = Object.entries(fleetsByType)
