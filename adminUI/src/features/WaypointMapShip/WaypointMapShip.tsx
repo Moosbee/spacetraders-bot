@@ -13,10 +13,12 @@ function WaypointMapShip({
   ship,
   xOne,
   yOne,
+  canHighlight,
 }: {
   ship: SystemShip;
   xOne: number;
   yOne: number;
+  canHighlight: boolean;
 }) {
   const [size, setSize] = useState(16);
   const textboxRef = useRef<HTMLDivElement>(null);
@@ -66,7 +68,7 @@ function WaypointMapShip({
       }
       className={`${classes.shipContainer} ${
         ship ? classes.ship : classes.star
-      } ${selectedship === ship?.symbol && ship ? classes.active : ""}`}
+      } ${selectedship === ship?.symbol && ship && canHighlight ? classes.active : ""}`}
       onClick={() => {
         if (ship) {
           if (selectedship === ship.symbol) {

@@ -16,11 +16,13 @@ function WaypointMapWaypoint({
   waypoint,
   xOne,
   yOne,
+  canHighlight,
 }: {
   systemSymbol: string;
   waypoint: SystemWaypoint;
   xOne: number;
   yOne: number;
+  canHighlight: boolean;
 }) {
   const [size, setSize] = useState(16);
   const textboxRef = useRef<HTMLDivElement>(null);
@@ -60,7 +62,9 @@ function WaypointMapWaypoint({
       className={`${classes.waypointContainer} ${
         waypoint ? classes.waypoint : classes.star
       } ${
-        selectedWaypoint?.waypointSymbol === waypoint?.symbol && waypoint
+        selectedWaypoint?.waypointSymbol === waypoint?.symbol &&
+        waypoint &&
+        canHighlight
           ? classes.active
           : ""
       }`}

@@ -64,9 +64,21 @@ interface RouteMapPoint {
 function WaypointMap({
   systemData,
   systemShips,
+  config = {
+    showAutoPilot: "SELECTED",
+    highlightSelectedShip: true,
+    highlightSelectedWaypoint: true,
+    showShips: true,
+  },
 }: {
   systemData: SystemData;
   systemShips: SystemShip[];
+  config?: {
+    showAutoPilot: "ALL" | "SELECTED" | "NONE";
+    highlightSelectedShip: boolean;
+    highlightSelectedWaypoint: boolean;
+    showShips: boolean;
+  };
 }) {
   // const ships = useAppSelector(selectAllShipsArray);
   const selectedShip = useAppSelector(selectSelectedShipSymbol);
@@ -77,14 +89,14 @@ function WaypointMap({
   const textboxRef = useRef<SVGSVGElement>(null);
 
   const [ships, waypoints] = useMemo(() => {
-    const sortedShips = [...systemShips].sort((a, b) =>
-      a.symbol.localeCompare(b.symbol),
-    );
+    const sortedShips = config.showShips
+      ? [...systemShips].sort((a, b) => a.symbol.localeCompare(b.symbol))
+      : [];
     const sortedWaypoints = [...(systemData?.waypoints.items || [])].sort(
       (a, b) => a.symbol.localeCompare(b.symbol),
     );
     return [sortedShips, sortedWaypoints];
-  }, [systemData, systemShips]);
+  }, [config.showShips, systemData?.waypoints.items, systemShips]);
 
   const {
     token: { colorBgElevated },
@@ -101,8 +113,13 @@ function WaypointMap({
   );
 
   const routesMp = useMemo(() => {
-    return calculateRouteMapPoints(waypointsMp, shipsMp, "route", selectedShip);
-  }, [shipsMp, waypointsMp, selectedShip]);
+    return calculateRouteMapPoints(
+      waypointsMp,
+      shipsMp,
+      config.showAutoPilot,
+      selectedShip,
+    );
+  }, [shipsMp, waypointsMp, selectedShip, config.showAutoPilot]);
 
   useEffect(() => {
     const intervalId = setInterval(() => {
@@ -139,8 +156,12 @@ function WaypointMap({
         {renderRoutes(routesMp, size)}
       </svg>
       <div className={classes.waypointMapIn}>
-        {renderWaypoints(waypointsMp, systemData.symbol)}
-        {renderShips(shipsMp)}
+        {renderWaypoints(
+          waypointsMp,
+          systemData.symbol,
+          config.highlightSelectedWaypoint,
+        )}
+        {renderShips(shipsMp, config.highlightSelectedShip)}
         {systemData && (
           <WaypointMapSystem system={systemData} xOne={50} yOne={50} />
         )}
@@ -275,6 +296,7 @@ function renderRoutes(routesMp: RouteMapPoint[], size: number) {
 function renderWaypoints(
   waypointsMp: WaypointMapPoint[],
   systemSymbol: string,
+  canHighlight: boolean,
 ) {
   return waypointsMp.map((w) => (
     <WaypointMapWaypoint
@@ -283,17 +305,19 @@ function renderWaypoints(
       waypoint={w.waypoint}
       xOne={w.xOne}
       yOne={w.yOne}
+      canHighlight={canHighlight}
     />
   ));
 }
 
-function renderShips(shipsMp: ShipMapPoint[]) {
+function renderShips(shipsMp: ShipMapPoint[], canHighlight: boolean) {
   return shipsMp.map((s) => (
     <WaypointMapShip
       key={s.ship.symbol + "ship"}
       ship={s.ship}
       xOne={s.xOne}
       yOne={s.yOne}
+      canHighlight={canHighlight}
     />
   ));
 }
@@ -444,15 +468,13 @@ function createTransitingShipPoint(
 function calculateRouteMapPoints(
   waypointsMp: WaypointMapPoint[],
   shipsMp: ShipMapPoint[],
-  type: "route" | "auto_pilot" | "none",
+  type: "ALL" | "SELECTED" | "NONE",
   selectedShipSymbol?: string,
 ): RouteMapPoint[] {
   const routesMp: RouteMapPoint[][] = shipsMp.map((s) => {
-    if (
-      type === "route" &&
-      s.ship.nav.status === "IN_TRANSIT" &&
-      !(selectedShipSymbol === s.ship.symbol)
-    ) {
+    if (type === "NONE") return [];
+
+    if (type === "SELECTED" && !(selectedShipSymbol === s.ship.symbol)) {
       const startWaypoint = waypointsMp.find(
         (w) => w.waypoint.symbol === s.ship.nav.route.originSymbol,
       );
@@ -477,9 +499,8 @@ function calculateRouteMapPoints(
     }
 
     if (!s.ship.nav.autoPilot) return [];
-    if (!(type === "auto_pilot" || selectedShipSymbol === s.ship.symbol))
-      return [];
 
+    // renders complete autopilot
     return s.ship.nav.autoPilot.route.connections
       .map((i) => {
         if (!(i.__typename === "NavigateConnection")) return null;
