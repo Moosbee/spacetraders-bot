@@ -12,6 +12,7 @@ type MapConfig = {
   highlightSelectedShip: boolean;
   highlightSelectedWaypoint: boolean;
   showShips: boolean;
+  showOnlyMarkets: boolean;
 };
 
 const defaultConfig: MapConfig = {
@@ -19,6 +20,7 @@ const defaultConfig: MapConfig = {
   highlightSelectedShip: true,
   highlightSelectedWaypoint: true,
   showShips: true,
+  showOnlyMarkets: false,
 };
 
 function WpMap() {
@@ -78,6 +80,13 @@ function WpMap() {
       label: `Show Ships: ${config.showShips ? "ON" : "OFF"}`,
       children: booleanOptions(config.showShips, (value) =>
         setConfig((c) => ({ ...c, showShips: value })),
+      ),
+    },
+    {
+      key: "showOnlyMarkets",
+      label: `Show Only Markets: ${config.showOnlyMarkets ? "ON" : "OFF"}`,
+      children: booleanOptions(config.showOnlyMarkets, (value) =>
+        setConfig((c) => ({ ...c, showOnlyMarkets: value })),
       ),
     },
     { type: "divider" as const },

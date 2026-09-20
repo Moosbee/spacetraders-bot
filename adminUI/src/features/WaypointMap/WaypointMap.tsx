@@ -36,7 +36,7 @@ export type SystemData = Pick<
 >;
 export type SystemWaypoint = Pick<
   GetSystemMapQuery["system"]["waypoints"]["items"][number],
-  "symbol" | "waypointType" | "x" | "y" | "orbits"
+  "symbol" | "waypointType" | "x" | "y" | "orbits" | "hasMarketplace"
 >;
 export type SystemShip = GetSystemMapQuery["system"]["ships"][number];
 
@@ -82,6 +82,7 @@ function WaypointMap({
     highlightSelectedShip: true,
     highlightSelectedWaypoint: true,
     showShips: true,
+    showOnlyMarkets: false,
   },
 }: {
   systemData: SystemData;
@@ -92,6 +93,7 @@ function WaypointMap({
     highlightSelectedShip: boolean;
     highlightSelectedWaypoint: boolean;
     showShips: boolean;
+    showOnlyMarkets: boolean;
   };
 }) {
   // const ships = useAppSelector(selectAllShipsArray);
@@ -110,7 +112,7 @@ function WaypointMap({
       a.symbol.localeCompare(b.symbol),
     );
     return [sortedShips, sortedWaypoints];
-  }, [config.showShips, systemWaypoints, systemShips]);
+  }, [config.showShips, systemShips, systemWaypoints]);
 
   const {
     token: { colorBgElevated },
@@ -122,8 +124,14 @@ function WaypointMap({
   }, [systemData.symbol]);
 
   const waypointsMp = useMemo(
-    () => calculateWaypointMapPoints(waypoints || [], undefined, directions),
-    [directions, waypoints],
+    () =>
+      calculateWaypointMapPoints(
+        waypoints || [],
+        undefined,
+        directions,
+        config.showOnlyMarkets,
+      ),
+    [config.showOnlyMarkets, directions, waypoints],
   );
 
   const routesMp = useMemo(() => {
@@ -188,6 +196,7 @@ function calculateWaypointMapPoints(
   waypointsArr: SystemWaypoint[],
   _system: System | undefined,
   directions: typeof baseDirections,
+  showOnlyMarkets: boolean,
 ): WaypointMapPoint[] {
   // if (!system) return [];
   const [wpMinX, wpMinY, wpMaxX, wpMaxY] =
@@ -202,6 +211,7 @@ function calculateWaypointMapPoints(
   let orbitals = 0;
 
   return [...waypointsArr]
+    .filter((w) => !showOnlyMarkets || w.hasMarketplace)
     .sort((a, b) => a.symbol.localeCompare(b.symbol))
     .sort((a, b) => (a.x ^ 2) + (a.y ^ 2) - ((b.x ^ 2) + (b.y ^ 2)))
     .map((w) => {
