@@ -1,5 +1,3 @@
-import classes from "./WaypointMapWaypointOrbit.module.css";
-
 function WaypointMapWaypointOrbit({
   xOnePos,
   yOnePos,
@@ -23,15 +21,10 @@ function WaypointMapWaypointOrbit({
 
   return (
     <circle
-      style={
-        {
-          "--stroke-width": `${Math.min(0.2, 200 / size)}px`,
-        } as React.CSSProperties
-      }
+      strokeWidth={`${Math.min(0.2, 200 / size)}%`}
       cx={xOneOrbitCenter}
       cy={yOneOrbitCenter}
       r={radius}
-      className={classes.orbit}
     ></circle>
   );
 }

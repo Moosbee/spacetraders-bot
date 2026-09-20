@@ -130,6 +130,7 @@ function MarketSupplyChainVisual({
     });
 
     setNodes([...layouted.nodes]);
+    // @ts-expect-error thing
     setEdges([...layouted.edges]);
 
     fitView();
@@ -140,6 +141,7 @@ function MarketSupplyChainVisual({
       const layouted = getLayoutedElements(nodes, edges, { direction });
 
       setNodes([...layouted.nodes]);
+      // @ts-expect-error thing
       setEdges([...layouted.edges]);
 
       fitView();

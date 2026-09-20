@@ -183,6 +183,42 @@ export const GET_ALL_SYSTEMS = graphql(/* GraphQL */ `
   }
 `);
 
+export const GET_SYSTEMS_WITH_FLEETS_OR_SHIPS = graphql(/* GraphQL */ `
+  query GetSystemsWithFleetsOrShips {
+    systems(onlyWithFleetsOrShips: true) {
+      items {
+        symbol
+        sectorSymbol
+        constellation
+        systemType
+        x
+        y
+        populationDisabled
+        waypoints {
+          items {
+            symbol
+            faction
+            modifiers
+            chartedBy
+            chartedOn
+            hasShipyard
+            hasMarketplace
+            x
+            y
+            lastScrap
+            nextScrap
+            waypointType
+            traits
+            isUnderConstruction
+            orbitals
+            orbits
+          }
+        }
+      }
+    }
+  }
+`);
+
 export const GET_SYSTEM_MAP_DATA = graphql(/* GraphQL */ `
   query GetSystemMapData {
     systems {

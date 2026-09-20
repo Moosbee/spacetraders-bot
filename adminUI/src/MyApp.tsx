@@ -32,6 +32,7 @@ import System from "./sites/System";
 import SysMap from "./sites/SystemMap";
 import SystemMarkets from "./sites/SystemMarkets";
 import Systems from "./sites/Systems";
+import SystemsWithFleets from "./sites/SystemsWithFleets";
 import TradeRoute from "./sites/TradeRoute";
 import TradeRoutes from "./sites/TradeRoutes";
 import TradeSymbolInfo from "./sites/TradeSymbolInfo";
@@ -80,6 +81,10 @@ function MyApp() {
                     <Route path="/ships" element={<Ships />} />
                     <Route path="/systems" element={<Systems />} />
                     <Route path="/systems/map" element={<SysMap></SysMap>} />
+                    <Route
+                      path="/systems/withFleets"
+                      element={<SystemsWithFleets />}
+                    />
 
                     <Route path="/system/:systemID" element={<System />} />
                     <Route

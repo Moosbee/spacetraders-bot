@@ -24,9 +24,21 @@ const baseDirections = [
   { wayX: 0, wayY: -1 },
 ];
 
-export type SystemData = GetSystemMapQuery["system"];
-export type SystemWaypoint = SystemData["waypoints"]["items"][number];
-export type SystemShip = SystemData["ships"][number];
+export type SystemData = Pick<
+  GetSystemMapQuery["system"],
+  | "symbol"
+  | "sectorSymbol"
+  | "constellation"
+  | "systemType"
+  | "x"
+  | "y"
+  | "populationDisabled"
+>;
+export type SystemWaypoint = Pick<
+  GetSystemMapQuery["system"]["waypoints"]["items"][number],
+  "symbol" | "waypointType" | "x" | "y" | "orbits"
+>;
+export type SystemShip = GetSystemMapQuery["system"]["ships"][number];
 
 interface ShipMapPoint {
   ship: SystemShip;
@@ -63,6 +75,7 @@ interface RouteMapPoint {
 
 function WaypointMap({
   systemData,
+  systemWaypoints,
   systemShips,
   config = {
     showAutoPilot: "SELECTED",
@@ -72,6 +85,7 @@ function WaypointMap({
   },
 }: {
   systemData: SystemData;
+  systemWaypoints: SystemWaypoint[];
   systemShips: SystemShip[];
   config?: {
     showAutoPilot: "ALL" | "SELECTED" | "NONE";
@@ -92,11 +106,11 @@ function WaypointMap({
     const sortedShips = config.showShips
       ? [...systemShips].sort((a, b) => a.symbol.localeCompare(b.symbol))
       : [];
-    const sortedWaypoints = [...(systemData?.waypoints.items || [])].sort(
-      (a, b) => a.symbol.localeCompare(b.symbol),
+    const sortedWaypoints = [...(systemWaypoints || [])].sort((a, b) =>
+      a.symbol.localeCompare(b.symbol),
     );
     return [sortedShips, sortedWaypoints];
-  }, [config.showShips, systemData?.waypoints.items, systemShips]);
+  }, [config.showShips, systemWaypoints, systemShips]);
 
   const {
     token: { colorBgElevated },

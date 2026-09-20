@@ -110,6 +110,7 @@ function WpMap() {
             <MapHolder>
               <WaypointMap
                 systemData={data.system}
+                systemWaypoints={data.system.waypoints.items}
                 systemShips={data.system.ships}
                 config={config}
               />

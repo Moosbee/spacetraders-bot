@@ -154,6 +154,11 @@ const items: MenuItem[] = [
         icon: <FaIcon type="solid" icon="fa-map-location-dot" />,
       },
       {
+        label: <Link to="/systems/withFleets">Occupied Systems</Link>,
+        key: "systems/withFleets",
+        icon: <FaIcon type="solid" icon="fa-star" />,
+      },
+      {
         label: <Link to="/system/selected">Selected System</Link>,
         key: "system/selected",
         icon: <GlobalOutlined />,
