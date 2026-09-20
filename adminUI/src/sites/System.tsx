@@ -15,16 +15,25 @@ import {
   Space,
   Switch,
   Table,
+  theme,
 } from "antd";
 import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import AssignmentsPopover from "../features/AssignmentsPopover/AssignmentsPopover";
+import {
+  configSummary,
+  configToEntries,
+  formatConfigValue,
+} from "../features/FleetConfig/ConfigRendering";
 import MoneyDisplay from "../features/MonyDisplay";
 import PageTitle from "../features/PageTitle";
+import RoleRenderer from "../features/RoleRenderer/RoleRenderer";
 import WaypointLink from "../features/WaypointLink";
+import WaypointMap from "../features/WaypointMap/WaypointMap";
 import WaypointTable from "../features/WaypointTable/WaypointTable";
 import {
   ActivityLevel,
+  FleetType,
   MarketTradeGoodType,
   ShipType,
   SupplyLevel,
@@ -59,6 +68,10 @@ function System() {
   const selectedSystem = useAppSelector(selectSelectedSystemSymbol);
 
   const dispatch = useAppDispatch();
+
+  const {
+    token: { colorBgBase },
+  } = theme.useToken();
 
   // if (dataState != "complete") return <p>Loading...</p>;
 
@@ -333,117 +346,95 @@ function System() {
       </Space>
       <br />
 
-      <Space>
+      <Flex gap={10} align="stretch">
         <Descriptions bordered column={3} items={items} />
-
-        <Card size="small" title="Known Agents">
-          <List
-            size="small"
-            dataSource={[...(system?.seenAgents || [])].sort(
-              (a, b) => b.count - a.count,
-            )}
-            renderItem={(agent) => (
-              <List.Item>
-                <Link to={`/agents/${agent.symbol}`}>
-                  {agent.symbol} ({agent.count})
-                </Link>
-              </List.Item>
-            )}
-          />
-        </Card>
-
-        <Card
-          size="small"
-          title={`Ships in System (${system?.ships?.length || 0})`}
-        >
-          <List
-            size="small"
-            style={{ maxHeight: "200px", overflowY: "auto" }}
-            dataSource={system?.ships.toSorted((a, b) =>
-              a.symbol.localeCompare(b.symbol),
-            )}
-            renderItem={(ship) => (
-              <List.Item>
-                <Popover
-                  title={
-                    <Flex flex={1}>
-                      {ship.symbol} {ship.fuel.capacity} {ship.cargo.capacity}{" "}
-                      {ship.nav.status} {ship.nav.waypointSymbol}
-                    </Flex>
-                  }
-                >
-                  <Link to={`/ships/${ship.symbol}`}>
-                    {ship.symbol} (
-                    {ship.status.status.__typename.replace("Status", "")}) (
-                    {ship.status.tempAssignmentId || ship.status.assignmentId})
-                    ({ship.status.tempFleetId || ship.status.fleetId})
+        <div className="flex flex-col items-center justify-center">
+          <Card size="small" title="Known Agents">
+            <List
+              size="small"
+              dataSource={[...(system?.seenAgents || [])].sort(
+                (a, b) => b.count - a.count,
+              )}
+              renderItem={(agent) => (
+                <List.Item>
+                  <Link to={`/agents/${agent.symbol}`}>
+                    {agent.symbol} ({agent.count})
                   </Link>
-                </Popover>
-              </List.Item>
-            )}
-          />
-        </Card>
-        <Card
-          size="small"
-          title={`Fleets in System (${system?.fleets?.length || 0} - ${system?.fleets?.flatMap((f) => f.assignments).length || 0})`}
-        >
-          <List
-            size="small"
-            style={{ maxHeight: "200px", overflowY: "auto" }}
-            dataSource={system?.fleets}
-            renderItem={(fleet) => (
-              <List.Item>
-                <Popover
-                  title={<AssignmentsPopover assignments={fleet.assignments} />}
+                </List.Item>
+              )}
+            />
+          </Card>
+        </div>
+        <div className="flex flex-col items-center justify-center">
+          <Card size="small" title="Gate Connections">
+            {system?.jumpGateConnections &&
+              system?.jumpGateConnections.length && (
+                <List
+                  size="small"
+                  style={{ maxHeight: "200px", overflowY: "auto" }}
+                  dataSource={[
+                    ...new Set(system?.jumpGateConnections.map((e) => e.from)),
+                  ]}
+                  renderItem={(wp) => (
+                    <List.Item>
+                      <WaypointLink waypoint={wp}>{wp}</WaypointLink>
+                    </List.Item>
+                  )}
+                />
+              )}
+            <Divider dashed size="small" />
+            <List
+              size="small"
+              style={{ maxHeight: "200px", overflowY: "auto" }}
+              dataSource={system?.jumpGateConnections}
+              renderItem={(wp) => (
+                <List.Item>
+                  <WaypointLink waypoint={wp.to}>{wp.to}</WaypointLink>
+                </List.Item>
+              )}
+            />
+          </Card>
+        </div>
+        <div className="h-auto w-auto flex-auto flex flex-row-reverse">
+          <Card className="h-full aspect-square" classNames={{ body: "p-2!" }}>
+            {system && (
+              <div className="overflow-hidden w-full aspect-square">
+                <div
+                  className={cn("origin-top-left aspect-square", {
+                    // "scale-200 w-[50%]": true,
+                    // "scale-100 w-full": true,
+                    "scale-64 w-[156.25%]": true,
+                    // "scale-50 w-[200%]": true,
+                    // "scale-33 w-[300%]": true,
+                    // "scale-25 w-[400%]": true,
+                    // "scale-12 w-[800%]": true,
+                    // "scale-6 w-[1600%]": true,
+                  })}
                 >
-                  <Link to={`/fleets/${fleet.id}`}>
-                    {fleet.fleetType}_{fleet.id} ({fleet.active ? "A" : "I"}) (
-                    {
-                      fleet.assignments.filter((asgmt) => asgmt.ship.length > 0)
-                        .length
-                    }
-                    /{fleet.assignments.length}){" "}
-                    {fleet.config.__typename === "TradingConfig"
-                      ? `(${fleet.config.tradeMode})`
-                      : ""}
-                    {fleet.config.__typename === "ChartingConfig"
-                      ? `(${fleet.config.chartOnlyJumpGates ? "Gate" : "System"})`
-                      : ""}
-                  </Link>
-                </Popover>
-              </List.Item>
+                  <div
+                    style={{ backgroundColor: colorBgBase }}
+                    className="p-4 rounded-2xl overflow-hidden w-full aspect-square"
+                  >
+                    <div className="w-full h-full relative">
+                      <WaypointMap
+                        systemData={system}
+                        systemWaypoints={system.waypoints.items}
+                        systemShips={[]}
+                        config={{
+                          showShips: false,
+                          highlightSelectedShip: false,
+                          highlightSelectedWaypoint: true,
+                          showAutoPilot: "NONE",
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
             )}
-          />
-        </Card>
-        <Card size="small" title="Gate Connections">
-          {system?.jumpGateConnections &&
-            system?.jumpGateConnections.length && (
-              <List
-                size="small"
-                style={{ maxHeight: "200px", overflowY: "auto" }}
-                dataSource={[
-                  ...new Set(system?.jumpGateConnections.map((e) => e.from)),
-                ]}
-                renderItem={(wp) => (
-                  <List.Item>
-                    <WaypointLink waypoint={wp}>{wp}</WaypointLink>
-                  </List.Item>
-                )}
-              />
-            )}
-          <Divider dashed size="small" />
-          <List
-            size="small"
-            style={{ maxHeight: "200px", overflowY: "auto" }}
-            dataSource={system?.jumpGateConnections}
-            renderItem={(wp) => (
-              <List.Item>
-                <WaypointLink waypoint={wp.to}>{wp.to}</WaypointLink>
-              </List.Item>
-            )}
-          />
-        </Card>
-      </Space>
+          </Card>
+        </div>
+      </Flex>
       <Divider />
       <Descriptions
         bordered
@@ -704,6 +695,297 @@ function System() {
           <Divider />
         </>
       )}
+      <Row gutter={10}>
+        <Col span={13}>
+          <Table
+            size="small"
+            title={() =>
+              `Fleets in System (${system?.fleets?.length || 0} - ${system?.fleets?.flatMap((f) => f.assignments).length || 0})`
+            }
+            dataSource={system?.fleets || []}
+            columns={[
+              {
+                title: "ID",
+                dataIndex: "id",
+                key: "id",
+                defaultSortOrder: "ascend",
+                render: (id: number) => <Link to={`/fleets/${id}`}>{id}</Link>,
+                sorter: (a, b) => a.id - b.id,
+              },
+              {
+                title: "Type",
+                dataIndex: "fleetType",
+                key: "fleetType",
+                sorter: (a, b) => a.fleetType.localeCompare(b.fleetType),
+                filters: Object.values(FleetType).map((type) => ({
+                  text: type,
+                  value: type,
+                })),
+                onFilter: (value, record) => record.fleetType === value,
+              },
+              {
+                title: "Active",
+                dataIndex: "active",
+                key: "active",
+                render: (active: boolean) => (active ? "Active" : "Inactive"),
+                sorter: (a, b) => Number(a.active) - Number(b.active),
+              },
+              {
+                title: "Assignments",
+                key: "assignments",
+                render: (_: unknown, record) => {
+                  const assignments = record.assignments;
+                  const assigned = assignments.filter(
+                    (a) => a.ship.length > 0,
+                  ).length;
+                  return (
+                    <Popover
+                      title={<AssignmentsPopover assignments={assignments} />}
+                    >
+                      <span>
+                        {assigned}/{assignments.length}
+                      </span>
+                    </Popover>
+                  );
+                },
+                sorter: (a, b) => a.assignments.length - b.assignments.length,
+              },
+              {
+                title: "Config",
+                key: "config",
+                render: (_: unknown, record) => {
+                  const config = record.config;
+                  return (
+                    <Popover
+                      title={config.__typename}
+                      content={
+                        <Flex vertical gap={2}>
+                          {configToEntries(config).map(([key, value]) => (
+                            <Flex key={key} justify="space-between" gap={16}>
+                              <span>{key}</span>
+                              <span>{formatConfigValue(value)}</span>
+                            </Flex>
+                          ))}
+                        </Flex>
+                      }
+                    >
+                      <span>{configSummary(config)}</span>
+                    </Popover>
+                  );
+                },
+              },
+            ]}
+            pagination={false}
+          />
+        </Col>
+        <Col span={11}>
+          <Table
+            size="small"
+            title={() => "Ships"}
+            dataSource={system?.ships || []}
+            columns={[
+              {
+                title: "Symbol",
+                dataIndex: "symbol",
+                key: "symbol",
+                render: (symbol: string) => (
+                  <Link to={`/ships/${symbol}`}>{symbol}</Link>
+                ),
+                sorter: (a, b) => a.symbol.localeCompare(b.symbol),
+              },
+              {
+                title: "Status",
+                key: "status",
+                render: (_role, record) => (
+                  <RoleRenderer status={record.status} />
+                ),
+                filters: [
+                  {
+                    text: "Charting",
+                    value: "ChartingStatus",
+                  },
+                  {
+                    text: "Construction",
+                    value: "ConstructionStatus",
+                  },
+                  {
+                    text: "Contract",
+                    value: "ContractStatus",
+                  },
+                  {
+                    text: "Manuel",
+                    value: "ManuelStatus",
+                  },
+                  {
+                    text: "Mining",
+                    value: "MiningStatus",
+                  },
+                  {
+                    text: "Scraper",
+                    value: "ScraperStatus",
+                  },
+                  {
+                    text: "Trader",
+                    value: "TraderStatus",
+                  },
+                  {
+                    text: "Transfer",
+                    value: "TransferStatus",
+                  },
+                ],
+                onFilter: (value, record) =>
+                  record.status.status.__typename === value,
+                sorter: (a, b) => {
+                  const num = (a.status.status.__typename ?? "").localeCompare(
+                    b.status.status.__typename ?? "",
+                  );
+                  if (num === 0) {
+                    const aType = a.status.status.__typename;
+                    const bType = b.status.status.__typename;
+                    if (aType === "MiningStatus" && bType === "MiningStatus") {
+                      const aAssign =
+                        a.status.status.assignment.__typename ?? "";
+                      const bAssign =
+                        b.status.status.assignment.__typename ?? "";
+                      if (
+                        aAssign === "TransporterAssignment" &&
+                        bAssign === "TransporterAssignment"
+                      ) {
+                        return a.symbol.localeCompare(b.symbol);
+                      }
+                      if (
+                        (aAssign === "SiphonerAssignment" &&
+                          bAssign === "SiphonerAssignment") ||
+                        (aAssign === "ExtractorAssignment" &&
+                          bAssign === "ExtractorAssignment")
+                      ) {
+                        return a.nav.waypointSymbol.localeCompare(
+                          b.nav.waypointSymbol,
+                        );
+                      }
+                      return aAssign.localeCompare(bAssign);
+                    }
+                    if (aType === "TraderStatus" && bType === "TraderStatus") {
+                      return a.symbol.localeCompare(b.symbol);
+                    }
+                    if (
+                      aType === "TransferStatus" &&
+                      bType === "TransferStatus"
+                    ) {
+                      return (
+                        a.status.status.assignmentId -
+                        b.status.status.assignmentId
+                      );
+                    }
+                  }
+                  return num;
+                },
+              },
+              {
+                title: "Fleet",
+                key: "fleetId",
+                filters: [
+                  ...[
+                    ...new Set(
+                      system?.ships
+                        .map((ship) => ship.status?.fleetId)
+                        .filter((id) => !!id)
+                        .map((id) => id as unknown as number),
+                    ),
+                  ]
+                    .toSorted((a, b) => a - b)
+                    .map((id) => ({ text: id, value: id })),
+                ],
+                onFilter: (value, record) => record.status?.fleetId === value,
+                render: (_role, record) => (
+                  <span>
+                    {record.status?.fleetId} ({record.status.assignmentId})
+                  </span>
+                ),
+                sorter: (a, b) =>
+                  (a.status?.fleetId || 0) - (b.status?.fleetId || 0),
+              },
+              {
+                title: "Waypoint",
+                dataIndex: "waypointSymbol",
+                key: "waypointSymbol",
+                render: (_, record) => (
+                  <WaypointLink waypoint={record.nav.waypointSymbol}>
+                    {record.nav.waypointSymbol}
+                  </WaypointLink>
+                ),
+                sorter: (a, b) =>
+                  a.nav.waypointSymbol.localeCompare(b.nav.waypointSymbol),
+              },
+              {
+                title: "Nav Status",
+                key: "navStatus",
+                render: (_, record) => record.nav.status,
+                sorter: (a, b) => a.nav.status.localeCompare(b.nav.status),
+              },
+              {
+                title: "Fuel",
+                key: "fuel",
+                render: (_, record) => record.fuel.capacity,
+                sorter: (a, b) => a.fuel.capacity - b.fuel.capacity,
+                align: "right",
+              },
+              {
+                title: "Cargo",
+                dataIndex: ["cargo", "units"],
+                key: "cargo_units",
+                render: (value: number, record) => (
+                  <Popover
+                    content={
+                      <Flex vertical>
+                        {record.cargo.inventory.map((item) => (
+                          <Flex
+                            gap={6}
+                            justify="space-between"
+                            key={item.symbol}
+                          >
+                            <Link to={`/supplyChain/${item.symbol}`}>
+                              {item.symbol}
+                            </Link>
+                            <span>{item.units}</span>
+                          </Flex>
+                        ))}
+                      </Flex>
+                    }
+                  >
+                    {`${value} / ${record.cargo.capacity}`}
+                  </Popover>
+                ),
+                align: "right",
+                sorter: (a, b) => a.cargo.capacity - b.cargo.capacity,
+              },
+              {
+                title: "Engine Speed",
+                key: "engineSpeed",
+                render: (_, record) => record.engineSpeed,
+                sorter: (a, b) => a.engineSpeed - b.engineSpeed,
+                align: "right",
+              },
+            ]}
+            pagination={{
+              showSizeChanger: true,
+              pageSizeOptions: [
+                "5",
+                "10",
+                "20",
+                "50",
+                "100",
+                "200",
+                "500",
+                "1000",
+              ],
+              defaultPageSize: 5,
+              showTotal: (total, range) =>
+                `${range[0]}-${range[1]} of ${total}`,
+            }}
+          />
+        </Col>
+      </Row>
       <WaypointTable waypoints={system?.waypoints.items || []} />
       <Divider />
       <Row gutter={10}>

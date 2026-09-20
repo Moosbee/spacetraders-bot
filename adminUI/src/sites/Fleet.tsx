@@ -1,5 +1,6 @@
 import { useMutation, useQuery } from "@apollo/client/react";
 import {
+  Alert,
   Button,
   Col,
   Descriptions,
@@ -215,6 +216,13 @@ function Fleet() {
             Regenerate Assignments
           </Button>
         </Space>
+        {regenerateError && (
+          <Alert
+            message="Error regenerating assignments"
+            type="error"
+            showIcon
+          />
+        )}
         <Divider />
         {fleet ? (
           <FleetDetails fleet={fleet} />

@@ -356,11 +356,50 @@ export const GET_SYSTEM = graphql(/* GraphQL */ `
           }
           config {
             __typename
+            ... on MiningConfig {
+              miningEjectList
+              miningTransportersPerWaypoint
+              minTransporterCargoSpace
+              minMiningCargoSpace
+              minSiphonCargoSpace
+              miningPreferList
+              ignoreEngineeredAsteroids
+              stopAllUnstable
+              unstableSinceTimeout
+              miningWaypoints
+              syphonWaypoints
+              minersPerWaypoint
+              siphonersPerWaypoint
+              surveyersPerWaypoint
+            }
             ... on TradingConfig {
+              marketBlacklist
+              marketPreferList
+              purchaseMultiplier
               tradeMode
+              tradeProfitThreshold
+              shipMarketRatio
+              minCargoSpace
+            }
+            ... on ScrapingConfig {
+              shipMarketRatio
+              allowedRequests
+              notifyOnShipyard
             }
             ... on ChartingConfig {
+              chartingProbeCount
               chartOnlyJumpGates
+            }
+            ... on ConstructionConfig {
+              constructionShipCount
+              constructionWaypoint
+              constructionMode
+            }
+            ... on ContractConfig {
+              contractShipCount
+            }
+            ... on ManuelConfig {
+              config
             }
           }
           createdAt
@@ -567,6 +606,7 @@ export const GET_SYSTEM = graphql(/* GraphQL */ `
       }
       ships {
         symbol
+        engineSpeed
         nav {
           waypointSymbol
           status
@@ -576,14 +616,89 @@ export const GET_SYSTEM = graphql(/* GraphQL */ `
         }
         cargo {
           capacity
+          units
+          inventory {
+            symbol
+            units
+          }
         }
         status {
           assignmentId
-          fleetId
           tempAssignmentId
+          fleetId
           tempFleetId
+          waitingForApi
+          waitingForManager
           status {
             __typename
+            ... on ChartingStatus {
+              cycle
+              waitingForManager
+              waypointSymbol
+            }
+            ... on ConstructionStatus {
+              cycle
+              shipmentId
+              shippingStatus
+              waitingForManager
+            }
+            ... on ContractStatus {
+              contractId
+              runId
+              cycle
+              shippingStatus
+              waitingForManager
+            }
+            ... on ManuelStatus {
+              controlled
+            }
+            ... on MiningStatus {
+              assignment {
+                __typename
+                ... on ExtractorAssignment {
+                  extractions
+                  state
+                  waypointSymbol
+                }
+                ... on SiphonerAssignment {
+                  extractions
+                  state
+                  waypointSymbol
+                }
+                ... on TransporterAssignment {
+                  cycles
+                  waypointSymbol
+                }
+                ... on SurveyorAssignment {
+                  surveys
+                  waypointSymbol
+                }
+                ... on IdleAssignment {
+                  controlled
+                }
+                ... on UselessAssignment {
+                  controlled
+                }
+              }
+            }
+            ... on ScraperStatus {
+              cycle
+              waitingForManager
+              waypointSymbol
+              scrapDate
+            }
+            ... on TraderStatus {
+              cycle
+              shipmentId
+              shippingStatus
+              waitingForManager
+              onSleep
+            }
+            ... on TransferStatus {
+              assignmentId
+              fleetId
+              systemSymbol
+            }
           }
         }
       }
