@@ -30,17 +30,54 @@ async fn main() -> anyhow::Result<()> {
 
     info!("SpaceTraders starting up");
 
-    check_time().await;
-
-    let account_token = env::var("ACCOUNT_TOKEN").unwrap();
     let database_url = env::var("DATABASE_URL").unwrap();
-    let agent_symbol = env::var("AGENT_SYMBOL").unwrap_or("MOOSBEE".to_string());
     let readyset_url = env::var("READYSET_URL").ok();
     let socket_address = env::var("SOCKET_ADDRESS")
         .ok()
         .unwrap_or("0.0.0.0:8780".to_string());
 
     let global_cancel_token = CancellationToken::new();
+
+    let control_api_only = env::var("CONTROL_API_ONLY")
+        .map(|value| {
+            let value = value.to_ascii_lowercase();
+            matches!(value.as_str(), "1" | "true" | "yes" | "on")
+        })
+        .unwrap_or(false);
+
+    if control_api_only {
+        info!("Control-api-only mode enabled, only the control API will be started");
+
+        let database_pool = create_database_pool(&database_url, readyset_url.as_ref()).await?;
+
+        info!("Running database migrations");
+        let migrate_result = sqlx::migrate!().run(&database_pool.database_pool).await;
+
+        if let Err(e) = migrate_result {
+            error!(error = ?e, "Error running database migrations");
+            match e {
+                sqlx::migrate::MigrateError::VersionMismatch(_) => {
+                    info!("Database migrations already applied")
+                }
+                _ => return Err(e.into()),
+            }
+        }
+
+        reset_runner::run_control_api_only(
+            database_pool,
+            global_cancel_token.clone(),
+            socket_address,
+        )
+        .await?;
+
+        info!("SpaceTraders shutting down");
+        return Ok(());
+    }
+
+    check_time().await;
+
+    let account_token = env::var("ACCOUNT_TOKEN").unwrap();
+    let agent_symbol = env::var("AGENT_SYMBOL").unwrap_or("MOOSBEE".to_string());
 
     let mut reset_cycle = 0u64;
 

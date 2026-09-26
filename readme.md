@@ -3,6 +3,23 @@
 
 
 
+## Running
+
+The client is configured via environment variables (loaded from `.env` via `dotenvy`):
+
+- `DATABASE_URL` – PostgreSQL connection string (required)
+- `READYSET_URL` – optional ReadySet connection string
+- `SOCKET_ADDRESS` – address the control API listens on (default `0.0.0.0:8780`)
+- `ACCOUNT_TOKEN` – SpaceTraders account token (required for a normal run)
+- `AGENT_SYMBOL` – agent symbol (default `MOOSBEE`)
+- `CONTROL_API_ONLY` – set to `true` (or `1`) to start only the GraphQL control API server. In this mode the SpaceTraders API is never contacted and no agent, managers or pilots are started.
+
+Example:
+
+```sh
+CONTROL_API_ONLY=true cargo run --release
+```
+
 ## Mining Manager visualization
 
 ```mermaid

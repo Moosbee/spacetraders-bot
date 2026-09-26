@@ -114,6 +114,58 @@ pub async fn run_reset(
     Ok(run_result)
 }
 
+#[instrument(skip(database_pool, global_cancel_token))]
+pub async fn run_control_api_only(
+    database_pool: database::DbPool,
+    global_cancel_token: CancellationToken,
+    socket_address: String,
+) -> Result<(), anyhow::Error> {
+    tracing::info!("Starting control-api-only run");
+
+    // Build a no-op API client. It is never called in this mode.
+    let api: space_traders_client::Api =
+        space_traders_client::Api::new(None, 500, NonZeroU32::new(2).unwrap());
+
+    let run_cancel_token = global_cancel_token.child_token();
+
+    let (context, _manager_receiver) = init_min_context(
+        api,
+        database_pool,
+        run_cancel_token.clone(),
+        global_cancel_token.clone(),
+    )
+    .await?;
+
+    // Load the config directly from disk, since populate_context is not run here.
+    let mut config: crate::utils::Config =
+        toml_edit::de::from_str(&std::fs::read_to_string("config.toml")?)?;
+
+    // Always serve the control API in this mode, regardless of control_active.
+    config.control_active = true;
+
+    {
+        let mut write_config = context.config.write().await;
+        *write_config = config;
+    }
+
+    let control_api_cancel_token = context
+        .cancellation_tokens
+        .fast_manager_cancel_token
+        .child_token();
+
+    let mut control_api = control_api::server::ControlApiServer::new(
+        context.clone(),
+        context.ship_manager.get_rx(),
+        control_api_cancel_token,
+        socket_address,
+    );
+
+    manager::Manager::run(&mut control_api).await?;
+
+    tracing::info!("Control API server finished");
+    Ok(())
+}
+
 #[instrument(skip(context, _manager))]
 async fn analyze_run(
     context: &ConductorContext,
