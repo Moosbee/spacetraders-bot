@@ -425,7 +425,7 @@ function Main() {
                     title="Total Waypoints"
                     value={systems
                       .map((f) => f.waypoints.length)
-                      .reduce((total, current) => total + current)}
+                      .reduce((total, current) => total + current, 0)}
                   />
                 </Col>
                 <Col span={12}>
@@ -435,7 +435,7 @@ function Main() {
                       .map(
                         (f) => f.waypoints.filter((w) => !w.chartedBy).length,
                       )
-                      .reduce((total, current) => total + current)}
+                      .reduce((total, current) => total + current, 0)}
                   />
                 </Col>
               </Row>
@@ -448,7 +448,7 @@ function Main() {
                         (f) =>
                           f.waypoints.filter((m) => m.hasMarketplace).length,
                       )
-                      .reduce((total, current) => total + current)}
+                      .reduce((total, current) => total + current, 0)}
                   />
                 </Col>
                 <Col span={12}>
@@ -461,7 +461,7 @@ function Main() {
                             .filter((w) => !w.chartedBy)
                             .filter((m) => m.hasMarketplace).length,
                       )
-                      .reduce((total, current) => total + current)}
+                      .reduce((total, current) => total + current, 0)}
                   />
                 </Col>
               </Row>
@@ -473,7 +473,7 @@ function Main() {
                       .map(
                         (f) => f.waypoints.filter((m) => m.hasShipyard).length,
                       )
-                      .reduce((total, current) => total + current)}
+                      .reduce((total, current) => total + current, 0)}
                   />
                 </Col>
                 <Col span={12}>
@@ -486,7 +486,7 @@ function Main() {
                             .filter((w) => !w.chartedBy)
                             .filter((m) => m.hasShipyard).length,
                       )
-                      .reduce((total, current) => total + current)}
+                      .reduce((total, current) => total + current, 0)}
                   />
                 </Col>
               </Row>
@@ -601,7 +601,7 @@ function Main() {
                     title="Total Assignments"
                     value={fleetsData
                       .map((f) => f.assignments.length)
-                      .reduce((prev, now) => prev + now)}
+                      .reduce((prev, now) => prev + now, 0)}
                   />
                   <Statistic
                     title="Open Assignments"

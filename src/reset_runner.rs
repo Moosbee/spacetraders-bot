@@ -148,6 +148,9 @@ pub async fn run_control_api_only(
         *write_config = config;
     }
 
+    // Populate the context with agent and ship data from the database.
+    let context = populate_context_from_db(context).await?;
+
     let control_api_cancel_token = context
         .cancellation_tokens
         .fast_manager_cancel_token
@@ -164,6 +167,198 @@ pub async fn run_control_api_only(
 
     tracing::info!("Control API server finished");
     Ok(())
+}
+
+#[instrument(skip(context))]
+async fn populate_context_from_db(
+    mut context: ConductorContext,
+) -> Result<ConductorContext, anyhow::Error> {
+    // Populate the run info and budget from the latest agent stored in the database.
+    let agents =
+        database::Agent::get_last(&context.database_pool, database::PaginatedQuery::unpaged())
+            .await?
+            .items;
+
+    let agent_symbol = std::env::var("AGENT_SYMBOL").ok();
+    let agent = agent_symbol
+        .as_deref()
+        .and_then(|symbol| agents.iter().find(|agent| agent.symbol == symbol))
+        .or_else(|| agents.first());
+
+    if let Some(agent) = agent {
+        let total_systems =
+            database::System::get_all(&context.database_pool, database::PaginatedQuery::unpaged())
+                .await?
+                .total_count as i32;
+
+        let run_info = RunInfo {
+            agent_symbol: agent.symbol.clone(),
+            headquarters: agent.headquarters.clone(),
+            starting_faction: models::FactionSymbol::from_str(&agent.starting_faction)?,
+            reset_date: agent.created_at,
+            next_reset_date: chrono::Utc::now(),
+            version: String::new(),
+            total_systems,
+            total_waypoints: 0,
+        };
+
+        {
+            let mut write_run_info = context.run_info.write().await;
+            *write_run_info = run_info;
+        }
+
+        let iron_reserve = context.config.read().await.iron_reserve;
+        let mut budget_manager = (*context.budget_manager).duplicate().await;
+        budget_manager
+            .load(&context.database_pool, agent.credits, iron_reserve)
+            .await?;
+        context.budget_manager = Arc::new(budget_manager);
+    }
+
+    // Rebuild ships from ship_info plus their latest ship_state snapshot.
+    let ship_infos =
+        database::ShipInfo::get_all(&context.database_pool, database::PaginatedQuery::unpaged())
+            .await?
+            .items;
+
+    let ship_manager = context.ship_manager.clone();
+
+    for ship_info in ship_infos {
+        let latest_state = database::ShipState::get_by_ship(
+            &context.database_pool,
+            &ship_info.symbol,
+            database::PaginatedQuery::unpaged(),
+        )
+        .await?
+        .items
+        .into_iter()
+        .last();
+
+        let mut ship = ship::MyShip::default();
+        ship.symbol = ship_info.symbol.clone();
+        ship.display_name = ship_info.display_name.clone();
+        ship.purchase_id = ship_info.purchase_id;
+
+        ship.status.assignment_id = ship_info.assignment_id;
+        ship.status.temp_assignment_id = ship_info.temp_assignment_id;
+
+        if let Some(state) = latest_state {
+            ship.engine_speed = state.engine_speed;
+            ship.cooldown_expiration = state.cooldown_expiration;
+            ship.cooldown = state.cooldown;
+
+            ship.engine = state.engine_symbol;
+            ship.reactor = state.reactor_symbol;
+            ship.frame = state.frame_symbol;
+
+            ship.conditions.engine.condition = state.engine_condition;
+            ship.conditions.engine.integrity = state.engine_integrity;
+            ship.conditions.frame.condition = state.frame_condition;
+            ship.conditions.frame.integrity = state.frame_integrity;
+            ship.conditions.reactor.condition = state.reactor_condition;
+            ship.conditions.reactor.integrity = state.reactor_integrity;
+
+            ship.cargo.capacity = state.cargo_capacity;
+            ship.cargo.units = state.cargo_units;
+            ship.cargo.inventory = state.cargo_inventory.0.clone();
+
+            ship.fuel.capacity = state.fuel_capacity;
+            ship.fuel.current = state.fuel_current;
+
+            ship.mounts.mounts = state.mounts.clone();
+            ship.modules.modules = state.modules.clone();
+
+            ship.nav.flight_mode =
+                models::ShipNavFlightMode::from_str(&state.flight_mode).unwrap_or_default();
+            ship.nav.status =
+                models::ShipNavStatus::from_str(&state.nav_status).unwrap_or_default();
+            state.nav_status;
+            ship.nav.system_symbol = state.system_symbol.clone();
+            ship.nav.waypoint_symbol = state.waypoint_symbol.clone();
+
+            ship.nav.route.arrival = state.route_arrival;
+            ship.nav.route.departure_time = state.route_departure;
+            ship.nav.route.destination_symbol = state.route_destination_symbol.clone();
+            ship.nav.route.destination_system_symbol = state.route_destination_system.clone();
+            ship.nav.route.origin_symbol = state.route_origin_symbol.clone();
+            ship.nav.route.origin_system_symbol = state.route_origin_system.clone();
+        }
+
+        // Resolve fleet/assignment status from the database.
+        if let Some(assignment_id) = ship_info.temp_assignment_id {
+            if let Some(assignment) =
+                database::ShipAssignment::get_by_id(&context.database_pool, assignment_id).await?
+            {
+                ship.status.temp_fleet_id = Some(assignment.fleet_id);
+                if let Some(fleet) =
+                    database::Fleet::get_by_id(&context.database_pool, assignment.fleet_id).await?
+                {
+                    ship.status.status = assignment_status_from_fleet_type(fleet.fleet_type);
+                }
+            }
+        } else if let Some(assignment_id) = ship_info.assignment_id {
+            if let Some(assignment) =
+                database::ShipAssignment::get_by_id(&context.database_pool, assignment_id).await?
+            {
+                ship.status.fleet_id = Some(assignment.fleet_id);
+                if let Some(fleet) =
+                    database::Fleet::get_by_id(&context.database_pool, assignment.fleet_id).await?
+                {
+                    ship.status.status = assignment_status_from_fleet_type(fleet.fleet_type);
+                }
+            }
+        }
+
+        ship.broadcaster = ship_manager.get_broadcaster();
+        ShipManager::add_ship(&ship_manager, ship).await;
+    }
+
+    tracing::info!(
+        ship_count = ship_manager.get_ship_count(),
+        "Populated context from database"
+    );
+
+    Ok(context)
+}
+
+fn assignment_status_from_fleet_type(fleet_type: database::FleetType) -> ship::AssignmentStatus {
+    match fleet_type {
+        database::FleetType::Mining => ship::AssignmentStatus::Mining {
+            assignment: Default::default(),
+        },
+        database::FleetType::Trading => ship::AssignmentStatus::Trader {
+            shipment_id: None,
+            cycle: None,
+            shipping_status: None,
+            waiting_for_manager: false,
+            on_sleep: false,
+        },
+        database::FleetType::Scrapping => ship::AssignmentStatus::Scraper {
+            cycle: None,
+            waiting_for_manager: false,
+            waypoint_symbol: None,
+            scrap_date: None,
+        },
+        database::FleetType::Charting => ship::AssignmentStatus::Charting {
+            cycle: None,
+            waiting_for_manager: false,
+            waypoint_symbol: None,
+        },
+        database::FleetType::Construction => ship::AssignmentStatus::Construction {
+            cycle: None,
+            shipment_id: None,
+            shipping_status: None,
+            waiting_for_manager: false,
+        },
+        database::FleetType::Contract => ship::AssignmentStatus::Contract {
+            contract_id: None,
+            run_id: None,
+            cycle: None,
+            shipping_status: None,
+            waiting_for_manager: false,
+        },
+        database::FleetType::Manuel => ship::AssignmentStatus::Manuel,
+    }
 }
 
 #[instrument(skip(context, _manager))]

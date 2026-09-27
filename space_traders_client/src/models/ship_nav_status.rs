@@ -10,6 +10,7 @@
 
 use crate::models;
 use serde::{Deserialize, Serialize};
+use strum_macros::EnumString;
 
 /// ShipNavStatus : The current status of the ship
 /// The current status of the ship
@@ -24,14 +25,18 @@ use serde::{Deserialize, Serialize};
     Hash,
     Serialize,
     Deserialize,
+    EnumString,
     async_graphql::Enum,
 )]
 pub enum ShipNavStatus {
     #[serde(rename = "IN_TRANSIT")]
+    #[strum(serialize = "IN_TRANSIT")]
     InTransit,
     #[serde(rename = "IN_ORBIT")]
+    #[strum(serialize = "IN_ORBIT")]
     InOrbit,
     #[serde(rename = "DOCKED")]
+    #[strum(serialize = "DOCKED")]
     Docked,
 }
 
