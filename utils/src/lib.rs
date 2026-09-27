@@ -1,5 +1,7 @@
+mod disjoint_set;
 pub mod tests;
 
+pub use disjoint_set::DisjointSet;
 use std::fmt::Debug;
 use std::sync::Weak;
 
