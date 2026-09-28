@@ -2,6 +2,7 @@
 use clap::{Parser, Subcommand};
 
 mod analyze_logs;
+mod api_tools;
 mod exports;
 mod log_utils;
 
@@ -31,6 +32,7 @@ enum Commands {
     },
     #[command(alias = "gql", alias = "generate-graphql")]
     GenerateGraphQL,
+    CheckWaypoints,
 }
 
 #[derive(Subcommand)]
@@ -85,6 +87,7 @@ async fn main() -> anyhow::Result<()> {
             ExportCommand::Routes => exports::export_routes().await?,
         },
         Commands::GenerateGraphQL => exports::generate_graphql().await?,
+        Commands::CheckWaypoints => api_tools::check_waypoints().await?,
     }
 
     Ok(())

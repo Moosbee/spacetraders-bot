@@ -1,6 +1,6 @@
 use std::{collections::HashMap, str::FromStr, sync::Arc};
 
-use space_traders_client::models;
+use space_traders_client::models::{self};
 use tracing::instrument;
 
 use async_graphql::dataloader::Loader;
@@ -76,6 +76,20 @@ impl From<&models::Waypoint> for Waypoint {
                 .traits
                 .iter()
                 .any(|t| t.symbol == models::WaypointTraitSymbol::Shipyard),
+            ..Default::default()
+        }
+    }
+}
+
+impl From<models::SystemWaypoint> for Waypoint {
+    fn from(value: models::SystemWaypoint) -> Self {
+        Self {
+            symbol: value.symbol,
+            waypoint_type: value.r#type,
+            x: value.x,
+            y: value.y,
+            orbitals: value.orbitals.iter().map(|o| o.symbol.clone()).collect(),
+            orbits: value.orbits,
             ..Default::default()
         }
     }

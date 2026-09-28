@@ -7,6 +7,6 @@ pub mod manager;
 pub mod open_telemetry;
 pub mod pilot;
 pub mod reset_runner;
-mod supply_chain_mapping;
-mod system_analyzation;
+pub mod supply_chain_mapping;
+pub mod system_analyzation;
 pub mod utils;
