@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 
 use space_traders_client::models;
-use utils::distance_between_waypoints;
+use utils::{WaypointCan, distance_between_waypoints};
 
-mod minimum_spanning_tree;
+pub mod minimum_spanning_tree;
 
 /**
  * System information stuff
@@ -40,47 +40,47 @@ pub fn check_waypoint(waypoint: &database::Waypoint) -> bool {
 
             waypoint.orbits.is_none()
                 && ((distance >= 7.0 && distance <= 289.0)
-                    || (distance > 406.0 && distance <= 414.0))
+                    || (distance >= 406.0 && distance <= 414.0))
         }
         models::WaypointType::JumpGate => {
             let distance = distance_between_waypoints((0, 0), (waypoint.x, waypoint.y));
 
             waypoint.orbits.is_none()
                 && waypoint.orbitals.is_empty()
-                && (distance > 446.0 && distance <= 454.0)
+                && (distance >= 446.0 && distance <= 454.0)
         }
         models::WaypointType::Asteroid => {
             let distance = distance_between_waypoints((0, 0), (waypoint.x, waypoint.y));
 
             waypoint.orbits.is_none()
                 && waypoint.orbitals.is_empty()
-                && ((distance > 307.0 && distance <= 393.0)
-                    || (distance > 707.0 && distance <= 793.0))
+                && ((distance >= 307.0 && distance <= 393.0)
+                    || (distance >= 707.0 && distance <= 793.0))
         }
         models::WaypointType::EngineeredAsteroid => {
             let distance = distance_between_waypoints((0, 0), (waypoint.x, waypoint.y));
 
             waypoint.orbits.is_none()
                 && waypoint.orbitals.is_empty()
-                && (distance > 24.0 && distance <= 31.0)
+                && (distance >= 24.0 && distance <= 31.0)
         }
         models::WaypointType::AsteroidBase => {
             let distance = distance_between_waypoints((0, 0), (waypoint.x, waypoint.y));
             waypoint.orbits.is_none()
                 && waypoint.orbitals.is_empty()
-                && ((distance > 296.0 && distance <= 304.0)
-                    || (distance > 342.0 && distance <= 348.0)
-                    || (distance > 716.0 && distance <= 723.0))
+                && ((distance >= 296.0 && distance <= 304.0)
+                    || (distance >= 342.0 && distance <= 348.0)
+                    || (distance >= 716.0 && distance <= 723.0))
         }
         models::WaypointType::FuelStation => {
             let distance = distance_between_waypoints((0, 0), (waypoint.x, waypoint.y));
             waypoint.orbits.is_none()
                 && waypoint.orbitals.is_empty()
-                && ((distance > 112.0 && distance <= 118.0)
-                    || (distance > 186.0 && distance <= 204.0)
-                    || (distance > 226.0 && distance <= 234.0)
-                    || (distance > 296.0 && distance <= 304.0)
-                    || (distance > 596.0 && distance <= 603.0))
+                && ((distance >= 112.0 && distance <= 118.0)
+                    || (distance >= 186.0 && distance <= 204.0)
+                    || (distance >= 226.0 && distance <= 234.0)
+                    || (distance >= 296.0 && distance <= 304.0)
+                    || (distance >= 596.0 && distance <= 603.0))
         }
         models::WaypointType::AsteroidField => false,
         models::WaypointType::Nebula => false,
@@ -90,16 +90,96 @@ pub fn check_waypoint(waypoint: &database::Waypoint) -> bool {
     }
 }
 
+#[derive(Debug, Default, Clone, PartialEq, serde::Serialize, async_graphql::SimpleObject)]
 pub struct SystemAnalyzation {
-    pub waypoint_count: i32,     // total count of waypoints in system
-    pub market_count: i32,       // total count of market waypoints in system
-    pub has_jump_gate: bool,     // true if system has jump gate
-    pub fuel_station_count: i32, // total count of fuel_stations in system
-    pub inner_system_count: i32, // total count of waypoints in inner system distance < 300
-    pub inner_system_market_count: i32,
-    pub first_asteroid_belt_count: i32,
-    pub second_asteroid_belt_count: i32,
-    pub other_asteroids_count: i32,
+    pub total_waypoint_count: u32, // total count of waypoints in system
+    pub total_market_count: u32,   // total count of market waypoints in system
+    pub has_jump_gate: bool,       // true if system has jump gate
+    pub fuel_station_count: u32,   // total count of fuel_stations in system
+    pub inner_system_count: u32,   // total count of waypoints in inner system distance < 300
+    pub inner_system_planet_count: u32, // total count of planets in inner system distance < 300
+    pub inner_system_planet_orbitals_count: u32, // total count of waypoints in inner system that orbit planets distance < 300
+    pub inner_system_gas_giant_count: u32, // total count of gas giants in inner system distance < 300
+    pub inner_system_gas_giant_orbitals_count: u32, // total count of waypoints in inner system that orbit gas giants distance < 300
+    pub inner_system_moon_count: u32, // total count of moons in inner system distance < 300
+    pub inner_system_orbital_station_count: u32, // total count of orbital stations in inner system distance < 300
+    pub first_asteroid_base_count: u32,          // count of asteroid bases between 296 to 303
+    pub second_asteroid_base_count: u32,         // count of asteroid bases between 342 to 348
+    pub third_asteroid_base_count: u32,          // count of asteroid bases between 716 to 723
+    pub first_asteroid_count: u32,               // count of asteroid belts between 307 to 393
+    pub second_asteroid_count: u32,              // count of asteroid belts between 707 to 793
+    pub outer_system_gas_giant_count: u32, // total count of gas giants in outer system distance > 300
+    pub outer_system_gas_giant_orbitals_count: u32, // total count of waypoints in outer system that orbit gas giants distance > 300
+    pub outer_system_moon_count: u32, // total count of moons in outer system distance > 300
+    pub outer_system_orbital_station_count: u32, // total count of orbital stations in outer system distance > 300
+}
+
+pub fn gen_system_analyzation(waypoints: &[database::Waypoint]) -> SystemAnalyzation {
+    let mut analyzation = SystemAnalyzation::default();
+
+    for waypoint in waypoints {
+        analyzation.total_waypoint_count += 1;
+        if waypoint.is_marketplace() {
+            analyzation.total_market_count += 1;
+        }
+        if waypoint.is_jump_gate() {
+            analyzation.has_jump_gate = true;
+        }
+        if waypoint.waypoint_type == models::WaypointType::FuelStation {
+            analyzation.fuel_station_count += 1;
+        }
+
+        let distance = distance_between_waypoints((0, 0), (waypoint.x, waypoint.y));
+
+        if distance < 300.0 {
+            analyzation.inner_system_count += 1;
+            if waypoint.waypoint_type == models::WaypointType::Planet {
+                analyzation.inner_system_planet_count += 1;
+                analyzation.inner_system_planet_orbitals_count += waypoint.orbitals.len() as u32;
+            }
+            if waypoint.waypoint_type == models::WaypointType::GasGiant {
+                analyzation.inner_system_gas_giant_count += 1;
+                analyzation.inner_system_gas_giant_orbitals_count += waypoint.orbitals.len() as u32;
+            }
+            if waypoint.waypoint_type == models::WaypointType::Moon {
+                analyzation.inner_system_moon_count += 1;
+            }
+            if waypoint.waypoint_type == models::WaypointType::OrbitalStation {
+                analyzation.inner_system_orbital_station_count += 1;
+            }
+        } else if distance > 300.0 {
+            if waypoint.waypoint_type == models::WaypointType::GasGiant {
+                analyzation.outer_system_gas_giant_count += 1;
+                analyzation.outer_system_gas_giant_orbitals_count += waypoint.orbitals.len() as u32;
+            }
+            if waypoint.waypoint_type == models::WaypointType::Moon {
+                analyzation.outer_system_moon_count += 1;
+            }
+            if waypoint.waypoint_type == models::WaypointType::OrbitalStation {
+                analyzation.outer_system_orbital_station_count += 1;
+            }
+        }
+
+        if waypoint.waypoint_type == models::WaypointType::AsteroidBase {
+            if distance > 296.0 && distance <= 303.0 {
+                analyzation.first_asteroid_base_count += 1;
+            } else if distance > 342.0 && distance <= 348.0 {
+                analyzation.second_asteroid_base_count += 1;
+            } else if distance > 716.0 && distance <= 723.0 {
+                analyzation.third_asteroid_base_count += 1;
+            }
+        }
+
+        if waypoint.waypoint_type == models::WaypointType::Asteroid {
+            if distance > 307.0 && distance <= 393.0 {
+                analyzation.first_asteroid_count += 1;
+            } else if distance > 707.0 && distance <= 793.0 {
+                analyzation.second_asteroid_count += 1;
+            }
+        }
+    }
+
+    analyzation
 }
 
 pub struct WaypointCluster<'a> {

@@ -2913,6 +2913,74 @@ impl GQLSystem {
             .collect();
         Ok(known_agents)
     }
+
+    async fn minimum_spanning_tree(
+        &self,
+        ctx: &async_graphql::Context<'_>,
+        only_markets: Option<bool>,
+    ) -> Result<Vec<SystemSpanningTreeEdge>> {
+        let loader = ctx
+            .data::<DataLoader<database::WaypointSystemLoader>>()
+            .unwrap();
+        let waypoints_unpaginated = loader
+            .load_one(self.system.symbol.clone())
+            .await?
+            .unwrap_or_else(|| Vec::new());
+
+        let minimum_tree =
+            crate::system_analyzation::minimum_spanning_tree::gen_minimum_spanning_tree(
+                &waypoints_unpaginated,
+                only_markets.unwrap_or(true),
+            );
+        Ok(minimum_tree
+            .into_iter()
+            .map(|f| SystemSpanningTreeEdge {
+                from_symbol: f.from.symbol.clone(),
+                to_symbol: f.to.symbol.clone(),
+                distance: f.distance,
+            })
+            .collect())
+    }
+
+    async fn system_analyzation(
+        &self,
+        ctx: &async_graphql::Context<'_>,
+    ) -> Result<crate::system_analyzation::SystemAnalyzation> {
+        let loader = ctx
+            .data::<DataLoader<database::WaypointSystemLoader>>()
+            .unwrap();
+        let waypoints_unpaginated = loader
+            .load_one(self.system.symbol.clone())
+            .await?
+            .unwrap_or_else(|| Vec::new());
+
+        let system_analyzation =
+            crate::system_analyzation::gen_system_analyzation(&waypoints_unpaginated);
+        Ok(system_analyzation)
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, serde::Serialize, async_graphql::SimpleObject)]
+#[graphql(complex)]
+struct SystemSpanningTreeEdge {
+    pub from_symbol: String,
+    pub to_symbol: String,
+    pub distance: f64,
+}
+
+#[async_graphql::ComplexObject]
+impl SystemSpanningTreeEdge {
+    async fn from(&self, ctx: &async_graphql::Context<'_>) -> Result<Option<GQLWaypoint>> {
+        let data_loader = ctx.data::<DataLoader<database::WaypointLoader>>().unwrap();
+        let waypoint = data_loader.load_one(self.from_symbol.clone()).await?;
+        Ok(into_gql(waypoint))
+    }
+
+    async fn to(&self, ctx: &async_graphql::Context<'_>) -> Result<Option<GQLWaypoint>> {
+        let data_loader = ctx.data::<DataLoader<database::WaypointLoader>>().unwrap();
+        let waypoint = data_loader.load_one(self.to_symbol.clone()).await?;
+        Ok(into_gql(waypoint))
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, serde::Serialize, async_graphql::SimpleObject)]
@@ -3424,6 +3492,10 @@ paginated_gql_object!(
 
 #[async_graphql::ComplexObject]
 impl GQLWaypoint {
+    async fn distance_to_home(&self, ctx: &async_graphql::Context<'_>) -> f64 {
+        utils::distance_between_waypoints((0, 0), (self.waypoint.x, self.waypoint.y))
+    }
+
     async fn system(&self, ctx: &async_graphql::Context<'_>) -> Result<Option<GQLSystem>> {
         let data_loader = ctx.data::<DataLoader<database::SystemLoader>>().unwrap();
         let system = data_loader
