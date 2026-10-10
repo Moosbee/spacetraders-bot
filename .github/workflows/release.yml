@@ -1,0 +1,74 @@
+name: Release
+
+# Build release binaries and publish them to a GitHub prerelease.
+# Trigger: push a tag like `v1.2.3` to create a prerelease and attach
+# the built binaries to it.
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  create-release:
+    name: Create prerelease
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create GitHub prerelease
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release create "${{ github.ref_name }}" --prerelease --generate-notes
+
+  build:
+    name: Build and upload (${{ matrix.target }})
+    needs: create-release
+    runs-on: ${{ matrix.os }}
+    env:
+      # Ignore the local `--cfg tokio_unstable` rustflag from .cargo/config.toml.
+      RUSTFLAGS: ""
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+          - target: aarch64-unknown-linux-gnu
+            os: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      # aarch64-unknown-linux-gnu is cross-compiled from the x86_64 Ubuntu
+      # runner. This action installs the aarch64 toolchain and the target's
+      # libssl-dev (required by native-tls/sqlx).
+      - name: Install cross-compilation tools (aarch64)
+        if: matrix.target == 'aarch64-unknown-linux-gnu'
+        uses: taiki-e/setup-cross-toolchain-action@v1
+        with:
+          target: aarch64-unknown-linux-gnu
+          package: libssl-dev
+          runner: none
+
+      - name: Install OpenSSL (x86_64 Linux)
+        if: matrix.target == 'x86_64-unknown-linux-gnu'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y libssl-dev pkg-config
+
+      - name: Build and upload binary
+        uses: taiki-e/upload-rust-binary-action@v1
+        with:
+          bin: spacetraders
+          target: ${{ matrix.target }}
+          checksum: sha256
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
