@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n              SELECT\n                id,\n                system_symbol,\n                fleet_type as \"fleet_type: FleetType\",\n                active,\n                created_at,\n                updated_at,\n                market_blacklist as \"market_blacklist: Vec<models::TradeSymbol>\",\n                market_prefer_list as \"market_prefer_list: Vec<models::TradeSymbol>\",\n                purchase_multiplier,\n                ship_market_ratio,\n                min_cargo_space,\n                trade_mode as \"trade_mode: TradeMode\",\n                trade_profit_threshold,\n                allowed_requests,\n                notify_on_shipyard,\n                mining_eject_list as \"mining_eject_list: Vec<models::TradeSymbol>\",\n                mining_prefer_list as \"mining_prefer_list: Vec<models::TradeSymbol>\",\n                ignore_engineered_asteroids,\n                stop_all_unstable,\n                mining_waypoints,\n                unstable_since_timeout,\n                syphon_waypoints,\n                miners_per_waypoint,\n                siphoners_per_waypoint,\n                surveyors_per_waypoint,\n                mining_transporters_per_waypoint,\n                min_transporter_cargo_space,\n                min_mining_cargo_space,\n                min_siphon_cargo_space,\n                charting_probe_count,\n                chart_only_jump_gates,\n                construction_ship_count,\n                construction_waypoint,\n                construction_mode as \"construction_mode: ConstructionMode\",\n                contract_ship_count\n              FROM fleet\n              WHERE id = ANY($1)\n          ",
+  "query": "\n                        SELECT\n                          id,\n                          system_symbol,\n                          fleet_type as \"fleet_type: FleetType\",\n                          active,\n                          created_at,\n                          updated_at,\n                          market_blacklist as \"market_blacklist: Vec<models::TradeSymbol>\",\n                          market_prefer_list as \"market_prefer_list: Vec<models::TradeSymbol>\",\n                          purchase_multiplier,\n                          ship_market_ratio,\n                          min_cargo_space,\n                          trade_mode as \"trade_mode: TradeMode\",\n                          trade_profit_threshold,\n                          allowed_requests,\n                          notify_on_shipyard,\n                          mining_eject_list as \"mining_eject_list: Vec<models::TradeSymbol>\",\n                          mining_prefer_list as \"mining_prefer_list: Vec<models::TradeSymbol>\",\n                          ignore_engineered_asteroids,\n                          stop_all_unstable,\n                          mining_waypoints,\n                          unstable_since_timeout,\n                          syphon_waypoints,\n                          miners_per_waypoint,\n                          siphoners_per_waypoint,\n                          surveyors_per_waypoint,\n                          mining_transporters_per_waypoint,\n                          min_transporter_cargo_space,\n                          min_mining_cargo_space,\n                          min_siphon_cargo_space,\n                          charting_probe_count,\n                          chart_only_jump_gates,\n                          construction_ship_count,\n                          construction_waypoint,\n                          construction_mode as \"construction_mode: ConstructionMode\",\n                          contract_ship_count,\n                          priority\n                        FROM fleet\n                        LIMIT $1 OFFSET $2\n                    ",
   "describe": {
     "columns": [
       {
@@ -856,11 +856,17 @@
         "ordinal": 34,
         "name": "contract_ship_count",
         "type_info": "Int4"
+      },
+      {
+        "ordinal": 35,
+        "name": "priority",
+        "type_info": "Int4"
       }
     ],
     "parameters": {
       "Left": [
-        "Int4Array"
+        "Int8",
+        "Int8"
       ]
     },
     "nullable": [
@@ -898,8 +904,9 @@
       true,
       true,
       true,
-      true
+      true,
+      false
     ]
   },
-  "hash": "4a9c22c455603ff98876b6d1335d10b4524c9ab27870bacb234bda755db5eca2"
+  "hash": "249d6ee3e3efb80025eb88f0bd4a3e23d7e945b02529a91b51636f5b0372e4ce"
 }

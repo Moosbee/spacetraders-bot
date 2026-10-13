@@ -1,27 +1,19 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n                    SELECT DISTINCT ON (symbol)\n                        id,\n                        created_at,\n                        waypoint_symbol,\n                        symbol as \"symbol: models::TradeSymbol\",\n                        \"type\" as \"type: models::market_trade_good::Type\",\n                        trade_volume,\n                        supply as \"supply: models::SupplyLevel\",\n                        activity as \"activity: models::ActivityLevel\",\n                        purchase_price,\n                        sell_price\n                    FROM public.market_trade_good\n                    ORDER BY symbol, created_at DESC\n                ",
+  "query": "\n      INSERT INTO market_transaction (waypoint_symbol, ship_symbol, trade_symbol, \"type\", units, price_per_unit, total_price, is_fuel, \"timestamp\", contract, trade_route, mining, construction)\n      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)\n      ON CONFLICT (waypoint_symbol, ship_symbol, trade_symbol, \"timestamp\") DO UPDATE\n      SET units = EXCLUDED.units,\n      price_per_unit = EXCLUDED.price_per_unit,\n      total_price = EXCLUDED.total_price\n      returning id\n    ",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
         "name": "id",
         "type_info": "Int8"
-      },
-      {
-        "ordinal": 1,
-        "name": "created_at",
-        "type_info": "Timestamptz"
-      },
-      {
-        "ordinal": 2,
-        "name": "waypoint_symbol",
-        "type_info": "Varchar"
-      },
-      {
-        "ordinal": 3,
-        "name": "symbol: models::TradeSymbol",
-        "type_info": {
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Varchar",
+        "Varchar",
+        {
           "Custom": {
             "name": "trade_symbol",
             "kind": {
@@ -174,90 +166,32 @@
               ]
             }
           }
-        }
-      },
-      {
-        "ordinal": 4,
-        "name": "type: models::market_trade_good::Type",
-        "type_info": {
+        },
+        {
           "Custom": {
-            "name": "market_trade_good_type",
+            "name": "market_transaction_type",
             "kind": {
               "Enum": [
-                "EXPORT",
-                "IMPORT",
-                "EXCHANGE"
+                "PURCHASE",
+                "SELL"
               ]
             }
           }
-        }
-      },
-      {
-        "ordinal": 5,
-        "name": "trade_volume",
-        "type_info": "Int4"
-      },
-      {
-        "ordinal": 6,
-        "name": "supply: models::SupplyLevel",
-        "type_info": {
-          "Custom": {
-            "name": "supply_level",
-            "kind": {
-              "Enum": [
-                "SCARCE",
-                "LIMITED",
-                "MODERATE",
-                "HIGH",
-                "ABUNDANT"
-              ]
-            }
-          }
-        }
-      },
-      {
-        "ordinal": 7,
-        "name": "activity: models::ActivityLevel",
-        "type_info": {
-          "Custom": {
-            "name": "activity_level",
-            "kind": {
-              "Enum": [
-                "WEAK",
-                "GROWING",
-                "STRONG",
-                "RESTRICTED"
-              ]
-            }
-          }
-        }
-      },
-      {
-        "ordinal": 8,
-        "name": "purchase_price",
-        "type_info": "Int4"
-      },
-      {
-        "ordinal": 9,
-        "name": "sell_price",
-        "type_info": "Int4"
-      }
-    ],
-    "parameters": {
-      "Left": []
+        },
+        "Int4",
+        "Int4",
+        "Int4",
+        "Bool",
+        "Timestamptz",
+        "Varchar",
+        "Int4",
+        "Varchar",
+        "Int8"
+      ]
     },
     "nullable": [
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      true,
-      false,
       false
     ]
   },
-  "hash": "36101a4e3f42ca22d765feb9996c2317153f31a2f085fad9d016870aedb68af9"
+  "hash": "ba9ca9649894f2c2c71af8eb4fed41bcade5d572655069b5d15ceb2c31fb10af"
 }

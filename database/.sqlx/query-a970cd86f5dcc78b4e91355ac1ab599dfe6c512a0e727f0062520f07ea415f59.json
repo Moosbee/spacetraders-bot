@@ -1,0 +1,43 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE fleet SET construction_mode = $1::construction_mode, fleet_type = $2::fleet_type, updated_at = NOW() WHERE id = $3",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        {
+          "Custom": {
+            "name": "construction_mode",
+            "kind": {
+              "Enum": [
+                "LowestPurchaseCost",
+                "LowestAbsoluteProgress",
+                "LowestPercentProgress",
+                "BestPurchaseSupply"
+              ]
+            }
+          }
+        },
+        {
+          "Custom": {
+            "name": "fleet_type",
+            "kind": {
+              "Enum": [
+                "Trading",
+                "Scrapping",
+                "Mining",
+                "Charting",
+                "Construction",
+                "Manuel",
+                "Contract"
+              ]
+            }
+          }
+        },
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "a970cd86f5dcc78b4e91355ac1ab599dfe6c512a0e727f0062520f07ea415f59"
+}

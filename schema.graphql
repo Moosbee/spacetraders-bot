@@ -513,6 +513,7 @@ type Fleet {
 	systemSymbol: String!
 	fleetType: FleetType!
 	active: Boolean!
+	priority: Int!
 	createdAt: DateTime!
 	updatedAt: DateTime!
 	config: FleetConfig!
