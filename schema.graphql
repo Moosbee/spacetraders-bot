@@ -2040,6 +2040,31 @@ type System {
   ships: [Ship!]!
   tradeRouteCandidates(page: Int, pageSize: Int): TradeRouteCandidatePage!
   seenAgents: [KnownAgent!]!
+  minimumSpanningTree(onlyMarkets: Boolean): [SystemSpanningTreeEdge!]!
+  systemAnalyzation: SystemAnalyzation!
+}
+
+type SystemAnalyzation {
+  totalWaypointCount: Int!
+  totalMarketCount: Int!
+  hasJumpGate: Boolean!
+  fuelStationCount: Int!
+  innerSystemCount: Int!
+  innerSystemPlanetCount: Int!
+  innerSystemPlanetOrbitalsCount: Int!
+  innerSystemGasGiantCount: Int!
+  innerSystemGasGiantOrbitalsCount: Int!
+  innerSystemMoonCount: Int!
+  innerSystemOrbitalStationCount: Int!
+  firstAsteroidBaseCount: Int!
+  secondAsteroidBaseCount: Int!
+  thirdAsteroidBaseCount: Int!
+  firstAsteroidCount: Int!
+  secondAsteroidCount: Int!
+  outerSystemGasGiantCount: Int!
+  outerSystemGasGiantOrbitalsCount: Int!
+  outerSystemMoonCount: Int!
+  outerSystemOrbitalStationCount: Int!
 }
 
 type SystemPage {
@@ -2060,6 +2085,14 @@ type SystemScrappingState {
   state: SystemScrappingEnum!
   total: Int!
   current: Int!
+}
+
+type SystemSpanningTreeEdge {
+  fromSymbol: String!
+  toSymbol: String!
+  distance: Float!
+  from: Waypoint
+  to: Waypoint
 }
 
 """
@@ -2457,6 +2490,7 @@ type Waypoint {
   unstableSince: DateTime
   hasShipyard: Boolean!
   hasMarketplace: Boolean!
+  distanceToHome: Float!
   system: System
   ships: [Ship!]!
   chartTransaction: ChartTransaction
