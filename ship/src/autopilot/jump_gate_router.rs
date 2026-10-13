@@ -125,38 +125,43 @@ impl JumpGateRouterCache {
         from_system: &str,
         to_system: &str,
         no_under_construction: bool,
-    ) -> Option<&'a [JumpConnection]> {
-        if !self.cache.contains_key(&(
-            from_system.to_string(),
-            to_system.to_string(),
-            no_under_construction,
-        )) {
-            debug!(
-                key = ?(from_system.to_string(), to_system.to_string(), no_under_construction),
-                "Jump Route Cache miss"
-            );
-            let route = self
-                .router
-                .find_jump_route(from_system, to_system, no_under_construction);
-            let route = route?;
-            self.cache.insert(
-                (
-                    from_system.to_string(),
-                    to_system.to_string(),
-                    no_under_construction,
-                ),
-                route,
-            );
-        }
+        // ) -> Option<&'a [JumpConnection]> {
+    ) -> Option<Vec<JumpConnection>> {
+        return self
+            .router
+            .find_jump_route(from_system, to_system, no_under_construction);
 
-        Some(self.cache
-            .get(&(from_system.to_string(), to_system.to_string(), no_under_construction))
-            .unwrap_or_else(|| {
-                panic!(
-                    "We should have importet the route in the cache(find_cached_route) key: {:?}",
-                    (from_system.to_string(), to_system.to_string())
-                )
-            }))
+        // if !self.cache.contains_key(&(
+        //     from_system.to_string(),
+        //     to_system.to_string(),
+        //     no_under_construction,
+        // )) {
+        //     debug!(
+        //         key = ?(from_system.to_string(), to_system.to_string(), no_under_construction),
+        //         "Jump Route Cache miss"
+        //     );
+        //     let route = self
+        //         .router
+        //         .find_jump_route(from_system, to_system, no_under_construction);
+        //     let route = route?;
+        //     self.cache.insert(
+        //         (
+        //             from_system.to_string(),
+        //             to_system.to_string(),
+        //             no_under_construction,
+        //         ),
+        //         route,
+        //     );
+        // }
+
+        // Some(self.cache
+        //     .get(&(from_system.to_string(), to_system.to_string(), no_under_construction))
+        //     .unwrap_or_else(|| {
+        //         panic!(
+        //             "We should have importet the route in the cache(find_cached_route) key: {:?}",
+        //             (from_system.to_string(), to_system.to_string())
+        //         )
+        //     }))
     }
 
     pub(crate) fn get_jump_gate(&self, start_system: &str) -> Option<String> {

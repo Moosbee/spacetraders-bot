@@ -101,8 +101,6 @@ async fn main() -> anyhow::Result<()> {
             }
         }
 
-        wait_for_api().await?;
-
         // check db if already has an agent, if not create agent
         let agent_token = {
             let db_agent_token = database::Configuration::get_agent_token(&database_pool).await?;
@@ -111,6 +109,8 @@ async fn main() -> anyhow::Result<()> {
                 info!("Using existing agent token from database");
                 db_agent_token
             } else {
+                wait_for_api().await?;
+
                 info!(%agent_symbol, "Registering new agent");
                 let account_api =
                     space_traders_client::Api::new(None, 500, NonZeroU32::new(2).unwrap());
