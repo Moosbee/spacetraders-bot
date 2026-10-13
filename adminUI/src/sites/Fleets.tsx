@@ -61,6 +61,13 @@ function Fleets() {
       sorter: (a, b) => Number(a.active) - Number(b.active),
     },
     {
+      title: "Priority",
+      dataIndex: "priority",
+      key: "priority",
+      align: "right",
+      sorter: (a, b) => a.priority - b.priority,
+    },
+    {
       title: "Assignments",
       key: "assignments",
       render: (_: unknown, record) => {

@@ -2496,6 +2496,7 @@ export const GET_FLEETS = graphql(/* GraphQL */ `
         systemSymbol
         fleetType
         active
+        priority
         config {
           __typename
           ... on MiningConfig {
@@ -2578,6 +2579,7 @@ export const GET_FLEET = graphql(/* GraphQL */ `
       systemSymbol
       fleetType
       active
+      priority
       config {
         __typename
         ... on MiningConfig {

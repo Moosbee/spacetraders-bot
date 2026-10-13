@@ -21,3 +21,12 @@ export const REGENERATE_FLEET_ASSIGNMENTS = graphql(/* GraphQL */ `
     regenerateFleetAssignments(by: { fleet: $fleet_id })
   }
 `);
+
+export const EDIT_FLEET = graphql(/* GraphQL */ `
+  mutation EditFleet($id: Int!, $priority: Int) {
+    editFleet(id: $id, priority: $priority) {
+      id
+      priority
+    }
+  }
+`);
