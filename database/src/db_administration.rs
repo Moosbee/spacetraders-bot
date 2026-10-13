@@ -1,4 +1,4 @@
-use anyhow::Result;
+use crate::Result;
 use sqlx::{Connection, postgres::PgPoolOptions};
 use std::{path::Path, time::Duration};
 use tokio::process::Command;
@@ -8,7 +8,7 @@ use tracing::{debug, error, info, instrument};
 pub async fn create_database_pool(
     database_url: &str,
     readyset_url: Option<&String>,
-) -> Result<database::DbPool, anyhow::Error> {
+) -> Result<crate::DbPool, crate::Error> {
     info!("Creating database connection pool");
     let database_pool = PgPoolOptions::new()
         .max_connections(40)
@@ -34,14 +34,14 @@ pub async fn create_database_pool(
         None
     };
 
-    let database_pool = database::DbPool::new(database_pool, readyset_pool);
+    let database_pool = crate::DbPool::new(database_pool, readyset_pool);
 
     Ok(database_pool)
 }
 
 // destroys the current connection and completely resets the database
 #[instrument(skip(db, database_url))]
-pub async fn reset_database(db: database::DbPool, database_url: &str) -> Result<(), anyhow::Error> {
+pub async fn reset_database(db: crate::DbPool, database_url: &str) -> Result<(), crate::Error> {
     info!("Resetting database");
     if let Some(readyset_pool) = &db.readyset_pool {
         readyset_pool.close().await;
@@ -82,9 +82,7 @@ pub async fn reset_database(db: database::DbPool, database_url: &str) -> Result<
 pub async fn export_database(database_url: &str, file_name: &str) -> Result<String> {
     if !cfg!(target_os = "linux") {
         tracing::error!("Only Linux is supported for database backups");
-        return Err(anyhow::anyhow!(
-            "Only Linux is supported for database backups"
-        ));
+        return Err(crate::Error::OnlyLinuxForBackups);
     }
 
     let dump_file = format!("./db_backup/{}.sql.gz", file_name);
@@ -109,6 +107,6 @@ pub async fn export_database(database_url: &str, file_name: &str) -> Result<Stri
     } else {
         let stderr = String::from_utf8_lossy(&output.stderr);
         error!("pg_dump failed: {}", stderr);
-        Err(anyhow::anyhow!("pg_dump failed: {}", stderr))
+        Err(crate::Error::PgDumpFailed(stderr.to_string()))
     }
 }

@@ -32,6 +32,7 @@ mod mount_info;
 mod reactor_info;
 
 mod configuration;
+pub mod db_administration;
 mod export_import;
 mod extraction;
 mod fleet;
@@ -121,6 +122,9 @@ pub enum Error {
     #[error(transparent)]
     Database(#[from] sqlx::Error),
 
+    #[error(transparent)]
+    Io(#[from] std::io::Error),
+
     #[error("Invalid ship info role: {0}")]
     InvalidShipInfoRole(String),
 
@@ -141,6 +145,12 @@ pub enum Error {
 
     #[error("Incomplete fleet config for fleet ID {fleet_id:?}")]
     IncompleteFleetConfig { fleet_id: i32 },
+
+    #[error("Only linux is supported for database backups")]
+    OnlyLinuxForBackups,
+
+    #[error("pg_dump failed: {0}")]
+    PgDumpFailed(String),
 }
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;

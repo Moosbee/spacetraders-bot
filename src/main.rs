@@ -18,7 +18,7 @@ use tracing::{error, info};
 
 use tracing_subscriber::{fmt::format, layer::SubscriberExt};
 
-use spacetraders::db_administration::{create_database_pool, export_database, reset_database};
+use database::db_administration::{create_database_pool, export_database, reset_database};
 use spacetraders::open_telemetry;
 use spacetraders::reset_runner;
 
