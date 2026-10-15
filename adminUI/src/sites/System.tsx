@@ -346,7 +346,7 @@ function System() {
       </Space>
       <br />
 
-      <Flex gap={10} align="stretch">
+      <Flex gap={10} align="stretch" wrap>
         <Descriptions bordered column={3} items={items} />
         <div className="flex flex-col items-center justify-center">
           <Card size="small" title="Known Agents">
@@ -395,7 +395,7 @@ function System() {
             />
           </Card>
         </div>
-        <div className="h-auto w-auto flex-auto flex flex-row-reverse">
+        <div className="h-100">
           <Card className="h-full aspect-square" classNames={{ body: "p-2!" }}>
             {system && (
               <div className="overflow-hidden w-full aspect-square">
@@ -425,6 +425,7 @@ function System() {
                           highlightSelectedShip: false,
                           highlightSelectedWaypoint: true,
                           showAutoPilot: "NONE",
+                          showOnlyMarkets: false,
                         }}
                       />
                     </div>

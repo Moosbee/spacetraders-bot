@@ -1,8 +1,11 @@
 import { Button, Card, Col, Flex, theme } from "antd";
 import { toPng } from "html-to-image";
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { GetSystemsWithFleetsOrShipsQuery } from "../../gql/graphql";
+import {
+  GetSystemsWithFleetsOrShipsQuery,
+  TradeSymbol,
+} from "../../gql/graphql";
 import { cn } from "../../utils/utils";
 import { systemIcons } from "../../utils/waypointColors";
 import WaypointMap from "../WaypointMap/WaypointMap";
@@ -20,6 +23,20 @@ function SystemCard({
     systemIcons[system.systemType] ?? systemIcons.BLACK_HOLE;
 
   const [loading, setLoading] = useState(false);
+
+  const marketOpportunities = useMemo(() => {
+    const opportunities = (system?.marketTrades.items || []).reduce(
+      (a, b) => {
+        a[b.symbol] = a[b.symbol] || 0;
+        a[b.symbol] += 1;
+
+        return a;
+      },
+      {} as Record<TradeSymbol, number>,
+    );
+
+    return opportunities;
+  }, [system?.marketTrades]);
 
   const {
     token: { colorBgBase },
@@ -98,11 +115,20 @@ function SystemCard({
                     highlightSelectedShip: false,
                     highlightSelectedWaypoint: false,
                     showAutoPilot: "NONE",
+                    showOnlyMarkets: false,
                   }}
                 />
               </div>
             </div>
           </div>
+        </div>
+        <div className="mt-4">
+          Inner System {system.systemAnalyzation.innerSystemCount}
+          <br />
+          Market Opportunities{" "}
+          {Object.entries(marketOpportunities)
+            .filter((s) => s[0] !== "FUEL")
+            .reduce((a, b) => a + (b[1] * (b[1] - 1)) / 2, 0)}
         </div>
       </Card>
     </Col>
