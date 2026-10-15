@@ -1,0 +1,20 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                    SELECT COUNT(*) as \"count!\"\n                    FROM (\n                        SELECT DISTINCT ON (symbol)\n                            symbol\n                        FROM public.market_trade_good\n                        ORDER BY symbol, created_at DESC\n                    ) sub\n                    ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "count!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "e4696b7a5f104f44e7c88df58ba1a8ee89f40be5d8fb7ac6156e4262c9d61d6a"
+}

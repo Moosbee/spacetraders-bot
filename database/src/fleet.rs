@@ -16,9 +16,7 @@ pub struct Fleet {
     pub id: i32,
     pub system_symbol: String,
     pub fleet_type: FleetType,
-
     pub active: bool, // if false, ships should not be assigned or purchased for this fleet, but already assigned ships remain but are paused
-    pub priority: i32,
     pub created_at: chrono::DateTime<chrono::Utc>,
     pub updated_at: chrono::DateTime<chrono::Utc>,
     // add the config...
@@ -100,7 +98,6 @@ impl Default for Fleet {
             system_symbol: String::new(),
             fleet_type: FleetType::Manuel,
             active: false,
-            priority: 1000,
             created_at: chrono::Utc::now(),
             updated_at: chrono::Utc::now(),
             market_blacklist: None,
@@ -235,14 +232,13 @@ impl DatabaseConnectorAsync for Fleet {
                                     construction_ship_count,
                                     construction_waypoint,
                                     construction_mode,
-                                    contract_ship_count,
-                                    priority
+                                    contract_ship_count
                                 )
                                 VALUES (
                                     $1, $2::fleet_type, $3, NOW(), NOW(),
                                     $4, $5, $6, $7, $8, $9::trade_mode, $10,
                                     $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24,
-                                    $25, $26, $27, $28, $29, $30, $31, $32, $33
+                                    $25, $26, $27, $28, $29, $30, $31, $32
                                 )
                                 RETURNING id;
                         "#,
@@ -278,7 +274,6 @@ impl DatabaseConnectorAsync for Fleet {
                         &item.construction_waypoint as &Option<String>,
                         &item.construction_mode as &Option<ConstructionMode>,
                         &item.contract_ship_count as &Option<i32>,
-                        &item.priority,
                 )
                 .fetch_one(&database_pool.database_pool)
                 .await?;
@@ -324,14 +319,13 @@ impl DatabaseConnectorAsync for Fleet {
                   construction_ship_count,
                   construction_waypoint,
                   construction_mode,
-                  contract_ship_count,
-                  priority
+                  contract_ship_count
                 )
                 VALUES (
                   $1, $2, $3::fleet_type, $4, NOW(), NOW(),
                   $5, $6, $7, $8, $9, $10::trade_mode, $11,
                   $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24,
-                  $25, $26, $27, $28, $29, $30, $31, $32, $33, $34
+                  $25, $26, $27, $28, $29, $30, $31, $32, $33
                 )
                 ON CONFLICT (id) DO UPDATE SET
                   system_symbol = EXCLUDED.system_symbol,
@@ -366,8 +360,7 @@ impl DatabaseConnectorAsync for Fleet {
                   construction_ship_count = EXCLUDED.construction_ship_count,
                   construction_waypoint = EXCLUDED.construction_waypoint,
                   construction_mode = EXCLUDED.construction_mode,
-                  contract_ship_count = EXCLUDED.contract_ship_count,
-                  priority = EXCLUDED.priority;
+                  contract_ship_count = EXCLUDED.contract_ship_count;
             "#,
             &item.id,
             &item.system_symbol,
@@ -402,7 +395,6 @@ impl DatabaseConnectorAsync for Fleet {
             &item.construction_waypoint as &Option<String>,
             &item.construction_mode as &Option<ConstructionMode>,
             &item.contract_ship_count as &Option<i32>,
-            &item.priority,
         )
         .execute(&database_pool.database_pool)
         .await?;
@@ -468,8 +460,7 @@ impl DatabaseConnectorAsync for Fleet {
                           construction_ship_count,
                           construction_waypoint,
                           construction_mode as "construction_mode: ConstructionMode",
-                          contract_ship_count,
-                          priority
+                          contract_ship_count
                         FROM fleet
                         LIMIT $1 OFFSET $2
                     "#,
@@ -519,8 +510,7 @@ impl DatabaseConnectorAsync for Fleet {
                           construction_ship_count,
                           construction_waypoint,
                           construction_mode as "construction_mode: ConstructionMode",
-                          contract_ship_count,
-                          priority
+                          contract_ship_count
                         FROM fleet
                     "#
                 )
@@ -583,8 +573,7 @@ impl DatabaseConnectorAsync for Fleet {
                   construction_ship_count,
                   construction_waypoint,
                   construction_mode as "construction_mode: ConstructionMode",
-                  contract_ship_count,
-                  priority
+                  contract_ship_count
                 FROM fleet
                 WHERE id = $1
             "#,
@@ -1130,14 +1119,13 @@ impl Fleet {
                   construction_ship_count,
                   construction_waypoint,
                   construction_mode,
-                  contract_ship_count,
-                  priority
+                  contract_ship_count
                 )
                 VALUES (
                   $1, $2::fleet_type, $3, NOW(), NOW(),
                   $4, $5, $6, $7, $8, $9::trade_mode, $10,
                   $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24,
-                  $25, $26, $27, $28, $29, $30, $31, $32, $33
+                  $25, $26, $27, $28, $29, $30, $31, $32
                 )
                 RETURNING id;
             "#,
@@ -1173,7 +1161,6 @@ impl Fleet {
             &item.construction_waypoint as &Option<String>,
             &item.construction_mode as &Option<ConstructionMode>,
             &item.contract_ship_count as &Option<i32>,
-            &item.priority,
         )
         .fetch_one(&database_pool.database_pool)
         .await?;
@@ -1225,8 +1212,7 @@ impl Fleet {
                 construction_ship_count,
                 construction_waypoint,
                 construction_mode as "construction_mode: ConstructionMode",
-                contract_ship_count,
-                priority
+                contract_ship_count
               FROM fleet
               WHERE id = ANY($1)
           "#,
@@ -1288,8 +1274,7 @@ impl Fleet {
                           construction_ship_count,
                           construction_waypoint,
                           construction_mode as "construction_mode: ConstructionMode",
-                          contract_ship_count,
-                          priority
+                          contract_ship_count
                         FROM fleet
                         WHERE system_symbol = $1
                         LIMIT $2 OFFSET $3
@@ -1341,8 +1326,7 @@ impl Fleet {
                           construction_ship_count,
                           construction_waypoint,
                           construction_mode as "construction_mode: ConstructionMode",
-                          contract_ship_count,
-                          priority
+                          contract_ship_count
                         FROM fleet
                         WHERE system_symbol = $1
                     "#,
@@ -1412,8 +1396,7 @@ impl Fleet {
                   construction_ship_count,
                   construction_waypoint,
                   construction_mode as "construction_mode: ConstructionMode",
-                  contract_ship_count,
-                  priority
+                  contract_ship_count
                 FROM fleet
                 WHERE system_symbol = ANY($1)
             "#,
@@ -1471,8 +1454,7 @@ impl Fleet {
                           construction_ship_count,
                           construction_waypoint,
                           construction_mode as "construction_mode: ConstructionMode",
-                          contract_ship_count,
-                          priority
+                          contract_ship_count
                         FROM fleet
                         WHERE fleet_type = $1
                         LIMIT $2 OFFSET $3
@@ -1524,8 +1506,7 @@ impl Fleet {
                           construction_ship_count,
                           construction_waypoint,
                           construction_mode as "construction_mode: ConstructionMode",
-                          contract_ship_count,
-                          priority
+                          contract_ship_count
                         FROM fleet
                         WHERE fleet_type = $1
                     "#,
@@ -1592,8 +1573,7 @@ impl Fleet {
                   construction_ship_count,
                   construction_waypoint,
                   construction_mode as "construction_mode: ConstructionMode",
-                  contract_ship_count,
-                  priority
+                  contract_ship_count
                 FROM fleet
                 WHERE id = $1
             "#,

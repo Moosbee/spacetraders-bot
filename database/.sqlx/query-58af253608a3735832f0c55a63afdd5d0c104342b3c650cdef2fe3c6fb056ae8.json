@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n                        SELECT\n                          id,\n                          system_symbol,\n                          fleet_type as \"fleet_type: FleetType\",\n                          active,\n                          created_at,\n                          updated_at,\n                          market_blacklist as \"market_blacklist: Vec<models::TradeSymbol>\",\n                          market_prefer_list as \"market_prefer_list: Vec<models::TradeSymbol>\",\n                          purchase_multiplier,\n                          ship_market_ratio,\n                          min_cargo_space,\n                          trade_mode as \"trade_mode: TradeMode\",\n                          trade_profit_threshold,\n                          allowed_requests,\n                          notify_on_shipyard,\n                          mining_eject_list as \"mining_eject_list: Vec<models::TradeSymbol>\",\n                          mining_prefer_list as \"mining_prefer_list: Vec<models::TradeSymbol>\",\n                          ignore_engineered_asteroids,\n                          stop_all_unstable,\n                          mining_waypoints,\n                          unstable_since_timeout,\n                          syphon_waypoints,\n                          miners_per_waypoint,\n                          siphoners_per_waypoint,\n                          surveyors_per_waypoint,\n                          mining_transporters_per_waypoint,\n                          min_transporter_cargo_space,\n                          min_mining_cargo_space,\n                          min_siphon_cargo_space,\n                          charting_probe_count,\n                          chart_only_jump_gates,\n                          construction_ship_count,\n                          construction_waypoint,\n                          construction_mode as \"construction_mode: ConstructionMode\",\n                          contract_ship_count,\n                          priority\n                        FROM fleet\n                        WHERE fleet_type = $1\n                        LIMIT $2 OFFSET $3\n                    ",
+  "query": "\n                        SELECT\n                          id,\n                          system_symbol,\n                          fleet_type as \"fleet_type: FleetType\",\n                          active,\n                          created_at,\n                          updated_at,\n                          market_blacklist as \"market_blacklist: Vec<models::TradeSymbol>\",\n                          market_prefer_list as \"market_prefer_list: Vec<models::TradeSymbol>\",\n                          purchase_multiplier,\n                          ship_market_ratio,\n                          min_cargo_space,\n                          trade_mode as \"trade_mode: TradeMode\",\n                          trade_profit_threshold,\n                          allowed_requests,\n                          notify_on_shipyard,\n                          mining_eject_list as \"mining_eject_list: Vec<models::TradeSymbol>\",\n                          mining_prefer_list as \"mining_prefer_list: Vec<models::TradeSymbol>\",\n                          ignore_engineered_asteroids,\n                          stop_all_unstable,\n                          mining_waypoints,\n                          unstable_since_timeout,\n                          syphon_waypoints,\n                          miners_per_waypoint,\n                          siphoners_per_waypoint,\n                          surveyors_per_waypoint,\n                          mining_transporters_per_waypoint,\n                          min_transporter_cargo_space,\n                          min_mining_cargo_space,\n                          min_siphon_cargo_space,\n                          charting_probe_count,\n                          chart_only_jump_gates,\n                          construction_ship_count,\n                          construction_waypoint,\n                          contract_ship_count\n                        FROM fleet\n                        WHERE system_symbol = $1\n                    ",
   "describe": {
     "columns": [
       {
@@ -837,52 +837,13 @@
       },
       {
         "ordinal": 33,
-        "name": "construction_mode: ConstructionMode",
-        "type_info": {
-          "Custom": {
-            "name": "construction_mode",
-            "kind": {
-              "Enum": [
-                "LowestPurchaseCost",
-                "LowestAbsoluteProgress",
-                "LowestPercentProgress",
-                "BestPurchaseSupply"
-              ]
-            }
-          }
-        }
-      },
-      {
-        "ordinal": 34,
         "name": "contract_ship_count",
-        "type_info": "Int4"
-      },
-      {
-        "ordinal": 35,
-        "name": "priority",
         "type_info": "Int4"
       }
     ],
     "parameters": {
       "Left": [
-        {
-          "Custom": {
-            "name": "fleet_type",
-            "kind": {
-              "Enum": [
-                "Trading",
-                "Scrapping",
-                "Mining",
-                "Charting",
-                "Construction",
-                "Manuel",
-                "Contract"
-              ]
-            }
-          }
-        },
-        "Int8",
-        "Int8"
+        "Text"
       ]
     },
     "nullable": [
@@ -919,10 +880,8 @@
       true,
       true,
       true,
-      true,
-      true,
-      false
+      true
     ]
   },
-  "hash": "59765134d1914e4ec29bde9485edce87d3855de8146b18fac07f8dc2403a01a6"
+  "hash": "58af253608a3735832f0c55a63afdd5d0c104342b3c650cdef2fe3c6fb056ae8"
 }
