@@ -412,11 +412,6 @@ async fn generate_scraping_fleet_assignments(
             map
         });
 
-    // let market_opportunities = market_trade_symbols
-    //     .iter()
-    //     .filter(|(ts, _)| *ts != models::TradeSymbol::Fuel)
-    //     .fold(0, |acc, (_, count)| acc + (((count) * ((count) - 1)) / 2));
-
     let strict_market_opportunities = market_trade_symbols
         .iter()
         .filter(|(ts, _)| **ts != models::TradeSymbol::Fuel)
