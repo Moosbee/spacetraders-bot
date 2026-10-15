@@ -123,19 +123,49 @@ function System() {
       );
   }, [system?.marketTrades]);
 
-  const marketOpportunities = useMemo(() => {
+  const marketTrades = useMemo(() => {
     const opportunities = (system?.marketTrades.items || []).reduce(
       (a, b) => {
-        a[b.symbol] = a[b.symbol] || 0;
-        a[b.symbol] += 1;
-
+        a[b.symbol] = a[b.symbol] || [0, 0, 0, 0];
+        a[b.symbol][0] += 1;
+        switch (b.type) {
+          case "IMPORT":
+            a[b.symbol][1] += 1;
+            break;
+          case "EXPORT":
+            a[b.symbol][2] += 1;
+            break;
+          case "EXCHANGE":
+            a[b.symbol][3] += 1;
+            break;
+        }
         return a;
       },
-      {} as Record<TradeSymbol, number>,
+      {} as Record<TradeSymbol, [number, number, number, number]>,
     );
 
     return opportunities;
   }, [system?.marketTrades]);
+
+  const [
+    totalMarketOpportunities,
+    marketOpportunities,
+    strictMarketOpportunities,
+  ] = useMemo(() => {
+    const total = Object.entries(marketTrades)
+      .filter((s) => s[0] !== "FUEL")
+      .reduce((a, b) => a + (b[1][0] * (b[1][0] - 1)) / 2, 0);
+    const strict = Object.entries(marketTrades)
+      .filter((s) => s[0] !== "FUEL")
+      .reduce((a, b) => a + b[1][1] * b[1][2], 0); // only trades between export and import
+    const market = Object.entries(marketTrades)
+      .filter((s) => s[0] !== "FUEL")
+      .reduce(
+        (a, b) => a + b[1][1] * b[1][2] + b[1][1] * b[1][3] + b[1][3] * b[1][2],
+        0,
+      ); // trades between import and import additionally with exchange trades
+    return [total, market, strict];
+  }, [marketTrades]);
 
   const fuelCost = useMemo(() => {
     const prices = (system?.marketTrades.items || [])
@@ -313,19 +343,17 @@ function System() {
     {
       label: "Unique Trade Goods",
       key: "uniqueTradeSymbols",
-      children: `${Object.keys(marketOpportunities).length}`,
+      children: `${Object.keys(marketTrades).length}`,
     },
     {
       label: "Market Opportunities",
       key: "marketOpportunities",
       children: (
         <span>
-          {Object.entries(marketOpportunities)
-            .filter((s) => s[0] !== "FUEL")
-            .reduce((a, b) => a + (b[1] * (b[1] - 1)) / 2, 0)}{" "}
-          (
-          {Object.entries(marketOpportunities).reduce(
-            (a, b) => a + (b[1] * (b[1] - 1)) / 2,
+          {totalMarketOpportunities} (Strict: {strictMarketOpportunities}) (W.
+          Exchange: {marketOpportunities}) (All:
+          {Object.entries(marketTrades).reduce(
+            (a, b) => a + (b[1][0] * (b[1][0] - 1)) / 2,
             0,
           )}
           )
@@ -346,7 +374,7 @@ function System() {
       </Space>
       <br />
 
-      <Flex gap={10} align="stretch">
+      <Flex gap={10} align="stretch" wrap>
         <Descriptions bordered column={3} items={items} />
         <div className="flex flex-col items-center justify-center">
           <Card size="small" title="Known Agents">
@@ -395,7 +423,7 @@ function System() {
             />
           </Card>
         </div>
-        <div className="h-auto w-auto flex-auto flex flex-row-reverse">
+        <div className="h-100">
           <Card className="h-full aspect-square" classNames={{ body: "p-2!" }}>
             {system && (
               <div className="overflow-hidden w-full aspect-square">
@@ -425,6 +453,7 @@ function System() {
                           highlightSelectedShip: false,
                           highlightSelectedWaypoint: true,
                           showAutoPilot: "NONE",
+                          showOnlyMarkets: false,
                         }}
                       />
                     </div>

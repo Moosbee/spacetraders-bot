@@ -1,6 +1,6 @@
 import { useQuery } from "@apollo/client/react";
 import { Button, Divider, Empty, Result, Row, Select, Space, Spin } from "antd";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import PageTitle from "../features/PageTitle";
 import SystemCard from "../features/SystemCard/SystemCard";
 import { GET_SYSTEMS_WITH_FLEETS_OR_SHIPS } from "../graphql/queries";
@@ -14,6 +14,14 @@ function SystemsWithFleets() {
     "2/1" | "1/1" | "1/2" | "1/3" | "1/4" | "1/8" | "1/16"
   >("1/2");
   const [canvasSize, setCanvasSize] = useState<number>(2000);
+
+  const systems = useMemo(() => {
+    return (data?.systems.items ?? []).toSorted(
+      (a, b) =>
+        a.systemAnalyzation.innerSystemCount -
+        b.systemAnalyzation.innerSystemCount,
+    );
+  }, [data?.systems.items]);
 
   if (error) {
     return (
@@ -29,8 +37,6 @@ function SystemsWithFleets() {
       />
     );
   }
-
-  const systems = data?.systems.items ?? [];
 
   return (
     <div style={{ padding: "24px 24px" }}>

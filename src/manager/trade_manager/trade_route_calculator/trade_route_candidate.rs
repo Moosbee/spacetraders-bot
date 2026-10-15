@@ -18,6 +18,18 @@ impl TradeRouteCandidate {
         self.purchase.waypoint_symbol != self.sell.waypoint_symbol
             && !blacklist.contains(&self.symbol)
     }
+
+    // indicate if the trade route is definitely unprofitable
+    pub(crate) fn def_unprofitable(&self) -> bool {
+        if let Some(purchase_good) = &self.purchase_good
+            && let Some(sell_good) = &self.sell_good
+        {
+            if purchase_good.purchase_price > sell_good.sell_price {
+                return true;
+            }
+        }
+        false
+    }
 }
 
 impl From<TradeRouteCandidate> for MinTradeRoute {

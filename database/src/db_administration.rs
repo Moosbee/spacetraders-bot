@@ -12,7 +12,7 @@ pub async fn create_database_pool(
     info!("Creating database connection pool");
     let database_pool = PgPoolOptions::new()
         .max_connections(40)
-        .min_connections(4)
+        .min_connections(2)
         .acquire_timeout(Duration::from_secs(120))
         .idle_timeout(Duration::from_secs(300))
         .connect(database_url)

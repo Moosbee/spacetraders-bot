@@ -1,8 +1,11 @@
 import { Button, Card, Col, Flex, theme } from "antd";
 import { toPng } from "html-to-image";
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { GetSystemsWithFleetsOrShipsQuery } from "../../gql/graphql";
+import {
+  GetSystemsWithFleetsOrShipsQuery,
+  TradeSymbol,
+} from "../../gql/graphql";
 import { cn } from "../../utils/utils";
 import { systemIcons } from "../../utils/waypointColors";
 import WaypointMap from "../WaypointMap/WaypointMap";
@@ -20,6 +23,50 @@ function SystemCard({
     systemIcons[system.systemType] ?? systemIcons.BLACK_HOLE;
 
   const [loading, setLoading] = useState(false);
+
+  const marketTrades = useMemo(() => {
+    const opportunities = (system?.marketTrades.items || []).reduce(
+      (a, b) => {
+        a[b.symbol] = a[b.symbol] || [0, 0, 0, 0];
+        a[b.symbol][0] += 1;
+        switch (b.type) {
+          case "IMPORT":
+            a[b.symbol][1] += 1;
+            break;
+          case "EXPORT":
+            a[b.symbol][2] += 1;
+            break;
+          case "EXCHANGE":
+            a[b.symbol][3] += 1;
+            break;
+        }
+        return a;
+      },
+      {} as Record<TradeSymbol, [number, number, number, number]>,
+    );
+
+    return opportunities;
+  }, [system?.marketTrades]);
+
+  const [
+    totalMarketOpportunities,
+    marketOpportunities,
+    strictMarketOpportunities,
+  ] = useMemo(() => {
+    const total = Object.entries(marketTrades)
+      .filter((s) => s[0] !== "FUEL")
+      .reduce((a, b) => a + (b[1][0] * (b[1][0] - 1)) / 2, 0);
+    const strict = Object.entries(marketTrades)
+      .filter((s) => s[0] !== "FUEL")
+      .reduce((a, b) => a + b[1][1] * b[1][2], 0); // only trades between export and import
+    const market = Object.entries(marketTrades)
+      .filter((s) => s[0] !== "FUEL")
+      .reduce(
+        (a, b) => a + b[1][1] * b[1][2] + b[1][1] * b[1][3] + b[1][3] * b[1][2],
+        0,
+      ); // trades between import and import additionally with exchange trades
+    return [total, market, strict];
+  }, [marketTrades]);
 
   const {
     token: { colorBgBase },
@@ -98,11 +145,29 @@ function SystemCard({
                     highlightSelectedShip: false,
                     highlightSelectedWaypoint: false,
                     showAutoPilot: "NONE",
+                    showOnlyMarkets: false,
                   }}
                 />
               </div>
             </div>
           </div>
+        </div>
+        <div className="mt-4">
+          Inner System {system.systemAnalyzation.innerSystemCount}
+          <br />
+          Market Opportunities {totalMarketOpportunities} (Strict:{" "}
+          {strictMarketOpportunities}) (Market: {marketOpportunities})
+          <br />
+          Ship Count{" "}
+          {/* ((market_opportunities as f64 + 22.0).log2().ceil() - 5.0) as u32 */}
+          {Math.max(
+            0,
+            Math.ceil(
+              Math.log2(strictMarketOpportunities + 23) -
+                5 +
+                0.01 * strictMarketOpportunities,
+            ),
+          )}
         </div>
       </Card>
     </Col>

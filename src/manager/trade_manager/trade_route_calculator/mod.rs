@@ -114,7 +114,9 @@ pub(crate) fn filter_trade_route_candidates(
 ) -> Vec<TradeRouteCandidate> {
     trade_route_candidates_all
         .into_iter()
-        .filter(|trade_route_candidate| trade_route_candidate.is_valid(blacklist))
+        .filter(|trade_route_candidate| {
+            trade_route_candidate.is_valid(blacklist) && !trade_route_candidate.def_unprofitable()
+        })
         .collect()
 }
 
