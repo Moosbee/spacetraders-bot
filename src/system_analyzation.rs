@@ -125,6 +125,7 @@ pub fn gen_system_analyzation(waypoints: &[database::Waypoint]) -> SystemAnalyza
         }
         if waypoint.waypoint_type == models::WaypointType::FuelStation {
             analyzation.fuel_station_count += 1;
+            continue;
         }
 
         let distance = distance_between_waypoints((0, 0), (waypoint.x, waypoint.y));

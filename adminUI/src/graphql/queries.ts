@@ -194,6 +194,16 @@ export const GET_SYSTEMS_WITH_FLEETS_OR_SHIPS = graphql(/* GraphQL */ `
         x
         y
         populationDisabled
+        systemAnalyzation {
+          innerSystemCount
+        }
+        marketTrades {
+          items {
+            waypointSymbol
+            type
+            symbol
+          }
+        }
         waypoints {
           items {
             symbol

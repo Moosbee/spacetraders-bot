@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use database::{DatabaseConnectorAsync, ShipAssignment};
 use itertools::Itertools;
 use space_traders_client::models::{self};
@@ -201,22 +203,41 @@ async fn generate_trading_fleet_assignments(
     trading_config: &database::TradingFleetConfig,
     context: &ConductorContext,
 ) -> crate::error::Result<Vec<ShipAssignment>> {
-    let waypoints = database::Waypoint::get_by_system(
+    let market_trades = database::MarketTradeGood::get_last_by_system(
         &context.database_pool,
         &fleet.system_symbol,
         database::PaginatedQuery::unpaged(),
     )
     .await?
-    .items
-    .into_iter()
-    .filter(|wp| wp.is_marketplace() || wp.is_shipyard())
-    .count();
+    .items;
 
-    // let market_trades =
-    //     database::MarketTradeGood::get_last_by_system(&context.database_pool, &fleet.system_symbol)
-    //         .await?;
+    let market_trade_symbols: HashMap<models::TradeSymbol, (i32, i32, i32, i32)> = market_trades
+        .into_iter()
+        .fold(HashMap::new(), |mut map, tg| {
+            let entry = map.entry(tg.symbol).or_insert((0, 0, 0, 0));
+            entry.0 += 1;
+            match tg.r#type {
+                models::market_trade_good::Type::Export => entry.1 += 1,
+                models::market_trade_good::Type::Exchange => entry.2 += 1,
+                models::market_trade_good::Type::Import => entry.3 += 1,
+            }
+            map
+        });
 
-    let ship_counts = (waypoints as f64 * trading_config.ship_market_ratio).ceil() as u32;
+    // let market_opportunities = market_trade_symbols
+    //     .iter()
+    //     .filter(|(ts, _)| *ts != models::TradeSymbol::Fuel)
+    //     .fold(0, |acc, (_, count)| acc + (((count) * ((count) - 1)) / 2));
+
+    let strict_market_opportunities = market_trade_symbols
+        .iter()
+        .filter(|(ts, _)| **ts != models::TradeSymbol::Fuel)
+        .fold(0, |acc, (_, count)| acc + (count.1 * count.2));
+
+    let ship_counts = (((strict_market_opportunities as f64 + 22.0).log2() - 5.0
+        + (0.01 * strict_market_opportunities as f64))
+        .ceil())
+    .max(0.0) as u32;
 
     let min_range = 300; // todo get minimum range to get to every waypoint in the system using cruse, see percolation theory and minimum spanning tree and Kruskal's algorithm
 
@@ -229,9 +250,9 @@ async fn generate_trading_fleet_assignments(
             max_purchase_price: 1_000_000,
             credits_threshold: 100_000,
             priority: if i == 0 {
-                DEFAULT_PRIORITY - 5 // first ship has higher priority, ensure at least one ship is always active
+                DEFAULT_PRIORITY - 5 - (ship_counts as i32) * 2 // first ship has higher priority, ensure at least one ship is always active
             } else {
-                DEFAULT_PRIORITY
+                DEFAULT_PRIORITY - (ship_counts as i32) * 2
             },
             disabled: false,
             range_min: min_range,
@@ -370,7 +391,47 @@ async fn generate_scraping_fleet_assignments(
     .filter(|wp| wp.is_marketplace() || wp.is_shipyard())
     .count();
 
-    let ship_counts = (waypoint_counts as f64 * scraping_config.ship_market_ratio).floor() as u32;
+    let market_trades = database::MarketTradeGood::get_last_by_system(
+        &context.database_pool,
+        &fleet.system_symbol,
+        database::PaginatedQuery::unpaged(),
+    )
+    .await?
+    .items;
+
+    let market_trade_symbols: HashMap<models::TradeSymbol, (i32, i32, i32, i32)> = market_trades
+        .into_iter()
+        .fold(HashMap::new(), |mut map, tg| {
+            let entry = map.entry(tg.symbol).or_insert((0, 0, 0, 0));
+            entry.0 += 1;
+            match tg.r#type {
+                models::market_trade_good::Type::Export => entry.1 += 1,
+                models::market_trade_good::Type::Exchange => entry.2 += 1,
+                models::market_trade_good::Type::Import => entry.3 += 1,
+            }
+            map
+        });
+
+    // let market_opportunities = market_trade_symbols
+    //     .iter()
+    //     .filter(|(ts, _)| *ts != models::TradeSymbol::Fuel)
+    //     .fold(0, |acc, (_, count)| acc + (((count) * ((count) - 1)) / 2));
+
+    let strict_market_opportunities = market_trade_symbols
+        .iter()
+        .filter(|(ts, _)| **ts != models::TradeSymbol::Fuel)
+        .fold(0, |acc, (_, count)| acc + (count.1 * count.2));
+
+    let trading_ship_counts = (((strict_market_opportunities as f64 + 22.0).log2() - 5.0
+        + (0.01 * strict_market_opportunities as f64))
+        .ceil())
+    .max(0.0) as u32;
+
+    let ship_counts = if trading_ship_counts > 0 {
+        (waypoint_counts as f64 * scraping_config.ship_market_ratio).floor() as u32
+    } else {
+        1.min(waypoint_counts as u32)
+    };
     let quarter_ships = (ship_counts as f64 / 4.0).floor() as u32;
 
     let ships = (0..ship_counts)
@@ -380,9 +441,9 @@ async fn generate_scraping_fleet_assignments(
             max_purchase_price: 1_000_000,
             credits_threshold: 50_000,
             priority: if i < quarter_ships {
-                DEFAULT_PRIORITY - 5 // first quarter ships have higher priority
+                DEFAULT_PRIORITY - 5 - (trading_ship_counts as i32) * 2 // first quarter ships have higher priority
             } else {
-                DEFAULT_PRIORITY
+                DEFAULT_PRIORITY - (trading_ship_counts as i32) * 2
             },
 
             disabled: false,
@@ -417,9 +478,9 @@ async fn generate_charting_fleet_assignments(
     let ship_count = (uncharted_waypoints as i32).min(charting_config.charting_probe_count);
 
     let priority = if charting_config.chart_only_jump_gates {
-        DEFAULT_PRIORITY - 20
+        DEFAULT_PRIORITY - 30
     } else {
-        DEFAULT_PRIORITY - 10
+        DEFAULT_PRIORITY - 20
     };
 
     let ships = (0..ship_count)
