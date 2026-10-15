@@ -1033,7 +1033,7 @@ type MutationRoot {
 	"""
 	Edit basic fleet attributes and configuration. Fields that are None are left unchanged.
 	"""
-	editFleet(id: Int!, systemSymbol: String, active: Boolean, priority: Int, config: InputFleetConfig): Fleet!
+	editFleet(id: Int!, systemSymbol: String, active: Boolean, config: InputFleetConfig): Fleet!
 	"""
 	Trigger a regeneration of fleet assignments. This will ask the FleetManager to rebuild assignments.
 	"""

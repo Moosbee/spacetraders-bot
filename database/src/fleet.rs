@@ -650,14 +650,13 @@ impl Fleet {
         }
     }
 
-    /// Update basic fleet fields (system_symbol, active, priority) when provided.
+    /// Update basic fleet fields (system_symbol, active) when provided.
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn update_basic(
         database_pool: &DbPool,
         id: i32,
         system_symbol: Option<String>,
         active: Option<bool>,
-        priority: Option<i32>,
     ) -> crate::Result<()> {
         if let Some(sym) = system_symbol {
             sqlx::query!(
@@ -672,15 +671,6 @@ impl Fleet {
             sqlx::query!(
                 r#"UPDATE fleet SET active = $1, updated_at = NOW() WHERE id = $2"#,
                 a,
-                id
-            )
-            .execute(&database_pool.database_pool)
-            .await?;
-        }
-        if let Some(p) = priority {
-            sqlx::query!(
-                r#"UPDATE fleet SET priority = $1, updated_at = NOW() WHERE id = $2"#,
-                p,
                 id
             )
             .execute(&database_pool.database_pool)

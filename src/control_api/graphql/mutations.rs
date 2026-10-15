@@ -134,13 +134,12 @@ impl MutationRoot {
         id: i32,
         system_symbol: Option<String>,
         active: Option<bool>,
-        priority: Option<i32>,
         config: Option<InputFleetConfig>,
     ) -> super::Result<GQLFleet> {
         let context = ctx.data::<ConductorContext>()?;
 
         // Update non-config fields via database helpers so SQL stays in the database crate
-        database::Fleet::update_basic(&context.database_pool, id, system_symbol, active, priority)
+        database::Fleet::update_basic(&context.database_pool, id, system_symbol, active)
             .await
             .map_err(|e| super::GraphiQLError::IO(e.to_string()))?;
 

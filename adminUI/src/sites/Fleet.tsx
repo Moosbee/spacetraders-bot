@@ -7,7 +7,6 @@ import {
   DescriptionsProps,
   Divider,
   Flex,
-  InputNumber,
   Result,
   Row,
   Space,
@@ -15,17 +14,13 @@ import {
   Table,
   TableProps,
 } from "antd";
-import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import FleetConfigDetails from "../features/FleetConfig/FleetConfig";
 import MoneyDisplay from "../features/MonyDisplay";
 import PageTitle from "../features/PageTitle";
 import WaypointLink from "../features/WaypointLink";
 import { GetFleetQuery } from "../gql/graphql";
-import {
-  EDIT_FLEET,
-  REGENERATE_FLEET_ASSIGNMENTS,
-} from "../graphql/mutations";
+import { REGENERATE_FLEET_ASSIGNMENTS } from "../graphql/mutations";
 import { GET_FLEET } from "../graphql/queries";
 
 type FleetData = GetFleetQuery["fleet"];
@@ -177,20 +172,7 @@ function Fleet() {
     refetchQueries: [GET_FLEET],
   });
 
-  const [editFleet, { loading: editLoading, error: editError }] = useMutation(
-    EDIT_FLEET,
-    { refetchQueries: [GET_FLEET] },
-  );
-
   const fleet = data?.fleet;
-
-  const [priority, setPriority] = useState<number | null>(null);
-
-  useEffect(() => {
-    if (fleet?.priority !== undefined) {
-      setPriority(fleet.priority);
-    }
-  }, [fleet?.priority]);
 
   if (error) {
     return (
@@ -233,29 +215,6 @@ function Fleet() {
           >
             Regenerate Assignments
           </Button>
-          <Space.Compact>
-            <InputNumber
-              addonBefore="Priority"
-              min={0}
-              value={priority}
-              onChange={setPriority}
-              disabled={fleet?.priority === undefined}
-              style={{ width: 190 }}
-            />
-            <Button
-              onClick={() =>
-                editFleet({
-                  variables: { id: Number(fleetID), priority },
-                })
-              }
-              loading={editLoading}
-              disabled={
-                fleet?.priority === undefined || priority === fleet?.priority
-              }
-            >
-              Save
-            </Button>
-          </Space.Compact>
         </Space>
         {regenerateError && (
           <Alert
@@ -263,9 +222,6 @@ function Fleet() {
             type="error"
             showIcon
           />
-        )}
-        {editError && (
-          <Alert message="Error updating priority" type="error" showIcon />
         )}
         <Divider />
         {fleet ? (
