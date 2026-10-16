@@ -46,6 +46,54 @@ pub async fn update_fleet_assignments(
     Ok(())
 }
 
+#[derive(Debug, Clone, Default)]
+pub(crate) struct MarketOpportunities {
+    pub total_market_opportunities: i32,
+    pub total_without_fuel_market_opportunities: i32,
+    pub strict_market_opportunities: i32, // only opportunities from export to import
+}
+
+pub(crate) fn calculate_market_opportunities(
+    market_trades: &[database::MarketTrade],
+) -> MarketOpportunities {
+    let market_trade_symbols: HashMap<models::TradeSymbol, (i32, i32, i32, i32)> =
+        market_trades.iter().fold(HashMap::new(), |mut map, tg| {
+            let entry = map.entry(tg.symbol).or_insert((0, 0, 0, 0));
+            entry.0 += 1;
+            match tg.r#type {
+                models::market_trade_good::Type::Export => entry.1 += 1,
+                models::market_trade_good::Type::Exchange => entry.2 += 1,
+                models::market_trade_good::Type::Import => entry.3 += 1,
+            }
+            map
+        });
+
+    let market_opportunities =
+        market_trade_symbols
+            .iter()
+            .fold(MarketOpportunities::default(), |mut acc, (tg, count)| {
+                acc.strict_market_opportunities += count.1 * count.2;
+                acc.total_market_opportunities += ((count.0) * ((count.0) - 1)) / 2;
+                if *tg != models::TradeSymbol::Fuel {
+                    acc.total_without_fuel_market_opportunities +=
+                        ((count.0) * ((count.0) - 1)) / 2;
+                }
+                acc
+            });
+
+    market_opportunities
+}
+
+pub(crate) fn calculate_trade_ship_counts(
+    strict_market_opportunities: f64,
+    linear_factor: f64, /* default 0.01 */
+) -> u32 {
+    (((strict_market_opportunities + 22.0).log2() - 5.0
+        + (linear_factor * strict_market_opportunities))
+        .ceil())
+    .max(0.0) as u32
+}
+
 pub async fn fix_fleet_assignments(
     current_assignments: Vec<ShipAssignment>,
     new_assignments: Vec<ShipAssignment>,
@@ -203,7 +251,7 @@ async fn generate_trading_fleet_assignments(
     trading_config: &database::TradingFleetConfig,
     context: &ConductorContext,
 ) -> crate::error::Result<Vec<ShipAssignment>> {
-    let market_trades = database::MarketTradeGood::get_last_by_system(
+    let market_trades = database::MarketTrade::get_last_by_system(
         &context.database_pool,
         &fleet.system_symbol,
         database::PaginatedQuery::unpaged(),
@@ -211,33 +259,12 @@ async fn generate_trading_fleet_assignments(
     .await?
     .items;
 
-    let market_trade_symbols: HashMap<models::TradeSymbol, (i32, i32, i32, i32)> = market_trades
-        .into_iter()
-        .fold(HashMap::new(), |mut map, tg| {
-            let entry = map.entry(tg.symbol).or_insert((0, 0, 0, 0));
-            entry.0 += 1;
-            match tg.r#type {
-                models::market_trade_good::Type::Export => entry.1 += 1,
-                models::market_trade_good::Type::Exchange => entry.2 += 1,
-                models::market_trade_good::Type::Import => entry.3 += 1,
-            }
-            map
-        });
+    let market_opportunities = calculate_market_opportunities(&market_trades);
 
-    // let market_opportunities = market_trade_symbols
-    //     .iter()
-    //     .filter(|(ts, _)| *ts != models::TradeSymbol::Fuel)
-    //     .fold(0, |acc, (_, count)| acc + (((count) * ((count) - 1)) / 2));
-
-    let strict_market_opportunities = market_trade_symbols
-        .iter()
-        .filter(|(ts, _)| **ts != models::TradeSymbol::Fuel)
-        .fold(0, |acc, (_, count)| acc + (count.1 * count.2));
-
-    let ship_counts = (((strict_market_opportunities as f64 + 22.0).log2() - 5.0
-        + (0.01 * strict_market_opportunities as f64))
-        .ceil())
-    .max(0.0) as u32;
+    let ship_counts = calculate_trade_ship_counts(
+        market_opportunities.strict_market_opportunities as f64,
+        trading_config.ship_market_ratio,
+    );
 
     let min_range = 300; // todo get minimum range to get to every waypoint in the system using cruse, see percolation theory and minimum spanning tree and Kruskal's algorithm
 
@@ -391,7 +418,7 @@ async fn generate_scraping_fleet_assignments(
     .filter(|wp| wp.is_marketplace() || wp.is_shipyard())
     .count();
 
-    let market_trades = database::MarketTradeGood::get_last_by_system(
+    let market_trades = database::MarketTrade::get_last_by_system(
         &context.database_pool,
         &fleet.system_symbol,
         database::PaginatedQuery::unpaged(),
@@ -399,28 +426,12 @@ async fn generate_scraping_fleet_assignments(
     .await?
     .items;
 
-    let market_trade_symbols: HashMap<models::TradeSymbol, (i32, i32, i32, i32)> = market_trades
-        .into_iter()
-        .fold(HashMap::new(), |mut map, tg| {
-            let entry = map.entry(tg.symbol).or_insert((0, 0, 0, 0));
-            entry.0 += 1;
-            match tg.r#type {
-                models::market_trade_good::Type::Export => entry.1 += 1,
-                models::market_trade_good::Type::Exchange => entry.2 += 1,
-                models::market_trade_good::Type::Import => entry.3 += 1,
-            }
-            map
-        });
+    let market_opportunities = calculate_market_opportunities(&market_trades);
 
-    let strict_market_opportunities = market_trade_symbols
-        .iter()
-        .filter(|(ts, _)| **ts != models::TradeSymbol::Fuel)
-        .fold(0, |acc, (_, count)| acc + (count.1 * count.2));
-
-    let trading_ship_counts = (((strict_market_opportunities as f64 + 22.0).log2() - 5.0
-        + (0.01 * strict_market_opportunities as f64))
-        .ceil())
-    .max(0.0) as u32;
+    let trading_ship_counts = calculate_trade_ship_counts(
+        market_opportunities.strict_market_opportunities as f64,
+        0.01,
+    );
 
     let ship_counts = if trading_ship_counts > 0 {
         (waypoint_counts as f64 * scraping_config.ship_market_ratio).floor() as u32

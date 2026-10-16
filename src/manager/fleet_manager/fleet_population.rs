@@ -5,6 +5,10 @@ use database::DatabaseConnectorAsync;
 use space_traders_client::models;
 use utils::WaypointCan;
 
+use crate::manager::fleet_manager::assignment_management::{
+    calculate_market_opportunities, calculate_trade_ship_counts,
+};
+
 struct SystemFleets {
     exploration_fleet: Option<database::Fleet>, // exists if there are >1 uncharted jump gates
     charting_fleet: Option<database::Fleet>,    // exists if there are >1 uncharted waypoints
@@ -212,6 +216,14 @@ async fn generate_system_fleets(
     .await?
     .items;
 
+    let market_trades = database::MarketTrade::get_last_by_system(
+        &context.database_pool,
+        &system_symbol,
+        database::PaginatedQuery::unpaged(),
+    )
+    .await?
+    .items;
+
     let open_construction_site = constructions
         .iter()
         .filter(|c| c.required != c.fulfilled)
@@ -302,9 +314,22 @@ async fn generate_system_fleets(
         );
     }
 
+    let market_opportunities = calculate_market_opportunities(&market_trades);
+
+    let trading_ship_ratio = if system_fleets.construction_fleet.is_some() {
+        0.03
+    } else {
+        0.01
+    };
+
+    let trading_ship_counts = calculate_trade_ship_counts(
+        market_opportunities.strict_market_opportunities as f64,
+        trading_ship_ratio,
+    );
+
     // trading fleet
-    if market_count > 1 && !has_uncharted_marketplace_waypoints {
-        let ship_market_ratio = 0.1;
+    if trading_ship_counts > 1 && !has_uncharted_marketplace_waypoints {
+        let ship_market_ratio = trading_ship_ratio;
 
         let trade_mode = if system_fleets.construction_fleet.is_some() {
             database::TradeMode::ProfitPerHour
@@ -375,11 +400,11 @@ async fn generate_system_fleets(
     }
 
     // market balance fleet
-    if market_count > 1
+    if trading_ship_counts > 1
         && !has_uncharted_marketplace_waypoints
         && system_fleets.construction_fleet.is_some()
     {
-        let ship_market_ratio = 0.1;
+        let ship_market_ratio = trading_ship_ratio;
 
         let trade_mode = database::TradeMode::MarketBalanced;
 

@@ -47,7 +47,5 @@ sequenceDiagram
 - update mining transfer system
 - speed up ShipProcurementManager, rewrite it to no longer block scrappers on shipyards
 - add a static scrapping for shipyards
-- add a fleet priority to prioritise better systems with population
-- add a filter to stop population of useless systems(trading and scrapping fleets based on market opportunities)
 - connect transactions with fleets
 - rewrite database provider to properly use inversion of control
