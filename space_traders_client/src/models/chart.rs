@@ -9,6 +9,7 @@
  */
 
 use crate::models;
+use crate::{ShipSymbol, SystemSymbol, WaypointSymbol};
 use serde::{Deserialize, Serialize};
 
 /// Chart : The chart of a system or waypoint, which makes the location visible to other agents.
@@ -16,7 +17,7 @@ use serde::{Deserialize, Serialize};
 pub struct Chart {
     /// The symbol of the waypoint.
     #[serde(rename = "waypointSymbol")]
-    pub waypoint_symbol: String,
+    pub waypoint_symbol: WaypointSymbol,
     /// The agent that submitted the chart for this waypoint.
     #[serde(rename = "submittedBy")]
     pub submitted_by: String,
@@ -27,7 +28,7 @@ pub struct Chart {
 
 impl Chart {
     /// The chart of a system or waypoint, which makes the location visible to other agents.
-    pub fn new(waypoint_symbol: String, submitted_by: String, submitted_on: String) -> Chart {
+    pub fn new(waypoint_symbol: WaypointSymbol, submitted_by: String, submitted_on: String) -> Chart {
         Chart {
             waypoint_symbol,
             submitted_by,

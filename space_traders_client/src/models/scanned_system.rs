@@ -9,6 +9,7 @@
  */
 
 use crate::models;
+use crate::{ShipSymbol, SystemSymbol, WaypointSymbol};
 use serde::{Deserialize, Serialize};
 
 /// ScannedSystem : Details of a system was that scanned.
@@ -16,7 +17,7 @@ use serde::{Deserialize, Serialize};
 pub struct ScannedSystem {
     /// Symbol of the system.
     #[serde(rename = "symbol")]
-    pub symbol: String,
+    pub symbol: SystemSymbol,
     /// Symbol of the system's sector.
     #[serde(rename = "sectorSymbol")]
     pub sector_symbol: String,
@@ -36,7 +37,7 @@ pub struct ScannedSystem {
 impl ScannedSystem {
     /// Details of a system was that scanned.
     pub fn new(
-        symbol: String,
+        symbol: SystemSymbol,
         sector_symbol: String,
         r#type: models::SystemType,
         x: i32,

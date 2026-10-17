@@ -9,6 +9,7 @@
  */
 
 use crate::models;
+use crate::{ShipSymbol, SystemSymbol, WaypointSymbol};
 use serde::{Deserialize, Serialize};
 
 /// ShipModificationTransaction : Result of a transaction for a ship modification, such as installing a mount or a module.
@@ -16,10 +17,10 @@ use serde::{Deserialize, Serialize};
 pub struct ShipModificationTransaction {
     /// The symbol of the waypoint where the transaction took place.
     #[serde(rename = "waypointSymbol")]
-    pub waypoint_symbol: String,
+    pub waypoint_symbol: WaypointSymbol,
     /// The symbol of the ship that made the transaction.
     #[serde(rename = "shipSymbol")]
-    pub ship_symbol: String,
+    pub ship_symbol: ShipSymbol,
     /// The symbol of the trade good.
     #[serde(rename = "tradeSymbol")]
     pub trade_symbol: String,
@@ -34,8 +35,8 @@ pub struct ShipModificationTransaction {
 impl ShipModificationTransaction {
     /// Result of a transaction for a ship modification, such as installing a mount or a module.
     pub fn new(
-        waypoint_symbol: String,
-        ship_symbol: String,
+        waypoint_symbol: WaypointSymbol,
+        ship_symbol: ShipSymbol,
         trade_symbol: String,
         total_price: i32,
         timestamp: String,

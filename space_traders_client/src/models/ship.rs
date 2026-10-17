@@ -9,6 +9,7 @@
  */
 
 use crate::models;
+use crate::{ShipSymbol, SystemSymbol, WaypointSymbol};
 use serde::{Deserialize, Serialize};
 
 /// Ship : Ship details.
@@ -16,7 +17,7 @@ use serde::{Deserialize, Serialize};
 pub struct Ship {
     /// The globally unique identifier of the ship in the following format: `[AGENT_SYMBOL]-[HEX_ID]`
     #[serde(rename = "symbol")]
-    pub symbol: String,
+    pub symbol: ShipSymbol,
     #[serde(rename = "registration")]
     pub registration: Box<models::ShipRegistration>,
     #[serde(rename = "nav")]
@@ -46,7 +47,7 @@ pub struct Ship {
 impl Ship {
     /// Ship details.
     pub fn new(
-        symbol: String,
+        symbol: ShipSymbol,
         registration: models::ShipRegistration,
         nav: models::ShipNav,
         crew: models::ShipCrew,

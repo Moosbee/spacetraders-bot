@@ -9,6 +9,7 @@
  */
 
 use crate::models;
+use crate::{ShipSymbol, SystemSymbol, WaypointSymbol};
 use serde::{Deserialize, Serialize};
 
 /// Market : Market details.
@@ -16,7 +17,7 @@ use serde::{Deserialize, Serialize};
 pub struct Market {
     /// The symbol of the market. The symbol is the same as the waypoint where the market is located.
     #[serde(rename = "symbol")]
-    pub symbol: String,
+    pub symbol: WaypointSymbol,
     /// The list of goods that are exported from this market.
     #[serde(rename = "exports")]
     pub exports: Vec<models::TradeGood>,
@@ -37,7 +38,7 @@ pub struct Market {
 impl Market {
     /// Market details.
     pub fn new(
-        symbol: String,
+        symbol: WaypointSymbol,
         exports: Vec<models::TradeGood>,
         imports: Vec<models::TradeGood>,
         exchange: Vec<models::TradeGood>,

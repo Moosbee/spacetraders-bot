@@ -9,6 +9,7 @@
  */
 
 use crate::models;
+use crate::{ShipSymbol, SystemSymbol, WaypointSymbol};
 use serde::{Deserialize, Serialize};
 
 /// System : System details.
@@ -19,7 +20,7 @@ pub struct System {
     pub constellation: Option<String>,
     /// The symbol of the system.
     #[serde(rename = "symbol")]
-    pub symbol: String,
+    pub symbol: SystemSymbol,
     /// The symbol of the sector.
     #[serde(rename = "sectorSymbol")]
     pub sector_symbol: String,
@@ -45,7 +46,7 @@ pub struct System {
 impl System {
     /// System details.
     pub fn new(
-        symbol: String,
+        symbol: SystemSymbol,
         sector_symbol: String,
         r#type: models::SystemType,
         x: i32,

@@ -9,6 +9,7 @@
  */
 
 use crate::models;
+use crate::{ShipSymbol, SystemSymbol, WaypointSymbol};
 use serde::{Deserialize, Serialize};
 
 /// Shipyard : Shipyard details.
@@ -16,7 +17,7 @@ use serde::{Deserialize, Serialize};
 pub struct Shipyard {
     /// The symbol of the shipyard. The symbol is the same as the waypoint where the shipyard is located.
     #[serde(rename = "symbol")]
-    pub symbol: String,
+    pub symbol: WaypointSymbol,
     /// The list of ship types available for purchase at this shipyard.
     #[serde(rename = "shipTypes")]
     pub ship_types: Vec<models::ShipyardShipTypesInner>,
@@ -34,7 +35,7 @@ pub struct Shipyard {
 impl Shipyard {
     /// Shipyard details.
     pub fn new(
-        symbol: String,
+        symbol: WaypointSymbol,
         ship_types: Vec<models::ShipyardShipTypesInner>,
         modifications_fee: i32,
     ) -> Shipyard {

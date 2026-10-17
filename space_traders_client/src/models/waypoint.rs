@@ -9,6 +9,7 @@
  */
 
 use crate::models;
+use crate::{ShipSymbol, SystemSymbol, WaypointSymbol};
 use serde::{Deserialize, Serialize};
 
 /// Waypoint : A waypoint is a location that ships can travel to such as a Planet, Moon or Space Station.
@@ -16,12 +17,12 @@ use serde::{Deserialize, Serialize};
 pub struct Waypoint {
     /// The symbol of the waypoint.
     #[serde(rename = "symbol")]
-    pub symbol: String,
+    pub symbol: WaypointSymbol,
     #[serde(rename = "type")]
     pub r#type: models::WaypointType,
     /// The symbol of the system.
     #[serde(rename = "systemSymbol")]
-    pub system_symbol: String,
+    pub system_symbol: SystemSymbol,
     /// Relative position of the waypoint on the system's x axis. This is not an absolute position in the universe.
     #[serde(rename = "x")]
     pub x: i32,
@@ -33,7 +34,7 @@ pub struct Waypoint {
     pub orbitals: Vec<models::WaypointOrbital>,
     /// The symbol of the parent waypoint, if this waypoint is in orbit around another waypoint. Otherwise this value is undefined.
     #[serde(rename = "orbits", skip_serializing_if = "Option::is_none")]
-    pub orbits: Option<String>,
+    pub orbits: Option<WaypointSymbol>,
     #[serde(rename = "faction", skip_serializing_if = "Option::is_none")]
     pub faction: Option<Box<models::WaypointFaction>>,
     /// The traits of the waypoint.
@@ -52,9 +53,9 @@ pub struct Waypoint {
 impl Waypoint {
     /// A waypoint is a location that ships can travel to such as a Planet, Moon or Space Station.
     pub fn new(
-        symbol: String,
+        symbol: WaypointSymbol,
         r#type: models::WaypointType,
-        system_symbol: String,
+        system_symbol: SystemSymbol,
         x: i32,
         y: i32,
         orbitals: Vec<models::WaypointOrbital>,

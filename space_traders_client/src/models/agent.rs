@@ -9,6 +9,7 @@
  */
 
 use crate::models;
+use crate::{ShipSymbol, SystemSymbol, WaypointSymbol};
 use serde::{Deserialize, Serialize};
 
 /// Agent : Agent details.
@@ -22,7 +23,7 @@ pub struct Agent {
     pub symbol: String,
     /// The headquarters of the agent.
     #[serde(rename = "headquarters")]
-    pub headquarters: String,
+    pub headquarters: WaypointSymbol,
     /// The number of credits the agent has available. Credits can be negative if funds have been overdrawn.
     #[serde(rename = "credits")]
     pub credits: i64,
@@ -39,7 +40,7 @@ impl Agent {
     pub fn new(
         account_id: String,
         symbol: String,
-        headquarters: String,
+        headquarters: WaypointSymbol,
         credits: i64,
         starting_faction: String,
         ship_count: i32,

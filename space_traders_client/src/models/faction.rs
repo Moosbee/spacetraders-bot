@@ -9,6 +9,7 @@
  */
 
 use crate::models;
+use crate::{ShipSymbol, SystemSymbol, WaypointSymbol};
 use serde::{Deserialize, Serialize};
 
 /// Faction : Faction details.
@@ -24,7 +25,7 @@ pub struct Faction {
     pub description: String,
     /// The waypoint in which the faction's HQ is located in.
     #[serde(rename = "headquarters", skip_serializing_if = "Option::is_none")]
-    pub headquarters: Option<String>,
+    pub headquarters: Option<WaypointSymbol>,
     /// List of traits that define this faction.
     #[serde(rename = "traits")]
     pub traits: Vec<models::FactionTrait>,

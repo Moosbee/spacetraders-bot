@@ -9,6 +9,7 @@
  */
 
 use crate::models;
+use crate::{ShipSymbol, SystemSymbol, WaypointSymbol};
 use serde::{Deserialize, Serialize};
 
 /// WaypointOrbital : An orbital is another waypoint that orbits a parent waypoint.
@@ -16,12 +17,12 @@ use serde::{Deserialize, Serialize};
 pub struct WaypointOrbital {
     /// The symbol of the orbiting waypoint.
     #[serde(rename = "symbol")]
-    pub symbol: String,
+    pub symbol: WaypointSymbol,
 }
 
 impl WaypointOrbital {
     /// An orbital is another waypoint that orbits a parent waypoint.
-    pub fn new(symbol: String) -> WaypointOrbital {
+    pub fn new(symbol: WaypointSymbol) -> WaypointOrbital {
         WaypointOrbital { symbol }
     }
 }
