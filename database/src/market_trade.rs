@@ -1,4 +1,5 @@
 use space_traders_client::models;
+use space_traders_client::{ShipSymbol, SystemSymbol, WaypointSymbol};
 use tracing::instrument;
 
 use super::{
@@ -11,7 +12,7 @@ use super::{
 )]
 #[graphql(name = "DBMarketTrade")]
 pub struct MarketTrade {
-    pub waypoint_symbol: String,
+    pub waypoint_symbol: WaypointSymbol,
     pub symbol: models::TradeSymbol,
     pub created_at: sqlx::types::chrono::DateTime<chrono::Utc>,
     pub r#type: models::market_trade_good::Type,
@@ -20,7 +21,7 @@ pub struct MarketTrade {
 impl Default for MarketTrade {
     fn default() -> MarketTrade {
         MarketTrade {
-            waypoint_symbol: String::new(),
+            waypoint_symbol: WaypointSymbol::default(),
             symbol: models::TradeSymbol::PreciousStones,
             created_at: sqlx::types::chrono::DateTime::<chrono::Utc>::MIN_UTC,
             r#type: models::market_trade_good::Type::Exchange,
@@ -59,7 +60,7 @@ impl DatabaseConnectorAsync for MarketTrade {
                 VALUES ($1, $2, $3)
                 RETURNING created_at
             "#,
-            item.waypoint_symbol,
+            item.waypoint_symbol.as_str(),
             item.symbol as models::TradeSymbol,
             item.r#type as models::market_trade_good::Type
         )
@@ -67,7 +68,7 @@ impl DatabaseConnectorAsync for MarketTrade {
         .await?;
 
         Ok((
-            item.waypoint_symbol.clone(),
+            item.waypoint_symbol.clone().into_inner(),
             item.symbol,
             inserted.created_at,
         ))
@@ -88,7 +89,7 @@ impl DatabaseConnectorAsync for MarketTrade {
     async fn insert_bulk(database_pool: &DbPool, items: &[MarketTrade]) -> crate::Result<()> {
         let waypoint_symbols = items
             .iter()
-            .map(|m| m.waypoint_symbol.clone())
+            .map(|m| m.waypoint_symbol.clone().into_inner())
             .collect::<Vec<String>>();
 
         let symbols = items
@@ -221,7 +222,7 @@ impl DatabaseConnectorAsync for MarketTrade {
     }
 
     fn set_id(&mut self, id: Self::ID) {
-        self.waypoint_symbol = id.0;
+        self.waypoint_symbol = id.0.into();
         self.symbol = id.1;
         self.created_at = id.2;
     }

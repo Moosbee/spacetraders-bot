@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use space_traders_client::{ShipSymbol, SystemSymbol, WaypointSymbol};
 use std::sync::Arc;
 
 use async_graphql::dataloader::Loader;
@@ -61,7 +62,7 @@ impl Loader<i64> for MarketTradeGoodLoader {
     }
 }
 
-pub type MarketTradeGoodKey = (String, models::TradeSymbol);
+pub type MarketTradeGoodKey = (WaypointSymbol, models::TradeSymbol);
 
 pub struct MarketTradeGoodByWaypointAndSymbolLoader(DbPool);
 
@@ -111,7 +112,7 @@ impl Loader<MarketTradeGoodKey> for MarketTradeGoodByWaypointAndSymbolLoader {
         &self,
         keys: &[MarketTradeGoodKey],
     ) -> std::result::Result<HashMap<MarketTradeGoodKey, Self::Value>, Self::Error> {
-        let waypoints: Vec<String> = keys.iter().map(|k| k.0.clone()).collect();
+        let waypoints: Vec<String> = keys.iter().map(|k| k.0.clone().into_inner()).collect();
         let trade_symbols: Vec<String> = keys.iter().map(|k| k.1.to_string()).collect();
 
         let mut map = HashMap::new();
@@ -132,7 +133,7 @@ impl Loader<MarketTradeGoodKey> for MarketTradeGoodByWaypointAndSymbolLoader {
 pub struct MarketTradeGood {
     pub id: i64,
     pub symbol: models::TradeSymbol,
-    pub waypoint_symbol: String,
+    pub waypoint_symbol: WaypointSymbol,
     pub r#type: models::market_trade_good::Type,
     pub trade_volume: i32,
     pub supply: models::SupplyLevel,
@@ -167,7 +168,7 @@ impl MarketTradeGood {
             symbol: value.symbol,
             trade_volume: value.trade_volume,
             r#type: value.r#type,
-            waypoint_symbol: waypoint_symbol.to_string(),
+            waypoint_symbol: waypoint_symbol.into(),
             created_at: sqlx::types::chrono::DateTime::<chrono::Utc>::MIN_UTC, // will be ignored for inserts
         }
     }
@@ -198,7 +199,7 @@ impl DatabaseConnectorAsync for MarketTradeGood {
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
             RETURNING id
             "#,
-            item.waypoint_symbol,
+            item.waypoint_symbol.as_str(),
             item.symbol as models::TradeSymbol,
             item.r#type as models::market_trade_good::Type,
             item.trade_volume,
@@ -246,7 +247,7 @@ impl DatabaseConnectorAsync for MarketTradeGood {
             Vec<_>,
         ) = itertools::multiunzip(items.iter().map(|m| {
             (
-                m.waypoint_symbol.clone(),
+                m.waypoint_symbol.clone().into_inner(),
                 m.symbol,
                 m.r#type,
                 m.trade_volume,

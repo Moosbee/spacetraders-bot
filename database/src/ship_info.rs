@@ -1,11 +1,12 @@
 use tracing::instrument;
+use space_traders_client::{ShipSymbol, SystemSymbol, WaypointSymbol};
 
 use super::{DatabaseConnectorAsync, PaginatedQuery, PaginatedResult, run_paginated_query};
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, async_graphql::SimpleObject)]
 #[graphql(name = "DBShipInfo")]
 pub struct ShipInfo {
-    pub symbol: String,
+    pub symbol: ShipSymbol,
     pub display_name: String,
     pub active: bool, // if false ship is paused, does not request new assignments, but holds current assignment
     pub assignment_id: Option<i64>,
@@ -142,7 +143,7 @@ impl ShipInfo {
 }
 
 impl DatabaseConnectorAsync for ShipInfo {
-    type ID = String;
+    type ID = ShipSymbol;
 
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
     async fn insert_new(database_pool: &super::DbPool, item: &ShipInfo) -> crate::Result<Self::ID> {
@@ -170,7 +171,7 @@ impl DatabaseConnectorAsync for ShipInfo {
                 temp_assignment_id = EXCLUDED.temp_assignment_id,
                 purchase_id = EXCLUDED.purchase_id;
             "#,
-            &item.symbol,
+            &item.symbol.as_str(),
             &item.display_name,
             &item.active,
             &item.assignment_id as &Option<i64>,
@@ -204,7 +205,7 @@ impl DatabaseConnectorAsync for ShipInfo {
             Vec<_>,
         ) = itertools::Itertools::multiunzip(items.iter().cloned().map(|s| {
             (
-                s.symbol.clone(),
+                s.symbol.clone().into_inner(),
                 s.display_name.clone(),
                 s.active,
                 s.assignment_id,
@@ -322,7 +323,7 @@ impl DatabaseConnectorAsync for ShipInfo {
         FROM ship_info WHERE symbol = $1
         LIMIT 1
       "#,
-            id
+            id.as_str()
         )
         .fetch_optional(&database_pool.database_pool)
         .await?;
@@ -337,7 +338,7 @@ impl DatabaseConnectorAsync for ShipInfo {
             DELETE FROM ship_info
             WHERE symbol = $1
             "#,
-            id
+            id.as_str()
         )
         .execute(&database_pool.database_pool)
         .await?;

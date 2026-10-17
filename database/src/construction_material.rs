@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use space_traders_client::{ShipSymbol, SystemSymbol, WaypointSymbol};
 use std::sync::Arc;
 
 use async_graphql::dataloader::Loader;
@@ -63,7 +64,7 @@ impl Loader<i64> for ConstructionMaterialLoader {
 #[graphql(name = "DBConstructionMaterial")]
 pub struct ConstructionMaterial {
     pub id: i64,
-    pub waypoint_symbol: String,
+    pub waypoint_symbol: WaypointSymbol,
     pub trade_symbol: models::TradeSymbol,
     pub required: i32,
     pub fulfilled: i32,
@@ -74,7 +75,7 @@ pub struct ConstructionMaterial {
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
 pub struct ConstructionMaterialSummary {
     pub id: i64,
-    pub waypoint_symbol: String,
+    pub waypoint_symbol: WaypointSymbol,
     pub trade_symbol: models::TradeSymbol,
     pub required: i32,
     pub fulfilled: i32,
@@ -89,7 +90,7 @@ impl ConstructionMaterial {
     pub fn from(value: &models::ConstructionMaterial, waypoint_symbol: &str) -> Self {
         ConstructionMaterial {
             id: 0,
-            waypoint_symbol: waypoint_symbol.to_string(),
+            waypoint_symbol: waypoint_symbol.into(),
             trade_symbol: value.trade_symbol,
             required: value.required,
             fulfilled: value.fulfilled,
@@ -506,7 +507,7 @@ impl DatabaseConnectorAsync for ConstructionMaterial {
           updated_at = NOW()
         RETURNING id;
       "#,
-            &item.waypoint_symbol,
+            &item.waypoint_symbol.as_str(),
             &item.trade_symbol as &models::TradeSymbol,
             &item.required,
             &item.fulfilled
@@ -534,7 +535,7 @@ impl DatabaseConnectorAsync for ConstructionMaterial {
           updated_at = NOW()
         RETURNING id;
       "#,
-            &item.waypoint_symbol,
+            &item.waypoint_symbol.as_str(),
             &item.trade_symbol as &models::TradeSymbol,
             &item.required,
             &item.fulfilled
@@ -561,7 +562,7 @@ impl DatabaseConnectorAsync for ConstructionMaterial {
             Vec<_>,
         ) = itertools::multiunzip(items.iter().map(|cm| {
             (
-                cm.waypoint_symbol.clone(),
+                cm.waypoint_symbol.clone().into_inner(),
                 cm.trade_symbol,
                 cm.required,
                 cm.fulfilled,

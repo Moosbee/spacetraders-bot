@@ -1,4 +1,5 @@
 use std::str::FromStr;
+use space_traders_client::{ShipSymbol, SystemSymbol, WaypointSymbol};
 
 use chrono::{DateTime, Utc};
 use space_traders_client::models::{self};
@@ -19,9 +20,9 @@ use super::{DatabaseConnectorAsync, DbPool, PaginatedQuery, PaginatedResult, run
 pub struct MarketTransaction {
     pub id: i64,
     /// The symbol of the waypoint.
-    pub waypoint_symbol: String,
+    pub waypoint_symbol: WaypointSymbol,
     /// The symbol of the ship that made the transaction.
-    pub ship_symbol: String,
+    pub ship_symbol: ShipSymbol,
     /// The symbol of the trade good.
     pub trade_symbol: models::TradeSymbol,
     /// The type of transaction.
@@ -2310,8 +2311,8 @@ impl DatabaseConnectorAsync for MarketTransaction {
       total_price = EXCLUDED.total_price
       returning id
     "#,
-    item.waypoint_symbol,
-    item.ship_symbol,
+    item.waypoint_symbol.as_str(),
+    item.ship_symbol.as_str(),
     item.trade_symbol as models::TradeSymbol,
     item.r#type as models::market_transaction::Type,
     item.units,
@@ -2355,8 +2356,8 @@ impl DatabaseConnectorAsync for MarketTransaction {
         ): (Vec<_>, Vec<_>, Vec<_>, Vec<_>, Vec<_>, Vec<_>, Vec<_>) =
             itertools::multiunzip(items.iter().map(|item| {
                 (
-                    item.waypoint_symbol.clone(),
-                    item.ship_symbol.clone(),
+                    item.waypoint_symbol.clone().into_inner(),
+                    item.ship_symbol.clone().into_inner(),
                     item.trade_symbol,
                     item.r#type,
                     item.units,

@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use space_traders_client::{ShipSymbol, SystemSymbol, WaypointSymbol};
 use std::sync::Arc;
 
 use async_graphql::dataloader::Loader;
@@ -58,7 +59,7 @@ impl Loader<i64> for ShipyardLoader {
 pub struct Shipyard {
     #[allow(dead_code)]
     pub id: i64,
-    pub waypoint_symbol: String,
+    pub waypoint_symbol: WaypointSymbol,
     pub modifications_fee: i32,
     #[allow(dead_code)]
     pub created_at: DateTime<Utc>,
@@ -90,7 +91,7 @@ impl Shipyard {
               VALUES ($1, $2)
               RETURNING id
           "#,
-            item.waypoint_symbol,
+            item.waypoint_symbol.as_str(),
             item.modifications_fee
         )
         .fetch_one(&database_pool.database_pool)
@@ -275,7 +276,7 @@ impl DatabaseConnectorAsync for Shipyard {
                 SET waypoint_symbol = EXCLUDED.waypoint_symbol,
                     modifications_fee = EXCLUDED.modifications_fee
             "#,
-            item.waypoint_symbol,
+            item.waypoint_symbol.as_str(),
             item.modifications_fee
         )
         .execute(&database_pool.database_pool)
@@ -293,7 +294,7 @@ impl DatabaseConnectorAsync for Shipyard {
                     modifications_fee = $2
                 WHERE id = $3
             "#,
-            item.waypoint_symbol,
+            item.waypoint_symbol.as_str(),
             item.modifications_fee,
             item.id
         )
@@ -307,7 +308,7 @@ impl DatabaseConnectorAsync for Shipyard {
         let (waypoint_symbols, modifications_fees): (Vec<String>, Vec<i32>) = itertools::multiunzip(
             items
                 .iter()
-                .map(|s| (s.waypoint_symbol.clone(), s.modifications_fee)),
+                .map(|s| (s.waypoint_symbol.clone().into_inner(), s.modifications_fee)),
         );
 
         sqlx::query!(

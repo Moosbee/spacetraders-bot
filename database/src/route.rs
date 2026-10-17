@@ -1,4 +1,5 @@
 use chrono::{DateTime, Utc};
+use space_traders_client::{ShipSymbol, SystemSymbol, WaypointSymbol};
 use tracing::instrument;
 
 use super::{DatabaseConnectorAsync, PaginatedQuery, PaginatedResult, run_paginated_query};
@@ -7,9 +8,9 @@ use super::{DatabaseConnectorAsync, PaginatedQuery, PaginatedResult, run_paginat
 #[graphql(name = "DBRoute")]
 pub struct Route {
     pub id: i32,
-    pub ship_symbol: String,
-    pub from: String,
-    pub to: String,
+    pub ship_symbol: ShipSymbol,
+    pub from: WaypointSymbol,
+    pub to: WaypointSymbol,
     pub nav_mode: String,
     pub distance: f64,
     pub fuel_cost: i32,
@@ -121,9 +122,9 @@ impl DatabaseConnectorAsync for Route {
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
                 RETURNING id
             "#,
-            item.ship_symbol,
-            item.from,
-            item.to,
+            item.ship_symbol.as_str(),
+            item.from.as_str(),
+            item.to.as_str(),
             item.distance,
             item.nav_mode,
             item.fuel_cost,
@@ -165,9 +166,9 @@ impl DatabaseConnectorAsync for Route {
             )
             on conflict (id) do nothing
             "#,
-            item.ship_symbol,
-            item.from,
-            item.to,
+            item.ship_symbol.as_str(),
+            item.from.as_str(),
+            item.to.as_str(),
             item.distance,
             item.nav_mode,
             item.fuel_cost,
@@ -198,9 +199,9 @@ impl DatabaseConnectorAsync for Route {
                     ship_info_after = $9
                 WHERE id = $10
             "#,
-            item.ship_symbol,
-            item.from,
-            item.to,
+            item.ship_symbol.as_str(),
+            item.from.as_str(),
+            item.to.as_str(),
             item.distance,
             item.nav_mode,
             item.fuel_cost,

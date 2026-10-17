@@ -1,4 +1,5 @@
 use std::str::FromStr;
+use space_traders_client::{ShipSymbol, SystemSymbol, WaypointSymbol};
 
 use chrono::{DateTime, Utc};
 use space_traders_client::models;
@@ -19,9 +20,9 @@ use crate::{DatabaseConnectorAsync, DbPool, PaginatedQuery, PaginatedResult, run
 pub struct ChartTransaction {
     pub id: i64,
     /// The symbol of the waypoint.
-    pub waypoint_symbol: String, // only one per waypoint
+    pub waypoint_symbol: WaypointSymbol, // only one per waypoint
     /// The symbol of the ship.
-    pub ship_symbol: String,
+    pub ship_symbol: ShipSymbol,
     /// The total price of the transaction.
     pub total_price: i32,
     /// The timestamp of the transaction.
@@ -232,8 +233,8 @@ impl DatabaseConnectorAsync for ChartTransaction {
                 "timestamp" = EXCLUDED."timestamp"
               RETURNING id
           "#,
-            &item.waypoint_symbol,
-            &item.ship_symbol,
+            &item.waypoint_symbol.as_str(),
+            &item.ship_symbol.as_str(),
             &item.total_price,
             &item.timestamp
         )
@@ -259,8 +260,8 @@ impl DatabaseConnectorAsync for ChartTransaction {
                 total_price = EXCLUDED.total_price,
                 "timestamp" = EXCLUDED."timestamp";
           "#,
-            &item.waypoint_symbol,
-            &item.ship_symbol,
+            &item.waypoint_symbol.as_str(),
+            &item.ship_symbol.as_str(),
             &item.total_price,
             &item.timestamp
         )
@@ -281,8 +282,8 @@ impl DatabaseConnectorAsync for ChartTransaction {
                     "timestamp" = $4
                 WHERE id = $5
             "#,
-            &item.waypoint_symbol,
-            &item.ship_symbol,
+            &item.waypoint_symbol.as_str(),
+            &item.ship_symbol.as_str(),
             item.total_price,
             item.timestamp,
             item.id
@@ -301,8 +302,8 @@ impl DatabaseConnectorAsync for ChartTransaction {
             Vec<DateTime<Utc>>,
         ) = itertools::multiunzip(items.iter().map(|ct| {
             (
-                ct.waypoint_symbol.clone(),
-                ct.ship_symbol.clone(),
+                ct.waypoint_symbol.clone().into_inner(),
+                ct.ship_symbol.clone().into_inner(),
                 ct.total_price,
                 ct.timestamp,
             )

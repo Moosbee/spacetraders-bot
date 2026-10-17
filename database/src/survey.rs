@@ -1,4 +1,5 @@
 use std::{collections::HashMap, str::FromStr, sync::Arc};
+use space_traders_client::{ShipSymbol, SystemSymbol, WaypointSymbol};
 
 use async_graphql::dataloader::Loader;
 use chrono::{DateTime, Utc};
@@ -67,9 +68,9 @@ impl Loader<String> for SurveyLoader {
 pub struct Survey {
     pub ship_info_before: i64,
     pub ship_info_after: i64,
-    pub ship_symbol: String,
+    pub ship_symbol: ShipSymbol,
     pub signature: String,
-    pub waypoint_symbol: String,
+    pub waypoint_symbol: WaypointSymbol,
     pub deposits: Vec<models::TradeSymbol>,
     pub expiration: DateTime<Utc>,
     pub size: models::SurveySize,
@@ -91,9 +92,9 @@ impl Survey {
         Ok(Survey {
             ship_info_before: ship_before,
             ship_info_after: ship_after,
-            ship_symbol,
+            ship_symbol: ship_symbol.into(),
             signature: value.signature,
-            waypoint_symbol: value.symbol,
+            waypoint_symbol: value.symbol.into(),
             deposits,
             expiration,
             size: value.size,
@@ -567,7 +568,7 @@ impl From<Survey> for models::Survey {
     fn from(value: Survey) -> Self {
         models::Survey {
             signature: value.signature,
-            symbol: value.waypoint_symbol,
+            symbol: value.waypoint_symbol.into_inner(),
             deposits: value
                 .deposits
                 .iter()
@@ -585,7 +586,7 @@ impl From<&Survey> for models::Survey {
     fn from(value: &Survey) -> Self {
         models::Survey {
             signature: value.signature.clone(),
-            symbol: value.waypoint_symbol.clone(),
+            symbol: value.waypoint_symbol.clone().into_inner(),
             deposits: value
                 .deposits
                 .iter()
@@ -639,8 +640,8 @@ impl DatabaseConnectorAsync for Survey {
             &item.signature,
             &item.ship_info_before,
             &item.ship_info_after,
-            &item.ship_symbol,
-            &item.waypoint_symbol,
+            &item.ship_symbol.as_str(),
+            &item.waypoint_symbol.as_str(),
             &item.deposits as &[models::TradeSymbol],
             &item.expiration,
             &item.size as &models::SurveySize,

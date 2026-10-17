@@ -1,4 +1,5 @@
 use std::str::FromStr;
+use space_traders_client::{ShipSymbol, SystemSymbol, WaypointSymbol};
 
 use chrono::{DateTime, Utc};
 use space_traders_client::models;
@@ -10,8 +11,8 @@ use super::{DatabaseConnectorAsync, PaginatedQuery, PaginatedResult, run_paginat
 #[graphql(name = "DBShipModificationTransaction")]
 pub struct ShipModificationTransaction {
     pub id: i64,
-    pub waypoint_symbol: String,
-    pub ship_symbol: String,
+    pub waypoint_symbol: WaypointSymbol,
+    pub ship_symbol: ShipSymbol,
     pub trade_symbol: models::TradeSymbol,
     pub total_price: i32,
     pub timestamp: DateTime<Utc>,
@@ -272,8 +273,8 @@ impl DatabaseConnectorAsync for ShipModificationTransaction {
                 ON CONFLICT (waypoint_symbol, ship_symbol, trade_symbol, "timestamp") DO NOTHING
                 RETURNING id
             "#,
-            item.waypoint_symbol,
-            item.ship_symbol,
+            item.waypoint_symbol.as_str(),
+            item.ship_symbol.as_str(),
             item.trade_symbol as models::TradeSymbol,
             item.total_price,
             item.timestamp
@@ -295,8 +296,8 @@ impl DatabaseConnectorAsync for ShipModificationTransaction {
                   AND "timestamp" = $4
                 LIMIT 1
             "#,
-            item.waypoint_symbol,
-            item.ship_symbol,
+            item.waypoint_symbol.as_str(),
+            item.ship_symbol.as_str(),
             item.trade_symbol as models::TradeSymbol,
             item.timestamp
         )
@@ -323,8 +324,8 @@ impl DatabaseConnectorAsync for ShipModificationTransaction {
                 VALUES ($1, $2, $3, $4, $5)
                 ON CONFLICT (waypoint_symbol, ship_symbol, trade_symbol, "timestamp") DO NOTHING
             "#,
-            item.waypoint_symbol,
-            item.ship_symbol,
+            item.waypoint_symbol.as_str(),
+            item.ship_symbol.as_str(),
             item.trade_symbol as models::TradeSymbol,
             item.total_price,
             item.timestamp
@@ -350,8 +351,8 @@ impl DatabaseConnectorAsync for ShipModificationTransaction {
                     "timestamp" = $5
                 WHERE id = $6
             "#,
-            item.waypoint_symbol,
-            item.ship_symbol,
+            item.waypoint_symbol.as_str(),
+            item.ship_symbol.as_str(),
             item.trade_symbol as models::TradeSymbol,
             item.total_price,
             item.timestamp,
@@ -376,8 +377,8 @@ impl DatabaseConnectorAsync for ShipModificationTransaction {
             Vec<_>,
         ) = itertools::multiunzip(items.iter().map(|t| {
             (
-                t.waypoint_symbol.clone(),
-                t.ship_symbol.clone(),
+                t.waypoint_symbol.clone().into_inner(),
+                t.ship_symbol.clone().into_inner(),
                 t.trade_symbol,
                 t.total_price,
                 t.timestamp,

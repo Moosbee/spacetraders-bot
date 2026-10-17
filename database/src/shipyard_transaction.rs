@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use space_traders_client::{ShipSymbol, SystemSymbol, WaypointSymbol};
 use std::str::FromStr;
 use std::sync::Arc;
 
@@ -63,7 +64,7 @@ impl Loader<i64> for ShipyardTransactionLoader {
 #[graphql(name = "DBShipyardTransaction")]
 pub struct ShipyardTransaction {
     pub id: i64,
-    pub waypoint_symbol: String,
+    pub waypoint_symbol: WaypointSymbol,
     pub ship_type: models::ShipType,
     pub price: i32,
     pub agent_symbol: String,
@@ -490,7 +491,7 @@ impl ShipyardTransaction {
                 ON CONFLICT (waypoint_symbol, ship_type, agent_symbol, "timestamp") DO NOTHING
                 RETURNING id
             "#,
-            item.waypoint_symbol,
+            item.waypoint_symbol.as_str(),
             item.ship_type as models::ShipType,
             item.price,
             item.agent_symbol,
@@ -523,7 +524,7 @@ impl DatabaseConnectorAsync for ShipyardTransaction {
                 ON CONFLICT (waypoint_symbol, ship_type, agent_symbol, "timestamp") DO NOTHING
                 RETURNING id
             "#,
-            item.waypoint_symbol,
+            item.waypoint_symbol.as_str(),
             item.ship_type as models::ShipType,
             item.price,
             item.agent_symbol,
@@ -546,7 +547,7 @@ impl DatabaseConnectorAsync for ShipyardTransaction {
                   AND "timestamp" = $4
                 LIMIT 1
             "#,
-            item.waypoint_symbol,
+            item.waypoint_symbol.as_str(),
             item.ship_type as models::ShipType,
             item.agent_symbol,
             item.timestamp
@@ -574,7 +575,7 @@ impl DatabaseConnectorAsync for ShipyardTransaction {
                 VALUES ($1, $2, $3, $4, $5)
                 ON CONFLICT (waypoint_symbol, ship_type, agent_symbol, "timestamp") DO NOTHING
             "#,
-            item.waypoint_symbol,
+            item.waypoint_symbol.as_str(),
             item.ship_type as models::ShipType,
             item.price,
             item.agent_symbol,
@@ -601,7 +602,7 @@ impl DatabaseConnectorAsync for ShipyardTransaction {
                     "timestamp" = $5
                 WHERE id = $6
             "#,
-            item.waypoint_symbol,
+            item.waypoint_symbol.as_str(),
             item.ship_type as models::ShipType,
             item.price,
             item.agent_symbol,
@@ -626,7 +627,7 @@ impl DatabaseConnectorAsync for ShipyardTransaction {
             Vec<_>,
         ) = itertools::multiunzip(items.iter().map(|t| {
             (
-                t.waypoint_symbol.clone(),
+                t.waypoint_symbol.clone().into_inner(),
                 t.ship_type,
                 t.price,
                 t.agent_symbol.clone(),

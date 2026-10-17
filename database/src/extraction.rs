@@ -1,4 +1,5 @@
 use chrono::{DateTime, Utc};
+use space_traders_client::{ShipSymbol, SystemSymbol, WaypointSymbol};
 use space_traders_client::models::{self};
 use tracing::instrument;
 
@@ -9,8 +10,8 @@ use super::{DatabaseConnectorAsync, DbPool, PaginatedQuery, PaginatedResult, run
 pub struct Extraction {
     #[allow(dead_code)]
     pub id: i64,
-    pub ship_symbol: String,
-    pub waypoint_symbol: String,
+    pub ship_symbol: ShipSymbol,
+    pub waypoint_symbol: WaypointSymbol,
     pub ship_info_before: i64,
     pub ship_info_after: i64,
     pub siphon: bool,
@@ -521,8 +522,8 @@ impl DatabaseConnectorAsync for Extraction {
                 )
                 RETURNING id
             "#,
-            &item.ship_symbol,
-            &item.waypoint_symbol,
+            &item.ship_symbol.as_str(),
+            &item.waypoint_symbol.as_str(),
             &item.ship_info_before,
             &item.ship_info_after,
             &item.siphon,
@@ -570,8 +571,8 @@ impl DatabaseConnectorAsync for Extraction {
                     created_at = $9
                 WHERE id = $10
             "#,
-            &item.ship_symbol,
-            &item.waypoint_symbol,
+            &item.ship_symbol.as_str(),
+            &item.waypoint_symbol.as_str(),
             &item.ship_info_before,
             &item.ship_info_after,
             &item.siphon,
