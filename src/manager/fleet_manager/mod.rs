@@ -6,6 +6,7 @@ mod messanger;
 mod ship_capabilities;
 mod ship_procurement_manager;
 mod ship_worth;
+mod shipyard_ship_reservation;
 pub use fleet_manager::FleetManager;
 pub use fleet_manager::FleetManagerReceiver;
 pub use messanger::FleetManagerMessanger;

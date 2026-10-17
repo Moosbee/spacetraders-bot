@@ -236,40 +236,6 @@ impl ShipProcurementMessanger {
         }
     }
 
-    #[tracing::instrument(skip(self, waypoint_symbol, ship_symbol), name = "ShipProcurementMessanger::at_shipyard", fields(waypoint = %waypoint_symbol, ship = %ship_symbol))]
-    pub async fn at_shipyard(
-        &self,
-        waypoint_symbol: String,
-        ship_symbol: String,
-    ) -> Result<(), crate::error::Error> {
-        let (sender, receiver) = tokio::sync::oneshot::channel();
-        let erg = self
-            .sender
-            .send_timeout(
-                ShipProcurementMessage::ScrapperAtShipyard {
-                    waypoint_symbol,
-                    ship_symbol,
-                    callback: sender,
-                },
-                tokio::time::Duration::from_millis(5000),
-            )
-            .await;
-        if let Err(e) = erg {
-            match e {
-                tokio::sync::mpsc::error::SendTimeoutError::Timeout(_e) => return Ok(()),
-                tokio::sync::mpsc::error::SendTimeoutError::Closed(_e) => {
-                    // return Err(crate::error::Error::General("Channel closed".to_string()))
-                    return Ok(());
-                }
-            }
-        }
-        let _erg = receiver
-            .await
-            .map_err(|e| crate::error::Error::General(e.to_string()))?;
-
-        Ok(())
-    }
-
     pub fn is_busy(&self) -> bool {
         self.busy.load(std::sync::atomic::Ordering::Relaxed)
     }

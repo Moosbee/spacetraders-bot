@@ -49,3 +49,4 @@ sequenceDiagram
 - add a static scrapping for shipyards
 - connect transactions with fleets
 - rewrite database provider to properly use inversion of control
+- - use https://docs.rs/throw/latest/throw/
