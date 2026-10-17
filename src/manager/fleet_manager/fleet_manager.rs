@@ -1,6 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
 use database::DatabaseConnectorAsync;
+use ship::autopilot::TravelPriceCalc;
 use tracing::{debug, warn};
 
 use crate::{
@@ -226,20 +227,37 @@ impl FleetManager {
 
         let start_system: &str = &ship_clone.nav.system_symbol;
 
-        let conns = target_systems
-            .iter()
-            .map(|end_system| {
-                (
-                    end_system.clone(),
-                    jump_gate
-                        .find_jump_route(start_system, end_system, true)
-                        .map(|c| c.iter().map(|conn| conn.cost).sum::<f64>())
-                        .unwrap_or(f64::MAX),
-                )
-            })
-            .collect::<HashMap<_, _>>();
+        let mut travel_costs = HashMap::new();
 
-        debug!(conns=?conns,"Calculated all connections");
+        let tree = jump_gate.generate_jump_tree(&start_system, true);
+
+        let mut price_getter =
+            ship::autopilot::TravelPriceCache::new(self.context.database_pool.clone());
+        for assignment_system in target_systems {
+            let route = ship::autopilot::JumpGateRouter::get_route(
+                &tree,
+                &assignment_system,
+                &start_system,
+            );
+            let mut total_cost = 0;
+            let mut total_distance = 0.0;
+            let mut total_jumps = 0;
+            for conn in route {
+                let cost: i32 = price_getter
+                    .get_antimatter_price(&conn.start_system)
+                    .await?;
+                total_cost += cost as i64;
+                total_distance += conn.conn.distance;
+                total_jumps += 1;
+            }
+
+            travel_costs.insert(
+                assignment_system.clone(),
+                (total_cost, total_jumps, total_distance),
+            );
+        }
+
+        debug!(travel_costs=?travel_costs,"Calculated all connections");
 
         // sort them based on priority, distance to system and "fitness" i.e. a ship with 130 cargo should be better assigned the one which needs 100 cargo than the one which needs 40 cargo
 
@@ -248,12 +266,14 @@ impl FleetManager {
             let fleet_b = &fleets.get(&b.fleet_id);
             let priority_a = a.priority;
             let priority_b = b.priority;
-            let distance_a = *conns
+            let distance_a = travel_costs
                 .get(&fleet_a.unwrap().system_symbol)
-                .unwrap_or(&f64::MAX);
-            let distance_b = *conns
+                .map(|(cost, _, _)| *cost as f64)
+                .unwrap_or(f64::MAX);
+            let distance_b = travel_costs
                 .get(&fleet_b.unwrap().system_symbol)
-                .unwrap_or(&f64::MAX);
+                .map(|(cost, _, _)| *cost as f64)
+                .unwrap_or(f64::MAX);
             priority_a.cmp(&priority_b).then_with(|| {
                 distance_a
                     .partial_cmp(&distance_b)
