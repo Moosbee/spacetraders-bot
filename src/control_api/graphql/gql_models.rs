@@ -3492,7 +3492,7 @@ paginated_gql_object!(
 
 #[async_graphql::ComplexObject]
 impl GQLWaypoint {
-    async fn distance_to_home(&self, ctx: &async_graphql::Context<'_>) -> f64 {
+    async fn distance_to_home(&self, _ctx: &async_graphql::Context<'_>) -> f64 {
         utils::distance_between_waypoints((0, 0), (self.waypoint.x, self.waypoint.y))
     }
 
@@ -4527,14 +4527,6 @@ impl ShipProcurementManagerInfo {
     async fn should_regen_jump_gate(&self, ctx: &async_graphql::Context<'_>) -> Result<bool> {
         let context = ctx.data::<crate::utils::ConductorContext>().unwrap();
         Ok(context.ship_procurement_manager.get_regen_jump_gates())
-    }
-
-    async fn channel_state(
-        &self,
-        ctx: &async_graphql::Context<'_>,
-    ) -> Result<crate::utils::ChannelInfo> {
-        let context = ctx.data::<crate::utils::ConductorContext>().unwrap();
-        Ok(context.ship_procurement_manager.get_channel_state())
     }
 }
 

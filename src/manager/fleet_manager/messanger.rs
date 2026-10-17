@@ -1,4 +1,4 @@
-use super::message::{FleetManagerMessage, ShipProcurementMessage};
+use super::message::FleetManagerMessage;
 use std::sync::{Arc, atomic::AtomicBool};
 
 #[derive(Debug, Clone)]
@@ -222,15 +222,13 @@ impl FleetManagerMessanger {
 
 #[derive(Debug, Clone)]
 pub struct ShipProcurementMessanger {
-    sender: tokio::sync::mpsc::Sender<ShipProcurementMessage>,
     busy: Arc<AtomicBool>,
     regen_jump_gates: Arc<AtomicBool>,
 }
 
 impl ShipProcurementMessanger {
-    pub fn new(sender: tokio::sync::mpsc::Sender<ShipProcurementMessage>) -> Self {
+    pub fn new() -> Self {
         Self {
-            sender,
             busy: Arc::new(AtomicBool::new(false)),
             regen_jump_gates: Arc::new(AtomicBool::new(false)),
         }
@@ -249,23 +247,5 @@ impl ShipProcurementMessanger {
     pub fn get_regen_jump_gates(&self) -> bool {
         self.regen_jump_gates
             .load(std::sync::atomic::Ordering::Relaxed)
-    }
-    pub fn get_channel_state(&self) -> crate::utils::ChannelInfo {
-        let state = if self.sender.is_closed() {
-            crate::utils::ChannelState::Closed
-        } else {
-            crate::utils::ChannelState::Open
-        };
-
-        let max_capacity = self.sender.max_capacity();
-        let free_capacity = self.sender.capacity();
-        let used_capacity = max_capacity - free_capacity;
-
-        crate::utils::ChannelInfo {
-            state,
-            total_capacity: max_capacity,
-            used_capacity,
-            free_capacity,
-        }
     }
 }

@@ -473,7 +473,7 @@ struct InputConfig {
 
     pub max_update_interval: Option<i32>,
 
-    pub ship_purchase_percentile: Option<f32>,
+    pub ship_purchase_percentile: Option<f64>,
     pub ship_purchase_stop: Option<bool>,
     pub expand: Option<bool>,
 

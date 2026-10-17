@@ -14,6 +14,7 @@ use crate::manager::construction_manager::ConstructionManagerMessanger;
 use crate::manager::contract_manager::ContractManagerMessanger;
 use crate::manager::fleet_manager::FleetManagerMessanger;
 use crate::manager::fleet_manager::ShipProcurementMessanger;
+use crate::manager::fleet_manager::ShipyardShipReservation;
 use crate::manager::mining_manager::MiningManagerMessanger;
 use crate::manager::scrapping_manager::ScrappingManagerMessanger;
 use crate::manager::ship_task::ShipTaskMessanger;
@@ -32,6 +33,7 @@ pub struct ConductorContext {
     pub trade_manager: TradeManagerMessanger,
     pub fleet_manager: FleetManagerMessanger,
     pub ship_procurement_manager: ShipProcurementMessanger,
+    pub shipyard_ship_reservation: Arc<ShipyardShipReservation>,
     pub chart_manager: ChartManagerMessanger,
     pub budget_manager: Arc<BudgetManager>,
     pub run_info: Arc<RwLock<RunInfo>>,
@@ -84,7 +86,7 @@ pub struct Config {
 
     pub max_update_interval: i32,
 
-    pub ship_purchase_percentile: f32,
+    pub ship_purchase_percentile: f64,
     pub ship_purchase_stop: bool,
     pub expand: bool,
     pub use_exploration_fleet: bool,

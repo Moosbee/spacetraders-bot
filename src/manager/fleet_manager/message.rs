@@ -27,12 +27,3 @@ pub enum FleetMessage {
 }
 
 pub type FleetManagerMessage = FleetMessage;
-
-#[derive(Debug)]
-pub enum ShipProcurementMessage {
-    ScrapperAtShipyard {
-        waypoint_symbol: String,
-        ship_symbol: String,
-        callback: tokio::sync::oneshot::Sender<String>,
-    },
-}

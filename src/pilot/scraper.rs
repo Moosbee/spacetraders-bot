@@ -126,8 +126,8 @@ impl ScraperPilot {
 
         if waypoint.is_shipyard() {
             self.context
-                .ship_procurement_manager
-                .at_shipyard(ship.nav.waypoint_symbol.clone(), ship.symbol.clone())
+                .shipyard_ship_reservation
+                .register(&ship.symbol, &waypoint_symbol)
                 .await?;
         }
 
@@ -170,6 +170,13 @@ impl ScraperPilot {
                 *shipyard_resp.data,
             )
             .await?;
+        }
+
+        if waypoint.is_shipyard() {
+            self.context
+                .shipyard_ship_reservation
+                .deregister(&ship.symbol, &waypoint_symbol)
+                .await?;
         }
 
         self.context

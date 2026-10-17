@@ -7,7 +7,7 @@ use std::{
 use database::DatabaseConnectorAsync;
 use priority_queue::PriorityQueue;
 
-use tracing::{debug, instrument};
+use tracing::instrument;
 
 use crate::error::Result;
 
@@ -164,6 +164,15 @@ impl JumpGateRouterCache {
         //     }))
     }
 
+    pub fn generate_jump_tree(
+        &self,
+        from_system: &str,
+        no_under_construction: bool,
+    ) -> HashMap<String, JumpConnection> {
+        self.router
+            .generate_jump_tree(from_system, |_| false, no_under_construction)
+    }
+
     pub(crate) fn get_jump_gate(&self, start_system: &str) -> Option<String> {
         self.router.get_jump_gate(start_system)
     }
@@ -196,6 +205,23 @@ impl JumpGateRouter {
             return Some(Vec::new());
         }
 
+        let visited = self.generate_jump_tree(
+            from_system,
+            |conn| conn.end_system == to_system,
+            no_under_construction,
+        );
+
+        let route = Self::get_route(&visited, from_system, to_system);
+
+        if route.is_empty() { None } else { Some(route) }
+    }
+
+    pub fn generate_jump_tree(
+        &self,
+        from_system: &str,
+        end_condition: impl Fn(&JumpConnection) -> bool,
+        no_under_construction: bool,
+    ) -> HashMap<String, JumpConnection> {
         let mut unvisited: Vec<GateConnection> = self.all_connections.clone();
         let mut to_visit: PriorityQueue<JumpConnection, Reverse<i64>> = PriorityQueue::new();
         let mut visited: HashMap<String, JumpConnection> = HashMap::new();
@@ -221,13 +247,11 @@ impl JumpGateRouter {
                 continue;
             }
             visited.insert(conn.end_system.clone(), conn.clone());
-            if conn.end_system == to_system {
-                return Some(Self::get_route(
-                    visited,
-                    from_system.to_string(),
-                    to_system.to_string(),
-                ));
+
+            if end_condition(&conn) {
+                return visited;
             }
+
             let conns =
                 Self::get_connections(&conn.end_system, &mut unvisited, no_under_construction);
             for next_conn in conns {
@@ -243,7 +267,7 @@ impl JumpGateRouter {
             }
         }
 
-        None
+        visited
     }
 
     fn get_connections(
@@ -268,13 +292,13 @@ impl JumpGateRouter {
         conns
     }
 
-    fn get_route(
-        visited: HashMap<String, JumpConnection>,
-        from: String,
-        to_string: String,
+    pub fn get_route(
+        visited: &HashMap<String, JumpConnection>,
+        from: &str,
+        to: &str,
     ) -> Vec<JumpConnection> {
         let mut route = Vec::new();
-        let mut current = to_string.clone();
+        let mut current = to.to_string();
         tracing::debug!(visited_count = %visited.len(), "Visited systems");
         while current != from {
             let connection = visited.get(&current).unwrap();

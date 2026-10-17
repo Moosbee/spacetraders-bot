@@ -11,4 +11,7 @@ pub use fleet_manager::FleetManager;
 pub use fleet_manager::FleetManagerReceiver;
 pub use messanger::FleetManagerMessanger;
 pub use messanger::ShipProcurementMessanger;
-pub use ship_procurement_manager::{ShipProcurementManager, ShipProcurementReceiver};
+pub use ship_procurement_manager::ShipProcurementManager;
+pub use shipyard_ship_reservation::ShipState;
+pub use shipyard_ship_reservation::ShipyardShipReservation;
+pub use shipyard_ship_reservation::WaypointReservation;
