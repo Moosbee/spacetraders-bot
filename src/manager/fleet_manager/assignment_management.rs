@@ -433,6 +433,11 @@ async fn generate_scraping_fleet_assignments(
         0.01,
     );
 
+    let max_trading_ship_counts = calculate_trade_ship_counts(
+        market_opportunities.strict_market_opportunities as f64,
+        0.05,
+    );
+
     let ship_counts = if trading_ship_counts > 0 {
         (waypoint_counts as f64 * scraping_config.ship_market_ratio).floor() as u32
     } else {
@@ -447,9 +452,9 @@ async fn generate_scraping_fleet_assignments(
             max_purchase_price: 1_000_000,
             credits_threshold: 50_000,
             priority: if i < quarter_ships {
-                DEFAULT_PRIORITY - 5 - (trading_ship_counts as i32) * 2 // first quarter ships have higher priority
+                DEFAULT_PRIORITY - 5 - (max_trading_ship_counts as i32) * 2 // first quarter ships have higher priority
             } else {
-                DEFAULT_PRIORITY - (trading_ship_counts as i32) * 2
+                DEFAULT_PRIORITY - (max_trading_ship_counts as i32) * 2
             },
 
             disabled: false,

@@ -317,7 +317,7 @@ async fn generate_system_fleets(
     let market_opportunities = calculate_market_opportunities(&market_trades);
 
     let trading_ship_ratio = if system_fleets.construction_fleet.is_some() {
-        0.03
+        0.05
     } else {
         0.01
     };

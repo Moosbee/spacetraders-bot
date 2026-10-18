@@ -210,102 +210,93 @@ pub fn sort_trade_route_proposal(
     match (
         &trade_route_proposal_a.sell_good,
         &trade_route_proposal_b.sell_good,
-    ) {
-        (Some(_), None) => return Some(std::cmp::Ordering::Greater),
-        (None, Some(_)) => return Some(std::cmp::Ordering::Less),
-        _ => {}
-    }
-
-    match (
         &trade_route_proposal_a.purchase_good,
         &trade_route_proposal_b.purchase_good,
     ) {
-        (Some(_), None) => return Some(std::cmp::Ordering::Greater),
-        (None, Some(_)) => return Some(std::cmp::Ordering::Less),
-        _ => {}
-    }
+        // sell mismatched: Some beats None
+        (Some(_), None, _, _) => Some(std::cmp::Ordering::Greater),
+        (None, Some(_), _, _) => Some(std::cmp::Ordering::Less),
 
-    // either both are Some or both are None
+        // sell pair matches, purchase mismatched: Some beats None
+        (_, _, Some(_), None) => Some(std::cmp::Ordering::Greater),
+        (_, _, None, Some(_)) => Some(std::cmp::Ordering::Less),
 
-    if trade_route_proposal_a.purchase_good.is_none()
-        && trade_route_proposal_b.purchase_good.is_none()
-        && trade_route_proposal_a.sell_good.is_none()
-        && trade_route_proposal_b.sell_good.is_none()
-    {
-        return Some(std::cmp::Ordering::Equal);
-    }
+        // both pairs match, and at least one pair is None: nothing to compare
+        (None, None, None, None) => Some(std::cmp::Ordering::Equal),
+        (Some(_), Some(_), None, None) => Some(std::cmp::Ordering::Equal),
+        (None, None, Some(_), Some(_)) => Some(std::cmp::Ordering::Equal),
 
-    match trading_config.trade_mode {
-        database::TradeMode::ProfitPerHour => trade_route_proposal_a
-            .profit_per_hour
-            .partial_cmp(&trade_route_proposal_b.profit_per_hour),
-        database::TradeMode::ProfitPerAPIRequest => trade_route_proposal_a
-            .profit_per_api_request
-            .partial_cmp(&trade_route_proposal_b.profit_per_api_request),
-        database::TradeMode::ProfitPerTrip => trade_route_proposal_a
-            .total_profit
-            .partial_cmp(&trade_route_proposal_b.total_profit),
-        database::TradeMode::MarketBalanced => {
-            // prefer trades that are imports for an export in the prefer list
+        // all four are Some: do the real comparison
+        (Some(sell_good_a), Some(sell_good_b), Some(purchase_good_a), Some(purchase_good_b)) => {
+            // real comparison here
+            match trading_config.trade_mode {
+                database::TradeMode::ProfitPerHour => trade_route_proposal_a
+                    .profit_per_hour
+                    .partial_cmp(&trade_route_proposal_b.profit_per_hour),
+                database::TradeMode::ProfitPerAPIRequest => trade_route_proposal_a
+                    .profit_per_api_request
+                    .partial_cmp(&trade_route_proposal_b.profit_per_api_request),
+                database::TradeMode::ProfitPerTrip => trade_route_proposal_a
+                    .total_profit
+                    .partial_cmp(&trade_route_proposal_b.total_profit),
+                database::TradeMode::MarketBalanced => {
+                    // prefer trades that are imports for an export in the prefer list
 
-            // a preferable trade in this case is, if it's  an import to a item on the prefer list and the sell wp exports that same preferred item
-            let is_a_preferable = is_preferable_trade_route_proposal(
-                trade_route_proposal_a,
-                trading_config,
-                supply_chain_mapping,
-            );
-            let is_b_preferable = is_preferable_trade_route_proposal(
-                trade_route_proposal_b,
-                trading_config,
-                supply_chain_mapping,
-            );
+                    // a preferable trade in this case is, if it's  an import to a item on the prefer list and the sell wp exports that same preferred item
+                    let is_a_preferable = is_preferable_trade_route_proposal(
+                        trade_route_proposal_a,
+                        trading_config,
+                        supply_chain_mapping,
+                    );
+                    let is_b_preferable = is_preferable_trade_route_proposal(
+                        trade_route_proposal_b,
+                        trading_config,
+                        supply_chain_mapping,
+                    );
 
-            match (is_a_preferable, is_b_preferable) {
-                (true, false) => return Some(std::cmp::Ordering::Greater),
-                (false, true) => return Some(std::cmp::Ordering::Less),
-                _ => {}
+                    match (is_a_preferable, is_b_preferable) {
+                        (true, false) => return Some(std::cmp::Ordering::Greater),
+                        (false, true) => return Some(std::cmp::Ordering::Less),
+                        _ => {}
+                    }
+
+                    // prefer trades that trade from high supply to low supply the higher difference the better
+
+                    // better if sell pw exporting
+                    // better if buy pw importing
+
+                    // todo calculate divide via the length not of a linear function but a curve to make it better to fill up scarce markets
+                    // let route_a_diff = (purchase_good_a.supply as i32) - (sell_good_a.supply as i32);
+                    // let route_b_diff = (purchase_good_b.supply as i32) - (sell_good_b.supply as i32);
+                    // Some(route_a_diff.cmp(&route_b_diff))
+
+                    let route_a_diff =
+                        curve_score(sell_good_a.supply) - curve_score(purchase_good_a.supply);
+                    let route_b_diff =
+                        curve_score(sell_good_b.supply) - curve_score(purchase_good_b.supply);
+
+                    trace!(
+                        "purchase_a: {:?} {}, sell_a: {:?} {}, {}    purchase_b: {:?} {}, sell_b: {:?} {}, {}   Comp: {:?}",
+                        purchase_good_a.supply,
+                        curve_score(purchase_good_a.supply),
+                        sell_good_a.supply,
+                        curve_score(sell_good_a.supply),
+                        route_a_diff,
+                        purchase_good_b.supply,
+                        curve_score(purchase_good_b.supply),
+                        sell_good_b.supply,
+                        curve_score(sell_good_b.supply),
+                        route_b_diff,
+                        route_a_diff.partial_cmp(&(route_b_diff)),
+                    );
+
+                    Some(
+                        route_a_diff
+                            .partial_cmp(&route_b_diff)
+                            .unwrap_or(std::cmp::Ordering::Equal),
+                    )
+                }
             }
-
-            // prefer trades that trade from high supply to low supply the higher difference the better
-
-            // better if sell pw exporting
-            // better if buy pw importing
-
-            let purchase_good_a = trade_route_proposal_a.purchase_good.as_ref().unwrap();
-            let purchase_good_b = trade_route_proposal_b.purchase_good.as_ref().unwrap();
-            let sell_good_a = trade_route_proposal_a.sell_good.as_ref().unwrap();
-            let sell_good_b = trade_route_proposal_b.sell_good.as_ref().unwrap();
-
-            // todo calculate divide via the length not of a linear function but a curve to make it better to fill up scarce markets
-            // let route_a_diff = (purchase_good_a.supply as i32) - (sell_good_a.supply as i32);
-            // let route_b_diff = (purchase_good_b.supply as i32) - (sell_good_b.supply as i32);
-            // Some(route_a_diff.cmp(&route_b_diff))
-
-            let route_a_diff =
-                curve_score(sell_good_a.supply) - curve_score(purchase_good_a.supply);
-            let route_b_diff =
-                curve_score(sell_good_b.supply) - curve_score(purchase_good_b.supply);
-
-            trace!(
-                "purchase_a: {:?} {}, sell_a: {:?} {}, {}    purchase_b: {:?} {}, sell_b: {:?} {}, {}   Comp: {:?}",
-                purchase_good_a.supply,
-                curve_score(purchase_good_a.supply),
-                sell_good_a.supply,
-                curve_score(sell_good_a.supply),
-                route_a_diff,
-                purchase_good_b.supply,
-                curve_score(purchase_good_b.supply),
-                sell_good_b.supply,
-                curve_score(sell_good_b.supply),
-                route_b_diff,
-                route_a_diff.partial_cmp(&(route_b_diff)),
-            );
-
-            Some(
-                route_a_diff
-                    .partial_cmp(&route_b_diff)
-                    .unwrap_or(std::cmp::Ordering::Equal),
-            )
         }
     }
 }
