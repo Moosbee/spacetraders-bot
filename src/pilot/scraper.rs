@@ -118,7 +118,7 @@ impl ScraperPilot {
 
         ship.wait_for_arrival().await;
 
-        tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
+        tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
 
         let waypoint = database::Waypoint::get_by_id(&self.context.database_pool, &waypoint_symbol)
             .await?
@@ -129,6 +129,7 @@ impl ScraperPilot {
                 .shipyard_ship_reservation
                 .register(&ship.symbol, &waypoint_symbol)
                 .await?;
+            tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
         }
 
         let state = self.wait_until(date).await?;
