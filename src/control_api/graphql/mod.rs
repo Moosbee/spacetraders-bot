@@ -6,6 +6,7 @@ pub mod mutations;
 use async_graphql::Object;
 use database::DatabaseConnectorAsync;
 use space_traders_client::models;
+use space_traders_client::{ShipSymbol, SystemSymbol, WaypointSymbol};
 use std::collections::{HashMap, HashSet};
 use strum::IntoEnumIterator;
 use utils::WaypointCan;
@@ -52,6 +53,7 @@ impl QueryRoot {
         symbol: String,
     ) -> Result<GQLShip> {
         let context = ctx.data::<ConductorContext>()?;
+        let symbol = ShipSymbol::from(symbol.as_str());
         let ship = context
             .ship_manager
             .get_clone(&symbol)
@@ -118,7 +120,7 @@ impl QueryRoot {
                 MarketTransactionBy::Waypoint(waypoint_symbol) => {
                     database::MarketTransaction::get_by_waypoint(
                         &context.database_pool,
-                        &waypoint_symbol,
+                        &waypoint_symbol.into(),
                         query,
                     )
                     .await
@@ -126,7 +128,7 @@ impl QueryRoot {
                 MarketTransactionBy::System(system_symbol) => {
                     database::MarketTransaction::get_by_system(
                         &context.database_pool,
-                        &system_symbol,
+                        &system_symbol.into(),
                         query,
                     )
                     .await
@@ -176,7 +178,7 @@ impl QueryRoot {
                 ShipyardTransactionBy::Waypoint(waypoint_symbol) => {
                     database::ShipyardTransaction::get_by_waypoint(
                         &context.database_pool,
-                        &waypoint_symbol,
+                        &waypoint_symbol.into(),
                         query,
                     )
                     .await
@@ -184,7 +186,7 @@ impl QueryRoot {
                 ShipyardTransactionBy::System(system_symbol) => {
                     database::ShipyardTransaction::get_by_system(
                         &context.database_pool,
-                        &system_symbol,
+                        &system_symbol.into(),
                         query,
                     )
                     .await
@@ -287,7 +289,7 @@ impl QueryRoot {
         let data_loader =
             ctx.data::<async_graphql::dataloader::DataLoader<database::WaypointLoader>>()?;
         let waypoint = data_loader
-            .load_one(symbol.clone())
+            .load_one(WaypointSymbol::from(symbol.as_str()))
             .await?
             .ok_or(GraphiQLError::NotFound)?;
         Ok(waypoint.into())
@@ -312,6 +314,7 @@ impl QueryRoot {
         symbol: String,
     ) -> Result<gql_models::GQLSystem> {
         let context = ctx.data::<ConductorContext>()?;
+        let symbol = SystemSymbol::from(symbol.as_str());
         let system = database::System::get_by_id(&context.database_pool, &symbol)
             .await?
             .ok_or(GraphiQLError::NotFound)?;
@@ -558,7 +561,7 @@ impl QueryRoot {
                 ExtractionBy::Waypoint(symbol) => {
                     database::Extraction::get_by_waypoint_symbol(
                         &context.database_pool,
-                        &symbol.to_string(),
+                        &symbol.into(),
                         query,
                     )
                     .await
@@ -566,7 +569,7 @@ impl QueryRoot {
                 ExtractionBy::System(symbol) => {
                     database::Extraction::get_by_system_symbol(
                         &context.database_pool,
-                        &symbol.to_string(),
+                        &symbol.into(),
                         query,
                     )
                     .await
@@ -617,8 +620,12 @@ impl QueryRoot {
         let fleets = if let Some(by) = by {
             match by {
                 FleetBy::System(system_symbol) => {
-                    database::Fleet::get_by_system(&context.database_pool, &system_symbol, query)
-                        .await
+                    database::Fleet::get_by_system(
+                        &context.database_pool,
+                        &system_symbol.into(),
+                        query,
+                    )
+                    .await
                 }
                 FleetBy::Type(fleet_type) => {
                     database::Fleet::get_by_type(&context.database_pool, fleet_type, query).await
@@ -701,7 +708,7 @@ impl QueryRoot {
                 SurveyBy::Waypoint(waypoint_symbol) => {
                     database::Survey::get_by_waypoint_symbol(
                         &context.database_pool,
-                        &waypoint_symbol,
+                        &waypoint_symbol.into(),
                         query,
                     )
                     .await
@@ -709,7 +716,7 @@ impl QueryRoot {
                 SurveyBy::System(system_symbol) => {
                     database::Survey::get_by_system_symbol(
                         &context.database_pool,
-                        &system_symbol,
+                        &system_symbol.into(),
                         query,
                     )
                     .await
@@ -773,6 +780,10 @@ impl QueryRoot {
 
         let (trade_goods, market_trade) = match systems {
             Some(systems) => {
+                let systems = systems
+                    .iter()
+                    .map(|s| space_traders_client::SystemSymbol::from(s.as_str()))
+                    .collect::<Vec<_>>();
                 crate::manager::trade_manager::trade_route_calculator::fetch_market_data(
                     &context.database_pool,
                     &systems,
@@ -832,6 +843,7 @@ impl QueryRoot {
         symbol: String,
     ) -> Result<gql_models::GQLShipInfo> {
         let context = ctx.data::<ConductorContext>()?;
+        let symbol = ShipSymbol::from(symbol.as_str());
         let ship_info = database::ShipInfo::get_by_id(&context.database_pool, &symbol)
             .await?
             .ok_or(GraphiQLError::NotFound)?;
@@ -850,11 +862,20 @@ impl QueryRoot {
         let ship_states = if let Some(by) = by {
             match by {
                 ShipStateBy::Waypoint(waypoint) => {
-                    database::ShipState::get_by_waypoint(&context.database_pool, &waypoint, query)
-                        .await
+                    database::ShipState::get_by_waypoint(
+                        &context.database_pool,
+                        &waypoint.into(),
+                        query,
+                    )
+                    .await
                 }
                 ShipStateBy::System(system) => {
-                    database::ShipState::get_by_system(&context.database_pool, &system, query).await
+                    database::ShipState::get_by_system(
+                        &context.database_pool,
+                        &system.into(),
+                        query,
+                    )
+                    .await
                 }
                 ShipStateBy::ShipSymbol(symbol) => {
                     database::ShipState::get_by_ship(&context.database_pool, &symbol, query).await
@@ -887,9 +908,10 @@ impl QueryRoot {
         symbol: String,
     ) -> Result<gql_models::GQLShipyard> {
         let context = ctx.data::<ConductorContext>()?;
-        let shipyard = database::Shipyard::get_last_by_waypoint(&context.database_pool, &symbol)
-            .await?
-            .ok_or(GraphiQLError::NotFound)?;
+        let shipyard =
+            database::Shipyard::get_last_by_waypoint(&context.database_pool, &symbol.into())
+                .await?
+                .ok_or(GraphiQLError::NotFound)?;
         Ok(shipyard.into())
     }
 
@@ -907,7 +929,7 @@ impl QueryRoot {
                 ShipyardShipBy::Waypoint(waypoint) => {
                     database::ShipyardShip::get_last_by_waypoint(
                         &context.database_pool,
-                        &waypoint,
+                        &waypoint.into(),
                         query,
                     )
                     .await
@@ -915,7 +937,7 @@ impl QueryRoot {
                 ShipyardShipBy::System(system) => {
                     database::ShipyardShip::get_last_by_system(
                         &context.database_pool,
-                        &system,
+                        &system.into(),
                         query,
                     )
                     .await
@@ -949,7 +971,7 @@ impl QueryRoot {
                 ConstructionMaterialBy::Waypoint(waypoint) => {
                     database::ConstructionMaterial::get_by_waypoint(
                         &context.database_pool,
-                        &waypoint,
+                        &waypoint.into(),
                         query,
                     )
                     .await
@@ -957,7 +979,7 @@ impl QueryRoot {
                 ConstructionMaterialBy::System(system) => {
                     database::ConstructionMaterial::get_by_system(
                         &context.database_pool,
-                        &system,
+                        &system.into(),
                         query,
                     )
                     .await
@@ -999,7 +1021,7 @@ impl QueryRoot {
                 ConstructionShipmentBy::System(system) => {
                     database::ConstructionShipment::get_by_system(
                         &context.database_pool,
-                        &system,
+                        &system.into(),
                         query,
                     )
                     .await
@@ -1071,22 +1093,25 @@ impl QueryRoot {
         let mut waypoints = HashSet::new();
 
         for connection in connections {
-            let mut pair = [connection.from.clone(), connection.to.clone()];
+            let mut pair = [
+                connection.from.clone().into_inner(),
+                connection.to.clone().into_inner(),
+            ];
             pair.sort(); // Ensure the pair is always in a consistent order
             let entry = connection_map.entry((pair[0].clone(), pair[1].clone()));
             waypoints.insert(pair[0].clone());
             waypoints.insert(pair[1].clone());
 
             let entry = entry.or_insert_with(|| gql_models::GateConn {
-                point_a_symbol: pair[0].clone(),
-                point_b_symbol: pair[1].clone(),
+                point_a_symbol: pair[0].clone().into(),
+                point_b_symbol: pair[1].clone().into(),
                 under_construction_a: false,
                 under_construction_b: false,
                 from_a: false,
                 from_b: false,
             });
-            let is_from_a = connection.from == pair[0];
-            let is_from_b = connection.from == pair[1];
+            let is_from_a = connection.from.as_str() == pair[0].as_str();
+            let is_from_b = connection.from.as_str() == pair[1].as_str();
             if is_from_a {
                 entry.from_a = true;
             } else if is_from_b {
@@ -1136,7 +1161,7 @@ impl QueryRoot {
                 MarketTradeBy::Waypoint(waypoint) => {
                     database::MarketTrade::get_last_by_waypoint(
                         &context.database_pool,
-                        &waypoint,
+                        &waypoint.into(),
                         query,
                     )
                     .await
@@ -1152,7 +1177,7 @@ impl QueryRoot {
                 MarketTradeBy::System(system) => {
                     database::MarketTrade::get_last_by_system(
                         &context.database_pool,
-                        &system,
+                        &system.into(),
                         query,
                     )
                     .await
@@ -1178,7 +1203,7 @@ impl QueryRoot {
                 MarketTradeGoodBy::Waypoint(waypoint) => {
                     database::MarketTradeGood::get_last_by_waypoint(
                         &context.database_pool,
-                        &waypoint,
+                        &waypoint.into(),
                         query,
                     )
                     .await
@@ -1194,7 +1219,7 @@ impl QueryRoot {
                 MarketTradeGoodBy::System(system) => {
                     database::MarketTradeGood::get_last_by_system(
                         &context.database_pool,
-                        &system,
+                        &system.into(),
                         query,
                     )
                     .await

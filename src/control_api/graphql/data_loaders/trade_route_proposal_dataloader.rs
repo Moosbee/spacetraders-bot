@@ -1,6 +1,7 @@
 use std::{collections::HashMap, sync::Arc};
 
 use async_graphql::dataloader::Loader;
+use space_traders_client::SystemSymbol;
 use tracing::instrument;
 
 use crate::manager::trade_manager::trade_route_calculator::{
@@ -58,11 +59,17 @@ impl Loader<TradeRouteProposalConfig> for TradeRouteProposalLoader {
             .iter()
             .flat_map(|x| {
                 [
-                    x.trade_route_candidate.purchase.waypoint_symbol.clone(),
-                    x.trade_route_candidate.sell.waypoint_symbol.clone(),
+                    x.trade_route_candidate
+                        .purchase
+                        .waypoint_symbol
+                        .get_system_symbol(),
+                    x.trade_route_candidate
+                        .sell
+                        .waypoint_symbol
+                        .get_system_symbol(),
                 ]
             })
-            .collect::<Vec<String>>();
+            .collect::<Vec<SystemSymbol>>();
         for system_symbol in trade_systems.iter() {
             navigator_cache
                 .preload_system_routers(&self.context.database_pool, system_symbol)

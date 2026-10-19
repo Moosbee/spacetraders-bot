@@ -1,6 +1,7 @@
 use std::{collections::HashMap, sync::Arc};
 
 use ship::status::ShipStatus;
+use space_traders_client::{ShipSymbol, SystemSymbol};
 use tracing::instrument;
 
 pub struct AllShipLoader(crate::utils::ConductorContext);
@@ -12,7 +13,7 @@ impl AllShipLoader {
 }
 
 impl async_graphql::dataloader::Loader<()> for AllShipLoader {
-    type Value = HashMap<String, ship::RustShip<ShipStatus, ship::Immutable>>;
+    type Value = HashMap<ShipSymbol, ship::RustShip<ShipStatus, ship::Immutable>>;
     type Error = Arc<crate::error::Error>;
 
     #[instrument(level = "trace", skip(self, _keys))]
@@ -36,15 +37,15 @@ impl ShipsPerSystemLoader {
     }
 }
 
-impl async_graphql::dataloader::Loader<String> for ShipsPerSystemLoader {
+impl async_graphql::dataloader::Loader<SystemSymbol> for ShipsPerSystemLoader {
     type Value = Vec<ship::RustShip<ShipStatus, ship::Immutable>>;
     type Error = Arc<crate::error::Error>;
 
     #[instrument(level = "trace", skip(self, _keys))]
     async fn load(
         &self,
-        _keys: &[String],
-    ) -> std::result::Result<HashMap<String, Self::Value>, Self::Error> {
+        _keys: &[SystemSymbol],
+    ) -> std::result::Result<HashMap<SystemSymbol, Self::Value>, Self::Error> {
         // let context = ctx.data::<crate::utils::ConductorContext>().unwrap();
         let mut map = HashMap::new();
         let all_ships = self.0.ship_manager.get_all_clone().await;

@@ -7,6 +7,7 @@ use crate::{
 };
 use async_graphql::{Context, Object};
 use database::DatabaseConnectorAsync;
+use space_traders_client::ShipSymbol;
 use space_traders_client::models;
 
 pub struct MutationRoot;
@@ -113,7 +114,11 @@ impl MutationRoot {
     ) -> super::Result<GQLFleet> {
         let context = ctx.data::<ConductorContext>()?;
 
-        let mut new_fleet = database::Fleet::new(system_symbol, active).with_config(config);
+        let mut new_fleet = database::Fleet::new(
+            space_traders_client::SystemSymbol::from(system_symbol.as_str()),
+            active,
+        )
+        .with_config(config);
         let inserted_fleet_id =
             database::Fleet::insert_new(&context.database_pool, &new_fleet).await?;
         new_fleet.id = inserted_fleet_id;
@@ -139,6 +144,8 @@ impl MutationRoot {
         let context = ctx.data::<ConductorContext>()?;
 
         // Update non-config fields via database helpers so SQL stays in the database crate
+        let system_symbol =
+            system_symbol.map(|s| space_traders_client::SystemSymbol::from(s.as_str()));
         database::Fleet::update_basic(&context.database_pool, id, system_symbol, active)
             .await
             .map_err(|e| super::GraphiQLError::IO(e.to_string()))?;
@@ -260,7 +267,9 @@ impl MutationRoot {
                     // ask the fleet manager to regenerate assignments for a single system
                     context
                         .fleet_manager
-                        .regenerate_system_assignments(system_symbol)
+                        .regenerate_system_assignments(space_traders_client::SystemSymbol::from(
+                            system_symbol.as_str(),
+                        ))
                         .await
                         .map_err(|e| super::GraphiQLError::IO(e.to_string()))?;
                 }
@@ -293,7 +302,7 @@ impl MutationRoot {
         let context = ctx.data::<ConductorContext>()?;
         let worked = context
             .fleet_manager
-            .populate_system(system)
+            .populate_system(space_traders_client::SystemSymbol::from(system.as_str()))
             .await
             .map_err(|e| super::GraphiQLError::IO(e.to_string()))?;
         Ok(worked)
@@ -308,7 +317,7 @@ impl MutationRoot {
         let context = ctx.data::<ConductorContext>()?;
         let worked = context
             .fleet_manager
-            .populate_from_jump_gate(jump_gate)
+            .populate_from_jump_gate(jump_gate.into())
             .await
             .map_err(|e| super::GraphiQLError::IO(e.to_string()))?;
         Ok(worked)
@@ -347,6 +356,7 @@ impl MutationRoot {
         temp: bool,
     ) -> super::Result<GQLShipInfo> {
         let context = ctx.data::<ConductorContext>()?;
+        let ship_symbol = ShipSymbol::from(ship_symbol.as_str());
         let mut ship = database::ShipInfo::get_by_id(&context.database_pool, &ship_symbol)
             .await?
             .ok_or(super::GraphiQLError::NotFound)?;
@@ -366,6 +376,7 @@ impl MutationRoot {
         ship_symbol: String,
     ) -> super::Result<bool> {
         let context = ctx.data::<ConductorContext>()?;
+        let ship_symbol = ShipSymbol::from(ship_symbol.as_str());
         if let Some(mut info) =
             database::ShipInfo::get_by_id(&context.database_pool, &ship_symbol).await?
         {
@@ -384,6 +395,7 @@ impl MutationRoot {
         ship_symbol: String,
     ) -> super::Result<bool> {
         let context = ctx.data::<ConductorContext>()?;
+        let ship_symbol = ShipSymbol::from(ship_symbol.as_str());
         if let Some(mut info) =
             database::ShipInfo::get_by_id(&context.database_pool, &ship_symbol).await?
         {

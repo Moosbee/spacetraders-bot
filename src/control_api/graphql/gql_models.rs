@@ -4,6 +4,7 @@ use async_graphql::dataloader::DataLoader;
 use database::DatabaseConnectorAsync;
 use ship::status::ShipStatus;
 use space_traders_client::models;
+use space_traders_client::{ShipSymbol, SystemSymbol, WaypointSymbol};
 
 use crate::{
     control_api::graphql::gql_ship::{GQLModules, GQLMounts, GQLNavigationState},
@@ -101,7 +102,7 @@ impl GQLAgent {
         &self,
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Option<GQLSystem>> {
-        let system = utils::get_system_symbol(&self.agent.headquarters);
+        let system = self.agent.headquarters.get_system_symbol();
         let data_loader = ctx.data::<DataLoader<database::SystemLoader>>().unwrap();
         let erg = data_loader.load_one(system).await?;
         Ok(into_gql(erg))
@@ -250,7 +251,8 @@ impl GQLConstructionShipment {
             .load_one(
                 self.construction_shipment
                     .construction_site_waypoint
-                    .clone(),
+                    .clone()
+                    .into(),
             )
             .await?;
         Ok(into_gql(waypoint))
@@ -262,7 +264,7 @@ impl GQLConstructionShipment {
     ) -> Result<Option<GQLWaypoint>> {
         let data_loader = ctx.data::<DataLoader<database::WaypointLoader>>().unwrap();
         let waypoint = data_loader
-            .load_one(self.construction_shipment.purchase_waypoint.clone())
+            .load_one(self.construction_shipment.purchase_waypoint.clone().into())
             .await?;
         Ok(into_gql(waypoint))
     }
@@ -342,7 +344,7 @@ impl GQLConstructionShipment {
             .unwrap();
         let market_trade_good = data_loader
             .load_one((
-                self.construction_shipment.purchase_waypoint.clone(),
+                self.construction_shipment.purchase_waypoint.clone().into(),
                 self.construction_shipment.trade_symbol,
             ))
             .await?;
@@ -876,7 +878,7 @@ impl GQLJumpGateConnection {
         &self,
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Option<GQLSystem>> {
-        let system = utils::get_system_symbol(&self.jump_gate_connection.from);
+        let system = self.jump_gate_connection.from.get_system_symbol();
         let data_loader = ctx.data::<DataLoader<database::SystemLoader>>().unwrap();
         let erg = data_loader.load_one(system).await?;
         Ok(into_gql(erg))
@@ -886,7 +888,7 @@ impl GQLJumpGateConnection {
         &self,
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Option<GQLSystem>> {
-        let system = utils::get_system_symbol(&self.jump_gate_connection.to);
+        let system = self.jump_gate_connection.to.get_system_symbol();
         let data_loader = ctx.data::<DataLoader<database::SystemLoader>>().unwrap();
         let erg = data_loader.load_one(system).await?;
         Ok(into_gql(erg))
@@ -1237,7 +1239,9 @@ impl GQLMarketTransaction {
     ) -> Result<Option<GQLWaypoint>> {
         let data_loader = ctx.data::<DataLoader<database::WaypointLoader>>().unwrap();
         let erg = if let Some(waypoint) = self.market_transaction.mining.clone() {
-            data_loader.load_one(waypoint).await?
+            data_loader
+                .load_one(WaypointSymbol::from(waypoint.as_str()))
+                .await?
         } else {
             None
         };
@@ -1975,7 +1979,9 @@ impl GQLShipState {
     ) -> Result<Option<GQLWaypoint>> {
         let data_loader = ctx.data::<DataLoader<database::WaypointLoader>>().unwrap();
         let erg = if let Some(ap_dest) = &self.ship_state.auto_pilot_destination_symbol {
-            data_loader.load_one(ap_dest.clone()).await?
+            data_loader
+                .load_one(WaypointSymbol::from(ap_dest.as_str()))
+                .await?
         } else {
             None
         };
@@ -1988,7 +1994,9 @@ impl GQLShipState {
     ) -> Result<Option<GQLSystem>> {
         let data_loader = ctx.data::<DataLoader<database::SystemLoader>>().unwrap();
         let system = if let Some(ap_dest) = &self.ship_state.auto_pilot_destination_system_symbol {
-            data_loader.load_one(ap_dest.clone()).await?
+            data_loader
+                .load_one(SystemSymbol::from(ap_dest.as_str()))
+                .await?
         } else {
             None
         };
@@ -2001,7 +2009,9 @@ impl GQLShipState {
     ) -> Result<Option<GQLWaypoint>> {
         let data_loader = ctx.data::<DataLoader<database::WaypointLoader>>().unwrap();
         let erg = if let Some(ap_orig) = &self.ship_state.auto_pilot_origin_symbol {
-            data_loader.load_one(ap_orig.clone()).await?
+            data_loader
+                .load_one(WaypointSymbol::from(ap_orig.as_str()))
+                .await?
         } else {
             None
         };
@@ -2014,7 +2024,9 @@ impl GQLShipState {
     ) -> Result<Option<GQLSystem>> {
         let data_loader = ctx.data::<DataLoader<database::SystemLoader>>().unwrap();
         let system = if let Some(ap_orig) = &self.ship_state.auto_pilot_origin_system_symbol {
-            data_loader.load_one(ap_orig.clone()).await?
+            data_loader
+                .load_one(SystemSymbol::from(ap_orig.as_str()))
+                .await?
         } else {
             None
         };
@@ -2842,10 +2854,11 @@ impl GQLSystem {
     ) -> Result<GQLTradeRouteCandidatePage> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
 
+        let system_symbols = vec![self.system.symbol.clone()];
         let (trade_goods, market_trade) =
             crate::manager::trade_manager::trade_route_calculator::fetch_market_data(
                 database_pool,
-                std::slice::from_ref(&self.system.symbol),
+                &system_symbols,
             )
             .await?;
 
@@ -2963,8 +2976,8 @@ impl GQLSystem {
 #[derive(Clone, Debug, PartialEq, serde::Serialize, async_graphql::SimpleObject)]
 #[graphql(complex)]
 struct SystemSpanningTreeEdge {
-    pub from_symbol: String,
-    pub to_symbol: String,
+    pub from_symbol: WaypointSymbol,
+    pub to_symbol: WaypointSymbol,
     pub distance: f64,
 }
 
@@ -3028,7 +3041,7 @@ impl GQLTradeRoute {
     async fn sell_waypoint(&self, ctx: &async_graphql::Context<'_>) -> Result<Option<GQLWaypoint>> {
         let data_loader = ctx.data::<DataLoader<database::WaypointLoader>>().unwrap();
         let erg = data_loader
-            .load_one(self.trade_route.sell_waypoint.clone())
+            .load_one(self.trade_route.sell_waypoint.clone().into())
             .await?;
         Ok(into_gql(erg))
     }
@@ -3039,7 +3052,7 @@ impl GQLTradeRoute {
     ) -> Result<Option<GQLWaypoint>> {
         let data_loader = ctx.data::<DataLoader<database::WaypointLoader>>().unwrap();
         let erg = data_loader
-            .load_one(self.trade_route.purchase_waypoint.clone())
+            .load_one(self.trade_route.purchase_waypoint.clone().into())
             .await?;
         Ok(into_gql(erg))
     }
@@ -3130,7 +3143,7 @@ impl GQLTradeRoute {
             .unwrap();
         let market_trade_good = data_loader
             .load_one((
-                self.trade_route.purchase_waypoint.clone(),
+                self.trade_route.purchase_waypoint.clone().into(),
                 self.trade_route.symbol,
             ))
             .await?;
@@ -3146,7 +3159,7 @@ impl GQLTradeRoute {
             .unwrap();
         let market_trade_good = data_loader
             .load_one((
-                self.trade_route.sell_waypoint.clone(),
+                self.trade_route.sell_waypoint.clone().into(),
                 self.trade_route.symbol,
             ))
             .await?;
@@ -3975,7 +3988,7 @@ impl crate::utils::RunInfo {
         &self,
         ctx: &async_graphql::Context<'_>,
     ) -> Result<Option<GQLSystem>> {
-        let system_symbol = utils::get_system_symbol(&self.headquarters);
+        let system_symbol = self.headquarters.get_system_symbol();
         let data_loader = ctx.data::<DataLoader<database::SystemLoader>>().unwrap();
         let system = data_loader.load_one(system_symbol).await?;
         Ok(into_gql(system))
@@ -4323,8 +4336,8 @@ impl GQLShip {
 pub struct GateConn {
     pub under_construction_a: bool,
     pub under_construction_b: bool,
-    pub point_a_symbol: String,
-    pub point_b_symbol: String,
+    pub point_a_symbol: WaypointSymbol,
+    pub point_b_symbol: WaypointSymbol,
     pub from_a: bool,
     pub from_b: bool,
 }
@@ -4569,13 +4582,13 @@ impl MiningManagerInfo {
         Ok(assignments
             .into_iter()
             .map(|f| MiningAssignment {
-                waypoint_symbol: f.0,
+                waypoint_symbol: f.0.into(),
                 last_updated: f.1.get_last_updated(),
                 assigned_ships: f
                     .1
                     .ship_iter()
                     .map(|f| AssignedShip {
-                        ship_symbol: f.0.clone(),
+                        ship_symbol: f.0.clone().into(),
                         level: *f.1,
                     })
                     .collect(),
@@ -4586,14 +4599,14 @@ impl MiningManagerInfo {
 
 #[derive(Debug, Clone, async_graphql::SimpleObject)]
 struct MiningAssignment {
-    waypoint_symbol: String,
+    waypoint_symbol: WaypointSymbol,
     assigned_ships: Vec<AssignedShip>,
     last_updated: chrono::DateTime<chrono::Utc>,
 }
 
 #[derive(Debug, Clone, async_graphql::SimpleObject)]
 struct AssignedShip {
-    pub ship_symbol: String,
+    pub ship_symbol: ShipSymbol,
     pub level: crate::manager::mining_manager::AssignLevel,
 }
 
@@ -4645,6 +4658,7 @@ impl ScrappingManagerInfo {
         ship_symbol: String,
     ) -> Result<Vec<ScrapInfo>> {
         let context = ctx.data::<crate::utils::ConductorContext>().unwrap();
+        let ship_symbol = ShipSymbol::from(ship_symbol.as_str());
         let ship = context.ship_manager.get_clone(&ship_symbol).await;
 
         if let Some(ship_clone) = ship {
@@ -4740,7 +4754,7 @@ struct SystemScrappingState {
 
 #[derive(Debug, Clone, async_graphql::SimpleObject)]
 struct ScrapInfo {
-    waypoint_symbol: String,
+    waypoint_symbol: WaypointSymbol,
     date: chrono::DateTime<chrono::Utc>,
 }
 
