@@ -182,7 +182,7 @@ async fn get_system_router<'a>(
     if !system_routers.contains_key(system_symbol) {
         let waypoints = database::Waypoint::get_by_system(
             database_pool,
-            system_symbol.as_str(),
+            &system_symbol,
             database::PaginatedQuery::unpaged(),
         )
         .await?;

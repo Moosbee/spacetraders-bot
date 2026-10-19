@@ -95,7 +95,7 @@ pub struct TransactionSummary {
 pub enum TransactionReason {
     Contract(String),
     TradeRoute(i32),
-    MiningWaypoint(String),
+    MiningWaypoint(WaypointSymbol),
     Construction(i64),
     #[default]
     None,
@@ -125,7 +125,7 @@ impl MarketTransaction {
             TransactionReason::MiningWaypoint(waypoint) => MarketTransaction {
                 contract: None,
                 trade_route: None,
-                mining: Some(waypoint),
+                mining: Some(waypoint.into_inner()),
                 ..self
             },
             TransactionReason::Construction(construction) => MarketTransaction {

@@ -45,7 +45,7 @@ impl TravelPriceCache {
     pub async fn preload_system_prices(&mut self, system_symbol: &SystemSymbol) -> Result<()> {
         let prices = database::MarketTradeGood::get_last_by_system(
             &self.database_pool,
-            system_symbol.as_str(),
+            system_symbol,
             database::PaginatedQuery::unpaged(),
         )
         .await?;
@@ -66,7 +66,7 @@ impl TravelPriceCache {
         for waypoint in waypoints {
             let trade_good = database::MarketTradeGood::get_by_last_waypoint_and_trade_symbol(
                 &self.database_pool,
-                waypoint.as_str(),
+                waypoint,
                 &space_traders_client::models::TradeSymbol::Antimatter,
             )
             .await?;
@@ -87,7 +87,7 @@ impl TravelPriceCalc for TravelPriceCache {
         }
         let trade_good = database::MarketTradeGood::get_by_last_waypoint_and_trade_symbol(
             &self.database_pool,
-            waypoint_symbol.as_str(),
+            waypoint_symbol,
             &space_traders_client::models::TradeSymbol::Fuel,
         )
         .await?;
@@ -107,7 +107,7 @@ impl TravelPriceCalc for TravelPriceCache {
         }
         let trade_good = database::MarketTradeGood::get_by_last_waypoint_and_trade_symbol(
             &self.database_pool,
-            waypoint_symbol.as_str(),
+            waypoint_symbol,
             &space_traders_client::models::TradeSymbol::Antimatter,
         )
         .await?;

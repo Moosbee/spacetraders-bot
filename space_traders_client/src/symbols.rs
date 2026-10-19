@@ -149,6 +149,13 @@ impl WaypointSymbol {
     }
 }
 
+impl SystemSymbol {
+    pub fn contains_waypoint(&self, waypoint_symbol: &WaypointSymbol) -> bool {
+        // same as waypoint_symbol.starts_with(system_symbol)
+        waypoint_symbol.starts_with(self.as_str())
+    }
+}
+
 // GraphQL scalar support so the newtypes can be used in `SimpleObject` and
 // resolver signatures as drop-in replacements for `String`.
 mod graphql_support {
