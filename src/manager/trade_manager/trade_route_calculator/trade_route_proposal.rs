@@ -359,7 +359,7 @@ mod tests {
 
     fn make_market_trade(symbol: TradeSymbol, r#type: Type) -> database::MarketTrade {
         database::MarketTrade {
-            waypoint_symbol: "SELL_WP".to_string(),
+            waypoint_symbol: "SELL_WP".into(),
             symbol,
             r#type,
             ..Default::default()

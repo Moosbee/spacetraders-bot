@@ -2,6 +2,7 @@ use core::panic;
 use std::collections::HashSet;
 
 use database::DatabaseConnectorAsync;
+use space_traders_client::SystemSymbol;
 use space_traders_client::models;
 use utils::WaypointCan;
 
@@ -23,7 +24,7 @@ struct SystemFleets {
 /// adds or updates fleets in a system
 pub async fn populate_system(
     context: &crate::utils::ConductorContext,
-    system_symbol: &str,
+    system_symbol: &SystemSymbol,
 ) -> Result<(), crate::error::Error> {
     // let fleet_manager = &context.managers.fleet_manager;
 
@@ -181,7 +182,7 @@ pub async fn populate_system(
 
 async fn generate_system_fleets(
     context: &crate::utils::ConductorContext,
-    system_symbol: &str,
+    system_symbol: &SystemSymbol,
 ) -> Result<SystemFleets, crate::error::Error> {
     let waypoints = database::Waypoint::get_by_system(
         &context.database_pool,
@@ -264,7 +265,7 @@ async fn generate_system_fleets(
 
     if has_uncharted_jump_gates && use_exploration_fleet {
         system_fleets.exploration_fleet = Some(
-            database::Fleet::new(system_symbol.to_string(), true).with_config(
+            database::Fleet::new(system_symbol.clone(), true).with_config(
                 database::FleetConfig::Charting(database::ChartingFleetConfig {
                     charting_probe_count: 1,
                     chart_only_jump_gates: true,
@@ -276,7 +277,7 @@ async fn generate_system_fleets(
     // charting fleet
     if has_uncharted_waypoints {
         system_fleets.charting_fleet = Some(
-            database::Fleet::new(system_symbol.to_string(), true).with_config(
+            database::Fleet::new(system_symbol.clone(), true).with_config(
                 database::FleetConfig::Charting(database::ChartingFleetConfig {
                     charting_probe_count: 1,
                     chart_only_jump_gates: false,
@@ -291,10 +292,10 @@ async fn generate_system_fleets(
         && let Some(construction_waypoint) = construction_waypoint
     {
         system_fleets.construction_fleet = Some(
-            database::Fleet::new(system_symbol.to_string(), true).with_config(
+            database::Fleet::new(system_symbol.clone(), true).with_config(
                 database::FleetConfig::Construction(database::ConstructionFleetConfig {
                     construction_ship_count: 1,
-                    construction_waypoint,
+                    construction_waypoint: construction_waypoint.to_string(),
                     construction_mode: database::ConstructionMode::LowestPurchaseCost,
                 }),
             ),
@@ -304,7 +305,7 @@ async fn generate_system_fleets(
     // scrapping fleet
     if market_count > 1 {
         system_fleets.scrapping_fleet = Some(
-            database::Fleet::new(system_symbol.to_string(), true).with_config(
+            database::Fleet::new(system_symbol.clone(), true).with_config(
                 database::FleetConfig::Scraping(database::ScrapingFleetConfig {
                     allowed_requests: 1, // todo do right calculations
                     notify_on_shipyard: true,
@@ -385,7 +386,7 @@ async fn generate_system_fleets(
         };
 
         system_fleets.trading_fleet = Some(
-            database::Fleet::new(system_symbol.to_string(), true).with_config(
+            database::Fleet::new(system_symbol.clone(), true).with_config(
                 database::FleetConfig::Trading(database::TradingFleetConfig {
                     market_blacklist,
                     market_prefer_list,
@@ -446,7 +447,7 @@ async fn generate_system_fleets(
         };
 
         system_fleets.market_balance_fleet = Some(
-            database::Fleet::new(system_symbol.to_string(), true).with_config(
+            database::Fleet::new(system_symbol.clone(), true).with_config(
                 database::FleetConfig::Trading(database::TradingFleetConfig {
                     market_blacklist,
                     market_prefer_list,
@@ -497,7 +498,7 @@ async fn generate_system_fleets(
         let miners_per_waypoint = 16.min(max_miners_per_waypoint) as i32;
 
         system_fleets.mining_fleet = Some(
-            database::Fleet::new(system_symbol.to_string(), true).with_config(
+            database::Fleet::new(system_symbol.clone(), true).with_config(
                 database::FleetConfig::Mining(database::MiningFleetConfig {
                     mining_eject_list,
                     mining_prefer_list,
@@ -521,7 +522,7 @@ async fn generate_system_fleets(
     // contract fleet
     if is_headquarters_system {
         system_fleets.contract_fleet = Some(
-            database::Fleet::new(system_symbol.to_string(), true).with_config(
+            database::Fleet::new(system_symbol.clone(), true).with_config(
                 database::FleetConfig::Contract(database::ContractFleetConfig {
                     contract_ship_count: 1,
                 }),
@@ -564,7 +565,7 @@ async fn update_fleet(
 // returns true if the system is fully populated, populated meaning it has at least 1 fleet
 pub async fn is_system_populated(
     database_pool: &database::DbPool,
-    system_symbol: &str,
+    system_symbol: &SystemSymbol,
 ) -> Result<bool, crate::error::Error> {
     let fleets = database::Fleet::get_by_system(
         database_pool,

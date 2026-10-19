@@ -3,13 +3,14 @@ use std::time::Duration;
 use database::DatabaseConnectorAsync;
 use log::debug;
 use space_traders_client::models;
+use space_traders_client::{SystemSymbol, WaypointSymbol};
 use tokio::time::sleep;
 use tracing::instrument;
 
 #[instrument(skip(api, waypoints))]
 pub async fn get_all_markets(
     api: &space_traders_client::Api,
-    waypoints: &[(String, String, bool)],
+    waypoints: &[(SystemSymbol, WaypointSymbol, bool)],
 ) -> crate::error::Result<Vec<models::Market>> {
     let mut market_handles = tokio::task::JoinSet::new();
 
@@ -18,9 +19,11 @@ pub async fn get_all_markets(
         let waypoint = waypoint.clone();
         market_handles.spawn(async move {
             debug!("Market: {}", waypoint.1);
+            let system_symbol = waypoint.0;
+            let waypoint_symbol = waypoint.1;
 
             loop {
-                let market = api.get_market(&waypoint.0, &waypoint.1).await;
+                let market = api.get_market(&system_symbol, &waypoint_symbol).await;
 
                 match market {
                     Ok(market) => {
@@ -29,7 +32,7 @@ pub async fn get_all_markets(
                     Err(e) => {
                         tracing::warn!(
                             error = format!("{} {:?}", e, e),
-                            waypoint_symbol = waypoint.1,
+                            waypoint_symbol = %waypoint_symbol,
                             "Market Error",
                         );
                         sleep(Duration::from_millis(500)).await;
@@ -47,7 +50,7 @@ pub async fn get_all_markets(
             market_data.is_ok(),
             market_data
                 .as_ref()
-                .map(|m| m.symbol.clone())
+                .map(|m| m.symbol.clone().to_string())
                 .unwrap_or("Error".to_string())
         );
 

@@ -1,5 +1,3 @@
-use ::utils::get_system_symbol;
-
 #[derive(Debug, Clone, PartialEq)]
 pub struct ShipWorth<'a> {
     pub assignment: &'a database::ShipAssignment,
@@ -18,7 +16,7 @@ impl ShipWorth<'_> {
         jump_gate: &mut ship::autopilot::JumpGateRouterCache,
         antimatter_cost: i64,
     ) -> Option<ShipWorth<'a>> {
-        let shipyard_system = get_system_symbol(&shipyard_ship.waypoint_symbol);
+        let shipyard_system = shipyard_ship.waypoint_symbol.get_system_symbol();
         let route = jump_gate.find_jump_route(&shipyard_system, &fleet.system_symbol, true);
         let route = route?;
         let (total_jumps, total_distance) = route

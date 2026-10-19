@@ -3,12 +3,13 @@ use std::time::Duration;
 use chrono::DateTime;
 use database::DatabaseConnectorAsync;
 use space_traders_client::models;
+use space_traders_client::{SystemSymbol, WaypointSymbol};
 use tokio::time::sleep;
 use tracing::debug;
 
 pub async fn get_all_jump_gates(
     api: &space_traders_client::Api,
-    gates: Vec<(String, String, bool)>,
+    gates: Vec<(SystemSymbol, WaypointSymbol, bool)>,
 ) -> crate::error::Result<Vec<models::JumpGate>> {
     let mut jump_gate_handles = tokio::task::JoinSet::new();
 
@@ -17,9 +18,11 @@ pub async fn get_all_jump_gates(
         let waypoint = waypoint.clone();
         jump_gate_handles.spawn(async move {
             debug!("JumpGate: {}", waypoint.1);
+            let system_symbol = waypoint.0;
+            let waypoint_symbol = waypoint.1;
             let mut err_count = 2;
             loop {
-                let jump_gate = api.get_jump_gate(&waypoint.0, &waypoint.1).await;
+                let jump_gate = api.get_jump_gate(&system_symbol, &waypoint_symbol).await;
                 match jump_gate {
                     Ok(jump_gate) => {
                         break Some(*jump_gate.data);
@@ -38,7 +41,7 @@ pub async fn get_all_jump_gates(
                             break None;
                         }
                         err_count -= 1;
-                        tracing::warn!(error = ?e, jump_gate = %waypoint.1, "JumpGate error");
+                        tracing::warn!(error = ?e, jump_gate = %waypoint_symbol, "JumpGate error");
                         if err_count <= 0 {
                             break None;
                         }
@@ -46,7 +49,7 @@ pub async fn get_all_jump_gates(
                     }
                     Err(e) => {
                         err_count -= 1;
-                        tracing::warn!(error = ?e, jump_gate = %waypoint.1, "JumpGate error");
+                        tracing::warn!(error = ?e, jump_gate = %waypoint_symbol, "JumpGate error");
                         if err_count <= 0 {
                             break None;
                         }
@@ -66,7 +69,7 @@ pub async fn get_all_jump_gates(
                 .as_ref()
                 .map(|m| m
                     .as_ref()
-                    .map(|j| j.symbol.clone())
+                    .map(|j| j.symbol.clone().to_string())
                     .unwrap_or("Errorr".to_string()))
                 .unwrap_or("Error".to_string())
         );

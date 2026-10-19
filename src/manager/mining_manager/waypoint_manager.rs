@@ -1,5 +1,6 @@
 use database::DatabaseConnectorAsync;
 use space_traders_client::models;
+use space_traders_client::{ShipSymbol, WaypointSymbol};
 use utils::WaypointCan;
 
 use crate::utils::ConductorContext;
@@ -37,7 +38,7 @@ impl WaypointManager {
         ship_clone: ship::MyShipCopy,
         is_syphon: bool,
         mining_config: &database::MiningFleetConfig,
-    ) -> Result<String> {
+    ) -> Result<WaypointSymbol> {
         // let action: ActionType = ActionType::get_action(&ship_clone).ok_or("Invalid ship role")?;
         let action: ActionType = if is_syphon {
             ActionType::Siphon
@@ -53,7 +54,7 @@ impl WaypointManager {
         ship: &ship::MyShipCopy,
         action: ActionType,
         mining_config: &database::MiningFleetConfig,
-    ) -> Result<String> {
+    ) -> Result<WaypointSymbol> {
         let ignore_engineered_asteroids = mining_config.ignore_engineered_asteroids;
         let stop_all_unstable = mining_config.stop_all_unstable;
         let unstable_since_timeout = mining_config.unstable_since_timeout as i64;
@@ -84,7 +85,7 @@ impl WaypointManager {
                     action == ActionType::Siphon,
                 ) != 0
             {
-                return Ok(waypoint_symbol.to_string());
+                return Ok(waypoint_symbol.clone());
             }
         }
 
@@ -113,7 +114,7 @@ impl WaypointManager {
                 action == ActionType::Siphon,
             ) != 0
         {
-            return Ok(waypoint_symbol.to_string());
+            return Ok(waypoint_symbol.clone());
         }
 
         let counts = self.places.get_max_miners_per_waypoint()
@@ -152,7 +153,7 @@ impl WaypointManager {
         ship: &ship::MyShipCopy,
         waypoints: Vec<place_finder::FoundWaypointInfo>,
         action: ActionType,
-    ) -> Result<String> {
+    ) -> Result<WaypointSymbol> {
         tracing::debug!(ship_symbol = %ship.symbol, waypoints_count = waypoints.len(), action = ?action, "Assigning to available waypoint");
         for waypoint in waypoints {
             if self.places.try_assign_on_way(
@@ -171,7 +172,7 @@ impl WaypointManager {
         &mut self,
         ship_clone: ship::MyShipCopy,
         action: ActionType,
-    ) -> std::result::Result<String, crate::error::Error> {
+    ) -> std::result::Result<WaypointSymbol, crate::error::Error> {
         let waypoint_symbol = ship_clone.nav.waypoint_symbol.clone();
 
         let wp = self.places.try_assign_active(
@@ -181,7 +182,7 @@ impl WaypointManager {
         );
 
         if wp {
-            Ok(waypoint_symbol)
+            Ok(waypoint_symbol.clone())
         } else {
             Err("Could not activate craft".into())
         }
@@ -190,7 +191,7 @@ impl WaypointManager {
     pub async fn unassign_waypoint(
         &mut self,
         ship_clone: ship::MyShipCopy,
-    ) -> std::result::Result<String, crate::error::Error> {
+    ) -> std::result::Result<WaypointSymbol, crate::error::Error> {
         let waypoint_symbol = ship_clone.nav.waypoint_symbol.clone();
 
         let wp = self
@@ -198,7 +199,7 @@ impl WaypointManager {
             .try_assign_inactive(&ship_clone.symbol, &waypoint_symbol);
 
         if wp {
-            Ok(waypoint_symbol)
+            Ok(waypoint_symbol.clone())
         } else {
             Err("Could not deactivate craft".into())
         }
@@ -207,7 +208,7 @@ impl WaypointManager {
     pub async fn unassign_waypoint_complete(
         &mut self,
         ship_clone: ship::MyShipCopy,
-    ) -> std::result::Result<String, crate::error::Error> {
+    ) -> std::result::Result<WaypointSymbol, crate::error::Error> {
         let waypoint_symbol = ship_clone.nav.waypoint_symbol.clone();
 
         let wp = self
@@ -215,17 +216,17 @@ impl WaypointManager {
             .try_unassign(&ship_clone.symbol, &waypoint_symbol);
 
         if wp {
-            Ok(waypoint_symbol)
+            Ok(waypoint_symbol.clone())
         } else {
             Err("Could not deactivate craft".into())
         }
     }
 
-    pub fn up_date(&mut self, waypoint: &str) {
+    pub fn up_date(&mut self, waypoint: &WaypointSymbol) {
         self.places.up_date(waypoint);
     }
 
-    pub fn get_all_places(&self) -> Vec<(String, super::mining_places::WaypointInfo)> {
+    pub fn get_all_places(&self) -> Vec<(WaypointSymbol, super::mining_places::WaypointInfo)> {
         self.places
             .iter()
             .map(|wp| (wp.0.clone(), wp.1.clone()))
@@ -234,8 +235,8 @@ impl WaypointManager {
 
     pub fn calculate_waypoint_urgencys(
         &self,
-        the_ships: &std::collections::HashMap<String, ship::MyShipCopy>,
-    ) -> Vec<(String, i64)> {
+        the_ships: &std::collections::HashMap<ShipSymbol, ship::MyShipCopy>,
+    ) -> Vec<(WaypointSymbol, i64)> {
         let mut erg = self
             .places
             .iter()
@@ -250,8 +251,8 @@ impl WaypointManager {
     // where do I put you?
     fn calculate_waypoint_urgency(
         wp: &super::mining_places::WaypointInfo,
-        ships: &std::collections::HashMap<String, ship::MyShipCopy>,
-    ) -> (String, i64) {
+        ships: &std::collections::HashMap<ShipSymbol, ship::MyShipCopy>,
+    ) -> (WaypointSymbol, i64) {
         let (units_sum, capacity_sum) = wp
             .ship_iter()
             .filter(|s| s.1 == &AssignLevel::Active)

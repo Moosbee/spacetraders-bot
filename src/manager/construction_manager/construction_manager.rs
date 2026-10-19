@@ -6,8 +6,9 @@ use std::{
 use chrono::Utc;
 use database::{ConstructionFleetConfig, DatabaseConnectorAsync, PaginatedQuery};
 use space_traders_client::models::{self};
+use space_traders_client::{SystemSymbol, WaypointSymbol};
 use tracing::debug;
-use utils::{WaypointCan, get_system_symbol};
+use utils::WaypointCan;
 
 use crate::{
     error::{Error, Result},
@@ -232,7 +233,12 @@ impl ConstructionManager {
                 c
             })
             .filter(|c| c.fulfilled < c.required)
-            .filter(|c| c.waypoint_symbol.starts_with(&ship_clone.nav.system_symbol))
+            .filter(|c| {
+                ship_clone
+                    .nav
+                    .system_symbol
+                    .contains_waypoint(&c.waypoint_symbol)
+            })
             .collect::<Vec<_>>();
 
         if construction_materials.is_empty() {
@@ -249,7 +255,7 @@ impl ConstructionManager {
         let mut materials: Vec<(
             database::ConstructionMaterial,
             models::TradeSymbol,
-            (String, Option<i32>, Option<models::SupplyLevel>),
+            (WaypointSymbol, Option<i32>, Option<models::SupplyLevel>),
             i32,
             i32,
             i32,
@@ -444,7 +450,7 @@ impl ConstructionManager {
 
         let waypoint = shipment.construction_site_waypoint.clone();
 
-        let system_waypoint = get_system_symbol(&waypoint);
+        let system_waypoint = waypoint.get_system_symbol();
 
         if was_last_shipment_of_material {
             self.context
@@ -468,7 +474,7 @@ impl ConstructionManager {
             if waypoint.is_jump_gate() {
                 self.context
                     .fleet_manager
-                    .populate_from_jump_gate(waypoint.symbol)
+                    .populate_from_jump_gate(waypoint.symbol.clone())
                     .await?;
             }
         }
@@ -494,8 +500,8 @@ impl ConstructionManager {
     async fn get_purchase_waypoint(
         &self,
         trade_symbol: &models::TradeSymbol,
-        system_symbol: &str,
-    ) -> Result<(String, Option<i32>, Option<models::SupplyLevel>)> {
+        system_symbol: &SystemSymbol,
+    ) -> Result<(WaypointSymbol, Option<i32>, Option<models::SupplyLevel>)> {
         debug!(
             "Getting purchase waypoint for trade symbol: {:?}",
             trade_symbol
@@ -508,20 +514,22 @@ impl ConstructionManager {
         .await?
         .items
         .into_iter()
-        .filter(|t| t.waypoint_symbol.starts_with(system_symbol))
+        .filter(|t| system_symbol.contains_waypoint(&t.waypoint_symbol))
         .collect::<Vec<_>>();
-        let market_trade_goods: HashMap<(models::TradeSymbol, String), database::MarketTradeGood> =
-            database::MarketTradeGood::get_last_by_symbol(
-                &self.context.database_pool,
-                trade_symbol,
-                database::PaginatedQuery::unpaged(),
-            )
-            .await?
-            .items
-            .into_iter()
-            .filter(|t| t.waypoint_symbol.starts_with(system_symbol))
-            .map(|t| ((t.symbol, t.waypoint_symbol.clone()), t))
-            .collect::<HashMap<_, _>>();
+        let market_trade_goods: HashMap<
+            (models::TradeSymbol, WaypointSymbol),
+            database::MarketTradeGood,
+        > = database::MarketTradeGood::get_last_by_symbol(
+            &self.context.database_pool,
+            trade_symbol,
+            database::PaginatedQuery::unpaged(),
+        )
+        .await?
+        .items
+        .into_iter()
+        .filter(|t| system_symbol.contains_waypoint(&t.waypoint_symbol))
+        .map(|t| ((t.symbol, t.waypoint_symbol.clone()), t))
+        .collect::<HashMap<_, _>>();
 
         let mut trades = market_trades
             .into_iter()
@@ -562,7 +570,7 @@ fn compare_construction_materials(
     a: &(
         database::ConstructionMaterial,
         models::TradeSymbol,
-        (String, Option<i32>, Option<models::SupplyLevel>),
+        (WaypointSymbol, Option<i32>, Option<models::SupplyLevel>),
         i32,
         i32,
         i32,
@@ -571,7 +579,7 @@ fn compare_construction_materials(
     b: &(
         database::ConstructionMaterial,
         models::TradeSymbol,
-        (String, Option<i32>, Option<models::SupplyLevel>),
+        (WaypointSymbol, Option<i32>, Option<models::SupplyLevel>),
         i32,
         i32,
         i32,
@@ -623,7 +631,7 @@ mod tests {
     fn material(fulfilled: i32, required: i32) -> database::ConstructionMaterial {
         database::ConstructionMaterial {
             id: 1,
-            waypoint_symbol: "X1-TEST".to_string(),
+            waypoint_symbol: "X1-TEST".into(),
             trade_symbol: TradeSymbol::Iron,
             required,
             fulfilled,
@@ -642,7 +650,7 @@ mod tests {
     ) -> (
         database::ConstructionMaterial,
         TradeSymbol,
-        (String, Option<i32>, Option<SupplyLevel>),
+        (WaypointSymbol, Option<i32>, Option<SupplyLevel>),
         i32,
         i32,
         i32,
@@ -650,7 +658,7 @@ mod tests {
         (
             material(fulfilled, required),
             TradeSymbol::Iron,
-            ("X1-MARKET".to_string(), Some(100), supply),
+            ("X1-MARKET".into(), Some(100), supply),
             purchase_volume,
             remaining,
             total_price,

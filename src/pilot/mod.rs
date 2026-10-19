@@ -21,10 +21,12 @@ use crate::{
     error::{Error, Result},
     utils::ConductorContext,
 };
+use space_traders_client::ShipSymbol;
+use space_traders_client::SystemSymbol;
 
 pub struct Pilot {
     context: ConductorContext,
-    ship_symbol: String,
+    ship_symbol: ShipSymbol,
     slow_cancellation_token: CancellationToken,
     fast_cancellation_token: CancellationToken,
     construction_pilot: ConstructionPilot,
@@ -39,11 +41,11 @@ pub struct Pilot {
 impl Pilot {
     pub fn new(
         context: ConductorContext,
-        ship_symbol: String,
+        ship_symbol: ShipSymbol,
         fast_cancellation_token: CancellationToken,
         slow_cancellation_token: CancellationToken,
     ) -> Self {
-        debug!(ship_symbol, "Creating pilot for ship");
+        debug!(ship_symbol = %ship_symbol, "Creating pilot for ship");
 
         Self {
             context: context.clone(),
@@ -327,7 +329,7 @@ impl Pilot {
         ship: &mut ship::MyShip,
         fleet: &database::Fleet,
         assignment: &database::ShipAssignment,
-        system_symbol: String,
+        system_symbol: SystemSymbol,
     ) -> crate::error::Result<()> {
         ship.status.status = ship::AssignmentStatus::Transfer {
             fleet_id: fleet.id,

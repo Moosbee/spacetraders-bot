@@ -1,3 +1,5 @@
+use space_traders_client::{ShipSymbol, SystemSymbol, WaypointSymbol};
+
 #[derive(Debug)]
 pub enum FleetMessage {
     GetNewAssignments {
@@ -14,15 +16,15 @@ pub enum FleetMessage {
     },
     ReGenerateSystemAssignments {
         callback: tokio::sync::oneshot::Sender<()>,
-        system_symbol: String,
+        system_symbol: SystemSymbol,
     },
     PopulateSystem {
         callback: tokio::sync::oneshot::Sender<()>,
-        system_symbol: String,
+        system_symbol: SystemSymbol,
     },
     PopulateFromJumpGate {
         callback: tokio::sync::oneshot::Sender<()>,
-        jump_gate_symbol: String,
+        jump_gate_symbol: WaypointSymbol,
     },
 }
 
@@ -31,8 +33,8 @@ pub type FleetManagerMessage = FleetMessage;
 #[derive(Debug)]
 pub enum ShipProcurementMessage {
     ScrapperAtShipyard {
-        waypoint_symbol: String,
-        ship_symbol: String,
-        callback: tokio::sync::oneshot::Sender<String>,
+        waypoint_symbol: WaypointSymbol,
+        ship_symbol: ShipSymbol,
+        callback: tokio::sync::oneshot::Sender<ShipSymbol>,
     },
 }

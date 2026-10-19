@@ -1,6 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
 use database::DatabaseConnectorAsync;
+use space_traders_client::{SystemSymbol, WaypointSymbol};
 use tracing::{debug, warn};
 
 use crate::{
@@ -224,7 +225,7 @@ impl FleetManager {
             .map(|f| f.1.system_symbol.clone())
             .collect::<HashSet<_>>();
 
-        let start_system: &str = &ship_clone.nav.system_symbol;
+        let start_system = &ship_clone.nav.system_symbol;
 
         let conns = target_systems
             .iter()
@@ -360,13 +361,15 @@ impl FleetManager {
         Ok(())
     }
 
-    async fn handle_populate_from_jump_gate(&mut self, jump_gate_symbol: &str) -> Result<()> {
+    async fn handle_populate_from_jump_gate(
+        &mut self,
+        jump_gate_symbol: &WaypointSymbol,
+    ) -> Result<()> {
         self.jump_gate = None;
         self.context
             .ship_procurement_manager
             .set_regen_jump_gates(true);
 
-        let jump_gate_symbol = jump_gate_symbol.to_string();
         let waypoint =
             database::Waypoint::get_by_id(&self.context.database_pool, &jump_gate_symbol).await?;
 
@@ -377,7 +380,7 @@ impl FleetManager {
             )));
         }
 
-        let system_symbol = utils::get_system_symbol(&jump_gate_symbol);
+        let system_symbol = jump_gate_symbol.get_system_symbol();
         crate::manager::fleet_manager::fleet_population::populate_system(
             &self.context,
             &system_symbol,
@@ -404,7 +407,7 @@ impl FleetManager {
                 continue;
             }
 
-            let system_symbol = utils::get_system_symbol(&gate.to);
+            let system_symbol = gate.to.get_system_symbol();
             crate::manager::fleet_manager::fleet_population::populate_system(
                 &self.context,
                 &system_symbol,
@@ -417,7 +420,7 @@ impl FleetManager {
 }
 
 enum RegenFleetBy {
-    System(String),
+    System(SystemSymbol),
     Fleet(i32),
     All,
 }

@@ -1,4 +1,5 @@
 use itertools::Itertools;
+use space_traders_client::WaypointSymbol;
 use utils::{DisjointSet, WaypointCan, distance_between_waypoints};
 
 #[derive(Debug)]
@@ -68,18 +69,20 @@ mod tests {
 
     use utils::WaypointCan;
 
+    use space_traders_client::WaypointSymbol;
+
     use super::{SpanningTreeEdge, gen_minimum_spanning_tree};
 
     fn load_waypoints() -> Vec<database::Waypoint> {
         utils::tests::get_waypoints()
     }
 
-    fn waypoint_symbols(waypoints: &[database::Waypoint]) -> HashSet<String> {
+    fn waypoint_symbols(waypoints: &[database::Waypoint]) -> HashSet<WaypointSymbol> {
         waypoints.iter().map(|w| w.symbol.clone()).collect()
     }
 
-    fn is_connected(symbols: &HashSet<String>, edges: &[SpanningTreeEdge]) -> bool {
-        let mut adjacency: HashMap<String, Vec<String>> = HashMap::new();
+    fn is_connected(symbols: &HashSet<WaypointSymbol>, edges: &[SpanningTreeEdge]) -> bool {
+        let mut adjacency: HashMap<WaypointSymbol, Vec<WaypointSymbol>> = HashMap::new();
         for edge in edges {
             adjacency
                 .entry(edge.from.symbol.clone())
@@ -127,7 +130,7 @@ mod tests {
 
         assert!(is_connected(&all_symbols, &tree));
 
-        let mut seen_edges = HashSet::new();
+        let mut seen_edges: HashSet<(WaypointSymbol, WaypointSymbol)> = HashSet::new();
         let mut previous_distance = f64::NEG_INFINITY;
 
         for edge in &tree {
@@ -166,7 +169,7 @@ mod tests {
     #[test]
     fn mst_only_markets_uses_only_market_waypoints() {
         let waypoints = load_waypoints();
-        let market_symbols: HashSet<String> = waypoints
+        let market_symbols: HashSet<WaypointSymbol> = waypoints
             .iter()
             .filter(|w| w.is_marketplace())
             .map(|w| w.symbol.clone())

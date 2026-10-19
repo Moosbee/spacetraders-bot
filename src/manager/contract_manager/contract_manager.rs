@@ -4,6 +4,7 @@ use chrono::{DateTime, Utc};
 use database::DatabaseConnectorAsync;
 use log::debug;
 use space_traders_client::models::{self};
+use space_traders_client::{SystemSymbol, WaypointSymbol};
 
 use crate::{
     error::{self, Error, Result},
@@ -312,8 +313,10 @@ impl ContractManager {
                 p
             })
             .filter(|c| {
-                c.destination_symbol
-                    .starts_with(&ship_clone.nav.system_symbol)
+                ship_clone
+                    .nav
+                    .system_symbol
+                    .contains_waypoint(&c.destination_symbol)
                     && c.units_fulfilled < c.units_required
             })
             .collect::<Vec<_>>();
@@ -387,11 +390,11 @@ impl ContractManager {
         let mut next_shipment = database::ContractShipment {
             contract_id: contract.id.clone(),
             trade_symbol,
-            destination_symbol: next_procurment.destination_symbol.to_string(),
+            destination_symbol: next_procurment.destination_symbol.clone(),
             units: purchase_volume,
             id: 0,
-            ship_symbol: ship_clone.symbol.to_string(),
-            purchase_symbol: purchase_symbol.0.to_owned(),
+            ship_symbol: ship_clone.symbol.clone(),
+            purchase_symbol: purchase_symbol.0.into(),
             status: database::ShipmentStatus::InTransit,
             ..Default::default()
         };
@@ -640,8 +643,8 @@ impl ContractManager {
     async fn get_purchase_waypoint(
         &self,
         trade_symbol: &models::TradeSymbol,
-        system_symbol: &str,
-    ) -> Result<(String, Option<i32>)> {
+        system_symbol: &SystemSymbol,
+    ) -> Result<(WaypointSymbol, Option<i32>)> {
         debug!(
             "Getting purchase waypoint for trade symbol: {:?}",
             trade_symbol
@@ -654,20 +657,22 @@ impl ContractManager {
         .await?
         .items
         .into_iter()
-        .filter(|t| t.waypoint_symbol.starts_with(system_symbol))
+        .filter(|t| system_symbol.contains_waypoint(&t.waypoint_symbol))
         .collect::<Vec<_>>();
-        let market_trade_goods: HashMap<(models::TradeSymbol, String), database::MarketTradeGood> =
-            database::MarketTradeGood::get_last_by_symbol(
-                &self.context.database_pool,
-                trade_symbol,
-                database::PaginatedQuery::unpaged(),
-            )
-            .await?
-            .items
-            .into_iter()
-            .filter(|t| t.waypoint_symbol.starts_with(system_symbol))
-            .map(|t| ((t.symbol, t.waypoint_symbol.clone()), t))
-            .collect::<HashMap<_, _>>();
+        let market_trade_goods: HashMap<
+            (models::TradeSymbol, WaypointSymbol),
+            database::MarketTradeGood,
+        > = database::MarketTradeGood::get_last_by_symbol(
+            &self.context.database_pool,
+            trade_symbol,
+            database::PaginatedQuery::unpaged(),
+        )
+        .await?
+        .items
+        .into_iter()
+        .filter(|t| system_symbol.contains_waypoint(&t.waypoint_symbol))
+        .map(|t| ((t.symbol, t.waypoint_symbol.clone()), t))
+        .collect::<HashMap<_, _>>();
 
         let mut trades = market_trades
             .into_iter()

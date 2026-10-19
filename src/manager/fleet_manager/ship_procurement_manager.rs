@@ -1,6 +1,7 @@
 use std::collections::{BTreeSet, HashMap, HashSet};
 
 use database::DatabaseConnectorAsync;
+use space_traders_client::{ShipSymbol, WaypointSymbol};
 use tracing::{debug, warn};
 
 use crate::{
@@ -130,8 +131,8 @@ impl ShipProcurementManager {
     )]
     async fn handle_scrapper_at_shipyard(
         &mut self,
-        waypoint_symbol: &str,
-        _ship_symbol: &str,
+        waypoint_symbol: &WaypointSymbol,
+        _ship_symbol: &ShipSymbol,
     ) -> Result<()> {
         let stop = { self.context.config.read().await.ship_purchase_stop };
         if stop {
@@ -402,7 +403,7 @@ impl ShipProcurementManager {
         fulfillable_assignments: &'a [database::ShipAssignment],
         all_shipyard_ships: &'a [(database::ShipyardShip, ShipCapabilities)],
         fleets: &'a HashMap<i32, database::Fleet>,
-        waypoint_symbol: &'a str,
+        waypoint_symbol: &'a WaypointSymbol,
     ) -> Result<BTreeSet<AssignmentPriceComparison<'a>>> {
         let current_money = self.context.budget_manager.get_spendable_funds().await;
 
@@ -438,7 +439,7 @@ impl ShipProcurementManager {
                 let purchasable_subset = shipyard_ships
                     .iter()
                     .take(((shipyard_ships.len() as f32) * (percentile / 100.0)).ceil() as usize)
-                    .filter(|sh| sh.shipyard_ship.waypoint_symbol == waypoint_symbol)
+                    .filter(|sh| sh.shipyard_ship.waypoint_symbol == *waypoint_symbol)
                     .cloned()
                     .collect::<Vec<_>>();
 

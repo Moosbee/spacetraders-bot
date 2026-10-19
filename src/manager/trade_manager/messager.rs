@@ -42,13 +42,13 @@ impl TradeManagerMessanger {
             .await
             .map_err(|e| Error::General(format!("Failed to send message: {}", e)))?;
 
-        tracing::debug!(ship_symbol, "Requested next trade route for ship");
+        tracing::debug!(ship_symbol = %ship_symbol, "Requested next trade route for ship");
 
         let resp = receiver
             .await
             .map_err(|e| Error::General(format!("Failed to get trade get message: {}", e)))?;
 
-        tracing::debug!(ship_symbol, resp = ?resp, "Received trade route for ship");
+        tracing::debug!(ship_symbol = %ship_symbol, resp = ?resp, "Received trade route for ship");
         resp
     }
 

@@ -3,6 +3,7 @@ mod surveyor;
 mod transport;
 
 use ship::status::MiningShipAssignment;
+use space_traders_client::ShipSymbol;
 use tracing::debug;
 use tracing::instrument;
 
@@ -16,11 +17,11 @@ pub struct MiningPilot {
     transport: transport::TransportPilot,
     survey: surveyor::SurveyPilot,
     context: ConductorContext,
-    ship_symbol: String,
+    ship_symbol: ShipSymbol,
 }
 
 impl MiningPilot {
-    pub fn new(context: ConductorContext, ship_symbol: String) -> Self {
+    pub fn new(context: ConductorContext, ship_symbol: ShipSymbol) -> Self {
         Self {
             ship_symbol,
             extraction: extraction::ExtractionPilot::new(context.clone()),

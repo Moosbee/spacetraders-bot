@@ -1,3 +1,4 @@
+use space_traders_client::ShipSymbol;
 use tokio::{select, task::JoinSet};
 use tracing::instrument;
 
@@ -62,7 +63,7 @@ impl ShipTaskHandler {
         skip(self)
     )]
     pub async fn await_all(&mut self) -> Result<(), crate::error::Error> {
-        let mut set: JoinSet<(String, Result<ShipFuture, crate::error::Error>)> = JoinSet::new();
+        let mut set: JoinSet<(ShipSymbol, Result<ShipFuture, crate::error::Error>)> = JoinSet::new();
 
         tokio::time::sleep(std::time::Duration::from_millis(500)).await;
 
@@ -128,7 +129,7 @@ impl ShipTaskHandler {
 
     async fn handle_ship_add(
         &mut self,
-        set: &mut JoinSet<(String, Result<ShipFuture, crate::error::Error>)>,
+        set: &mut JoinSet<(ShipSymbol, Result<ShipFuture, crate::error::Error>)>,
         ship_name: database::ShipInfo,
     ) -> Result<(), crate::error::Error> {
         tracing::debug!(ship_name = ?ship_name, "Starting new ship task in await_all");
@@ -151,7 +152,7 @@ impl ShipTaskHandler {
     async fn handle_finished_future(
         &mut self,
         finished_future: Result<
-            (String, Result<ShipFuture, crate::error::Error>),
+            (ShipSymbol, Result<ShipFuture, crate::error::Error>),
             tokio::task::JoinError,
         >,
     ) {

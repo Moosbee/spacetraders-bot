@@ -1,3 +1,5 @@
+use space_traders_client::SystemSymbol;
+use space_traders_client::{ShipSymbol, WaypointSymbol};
 use std::sync::{Arc, atomic::AtomicI32};
 
 use database::DatabaseConnectorAsync;
@@ -12,12 +14,12 @@ use crate::{
 };
 pub struct ChartPilot {
     context: ConductorContext,
-    ship_symbol: String,
+    ship_symbol: ShipSymbol,
     count: Arc<AtomicI32>,
 }
 
 impl ChartPilot {
-    pub fn new(context: ConductorContext, ship_symbol: String) -> Self {
+    pub fn new(context: ConductorContext, ship_symbol: ShipSymbol) -> Self {
         Self {
             context,
             ship_symbol,
@@ -64,7 +66,7 @@ impl ChartPilot {
             }
         };
 
-        tracing::Span::current().record("chart_waypoint", &chart);
+        tracing::Span::current().record("chart_waypoint", chart.as_str());
 
         let erg = self.start_chart(ship, chart.clone()).await;
 
@@ -85,7 +87,7 @@ impl ChartPilot {
     async fn start_chart(
         &self,
         ship: &mut ship::MyShip,
-        chart: String,
+        chart: WaypointSymbol,
     ) -> std::result::Result<(), Error> {
         self.count.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
 
@@ -289,7 +291,7 @@ impl ChartPilot {
     /// Returns the number of waypoints still to chart in the given system, first is the total remaining, second are the remaining marketplace waypoints
     async fn get_still_to_chart_in_system(
         &self,
-        system_symbol: &str,
+        system_symbol: &SystemSymbol,
     ) -> std::result::Result<(usize, usize), Error> {
         let waypoints_in_system = database::Waypoint::get_by_system(
             &self.context.database_pool,

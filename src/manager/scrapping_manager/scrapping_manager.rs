@@ -1,6 +1,7 @@
 use std::{collections::HashMap, time::Duration, vec};
 
 use database::{DatabaseConnectorAsync, DbPool};
+use space_traders_client::{ShipSymbol, WaypointSymbol};
 use tracing::Instrument;
 use tracing::debug;
 use utils::{WaypointCan, distance_between_waypoints};
@@ -21,7 +22,7 @@ pub struct ScrappingManager {
     slow_cancel_token: tokio_util::sync::CancellationToken,
     context: ConductorContext,
     receiver: ScrappingManagerReceiver,
-    scrap_waypoints: HashMap<String, String>,
+    scrap_waypoints: HashMap<WaypointSymbol, ShipSymbol>,
 }
 
 impl ScrappingManager {
@@ -259,7 +260,7 @@ impl ScrappingManager {
     async fn complete_scrapping(
         &mut self,
         ship_clone: ship::MyShipCopy,
-        waypoint_symbol: String,
+        waypoint_symbol: WaypointSymbol,
     ) -> Result<()> {
         let ship_symbol = self.scrap_waypoints.get(&waypoint_symbol);
 
@@ -275,7 +276,7 @@ impl ScrappingManager {
     async fn fail_scrapping(
         &mut self,
         ship_clone: ship::MyShipCopy,
-        waypoint_symbol: String,
+        waypoint_symbol: WaypointSymbol,
     ) -> Result<()> {
         let ship_symbol = self.scrap_waypoints.get(&waypoint_symbol);
 

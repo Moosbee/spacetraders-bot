@@ -5,6 +5,7 @@ use futures::FutureExt;
 use rand::seq::SliceRandom;
 use ship::status::{ExtractorState, MiningShipAssignment};
 use space_traders_client::models;
+use space_traders_client::{ShipSymbol, WaypointSymbol};
 use tracing::debug;
 use tracing::instrument;
 
@@ -32,7 +33,7 @@ impl ExtractionPilot {
         ship: &mut ship::MyShip,
         is_syphon: bool,
         state: ExtractorState,
-        waypoint_symbol: Option<String>,
+        waypoint_symbol: Option<WaypointSymbol>,
         extractions: Option<i32>,
         notify: bool,
     ) {
@@ -56,7 +57,7 @@ impl ExtractionPilot {
         }
     }
 
-    #[instrument(level = "info", name = "spacetraders::pilot::mining::pilot_extraction", skip(self, pilot, ship, mining_config), fields(self.ship_symbol = pilot.ship_symbol, waypoint))]
+    #[instrument(level = "info", name = "spacetraders::pilot::mining::pilot_extraction", skip(self, pilot, ship, mining_config), fields(self.ship_symbol = %pilot.ship_symbol, waypoint))]
     pub async fn execute_extraction_circle(
         &self,
         ship: &mut ship::MyShip,
@@ -71,7 +72,7 @@ impl ExtractionPilot {
             .get_waypoint(ship.to_immutable(), is_syphon, mining_config.clone())
             .await?;
 
-        tracing::Span::current().record("waypoint", &waypoint_symbol);
+        tracing::Span::current().record("waypoint", waypoint_symbol.as_str());
 
         debug!("Mining Waypoint: {}", waypoint_symbol);
 
@@ -210,12 +211,12 @@ impl ExtractionPilot {
     async fn go_to_waypoint(
         &self,
         ship: &mut ship::MyShip,
-        waypoint_symbol: &str,
+        waypoint_symbol: &WaypointSymbol,
         is_syphon: bool,
     ) -> Result<()> {
         debug!("Going to waypoint: {}", waypoint_symbol);
 
-        if ship.nav.waypoint_symbol == waypoint_symbol && !ship.nav.is_in_transit() {
+        if &ship.nav.waypoint_symbol == waypoint_symbol && !ship.nav.is_in_transit() {
             debug!("Already at waypoint: {}", waypoint_symbol);
             return Ok(());
         }
@@ -224,7 +225,7 @@ impl ExtractionPilot {
             ship,
             is_syphon,
             ExtractorState::InTransit,
-            Some(waypoint_symbol.to_string()),
+            Some(waypoint_symbol.clone()),
             None,
             true,
         )
@@ -233,14 +234,14 @@ impl ExtractionPilot {
         ship.wait_for_arrival_mut(&self.context.api)
             .await
             .map_err(|e| e.to_string())?;
-        if ship.nav.waypoint_symbol == waypoint_symbol {
+        if &ship.nav.waypoint_symbol == waypoint_symbol {
             debug!("Already at waypoint: {}", waypoint_symbol);
             return Ok(());
         }
 
         let system_symbol = ship.nav.system_symbol.clone();
 
-        if !waypoint_symbol.contains(&system_symbol) {
+        if !system_symbol.contains_waypoint(waypoint_symbol) {
             return Err("Waypoint is not in ship's system".into());
         }
 
@@ -251,7 +252,7 @@ impl ExtractionPilot {
         ship.nav_to(
             waypoint_symbol,
             true,
-            database::TransactionReason::MiningWaypoint(waypoint_symbol.to_string()),
+            database::TransactionReason::MiningWaypoint(waypoint_symbol.clone()),
             &self.context.database_pool,
             &self.context.api,
             update_funds_fn,
@@ -320,8 +321,8 @@ impl ExtractionPilot {
                                 .unwrap_or(false)
                             {
                                 tracing::warn!(
-                                    ship_symbol = ship.symbol,
-                                    waypoint_symbol = ship.nav.waypoint_symbol,
+                                    ship_symbol = %ship.symbol,
+                                    waypoint_symbol = %ship.nav.waypoint_symbol,
                                     "Waypoint destabilized",
                                 );
 
@@ -355,7 +356,7 @@ impl ExtractionPilot {
                                 let mut survey = survey.clone();
                                 tracing::warn!(
                                     signature = survey.signature,
-                                    ship_symbol = ship.symbol,
+                                    ship_symbol = %ship.symbol,
                                     "Survey exhausted",
                                 );
                                 survey.exhausted_since = Some(chrono::Utc::now());
@@ -418,8 +419,8 @@ impl ExtractionPilot {
                                 .unwrap_or(false)
                             {
                                 tracing::warn!(
-                                    ship_symbol = ship.symbol,
-                                    waypoint_symbol = ship.nav.waypoint_symbol,
+                                    ship_symbol = %ship.symbol,
+                                    waypoint_symbol = %ship.nav.waypoint_symbol,
                                     "Waypoint destabilized",
                                 );
 
@@ -619,8 +620,8 @@ impl ExtractionPilot {
 
         if ship.cargo.get_amount(&request.trade_symbol) < request.amount {
             tracing::warn!(
-                ship_symbol = ship.symbol,
-                to_symbol = request.to_symbol,
+                ship_symbol = %ship.symbol,
+                to_symbol = %request.to_symbol,
                 trade_symbol = request.trade_symbol.to_string(),
                 amount = request.amount,
                 "Not enough cargo to transfer",
@@ -645,8 +646,8 @@ impl ExtractionPilot {
             }),
             Err(error) => {
                 tracing::error!(
-                    ship_symbol = ship.symbol,
-                    to_symbol = request.to_symbol,
+                    ship_symbol = %ship.symbol,
+                    to_symbol = %request.to_symbol,
                     error= format!("{} {:?}", error, error),
                     request=?request,
                     "Transfer request failed",

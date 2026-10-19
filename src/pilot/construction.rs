@@ -1,4 +1,5 @@
 use std::sync::{Arc, atomic::AtomicI32};
+use space_traders_client::ShipSymbol;
 
 use space_traders_client::models;
 use tracing::debug;
@@ -13,12 +14,12 @@ use crate::{
 
 pub struct ConstructionPilot {
     context: ConductorContext,
-    ship_symbol: String,
+    ship_symbol: ShipSymbol,
     count: Arc<AtomicI32>,
 }
 
 impl ConstructionPilot {
-    pub fn new(context: ConductorContext, ship_symbol: String) -> Self {
+    pub fn new(context: ConductorContext, ship_symbol: ShipSymbol) -> Self {
         Self {
             context,
             ship_symbol,

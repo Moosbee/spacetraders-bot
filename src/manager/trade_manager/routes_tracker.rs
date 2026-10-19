@@ -1,12 +1,13 @@
 use std::collections::HashSet;
 
 use space_traders_client::models::TradeSymbol;
+use space_traders_client::WaypointSymbol;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MinTradeRoute {
     pub symbol: TradeSymbol,
-    pub purchase_wp_symbol: String,
-    pub sell_wp_symbol: String,
+    pub purchase_wp_symbol: WaypointSymbol,
+    pub sell_wp_symbol: WaypointSymbol,
 }
 
 impl From<database::TradeRoute> for MinTradeRoute {
@@ -22,7 +23,7 @@ impl From<database::TradeRoute> for MinTradeRoute {
 #[derive(Debug, Clone, Hash, PartialEq, Eq, async_graphql::SimpleObject)]
 pub struct RouteLock {
     symbol: TradeSymbol,
-    wp_symbol: String,
+    wp_symbol: WaypointSymbol,
     is_end: bool,
 }
 
@@ -111,8 +112,8 @@ mod tests {
     fn route(symbol: TradeSymbol, purchase_wp: &str, sell_wp: &str) -> MinTradeRoute {
         MinTradeRoute {
             symbol,
-            purchase_wp_symbol: purchase_wp.to_string(),
-            sell_wp_symbol: sell_wp.to_string(),
+            purchase_wp_symbol: purchase_wp.into(),
+            sell_wp_symbol: sell_wp.into(),
         }
     }
 
@@ -209,12 +210,12 @@ mod tests {
         let locked: HashSet<RouteLock> = tracker.get_locked_routes();
         assert!(locked.contains(&RouteLock {
             symbol: TradeSymbol::PreciousStones,
-            wp_symbol: "purchase-a".to_string(),
+            wp_symbol: "purchase-a".into(),
             is_end: false
         }));
         assert!(locked.contains(&RouteLock {
             symbol: TradeSymbol::PreciousStones,
-            wp_symbol: "sell-a".to_string(),
+            wp_symbol: "sell-a".into(),
             is_end: true
         }));
     }
@@ -224,9 +225,9 @@ mod tests {
         let db_route = database::TradeRoute {
             id: 1,
             symbol: TradeSymbol::PreciousStones,
-            ship_symbol: "ship-a".to_string(),
-            purchase_waypoint: "purchase-a".to_string(),
-            sell_waypoint: "sell-a".to_string(),
+            ship_symbol: "ship-a".into(),
+            purchase_waypoint: "purchase-a".into(),
+            sell_waypoint: "sell-a".into(),
             status: database::ShipmentStatus::InTransit,
             trade_volume: 10,
             purchase_trade_good_id: None,

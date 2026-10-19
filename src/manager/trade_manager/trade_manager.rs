@@ -2,6 +2,7 @@ use std::collections::{HashMap, HashSet};
 
 use database::{DatabaseConnectorAsync, PaginatedQuery};
 use space_traders_client::models;
+use space_traders_client::SystemSymbol;
 use tokio::select;
 use tracing::debug;
 
@@ -268,7 +269,7 @@ impl TradeManager {
         ship_clone: &ship::RustShip<ship::status::ShipStatus>,
         trading_config: database::TradingFleetConfig,
     ) -> Result<Option<(database::TradeRoute, i64)>> {
-        let trade_systems: Vec<String> =
+        let trade_systems: Vec<SystemSymbol> =
             trade_route_calculator::get_trade_systems(&trading_config, ship_clone);
 
         let (trade_goods, market_trade) =
@@ -329,7 +330,7 @@ impl TradeManager {
 
         if let Some(v) = trade_route_db.as_mut() {
             v.trade_mode = trading_config.trade_mode;
-            v.ship_symbol = ship_clone.symbol.to_string();
+            v.ship_symbol = ship_clone.symbol.clone();
             v.assignment_id = ship_clone
                 .status
                 .temp_assignment_id

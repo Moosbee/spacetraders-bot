@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use database::DatabaseConnectorAsync;
-use space_traders_client::{Api, models};
+use space_traders_client::{Api, models, SystemSymbol};
 use tracing::debug;
 
 pub async fn update_all_systems(
@@ -50,7 +50,7 @@ pub async fn update_all_systems(
 pub async fn update_system(
     database_pool: &database::DbPool,
     api: &Api,
-    system_symbol: &str,
+    system_symbol: &SystemSymbol,
     also_system: bool,
 ) -> crate::error::Result<()> {
     if also_system {
