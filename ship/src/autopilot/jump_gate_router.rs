@@ -8,7 +8,7 @@ use database::DatabaseConnectorAsync;
 use priority_queue::PriorityQueue;
 use space_traders_client::{SystemSymbol, WaypointSymbol};
 
-use tracing::{debug, instrument};
+use tracing::instrument;
 
 use crate::error::Result;
 

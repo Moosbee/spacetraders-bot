@@ -1,5 +1,4 @@
 use itertools::Itertools;
-use space_traders_client::WaypointSymbol;
 use utils::{DisjointSet, WaypointCan, distance_between_waypoints};
 
 #[derive(Debug)]

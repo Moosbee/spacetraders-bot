@@ -3,7 +3,6 @@ use std::{collections::HashSet, num::NonZeroU32, str::FromStr, sync::Arc};
 use database::DatabaseConnectorAsync;
 use ship::ShipManager;
 use space_traders_client::SystemSymbol;
-use space_traders_client::WaypointSymbol;
 use space_traders_client::models::{self};
 use tokio::sync::RwLock;
 use tokio_util::sync::CancellationToken;

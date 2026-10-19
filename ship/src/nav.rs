@@ -1,5 +1,5 @@
 use chrono::{DateTime, Utc};
-use space_traders_client::{apis, models, ShipSymbol, SystemSymbol, WaypointSymbol};
+use space_traders_client::{apis, models, SystemSymbol, WaypointSymbol};
 use tracing::{debug, error, warn};
 
 use crate::error;

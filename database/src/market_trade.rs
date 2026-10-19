@@ -1,5 +1,5 @@
 use space_traders_client::models;
-use space_traders_client::{ShipSymbol, SystemSymbol, WaypointSymbol};
+use space_traders_client::{SystemSymbol, WaypointSymbol};
 use tracing::instrument;
 
 use super::{

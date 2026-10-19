@@ -3505,7 +3505,7 @@ paginated_gql_object!(
 
 #[async_graphql::ComplexObject]
 impl GQLWaypoint {
-    async fn distance_to_home(&self, ctx: &async_graphql::Context<'_>) -> f64 {
+    async fn distance_to_home(&self, _ctx: &async_graphql::Context<'_>) -> f64 {
         utils::distance_between_waypoints((0, 0), (self.waypoint.x, self.waypoint.y))
     }
 

@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 
 use database::{DatabaseConnectorAsync, PaginatedQuery};
 use space_traders_client::models;

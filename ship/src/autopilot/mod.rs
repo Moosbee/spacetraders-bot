@@ -1,5 +1,5 @@
 use ::utils::WaypointCan;
-use space_traders_client::{ShipSymbol, SystemSymbol, WaypointSymbol};
+use space_traders_client::{SystemSymbol, WaypointSymbol};
 use chrono::{DateTime, Utc};
 use database::DatabaseConnectorAsync;
 use database::TransactionReason;

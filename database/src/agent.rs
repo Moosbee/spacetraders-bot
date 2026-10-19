@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use space_traders_client::{ShipSymbol, SystemSymbol, WaypointSymbol};
+use space_traders_client::WaypointSymbol;
 use std::sync::Arc;
 
 use async_graphql::dataloader::Loader;

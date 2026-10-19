@@ -1,4 +1,4 @@
-use space_traders_client::{ShipSymbol, SystemSymbol, WaypointSymbol};
+use space_traders_client::SystemSymbol;
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 

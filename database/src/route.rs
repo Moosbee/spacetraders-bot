@@ -1,5 +1,5 @@
 use chrono::{DateTime, Utc};
-use space_traders_client::{ShipSymbol, SystemSymbol, WaypointSymbol};
+use space_traders_client::{ShipSymbol, WaypointSymbol};
 use tracing::instrument;
 
 use super::{DatabaseConnectorAsync, PaginatedQuery, PaginatedResult, run_paginated_query};

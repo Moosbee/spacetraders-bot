@@ -1,5 +1,5 @@
 use tracing::instrument;
-use space_traders_client::{ShipSymbol, SystemSymbol, WaypointSymbol};
+use space_traders_client::{ShipSymbol, WaypointSymbol};
 
 use crate::{DatabaseConnectorAsync, PaginatedQuery, PaginatedResult, run_paginated_query};
 

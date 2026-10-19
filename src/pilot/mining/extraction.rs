@@ -5,7 +5,7 @@ use futures::FutureExt;
 use rand::seq::SliceRandom;
 use ship::status::{ExtractorState, MiningShipAssignment};
 use space_traders_client::models;
-use space_traders_client::{ShipSymbol, WaypointSymbol};
+use space_traders_client::WaypointSymbol;
 use tracing::debug;
 use tracing::instrument;
 
