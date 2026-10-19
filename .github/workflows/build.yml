@@ -1,0 +1,90 @@
+name: Build and Test
+
+# Manually triggered build: run the tests, build release binaries for the
+# three supported targets and store them as workflow artifacts.
+#
+# Also callable from other workflows (e.g. release.yml) via `workflow_call`.
+on:
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      # sqlx/native-tls needs OpenSSL headers to build.
+      - name: Install OpenSSL
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y libssl-dev pkg-config
+
+      - name: Run tests
+        run: cargo test --workspace --verbose
+
+  build:
+    name: Build (${{ matrix.target }})
+    needs: test
+    runs-on: ${{ matrix.os }}
+    env:
+      # Ignore the local `--cfg tokio_unstable` rustflag from .cargo/config.toml.
+      RUSTFLAGS: ""
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+            bin: spacetraders.exe
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+            bin: spacetraders
+          - target: aarch64-unknown-linux-gnu
+            os: ubuntu-latest
+            bin: spacetraders
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      # aarch64-unknown-linux-gnu is cross-compiled from the x86_64 Ubuntu
+      # runner. This action installs the aarch64 toolchain and the target's
+      # libssl-dev (required by native-tls/sqlx).
+      - name: Install cross-compilation tools (aarch64)
+        if: matrix.target == 'aarch64-unknown-linux-gnu'
+        uses: taiki-e/setup-cross-toolchain-action@v1
+        with:
+          target: aarch64-unknown-linux-gnu
+          package: libssl-dev
+          runner: none
+
+      - name: Install OpenSSL (x86_64 Linux)
+        if: matrix.target == 'x86_64-unknown-linux-gnu'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y libssl-dev pkg-config
+
+      - name: Build release binary
+        run: cargo build --release --target ${{ matrix.target }} --bin spacetraders
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: spacetraders-${{ matrix.target }}
+          path: target/${{ matrix.target }}/release/${{ matrix.bin }}
+          if-no-files-found: error

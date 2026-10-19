@@ -254,17 +254,18 @@ function Main() {
                       </Col>
                       <Col span={6}>
                         <Statistic
-                          valueStyle={{
-                            color:
-                              data.shipProcurementManager.channelState.state ===
-                              "CLOSED"
-                                ? "red"
-                                : "currentColor",
-                          }}
+                          // valueStyle={{
+                          //   color:
+                          //     data.shipProcurementManager.channelState.state ===
+                          //     "CLOSED"
+                          //       ? "red"
+                          //       : "currentColor",
+                          // }}
                           title="Procurement"
                           value={
-                            data.shipProcurementManager.channelState
-                              .usedCapacity
+                            // data.shipProcurementManager.channelState
+                            // .usedCapacity
+                            0
                           }
                           suffix={
                             <Spin

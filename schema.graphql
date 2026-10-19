@@ -1590,7 +1590,6 @@ enum ShipNavStatus {
 type ShipProcurementManagerInfo {
 	busy: Boolean!
 	shouldRegenJumpGate: Boolean!
-	channelState: ChannelInfo!
 }
 
 """
