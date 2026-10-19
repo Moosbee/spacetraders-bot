@@ -2,9 +2,10 @@ use std::{collections::HashMap, env, str::FromStr, time::Duration};
 
 use database::{DatabaseConnectorAsync, DbPool, PaginatedQuery};
 use serde_json::json;
+use space_traders_client::SystemSymbol;
 use sqlx::postgres::PgPoolOptions;
 
-pub async fn export_waypoints(system: Option<&str>) -> anyhow::Result<()> {
+pub async fn export_waypoints(system: Option<&SystemSymbol>) -> anyhow::Result<()> {
     let database_pool = connect().await?;
 
     let waypoints = if let Some(system) = system {
