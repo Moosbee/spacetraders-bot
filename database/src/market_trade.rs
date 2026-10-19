@@ -302,7 +302,7 @@ impl MarketTrade {
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_last_by_waypoint(
         database_pool: &DbPool,
-        waypoint_symbol: &str,
+        waypoint_symbol: &WaypointSymbol,
         query: PaginatedQuery,
     ) -> crate::Result<PaginatedResult<MarketTrade>> {
         run_paginated_query(
@@ -437,7 +437,7 @@ impl MarketTrade {
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_last_by_system(
         database_pool: &DbPool,
-        system_symbol: &str,
+        system_symbol: &SystemSymbol,
         query: PaginatedQuery,
     ) -> crate::Result<PaginatedResult<MarketTrade>> {
         run_paginated_query(
@@ -508,7 +508,7 @@ impl MarketTrade {
 
     pub async fn get_history_by_waypoint_and_trade_symbol(
         database_pool: &DbPool,
-        waypoint_symbol: &str,
+        waypoint_symbol: &WaypointSymbol,
         trade_symbol: &models::TradeSymbol,
         query: PaginatedQuery,
     ) -> crate::Result<PaginatedResult<MarketTrade>> {
@@ -575,7 +575,7 @@ impl MarketTrade {
 
     pub async fn get_last_by_waypoint_and_trade_symbol(
         database_pool: &DbPool,
-        waypoint_symbol: &str,
+        waypoint_symbol: &WaypointSymbol,
         trade_symbol: &models::TradeSymbol,
     ) -> crate::Result<Option<MarketTrade>> {
         let erg = sqlx::query_as!(

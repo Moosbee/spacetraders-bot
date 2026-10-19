@@ -1,5 +1,5 @@
-use std::{collections::HashMap, str::FromStr, sync::Arc};
 use space_traders_client::{ShipSymbol, SystemSymbol, WaypointSymbol};
+use std::{collections::HashMap, str::FromStr, sync::Arc};
 
 use async_graphql::dataloader::Loader;
 use chrono::{DateTime, Utc};
@@ -154,7 +154,7 @@ impl Survey {
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_waypoint_symbol(
         database_pool: &DbPool,
-        waypoint_symbol: &str,
+        waypoint_symbol: &WaypointSymbol,
         query: PaginatedQuery,
     ) -> crate::Result<PaginatedResult<Survey>> {
         run_paginated_query(
@@ -234,7 +234,7 @@ impl Survey {
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_system_symbol(
         database_pool: &DbPool,
-        system_symbol: &str,
+        system_symbol: &SystemSymbol,
         query: PaginatedQuery,
     ) -> crate::Result<PaginatedResult<Survey>> {
         run_paginated_query(

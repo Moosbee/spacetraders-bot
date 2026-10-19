@@ -219,11 +219,7 @@ impl Loader<SystemSymbol> for WaypointSystemLoader {
     ) -> Result<HashMap<SystemSymbol, Self::Value>, Self::Error> {
         let mut map: HashMap<SystemSymbol, Vec<Waypoint>> = HashMap::new();
 
-        let waypoints = Waypoint::get_by_systems(
-            &self.0,
-            &keys.iter().map(|k| k.as_str()).collect::<Vec<_>>(),
-        )
-        .await?;
+        let waypoints = Waypoint::get_by_systems(&self.0, &keys).await?;
 
         for waypoint in waypoints {
             map.entry(waypoint.system_symbol.clone())
@@ -290,8 +286,12 @@ impl Waypoint {
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_systems(
         database_pool: &DbPool,
-        system_symbols: &[&str],
+        system_symbols: &[SystemSymbol],
     ) -> crate::Result<Vec<Waypoint>> {
+        let systems = system_symbols
+            .iter()
+            .map(|s| s.as_str())
+            .collect::<Vec<_>>();
         let erg = sqlx::query_as!(
             Waypoint,
             r#"
@@ -316,7 +316,7 @@ impl Waypoint {
                 FROM waypoint
                 WHERE system_symbol = ANY($1)
             "#,
-            system_symbols as &[&str]
+            &systems as &[&str]
         )
         .fetch_all(database_pool.get_cache_pool())
         .await?;
@@ -326,7 +326,7 @@ impl Waypoint {
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_system(
         database_pool: &DbPool,
-        system_symbol: &str,
+        system_symbol: &SystemSymbol,
         query: PaginatedQuery,
     ) -> crate::Result<PaginatedResult<Waypoint>> {
         let system_symbol_page = system_symbol.to_string();

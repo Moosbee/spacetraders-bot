@@ -1,6 +1,6 @@
 use chrono::{DateTime, Utc};
-use space_traders_client::{ShipSymbol, SystemSymbol, WaypointSymbol};
 use space_traders_client::models::{self};
+use space_traders_client::{ShipSymbol, SystemSymbol, WaypointSymbol};
 use tracing::instrument;
 
 use super::{DatabaseConnectorAsync, DbPool, PaginatedQuery, PaginatedResult, run_paginated_query};
@@ -27,7 +27,7 @@ impl Extraction {
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_waypoint_symbol(
         database_pool: &DbPool,
-        waypoint_symbol: &str,
+        waypoint_symbol: &WaypointSymbol,
         query: PaginatedQuery,
     ) -> crate::Result<PaginatedResult<Extraction>> {
         run_paginated_query(
@@ -105,7 +105,7 @@ impl Extraction {
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_system_symbol(
         database_pool: &DbPool,
-        system_symbol: &str,
+        system_symbol: &SystemSymbol,
         query: PaginatedQuery,
     ) -> crate::Result<PaginatedResult<Extraction>> {
         run_paginated_query(

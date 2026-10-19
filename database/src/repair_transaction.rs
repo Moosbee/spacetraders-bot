@@ -1,5 +1,5 @@
-use std::str::FromStr;
 use space_traders_client::{ShipSymbol, SystemSymbol, WaypointSymbol};
+use std::str::FromStr;
 
 use chrono::{DateTime, Utc};
 use space_traders_client::models;
@@ -103,7 +103,7 @@ impl RepairTransaction {
 
     pub async fn get_by_waypoint(
         database_pool: &super::DbPool,
-        waypoint_symbol: &str,
+        waypoint_symbol: &WaypointSymbol,
         query: PaginatedQuery,
     ) -> crate::Result<PaginatedResult<RepairTransaction>> {
         run_paginated_query(
@@ -170,7 +170,7 @@ impl RepairTransaction {
 
     pub async fn get_by_system(
         database_pool: &super::DbPool,
-        symbol: &str,
+        symbol: &SystemSymbol,
         query: PaginatedQuery,
     ) -> crate::Result<PaginatedResult<RepairTransaction>> {
         run_paginated_query(

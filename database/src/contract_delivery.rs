@@ -237,7 +237,7 @@ impl ContractDelivery {
 
     pub async fn get_by_system_symbol(
         database_pool: &DbPool,
-        system_symbol: &str,
+        system_symbol: &SystemSymbol,
         query: PaginatedQuery,
     ) -> crate::Result<PaginatedResult<ContractDelivery>> {
         run_paginated_query(

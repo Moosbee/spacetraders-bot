@@ -1,5 +1,5 @@
-use std::str::FromStr;
 use space_traders_client::{ShipSymbol, SystemSymbol, WaypointSymbol};
+use std::str::FromStr;
 
 use chrono::{DateTime, Utc};
 use space_traders_client::models::{self};
@@ -169,7 +169,7 @@ impl MarketTransaction {
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_waypoint_and_trade_symbol(
         database_pool: &DbPool,
-        waypoint: &str,
+        waypoint: &WaypointSymbol,
         trade_symbol: models::TradeSymbol,
         query: PaginatedQuery,
     ) -> crate::Result<PaginatedResult<MarketTransaction>> {
@@ -517,7 +517,7 @@ impl MarketTransaction {
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_waypoint(
         database_pool: &DbPool,
-        waypoint: &str,
+        waypoint: &WaypointSymbol,
         query: PaginatedQuery,
     ) -> crate::Result<PaginatedResult<Self>> {
         run_paginated_query(
@@ -689,7 +689,7 @@ impl MarketTransaction {
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_system(
         database_pool: &DbPool,
-        system: &str,
+        system: &SystemSymbol,
         query: PaginatedQuery,
     ) -> crate::Result<PaginatedResult<Self>> {
         let system_qr = format!("{}-%", system);
@@ -1980,7 +1980,7 @@ impl MarketTransaction {
 
     pub async fn get_transaction_summary_by_waypoint(
         database_pool: &DbPool,
-        waypoint: &str,
+        waypoint: &WaypointSymbol,
     ) -> crate::Result<TransactionSummary> {
         let erg = sqlx::query_as!(
             TransactionSummary,
@@ -2115,7 +2115,7 @@ impl MarketTransaction {
 
     pub async fn get_transaction_summary_by_waypoint_and_trade_symbol(
         database_pool: &DbPool,
-        waypoint: &str,
+        waypoint: &WaypointSymbol,
         trade_symbol: models::TradeSymbol,
     ) -> crate::Result<TransactionSummary> {
         let erg = sqlx::query_as!(

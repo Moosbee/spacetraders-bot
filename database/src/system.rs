@@ -1,5 +1,5 @@
-use std::collections::HashMap;
 use space_traders_client::{ShipSymbol, SystemSymbol, WaypointSymbol};
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use async_graphql::dataloader::Loader;
@@ -17,8 +17,9 @@ impl SystemLoader {
 
     async fn get_by_symbols(
         database_pool: &DbPool,
-        symbols: &[&str],
+        symbols: &[SystemSymbol],
     ) -> crate::Result<Vec<System>> {
+        let systems = symbols.iter().map(|s| s.as_str()).collect::<Vec<_>>();
         let erg = sqlx::query_as!(
             System,
             r#"
@@ -33,7 +34,7 @@ impl SystemLoader {
             FROM system
             WHERE symbol = ANY($1)
             "#,
-            symbols as &[&str]
+            &systems as &[&str]
         )
         .fetch_all(database_pool.get_cache_pool())
         .await?;
@@ -50,9 +51,8 @@ impl Loader<SystemSymbol> for SystemLoader {
         &self,
         keys: &[SystemSymbol],
     ) -> std::result::Result<HashMap<SystemSymbol, Self::Value>, Self::Error> {
-        let symbols: Vec<&str> = keys.iter().map(|k| k.as_str()).collect();
         let mut map = HashMap::new();
-        for system in Self::get_by_symbols(&self.0, &symbols).await? {
+        for system in Self::get_by_symbols(&self.0, keys).await? {
             map.insert(system.symbol.clone(), system);
         }
         Ok(map)

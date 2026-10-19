@@ -1,5 +1,5 @@
-use std::collections::HashMap;
 use space_traders_client::{ShipSymbol, SystemSymbol, WaypointSymbol};
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use async_graphql::dataloader::Loader;
@@ -341,7 +341,7 @@ impl ConstructionShipment {
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_system(
         database_pool: &DbPool,
-        system_symbol: &str,
+        system_symbol: &SystemSymbol,
         query: PaginatedQuery,
     ) -> crate::Result<PaginatedResult<ConstructionShipment>> {
         run_paginated_query(

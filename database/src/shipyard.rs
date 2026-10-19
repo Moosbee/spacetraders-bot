@@ -1,5 +1,5 @@
-use std::collections::HashMap;
 use space_traders_client::{ShipSymbol, SystemSymbol, WaypointSymbol};
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use async_graphql::dataloader::Loader;
@@ -103,7 +103,7 @@ impl Shipyard {
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_last_by_waypoint(
         database_pool: &super::DbPool,
-        waypoint_symbol: &str,
+        waypoint_symbol: &WaypointSymbol,
     ) -> crate::Result<Option<Shipyard>> {
         let erg = sqlx::query_as!(
             Shipyard,
@@ -133,7 +133,7 @@ impl Shipyard {
 
     pub async fn get_history_by_waypoint(
         database_pool: &super::DbPool,
-        waypoint_symbol: &str,
+        waypoint_symbol: &WaypointSymbol,
         query: PaginatedQuery,
     ) -> crate::Result<PaginatedResult<Shipyard>> {
         run_paginated_query(

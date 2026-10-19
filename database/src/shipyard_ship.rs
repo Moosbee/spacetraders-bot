@@ -1,6 +1,6 @@
 use chrono::{DateTime, Utc};
-use space_traders_client::{ShipSymbol, SystemSymbol, WaypointSymbol};
 use space_traders_client::models;
+use space_traders_client::{ShipSymbol, SystemSymbol, WaypointSymbol};
 use tracing::instrument;
 
 use super::{DatabaseConnectorAsync, PaginatedQuery, PaginatedResult, run_paginated_query};
@@ -57,7 +57,7 @@ impl ShipyardShip {
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_last_by_waypoint(
         database_pool: &super::DbPool,
-        waypoint_symbol: &str,
+        waypoint_symbol: &WaypointSymbol,
         query: PaginatedQuery,
     ) -> crate::Result<PaginatedResult<ShipyardShip>> {
         run_paginated_query(
@@ -151,7 +151,7 @@ impl ShipyardShip {
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_last_by_system(
         database_pool: &super::DbPool,
-        system_symbol: &str,
+        system_symbol: &SystemSymbol,
         query: PaginatedQuery,
     ) -> crate::Result<PaginatedResult<ShipyardShip>> {
         run_paginated_query(
@@ -344,7 +344,7 @@ impl ShipyardShip {
 
     pub async fn get_last_by_waypoint_and_ship_type(
         database_pool: &super::DbPool,
-        waypoint_symbol: &str,
+        waypoint_symbol: &WaypointSymbol,
         ship_type: &models::ShipType,
     ) -> crate::Result<Option<ShipyardShip>> {
         let erg = sqlx::query_as!(
@@ -391,7 +391,7 @@ impl ShipyardShip {
 
     pub async fn get_history_by_waypoint_and_ship_type(
         database_pool: &super::DbPool,
-        waypoint_symbol: &str,
+        waypoint_symbol: &WaypointSymbol,
         ship_type: &models::ShipType,
         query: PaginatedQuery,
     ) -> crate::Result<PaginatedResult<ShipyardShip>> {

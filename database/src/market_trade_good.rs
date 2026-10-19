@@ -1,5 +1,5 @@
-use std::collections::HashMap;
 use space_traders_client::{ShipSymbol, SystemSymbol, WaypointSymbol};
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use async_graphql::dataloader::Loader;
@@ -73,9 +73,14 @@ impl MarketTradeGoodByWaypointAndSymbolLoader {
 
     async fn get_last_by_waypoint_and_trade_symbols(
         database_pool: &DbPool,
-        waypoints: &[String],
-        trade_symbols: &[String],
+        waypoints: &[WaypointSymbol],
+        trade_symbols: &[models::TradeSymbol],
     ) -> crate::Result<Vec<MarketTradeGood>> {
+        let waypoints_ls = waypoints.iter().map(|s| s.as_str()).collect::<Vec<_>>();
+        let trade_symbols_ls = trade_symbols
+            .iter()
+            .map(|s| s.to_string())
+            .collect::<Vec<_>>();
         let items = sqlx::query_as!(
             MarketTradeGood,
             r#"
@@ -94,8 +99,8 @@ impl MarketTradeGoodByWaypointAndSymbolLoader {
             WHERE waypoint_symbol = ANY($1) AND symbol::text = ANY($2)
             ORDER BY waypoint_symbol, symbol, created_at DESC
             "#,
-            waypoints,
-            trade_symbols
+            waypoints_ls.as_slice() as &[&str],
+            trade_symbols_ls.as_slice()
         )
         .fetch_all(database_pool.get_cache_pool())
         .await?;
@@ -112,8 +117,8 @@ impl Loader<MarketTradeGoodKey> for MarketTradeGoodByWaypointAndSymbolLoader {
         &self,
         keys: &[MarketTradeGoodKey],
     ) -> std::result::Result<HashMap<MarketTradeGoodKey, Self::Value>, Self::Error> {
-        let waypoints: Vec<String> = keys.iter().map(|k| k.0.clone().into_inner()).collect();
-        let trade_symbols: Vec<String> = keys.iter().map(|k| k.1.to_string()).collect();
+        let waypoints: Vec<_> = keys.iter().map(|k| k.0.clone()).collect();
+        let trade_symbols: Vec<_> = keys.iter().map(|k| k.1).collect();
 
         let mut map = HashMap::new();
         for good in
@@ -422,7 +427,7 @@ impl MarketTradeGood {
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_waypoint(
         database_pool: &DbPool,
-        waypoint_symbol: &str,
+        waypoint_symbol: &WaypointSymbol,
         query: PaginatedQuery,
     ) -> crate::Result<PaginatedResult<MarketTradeGood>> {
         run_paginated_query(
@@ -500,7 +505,7 @@ impl MarketTradeGood {
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_history_by_waypoint_and_trade_symbol(
         database_pool: &DbPool,
-        waypoint_symbol: &str,
+        waypoint_symbol: &WaypointSymbol,
         trade_symbol: &models::TradeSymbol,
         query: PaginatedQuery,
     ) -> crate::Result<PaginatedResult<MarketTradeGood>> {
@@ -582,7 +587,7 @@ impl MarketTradeGood {
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_last_by_waypoint(
         database_pool: &DbPool,
-        waypoint_symbol: &str,
+        waypoint_symbol: &WaypointSymbol,
         query: PaginatedQuery,
     ) -> crate::Result<PaginatedResult<MarketTradeGood>> {
         run_paginated_query(
@@ -747,7 +752,7 @@ impl MarketTradeGood {
 
     pub async fn get_by_last_waypoint_and_trade_symbol(
         database_pool: &DbPool,
-        waypoint_symbol: &str,
+        waypoint_symbol: &WaypointSymbol,
         trade_symbol: &models::TradeSymbol,
     ) -> crate::Result<Option<MarketTradeGood>> {
         let erg = sqlx::query_as!(
@@ -857,7 +862,7 @@ impl MarketTradeGood {
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_last_by_system(
         database_pool: &DbPool,
-        system_symbol: &str,
+        system_symbol: &SystemSymbol,
         query: PaginatedQuery,
     ) -> crate::Result<PaginatedResult<MarketTradeGood>> {
         run_paginated_query(

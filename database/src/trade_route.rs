@@ -930,7 +930,7 @@ impl TradeRoute {
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_waypoint(
         database_pool: &DbPool,
-        waypoint_symbol: &str,
+        waypoint_symbol: &WaypointSymbol,
         query: PaginatedQuery,
     ) -> crate::Result<PaginatedResult<TradeRoute>> {
         run_paginated_query(
@@ -1194,7 +1194,7 @@ impl TradeRoute {
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_system(
         database_pool: &DbPool,
-        system_symbol: &str,
+        system_symbol: &SystemSymbol,
         query: PaginatedQuery,
     ) -> crate::Result<PaginatedResult<TradeRoute>> {
         run_paginated_query(

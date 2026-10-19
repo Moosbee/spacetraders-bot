@@ -1,5 +1,5 @@
-use std::str::FromStr;
 use space_traders_client::{ShipSymbol, SystemSymbol, WaypointSymbol};
+use std::str::FromStr;
 
 use chrono::{DateTime, Utc};
 use space_traders_client::models;
@@ -115,7 +115,7 @@ impl ChartTransaction {
 
     pub async fn get_by_waypoint_symbol(
         database_pool: &DbPool,
-        waypoint_symbol: &str,
+        waypoint_symbol: &WaypointSymbol,
     ) -> crate::Result<Option<ChartTransaction>> {
         let erg = sqlx::query_as!(
             ChartTransaction,
@@ -141,7 +141,7 @@ impl ChartTransaction {
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_system(
         database_pool: &DbPool,
-        symbol: &str,
+        symbol: &SystemSymbol,
         query: PaginatedQuery,
     ) -> crate::Result<PaginatedResult<ChartTransaction>> {
         run_paginated_query(

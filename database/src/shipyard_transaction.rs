@@ -1,5 +1,5 @@
-use std::collections::HashMap;
 use space_traders_client::{ShipSymbol, SystemSymbol, WaypointSymbol};
+use std::collections::HashMap;
 use std::str::FromStr;
 use std::sync::Arc;
 
@@ -95,7 +95,7 @@ impl ShipyardTransaction {
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_waypoint(
         database_pool: &super::DbPool,
-        waypoint_symbol: &str,
+        waypoint_symbol: &WaypointSymbol,
         query: PaginatedQuery,
     ) -> crate::Result<PaginatedResult<ShipyardTransaction>> {
         run_paginated_query(
@@ -165,7 +165,7 @@ impl ShipyardTransaction {
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_system(
         database_pool: &super::DbPool,
-        system: &str,
+        system: &SystemSymbol,
         query: PaginatedQuery,
     ) -> crate::Result<PaginatedResult<Self>> {
         let system_qr = format!("{}-%", system);
@@ -403,7 +403,7 @@ impl ShipyardTransaction {
 
     pub async fn get_by_waypoint_and_ship_type(
         database_pool: &super::DbPool,
-        waypoint_symbol: &str,
+        waypoint_symbol: &WaypointSymbol,
         ship_type: models::ShipType,
         query: PaginatedQuery,
     ) -> crate::Result<PaginatedResult<ShipyardTransaction>> {

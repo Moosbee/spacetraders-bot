@@ -1,5 +1,5 @@
-use std::collections::{HashMap, HashSet};
 use space_traders_client::{ShipSymbol, SystemSymbol, WaypointSymbol};
+use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
 use async_graphql::dataloader::Loader;
@@ -179,11 +179,7 @@ impl Loader<SystemSymbol> for FleetBySystemLoader {
     ) -> Result<HashMap<SystemSymbol, Self::Value>, Self::Error> {
         let mut map: HashMap<SystemSymbol, Vec<Fleet>> = HashMap::new();
 
-        let fleets = Fleet::get_by_systems(
-            &self.0,
-            &keys.iter().map(|k| k.as_str()).collect::<Vec<_>>(),
-        )
-        .await?;
+        let fleets = Fleet::get_by_systems(&self.0, keys).await?;
 
         for fleet in fleets {
             map.entry(fleet.system_symbol.clone())
@@ -1224,7 +1220,7 @@ impl Fleet {
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_system(
         database_pool: &DbPool,
-        system: &str,
+        system: &SystemSymbol,
         query: PaginatedQuery,
     ) -> crate::Result<PaginatedResult<Fleet>> {
         run_paginated_query(
@@ -1350,8 +1346,9 @@ impl Fleet {
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_systems(
         database_pool: &DbPool,
-        systems: &[&str],
+        systems: &[SystemSymbol],
     ) -> crate::Result<Vec<Fleet>> {
+        let systems = systems.iter().map(|s| s.as_str()).collect::<Vec<_>>();
         let resp = sqlx::query_as!(
             Fleet,
             r#"
