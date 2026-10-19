@@ -1,4 +1,5 @@
 use async_graphql::SimpleObject;
+use space_traders_client::WaypointSymbol;
 use space_traders_client::models;
 use std::hash::Hash;
 
@@ -6,8 +7,8 @@ use crate::autopilot::utils::{calculate_jump_cooldown, get_travel_stats};
 
 #[derive(Debug, Clone)]
 pub struct SimpleConnection {
-    pub start_symbol: String,
-    pub end_symbol: String,
+    pub start_symbol: WaypointSymbol,
+    pub end_symbol: WaypointSymbol,
     pub connection_type: ConnectionType,
     pub start_is_marketplace: bool,
     pub end_is_marketplace: bool,
@@ -50,16 +51,16 @@ pub enum ConcreteConnection {
 
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct JumpConnection {
-    pub start_symbol: String,
-    pub end_symbol: String,
+    pub start_symbol: WaypointSymbol,
+    pub end_symbol: WaypointSymbol,
     pub distance: f64,
     pub cooldown_time: f64,
 }
 
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct WarpConnection {
-    pub start_symbol: String,
-    pub end_symbol: String,
+    pub start_symbol: WaypointSymbol,
+    pub end_symbol: WaypointSymbol,
     pub nav_mode: models::ShipNavFlightMode,
     pub distance: f64,
     pub travel_time: f64,
@@ -70,8 +71,8 @@ pub struct WarpConnection {
 
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct NavigateConnection {
-    pub start_symbol: String,
-    pub end_symbol: String,
+    pub start_symbol: WaypointSymbol,
+    pub end_symbol: WaypointSymbol,
     pub nav_mode: models::ShipNavFlightMode,
     pub distance: f64,
     pub travel_time: f64,

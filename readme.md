@@ -49,3 +49,7 @@ sequenceDiagram
 - add a static scrapping for shipyards
 - connect transactions with fleets
 - rewrite database provider to properly use inversion of control
+- update to use the right types instead of string 
+    - GetSupplyChain200ResponseData
+    - DeliverContractRequest
+    - MarketTransaction

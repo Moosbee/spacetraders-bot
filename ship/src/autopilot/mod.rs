@@ -1,4 +1,5 @@
 use ::utils::WaypointCan;
+use space_traders_client::{ShipSymbol, SystemSymbol, WaypointSymbol};
 use chrono::{DateTime, Utc};
 use database::DatabaseConnectorAsync;
 use database::TransactionReason;
@@ -45,7 +46,7 @@ use super::RustShip;
 impl<T: Clone + Send + Sync> RustShip<T, Mutable> {
     pub async fn nav_to(
         &mut self,
-        waypoint: &str,
+        waypoint: &WaypointSymbol,
         update_market: bool,
         reason: TransactionReason,
         database_pool: &database::DbPool,
@@ -66,7 +67,7 @@ impl<T: Clone + Send + Sync> RustShip<T, Mutable> {
 
     pub async fn nav_to_prepare(
         &mut self,
-        waypoint: &str,
+        waypoint: &WaypointSymbol,
         update_market: bool,
         reason: TransactionReason,
         prepare: bool, // prepare to have enough fuel to leave the waypoint without a marketplace
@@ -86,7 +87,7 @@ impl<T: Clone + Send + Sync> RustShip<T, Mutable> {
             .ok_or(crate::error::Error::NoRouteFound {
                 symbol: self.symbol.clone(),
                 from: self.nav.waypoint_symbol.clone(),
-                to: waypoint.to_string(),
+                to: waypoint.clone(),
                 nav_stats: self.get_nav_stats(),
             })?;
 
@@ -106,8 +107,8 @@ impl<T: Clone + Send + Sync> RustShip<T, Mutable> {
         let reson2 = reason.clone();
         let update_funds_fn2 = update_funds_fn.clone();
         let wp_action = async move |shipi: &mut RustShip<_, Mutable>,
-                                    start_waypoint: String,
-                                    _end_waypoint: String| {
+                                    start_waypoint: WaypointSymbol,
+                                    _end_waypoint: WaypointSymbol| {
             let start = database::Waypoint::get_by_id(&database_pool2, &start_waypoint).await?;
 
             if let Some(start) = start {
@@ -207,10 +208,10 @@ impl<T: Clone + Send + Sync, State: Send + Sync> RustShip<T, State> {
 pub struct AutopilotState {
     pub arrival: DateTime<Utc>,
     pub departure_time: DateTime<Utc>,
-    pub destination_symbol: String,
-    pub destination_system_symbol: String,
-    pub origin_symbol: String,
-    pub origin_system_symbol: String,
+    pub destination_symbol: WaypointSymbol,
+    pub destination_system_symbol: SystemSymbol,
+    pub origin_symbol: WaypointSymbol,
+    pub origin_system_symbol: SystemSymbol,
     pub distance: f64,
     pub fuel_cost: i32,
     pub travel_time: f64,

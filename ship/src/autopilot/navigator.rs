@@ -2,7 +2,7 @@ use chrono::Utc;
 use database::DatabaseConnectorAsync;
 use log::warn;
 use space_traders_client::models::{self};
-use utils::get_system_symbol;
+use space_traders_client::{SystemSymbol, WaypointSymbol};
 
 use crate::{Mutable, RustShip};
 
@@ -17,7 +17,11 @@ impl<T: Clone + Send + Sync> RustShip<T, Mutable> {
         reason: database::TransactionReason,
         database_pool: &database::DbPool,
         api: &space_traders_client::Api,
-        wp_action: impl AsyncFn(&mut RustShip<T, Mutable>, String, String) -> crate::error::Result<()>
+        wp_action: impl AsyncFn(
+            &mut RustShip<T, Mutable>,
+            WaypointSymbol,
+            WaypointSymbol,
+        ) -> crate::error::Result<()>
         + Clone,
         update_funds_fn: impl Fn(i64) + Clone,
     ) -> crate::error::Result<()> {
@@ -46,7 +50,11 @@ impl<T: Clone + Send + Sync> RustShip<T, Mutable> {
         reason: &database::TransactionReason,
         database_pool: &database::DbPool,
         api: &space_traders_client::Api,
-        wp_action: impl AsyncFn(&mut RustShip<T, Mutable>, String, String) -> crate::error::Result<()>,
+        wp_action: impl AsyncFn(
+            &mut RustShip<T, Mutable>,
+            WaypointSymbol,
+            WaypointSymbol,
+        ) -> crate::error::Result<()>,
         update_funds_fn: impl Fn(i64) + Clone,
     ) -> crate::error::Result<()> {
         match connection {
@@ -94,7 +102,11 @@ impl<T: Clone + Send + Sync> RustShip<T, Mutable> {
         reason: &database::TransactionReason,
         database_pool: &database::DbPool,
         api: &space_traders_client::Api,
-        wp_action: impl AsyncFn(&mut RustShip<T, Mutable>, String, String) -> crate::error::Result<()>,
+        wp_action: impl AsyncFn(
+            &mut RustShip<T, Mutable>,
+            WaypointSymbol,
+            WaypointSymbol,
+        ) -> crate::error::Result<()>,
         update_funds_fn: impl Fn(i64) + Clone,
     ) -> crate::error::Result<()> {
         if self.nav.waypoint_symbol != connection.start_symbol {
@@ -168,7 +180,11 @@ impl<T: Clone + Send + Sync> RustShip<T, Mutable> {
         reason: &database::TransactionReason,
         database_pool: &database::DbPool,
         api: &space_traders_client::Api,
-        wp_action: impl AsyncFn(&mut RustShip<T, Mutable>, String, String) -> crate::error::Result<()>,
+        wp_action: impl AsyncFn(
+            &mut RustShip<T, Mutable>,
+            WaypointSymbol,
+            WaypointSymbol,
+        ) -> crate::error::Result<()>,
         update_funds_fn: impl Fn(i64) + Clone,
     ) -> crate::error::Result<()> {
         if self.nav.waypoint_symbol != connection.start_symbol {
@@ -240,7 +256,11 @@ impl<T: Clone + Send + Sync> RustShip<T, Mutable> {
         reason: &database::TransactionReason,
         database_pool: &database::DbPool,
         api: &space_traders_client::Api,
-        wp_action: impl AsyncFn(&mut RustShip<T, Mutable>, String, String) -> crate::error::Result<()>,
+        wp_action: impl AsyncFn(
+            &mut RustShip<T, Mutable>,
+            WaypointSymbol,
+            WaypointSymbol,
+        ) -> crate::error::Result<()>,
         update_funds_fn: impl Fn(i64) + Clone,
     ) -> crate::error::Result<()> {
         if self.nav.waypoint_symbol != connection.start_symbol {
@@ -508,25 +528,27 @@ impl RefuelRequirements {
     }
 }
 
-fn get_start_and_end(connection: &ConcreteConnection) -> (String, String, String, String) {
+fn get_start_and_end(
+    connection: &ConcreteConnection,
+) -> (WaypointSymbol, SystemSymbol, WaypointSymbol, SystemSymbol) {
     match connection {
         ConcreteConnection::JumpGate(jump_connection) => (
             jump_connection.start_symbol.clone(),
-            get_system_symbol(&jump_connection.start_symbol),
+            jump_connection.start_symbol.get_system_symbol(),
             jump_connection.end_symbol.clone(),
-            get_system_symbol(&jump_connection.end_symbol),
+            jump_connection.end_symbol.get_system_symbol(),
         ),
         ConcreteConnection::Warp(warp_connection) => (
             warp_connection.start_symbol.clone(),
-            get_system_symbol(&warp_connection.start_symbol),
+            warp_connection.start_symbol.get_system_symbol(),
             warp_connection.end_symbol.clone(),
-            get_system_symbol(&warp_connection.end_symbol),
+            warp_connection.end_symbol.get_system_symbol(),
         ),
         ConcreteConnection::Navigate(navigate_connection) => (
             navigate_connection.start_symbol.clone(),
-            get_system_symbol(&navigate_connection.start_symbol),
+            navigate_connection.start_symbol.get_system_symbol(),
             navigate_connection.end_symbol.clone(),
-            get_system_symbol(&navigate_connection.end_symbol),
+            navigate_connection.end_symbol.get_system_symbol(),
         ),
     }
 }

@@ -642,10 +642,10 @@ impl DatabaseConnectorAsync for Fleet {
 }
 
 impl Fleet {
-    pub fn new(system_symbol: String, active: bool) -> Self {
+    pub fn new(system_symbol: SystemSymbol, active: bool) -> Self {
         Fleet {
             id: 0,
-            system_symbol: system_symbol.into(),
+            system_symbol,
             fleet_type: FleetType::Manuel,
             active,
             created_at: chrono::Utc::now(),
@@ -659,13 +659,13 @@ impl Fleet {
     pub async fn update_basic(
         database_pool: &DbPool,
         id: i32,
-        system_symbol: Option<String>,
+        system_symbol: Option<SystemSymbol>,
         active: Option<bool>,
     ) -> crate::Result<()> {
         if let Some(sym) = system_symbol {
             sqlx::query!(
                 r#"UPDATE fleet SET system_symbol = $1, updated_at = NOW() WHERE id = $2"#,
-                sym,
+                sym.as_str(),
                 id
             )
             .execute(&database_pool.database_pool)

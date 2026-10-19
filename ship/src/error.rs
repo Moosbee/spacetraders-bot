@@ -11,9 +11,9 @@ pub enum Error {
 
     #[error("No route found for {symbol} from {from} to {to} with nav stats {nav_stats:?}")]
     NoRouteFound {
-        symbol: String,
-        from: String,
-        to: String,
+        symbol: space_traders_client::ShipSymbol,
+        from: space_traders_client::WaypointSymbol,
+        to: space_traders_client::WaypointSymbol,
         nav_stats: crate::autopilot::ShipNavStats,
     },
 }

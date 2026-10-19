@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 
 use priority_queue::PriorityQueue;
+use space_traders_client::SystemSymbol;
+use space_traders_client::WaypointSymbol;
 use space_traders_client::models;
 use tracing::debug;
 use utils::{WaypointCan, distance_between_waypoints};
@@ -8,7 +10,8 @@ use utils::{WaypointCan, distance_between_waypoints};
 #[derive(Debug, Clone)]
 pub struct SystemRouterCache {
     router: SystemRouter,
-    cache: HashMap<(String, String, SystemRouterConfig), Vec<super::SimpleConnection>>,
+    cache:
+        HashMap<(WaypointSymbol, WaypointSymbol, SystemRouterConfig), Vec<super::SimpleConnection>>,
 }
 
 impl SystemRouterCache {
@@ -21,16 +24,16 @@ impl SystemRouterCache {
 
     pub fn find_route_system(
         &mut self,
-        start_symbol: &str,
-        end_symbol: &str,
+        start_symbol: &WaypointSymbol,
+        end_symbol: &WaypointSymbol,
         config: SystemRouterConfig,
     ) -> Option<&[super::SimpleConnection]> {
         if !self
             .cache
-            .contains_key(&(start_symbol.to_string(), end_symbol.to_string(), config))
+            .contains_key(&(start_symbol.clone(), end_symbol.clone(), config))
         {
             debug!(
-                key = ?(start_symbol.to_string(), end_symbol.to_string(), config),
+                key = ?(start_symbol, end_symbol, config),
                 "System Route Cache miss"
             );
             let route = self
@@ -38,18 +41,16 @@ impl SystemRouterCache {
                 .find_route_system(start_symbol, end_symbol, &config);
             debug!(route = ?route, "Route calculated");
             let route = route?;
-            self.cache.insert(
-                (start_symbol.to_string(), end_symbol.to_string(), config),
-                route,
-            );
+            self.cache
+                .insert((start_symbol.clone(), end_symbol.clone(), config), route);
         }
 
         Some(self.cache
-            .get(&(start_symbol.to_string(), end_symbol.to_string(), config))
+            .get(&(start_symbol.clone(), end_symbol.clone(), config))
             .unwrap_or_else(|| {
                 panic!(
                     "We should have imported the route in the cache(find_cached_route) key: {:?}",
-                    (start_symbol.to_string(), end_symbol.to_string())
+                    (start_symbol, end_symbol)
                 )
             }))
     }
@@ -89,12 +90,15 @@ impl From<&super::ShipNavStats> for SystemRouterConfig {
 
 #[derive(Debug, Clone)]
 pub struct SystemRouter {
-    pub system_symbol: String,
-    pub waypoints: HashMap<String, database::Waypoint>,
+    pub system_symbol: SystemSymbol,
+    pub waypoints: HashMap<WaypointSymbol, database::Waypoint>,
 }
 
 impl SystemRouter {
-    pub fn new(system_symbol: String, waypoints: HashMap<String, database::Waypoint>) -> Self {
+    pub fn new(
+        system_symbol: SystemSymbol,
+        waypoints: HashMap<WaypointSymbol, database::Waypoint>,
+    ) -> Self {
         Self {
             system_symbol,
             waypoints,
@@ -103,12 +107,12 @@ impl SystemRouter {
 
     pub fn find_route_system(
         &self,
-        start_symbol: &str,
-        end_symbol: &str,
+        start_symbol: &WaypointSymbol,
+        end_symbol: &WaypointSymbol,
         config: &SystemRouterConfig,
     ) -> Option<Vec<super::SimpleConnection>> {
-        if !start_symbol.starts_with(&self.system_symbol)
-            || !end_symbol.starts_with(&self.system_symbol)
+        if !start_symbol.starts_with(self.system_symbol.as_str())
+            || !end_symbol.starts_with(self.system_symbol.as_str())
         {
             debug!(
                 start_symbol = ?start_symbol,
@@ -124,7 +128,7 @@ impl SystemRouter {
 
         let visited = self.generate_tree(start_waypoint, Some(end_waypoint), config);
 
-        super::utils::get_route(visited, start_symbol.to_string(), end_symbol.to_string())
+        super::utils::get_route(visited, start_symbol.clone(), end_symbol.clone())
     }
 
     pub fn generate_tree(
@@ -132,7 +136,7 @@ impl SystemRouter {
         start_waypoint: database::Waypoint,
         end_waypoint: Option<database::Waypoint>,
         config: &SystemRouterConfig,
-    ) -> HashMap<String, super::SimpleConnection> {
+    ) -> HashMap<WaypointSymbol, super::SimpleConnection> {
         let mut unvisited = self.waypoints.clone();
         let mut visited = HashMap::new();
         // may use radix-heap
@@ -140,8 +144,8 @@ impl SystemRouter {
 
         to_visit.push(
             super::SimpleConnection {
-                start_symbol: String::new(),
-                end_symbol: start_waypoint.symbol.to_string(),
+                start_symbol: WaypointSymbol::default(),
+                end_symbol: start_waypoint.symbol.clone(),
                 distance: 0.0,
                 cost: 0.0,
                 connection_type: super::connection::ConnectionType::Navigate {
@@ -194,8 +198,8 @@ impl SystemRouter {
         &self,
         current_route: &super::SimpleConnection,
         to_visit: &mut PriorityQueue<super::SimpleConnection, std::cmp::Reverse<i64>>,
-        visited: &mut HashMap<String, super::SimpleConnection>,
-        unvisited: &mut HashMap<String, database::Waypoint>,
+        visited: &mut HashMap<WaypointSymbol, super::SimpleConnection>,
+        unvisited: &mut HashMap<WaypointSymbol, database::Waypoint>,
         end_waypoint: &Option<database::Waypoint>,
         nav_modes: &[super::nav_mode::Mode],
     ) -> bool {
@@ -238,7 +242,7 @@ impl SystemRouter {
         &self,
         current: &database::Waypoint,
         current_route: &super::SimpleConnection,
-        unvisited: &mut HashMap<String, database::Waypoint>,
+        unvisited: &mut HashMap<WaypointSymbol, database::Waypoint>,
         to_visit: &mut PriorityQueue<super::SimpleConnection, std::cmp::Reverse<i64>>,
         end_waypoint: &Option<database::Waypoint>,
         nav_modes: &[super::nav_mode::Mode],
@@ -300,7 +304,7 @@ impl SystemRouter {
     }
 
     #[cfg(test)]
-    pub fn get_waypoint(&self, symbol: &str) -> Option<&database::Waypoint> {
+    pub fn get_waypoint(&self, symbol: &WaypointSymbol) -> Option<&database::Waypoint> {
         self.waypoints.get(symbol)
     }
 }
@@ -311,6 +315,7 @@ mod tests {
     use test_log::test;
     use tracing::info;
 
+    use space_traders_client::WaypointSymbol;
     use space_traders_client::models::ShipNavFlightMode;
 
     use super::super::NavMode;
@@ -319,13 +324,17 @@ mod tests {
 
     const SYSTEM: &str = "X1-JP44";
 
+    fn wp(symbol: &str) -> WaypointSymbol {
+        WaypointSymbol::from(symbol)
+    }
+
     fn real_router() -> SystemRouter {
         let waypoints: Vec<database::Waypoint> = utils::tests::get_waypoints();
-        let map: HashMap<String, database::Waypoint> = waypoints
+        let map: HashMap<WaypointSymbol, database::Waypoint> = waypoints
             .into_iter()
             .map(|waypoint| (waypoint.symbol.clone(), waypoint))
             .collect();
-        SystemRouter::new(SYSTEM.to_string(), map)
+        SystemRouter::new(SYSTEM.into(), map)
     }
 
     fn real_config() -> SystemRouterConfig {
@@ -342,7 +351,7 @@ mod tests {
     fn finds_route_across_real_system() {
         let router = real_router();
         let route = router
-            .find_route_system("X1-JP44-A1", "X1-JP44-J63", &real_config())
+            .find_route_system(&wp("X1-JP44-A1"), &wp("X1-JP44-J63"), &real_config())
             .expect("a route should exist between two waypoints of X1-JP44");
 
         assert!(!route.is_empty());
@@ -370,7 +379,7 @@ mod tests {
     #[test]
     fn generates_full_tree() {
         let router = real_router();
-        let start_waypoint = router.get_waypoint("X1-JP44-A1").unwrap().clone();
+        let start_waypoint = router.get_waypoint(&wp("X1-JP44-A1")).unwrap().clone();
 
         let tree = router.generate_tree(start_waypoint, None, &real_config());
 
@@ -382,7 +391,7 @@ mod tests {
     #[test]
     fn generates_probe_tree() {
         let router = real_router();
-        let start_waypoint = router.get_waypoint("X1-JP44-A1").unwrap().clone();
+        let start_waypoint = router.get_waypoint(&wp("X1-JP44-A1")).unwrap().clone();
 
         let config = SystemRouterConfig {
             max_fuel: 0,
@@ -425,12 +434,12 @@ mod tests {
 
         assert!(
             router
-                .find_route_system("X1-JP44-OTHER", "X1-JP44-C43", &real_config())
+                .find_route_system(&wp("X1-JP44-OTHER"), &wp("X1-JP44-C43"), &real_config())
                 .is_none()
         );
         assert!(
             router
-                .find_route_system("X1-JP44-A1", "X1-JP44-OTHER", &real_config())
+                .find_route_system(&wp("X1-JP44-A1"), &wp("X1-JP44-OTHER"), &real_config())
                 .is_none()
         );
     }
@@ -439,7 +448,7 @@ mod tests {
     fn route_to_self_is_empty() {
         let router = real_router();
         let route = router
-            .find_route_system("X1-JP44-A1", "X1-JP44-A1", &real_config())
+            .find_route_system(&wp("X1-JP44-A1"), &wp("X1-JP44-A1"), &real_config())
             .expect("a route to the same waypoint should exist");
 
         assert!(route.is_empty());
@@ -450,7 +459,7 @@ mod tests {
         let router = real_router();
         assert!(
             router
-                .find_route_system("X1-OTHER-A", "X1-JP44-A1", &real_config())
+                .find_route_system(&wp("X1-OTHER-A"), &wp("X1-JP44-A1"), &real_config())
                 .is_none()
         );
     }
@@ -460,11 +469,11 @@ mod tests {
         let mut cache = SystemRouterCache::new(real_router());
 
         let first = cache
-            .find_route_system("X1-JP44-A1", "X1-JP44-J63", real_config())
+            .find_route_system(&wp("X1-JP44-A1"), &wp("X1-JP44-J63"), real_config())
             .expect("a route should exist")
             .to_vec();
         let second = cache
-            .find_route_system("X1-JP44-A1", "X1-JP44-J63", real_config())
+            .find_route_system(&wp("X1-JP44-A1"), &wp("X1-JP44-J63"), real_config())
             .expect("a cached route should exist");
 
         assert_eq!(first.as_slice(), second);

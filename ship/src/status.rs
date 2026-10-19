@@ -1,4 +1,5 @@
 use async_graphql::Enum;
+use space_traders_client::{SystemSymbol, WaypointSymbol};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, serde::Serialize, Enum)]
 pub enum ShippingStatus {
@@ -42,7 +43,7 @@ pub enum AssignmentStatus {
     Transfer {
         fleet_id: i32,
         assignment_id: i64,
-        system_symbol: String,
+        system_symbol: SystemSymbol,
     },
     Contract {
         contract_id: Option<String>,
@@ -54,7 +55,7 @@ pub enum AssignmentStatus {
     Scraper {
         cycle: Option<i32>,
         waiting_for_manager: bool,
-        waypoint_symbol: Option<String>,
+        waypoint_symbol: Option<WaypointSymbol>,
         scrap_date: Option<chrono::DateTime<chrono::Utc>>,
     },
     Mining {
@@ -63,7 +64,7 @@ pub enum AssignmentStatus {
     Charting {
         cycle: Option<i32>,
         waiting_for_manager: bool,
-        waypoint_symbol: Option<String>,
+        waypoint_symbol: Option<WaypointSymbol>,
     },
     #[default]
     Manuel,
@@ -74,21 +75,21 @@ pub enum AssignmentStatus {
 pub enum MiningShipAssignment {
     Transporter {
         state: TransporterState,
-        waypoint_symbol: Option<String>,
+        waypoint_symbol: Option<WaypointSymbol>,
         cycles: Option<i32>,
     },
     Extractor {
         state: ExtractorState,
-        waypoint_symbol: Option<String>,
+        waypoint_symbol: Option<WaypointSymbol>,
         extractions: Option<i32>,
     },
     Siphoner {
         state: SiphonerState,
-        waypoint_symbol: Option<String>,
+        waypoint_symbol: Option<WaypointSymbol>,
         extractions: Option<i32>,
     },
     Surveyor {
-        waypoint_symbol: Option<String>,
+        waypoint_symbol: Option<WaypointSymbol>,
         surveys: Option<i32>,
     },
     #[default]

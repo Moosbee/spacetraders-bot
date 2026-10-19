@@ -1,3 +1,4 @@
+use space_traders_client::ShipSymbol;
 use space_traders_client::models::{self, TradeSymbol};
 use tokio::{select, sync::broadcast};
 
@@ -34,7 +35,7 @@ impl Clone for InterShipBroadcaster {
 
 #[derive(Debug, Clone, Default)]
 pub struct MyShipUpdate {
-    pub symbol: String,
+    pub symbol: ShipSymbol,
     pub update: ShipUpdate,
 }
 
@@ -56,12 +57,15 @@ pub struct CargoChange {
 pub struct TransferRequest {
     pub units: i32,
     pub trade_symbol: TradeSymbol,
-    pub target: String,
+    pub target: ShipSymbol,
     pub callback: tokio::sync::mpsc::Sender<()>,
 }
 
 impl<T: Default + Clone + Send + Sync> RustShip<T, Mutable> {
-    pub fn from_ship(ship: models::Ship, broadcaster: InterShipBroadcaster) -> RustShip<T, Mutable> {
+    pub fn from_ship(
+        ship: models::Ship,
+        broadcaster: InterShipBroadcaster,
+    ) -> RustShip<T, Mutable> {
         let mut new_ship = RustShip::default();
         new_ship.update(ship);
         new_ship.broadcaster = broadcaster;
@@ -150,14 +154,14 @@ impl<T: Clone + Send + Sync> RustShip<T, Mutable> {
         trade_symbol: space_traders_client::models::TradeSymbol,
         units: i32,
         api: &space_traders_client::Api,
-        target_ship: &str,
+        target_ship: &ShipSymbol,
     ) -> crate::error::Result<space_traders_client::models::TransferCargo200Response> {
         let transfer_result = self
             .simple_transfer_cargo(trade_symbol, units, api, target_ship)
             .await?;
 
         let update_event = MyShipUpdate {
-            symbol: target_ship.to_string(),
+            symbol: target_ship.clone(),
             update: ShipUpdate::CargoChange(CargoChange {
                 trade_symbol,
                 units,

@@ -1,5 +1,5 @@
 use chrono::{DateTime, Utc};
-use space_traders_client::{apis, models};
+use space_traders_client::{apis, models, ShipSymbol, SystemSymbol, WaypointSymbol};
 use tracing::{debug, error, warn};
 
 use crate::error;
@@ -23,8 +23,8 @@ use std::fmt::Debug;
 pub struct NavigationState {
     pub flight_mode: models::ShipNavFlightMode,
     pub status: models::ShipNavStatus,
-    pub system_symbol: String,
-    pub waypoint_symbol: String,
+    pub system_symbol: SystemSymbol,
+    pub waypoint_symbol: WaypointSymbol,
     #[graphql(skip)]
     pub route: RouteState,
     #[graphql(skip)]
@@ -49,23 +49,23 @@ impl Debug for NavigationState {
 pub struct RouteState {
     pub arrival: DateTime<Utc>,
     pub departure_time: DateTime<Utc>,
-    pub destination_symbol: String,
-    pub destination_system_symbol: String,
-    pub origin_symbol: String,
-    pub origin_system_symbol: String,
+    pub destination_symbol: WaypointSymbol,
+    pub destination_system_symbol: SystemSymbol,
+    pub origin_symbol: WaypointSymbol,
+    pub origin_system_symbol: SystemSymbol,
 }
 
 impl<T: Clone + Send + Sync> RustShip<T, Mutable> {
     pub async fn navigate(
         &mut self,
         api: &space_traders_client::Api,
-        waypoint_symbol: &str,
+        waypoint_symbol: &WaypointSymbol,
     ) -> error::Result<models::NavigateShip200Response> {
         let nav_data = api
             .navigate_ship(
                 &self.symbol,
                 models::NavigateShipRequest {
-                    waypoint_symbol: waypoint_symbol.to_string(),
+                    waypoint_symbol: waypoint_symbol.clone(),
                 },
             )
             .await?;
@@ -81,13 +81,13 @@ impl<T: Clone + Send + Sync> RustShip<T, Mutable> {
     pub async fn jump(
         &mut self,
         api: &space_traders_client::Api,
-        waypoint_symbol: &str,
+        waypoint_symbol: &WaypointSymbol,
     ) -> error::Result<models::JumpShip200Response> {
         let jump_data = api
             .jump_ship(
                 &self.symbol,
                 models::JumpShipRequest {
-                    waypoint_symbol: waypoint_symbol.to_string(),
+                    waypoint_symbol: waypoint_symbol.clone(),
                 },
             )
             .await?;
@@ -103,13 +103,13 @@ impl<T: Clone + Send + Sync> RustShip<T, Mutable> {
     pub async fn warp(
         &mut self,
         api: &space_traders_client::Api,
-        waypoint_symbol: &str,
+        waypoint_symbol: &WaypointSymbol,
     ) -> error::Result<models::NavigateShip200Response> {
         let warp_data = api
             .warp_ship(
                 &self.symbol,
                 models::NavigateShipRequest {
-                    waypoint_symbol: waypoint_symbol.to_string(),
+                    waypoint_symbol: waypoint_symbol.clone(),
                 },
             )
             .await?;

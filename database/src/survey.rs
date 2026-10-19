@@ -84,7 +84,7 @@ impl Survey {
         value: models::Survey,
         ship_before: i64,
         ship_after: i64,
-        ship_symbol: String,
+        ship_symbol: ShipSymbol,
     ) -> crate::Result<Survey> {
         let deposits = value.deposits.iter().map(|f| f.symbol).collect::<Vec<_>>();
         let expiration = DateTime::<chrono::Utc>::from_str(&value.expiration)?;
@@ -92,7 +92,7 @@ impl Survey {
         Ok(Survey {
             ship_info_before: ship_before,
             ship_info_after: ship_after,
-            ship_symbol: ship_symbol.into(),
+            ship_symbol,
             signature: value.signature,
             waypoint_symbol: value.symbol.into(),
             deposits,
