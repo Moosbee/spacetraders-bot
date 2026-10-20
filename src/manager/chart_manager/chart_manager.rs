@@ -1,8 +1,8 @@
 use std::collections::HashSet;
 
 use database::DatabaseConnectorAsync;
-use space_traders_client::models::{self};
 use space_traders_client::WaypointSymbol;
+use space_traders_client::models::{self};
 use tracing::debug;
 use utils::{WaypointCan, distance_between_waypoints};
 
@@ -134,7 +134,9 @@ impl ChartManager {
             &ship_clone.nav.waypoint_symbol,
         )
         .await?
-        .ok_or(Error::General("Waypoint not found".to_string()))?;
+        .ok_or_else(|| Error::WaypointNotFound {
+            waypoint_symbol: ship_clone.nav.waypoint_symbol,
+        })?;
 
         let waypoints = database::Waypoint::get_by_system(
             &self.context.database_pool,

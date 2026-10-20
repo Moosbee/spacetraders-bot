@@ -1,3 +1,5 @@
+use space_traders_client::WaypointSymbol;
+
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
     #[error(transparent)]
@@ -18,6 +20,9 @@ pub enum Error {
     Ship(#[from] ship::Error),
     #[error("Reservation not found: {reservation_id}")]
     ReservationNotFound { reservation_id: i64 },
+
+    #[error("Waypoint not found: {waypoint_symbol}")]
+    WaypointNotFound { waypoint_symbol: WaypointSymbol },
 
     #[error("Fleet not found: fleet_id={fleet_id}, assignment_id={assignment_id:?}")]
     FleetNotFound {

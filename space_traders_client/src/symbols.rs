@@ -106,33 +106,18 @@ macro_rules! symbol_newtype {
                 *self == other.0
             }
         }
+
+        impl Display for $name {
+            fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+                f.write_str(&self.0)
+            }
+        }
     };
 }
 
 symbol_newtype!(ShipSymbol, "The globally unique identifier of a ship.");
 symbol_newtype!(WaypointSymbol, "The symbol of a waypoint.");
 symbol_newtype!(SystemSymbol, "The symbol of a system.");
-
-impl Display for ShipSymbol {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.write_str("Ship ")?;
-        f.write_str(&self.0)
-    }
-}
-
-impl Display for WaypointSymbol {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.write_str("Waypoint ")?;
-        f.write_str(&self.0)
-    }
-}
-
-impl Display for SystemSymbol {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.write_str("System ")?;
-        f.write_str(&self.0)
-    }
-}
 
 impl WaypointSymbol {
     /// Returns the system this waypoint belongs to.

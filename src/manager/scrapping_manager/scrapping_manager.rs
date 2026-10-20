@@ -325,7 +325,9 @@ impl ScrappingManager {
         let ship_wp = system_wps
             .iter()
             .find(|w| w.symbol == ship_clone.nav.waypoint_symbol)
-            .ok_or(Error::General("Waypoint not found".to_string()))?
+            .ok_or_else(|| Error::WaypointNotFound {
+                waypoint_symbol: ship_clone.nav.waypoint_symbol.clone(),
+            })?
             .clone();
 
         let wps = system_wps

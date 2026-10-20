@@ -124,7 +124,9 @@ impl ScraperPilot {
 
         let waypoint = database::Waypoint::get_by_id(&self.context.database_pool, &waypoint_symbol)
             .await?
-            .ok_or(Error::General("Waypoint not found".to_owned()))?;
+            .ok_or_else(|| Error::WaypointNotFound {
+                waypoint_symbol: waypoint_symbol.clone(),
+            })?;
 
         if waypoint.is_shipyard() {
             self.context
@@ -147,7 +149,9 @@ impl ScraperPilot {
 
         let waypoint = database::Waypoint::get_by_id(&self.context.database_pool, &waypoint_symbol)
             .await?
-            .ok_or(Error::General("Waypoint not found".to_owned()))?;
+            .ok_or_else(|| Error::WaypointNotFound {
+                waypoint_symbol: waypoint_symbol.clone(),
+            })?;
 
         if waypoint.is_marketplace() {
             let market_resp = self
