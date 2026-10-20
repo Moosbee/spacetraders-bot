@@ -114,6 +114,10 @@ impl ShipProcurementManager {
         .await?
         .items;
 
+        if open_assignments.is_empty() {
+            return Ok(Vec::new());
+        }
+
         let all_shipyard_ships = database::ShipyardShip::get_last_paginated(
             &self.context.database_pool,
             database::PaginatedQuery::unpaged(),
