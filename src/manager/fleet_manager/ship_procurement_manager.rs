@@ -196,6 +196,7 @@ impl ShipProcurementManager {
             &travel_costs,
             &waypoints,
             ship_purchase_percentile,
+            2,
         );
 
         let mut reservations: Vec<ShipPurchaseReservation> = Vec::new();
@@ -390,13 +391,15 @@ impl ShipProcurementManager {
         travel_costs: &'_ HashMap<(SystemSymbol, SystemSymbol), (i64, i32, f64)>,
         waypoints: &'_ HashSet<WaypointSymbol>,
         ship_purchase_percentile: f64,
+        purchase_limit: usize, // how many ships can be purchased from one shipyard_ship
     ) -> Vec<ShipWorth<'a>> {
         // Index into all_shipyard_ships. Assumes one row per (waypoint, ship_type).
-        let mut available_ships: HashSet<usize> = all_shipyard_ships
+        // This is a map of (waypoint, ship_type) -> (index,remaining_ships)
+        let mut available_ships: HashMap<usize, usize> = all_shipyard_ships
             .iter()
             .enumerate()
             .filter(|(_, (s, _))| waypoints.contains(&s.waypoint_symbol))
-            .map(|(i, _)| i)
+            .map(|(i, _)| (i, purchase_limit))
             .collect();
 
         let mut ships_to_purchase = Vec::new();
@@ -433,10 +436,14 @@ impl ShipProcurementManager {
                 .iter()
                 .take(k)
                 .filter(|(price, _)| *price < assignment.max_purchase_price as i64)
-                .find(|(_, idx)| available_ships.contains(idx));
+                .find(|(_, idx)| *available_ships.get(idx).unwrap_or(&0) > 0);
 
             if let Some(&(_, idx)) = pick {
-                available_ships.remove(&idx);
+                available_ships.entry(idx).and_modify(|v| *v -= 1);
+                if available_ships.get(&idx) == Some(&0) {
+                    available_ships.remove(&idx);
+                }
+
                 let ship = &all_shipyard_ships[idx].0;
                 if let Some(w) = ShipWorth::new(assignment, ship, fleet, travel_costs) {
                     ships_to_purchase.push(w);
