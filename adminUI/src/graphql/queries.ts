@@ -192,6 +192,12 @@ export const GET_SYSTEMS_WITH_FLEETS_OR_SHIPS = graphql(/* GraphQL */ `
         populationDisabled
         systemAnalyzation {
           innerSystemCount
+          totalMarketCount
+        }
+        minimumSpanningTree(onlyMarkets: true) {
+          fromSymbol
+          toSymbol
+          distance
         }
         marketTrades {
           items {

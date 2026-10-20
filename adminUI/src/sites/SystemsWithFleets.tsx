@@ -18,8 +18,8 @@ function SystemsWithFleets() {
   const systems = useMemo(() => {
     return (data?.systems.items ?? []).toSorted(
       (a, b) =>
-        a.systemAnalyzation.innerSystemCount -
-        b.systemAnalyzation.innerSystemCount,
+        a.systemAnalyzation.totalMarketCount -
+        b.systemAnalyzation.totalMarketCount,
     );
   }, [data?.systems.items]);
 

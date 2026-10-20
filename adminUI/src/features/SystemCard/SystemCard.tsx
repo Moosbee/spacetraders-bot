@@ -68,6 +68,12 @@ function SystemCard({
     return [total, market, strict];
   }, [marketTrades]);
 
+  const maxRange = useMemo(() => {
+    return system.minimumSpanningTree
+      .toSorted((a, b) => a.distance - b.distance)
+      .toReversed()[0]?.distance;
+  }, [system.minimumSpanningTree]);
+
   const {
     token: { colorBgBase },
   } = theme.useToken();
@@ -153,21 +159,14 @@ function SystemCard({
           </div>
         </div>
         <div className="mt-4">
+          Markets {system.systemAnalyzation.totalMarketCount}
+          <br />
           Inner System {system.systemAnalyzation.innerSystemCount}
           <br />
           Market Opportunities {totalMarketOpportunities} (Strict:{" "}
           {strictMarketOpportunities}) (Market: {marketOpportunities})
           <br />
-          Ship Count{" "}
-          {/* ((market_opportunities as f64 + 22.0).log2().ceil() - 5.0) as u32 */}
-          {Math.max(
-            0,
-            Math.ceil(
-              Math.log2(strictMarketOpportunities + 23) -
-                5 +
-                0.01 * strictMarketOpportunities,
-            ),
-          )}
+          Max Range {maxRange.toFixed(2) ?? 0}
         </div>
       </Card>
     </Col>
