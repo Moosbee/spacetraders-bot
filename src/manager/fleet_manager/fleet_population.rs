@@ -329,7 +329,7 @@ async fn generate_system_fleets(
     );
 
     // trading fleet
-    if trading_ship_counts > 1 && !has_uncharted_marketplace_waypoints {
+    if trading_ship_counts > 0 && !has_uncharted_marketplace_waypoints {
         let ship_market_ratio = trading_ship_ratio;
 
         let trade_mode = if system_fleets.construction_fleet.is_some() {
@@ -401,7 +401,7 @@ async fn generate_system_fleets(
     }
 
     // market balance fleet
-    if trading_ship_counts > 1
+    if trading_ship_counts > 0
         && !has_uncharted_marketplace_waypoints
         && system_fleets.construction_fleet.is_some()
     {
