@@ -13,7 +13,7 @@ type Agent {
 	id: Int!
 	symbol: String!
 	accountId: String
-	headquarters: String!
+	headquarters: WaypointSymbol!
 	credits: Int!
 	startingFaction: String!
 	shipCount: Int!
@@ -39,7 +39,7 @@ enum AssignLevel {
 }
 
 type AssignedShip {
-	shipSymbol: String!
+	shipSymbol: ShipSymbol!
 	level: AssignLevel!
 }
 
@@ -81,10 +81,10 @@ type AutopilotRoute {
 type AutopilotState {
 	arrival: DateTime!
 	departureTime: DateTime!
-	destinationSymbol: String!
-	destinationSystemSymbol: String!
-	originSymbol: String!
-	originSystemSymbol: String!
+	destinationSymbol: WaypointSymbol!
+	destinationSystemSymbol: SystemSymbol!
+	originSymbol: WaypointSymbol!
+	originSystemSymbol: SystemSymbol!
 	distance: Float!
 	fuelCost: Int!
 	travelTime: Float!
@@ -136,11 +136,11 @@ type ChartTransaction {
 	"""
 	The symbol of the waypoint.
 	"""
-	waypointSymbol: String!
+	waypointSymbol: WaypointSymbol!
 	"""
 	The symbol of the ship.
 	"""
-	shipSymbol: String!
+	shipSymbol: ShipSymbol!
 	"""
 	The total price of the transaction.
 	"""
@@ -168,7 +168,7 @@ type ChartingConfig {
 type ChartingStatus {
 	cycle: Int
 	waitingForManager: Boolean!
-	waypointSymbol: String
+	waypointSymbol: WaypointSymbol
 	waypoint: Waypoint
 }
 
@@ -217,7 +217,7 @@ type ConstructionManagerInfo {
 
 type ConstructionMaterial {
 	id: Int!
-	waypointSymbol: String!
+	waypointSymbol: WaypointSymbol!
 	tradeSymbol: TradeSymbol!
 	required: Int!
 	fulfilled: Int!
@@ -255,11 +255,11 @@ enum ConstructionMode {
 type ConstructionShipment {
 	id: Int!
 	materialId: Int!
-	constructionSiteWaypoint: String!
-	shipSymbol: String!
+	constructionSiteWaypoint: WaypointSymbol!
+	shipSymbol: ShipSymbol!
 	tradeSymbol: TradeSymbol!
 	units: Int!
-	purchaseSiteWaypoint: String!
+	purchaseSiteWaypoint: WaypointSymbol!
 	createdAt: DateTime!
 	updatedAt: DateTime!
 	status: ShipmentStatus!
@@ -329,7 +329,7 @@ type ContractConfig {
 type ContractDelivery {
 	contractId: String!
 	tradeSymbol: TradeSymbol!
-	destinationSymbol: String!
+	destinationSymbol: WaypointSymbol!
 	unitsRequired: Int!
 	unitsFulfilled: Int!
 	contract: Contract
@@ -367,11 +367,11 @@ type ContractPage {
 type ContractShipment {
 	id: Int!
 	contractId: String!
-	shipSymbol: String!
+	shipSymbol: ShipSymbol!
 	tradeSymbol: TradeSymbol!
 	units: Int!
-	destinationSymbol: String!
-	purchaseSymbol: String!
+	destinationSymbol: WaypointSymbol!
+	purchaseSymbol: WaypointSymbol!
 	createdAt: DateTime!
 	updatedAt: DateTime!
 	status: ShipmentStatus!
@@ -437,8 +437,8 @@ type EngineInfo {
 
 type Extraction {
 	id: Int!
-	shipSymbol: String!
-	waypointSymbol: String!
+	shipSymbol: ShipSymbol!
+	waypointSymbol: WaypointSymbol!
 	shipInfoBefore: Int!
 	shipInfoAfter: Int!
 	siphon: Boolean!
@@ -470,7 +470,7 @@ type ExtractionPage {
 
 type ExtractorAssignment {
 	state: ExtractorState!
-	waypointSymbol: String
+	waypointSymbol: WaypointSymbol
 	extractions: Int
 }
 
@@ -510,7 +510,7 @@ enum FactionSymbol {
 
 type Fleet {
 	id: Int!
-	systemSymbol: String!
+	systemSymbol: SystemSymbol!
 	fleetType: FleetType!
 	active: Boolean!
 	createdAt: DateTime!
@@ -579,8 +579,8 @@ enum FundStatus {
 type GateConn {
 	underConstructionA: Boolean!
 	underConstructionB: Boolean!
-	pointASymbol: String!
-	pointBSymbol: String!
+	pointASymbol: WaypointSymbol!
+	pointBSymbol: WaypointSymbol!
 	fromA: Boolean!
 	fromB: Boolean!
 	pointA: Waypoint
@@ -755,8 +755,8 @@ A scalar that can represent any JSON Object value.
 scalar JSONObject
 
 type JumpConnection {
-	startSymbol: String!
-	endSymbol: String!
+	startSymbol: WaypointSymbol!
+	endSymbol: WaypointSymbol!
 	distance: Float!
 	cooldownTime: Float!
 	start: Waypoint
@@ -767,8 +767,8 @@ type JumpConnection {
 
 type JumpGateConnection {
 	id: Int!
-	from: String!
-	to: String!
+	from: WaypointSymbol!
+	to: WaypointSymbol!
 	createdAt: DateTime!
 	updatedAt: DateTime!
 	waypointFrom: Waypoint
@@ -799,7 +799,7 @@ type ManuelStatus {
 }
 
 type MarketTrade {
-	waypointSymbol: String!
+	waypointSymbol: WaypointSymbol!
 	symbol: TradeSymbol!
 	createdAt: DateTime!
 	type: MarketTradeGoodType!
@@ -819,7 +819,7 @@ input MarketTradeBy @oneOf {
 type MarketTradeGood {
 	id: Int!
 	symbol: TradeSymbol!
-	waypointSymbol: String!
+	waypointSymbol: WaypointSymbol!
 	type: MarketTradeGoodType!
 	tradeVolume: Int!
 	supply: SupplyLevel!
@@ -870,11 +870,11 @@ type MarketTransaction {
 	"""
 	The symbol of the waypoint.
 	"""
-	waypointSymbol: String!
+	waypointSymbol: WaypointSymbol!
 	"""
 	The symbol of the ship that made the transaction.
 	"""
-	shipSymbol: String!
+	shipSymbol: ShipSymbol!
 	"""
 	The symbol of the trade good.
 	"""
@@ -949,7 +949,7 @@ enum MarketTransactionType {
 }
 
 type MiningAssignment {
-	waypointSymbol: String!
+	waypointSymbol: WaypointSymbol!
 	assignedShips: [AssignedShip!]!
 	lastUpdated: DateTime!
 }
@@ -1083,8 +1083,8 @@ enum NavMode {
 }
 
 type NavigateConnection {
-	startSymbol: String!
-	endSymbol: String!
+	startSymbol: WaypointSymbol!
+	endSymbol: WaypointSymbol!
 	navMode: ShipNavFlightMode!
 	distance: Float!
 	travelTime: Float!
@@ -1100,8 +1100,8 @@ type NavigateConnection {
 type NavigationState {
 	flightMode: ShipNavFlightMode!
 	status: ShipNavStatus!
-	systemSymbol: String!
-	waypointSymbol: String!
+	systemSymbol: SystemSymbol!
+	waypointSymbol: WaypointSymbol!
 	system: System
 	waypoint: Waypoint
 	route: RouteState!
@@ -1199,8 +1199,8 @@ input RegenFleetBy @oneOf {
 
 type RepairTransaction {
 	id: Int!
-	waypointSymbol: String!
-	shipSymbol: String!
+	waypointSymbol: WaypointSymbol!
+	shipSymbol: ShipSymbol!
 	totalPrice: Int!
 	timestamp: DateTime!
 	waypoint: Waypoint
@@ -1235,9 +1235,9 @@ type ReservedFundPage {
 
 type Route {
 	id: Int!
-	shipSymbol: String!
-	from: String!
-	to: String!
+	shipSymbol: ShipSymbol!
+	from: WaypointSymbol!
+	to: WaypointSymbol!
 	navMode: String!
 	distance: Float!
 	fuelCost: Int!
@@ -1254,7 +1254,7 @@ type Route {
 
 type RouteLock {
 	symbol: TradeSymbol!
-	wpSymbol: String!
+	wpSymbol: WaypointSymbol!
 	isEnd: Boolean!
 }
 
@@ -1268,10 +1268,10 @@ type RoutePage {
 type RouteState {
 	arrival: DateTime!
 	departureTime: DateTime!
-	destinationSymbol: String!
-	destinationSystemSymbol: String!
-	originSymbol: String!
-	originSystemSymbol: String!
+	destinationSymbol: WaypointSymbol!
+	destinationSystemSymbol: SystemSymbol!
+	originSymbol: WaypointSymbol!
+	originSystemSymbol: SystemSymbol!
 	destinationSystem: System
 	destinationWaypoint: Waypoint
 	originSystem: System
@@ -1280,7 +1280,7 @@ type RouteState {
 
 type RunInfo {
 	agentSymbol: String!
-	headquarters: String!
+	headquarters: WaypointSymbol!
 	startingFaction: FactionSymbol!
 	resetDate: DateTime!
 	nextResetDate: DateTime!
@@ -1293,14 +1293,14 @@ type RunInfo {
 }
 
 type ScrapInfo {
-	waypointSymbol: String!
+	waypointSymbol: WaypointSymbol!
 	date: DateTime!
 }
 
 type ScrapTransaction {
 	id: Int!
-	waypointSymbol: String!
-	shipSymbol: String!
+	waypointSymbol: WaypointSymbol!
+	shipSymbol: ShipSymbol!
 	totalPrice: Int!
 	timestamp: DateTime!
 	waypoint: Waypoint
@@ -1317,7 +1317,7 @@ type ScrapTransactionPage {
 type ScraperStatus {
 	cycle: Int
 	waitingForManager: Boolean!
-	waypointSymbol: String
+	waypointSymbol: WaypointSymbol
 	scrapDate: DateTime
 	waypoint: Waypoint
 }
@@ -1341,7 +1341,7 @@ type ScrappingManagerInfo {
 
 type Ship {
 	registrationRole: ShipRole!
-	symbol: String!
+	symbol: ShipSymbol!
 	displayName: String!
 	engineSpeed: Int!
 	purchaseId: Int
@@ -1443,7 +1443,7 @@ enum ShipFrameSymbol {
 }
 
 type ShipInfo {
-	symbol: String!
+	symbol: ShipSymbol!
 	displayName: String!
 	active: Boolean!
 	assignmentId: Int
@@ -1464,9 +1464,9 @@ type ShipInfoPage {
 
 type ShipJump {
 	id: Int!
-	shipSymbol: String!
-	from: String!
-	to: String!
+	shipSymbol: ShipSymbol!
+	from: WaypointSymbol!
+	to: WaypointSymbol!
 	distance: Int!
 	shipBefore: Int!
 	shipAfter: Int!
@@ -1486,8 +1486,8 @@ type ShipJumpPage {
 
 type ShipModificationTransaction {
 	id: Int!
-	waypointSymbol: String!
-	shipSymbol: String!
+	waypointSymbol: WaypointSymbol!
+	shipSymbol: ShipSymbol!
 	tradeSymbol: TradeSymbol!
 	totalPrice: Int!
 	timestamp: DateTime!
@@ -1626,7 +1626,7 @@ enum ShipRole {
 
 type ShipState {
 	id: Int!
-	symbol: String!
+	symbol: ShipSymbol!
 	displayName: String!
 	engineSpeed: Int!
 	engineCondition: Float!
@@ -1702,6 +1702,8 @@ type ShipStatus {
 	tempFleet: Fleet
 }
 
+scalar ShipSymbol
+
 """
 ShipType : Type of ship
 Type of ship
@@ -1738,7 +1740,7 @@ enum ShippingStatus {
 
 type Shipyard {
 	id: Int!
-	waypointSymbol: String!
+	waypointSymbol: WaypointSymbol!
 	modificationsFee: Int!
 	createdAt: DateTime!
 	waypoint: Waypoint
@@ -1757,7 +1759,7 @@ type ShipyardPage {
 
 type ShipyardShip {
 	id: Int!
-	waypointSymbol: String!
+	waypointSymbol: WaypointSymbol!
 	shipType: ShipType!
 	name: String!
 	supply: SupplyLevel!
@@ -1814,7 +1816,7 @@ type ShipyardShipTypesPage {
 
 type ShipyardTransaction {
 	id: Int!
-	waypointSymbol: String!
+	waypointSymbol: WaypointSymbol!
 	shipType: ShipType!
 	price: Int!
 	agentSymbol: String!
@@ -1842,7 +1844,7 @@ type ShipyardTransactionPage {
 
 type SiphonerAssignment {
 	state: ExtractorState!
-	waypointSymbol: String
+	waypointSymbol: WaypointSymbol
 	extractions: Int
 }
 
@@ -1861,9 +1863,9 @@ enum SupplyLevel {
 type Survey {
 	shipInfoBefore: Int!
 	shipInfoAfter: Int!
-	shipSymbol: String!
+	shipSymbol: ShipSymbol!
 	signature: String!
-	waypointSymbol: String!
+	waypointSymbol: WaypointSymbol!
 	deposits: [TradeSymbol!]!
 	expiration: DateTime!
 	size: SurveySize!
@@ -1909,12 +1911,12 @@ enum SurveySize {
 }
 
 type SurveyorAssignment {
-	waypointSymbol: String
+	waypointSymbol: WaypointSymbol
 	surveys: Int
 }
 
 type System {
-	symbol: String!
+	symbol: SystemSymbol!
 	constellation: String
 	sectorSymbol: String!
 	systemType: SystemType!
@@ -1991,12 +1993,14 @@ type SystemScrappingState {
 }
 
 type SystemSpanningTreeEdge {
-	fromSymbol: String!
-	toSymbol: String!
+	fromSymbol: WaypointSymbol!
+	toSymbol: WaypointSymbol!
 	distance: Float!
 	from: Waypoint
 	to: Waypoint
 }
+
+scalar SystemSymbol
 
 """
 SystemType : The type of system.
@@ -2031,9 +2035,9 @@ enum TradeMode {
 type TradeRoute {
 	id: Int!
 	symbol: TradeSymbol!
-	shipSymbol: String!
-	PurchaseWaypointSymbol: String!
-	SellWaypointSymbol: String!
+	shipSymbol: ShipSymbol!
+	PurchaseWaypointSymbol: WaypointSymbol!
+	SellWaypointSymbol: WaypointSymbol!
 	status: ShipmentStatus!
 	tradeVolume: Int!
 	purchaseTradeGoodId: Int
@@ -2335,12 +2339,12 @@ type TransactionSummary {
 type TransferStatus {
 	fleetId: Int!
 	assignmentId: Int!
-	systemSymbol: String!
+	systemSymbol: SystemSymbol!
 }
 
 type TransporterAssignment {
 	state: TransporterState!
-	waypointSymbol: String
+	waypointSymbol: WaypointSymbol
 	cycles: Int
 }
 
@@ -2358,8 +2362,8 @@ type UselessAssignment {
 }
 
 type WarpConnection {
-	startSymbol: String!
-	endSymbol: String!
+	startSymbol: WaypointSymbol!
+	endSymbol: WaypointSymbol!
 	navMode: ShipNavFlightMode!
 	distance: Float!
 	travelTime: Float!
@@ -2373,8 +2377,8 @@ type WarpConnection {
 }
 
 type Waypoint {
-	symbol: String!
-	systemSymbol: String!
+	symbol: WaypointSymbol!
+	systemSymbol: SystemSymbol!
 	createdAt: DateTime!
 	x: Int!
 	y: Int!
@@ -2439,6 +2443,8 @@ type WaypointPage {
 	page: Int!
 	pageSize: Int
 }
+
+scalar WaypointSymbol
 
 """
 WaypointTraitSymbol : The unique identifier of the trait.
