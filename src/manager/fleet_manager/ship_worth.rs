@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use ::utils::get_system_symbol;
+use space_traders_client::SystemSymbol;
 
 #[derive(Debug, Clone)]
 pub struct ShipWorth<'a> {
@@ -18,9 +18,9 @@ impl ShipWorth<'_> {
         assignment: &'a database::ShipAssignment,
         shipyard_ship: &'a database::ShipyardShip,
         fleet: &'a database::Fleet,
-        travel_cost: &HashMap<(String, String), (i64, i32, f64)>,
+        travel_cost: &HashMap<(SystemSymbol, SystemSymbol), (i64, i32, f64)>,
     ) -> Option<ShipWorth<'a>> {
-        let shipyard_system = get_system_symbol(&shipyard_ship.waypoint_symbol);
+        let shipyard_system = shipyard_ship.waypoint_symbol.get_system_symbol();
         let (total_cost, total_jumps, total_distance) =
             travel_cost.get(&(shipyard_system, fleet.system_symbol.clone()))?;
         Some(ShipWorth {

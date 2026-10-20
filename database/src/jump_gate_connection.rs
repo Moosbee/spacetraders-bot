@@ -1,4 +1,5 @@
 use chrono::{DateTime, Utc};
+use space_traders_client::WaypointSymbol;
 use tracing::instrument;
 
 use super::{DatabaseConnectorAsync, DbPool, PaginatedQuery, PaginatedResult, run_paginated_query};
@@ -15,8 +16,8 @@ use super::{DatabaseConnectorAsync, DbPool, PaginatedQuery, PaginatedResult, run
 #[graphql(name = "DBJumpGateConnection")]
 pub struct JumpGateConnection {
     pub id: i64,
-    pub from: String,
-    pub to: String,
+    pub from: WaypointSymbol,
+    pub to: WaypointSymbol,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -179,7 +180,7 @@ impl DatabaseConnectorAsync for JumpGateConnection {
                   updated_at = NOW()
                 RETURNING id;
             "#,
-            &item.from,
+            &item.from.as_str(),
             &item.to
         )
         .fetch_one(&database_pool.database_pool)
@@ -208,7 +209,9 @@ impl DatabaseConnectorAsync for JumpGateConnection {
         // }
 
         let (waypoints_from, waypoints_to): (Vec<String>, Vec<String>) =
-            itertools::multiunzip(items.iter().map(|jg| (jg.from.clone(), jg.to.clone())));
+            itertools::multiunzip(items.iter().map(|jg| {
+                (jg.from.clone().into_inner(), jg.to.clone().into_inner())
+            }));
 
         sqlx::query!(
             r#"

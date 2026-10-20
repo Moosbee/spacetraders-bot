@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use futures::future;
 use space_traders_client::models;
+use space_traders_client::{SystemSymbol, WaypointSymbol};
 
 mod trade_route_candidate;
 mod trade_route_proposal;
@@ -16,13 +17,13 @@ pub use trade_route_proposal::sort_trade_route_proposal;
 pub(crate) fn get_trade_systems(
     _trading_config: &database::TradingFleetConfig,
     ship_clone: &ship::RustShip<ship::status::ShipStatus>,
-) -> Vec<String> {
+) -> Vec<SystemSymbol> {
     vec![ship_clone.nav.system_symbol.clone()]
 }
 
 pub async fn fetch_market_data(
     database_pool: &database::DbPool,
-    trade_systems: &[String],
+    trade_systems: &[SystemSymbol],
 ) -> Result<(Vec<database::MarketTradeGood>, Vec<database::MarketTrade>), database::Error> {
     let trades = future::try_join_all(trade_systems.iter().map(|system_symbol| async move {
         let trade_goods = database::MarketTradeGood::get_last_by_system(
@@ -64,9 +65,9 @@ pub fn gen_all_trade_route_candidates(
     let trade_goods_map = trade_goods
         .iter()
         .map(|t| ((t.symbol, t.waypoint_symbol.clone()), t.clone()))
-        .collect::<HashMap<(models::TradeSymbol, String), database::MarketTradeGood>>();
+        .collect::<HashMap<(models::TradeSymbol, WaypointSymbol), database::MarketTradeGood>>();
 
-    let waypoint_market_trades_map: HashMap<String, Vec<database::MarketTrade>> =
+    let waypoint_market_trades_map: HashMap<WaypointSymbol, Vec<database::MarketTrade>> =
         market_trade.iter().fold(HashMap::new(), |mut acc, e| {
             acc.entry(e.waypoint_symbol.clone())
                 .or_insert(Vec::new())
@@ -123,7 +124,7 @@ pub(crate) fn filter_trade_route_candidates(
 pub(crate) async fn gen_trade_route_proposals(
     database_pool: &database::DbPool,
     trade_route_candidates_filtered: Vec<TradeRouteCandidate>,
-    trade_systems: &[String],
+    trade_systems: &[SystemSymbol],
     ship_stats: &ship::autopilot::ShipNavStats,
     purchase_multiplier: f64,
     fallback_purchase_price: i32,

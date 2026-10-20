@@ -26,7 +26,7 @@ impl PriorityRateLimiter {
         }
     }
 
-    pub async fn until_ready(&self, priority: u32, message: &str) {
+    pub async fn until_ready(&self, _priority: u32, _message: &str) {
         self.counter
             .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
         self.limiter.until_ready().await;

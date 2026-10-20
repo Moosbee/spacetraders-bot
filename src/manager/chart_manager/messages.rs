@@ -1,3 +1,5 @@
+use space_traders_client::WaypointSymbol;
+
 #[derive(Debug)]
 pub enum ChartMessage {
     Next {
@@ -6,16 +8,16 @@ pub enum ChartMessage {
         callback: tokio::sync::oneshot::Sender<Result<NextChartResp, crate::error::Error>>,
     },
     Fail {
-        waypoint_symbol: String,
+        waypoint_symbol: WaypointSymbol,
     },
     Success {
-        waypoint_symbol: String,
+        waypoint_symbol: WaypointSymbol,
     },
 }
 
 #[derive(Debug, Clone)]
 pub enum NextChartResp {
-    Next(String),
+    Next(WaypointSymbol),
     NoChartsInSystem,
 }
 

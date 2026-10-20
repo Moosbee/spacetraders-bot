@@ -1,5 +1,6 @@
 use chrono::{DateTime, Utc};
 use space_traders_client::models;
+use space_traders_client::{SystemSymbol, WaypointSymbol};
 use tracing::instrument;
 
 use super::{DatabaseConnectorAsync, PaginatedQuery, PaginatedResult, run_paginated_query};
@@ -9,7 +10,7 @@ use super::{DatabaseConnectorAsync, PaginatedQuery, PaginatedResult, run_paginat
 pub struct ShipyardShip {
     #[allow(dead_code)]
     pub id: i64,
-    pub waypoint_symbol: String,
+    pub waypoint_symbol: WaypointSymbol,
     pub ship_type: models::ShipType,
     pub name: String,
     pub supply: models::SupplyLevel,
@@ -33,7 +34,7 @@ impl ShipyardShip {
     pub fn with_waypoint(value: models::ShipyardShip, waypoint_symbol: &str) -> Self {
         Self {
             id: 0,
-            waypoint_symbol: waypoint_symbol.to_string(),
+            waypoint_symbol: waypoint_symbol.into(),
             ship_type: value.r#type,
             name: value.name,
             supply: value.supply,
@@ -56,7 +57,7 @@ impl ShipyardShip {
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_last_by_waypoint(
         database_pool: &super::DbPool,
-        waypoint_symbol: &str,
+        waypoint_symbol: &WaypointSymbol,
         query: PaginatedQuery,
     ) -> crate::Result<PaginatedResult<ShipyardShip>> {
         run_paginated_query(
@@ -150,7 +151,7 @@ impl ShipyardShip {
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_last_by_system(
         database_pool: &super::DbPool,
-        system_symbol: &str,
+        system_symbol: &SystemSymbol,
         query: PaginatedQuery,
     ) -> crate::Result<PaginatedResult<ShipyardShip>> {
         run_paginated_query(
@@ -343,7 +344,7 @@ impl ShipyardShip {
 
     pub async fn get_last_by_waypoint_and_ship_type(
         database_pool: &super::DbPool,
-        waypoint_symbol: &str,
+        waypoint_symbol: &WaypointSymbol,
         ship_type: &models::ShipType,
     ) -> crate::Result<Option<ShipyardShip>> {
         let erg = sqlx::query_as!(
@@ -390,7 +391,7 @@ impl ShipyardShip {
 
     pub async fn get_history_by_waypoint_and_ship_type(
         database_pool: &super::DbPool,
-        waypoint_symbol: &str,
+        waypoint_symbol: &WaypointSymbol,
         ship_type: &models::ShipType,
         query: PaginatedQuery,
     ) -> crate::Result<PaginatedResult<ShipyardShip>> {
@@ -609,7 +610,7 @@ impl DatabaseConnectorAsync for ShipyardShip {
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
                 RETURNING id
             "#,
-            item.waypoint_symbol,
+            item.waypoint_symbol.as_str(),
             item.ship_type as models::ShipType,
             item.name,
             item.supply as models::SupplyLevel,
@@ -673,7 +674,7 @@ impl DatabaseConnectorAsync for ShipyardShip {
                     crew_capacity = EXCLUDED.crew_capacity,
                     created_at = now()
             "#,
-            item.waypoint_symbol,
+            item.waypoint_symbol.as_str(),
             item.ship_type as models::ShipType,
             item.name,
             item.supply as models::SupplyLevel,
@@ -720,7 +721,7 @@ impl DatabaseConnectorAsync for ShipyardShip {
                     created_at = now()
                 WHERE id = $17
             "#,
-            item.waypoint_symbol,
+            item.waypoint_symbol.as_str(),
             item.ship_type as models::ShipType,
             item.name,
             item.supply as models::SupplyLevel,

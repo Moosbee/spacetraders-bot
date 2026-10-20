@@ -9,13 +9,14 @@
  */
 
 use crate::models;
+use crate::{ShipSymbol, SystemSymbol, WaypointSymbol};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Default, Debug, PartialEq, Serialize, Deserialize)]
 pub struct DeliverContractRequest {
     /// Symbol of a ship located in the destination to deliver a contract and that has a good to deliver in its cargo.
     #[serde(rename = "shipSymbol")]
-    pub ship_symbol: String,
+    pub ship_symbol: ShipSymbol,
     /// The symbol of the good to deliver.
     #[serde(rename = "tradeSymbol")]
     pub trade_symbol: String,
@@ -25,7 +26,7 @@ pub struct DeliverContractRequest {
 }
 
 impl DeliverContractRequest {
-    pub fn new(ship_symbol: String, trade_symbol: String, units: i32) -> DeliverContractRequest {
+    pub fn new(ship_symbol: ShipSymbol, trade_symbol: String, units: i32) -> DeliverContractRequest {
         DeliverContractRequest {
             ship_symbol,
             trade_symbol,

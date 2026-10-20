@@ -9,6 +9,7 @@
  */
 
 use crate::models;
+use crate::{ShipSymbol, SystemSymbol, WaypointSymbol};
 use serde::{Deserialize, Serialize};
 
 /// Construction : The construction details of a waypoint.
@@ -16,7 +17,7 @@ use serde::{Deserialize, Serialize};
 pub struct Construction {
     /// The symbol of the waypoint.
     #[serde(rename = "symbol")]
-    pub symbol: String,
+    pub symbol: WaypointSymbol,
     /// The materials required to construct the waypoint.
     #[serde(rename = "materials")]
     pub materials: Vec<models::ConstructionMaterial>,
@@ -28,7 +29,7 @@ pub struct Construction {
 impl Construction {
     /// The construction details of a waypoint.
     pub fn new(
-        symbol: String,
+        symbol: WaypointSymbol,
         materials: Vec<models::ConstructionMaterial>,
         is_complete: bool,
     ) -> Construction {

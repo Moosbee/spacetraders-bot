@@ -9,6 +9,7 @@
  */
 
 use crate::models;
+use crate::{ShipSymbol, SystemSymbol, WaypointSymbol};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Default, Debug, PartialEq, Serialize, Deserialize)]
@@ -17,11 +18,11 @@ pub struct PurchaseShipRequest {
     pub ship_type: models::ShipType,
     /// The symbol of the waypoint you want to purchase the ship at.
     #[serde(rename = "waypointSymbol")]
-    pub waypoint_symbol: String,
+    pub waypoint_symbol: WaypointSymbol,
 }
 
 impl PurchaseShipRequest {
-    pub fn new(ship_type: models::ShipType, waypoint_symbol: String) -> PurchaseShipRequest {
+    pub fn new(ship_type: models::ShipType, waypoint_symbol: WaypointSymbol) -> PurchaseShipRequest {
         PurchaseShipRequest {
             ship_type,
             waypoint_symbol,

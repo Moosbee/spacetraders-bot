@@ -1,4 +1,5 @@
 use super::message::ScrappingManagerMessage;
+use space_traders_client::WaypointSymbol;
 use std::sync::{
     Arc,
     atomic::{AtomicBool, AtomicU32, Ordering},
@@ -49,7 +50,7 @@ impl ScrappingManagerMessanger {
     pub async fn fail(
         &self,
         ship_clone: ship::MyShipCopy,
-        waypoint_symbol: String,
+        waypoint_symbol: WaypointSymbol,
     ) -> Result<(), crate::error::Error> {
         self.sender
             .send(ScrappingManagerMessage::Fail {
@@ -66,7 +67,7 @@ impl ScrappingManagerMessanger {
     pub async fn complete(
         &self,
         ship_clone: ship::MyShipCopy,
-        waypoint_symbol: String,
+        waypoint_symbol: WaypointSymbol,
     ) -> Result<(), crate::error::Error> {
         self.sender
             .send(ScrappingManagerMessage::Complete {
@@ -83,7 +84,7 @@ impl ScrappingManagerMessanger {
     pub(crate) async fn get_info(
         &self,
         ship_clone: ship::MyShipCopy,
-    ) -> Result<Vec<(String, chrono::DateTime<chrono::Utc>)>, crate::error::Error> {
+    ) -> Result<Vec<(WaypointSymbol, chrono::DateTime<chrono::Utc>)>, crate::error::Error> {
         let (tx, rx) = tokio::sync::oneshot::channel();
         self.sender
             .send(ScrappingManagerMessage::GetAll {

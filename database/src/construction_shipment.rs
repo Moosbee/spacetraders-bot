@@ -1,3 +1,4 @@
+use space_traders_client::{ShipSymbol, SystemSymbol, WaypointSymbol};
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -70,12 +71,12 @@ impl Loader<i64> for ConstructionShipmentLoader {
 pub struct ConstructionShipment {
     pub id: i64,
     pub material_id: i64,
-    pub construction_site_waypoint: String,
-    pub ship_symbol: String,
+    pub construction_site_waypoint: WaypointSymbol,
+    pub ship_symbol: ShipSymbol,
     pub trade_symbol: models::TradeSymbol,
     pub units: i32,
     #[graphql(name = "purchaseSiteWaypoint")]
-    pub purchase_waypoint: String,
+    pub purchase_waypoint: WaypointSymbol,
     pub created_at: sqlx::types::chrono::DateTime<chrono::Utc>,
     pub updated_at: sqlx::types::chrono::DateTime<chrono::Utc>,
     pub status: ShipmentStatus,
@@ -86,11 +87,11 @@ pub struct ConstructionShipment {
 pub struct ConstructionShipmentSummary {
     pub id: i64,
     pub material_id: i64,
-    pub construction_site_waypoint: String,
-    pub ship_symbol: String,
+    pub construction_site_waypoint: WaypointSymbol,
+    pub ship_symbol: ShipSymbol,
     pub trade_symbol: models::TradeSymbol,
     pub units: i32,
-    pub purchase_waypoint: String,
+    pub purchase_waypoint: WaypointSymbol,
     pub created_at: sqlx::types::chrono::DateTime<chrono::Utc>,
     pub updated_at: sqlx::types::chrono::DateTime<chrono::Utc>,
     pub status: ShipmentStatus,
@@ -340,7 +341,7 @@ impl ConstructionShipment {
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_system(
         database_pool: &DbPool,
-        system_symbol: &str,
+        system_symbol: &SystemSymbol,
         query: PaginatedQuery,
     ) -> crate::Result<PaginatedResult<ConstructionShipment>> {
         run_paginated_query(
@@ -872,7 +873,7 @@ impl DatabaseConnectorAsync for ConstructionShipment {
                         "#,
             &item.material_id,
             &item.construction_site_waypoint,
-            &item.ship_symbol,
+            &item.ship_symbol.as_str(),
             &item.trade_symbol as &models::TradeSymbol,
             &item.units,
             &item.purchase_waypoint,
@@ -924,7 +925,7 @@ impl DatabaseConnectorAsync for ConstructionShipment {
             &item.id,
             &item.material_id,
             &item.construction_site_waypoint,
-            &item.ship_symbol,
+            &item.ship_symbol.as_str(),
             &item.trade_symbol as &models::TradeSymbol,
             &item.units,
             &item.purchase_waypoint,
@@ -970,11 +971,11 @@ impl DatabaseConnectorAsync for ConstructionShipment {
             (
                 cs.id,
                 cs.material_id,
-                cs.construction_site_waypoint.clone(),
-                cs.ship_symbol.clone(),
+                cs.construction_site_waypoint.clone().into_inner(),
+                cs.ship_symbol.clone().into_inner(),
                 cs.trade_symbol,
                 cs.units,
-                cs.purchase_waypoint.clone(),
+                cs.purchase_waypoint.clone().into_inner(),
                 cs.status,
                 cs.reserved_fund,
             )

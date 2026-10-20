@@ -1,12 +1,13 @@
 use space_traders_client::models;
+use space_traders_client::ShipSymbol;
 
 pub struct TransporterResult {
-    pub ship_symbol: String,
+    pub ship_symbol: ShipSymbol,
     pub available_space: i32,
 }
 
 pub struct ShipInventory {
-    pub ship_symbol: String,
+    pub ship_symbol: ShipSymbol,
     pub amount: i32,
 }
 

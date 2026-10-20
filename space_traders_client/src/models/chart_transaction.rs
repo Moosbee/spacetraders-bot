@@ -9,6 +9,7 @@
  */
 
 use crate::models;
+use crate::{ShipSymbol, SystemSymbol, WaypointSymbol};
 use serde::{Deserialize, Serialize};
 
 /// ChartTransaction : Result of a chart transaction.
@@ -16,10 +17,10 @@ use serde::{Deserialize, Serialize};
 pub struct ChartTransaction {
     /// The symbol of the waypoint.
     #[serde(rename = "waypointSymbol")]
-    pub waypoint_symbol: String,
+    pub waypoint_symbol: WaypointSymbol,
     /// The symbol of the ship.
     #[serde(rename = "shipSymbol")]
-    pub ship_symbol: String,
+    pub ship_symbol: ShipSymbol,
     /// The total price of the transaction.
     #[serde(rename = "totalPrice")]
     pub total_price: i32,
@@ -31,8 +32,8 @@ pub struct ChartTransaction {
 impl ChartTransaction {
     /// Result of a chart transaction.
     pub fn new(
-        waypoint_symbol: String,
-        ship_symbol: String,
+        waypoint_symbol: WaypointSymbol,
+        ship_symbol: ShipSymbol,
         total_price: i32,
         timestamp: String,
     ) -> ChartTransaction {

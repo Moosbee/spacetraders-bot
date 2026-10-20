@@ -2,6 +2,7 @@ use std::collections::HashSet;
 
 use database::DatabaseConnectorAsync;
 use space_traders_client::models::{self};
+use space_traders_client::WaypointSymbol;
 use tracing::debug;
 use utils::{WaypointCan, distance_between_waypoints};
 
@@ -23,7 +24,7 @@ pub struct ChartManager {
     slow_cancel_token: tokio_util::sync::CancellationToken,
     context: ConductorContext,
     receiver: ChartManagerReceiver,
-    running_charts: HashSet<String>,
+    running_charts: HashSet<WaypointSymbol>,
 }
 
 impl ChartManager {
@@ -180,7 +181,7 @@ impl ChartManager {
 
         let waypoint = system.first().map(|w| w.symbol.clone());
 
-        debug!(waypoint, "Next Chart found");
+        debug!(waypoint = ?waypoint, "Next Chart found");
 
         if let Some(waypoint) = waypoint {
             self.running_charts.insert(waypoint.clone());
@@ -190,11 +191,11 @@ impl ChartManager {
         }
     }
 
-    fn fail_chart(&mut self, waypoint_symbol: String) {
+    fn fail_chart(&mut self, waypoint_symbol: WaypointSymbol) {
         self.running_charts.remove(&waypoint_symbol);
     }
 
-    fn success_chart(&mut self, waypoint_symbol: String) {
+    fn success_chart(&mut self, waypoint_symbol: WaypointSymbol) {
         self.running_charts.remove(&waypoint_symbol);
     }
 }

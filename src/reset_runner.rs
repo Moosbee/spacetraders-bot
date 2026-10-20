@@ -2,11 +2,12 @@ use std::{collections::HashSet, num::NonZeroU32, str::FromStr, sync::Arc};
 
 use database::DatabaseConnectorAsync;
 use ship::ShipManager;
+use space_traders_client::SystemSymbol;
 use space_traders_client::models::{self};
 use tokio::sync::RwLock;
 use tokio_util::sync::CancellationToken;
 use tracing::instrument;
-use utils::{WaypointCan, get_system_symbol};
+use utils::WaypointCan;
 
 use crate::manager::fleet_manager::{ShipProcurementMessanger, ShipyardShipReservation};
 use crate::supply_chain_mapping::SupplyChainMapping;
@@ -493,7 +494,12 @@ async fn populate_database(
 
 #[instrument(skip(context))]
 async fn ensure_main_system_fleets(context: &ConductorContext) -> Result<(), anyhow::Error> {
-    let main_system = { get_system_symbol(&context.run_info.read().await.headquarters) };
+    let main_system = context
+        .run_info
+        .read()
+        .await
+        .headquarters
+        .get_system_symbol();
 
     if manager::fleet_manager::fleet_population::is_system_populated(
         &context.database_pool,
@@ -547,11 +553,11 @@ async fn init_systems_with_ships(
 async fn init_system(
     database_pool: &database::DbPool,
     api: &space_traders_client::Api,
-    system_symbol: &str,
+    system_symbol: &SystemSymbol,
 ) -> Result<(), anyhow::Error> {
     tracing::debug!(system = %system_symbol, "Updating system and waypoints");
     // some systems have no waypoints, but we likely won't have ships there
-    scrapping_manager::utils::update_system(database_pool, api, system_symbol, true).await?;
+    scrapping_manager::utils::update_system(database_pool, api, &system_symbol, true).await?;
 
     let waypoints = database::Waypoint::get_by_system(
         database_pool,

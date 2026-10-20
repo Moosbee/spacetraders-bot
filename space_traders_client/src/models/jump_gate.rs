@@ -9,6 +9,7 @@
  */
 
 use crate::models;
+use crate::{ShipSymbol, SystemSymbol, WaypointSymbol};
 use serde::{Deserialize, Serialize};
 
 /// JumpGate : Details of a jump gate waypoint.
@@ -16,15 +17,15 @@ use serde::{Deserialize, Serialize};
 pub struct JumpGate {
     /// The symbol of the waypoint.
     #[serde(rename = "symbol")]
-    pub symbol: String,
+    pub symbol: WaypointSymbol,
     /// All the gates that are connected to this waypoint.
     #[serde(rename = "connections")]
-    pub connections: Vec<String>,
+    pub connections: Vec<WaypointSymbol>,
 }
 
 impl JumpGate {
     /// Details of a jump gate waypoint.
-    pub fn new(symbol: String, connections: Vec<String>) -> JumpGate {
+    pub fn new(symbol: WaypointSymbol, connections: Vec<WaypointSymbol>) -> JumpGate {
         JumpGate {
             symbol,
             connections,

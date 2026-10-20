@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use space_traders_client::models::{self};
+use space_traders_client::{ShipSymbol, WaypointSymbol};
 use tracing::debug;
 
 use crate::{
@@ -236,7 +237,7 @@ impl MiningManager {
         Ok(())
     }
 
-    async fn process_possible_transfers(&mut self, waypoint_symbol: &str) -> Result<()> {
+    async fn process_possible_transfers(&mut self, waypoint_symbol: &WaypointSymbol) -> Result<()> {
         debug!(
             "Processing possible transfers at waypoint: {:?}",
             waypoint_symbol
@@ -322,7 +323,10 @@ impl MiningManager {
         Ok(())
     }
 
-    async fn get_ships_at_waypoint(&self, waypoint_symbol: &str) -> Result<Vec<ship::MyShipCopy>> {
+    async fn get_ships_at_waypoint(
+        &self,
+        waypoint_symbol: &WaypointSymbol,
+    ) -> Result<Vec<ship::MyShipCopy>> {
         debug!("Fetching ships at waypoint: {:?}", waypoint_symbol);
         Ok(self
             .context
@@ -330,7 +334,7 @@ impl MiningManager {
             .get_all_clone()
             .await
             .into_iter()
-            .filter(|f| f.1.nav.waypoint_symbol == waypoint_symbol)
+            .filter(|f| &f.1.nav.waypoint_symbol == waypoint_symbol)
             .filter(|f| !f.1.nav.is_in_transit())
             .filter(|f| matches!(&f.1.status.status, ship::AssignmentStatus::Mining { .. }))
             .map(|f| f.1)
@@ -407,8 +411,8 @@ impl MiningManager {
             tracing::info!(
                 transfer_amount = transfer_amount,
                 trade_symbol = trade_symbol.to_string(),
-                extractor_ship_symbol = extractor.ship_symbol,
-                transporter_ship_symbol = transporter.ship_symbol,
+                extractor_ship_symbol = %extractor.ship_symbol,
+                transporter_ship_symbol = %transporter.ship_symbol,
                 "Processing transfer",
             );
             let erg = self
@@ -454,9 +458,9 @@ impl MiningManager {
         }
     }
 
-    async fn get_next_waypoint(&self, ship_clone: ship::MyShipCopy) -> Result<String> {
+    async fn get_next_waypoint(&self, ship_clone: ship::MyShipCopy) -> Result<WaypointSymbol> {
         debug!("Getting next waypoint for ship: {}", ship_clone.symbol);
-        let the_ships: std::collections::HashMap<String, ship::MyShipCopy> =
+        let the_ships: std::collections::HashMap<ShipSymbol, ship::MyShipCopy> =
             self.context.ship_manager.get_all_clone().await;
         let routes = self
             .waypoint_manager
@@ -467,7 +471,7 @@ impl MiningManager {
 
         let routes = routes
             .into_iter()
-            .filter(|r| r.0.starts_with(&ship_clone.nav.system_symbol))
+            .filter(|r| ship_clone.nav.system_symbol.contains_waypoint(&r.0))
             .collect::<Vec<_>>();
 
         let route = routes.last();

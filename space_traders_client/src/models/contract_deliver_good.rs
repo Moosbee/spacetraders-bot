@@ -9,6 +9,7 @@
  */
 
 use crate::models;
+use crate::{ShipSymbol, SystemSymbol, WaypointSymbol};
 use serde::{Deserialize, Serialize};
 
 /// ContractDeliverGood : The details of a delivery contract. Includes the type of good, units needed, and the destination.
@@ -19,7 +20,7 @@ pub struct ContractDeliverGood {
     pub trade_symbol: String,
     /// The destination where goods need to be delivered.
     #[serde(rename = "destinationSymbol")]
-    pub destination_symbol: String,
+    pub destination_symbol: WaypointSymbol,
     /// The number of units that need to be delivered on this contract.
     #[serde(rename = "unitsRequired")]
     pub units_required: i32,
@@ -32,7 +33,7 @@ impl ContractDeliverGood {
     /// The details of a delivery contract. Includes the type of good, units needed, and the destination.
     pub fn new(
         trade_symbol: String,
-        destination_symbol: String,
+        destination_symbol: WaypointSymbol,
         units_required: i32,
         units_fulfilled: i32,
     ) -> ContractDeliverGood {

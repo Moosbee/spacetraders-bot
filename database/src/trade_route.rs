@@ -1,3 +1,4 @@
+use space_traders_client::{ShipSymbol, SystemSymbol, WaypointSymbol};
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -70,11 +71,11 @@ impl Loader<i32> for TradeRouteLoader {
 pub struct TradeRoute {
     pub id: i32,
     pub symbol: models::TradeSymbol,
-    pub ship_symbol: String,
+    pub ship_symbol: ShipSymbol,
     #[graphql(name = "PurchaseWaypointSymbol")]
-    pub purchase_waypoint: String,
+    pub purchase_waypoint: WaypointSymbol,
     #[graphql(name = "SellWaypointSymbol")]
-    pub sell_waypoint: String,
+    pub sell_waypoint: WaypointSymbol,
     pub status: ShipmentStatus,
     pub trade_volume: i32,
     pub purchase_trade_good_id: Option<i64>,
@@ -85,24 +86,6 @@ pub struct TradeRoute {
     pub fleet_id: Option<i32>,
     pub assignment_id: Option<i64>,
     pub created_at: sqlx::types::chrono::DateTime<chrono::Utc>,
-}
-
-#[derive(Debug, Clone, serde::Serialize)]
-pub struct TradeRouteSummary {
-    pub id: i32,
-    pub symbol: models::TradeSymbol,
-    pub ship_symbol: String,
-    pub purchase_waypoint: String,
-    pub sell_waypoint: String,
-    pub status: ShipmentStatus,
-    pub trade_volume: i32,
-    pub predicted_purchase_price: i32,
-    pub predicted_sell_price: i32,
-    pub sum: Option<i32>,
-    pub expenses: Option<i32>,
-    pub income: Option<i32>,
-    pub profit: Option<i32>,
-    pub reserved_fund: Option<i64>,
 }
 
 impl TradeRoute {
@@ -119,9 +102,9 @@ impl Default for TradeRoute {
         TradeRoute {
             id: 0,
             symbol: models::TradeSymbol::PreciousStones,
-            ship_symbol: String::new(),
-            purchase_waypoint: String::new(),
-            sell_waypoint: String::new(),
+            ship_symbol: ShipSymbol::default(),
+            purchase_waypoint: WaypointSymbol::default(),
+            sell_waypoint: WaypointSymbol::default(),
             status: ShipmentStatus::InTransit,
             trade_volume: 0,
             purchase_trade_good_id: None,
@@ -190,9 +173,9 @@ impl DatabaseConnectorAsync for TradeRoute {
             RETURNING id
             "#,
             item.symbol as models::TradeSymbol,
-            item.ship_symbol,
-            item.purchase_waypoint,
-            item.sell_waypoint,
+            item.ship_symbol.as_str(),
+            item.purchase_waypoint.as_str(),
+            item.sell_waypoint.as_str(),
             item.status as crate::ShipmentStatus,
             item.trade_volume,
             item.purchase_trade_good_id,
@@ -257,9 +240,9 @@ impl DatabaseConnectorAsync for TradeRoute {
             "#,
             item.id,
             item.symbol as models::TradeSymbol,
-            item.ship_symbol,
-            item.purchase_waypoint,
-            item.sell_waypoint,
+            item.ship_symbol.as_str(),
+            item.purchase_waypoint.as_str(),
+            item.sell_waypoint.as_str(),
             item.status as crate::ShipmentStatus,
             item.trade_volume,
             item.purchase_trade_good_id,
@@ -304,9 +287,9 @@ impl DatabaseConnectorAsync for TradeRoute {
         for s in items {
             id_s.push(s.id);
             symbol_s.push(s.symbol as models::TradeSymbol);
-            ship_symbol_s.push(s.ship_symbol.clone());
-            purchase_waypoint_s.push(s.purchase_waypoint.clone());
-            sell_waypoint_s.push(s.sell_waypoint.clone());
+            ship_symbol_s.push(s.ship_symbol.clone().into_inner());
+            purchase_waypoint_s.push(s.purchase_waypoint.clone().into_inner());
+            sell_waypoint_s.push(s.sell_waypoint.clone().into_inner());
             status_s.push(s.status as crate::ShipmentStatus);
             trade_volume_s.push(s.trade_volume);
             purchase_trade_good_id_s.push(s.purchase_trade_good_id);
@@ -947,7 +930,7 @@ impl TradeRoute {
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_waypoint(
         database_pool: &DbPool,
-        waypoint_symbol: &str,
+        waypoint_symbol: &WaypointSymbol,
         query: PaginatedQuery,
     ) -> crate::Result<PaginatedResult<TradeRoute>> {
         run_paginated_query(
@@ -1211,7 +1194,7 @@ impl TradeRoute {
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_system(
         database_pool: &DbPool,
-        system_symbol: &str,
+        system_symbol: &SystemSymbol,
         query: PaginatedQuery,
     ) -> crate::Result<PaginatedResult<TradeRoute>> {
         run_paginated_query(

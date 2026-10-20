@@ -13,11 +13,13 @@ The ship will then go to the waypoint and wait until said date comes and scrap
 if there are ships to spare, shipyards(all or only requested) get a static scrapper directly
 */
 
+use space_traders_client::WaypointSymbol;
+
 #[derive(Debug)]
 pub enum ScrapResponse {
     Unassigned,
     Scrapping {
-        waypoint_symbol: String,
+        waypoint_symbol: WaypointSymbol,
         date: chrono::DateTime<chrono::Utc>,
     },
 }
@@ -29,17 +31,17 @@ pub enum ScrapMessage {
     },
     Complete {
         ship_clone: ship::MyShipCopy,
-        waypoint_symbol: String,
+        waypoint_symbol: WaypointSymbol,
     },
     Fail {
         // or cancel
         ship_clone: ship::MyShipCopy,
-        waypoint_symbol: String,
+        waypoint_symbol: WaypointSymbol,
     },
     GetAll {
         ship_clone: ship::MyShipCopy,
 
-        callback: tokio::sync::oneshot::Sender<Vec<(String, chrono::DateTime<chrono::Utc>)>>,
+        callback: tokio::sync::oneshot::Sender<Vec<(WaypointSymbol, chrono::DateTime<chrono::Utc>)>>,
     },
 }
 

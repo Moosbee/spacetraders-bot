@@ -9,17 +9,18 @@
  */
 
 use crate::models;
+use crate::{ShipSymbol, SystemSymbol, WaypointSymbol};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Default, Debug, PartialEq, Serialize, Deserialize)]
 pub struct JumpShipRequest {
     /// The symbol of the waypoint to jump to. The destination must be a connected waypoint.
     #[serde(rename = "waypointSymbol")]
-    pub waypoint_symbol: String,
+    pub waypoint_symbol: WaypointSymbol,
 }
 
 impl JumpShipRequest {
-    pub fn new(waypoint_symbol: String) -> JumpShipRequest {
+    pub fn new(waypoint_symbol: WaypointSymbol) -> JumpShipRequest {
         JumpShipRequest { waypoint_symbol }
     }
 }

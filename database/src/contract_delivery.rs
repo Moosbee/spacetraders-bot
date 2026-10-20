@@ -1,4 +1,5 @@
 use space_traders_client::models;
+use space_traders_client::{SystemSymbol, WaypointSymbol};
 use tracing::instrument;
 
 use super::{DatabaseConnectorAsync, DbPool, PaginatedQuery, PaginatedResult, run_paginated_query};
@@ -8,7 +9,7 @@ use super::{DatabaseConnectorAsync, DbPool, PaginatedQuery, PaginatedResult, run
 pub struct ContractDelivery {
     pub contract_id: String,
     pub trade_symbol: models::TradeSymbol,
-    pub destination_symbol: String,
+    pub destination_symbol: WaypointSymbol,
     pub units_required: i32,
     pub units_fulfilled: i32,
 }
@@ -236,7 +237,7 @@ impl ContractDelivery {
 
     pub async fn get_by_system_symbol(
         database_pool: &DbPool,
-        system_symbol: &str,
+        system_symbol: &SystemSymbol,
         query: PaginatedQuery,
     ) -> crate::Result<PaginatedResult<ContractDelivery>> {
         run_paginated_query(
@@ -314,7 +315,7 @@ impl DatabaseConnectorAsync for ContractDelivery {
         Ok((
             item.contract_id.clone(),
             item.trade_symbol,
-            item.destination_symbol.clone(),
+            item.destination_symbol.clone().into_inner(),
         ))
     }
 
@@ -330,7 +331,7 @@ impl DatabaseConnectorAsync for ContractDelivery {
             "#,
             item.contract_id,
             item.trade_symbol as models::TradeSymbol,
-            item.destination_symbol,
+            item.destination_symbol.as_str(),
             item.units_required,
             item.units_fulfilled
         ).execute(&database_pool.database_pool).await?;
@@ -357,7 +358,7 @@ impl DatabaseConnectorAsync for ContractDelivery {
                 c.trade_symbol,
                 c.units_fulfilled,
                 c.units_required,
-                c.destination_symbol.clone(),
+                c.destination_symbol.clone().into_inner(),
             )
         }));
 
@@ -496,6 +497,6 @@ impl DatabaseConnectorAsync for ContractDelivery {
     fn set_id(&mut self, id: Self::ID) {
         self.contract_id = id.0;
         self.trade_symbol = id.1;
-        self.destination_symbol = id.2;
+        self.destination_symbol = id.2.into();
     }
 }

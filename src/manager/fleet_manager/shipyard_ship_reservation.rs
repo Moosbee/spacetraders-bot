@@ -3,6 +3,7 @@ use std::{
     sync::{Mutex, MutexGuard},
 };
 
+use space_traders_client::{ShipSymbol, WaypointSymbol};
 use tokio::sync::Notify;
 
 use crate::error::{Error, Result};
@@ -10,25 +11,25 @@ use crate::error::{Error, Result};
 #[derive(Debug, Default)]
 struct Inner {
     /// waypoint -> ships currently present there
-    ships: HashMap<String, HashSet<String>>,
+    ships: HashMap<WaypointSymbol, HashSet<ShipSymbol>>,
     /// waypoint -> number of live reservations
-    reservations: HashMap<String, usize>,
+    reservations: HashMap<WaypointSymbol, usize>,
 }
 
 impl Inner {
-    fn ship_count(&self, wp: &str) -> usize {
+    fn ship_count(&self, wp: &WaypointSymbol) -> usize {
         self.ships.get(wp).map_or(0, HashSet::len)
     }
 
-    fn reservation_count(&self, wp: &str) -> usize {
+    fn reservation_count(&self, wp: &WaypointSymbol) -> usize {
         self.reservations.get(wp).copied().unwrap_or(0)
     }
 
-    fn add_reservation(&mut self, wp: &str) {
+    fn add_reservation(&mut self, wp: &WaypointSymbol) {
         *self.reservations.entry(wp.to_owned()).or_insert(0) += 1;
     }
 
-    fn remove_reservation(&mut self, wp: &str) {
+    fn remove_reservation(&mut self, wp: &WaypointSymbol) {
         if let Some(n) = self.reservations.get_mut(wp) {
             *n -= 1;
             if *n == 0 {
@@ -39,7 +40,7 @@ impl Inner {
 
     /// A ship may leave if nobody relies on this waypoint, or if another
     /// ship is there to keep it occupied.
-    fn can_leave(&self, wp: &str) -> bool {
+    fn can_leave(&self, wp: &WaypointSymbol) -> bool {
         self.reservation_count(wp) == 0 || self.ship_count(wp) >= 2
     }
 }
@@ -55,11 +56,11 @@ pub struct ShipyardShipReservation {
 #[derive(Debug)]
 pub struct WaypointReservation<'a> {
     yard: &'a ShipyardShipReservation,
-    wp: String,
+    wp: WaypointSymbol,
 }
 
 impl WaypointReservation<'_> {
-    pub fn waypoint(&self) -> &str {
+    pub fn waypoint(&self) -> &WaypointSymbol {
         &self.wp
     }
 }
@@ -125,7 +126,7 @@ impl ShipyardShipReservation {
     }
 
     /// Registers the ship as present at the waypoint (idempotent).
-    pub async fn register(&self, ship: &str, wp: &str) -> Result<()> {
+    pub async fn register(&self, ship: &ShipSymbol, wp: &WaypointSymbol) -> Result<()> {
         self.lock()
             .ships
             .entry(wp.to_owned())
@@ -138,7 +139,7 @@ impl ShipyardShipReservation {
     }
 
     /// Waits while reserved, then removes the ship.
-    pub async fn deregister(&self, ship: &str, wp: &str) -> Result<String> {
+    pub async fn deregister(&self, ship: &ShipSymbol, wp: &WaypointSymbol) -> Result<ShipSymbol> {
         loop {
             // Create the future *before* checking so no wakeup is missed.
             let notified = self.notify.notified();
@@ -167,7 +168,7 @@ impl ShipyardShipReservation {
         }
     }
 
-    pub async fn state(&self, ship: &str, wp: &str) -> Option<ShipState> {
+    pub async fn state(&self, ship: &ShipSymbol, wp: &WaypointSymbol) -> Option<ShipState> {
         let inner = self.lock();
         if !inner.ships.get(wp)?.contains(ship) {
             return None;
@@ -180,7 +181,7 @@ impl ShipyardShipReservation {
     }
 
     /// Fails if no ship is present at the waypoint; released on drop.
-    pub async fn reserve<'a>(&'a self, wp: &str) -> Result<WaypointReservation<'a>> {
+    pub async fn reserve<'a>(&'a self, wp: &WaypointSymbol) -> Result<WaypointReservation<'a>> {
         let mut inner = self.lock();
         if inner.ship_count(wp) == 0 {
             return Err(Error::General(format!("no ship present at {wp}")));
@@ -193,9 +194,11 @@ impl ShipyardShipReservation {
     }
 
     /// Reserves every waypoint that currently has a ship, atomically.
-    pub async fn reserve_all<'a>(&'a self) -> Result<HashMap<String, WaypointReservation<'a>>> {
+    pub async fn reserve_all<'a>(
+        &'a self,
+    ) -> Result<HashMap<WaypointSymbol, WaypointReservation<'a>>> {
         let mut inner = self.lock();
-        let wps: Vec<String> = inner.ships.keys().cloned().collect();
+        let wps: Vec<_> = inner.ships.keys().cloned().collect();
         let mut out = HashMap::with_capacity(wps.len());
         for wp in wps {
             inner.add_reservation(&wp);
@@ -221,14 +224,23 @@ mod tests {
     use super::*;
     use std::time::Duration;
 
+    fn sh(sh: &str) -> ShipSymbol {
+        ShipSymbol(sh.to_owned())
+    }
+    fn wp(wp: &str) -> WaypointSymbol {
+        WaypointSymbol(wp.to_owned())
+    }
+
     #[tokio::test]
     async fn deregister_waits_for_reservation() {
         let yard = ShipyardShipReservation::new();
-        yard.register("A", "X").await.unwrap();
-        let res = yard.reserve("X").await.unwrap();
-        assert_eq!(yard.state("A", "X").await, Some(ShipState::Reserved));
+        let ship_a = sh("A");
+        let wp_x = wp("X");
+        yard.register(&ship_a, &wp_x).await.unwrap();
+        let res = yard.reserve(&wp_x).await.unwrap();
+        assert_eq!(yard.state(&ship_a, &wp_x).await, Some(ShipState::Reserved));
 
-        let dereg = yard.deregister("A", "X");
+        let dereg = yard.deregister(&ship_a, &wp_x);
         tokio::pin!(dereg);
         assert!(
             tokio::time::timeout(Duration::from_millis(50), &mut dereg)
@@ -237,16 +249,19 @@ mod tests {
         );
 
         drop(res);
-        assert_eq!(dereg.await.unwrap(), "A");
+        assert_eq!(dereg.await.unwrap(), ship_a);
     }
 
     #[tokio::test]
     async fn second_ship_releases_first() {
         let yard = ShipyardShipReservation::new();
-        yard.register("A", "X").await.unwrap();
-        let _res = yard.reserve("X").await.unwrap();
-        yard.register("B", "X").await.unwrap();
-        assert_eq!(yard.deregister("A", "X").await.unwrap(), "A");
-        assert_eq!(yard.state("B", "X").await, Some(ShipState::Reserved));
+        yard.register(&sh("A"), &wp("X")).await.unwrap();
+        let _res = yard.reserve(&wp("X")).await.unwrap();
+        yard.register(&sh("B"), &wp("X")).await.unwrap();
+        assert_eq!(yard.deregister(&sh("A"), &wp("X")).await.unwrap(), sh("A"));
+        assert_eq!(
+            yard.state(&sh("B"), &wp("X")).await,
+            Some(ShipState::Reserved)
+        );
     }
 }

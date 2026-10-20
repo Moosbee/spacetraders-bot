@@ -1,4 +1,5 @@
 use tracing::instrument;
+use space_traders_client::{ShipSymbol, WaypointSymbol};
 
 use crate::{DatabaseConnectorAsync, PaginatedQuery, PaginatedResult, run_paginated_query};
 
@@ -6,9 +7,9 @@ use crate::{DatabaseConnectorAsync, PaginatedQuery, PaginatedResult, run_paginat
 #[graphql(name = "DBShipJump")]
 pub struct ShipJump {
     pub id: i64,
-    pub ship_symbol: String,
-    pub from: String,
-    pub to: String,
+    pub ship_symbol: ShipSymbol,
+    pub from: WaypointSymbol,
+    pub to: WaypointSymbol,
     pub distance: i64,
     pub ship_before: i64,
     pub ship_after: i64,
@@ -106,9 +107,9 @@ impl DatabaseConnectorAsync for ShipJump {
                 VALUES ($1, $2, $3, $4, $5, $6)
                 RETURNING id
             "#,
-            item.ship_symbol,
-            item.from,
-            item.to,
+            item.ship_symbol.as_str(),
+            item.from.as_str(),
+            item.to.as_str(),
             item.distance,
             item.ship_before,
             item.ship_after
@@ -132,9 +133,9 @@ impl DatabaseConnectorAsync for ShipJump {
                 )
                 VALUES ($1, $2, $3, $4, $5, $6)
             "#,
-            item.ship_symbol,
-            item.from,
-            item.to,
+            item.ship_symbol.as_str(),
+            item.from.as_str(),
+            item.to.as_str(),
             item.distance,
             item.ship_before,
             item.ship_after
@@ -158,9 +159,9 @@ impl DatabaseConnectorAsync for ShipJump {
                     ship_after = $6
                 WHERE id = $7
             "#,
-            item.ship_symbol,
-            item.from,
-            item.to,
+            item.ship_symbol.as_str(),
+            item.from.as_str(),
+            item.to.as_str(),
             item.distance,
             item.ship_before,
             item.ship_after,
@@ -182,9 +183,9 @@ impl DatabaseConnectorAsync for ShipJump {
             Vec<_>,
         ) = itertools::multiunzip(items.iter().map(|j| {
             (
-                j.ship_symbol.clone(),
-                j.from.clone(),
-                j.to.clone(),
+                j.ship_symbol.clone().into_inner(),
+                j.from.clone().into_inner(),
+                j.to.clone().into_inner(),
                 j.distance,
                 j.ship_before,
                 j.ship_after,

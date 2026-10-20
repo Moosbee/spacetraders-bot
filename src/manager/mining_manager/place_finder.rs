@@ -1,3 +1,4 @@
+use space_traders_client::WaypointSymbol;
 use utils::WaypointCan;
 
 use crate::utils::ConductorContext;
@@ -32,7 +33,7 @@ pub struct FoundWaypointInfo {
     pub waypoint: database::Waypoint,
     pub distance: i32,
     #[allow(dead_code)]
-    pub next: String,
+    pub next: WaypointSymbol,
 }
 
 #[derive(Debug)]

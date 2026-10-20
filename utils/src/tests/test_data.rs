@@ -5,6 +5,9 @@ use std::collections::HashMap;
 use serde::de::DeserializeOwned;
 
 #[cfg(any(test, feature = "test-support"))]
+use space_traders_client::{SystemSymbol, WaypointSymbol};
+
+#[cfg(any(test, feature = "test-support"))]
 pub fn get_waypoints<T: DeserializeOwned>() -> Vec<T> {
     let text = include_str!("system_X1_JP44.json");
     serde_json::from_str(text).unwrap()
@@ -20,5 +23,5 @@ pub fn get_jump_gate_connections<T: DeserializeOwned>() -> GateConnections<T> {
 #[derive(Debug, serde::Deserialize)]
 pub struct GateConnections<T> {
     pub connections: Vec<T>,
-    pub system_to_gate_mapping: HashMap<String, String>,
+    pub system_to_gate_mapping: HashMap<SystemSymbol, WaypointSymbol>,
 }

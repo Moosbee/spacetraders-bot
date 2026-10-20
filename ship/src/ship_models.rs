@@ -3,6 +3,7 @@ use std::{collections::HashSet, fmt::Debug, marker::PhantomData};
 use chrono::{DateTime, Utc};
 use database::DatabaseConnectorAsync;
 use space_traders_client::models::{self, ShipRole};
+use space_traders_client::ShipSymbol;
 use utils::{Publisher, Subject};
 
 use crate::{
@@ -41,7 +42,7 @@ pub struct RustShip<T: Clone + Send + Sync, State: Send + Sync = Immutable> {
     #[graphql(skip)]
     pub status: T,
     pub registration_role: ShipRole,
-    pub symbol: String,
+    pub symbol: ShipSymbol,
     pub display_name: String,
     pub engine_speed: i32,
     pub purchase_id: Option<i64>,
@@ -191,22 +192,22 @@ impl<T: Clone + Send + Sync, State: Send + Sync> From<&RustShip<T, State>> for d
                 .nav
                 .auto_pilot
                 .as_ref()
-                .map(|t| t.destination_symbol.clone()),
+                .map(|t| t.destination_symbol.clone().into_inner()),
             auto_pilot_destination_system_symbol: value
                 .nav
                 .auto_pilot
                 .as_ref()
-                .map(|t| t.destination_system_symbol.clone()),
+                .map(|t| t.destination_system_symbol.clone().into_inner()),
             auto_pilot_origin_symbol: value
                 .nav
                 .auto_pilot
                 .as_ref()
-                .map(|t| t.origin_symbol.clone()),
+                .map(|t| t.origin_symbol.clone().into_inner()),
             auto_pilot_origin_system_symbol: value
                 .nav
                 .auto_pilot
                 .as_ref()
-                .map(|t| t.origin_system_symbol.clone()),
+                .map(|t| t.origin_system_symbol.clone().into_inner()),
             auto_pilot_distance: value.nav.auto_pilot.as_ref().map(|t| t.distance),
             auto_pilot_fuel_cost: value.nav.auto_pilot.as_ref().map(|t| t.fuel_cost),
             auto_pilot_travel_time: value.nav.auto_pilot.as_ref().map(|t| t.travel_time),
@@ -293,7 +294,7 @@ impl<T: Clone + Send + Sync> RustShip<T, Mutable> {
             Some(db_ship) => db_ship,
             None => {
                 let display_name = if self.display_name.is_empty() {
-                    self.symbol.clone()
+                    self.symbol.clone().into_inner()
                 } else {
                     self.display_name.clone()
                 };

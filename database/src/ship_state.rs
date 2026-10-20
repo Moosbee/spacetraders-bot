@@ -1,3 +1,4 @@
+use space_traders_client::{ShipSymbol, SystemSymbol, WaypointSymbol};
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -43,7 +44,7 @@ pub struct ShipState {
     #[allow(dead_code)]
     pub id: i64,
     // Basic ship identification
-    pub symbol: String,
+    pub symbol: ShipSymbol,
     pub display_name: String,
 
     // Performance
@@ -84,16 +85,16 @@ pub struct ShipState {
     // Navigation
     pub flight_mode: String, //models::ShipNavFlightMode,
     pub nav_status: String,  //models::ShipNavStatus,
-    pub system_symbol: String,
-    pub waypoint_symbol: String,
+    pub system_symbol: SystemSymbol,
+    pub waypoint_symbol: WaypointSymbol,
 
     // Route
     pub route_arrival: DateTime<Utc>,
     pub route_departure: DateTime<Utc>,
-    pub route_destination_symbol: String,
-    pub route_destination_system: String,
-    pub route_origin_symbol: String,
-    pub route_origin_system: String,
+    pub route_destination_symbol: WaypointSymbol,
+    pub route_destination_system: SystemSymbol,
+    pub route_origin_symbol: WaypointSymbol,
+    pub route_origin_system: SystemSymbol,
 
     // Auto Pilot
     pub auto_pilot_arrival: Option<DateTime<Utc>>,
@@ -201,7 +202,7 @@ impl ShipState {
                 )
                 RETURNING id;
             "#,
-            &item.symbol,
+            &item.symbol.as_str(),
             &item.display_name,
             &item.engine_speed,
             &item.engine_condition,
@@ -224,8 +225,8 @@ impl ShipState {
             &item.engine_symbol as &models::ship_engine::Symbol,
             &item.flight_mode,
             &item.nav_status,
-            &item.system_symbol,
-            &item.waypoint_symbol,
+            &item.system_symbol.as_str(),
+            &item.waypoint_symbol.as_str(),
             &item.route_arrival,
             &item.route_departure,
             &item.route_destination_symbol,
@@ -251,7 +252,7 @@ impl ShipState {
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_waypoint(
         database_pool: &DbPool,
-        waypoint: &str,
+        waypoint: &WaypointSymbol,
         query: PaginatedQuery,
     ) -> crate::Result<PaginatedResult<ShipState>> {
         run_paginated_query(
@@ -393,7 +394,7 @@ impl ShipState {
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_system(
         database_pool: &DbPool,
-        system: &str,
+        system: &SystemSymbol,
         query: PaginatedQuery,
     ) -> crate::Result<PaginatedResult<ShipState>> {
         run_paginated_query(

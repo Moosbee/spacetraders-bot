@@ -9,6 +9,7 @@
  */
 
 use crate::models;
+use crate::{ShipSymbol, SystemSymbol, WaypointSymbol};
 use serde::{Deserialize, Serialize};
 
 /// Cooldown : A cooldown is a period of time in which a ship cannot perform certain actions.
@@ -16,7 +17,7 @@ use serde::{Deserialize, Serialize};
 pub struct Cooldown {
     /// The symbol of the ship that is on cooldown
     #[serde(rename = "shipSymbol")]
-    pub ship_symbol: String,
+    pub ship_symbol: ShipSymbol,
     /// The total duration of the cooldown in seconds
     #[serde(rename = "totalSeconds")]
     pub total_seconds: i32,
@@ -30,7 +31,7 @@ pub struct Cooldown {
 
 impl Cooldown {
     /// A cooldown is a period of time in which a ship cannot perform certain actions.
-    pub fn new(ship_symbol: String, total_seconds: i32, remaining_seconds: i32) -> Cooldown {
+    pub fn new(ship_symbol: ShipSymbol, total_seconds: i32, remaining_seconds: i32) -> Cooldown {
         Cooldown {
             ship_symbol,
             total_seconds,

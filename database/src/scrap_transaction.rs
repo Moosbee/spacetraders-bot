@@ -1,3 +1,4 @@
+use space_traders_client::{ShipSymbol, SystemSymbol, WaypointSymbol};
 use std::str::FromStr;
 
 use chrono::{DateTime, Utc};
@@ -10,8 +11,8 @@ use super::{DatabaseConnectorAsync, PaginatedQuery, PaginatedResult, run_paginat
 #[graphql(name = "DBScrapTransaction")]
 pub struct ScrapTransaction {
     pub id: i64,
-    pub waypoint_symbol: String,
-    pub ship_symbol: String,
+    pub waypoint_symbol: WaypointSymbol,
+    pub ship_symbol: ShipSymbol,
     pub total_price: i32,
     pub timestamp: DateTime<Utc>,
 }
@@ -101,7 +102,7 @@ impl ScrapTransaction {
 
     pub async fn get_by_waypoint(
         database_pool: &super::DbPool,
-        waypoint_symbol: &str,
+        waypoint_symbol: &WaypointSymbol,
         query: PaginatedQuery,
     ) -> crate::Result<PaginatedResult<ScrapTransaction>> {
         run_paginated_query(
@@ -168,7 +169,7 @@ impl ScrapTransaction {
 
     pub async fn get_by_system(
         database_pool: &super::DbPool,
-        symbol: &str,
+        symbol: &SystemSymbol,
         query: PaginatedQuery,
     ) -> crate::Result<PaginatedResult<ScrapTransaction>> {
         run_paginated_query(
@@ -257,8 +258,8 @@ impl DatabaseConnectorAsync for ScrapTransaction {
                 ON CONFLICT (waypoint_symbol, ship_symbol, "timestamp") DO NOTHING
                 RETURNING id
             "#,
-            item.waypoint_symbol,
-            item.ship_symbol,
+            item.waypoint_symbol.as_str(),
+            item.ship_symbol.as_str(),
             item.total_price,
             item.timestamp
         )
@@ -278,8 +279,8 @@ impl DatabaseConnectorAsync for ScrapTransaction {
                   AND "timestamp" = $3
                 LIMIT 1
             "#,
-            item.waypoint_symbol,
-            item.ship_symbol,
+            item.waypoint_symbol.as_str(),
+            item.ship_symbol.as_str(),
             item.timestamp
         )
         .fetch_one(database_pool.get_cache_pool())
@@ -301,8 +302,8 @@ impl DatabaseConnectorAsync for ScrapTransaction {
                 VALUES ($1, $2, $3, $4)
                 ON CONFLICT (waypoint_symbol, ship_symbol, "timestamp") DO NOTHING
             "#,
-            item.waypoint_symbol,
-            item.ship_symbol,
+            item.waypoint_symbol.as_str(),
+            item.ship_symbol.as_str(),
             item.total_price,
             item.timestamp
         )
@@ -323,8 +324,8 @@ impl DatabaseConnectorAsync for ScrapTransaction {
                     "timestamp" = $4
                 WHERE id = $5
             "#,
-            item.waypoint_symbol,
-            item.ship_symbol,
+            item.waypoint_symbol.as_str(),
+            item.ship_symbol.as_str(),
             item.total_price,
             item.timestamp,
             item.id
@@ -346,8 +347,8 @@ impl DatabaseConnectorAsync for ScrapTransaction {
             Vec<DateTime<Utc>>,
         ) = itertools::multiunzip(items.iter().map(|t| {
             (
-                t.waypoint_symbol.clone(),
-                t.ship_symbol.clone(),
+                t.waypoint_symbol.clone().into_inner(),
+                t.ship_symbol.clone().into_inner(),
                 t.total_price,
                 t.timestamp,
             )

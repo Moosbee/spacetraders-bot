@@ -9,13 +9,14 @@
  */
 
 use crate::models;
+use crate::{ShipSymbol, SystemSymbol, WaypointSymbol};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Default, Debug, PartialEq, Serialize, Deserialize)]
 pub struct SupplyConstructionRequest {
     /// The symbol of the ship supplying construction materials.
     #[serde(rename = "shipSymbol")]
-    pub ship_symbol: String,
+    pub ship_symbol: ShipSymbol,
     /// The symbol of the good to supply.
     #[serde(rename = "tradeSymbol")]
     pub trade_symbol: models::TradeSymbol,
@@ -26,7 +27,7 @@ pub struct SupplyConstructionRequest {
 
 impl SupplyConstructionRequest {
     pub fn new(
-        ship_symbol: String,
+        ship_symbol: ShipSymbol,
         trade_symbol: models::TradeSymbol,
         units: i32,
     ) -> SupplyConstructionRequest {

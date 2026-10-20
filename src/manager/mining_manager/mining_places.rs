@@ -1,14 +1,16 @@
 use std::collections::HashMap;
 
+use space_traders_client::{ShipSymbol, WaypointSymbol};
+
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct WaypointInfo {
-    pub waypoint_symbol: String,
-    assigned_ships: HashMap<String, AssignLevel>, // ship_symbol -> level,
+    pub waypoint_symbol: WaypointSymbol,
+    assigned_ships: HashMap<ShipSymbol, AssignLevel>, // ship_symbol -> level,
     last_updated: chrono::DateTime<chrono::Utc>,
 }
 
 impl WaypointInfo {
-    pub fn get_ship_level(&self, ship_symbol: &str) -> Option<AssignLevel> {
+    pub fn get_ship_level(&self, ship_symbol: &ShipSymbol) -> Option<AssignLevel> {
         self.assigned_ships.get(ship_symbol).cloned()
     }
 
@@ -44,7 +46,7 @@ impl WaypointInfo {
             .count()
     }
 
-    pub fn ship_iter(&self) -> impl Iterator<Item = (&String, &AssignLevel)> {
+    pub fn ship_iter(&self) -> impl Iterator<Item = (&ShipSymbol, &AssignLevel)> {
         self.assigned_ships.iter()
     }
 
@@ -55,7 +57,7 @@ impl WaypointInfo {
 
 #[derive(Debug)]
 pub struct MiningPlaces {
-    mining_places: HashMap<String, WaypointInfo>,
+    mining_places: HashMap<WaypointSymbol, WaypointInfo>,
     max_miners_per_waypoint: u32,
 }
 
@@ -84,19 +86,24 @@ impl MiningPlaces {
     /// If the waypoint is not at max capacity, the ship will be assigned to the waypoint at level "on the way"
     ///
     /// Returns 1 if the ship was assigned, 0 if the waypoint is at max capacity, 3 if the ship is already the active ship
-    pub fn try_assign_on_way(&mut self, ship_symbol: &str, waypoint: &str, no_limit: bool) -> u8 {
+    pub fn try_assign_on_way(
+        &mut self,
+        ship_symbol: &ShipSymbol,
+        waypoint: &WaypointSymbol,
+        no_limit: bool,
+    ) -> u8 {
         let wp = self
             .mining_places
-            .entry(waypoint.to_string())
+            .entry(waypoint.clone())
             .or_insert_with(|| WaypointInfo {
-                waypoint_symbol: waypoint.to_string(),
+                waypoint_symbol: waypoint.clone(),
                 assigned_ships: HashMap::new(),
                 last_updated: chrono::DateTime::<chrono::Utc>::MIN_UTC, //never been updated
             });
 
         let size = wp.get_count_active_on_way() as u32;
 
-        let ship = wp.assigned_ships.entry(ship_symbol.to_string());
+        let ship = wp.assigned_ships.entry(ship_symbol.clone());
 
         match ship {
             std::collections::hash_map::Entry::Occupied(mut occupied_entry) => {
@@ -132,7 +139,12 @@ impl MiningPlaces {
     /// If the waypoint is not at max capacity, the ship will be assigned to the waypoint at level "active"
     ///
     /// Returns true if the ship was assigned, false otherwise
-    pub fn try_assign_active(&mut self, ship_symbol: &str, waypoint: &str, no_limit: bool) -> bool {
+    pub fn try_assign_active(
+        &mut self,
+        ship_symbol: &ShipSymbol,
+        waypoint: &WaypointSymbol,
+        no_limit: bool,
+    ) -> bool {
         let wp = self.mining_places.get_mut(waypoint);
 
         match wp {
@@ -170,7 +182,7 @@ impl MiningPlaces {
     /// If the ship is already assigned to the waypoint, it will be downgraded to inactive
     ///
     /// Returns true if the ship was assigned, false otherwise
-    pub fn try_assign_inactive(&mut self, ship_symbol: &str, waypoint: &str) -> bool {
+    pub fn try_assign_inactive(&mut self, ship_symbol: &ShipSymbol, waypoint: &WaypointSymbol) -> bool {
         let wp = self.mining_places.get_mut(waypoint);
 
         match wp {
@@ -194,7 +206,7 @@ impl MiningPlaces {
     /// If the ship is assigned to the waypoint, it will be removed from the waypoint's list of assigned ships
     ///
     /// Returns true if the ship was unassigned, false otherwise
-    pub fn try_unassign(&mut self, ship_symbol: &str, waypoint: &str) -> bool {
+    pub fn try_unassign(&mut self, ship_symbol: &ShipSymbol, waypoint: &WaypointSymbol) -> bool {
         let wp = self.mining_places.get_mut(waypoint);
 
         match wp {
@@ -211,7 +223,7 @@ impl MiningPlaces {
     //     self.mining_places.get(waypoint).cloned()
     // }
 
-    pub fn has_ship(&self, ship_symbol: &str, waypoint: &str) -> bool {
+    pub fn has_ship(&self, ship_symbol: &ShipSymbol, waypoint: &WaypointSymbol) -> bool {
         self.mining_places
             .get(waypoint)
             .map(|s| s.assigned_ships.contains_key(ship_symbol))
@@ -222,7 +234,7 @@ impl MiningPlaces {
     ///
     /// Returns `None` if the ship is not assigned to any waypoint.
     /// Returns `Some((waypoint_symbol, assignment_level))` if the ship is assigned.
-    pub fn get_ship(&self, ship_symbol: &str) -> Option<(String, AssignLevel)> {
+    pub fn get_ship(&self, ship_symbol: &ShipSymbol) -> Option<(WaypointSymbol, AssignLevel)> {
         self.mining_places
             .values()
             .find(|s| s.assigned_ships.contains_key(ship_symbol))
@@ -234,14 +246,14 @@ impl MiningPlaces {
             })
     }
 
-    pub fn get_count(&self, waypoint: &str) -> usize {
+    pub fn get_count(&self, waypoint: &WaypointSymbol) -> usize {
         self.mining_places
             .get(waypoint)
             .map(|s| s.get_count())
             .unwrap_or(0)
     }
 
-    pub fn up_date(&mut self, waypoint: &str) {
+    pub fn up_date(&mut self, waypoint: &WaypointSymbol) {
         let wp = self.mining_places.get_mut(waypoint);
         if let Some(waypoint) = wp {
             waypoint.last_updated = chrono::Utc::now();
@@ -252,7 +264,7 @@ impl MiningPlaces {
         self.max_miners_per_waypoint
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = (&String, &WaypointInfo)> {
+    pub fn iter(&self) -> impl Iterator<Item = (&WaypointSymbol, &WaypointInfo)> {
         self.mining_places.iter()
     }
 }

@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use space_traders_client::WaypointSymbol;
 use std::sync::Arc;
 
 use async_graphql::dataloader::Loader;
@@ -66,7 +67,7 @@ pub struct Agent {
     pub id: i64,
     pub symbol: String,
     pub account_id: Option<String>,
-    pub headquarters: String,
+    pub headquarters: WaypointSymbol,
     pub credits: i64,
     pub starting_faction: String,
     pub ship_count: i32,
@@ -301,9 +302,9 @@ impl DatabaseConnectorAsync for Agent {
                   ship_count,
                   created_at
             "#,
-            item.symbol,
+            item.symbol.as_str(),
             item.account_id,
-            item.headquarters,
+            item.headquarters.as_str(),
             item.credits,
             item.starting_faction,
             item.ship_count
@@ -342,9 +343,9 @@ impl DatabaseConnectorAsync for Agent {
                   ship_count = $6
                 WHERE id = $7
             "#,
-            item.symbol,
+            item.symbol.as_str(),
             item.account_id,
-            item.headquarters,
+            item.headquarters.as_str(),
             item.credits,
             item.starting_faction,
             item.ship_count,
@@ -379,7 +380,7 @@ impl DatabaseConnectorAsync for Agent {
                     a.symbol.clone(),
                     a.credits,
                     a.ship_count,
-                    a.headquarters.clone(),
+                    a.headquarters.clone().into_inner(),
                     a.starting_faction.clone(),
                 )
             })

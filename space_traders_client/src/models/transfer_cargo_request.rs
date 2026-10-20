@@ -9,6 +9,7 @@
  */
 
 use crate::models;
+use crate::{ShipSymbol, SystemSymbol, WaypointSymbol};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Default, Debug, PartialEq, Serialize, Deserialize)]
@@ -20,14 +21,14 @@ pub struct TransferCargoRequest {
     pub units: i32,
     /// The symbol of the ship to transfer to.
     #[serde(rename = "shipSymbol")]
-    pub ship_symbol: String,
+    pub ship_symbol: ShipSymbol,
 }
 
 impl TransferCargoRequest {
     pub fn new(
         trade_symbol: models::TradeSymbol,
         units: i32,
-        ship_symbol: String,
+        ship_symbol: ShipSymbol,
     ) -> TransferCargoRequest {
         TransferCargoRequest {
             trade_symbol,

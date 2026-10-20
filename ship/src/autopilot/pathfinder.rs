@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
+use space_traders_client::{SystemSymbol, WaypointSymbol};
 use tracing::instrument;
-use utils::get_system_symbol;
 
 use crate::autopilot::{
     ShipNavStats,
@@ -11,14 +11,14 @@ use crate::autopilot::{
 
 #[derive(Debug, Default)]
 pub struct NavigatorCache {
-    system_routers: HashMap<String, SystemRouterCache>,
+    system_routers: HashMap<SystemSymbol, SystemRouterCache>,
     jump_gate_router: Option<JumpGateRouterCache>,
 }
 impl NavigatorCache {
     pub async fn preload_system_routers(
         &mut self,
         database_pool: &database::DbPool,
-        system_symbol: &str,
+        system_symbol: &SystemSymbol,
     ) -> crate::error::Result<()> {
         get_system_router(&mut self.system_routers, system_symbol, database_pool).await?;
         Ok(())
@@ -35,8 +35,8 @@ impl NavigatorCache {
     pub async fn get_route(
         &mut self,
         database_pool: &database::DbPool,
-        start_waypoint_symbol: &str,
-        end_waypoint_symbol: &str,
+        start_waypoint_symbol: &WaypointSymbol,
+        end_waypoint_symbol: &WaypointSymbol,
         ship_stats: &ShipNavStats,
     ) -> crate::error::Result<Option<Vec<super::SimpleConnection>>> {
         let route = get_route(
@@ -55,14 +55,14 @@ impl NavigatorCache {
 #[instrument(level = "debug", skip(database_pool), err(Debug))]
 pub async fn get_route(
     database_pool: &database::DbPool,
-    start_waypoint_symbol: &str,
-    end_waypoint_symbol: &str,
+    start_waypoint_symbol: &WaypointSymbol,
+    end_waypoint_symbol: &WaypointSymbol,
     ship_stats: &ShipNavStats,
-    system_routers: &mut HashMap<String, SystemRouterCache>,
+    system_routers: &mut HashMap<SystemSymbol, SystemRouterCache>,
     jump_gate_router: &mut Option<JumpGateRouterCache>,
 ) -> crate::error::Result<Option<Vec<super::SimpleConnection>>> {
-    let start_system = get_system_symbol(start_waypoint_symbol);
-    let end_system = get_system_symbol(end_waypoint_symbol);
+    let start_system = start_waypoint_symbol.get_system_symbol();
+    let end_system = end_waypoint_symbol.get_system_symbol();
     if start_system == end_system {
         tracing::debug!(start = %start_waypoint_symbol, end = %end_waypoint_symbol, "Same system starting");
         let router = get_system_router(system_routers, &start_system, database_pool).await?;
@@ -83,14 +83,14 @@ pub async fn get_route(
         // get jump gate of start system
         let start_jump_gate = jump_gate_router.get_jump_gate(&start_system);
         if start_jump_gate.is_none() {
-            tracing::debug!(start_jump_gate = start_system, "No start jump gate found");
+            tracing::debug!(start_jump_gate = %start_system, "No start jump gate found");
             return Ok(None);
         };
         let start_jump_gate = start_jump_gate.unwrap();
         // get jump gate of end system
         let end_jump_gate = jump_gate_router.get_jump_gate(&end_system);
         if end_jump_gate.is_none() {
-            tracing::debug!(end_jump_gate = end_system, "No end jump gate found");
+            tracing::debug!(end_jump_gate = %end_system, "No end jump gate found");
             return Ok(None);
         };
         let end_jump_gate = end_jump_gate.unwrap();
@@ -99,10 +99,10 @@ pub async fn get_route(
         let jump_gate_route = jump_gate_router.find_jump_route(&start_system, &end_system, true);
         if jump_gate_route.is_none() {
             tracing::debug!(
-                start_jump_gate = start_jump_gate,
-                end_jump_gate = end_jump_gate,
-                start_system = start_system,
-                end_system = end_system,
+                start_jump_gate = %start_jump_gate,
+                end_jump_gate = %end_jump_gate,
+                start_system = %start_system,
+                end_system = %end_system,
                 "No jump gate route found"
             );
             return Ok(None);
@@ -116,7 +116,7 @@ pub async fn get_route(
             ship_stats.into(),
         );
         if start_route.is_none() {
-            tracing::debug!(start_jump_gate = start_jump_gate, "No start route found");
+            tracing::debug!(start_jump_gate = %start_jump_gate, "No start route found");
             return Ok(None);
         };
         route.extend(start_route.unwrap().iter().cloned());
@@ -144,7 +144,7 @@ pub async fn get_route(
             ship_stats.into(),
         );
         if end_route.is_none() {
-            tracing::debug!(end_jump_gate = end_jump_gate, "No end route found");
+            tracing::debug!(end_jump_gate = %end_jump_gate, "No end route found");
             return Ok(None);
         }
         route.extend(end_route.unwrap().iter().cloned());
@@ -175,26 +175,26 @@ async fn get_jump_gate_router<'a>(
     err(Debug)
 )]
 async fn get_system_router<'a>(
-    system_routers: &'a mut HashMap<String, SystemRouterCache>,
-    system_symbol: &str,
+    system_routers: &'a mut HashMap<SystemSymbol, SystemRouterCache>,
+    system_symbol: &SystemSymbol,
     database_pool: &database::DbPool,
 ) -> crate::error::Result<&'a mut SystemRouterCache> {
     if !system_routers.contains_key(system_symbol) {
         let waypoints = database::Waypoint::get_by_system(
             database_pool,
-            system_symbol,
+            &system_symbol,
             database::PaginatedQuery::unpaged(),
         )
         .await?;
         let system_router = SystemRouterCache::new(SystemRouter::new(
-            system_symbol.to_string(),
+            system_symbol.clone(),
             waypoints
                 .items
                 .into_iter()
                 .map(|waypoint| (waypoint.symbol.clone(), waypoint))
                 .collect(),
         ));
-        system_routers.insert(system_symbol.to_string(), system_router);
+        system_routers.insert(system_symbol.clone(), system_router);
     }
 
     system_routers

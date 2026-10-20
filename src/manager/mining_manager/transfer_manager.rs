@@ -1,12 +1,13 @@
 use dashmap::DashMap;
 use space_traders_client::models;
+use space_traders_client::ShipSymbol;
 use tokio::sync::mpsc;
 use utils::safely_get_map;
 
 #[derive(Debug)]
 pub struct TransportTransferRequest {
-    pub from_symbol: String,
-    pub to_symbol: String,
+    pub from_symbol: ShipSymbol,
+    pub to_symbol: ShipSymbol,
     pub amount: i32,
     pub trade_symbol: models::TradeSymbol,
     pub extractor_contact: tokio::sync::mpsc::Sender<ExtractorTransferRequest>,
@@ -15,8 +16,8 @@ pub struct TransportTransferRequest {
 
 #[derive(Debug)]
 pub struct ExtractorTransferRequest {
-    pub from_symbol: String,
-    pub to_symbol: String,
+    pub from_symbol: ShipSymbol,
+    pub to_symbol: ShipSymbol,
     pub amount: i32,
     pub trade_symbol: models::TradeSymbol,
     pub callback: tokio::sync::oneshot::Sender<Option<TransferResult>>,
@@ -30,8 +31,8 @@ pub struct TransferResult {
 
 #[derive(Debug)]
 pub struct TransferManager {
-    extraction_contacts: DashMap<String, mpsc::Sender<ExtractorTransferRequest>>,
-    transportation_contacts: DashMap<String, mpsc::Sender<TransportTransferRequest>>,
+    extraction_contacts: DashMap<ShipSymbol, mpsc::Sender<ExtractorTransferRequest>>,
+    transportation_contacts: DashMap<ShipSymbol, mpsc::Sender<TransportTransferRequest>>,
 }
 
 impl TransferManager {
@@ -44,35 +45,35 @@ impl TransferManager {
 
     pub fn add_extractor_contact(
         &self,
-        symbol: &str,
+        symbol: &ShipSymbol,
         sender: mpsc::Sender<ExtractorTransferRequest>,
     ) {
-        self.extraction_contacts.insert(symbol.to_string(), sender);
+        self.extraction_contacts.insert(symbol.clone(), sender);
     }
 
     pub fn add_transportation_contact(
         &self,
-        symbol: &str,
+        symbol: &ShipSymbol,
         sender: mpsc::Sender<TransportTransferRequest>,
     ) {
         tracing::debug!(symbol = %symbol, "Adding transportation contact");
         self.transportation_contacts
-            .insert(symbol.to_string(), sender);
+            .insert(symbol.clone(), sender);
     }
 
-    pub fn viable(&self, from_extractor: &str, to_transporter: &str) -> bool {
+    pub fn viable(&self, from_extractor: &ShipSymbol, to_transporter: &ShipSymbol) -> bool {
         let extractor = self.valid_extractor(from_extractor);
         let transporter = self.valid_transporter(to_transporter);
 
         extractor && transporter
     }
 
-    pub fn valid_extractor(&self, symbol: &str) -> bool {
+    pub fn valid_extractor(&self, symbol: &ShipSymbol) -> bool {
         {
             self.extraction_contacts
                 .remove_if(symbol, |_, c| c.is_closed());
         }
-        let refi = safely_get_map(&self.extraction_contacts, &symbol.to_string());
+        let refi = safely_get_map(&self.extraction_contacts, symbol);
 
         let is = match refi.as_ref() {
             Some(contact) => !contact.is_closed(),
@@ -84,12 +85,12 @@ impl TransferManager {
         is
     }
 
-    pub fn valid_transporter(&self, symbol: &str) -> bool {
+    pub fn valid_transporter(&self, symbol: &ShipSymbol) -> bool {
         {
             self.transportation_contacts
                 .remove_if(symbol, |_, c| c.is_closed());
         }
-        let refi = safely_get_map(&self.transportation_contacts, &symbol.to_string());
+        let refi = safely_get_map(&self.transportation_contacts, symbol);
 
         let is = match refi.as_ref() {
             Some(contact) => !contact.is_closed(),
@@ -103,33 +104,32 @@ impl TransferManager {
 
     pub async fn process_transfer(
         &self,
-        from_extractor: &str,
-        to_transporter: &str,
+        from_extractor: &ShipSymbol,
+        to_transporter: &ShipSymbol,
         symbol: models::TradeSymbol,
         amount: i32,
     ) -> Result<(), Error> {
-        let transporter =
-            safely_get_map(&self.transportation_contacts, &to_transporter.to_string())
-                .filter(|c| !c.is_closed())
-                .ok_or(Error::TransporterDropped {
-                    symbol: to_transporter.to_string(),
-                    from: from_extractor.to_string(),
-                    to: to_transporter.to_string(),
-                })?;
+        let transporter = safely_get_map(&self.transportation_contacts, to_transporter)
+            .filter(|c| !c.is_closed())
+            .ok_or(Error::TransporterDropped {
+                symbol: to_transporter.clone(),
+                from: from_extractor.clone(),
+                to: to_transporter.clone(),
+            })?;
 
-        let extractor = safely_get_map(&self.extraction_contacts, &from_extractor.to_string())
+        let extractor = safely_get_map(&self.extraction_contacts, from_extractor)
             .filter(|c| !c.is_closed())
             .ok_or(Error::ExtractorDropped {
-                symbol: from_extractor.to_string(),
-                from: from_extractor.to_string(),
-                to: to_transporter.to_string(),
+                symbol: from_extractor.clone(),
+                from: from_extractor.clone(),
+                to: to_transporter.clone(),
             })?
             .clone();
 
         let (callback, receiver) = tokio::sync::oneshot::channel();
         let request = TransportTransferRequest {
-            from_symbol: from_extractor.to_string(),
-            to_symbol: to_transporter.to_string(),
+            from_symbol: from_extractor.clone(),
+            to_symbol: to_transporter.clone(),
             amount,
             trade_symbol: symbol,
             extractor_contact: extractor,
@@ -139,16 +139,16 @@ impl TransferManager {
         if let Err(_err) = transporter.send(request).await {
             self.transportation_contacts.remove(to_transporter);
             return Err(Error::TransporterDropped {
-                symbol: to_transporter.to_string(),
-                from: from_extractor.to_string(),
-                to: to_transporter.to_string(),
+                symbol: to_transporter.clone(),
+                from: from_extractor.clone(),
+                to: to_transporter.clone(),
             });
         }
 
         receiver.await.map_err(|_e| Error::TransporterDropped {
-            symbol: to_transporter.to_string(),
-            from: from_extractor.to_string(),
-            to: to_transporter.to_string(),
+            symbol: to_transporter.clone(),
+            from: from_extractor.clone(),
+            to: to_transporter.clone(),
         })?;
         Ok(())
     }
@@ -156,13 +156,13 @@ impl TransferManager {
 
 pub enum Error {
     TransporterDropped {
-        symbol: String,
-        from: String,
-        to: String,
+        symbol: ShipSymbol,
+        from: ShipSymbol,
+        to: ShipSymbol,
     },
     ExtractorDropped {
-        symbol: String,
-        from: String,
-        to: String,
+        symbol: ShipSymbol,
+        from: ShipSymbol,
+        to: ShipSymbol,
     },
 }

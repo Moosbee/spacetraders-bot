@@ -6,7 +6,7 @@ use ship::{
     status::{ExtractorState, MiningShipAssignment, ShipStatus, TransporterState},
 };
 use space_traders_client::models;
-use utils::get_system_symbol;
+use space_traders_client::{SystemSymbol, WaypointSymbol};
 
 use crate::{control_api::graphql::gql_models, error::Result};
 
@@ -87,27 +87,27 @@ impl GQLShipStatus {
 #[derive(Debug, Clone, serde::Serialize, async_graphql::SimpleObject)]
 pub struct TransporterAssignment {
     pub state: TransporterState,
-    pub waypoint_symbol: Option<String>,
+    pub waypoint_symbol: Option<WaypointSymbol>,
     pub cycles: Option<i32>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, async_graphql::SimpleObject)]
 pub struct ExtractorAssignment {
     pub state: ExtractorState,
-    pub waypoint_symbol: Option<String>,
+    pub waypoint_symbol: Option<WaypointSymbol>,
     pub extractions: Option<i32>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, async_graphql::SimpleObject)]
 pub struct SiphonerAssignment {
     pub state: ExtractorState,
-    pub waypoint_symbol: Option<String>,
+    pub waypoint_symbol: Option<WaypointSymbol>,
     pub extractions: Option<i32>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, async_graphql::SimpleObject)]
 pub struct SurveyorAssignment {
-    pub waypoint_symbol: Option<String>,
+    pub waypoint_symbol: Option<WaypointSymbol>,
     pub surveys: Option<i32>,
 }
 
@@ -189,7 +189,7 @@ impl TraderStatus {
 pub struct TransferStatus {
     pub fleet_id: i32,
     pub assignment_id: i64,
-    pub system_symbol: String,
+    pub system_symbol: SystemSymbol,
 }
 
 #[derive(Debug, Clone, serde::Serialize, async_graphql::SimpleObject)]
@@ -236,7 +236,7 @@ impl ContractStatus {
 pub struct ScraperStatus {
     pub cycle: Option<i32>,
     pub waiting_for_manager: bool,
-    pub waypoint_symbol: Option<String>,
+    pub waypoint_symbol: Option<WaypointSymbol>,
     pub scrap_date: Option<chrono::DateTime<chrono::Utc>>,
 }
 
@@ -248,7 +248,7 @@ impl ScraperStatus {
     ) -> Result<Option<gql_models::GQLWaypoint>> {
         let data_loader = ctx.data::<DataLoader<database::WaypointLoader>>().unwrap();
         if let Some(waypoint_symbol) = &self.waypoint_symbol {
-            let erg = data_loader.load_one(waypoint_symbol.to_string()).await?;
+            let erg = data_loader.load_one(waypoint_symbol.clone()).await?;
             Ok(erg.map(|f| f.into()))
         } else {
             Ok(None)
@@ -266,7 +266,7 @@ pub struct MiningStatus {
 pub struct ChartingStatus {
     pub cycle: Option<i32>,
     pub waiting_for_manager: bool,
-    pub waypoint_symbol: Option<String>,
+    pub waypoint_symbol: Option<WaypointSymbol>,
 }
 
 #[async_graphql::ComplexObject]
@@ -663,8 +663,8 @@ impl GQLAutopilotState {
 #[graphql(name = "JumpConnection")]
 #[graphql(complex)]
 pub struct JumpConnectionGQL {
-    pub start_symbol: String,
-    pub end_symbol: String,
+    pub start_symbol: WaypointSymbol,
+    pub end_symbol: WaypointSymbol,
     pub distance: f64,
     pub cooldown_time: f64,
 }
@@ -685,7 +685,7 @@ impl JumpConnectionGQL {
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Option<gql_models::GQLSystem>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let system = get_system_symbol(&self.start_symbol);
+        let system = self.start_symbol.get_system_symbol();
         let erg = database::System::get_by_id(database_pool, &system).await?;
         Ok(erg.map(|f| f.into()))
     }
@@ -704,7 +704,7 @@ impl JumpConnectionGQL {
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Option<gql_models::GQLSystem>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let system = get_system_symbol(&self.end_symbol);
+        let system = self.end_symbol.get_system_symbol();
         let erg = database::System::get_by_id(database_pool, &system).await?;
         Ok(erg.map(|f| f.into()))
     }
@@ -714,8 +714,8 @@ impl JumpConnectionGQL {
 #[graphql(name = "WarpConnection")]
 #[graphql(complex)]
 pub struct WarpConnectionGQL {
-    pub start_symbol: String,
-    pub end_symbol: String,
+    pub start_symbol: WaypointSymbol,
+    pub end_symbol: WaypointSymbol,
     pub nav_mode: models::ShipNavFlightMode,
     pub distance: f64,
     pub travel_time: f64,
@@ -740,7 +740,7 @@ impl WarpConnectionGQL {
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Option<gql_models::GQLSystem>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let system = get_system_symbol(&self.start_symbol);
+        let system = self.start_symbol.get_system_symbol();
         let erg = database::System::get_by_id(database_pool, &system).await?;
         Ok(erg.map(|f| f.into()))
     }
@@ -759,7 +759,7 @@ impl WarpConnectionGQL {
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Option<gql_models::GQLSystem>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let system = get_system_symbol(&self.end_symbol);
+        let system = self.end_symbol.get_system_symbol();
         let erg = database::System::get_by_id(database_pool, &system).await?;
         Ok(erg.map(|f| f.into()))
     }
@@ -769,8 +769,8 @@ impl WarpConnectionGQL {
 #[graphql(name = "NavigateConnection")]
 #[graphql(complex)]
 pub struct NavigateConnectionGQL {
-    pub start_symbol: String,
-    pub end_symbol: String,
+    pub start_symbol: WaypointSymbol,
+    pub end_symbol: WaypointSymbol,
     pub nav_mode: models::ShipNavFlightMode,
     pub distance: f64,
     pub travel_time: f64,
@@ -795,7 +795,7 @@ impl NavigateConnectionGQL {
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Option<gql_models::GQLSystem>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let system = get_system_symbol(&self.start_symbol);
+        let system = self.start_symbol.get_system_symbol();
         let erg = database::System::get_by_id(database_pool, &system).await?;
         Ok(erg.map(|f| f.into()))
     }
@@ -814,7 +814,7 @@ impl NavigateConnectionGQL {
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Option<gql_models::GQLSystem>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let system = get_system_symbol(&self.end_symbol);
+        let system = self.end_symbol.get_system_symbol();
         let erg = database::System::get_by_id(database_pool, &system).await?;
         Ok(erg.map(|f| f.into()))
     }

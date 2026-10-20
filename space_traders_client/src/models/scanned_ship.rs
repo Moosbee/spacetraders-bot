@@ -9,6 +9,7 @@
  */
 
 use crate::models;
+use crate::{ShipSymbol, SystemSymbol, WaypointSymbol};
 use serde::{Deserialize, Serialize};
 
 /// ScannedShip : The ship that was scanned. Details include information about the ship that could be detected by the scanner.
@@ -16,7 +17,7 @@ use serde::{Deserialize, Serialize};
 pub struct ScannedShip {
     /// The globally unique identifier of the ship.
     #[serde(rename = "symbol")]
-    pub symbol: String,
+    pub symbol: ShipSymbol,
     #[serde(rename = "registration")]
     pub registration: Box<models::ShipRegistration>,
     #[serde(rename = "nav")]
@@ -35,7 +36,7 @@ pub struct ScannedShip {
 impl ScannedShip {
     /// The ship that was scanned. Details include information about the ship that could be detected by the scanner.
     pub fn new(
-        symbol: String,
+        symbol: ShipSymbol,
         registration: models::ShipRegistration,
         nav: models::ShipNav,
         engine: models::ScannedShipEngine,

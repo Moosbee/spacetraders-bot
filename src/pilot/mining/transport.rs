@@ -4,6 +4,7 @@ use std::{
 };
 
 use ship::status::{MiningShipAssignment, TransporterState};
+use space_traders_client::WaypointSymbol;
 use space_traders_client::models;
 use tracing::debug;
 use tracing::instrument;
@@ -27,7 +28,7 @@ impl TransportPilot {
         }
     }
 
-    #[instrument(level = "info", name = "spacetraders::pilot::mining::pilot_transport", skip(self, pilot, ship), fields(self.ship_symbol = pilot.ship_symbol))]
+    #[instrument(level = "info", name = "spacetraders::pilot::mining::pilot_transport", skip(self, pilot, ship), fields(self.ship_symbol = %pilot.ship_symbol))]
     pub async fn execute_transport_circle(
         &self,
         ship: &mut ship::MyShip,
@@ -129,7 +130,7 @@ impl TransportPilot {
         Ok(())
     }
 
-    async fn get_next_mining_waypoint(&self, ship: &mut ship::MyShip) -> Result<String> {
+    async fn get_next_mining_waypoint(&self, ship: &mut ship::MyShip) -> Result<WaypointSymbol> {
         let next_transport = self
             .context
             .mining_manager
@@ -212,9 +213,9 @@ impl TransportPilot {
                     let erg = self.handle_transfer_request(ship, transfer_request).await;
                     if let Err(error) = erg {
                         tracing::error!(
-                            ship_symbol = ship.symbol,
-                            to_symbol = to,
-                            from_symbol = from,
+                            ship_symbol = %ship.symbol,
+                            to_symbol = %to,
+                            from_symbol = %from,
                             error = format!("{} {:?}", error, error),
                             "Transfer request failed",
                         );
@@ -291,8 +292,8 @@ impl TransportPilot {
         &self,
         pilot: &crate::pilot::Pilot,
         ship: &mut ship::MyShip,
-        _waypoints: &std::collections::HashMap<String, database::Waypoint>,
-        mining_waypoint: String,
+        _waypoints: &std::collections::HashMap<WaypointSymbol, database::Waypoint>,
+        mining_waypoint: WaypointSymbol,
     ) -> Result<()> {
         while ship.cargo.get_units_no_fuel() > 0 {
             if pilot.slow_cancellation_token.is_cancelled() {
@@ -350,7 +351,7 @@ impl TransportPilot {
     async fn get_next_best_sell_waypoint(
         &self,
         ship: &ship::MyShip,
-    ) -> Option<(String, Vec<models::TradeSymbol>)> {
+    ) -> Option<(WaypointSymbol, Vec<models::TradeSymbol>)> {
         let cargo_data = &ship.cargo;
 
         let all_trades = database::MarketTradeGood::get_last_by_system(
@@ -372,7 +373,7 @@ impl TransportPilot {
             return None;
         }
 
-        let mut waypoints: HashMap<String, Vec<_>> = HashMap::new();
+        let mut waypoints: HashMap<WaypointSymbol, Vec<_>> = HashMap::new();
 
         for (amount, trade) in filtered_trades {
             let wp = waypoints.entry(trade.waypoint_symbol.clone()).or_default();
@@ -422,7 +423,7 @@ impl TransportPilot {
         for trade in trade_symbols {
             if !possible_trades.iter().any(|t| t.symbol == trade) {
                 tracing::warn!(
-                    ship_symbol = ship.symbol,
+                    ship_symbol = %ship.symbol,
                     trade_symbol = trade.to_string(),
                     "Skipping trade as not in market"
                 );

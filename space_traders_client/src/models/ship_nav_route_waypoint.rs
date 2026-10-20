@@ -9,6 +9,7 @@
  */
 
 use crate::models;
+use crate::{ShipSymbol, SystemSymbol, WaypointSymbol};
 use serde::{Deserialize, Serialize};
 
 /// ShipNavRouteWaypoint : The destination or departure of a ships nav route.
@@ -16,12 +17,12 @@ use serde::{Deserialize, Serialize};
 pub struct ShipNavRouteWaypoint {
     /// The symbol of the waypoint.
     #[serde(rename = "symbol")]
-    pub symbol: String,
+    pub symbol: WaypointSymbol,
     #[serde(rename = "type")]
     pub r#type: models::WaypointType,
     /// The symbol of the system.
     #[serde(rename = "systemSymbol")]
-    pub system_symbol: String,
+    pub system_symbol: SystemSymbol,
     /// Position in the universe in the x axis.
     #[serde(rename = "x")]
     pub x: i32,
@@ -33,9 +34,9 @@ pub struct ShipNavRouteWaypoint {
 impl ShipNavRouteWaypoint {
     /// The destination or departure of a ships nav route.
     pub fn new(
-        symbol: String,
+        symbol: WaypointSymbol,
         r#type: models::WaypointType,
-        system_symbol: String,
+        system_symbol: SystemSymbol,
         x: i32,
         y: i32,
     ) -> ShipNavRouteWaypoint {

@@ -1,3 +1,4 @@
+use space_traders_client::SystemSymbol;
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -16,8 +17,9 @@ impl SystemLoader {
 
     async fn get_by_symbols(
         database_pool: &DbPool,
-        symbols: &[&str],
+        symbols: &[SystemSymbol],
     ) -> crate::Result<Vec<System>> {
+        let systems = symbols.iter().map(|s| s.as_str()).collect::<Vec<_>>();
         let erg = sqlx::query_as!(
             System,
             r#"
@@ -32,7 +34,7 @@ impl SystemLoader {
             FROM system
             WHERE symbol = ANY($1)
             "#,
-            symbols as &[&str]
+            &systems as &[&str]
         )
         .fetch_all(database_pool.get_cache_pool())
         .await?;
@@ -40,18 +42,17 @@ impl SystemLoader {
     }
 }
 
-impl Loader<String> for SystemLoader {
+impl Loader<SystemSymbol> for SystemLoader {
     type Value = System;
     type Error = Arc<crate::Error>;
 
     #[instrument(level = "trace", skip(self, keys))]
     async fn load(
         &self,
-        keys: &[String],
-    ) -> std::result::Result<HashMap<String, Self::Value>, Self::Error> {
-        let symbols: Vec<&str> = keys.iter().map(String::as_str).collect();
+        keys: &[SystemSymbol],
+    ) -> std::result::Result<HashMap<SystemSymbol, Self::Value>, Self::Error> {
         let mut map = HashMap::new();
-        for system in Self::get_by_symbols(&self.0, &symbols).await? {
+        for system in Self::get_by_symbols(&self.0, keys).await? {
             map.insert(system.symbol.clone(), system);
         }
         Ok(map)
@@ -61,7 +62,7 @@ impl Loader<String> for SystemLoader {
 #[derive(Clone, Debug, PartialEq, serde::Serialize, async_graphql::SimpleObject)]
 #[graphql(name = "DBSystem")]
 pub struct System {
-    pub symbol: String,
+    pub symbol: SystemSymbol,
     pub constellation: Option<String>,
     pub sector_symbol: String,
     pub system_type: models::SystemType,
@@ -119,7 +120,7 @@ impl System {
 }
 
 impl DatabaseConnectorAsync for System {
-    type ID = String;
+    type ID = SystemSymbol;
 
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
     async fn insert_new(database_pool: &DbPool, item: &System) -> crate::Result<Self::ID> {
@@ -149,7 +150,7 @@ impl DatabaseConnectorAsync for System {
                     x = EXCLUDED.x,
                     y = EXCLUDED.y
             "#,
-            item.symbol,
+            item.symbol.as_str(),
             item.sector_symbol,
             item.constellation,
             item.population_disabled,
@@ -180,7 +181,7 @@ impl DatabaseConnectorAsync for System {
             Vec<_>,
         ) = itertools::multiunzip(items.iter().map(|s| {
             (
-                s.symbol.clone(),
+                s.symbol.clone().into_inner(),
                 s.constellation.clone(),
                 s.population_disabled,
                 s.sector_symbol.clone(),
@@ -314,7 +315,7 @@ impl DatabaseConnectorAsync for System {
             WHERE symbol = $1
             LIMIT 1
             "#,
-            id
+            id.as_str()
         )
         .fetch_optional(&database_pool.database_pool)
         .await?;
@@ -328,7 +329,7 @@ impl DatabaseConnectorAsync for System {
             DELETE FROM system
             WHERE symbol = $1
             "#,
-            id
+            id.as_str()
         )
         .execute(&database_pool.database_pool)
         .await?;

@@ -9,6 +9,7 @@
  */
 
 use crate::models;
+use crate::{ShipSymbol, SystemSymbol, WaypointSymbol};
 use serde::{Deserialize, Serialize};
 
 /// Siphon : Siphon details.
@@ -16,14 +17,14 @@ use serde::{Deserialize, Serialize};
 pub struct Siphon {
     /// Symbol of the ship that executed the siphon.
     #[serde(rename = "shipSymbol")]
-    pub ship_symbol: String,
+    pub ship_symbol: ShipSymbol,
     #[serde(rename = "yield")]
     pub r#yield: Box<models::SiphonYield>,
 }
 
 impl Siphon {
     /// Siphon details.
-    pub fn new(ship_symbol: String, r#yield: models::SiphonYield) -> Siphon {
+    pub fn new(ship_symbol: ShipSymbol, r#yield: models::SiphonYield) -> Siphon {
         Siphon {
             ship_symbol,
             r#yield: Box::new(r#yield),

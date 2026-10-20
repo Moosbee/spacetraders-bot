@@ -119,7 +119,7 @@ impl Default for Config {
 #[graphql(complex)]
 pub struct RunInfo {
     pub agent_symbol: String,
-    pub headquarters: String,
+    pub headquarters: space_traders_client::WaypointSymbol,
     pub starting_faction: models::FactionSymbol,
     pub reset_date: chrono::DateTime<chrono::Utc>,
     pub next_reset_date: chrono::DateTime<chrono::Utc>,
@@ -131,7 +131,7 @@ impl Default for RunInfo {
     fn default() -> RunInfo {
         RunInfo {
             agent_symbol: "".to_string(),
-            headquarters: "".to_string(),
+            headquarters: Default::default(),
             starting_faction: models::FactionSymbol::default(),
             reset_date: chrono::Utc::now(),
             next_reset_date: chrono::Utc::now(),

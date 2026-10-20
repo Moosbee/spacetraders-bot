@@ -1,4 +1,5 @@
 use super::message::FleetManagerMessage;
+use space_traders_client::{SystemSymbol, WaypointSymbol};
 use std::sync::{Arc, atomic::AtomicBool};
 
 #[derive(Debug, Clone)]
@@ -85,7 +86,7 @@ impl FleetManagerMessanger {
     /// Ask the fleet manager to re-generate assignments for all fleets.
     pub async fn regenerate_system_assignments(
         &self,
-        system_symbol: String,
+        system_symbol: SystemSymbol,
     ) -> Result<(), crate::error::Error> {
         let (sender, receiver) = tokio::sync::oneshot::channel();
         let erg = self
@@ -148,7 +149,7 @@ impl FleetManagerMessanger {
 
     pub async fn populate_system(
         &self,
-        system_symbol: String,
+        system_symbol: SystemSymbol,
     ) -> Result<bool, crate::error::Error> {
         let (sender, receiver) = tokio::sync::oneshot::channel();
         let erg = self.sender.try_send(FleetManagerMessage::PopulateSystem {
@@ -171,7 +172,7 @@ impl FleetManagerMessanger {
 
     pub async fn populate_from_jump_gate(
         &self,
-        jump_gate_symbol: String,
+        jump_gate_symbol: WaypointSymbol,
     ) -> Result<bool, crate::error::Error> {
         let (sender, receiver) = tokio::sync::oneshot::channel();
         let erg = self

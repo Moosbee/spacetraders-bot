@@ -50,3 +50,7 @@ sequenceDiagram
 - connect transactions with fleets
 - rewrite database provider to properly use inversion of control
 - - use https://docs.rs/throw/latest/throw/
+- update to use the right types instead of string 
+    - GetSupplyChain200ResponseData
+    - DeliverContractRequest
+    - MarketTransaction

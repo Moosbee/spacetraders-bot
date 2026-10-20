@@ -9,6 +9,7 @@
  */
 
 use crate::models;
+use crate::{ShipSymbol, SystemSymbol, WaypointSymbol};
 use serde::{Deserialize, Serialize};
 
 /// Extraction : Extraction details.
@@ -16,14 +17,14 @@ use serde::{Deserialize, Serialize};
 pub struct Extraction {
     /// Symbol of the ship that executed the extraction.
     #[serde(rename = "shipSymbol")]
-    pub ship_symbol: String,
+    pub ship_symbol: ShipSymbol,
     #[serde(rename = "yield")]
     pub r#yield: Box<models::ExtractionYield>,
 }
 
 impl Extraction {
     /// Extraction details.
-    pub fn new(ship_symbol: String, r#yield: models::ExtractionYield) -> Extraction {
+    pub fn new(ship_symbol: ShipSymbol, r#yield: models::ExtractionYield) -> Extraction {
         Extraction {
             ship_symbol,
             r#yield: Box::new(r#yield),

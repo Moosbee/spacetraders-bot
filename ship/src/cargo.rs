@@ -4,7 +4,7 @@ use std::{
 };
 
 use database::DatabaseConnectorAsync;
-use space_traders_client::models::JettisonRequest;
+use space_traders_client::{ShipSymbol, models::JettisonRequest};
 
 use crate::error;
 
@@ -278,7 +278,7 @@ impl<T: Clone + Send + Sync> RustShip<T, Mutable> {
         trade_symbol: space_traders_client::models::TradeSymbol,
         units: i32,
         api: &space_traders_client::Api,
-        target_ship: &str,
+        target_ship: &ShipSymbol,
     ) -> crate::error::Result<space_traders_client::models::TransferCargo200Response> {
         let old_units = self.cargo.get_amount(&trade_symbol);
         if old_units < units {
@@ -289,7 +289,7 @@ impl<T: Clone + Send + Sync> RustShip<T, Mutable> {
                 &self.symbol,
                 space_traders_client::models::TransferCargoRequest {
                     units,
-                    ship_symbol: target_ship.to_string(),
+                    ship_symbol: target_ship.clone(),
                     trade_symbol,
                 },
             )

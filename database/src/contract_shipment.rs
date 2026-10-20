@@ -1,4 +1,5 @@
 use space_traders_client::models;
+use space_traders_client::{ShipSymbol, WaypointSymbol};
 use tracing::instrument;
 
 use super::{DatabaseConnectorAsync, DbPool, PaginatedQuery, PaginatedResult, run_paginated_query};
@@ -31,11 +32,11 @@ pub enum ShipmentStatus {
 pub struct ContractShipment {
     pub id: i32,
     pub contract_id: String,
-    pub ship_symbol: String,
+    pub ship_symbol: ShipSymbol,
     pub trade_symbol: models::TradeSymbol,
     pub units: i32,
-    pub destination_symbol: String,
-    pub purchase_symbol: String,
+    pub destination_symbol: WaypointSymbol,
+    pub purchase_symbol: WaypointSymbol,
     pub created_at: sqlx::types::chrono::DateTime<chrono::Utc>,
     pub updated_at: sqlx::types::chrono::DateTime<chrono::Utc>,
     pub status: ShipmentStatus,
@@ -81,11 +82,11 @@ impl DatabaseConnectorAsync for ContractShipment {
                 RETURNING id
             "#,
             item.contract_id,
-            item.ship_symbol,
+            item.ship_symbol.as_str(),
             item.trade_symbol as models::TradeSymbol,
             item.units,
-            item.destination_symbol,
-            item.purchase_symbol,
+            item.destination_symbol.as_str(),
+            item.purchase_symbol.as_str(),
             item.status as ShipmentStatus
         )
         .fetch_one(&database_pool.database_pool)
@@ -126,11 +127,11 @@ impl DatabaseConnectorAsync for ContractShipment {
             "#,
             item.id,
             item.contract_id,
-            item.ship_symbol,
+            item.ship_symbol.as_str(),
             item.trade_symbol as models::TradeSymbol,
             item.units,
-            item.destination_symbol,
-            item.purchase_symbol,
+            item.destination_symbol.as_str(),
+            item.purchase_symbol.as_str(),
             item.status as ShipmentStatus
         )
         .execute(&database_pool.database_pool)
@@ -156,11 +157,11 @@ impl DatabaseConnectorAsync for ContractShipment {
                 WHERE id = $8
             "#,
             item.contract_id,
-            item.ship_symbol,
+            item.ship_symbol.as_str(),
             item.trade_symbol as models::TradeSymbol,
             item.units,
-            item.destination_symbol,
-            item.purchase_symbol,
+            item.destination_symbol.as_str(),
+            item.purchase_symbol.as_str(),
             item.status as ShipmentStatus,
             item.id
         )
@@ -194,11 +195,11 @@ impl DatabaseConnectorAsync for ContractShipment {
             (
                 c.id,
                 c.contract_id.clone(),
-                c.ship_symbol.clone(),
+                c.ship_symbol.clone().into_inner(),
                 c.trade_symbol,
                 c.units,
-                c.destination_symbol.clone(),
-                c.purchase_symbol.clone(),
+                c.destination_symbol.clone().into_inner(),
+                c.purchase_symbol.clone().into_inner(),
                 c.status,
             )
         }));

@@ -1,6 +1,7 @@
 use std::{collections::HashMap, fmt::Debug, sync::Arc};
 
 use lockable::{AsyncLimit, Lockable, LockableHashMap, SyncLimit};
+use space_traders_client::ShipSymbol;
 use tokio::sync::RwLock;
 use utils::{Observer, Subject, safely_get_lock_mut_map};
 
@@ -8,16 +9,16 @@ use super::{Immutable, Mutable, RustShip, my_ship_update};
 
 #[derive(Debug)]
 pub struct ShipManager<T: Clone + Send + Sync> {
-    locked_ships: LockableHashMap<String, RustShip<T, Mutable>>,
-    copy: RwLock<HashMap<String, RustShip<T, Immutable>>>,
+    locked_ships: LockableHashMap<ShipSymbol, RustShip<T, Mutable>>,
+    copy: RwLock<HashMap<ShipSymbol, RustShip<T, Immutable>>>,
     mpsc_tx: tokio::sync::broadcast::Sender<RustShip<T, Immutable>>,
     mpsc_rx: tokio::sync::broadcast::Receiver<RustShip<T, Immutable>>,
     id: u32,
     broadcaster: my_ship_update::InterShipBroadcaster,
 }
 
-pub type ShipGuard<'a, T> = <LockableHashMap<String, RustShip<T, Mutable>> as Lockable<
-    String,
+pub type ShipGuard<'a, T> = <LockableHashMap<ShipSymbol, RustShip<T, Mutable>> as Lockable<
+    ShipSymbol,
     RustShip<T, Mutable>,
 >>::Guard<'a>;
 
@@ -85,7 +86,7 @@ impl<T: Clone + Send + Sync> ShipManager<T> {
         guard.insert(ship);
     }
 
-    pub async fn get_clone(&self, symbol: &str) -> Option<RustShip<T, Immutable>> {
+    pub async fn get_clone(&self, symbol: &ShipSymbol) -> Option<RustShip<T, Immutable>> {
         let map = self.copy.try_read();
         let map = match map {
             Ok(m) => m,
@@ -97,7 +98,7 @@ impl<T: Clone + Send + Sync> ShipManager<T> {
         map.get(symbol).cloned()
     }
 
-    pub async fn get_all_clone(&self) -> HashMap<String, RustShip<T, Immutable>> {
+    pub async fn get_all_clone(&self) -> HashMap<ShipSymbol, RustShip<T, Immutable>> {
         let erg = {
             let map = self.copy.try_read();
             let map = match map {
@@ -116,13 +117,13 @@ impl<T: Clone + Send + Sync> ShipManager<T> {
     /// If the ship is not found, an error will be returned.
     ///
     /// This function is async because it might wait for other tasks that have locked the ship.
-    pub async fn get_mut(&self, symbol: &str) -> ShipGuard<'_, T> {
-        safely_get_lock_mut_map(&self.locked_ships, symbol.to_owned()).await
+    pub async fn get_mut(&self, symbol: &ShipSymbol) -> ShipGuard<'_, T> {
+        safely_get_lock_mut_map(&self.locked_ships, symbol.clone()).await
     }
 
-    pub async fn try_get_mut(&self, symbol: &str) -> Option<ShipGuard<'_, T>> {
+    pub async fn try_get_mut(&self, symbol: &ShipSymbol) -> Option<ShipGuard<'_, T>> {
         self.locked_ships
-            .try_lock(symbol.to_owned(), SyncLimit::no_limit())
+            .try_lock(symbol.clone(), SyncLimit::no_limit())
             .unwrap()
     }
 

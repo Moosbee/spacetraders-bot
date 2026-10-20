@@ -1,3 +1,4 @@
+use space_traders_client::{ShipSymbol, SystemSymbol, WaypointSymbol};
 use std::{collections::HashMap, str::FromStr, sync::Arc};
 
 use async_graphql::dataloader::Loader;
@@ -67,9 +68,9 @@ impl Loader<String> for SurveyLoader {
 pub struct Survey {
     pub ship_info_before: i64,
     pub ship_info_after: i64,
-    pub ship_symbol: String,
+    pub ship_symbol: ShipSymbol,
     pub signature: String,
-    pub waypoint_symbol: String,
+    pub waypoint_symbol: WaypointSymbol,
     pub deposits: Vec<models::TradeSymbol>,
     pub expiration: DateTime<Utc>,
     pub size: models::SurveySize,
@@ -83,7 +84,7 @@ impl Survey {
         value: models::Survey,
         ship_before: i64,
         ship_after: i64,
-        ship_symbol: String,
+        ship_symbol: ShipSymbol,
     ) -> crate::Result<Survey> {
         let deposits = value.deposits.iter().map(|f| f.symbol).collect::<Vec<_>>();
         let expiration = DateTime::<chrono::Utc>::from_str(&value.expiration)?;
@@ -93,7 +94,7 @@ impl Survey {
             ship_info_after: ship_after,
             ship_symbol,
             signature: value.signature,
-            waypoint_symbol: value.symbol,
+            waypoint_symbol: value.symbol.into(),
             deposits,
             expiration,
             size: value.size,
@@ -153,7 +154,7 @@ impl Survey {
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_waypoint_symbol(
         database_pool: &DbPool,
-        waypoint_symbol: &str,
+        waypoint_symbol: &WaypointSymbol,
         query: PaginatedQuery,
     ) -> crate::Result<PaginatedResult<Survey>> {
         run_paginated_query(
@@ -233,7 +234,7 @@ impl Survey {
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_system_symbol(
         database_pool: &DbPool,
-        system_symbol: &str,
+        system_symbol: &SystemSymbol,
         query: PaginatedQuery,
     ) -> crate::Result<PaginatedResult<Survey>> {
         run_paginated_query(
@@ -567,7 +568,7 @@ impl From<Survey> for models::Survey {
     fn from(value: Survey) -> Self {
         models::Survey {
             signature: value.signature,
-            symbol: value.waypoint_symbol,
+            symbol: value.waypoint_symbol.into_inner(),
             deposits: value
                 .deposits
                 .iter()
@@ -585,7 +586,7 @@ impl From<&Survey> for models::Survey {
     fn from(value: &Survey) -> Self {
         models::Survey {
             signature: value.signature.clone(),
-            symbol: value.waypoint_symbol.clone(),
+            symbol: value.waypoint_symbol.clone().into_inner(),
             deposits: value
                 .deposits
                 .iter()
@@ -639,8 +640,8 @@ impl DatabaseConnectorAsync for Survey {
             &item.signature,
             &item.ship_info_before,
             &item.ship_info_after,
-            &item.ship_symbol,
-            &item.waypoint_symbol,
+            &item.ship_symbol.as_str(),
+            &item.waypoint_symbol.as_str(),
             &item.deposits as &[models::TradeSymbol],
             &item.expiration,
             &item.size as &models::SurveySize,

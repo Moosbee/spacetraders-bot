@@ -9,17 +9,18 @@
  */
 
 use crate::models;
+use crate::{ShipSymbol, SystemSymbol, WaypointSymbol};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Default, Debug, PartialEq, Serialize, Deserialize)]
 pub struct NavigateShipRequest {
     /// The symbol of the waypoint to navigate/warp to.
     #[serde(rename = "waypointSymbol")]
-    pub waypoint_symbol: String,
+    pub waypoint_symbol: WaypointSymbol,
 }
 
 impl NavigateShipRequest {
-    pub fn new(waypoint_symbol: String) -> NavigateShipRequest {
+    pub fn new(waypoint_symbol: WaypointSymbol) -> NavigateShipRequest {
         NavigateShipRequest { waypoint_symbol }
     }
 }

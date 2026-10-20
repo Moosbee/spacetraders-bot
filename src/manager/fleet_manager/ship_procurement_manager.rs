@@ -5,8 +5,8 @@ use std::{
 
 use database::DatabaseConnectorAsync;
 use ship::autopilot::JumpGateRouter;
+use space_traders_client::{SystemSymbol, WaypointSymbol};
 use tracing::debug;
-use utils::get_system_symbol;
 
 use crate::{
     error::{self, Result},
@@ -128,20 +128,17 @@ impl ShipProcurementManager {
 
         let fleets = database::Fleet::get_by_ids(&self.context.database_pool, fleet_ids).await?;
 
-        let assignment_system_symbols: HashSet<String> = fleets
+        let assignment_system_symbols: HashSet<SystemSymbol> = fleets
             .iter()
             .map(|f| f.1.system_symbol.clone())
             .collect::<HashSet<_>>();
 
-        let shipyard_system_symbols: HashSet<String> = all_shipyard_ships
+        let shipyard_system_symbols: HashSet<SystemSymbol> = all_shipyard_ships
             .iter()
-            .map(|shipyard_ship| shipyard_ship.waypoint_symbol.clone())
-            .collect::<HashSet<_>>()
-            .into_iter()
-            .map(|waypoint| get_system_symbol(&waypoint))
+            .map(|shipyard_ship| shipyard_ship.waypoint_symbol.get_system_symbol())
             .collect::<HashSet<_>>();
 
-        let travel_costs: HashMap<(String, String), (i64, i32, f64)> = {
+        let travel_costs: HashMap<(SystemSymbol, SystemSymbol), (i64, i32, f64)> = {
             let mut price_getter =
                 ship::autopilot::TravelPriceCache::new(self.context.database_pool.clone());
             let jump_gate_nav = self.get_jump_navigator().await?;
@@ -186,10 +183,7 @@ impl ShipProcurementManager {
 
         let reserved_waypoints = shipyard_ship_reservation.reserve_all().await?;
 
-        let waypoints = reserved_waypoints
-            .iter()
-            .map(|(waypoint, _)| waypoint.clone())
-            .collect::<HashSet<_>>();
+        let waypoints = reserved_waypoints.keys().cloned().collect::<HashSet<_>>();
 
         let ships_to_purchase = Self::get_ships_to_purchase(
             &open_assignments,
@@ -242,25 +236,25 @@ impl ShipProcurementManager {
     }
 
     async fn calculate_travel_cost(
-        assignment_system_symbols: &HashSet<String>,
-        shipyard_system_symbols: &HashSet<String>, // is smaller
+        assignment_system_symbols: &HashSet<SystemSymbol>,
+        shipyard_system_symbols: &HashSet<SystemSymbol>, // is smaller
         jump_gate_nav: &mut ship::autopilot::JumpGateRouterCache,
         price_getter: &mut impl ship::autopilot::TravelPriceCalc,
-    ) -> Result<HashMap<(String, String), (i64, i32, f64)>> {
-        let mut travel_costs: HashMap<(String, String), (i64, i32, f64)> = HashMap::new();
+    ) -> Result<HashMap<(SystemSymbol, SystemSymbol), (i64, i32, f64)>> {
+        let mut travel_costs: HashMap<(SystemSymbol, SystemSymbol), (i64, i32, f64)> =
+            HashMap::new();
 
         for shipyard_system in shipyard_system_symbols {
-            let tree = jump_gate_nav.generate_jump_tree(&shipyard_system, true);
+            let tree = jump_gate_nav.generate_jump_tree(shipyard_system, true);
 
             for assignment_system in assignment_system_symbols {
-                let route = JumpGateRouter::get_route(&tree, &assignment_system, &shipyard_system);
+                let route = JumpGateRouter::get_route(&tree, assignment_system, shipyard_system);
                 let mut total_cost = 0;
                 let mut total_distance = 0.0;
                 let mut total_jumps = 0;
                 for conn in route {
-                    let cost: i32 = price_getter
-                        .get_antimatter_price(&conn.start_system)
-                        .await?;
+                    let start_waypoint = conn.conn.get_other_system(&conn.end_system).0;
+                    let cost: i32 = price_getter.get_antimatter_price(&start_waypoint).await?;
                     total_cost += cost as i64;
                     total_distance += conn.conn.distance;
                     total_jumps += 1;
@@ -389,8 +383,8 @@ impl ShipProcurementManager {
         open_assignments: &'a [database::ShipAssignment],
         all_shipyard_ships: &'a [(database::ShipyardShip, ShipCapabilities)],
         fleets: &'a HashMap<i32, database::Fleet>,
-        travel_costs: &'_ HashMap<(String, String), (i64, i32, f64)>,
-        waypoints: &'_ HashSet<String>,
+        travel_costs: &'_ HashMap<(SystemSymbol, SystemSymbol), (i64, i32, f64)>,
+        waypoints: &'_ HashSet<WaypointSymbol>,
         ship_purchase_percentile: f64,
     ) -> Vec<ShipWorth<'a>> {
         // Index into all_shipyard_ships. Assumes one row per (waypoint, ship_type).
@@ -421,7 +415,7 @@ impl ShipProcurementManager {
                         .enumerate()
                         .filter(|(_, (_, cap))| cap.capable(assignment))
                         .filter_map(|(i, (ship, _))| {
-                            let sys = get_system_symbol(&ship.waypoint_symbol);
+                            let sys = ship.waypoint_symbol.get_system_symbol();
                             let (cost, _, _) =
                                 travel_costs.get(&(sys, fleet.system_symbol.clone()))?;
                             Some((*cost + ship.purchase_price as i64, i))
@@ -455,7 +449,7 @@ impl ShipProcurementManager {
 
 #[derive(Hash, PartialEq, Eq)]
 struct GroupKey<'a> {
-    system: &'a str,
+    system: &'a SystemSymbol,
     cargo_min: i32,
     range_min: i32,
     survey: bool,

@@ -1,30 +1,32 @@
 use std::collections::HashMap;
 
+use space_traders_client::{SystemSymbol, WaypointSymbol};
+
 use crate::error::Result;
 
 #[allow(async_fn_in_trait)]
 pub trait TravelPriceCalc {
-    async fn get_fuel_price(&mut self, waypoint_symbol: &str) -> Result<i32>;
-    async fn get_antimatter_price(&mut self, waypoint_symbol: &str) -> Result<i32>;
+    async fn get_fuel_price(&mut self, waypoint_symbol: &WaypointSymbol) -> Result<i32>;
+    async fn get_antimatter_price(&mut self, waypoint_symbol: &WaypointSymbol) -> Result<i32>;
 }
 
 #[derive(Default, Clone, Copy)]
 pub struct SimpleTravelPriceCalc {}
 
 impl TravelPriceCalc for SimpleTravelPriceCalc {
-    async fn get_fuel_price(&mut self, _waypoint_symbol: &str) -> Result<i32> {
+    async fn get_fuel_price(&mut self, _waypoint_symbol: &WaypointSymbol) -> Result<i32> {
         Ok(70)
     }
 
-    async fn get_antimatter_price(&mut self, _waypoint_symbol: &str) -> Result<i32> {
+    async fn get_antimatter_price(&mut self, _waypoint_symbol: &WaypointSymbol) -> Result<i32> {
         Ok(6000)
     }
 }
 
 pub struct TravelPriceCache {
     database_pool: database::DbPool,
-    fuel_prices: HashMap<String, i32>,
-    antimatter_prices: HashMap<String, i32>,
+    fuel_prices: HashMap<WaypointSymbol, i32>,
+    antimatter_prices: HashMap<WaypointSymbol, i32>,
     default_fuel_price: i32,
     default_antimatter_price: i32,
 }
@@ -40,7 +42,7 @@ impl TravelPriceCache {
         }
     }
 
-    pub async fn preload_system_prices(&mut self, system_symbol: &str) -> Result<()> {
+    pub async fn preload_system_prices(&mut self, system_symbol: &SystemSymbol) -> Result<()> {
         let prices = database::MarketTradeGood::get_last_by_system(
             &self.database_pool,
             system_symbol,
@@ -60,7 +62,7 @@ impl TravelPriceCache {
         Ok(())
     }
 
-    pub async fn preload_antimatter_prices(&mut self, waypoints: &[String]) -> Result<()> {
+    pub async fn preload_antimatter_prices(&mut self, waypoints: &[WaypointSymbol]) -> Result<()> {
         for waypoint in waypoints {
             let trade_good = database::MarketTradeGood::get_by_last_waypoint_and_trade_symbol(
                 &self.database_pool,
@@ -79,7 +81,7 @@ impl TravelPriceCache {
 }
 
 impl TravelPriceCalc for TravelPriceCache {
-    async fn get_fuel_price(&mut self, waypoint_symbol: &str) -> Result<i32> {
+    async fn get_fuel_price(&mut self, waypoint_symbol: &WaypointSymbol) -> Result<i32> {
         if let Some(price) = self.fuel_prices.get(waypoint_symbol) {
             return Ok(*price);
         }
@@ -92,14 +94,14 @@ impl TravelPriceCalc for TravelPriceCache {
 
         if let Some(item) = trade_good {
             self.fuel_prices
-                .insert(waypoint_symbol.to_string(), item.purchase_price);
+                .insert(waypoint_symbol.clone(), item.purchase_price);
             return Ok(item.purchase_price);
         }
 
         Ok(self.default_fuel_price)
     }
 
-    async fn get_antimatter_price(&mut self, waypoint_symbol: &str) -> Result<i32> {
+    async fn get_antimatter_price(&mut self, waypoint_symbol: &WaypointSymbol) -> Result<i32> {
         if let Some(price) = self.antimatter_prices.get(waypoint_symbol) {
             return Ok(*price);
         }
@@ -112,7 +114,7 @@ impl TravelPriceCalc for TravelPriceCache {
 
         if let Some(item) = trade_good {
             self.antimatter_prices
-                .insert(waypoint_symbol.to_string(), item.purchase_price);
+                .insert(waypoint_symbol.clone(), item.purchase_price);
             return Ok(item.purchase_price);
         }
 

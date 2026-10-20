@@ -10,6 +10,7 @@
 
 use super::{configuration, Error, ResponseContentEntity};
 use crate::{apis::ResponseContent, models};
+use crate::ShipSymbol;
 use reqwest;
 use serde::{Deserialize, Serialize};
 
@@ -310,7 +311,7 @@ pub async fn get_contracts(
 /// Negotiate a new contract with the HQ.  In order to negotiate a new contract, an agent must not have ongoing or offered contracts over the allowed maximum amount. Currently the maximum contracts an agent can have at a time is 1.  Once a contract is negotiated, it is added to the list of contracts offered to the agent, which the agent can then accept.   The ship must be present at any waypoint with a faction present to negotiate a contract with that faction.
 pub async fn negotiate_contract(
     configuration: &configuration::Configuration,
-    ship_symbol: &str,
+    ship_symbol: &ShipSymbol,
 ) -> Result<models::NegotiateContract201Response, Error<NegotiateContractError>> {
     let local_var_configuration = configuration;
 

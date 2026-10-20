@@ -1,3 +1,4 @@
+use space_traders_client::SystemSymbol;
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
@@ -14,7 +15,7 @@ use crate::{
 #[graphql(name = "DBFleet")]
 pub struct Fleet {
     pub id: i32,
-    pub system_symbol: String,
+    pub system_symbol: SystemSymbol,
     pub fleet_type: FleetType,
     pub active: bool, // if false, ships should not be assigned or purchased for this fleet, but already assigned ships remain but are paused
     pub created_at: chrono::DateTime<chrono::Utc>,
@@ -95,7 +96,7 @@ impl Default for Fleet {
     fn default() -> Self {
         Fleet {
             id: 0,
-            system_symbol: String::new(),
+            system_symbol: SystemSymbol::default(),
             fleet_type: FleetType::Manuel,
             active: false,
             created_at: chrono::Utc::now(),
@@ -167,19 +168,18 @@ impl FleetBySystemLoader {
     }
 }
 
-impl Loader<String> for FleetBySystemLoader {
+impl Loader<SystemSymbol> for FleetBySystemLoader {
     type Value = Vec<Fleet>;
     type Error = Arc<crate::Error>;
 
     #[instrument(level = "trace", skip(self, keys))]
-    async fn load(&self, keys: &[String]) -> Result<HashMap<String, Self::Value>, Self::Error> {
-        let mut map: HashMap<String, Vec<Fleet>> = HashMap::new();
+    async fn load(
+        &self,
+        keys: &[SystemSymbol],
+    ) -> Result<HashMap<SystemSymbol, Self::Value>, Self::Error> {
+        let mut map: HashMap<SystemSymbol, Vec<Fleet>> = HashMap::new();
 
-        let fleets = Fleet::get_by_systems(
-            &self.0,
-            &keys.iter().map(|k| k.as_str()).collect::<Vec<_>>(),
-        )
-        .await?;
+        let fleets = Fleet::get_by_systems(&self.0, keys).await?;
 
         for fleet in fleets {
             map.entry(fleet.system_symbol.clone())
@@ -242,7 +242,7 @@ impl DatabaseConnectorAsync for Fleet {
                                 )
                                 RETURNING id;
                         "#,
-                        &item.system_symbol,
+                        &item.system_symbol.as_str(),
                         &item.fleet_type as &FleetType,
                         &item.active,
                         &item.market_blacklist as &Option<Vec<models::TradeSymbol>>,
@@ -363,7 +363,7 @@ impl DatabaseConnectorAsync for Fleet {
                   contract_ship_count = EXCLUDED.contract_ship_count;
             "#,
             &item.id,
-            &item.system_symbol,
+            &item.system_symbol.as_str(),
             &item.fleet_type as &FleetType,
             &item.active,
             &item.market_blacklist as &Option<Vec<models::TradeSymbol>>,
@@ -638,7 +638,7 @@ impl DatabaseConnectorAsync for Fleet {
 }
 
 impl Fleet {
-    pub fn new(system_symbol: String, active: bool) -> Self {
+    pub fn new(system_symbol: SystemSymbol, active: bool) -> Self {
         Fleet {
             id: 0,
             system_symbol,
@@ -655,13 +655,13 @@ impl Fleet {
     pub async fn update_basic(
         database_pool: &DbPool,
         id: i32,
-        system_symbol: Option<String>,
+        system_symbol: Option<SystemSymbol>,
         active: Option<bool>,
     ) -> crate::Result<()> {
         if let Some(sym) = system_symbol {
             sqlx::query!(
                 r#"UPDATE fleet SET system_symbol = $1, updated_at = NOW() WHERE id = $2"#,
-                sym,
+                sym.as_str(),
                 id
             )
             .execute(&database_pool.database_pool)
@@ -1119,7 +1119,7 @@ impl Fleet {
                 )
                 RETURNING id;
             "#,
-            &item.system_symbol,
+            &item.system_symbol.as_str(),
             &item.fleet_type as &FleetType,
             &item.active,
             &item.market_blacklist as &Option<Vec<models::TradeSymbol>>,
@@ -1220,7 +1220,7 @@ impl Fleet {
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_system(
         database_pool: &DbPool,
-        system: &str,
+        system: &SystemSymbol,
         query: PaginatedQuery,
     ) -> crate::Result<PaginatedResult<Fleet>> {
         run_paginated_query(
@@ -1346,8 +1346,9 @@ impl Fleet {
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_systems(
         database_pool: &DbPool,
-        systems: &[&str],
+        systems: &[SystemSymbol],
     ) -> crate::Result<Vec<Fleet>> {
+        let systems = systems.iter().map(|s| s.as_str()).collect::<Vec<_>>();
         let resp = sqlx::query_as!(
             Fleet,
             r#"

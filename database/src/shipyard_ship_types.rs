@@ -1,5 +1,5 @@
 use chrono::{DateTime, Utc};
-use space_traders_client::models;
+use space_traders_client::{SystemSymbol, WaypointSymbol, models};
 use tracing::instrument;
 
 use super::{DatabaseConnectorAsync, PaginatedQuery, PaginatedResult, run_paginated_query};
@@ -19,7 +19,7 @@ impl ShipyardShipTypes {
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_last_by_waypoint(
         database_pool: &super::DbPool,
-        waypoint_symbol: &str,
+        waypoint_symbol: &WaypointSymbol,
         query: PaginatedQuery,
     ) -> crate::Result<PaginatedResult<ShipyardShipTypes>> {
         run_paginated_query(
@@ -90,7 +90,7 @@ impl ShipyardShipTypes {
 
     pub async fn get_last_by_system(
         database_pool: &super::DbPool,
-        system_symbol: &str,
+        system_symbol: &SystemSymbol,
         query: PaginatedQuery,
     ) -> crate::Result<PaginatedResult<ShipyardShipTypes>> {
         run_paginated_query(

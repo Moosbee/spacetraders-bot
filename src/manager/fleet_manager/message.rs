@@ -1,3 +1,5 @@
+use space_traders_client::{SystemSymbol, WaypointSymbol};
+
 #[derive(Debug)]
 pub enum FleetMessage {
     GetNewAssignments {
@@ -14,15 +16,15 @@ pub enum FleetMessage {
     },
     ReGenerateSystemAssignments {
         callback: tokio::sync::oneshot::Sender<()>,
-        system_symbol: String,
+        system_symbol: SystemSymbol,
     },
     PopulateSystem {
         callback: tokio::sync::oneshot::Sender<()>,
-        system_symbol: String,
+        system_symbol: SystemSymbol,
     },
     PopulateFromJumpGate {
         callback: tokio::sync::oneshot::Sender<()>,
-        jump_gate_symbol: String,
+        jump_gate_symbol: WaypointSymbol,
     },
 }
 

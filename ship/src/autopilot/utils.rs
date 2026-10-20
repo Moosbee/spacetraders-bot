@@ -1,9 +1,10 @@
 use std::collections::HashMap;
 
+use space_traders_client::WaypointSymbol;
 use utils::distance_between_waypoints;
 
 pub fn get_nearby_waypoints_donut(
-    waypoints: &HashMap<String, database::Waypoint>,
+    waypoints: &HashMap<WaypointSymbol, database::Waypoint>,
     start_waypoint: (i32, i32),
     min_radius: f64,
     max_radius: f64,
@@ -18,9 +19,9 @@ pub fn get_nearby_waypoints_donut(
 }
 
 pub(crate) fn get_route(
-    visited: HashMap<String, super::connection::SimpleConnection>,
-    start_symbol: String,
-    end_symbol: String,
+    visited: HashMap<WaypointSymbol, super::connection::SimpleConnection>,
+    start_symbol: WaypointSymbol,
+    end_symbol: WaypointSymbol,
 ) -> Option<Vec<super::connection::SimpleConnection>> {
     let mut route = Vec::new();
     let mut current = end_symbol.clone();
@@ -94,7 +95,7 @@ mod tests {
 
     fn waypoint(symbol: &str, x: i32, y: i32) -> database::Waypoint {
         database::Waypoint {
-            symbol: symbol.to_string(),
+            symbol: symbol.into(),
             x,
             y,
             ..Default::default()
@@ -103,8 +104,8 @@ mod tests {
 
     fn connection(start: &str, end: &str) -> SimpleConnection {
         SimpleConnection {
-            start_symbol: start.to_string(),
-            end_symbol: end.to_string(),
+            start_symbol: start.into(),
+            end_symbol: end.into(),
             connection_type: ConnectionType::Navigate {
                 nav_mode: ShipNavFlightMode::Cruise,
             },
@@ -117,7 +118,10 @@ mod tests {
     }
 
     fn sorted_symbols(waypoints: Vec<&database::Waypoint>) -> Vec<String> {
-        let mut symbols: Vec<String> = waypoints.into_iter().map(|w| w.symbol.clone()).collect();
+        let mut symbols: Vec<String> = waypoints
+            .into_iter()
+            .map(|w| w.symbol.clone().into_inner())
+            .collect();
         symbols.sort();
         symbols
     }
@@ -164,10 +168,10 @@ mod tests {
     #[test]
     fn get_route_rebuilds_path_in_order() {
         let mut visited = HashMap::new();
-        visited.insert("C".to_string(), connection("B", "C"));
-        visited.insert("B".to_string(), connection("A", "B"));
+        visited.insert("C".into(), connection("B", "C"));
+        visited.insert("B".into(), connection("A", "B"));
 
-        let route = get_route(visited, "A".to_string(), "C".to_string()).unwrap();
+        let route = get_route(visited, "A".into(), "C".into()).unwrap();
 
         let path: Vec<(&str, &str)> = route
             .iter()
@@ -179,17 +183,14 @@ mod tests {
     #[test]
     fn get_route_returns_none_for_broken_chain() {
         let mut visited = HashMap::new();
-        visited.insert("C".to_string(), connection("B", "C"));
+        visited.insert("C".into(), connection("B", "C"));
 
-        assert!(get_route(visited, "A".to_string(), "C".to_string()).is_none());
+        assert!(get_route(visited, "A".into(), "C".into()).is_none());
     }
 
     #[test]
     fn get_route_to_self_is_empty() {
         let visited = HashMap::new();
-        assert_eq!(
-            get_route(visited, "A".to_string(), "A".to_string()),
-            Some(Vec::new())
-        );
+        assert_eq!(get_route(visited, "A".into(), "A".into()), Some(Vec::new()));
     }
 }

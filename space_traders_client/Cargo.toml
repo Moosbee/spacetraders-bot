@@ -18,7 +18,7 @@ serde_repr = "^0.1"
 url = "^2.5"
 uuid = { version = "^1.8", features = ["serde", "v4"] }
 reqwest = { version = "^0.12", features = ["json", "multipart"] }
-sqlx = { version = "0.8" }
+sqlx = { version = "0.8", features = ["postgres"] }
 strum = "0.26"
 strum_macros = "0.27.1"
 reqwest-middleware = { version = "0.4.1", features = ["json", "multipart"] }

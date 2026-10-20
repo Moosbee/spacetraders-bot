@@ -2,6 +2,7 @@ use std::collections::{HashMap, HashSet};
 
 use database::DatabaseConnectorAsync;
 use ship::autopilot::TravelPriceCalc;
+use space_traders_client::{SystemSymbol, WaypointSymbol};
 use tracing::{debug, warn};
 
 use crate::{
@@ -225,11 +226,11 @@ impl FleetManager {
             .map(|f| f.1.system_symbol.clone())
             .collect::<HashSet<_>>();
 
-        let start_system: &str = &ship_clone.nav.system_symbol;
+        let start_system = &ship_clone.nav.system_symbol;
 
         let mut travel_costs = HashMap::new();
 
-        let tree = jump_gate.generate_jump_tree(&start_system, true);
+        let tree = jump_gate.generate_jump_tree(start_system, true);
 
         let mut price_getter =
             ship::autopilot::TravelPriceCache::new(self.context.database_pool.clone());
@@ -237,14 +238,15 @@ impl FleetManager {
             let route = ship::autopilot::JumpGateRouter::get_route(
                 &tree,
                 &assignment_system,
-                &start_system,
+                start_system,
             );
             let mut total_cost = 0;
             let mut total_distance = 0.0;
             let mut total_jumps = 0;
             for conn in route {
+                let start_waypoint = conn.conn.get_other_system(&conn.end_system).0;
                 let cost: i32 = price_getter
-                    .get_antimatter_price(&conn.start_system)
+                    .get_antimatter_price(&start_waypoint)
                     .await?;
                 total_cost += cost as i64;
                 total_distance += conn.conn.distance;
@@ -380,13 +382,15 @@ impl FleetManager {
         Ok(())
     }
 
-    async fn handle_populate_from_jump_gate(&mut self, jump_gate_symbol: &str) -> Result<()> {
+    async fn handle_populate_from_jump_gate(
+        &mut self,
+        jump_gate_symbol: &WaypointSymbol,
+    ) -> Result<()> {
         self.jump_gate = None;
         self.context
             .ship_procurement_manager
             .set_regen_jump_gates(true);
 
-        let jump_gate_symbol = jump_gate_symbol.to_string();
         let waypoint =
             database::Waypoint::get_by_id(&self.context.database_pool, &jump_gate_symbol).await?;
 
@@ -397,7 +401,7 @@ impl FleetManager {
             )));
         }
 
-        let system_symbol = utils::get_system_symbol(&jump_gate_symbol);
+        let system_symbol = jump_gate_symbol.get_system_symbol();
         crate::manager::fleet_manager::fleet_population::populate_system(
             &self.context,
             &system_symbol,
@@ -424,7 +428,7 @@ impl FleetManager {
                 continue;
             }
 
-            let system_symbol = utils::get_system_symbol(&gate.to);
+            let system_symbol = gate.to.get_system_symbol();
             crate::manager::fleet_manager::fleet_population::populate_system(
                 &self.context,
                 &system_symbol,
@@ -437,7 +441,7 @@ impl FleetManager {
 }
 
 enum RegenFleetBy {
-    System(String),
+    System(SystemSymbol),
     Fleet(i32),
     All,
 }

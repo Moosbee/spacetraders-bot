@@ -10,6 +10,7 @@
 
 use super::{configuration, Error, ResponseContentEntity};
 use crate::{apis::ResponseContent, models};
+use crate::ShipSymbol;
 use reqwest;
 use serde::{Deserialize, Serialize};
 
@@ -275,7 +276,7 @@ pub enum WarpShipError {
 /// Command a ship to chart the waypoint at its current location.  Most waypoints in the universe are uncharted by default. These waypoints have their traits hidden until they have been charted by a ship.  Charting a waypoint will record your agent as the one who created the chart, and all other agents would also be able to see the waypoint's traits. Charting a waypoint gives you a one time reward of credits based on the rarity of the waypoint's traits.
 pub async fn create_chart(
     configuration: &configuration::Configuration,
-    ship_symbol: &str,
+    ship_symbol: &ShipSymbol,
 ) -> Result<models::CreateChart201Response, Error<CreateChartError>> {
     let local_var_configuration = configuration;
 
@@ -324,7 +325,7 @@ pub async fn create_chart(
 /// Scan for nearby ships, retrieving information for all ships in range.  Requires a ship to have the `Sensor Array` mount installed to use.  The ship will enter a cooldown after using this function, during which it cannot execute certain actions.
 pub async fn create_ship_ship_scan(
     configuration: &configuration::Configuration,
-    ship_symbol: &str,
+    ship_symbol: &ShipSymbol,
 ) -> Result<models::CreateShipShipScan201Response, Error<CreateShipShipScanError>> {
     let local_var_configuration = configuration;
 
@@ -373,7 +374,7 @@ pub async fn create_ship_ship_scan(
 /// Scan for nearby systems, retrieving information on the systems' distance from the ship and their waypoints. Requires a ship to have the `Sensor Array` mount installed to use.  The ship will enter a cooldown after using this function, during which it cannot execute certain actions.
 pub async fn create_ship_system_scan(
     configuration: &configuration::Configuration,
-    ship_symbol: &str,
+    ship_symbol: &ShipSymbol,
 ) -> Result<models::CreateShipSystemScan201Response, Error<CreateShipSystemScanError>> {
     let local_var_configuration = configuration;
 
@@ -422,7 +423,7 @@ pub async fn create_ship_system_scan(
 /// Scan for nearby waypoints, retrieving detailed information on each waypoint in range. Scanning uncharted waypoints will allow you to ignore their uncharted state and will list the waypoints' traits.  Requires a ship to have the `Sensor Array` mount installed to use.  The ship will enter a cooldown after using this function, during which it cannot execute certain actions.
 pub async fn create_ship_waypoint_scan(
     configuration: &configuration::Configuration,
-    ship_symbol: &str,
+    ship_symbol: &ShipSymbol,
 ) -> Result<models::CreateShipWaypointScan201Response, Error<CreateShipWaypointScanError>> {
     let local_var_configuration = configuration;
 
@@ -471,7 +472,7 @@ pub async fn create_ship_waypoint_scan(
 /// Create surveys on a waypoint that can be extracted such as asteroid fields. A survey focuses on specific types of deposits from the extracted location. When ships extract using this survey, they are guaranteed to procure a high amount of one of the goods in the survey.  In order to use a survey, send the entire survey details in the body of the extract request.  Each survey may have multiple deposits, and if a symbol shows up more than once, that indicates a higher chance of extracting that resource.  Your ship will enter a cooldown after surveying in which it is unable to perform certain actions. Surveys will eventually expire after a period of time or will be exhausted after being extracted several times based on the survey's size. Multiple ships can use the same survey for extraction.  A ship must have the `Surveyor` mount installed in order to use this function.
 pub async fn create_survey(
     configuration: &configuration::Configuration,
-    ship_symbol: &str,
+    ship_symbol: &ShipSymbol,
 ) -> Result<models::CreateSurvey201Response, Error<CreateSurveyError>> {
     let local_var_configuration = configuration;
 
@@ -520,7 +521,7 @@ pub async fn create_survey(
 /// Attempt to dock your ship at its current location. Docking will only succeed if your ship is capable of docking at the time of the request.  Docked ships can access elements in their current location, such as the market or a shipyard, but cannot do actions that require the ship to be above surface such as navigating or extracting.  The endpoint is idempotent - successive calls will succeed even if the ship is already docked.
 pub async fn dock_ship(
     configuration: &configuration::Configuration,
-    ship_symbol: &str,
+    ship_symbol: &ShipSymbol,
 ) -> Result<models::DockShip200Response, Error<DockShipError>> {
     let local_var_configuration = configuration;
 
@@ -569,7 +570,7 @@ pub async fn dock_ship(
 /// Extract resources from a waypoint that can be extracted, such as asteroid fields, into your ship. Send an optional survey as the payload to target specific yields.  The ship must be in orbit to be able to extract and must have mining equipments installed that can extract goods, such as the `Gas Siphon` mount for gas-based goods or `Mining Laser` mount for ore-based goods.  The survey property is now deprecated. See the `extract/survey` endpoint for more details.
 pub async fn extract_resources(
     configuration: &configuration::Configuration,
-    ship_symbol: &str,
+    ship_symbol: &ShipSymbol,
 ) -> Result<models::ExtractResources201Response, Error<ExtractResourcesError>> {
     let local_var_configuration = configuration;
 
@@ -618,7 +619,7 @@ pub async fn extract_resources(
 /// Use a survey when extracting resources from a waypoint. This endpoint requires a survey as the payload, which allows your ship to extract specific yields.  Send the full survey object as the payload which will be validated according to the signature. If the signature is invalid, or any properties of the survey are changed, the request will fail.
 pub async fn extract_resources_with_survey(
     configuration: &configuration::Configuration,
-    ship_symbol: &str,
+    ship_symbol: &ShipSymbol,
     survey: Option<models::Survey>,
 ) -> Result<models::ExtractResources201Response, Error<ExtractResourcesWithSurveyError>> {
     let local_var_configuration = configuration;
@@ -669,7 +670,7 @@ pub async fn extract_resources_with_survey(
 /// Get the mounts installed on a ship.
 pub async fn get_mounts(
     configuration: &configuration::Configuration,
-    ship_symbol: &str,
+    ship_symbol: &ShipSymbol,
 ) -> Result<models::GetMounts200Response, Error<GetMountsError>> {
     let local_var_configuration = configuration;
 
@@ -718,7 +719,7 @@ pub async fn get_mounts(
 /// Retrieve the details of a ship under your agent's ownership.
 pub async fn get_my_ship(
     configuration: &configuration::Configuration,
-    ship_symbol: &str,
+    ship_symbol: &ShipSymbol,
 ) -> Result<models::GetMyShip200Response, Error<GetMyShipError>> {
     let local_var_configuration = configuration;
 
@@ -767,7 +768,7 @@ pub async fn get_my_ship(
 /// Retrieve the cargo of a ship under your agent's ownership.
 pub async fn get_my_ship_cargo(
     configuration: &configuration::Configuration,
-    ship_symbol: &str,
+    ship_symbol: &ShipSymbol,
 ) -> Result<models::GetMyShipCargo200Response, Error<GetMyShipCargoError>> {
     let local_var_configuration = configuration;
 
@@ -870,7 +871,7 @@ pub async fn get_my_ships(
 /// Get the cost of repairing a ship. Requires the ship to be docked at a waypoint that has the `Shipyard` trait.
 pub async fn get_repair_ship(
     configuration: &configuration::Configuration,
-    ship_symbol: &str,
+    ship_symbol: &ShipSymbol,
 ) -> Result<models::GetRepairShip200Response, Error<GetRepairShipError>> {
     let local_var_configuration = configuration;
 
@@ -919,7 +920,7 @@ pub async fn get_repair_ship(
 /// Get the value of scrapping a ship. Requires the ship to be docked at a waypoint that has the `Shipyard` trait.
 pub async fn get_scrap_ship(
     configuration: &configuration::Configuration,
-    ship_symbol: &str,
+    ship_symbol: &ShipSymbol,
 ) -> Result<models::GetScrapShip200Response, Error<GetScrapShipError>> {
     let local_var_configuration = configuration;
 
@@ -968,7 +969,7 @@ pub async fn get_scrap_ship(
 /// Retrieve the details of your ship's reactor cooldown. Some actions such as activating your jump drive, scanning, or extracting resources taxes your reactor and results in a cooldown.  Your ship cannot perform additional actions until your cooldown has expired. The duration of your cooldown is relative to the power consumption of the related modules or mounts for the action taken.  Response returns a 204 status code (no-content) when the ship has no cooldown.
 pub async fn get_ship_cooldown(
     configuration: &configuration::Configuration,
-    ship_symbol: &str,
+    ship_symbol: &ShipSymbol,
 ) -> Result<models::GetShipCooldown200Response, Error<GetShipCooldownError>> {
     let local_var_configuration = configuration;
 
@@ -1017,7 +1018,7 @@ pub async fn get_ship_cooldown(
 /// Get the modules installed on a ship.
 pub async fn get_ship_modules(
     configuration: &configuration::Configuration,
-    ship_symbol: &str,
+    ship_symbol: &ShipSymbol,
 ) -> Result<models::GetShipModules200Response, Error<GetShipModulesError>> {
     let local_var_configuration = configuration;
 
@@ -1066,7 +1067,7 @@ pub async fn get_ship_modules(
 /// Get the current nav status of a ship.
 pub async fn get_ship_nav(
     configuration: &configuration::Configuration,
-    ship_symbol: &str,
+    ship_symbol: &ShipSymbol,
 ) -> Result<models::GetShipNav200Response, Error<GetShipNavError>> {
     let local_var_configuration = configuration;
 
@@ -1115,7 +1116,7 @@ pub async fn get_ship_nav(
 /// Install a mount on a ship.  In order to install a mount, the ship must be docked and located in a waypoint that has a `Shipyard` trait. The ship also must have the mount to install in its cargo hold.  An installation fee will be deduced by the Shipyard for installing the mount on the ship.
 pub async fn install_mount(
     configuration: &configuration::Configuration,
-    ship_symbol: &str,
+    ship_symbol: &ShipSymbol,
     install_mount_request: models::InstallMountRequest,
 ) -> Result<models::InstallMount201Response, Error<InstallMountError>> {
     let local_var_configuration = configuration;
@@ -1166,7 +1167,7 @@ pub async fn install_mount(
 /// Install a module on a ship. The module must be in your cargo.
 pub async fn install_ship_module(
     configuration: &configuration::Configuration,
-    ship_symbol: &str,
+    ship_symbol: &ShipSymbol,
     install_ship_module_request: models::InstallShipModuleRequest,
 ) -> Result<models::InstallShipModule201Response, Error<InstallShipModuleError>> {
     let local_var_configuration = configuration;
@@ -1217,7 +1218,7 @@ pub async fn install_ship_module(
 /// Jettison cargo from your ship's cargo hold.
 pub async fn jettison(
     configuration: &configuration::Configuration,
-    ship_symbol: &str,
+    ship_symbol: &ShipSymbol,
     jettison_request: models::JettisonRequest,
 ) -> Result<models::Jettison200Response, Error<JettisonError>> {
     let local_var_configuration = configuration;
@@ -1268,7 +1269,7 @@ pub async fn jettison(
 /// Jump your ship instantly to a target connected waypoint. The ship must be in orbit to execute a jump.  A unit of antimatter is purchased and consumed from the market when jumping. The price of antimatter is determined by the market and is subject to change. A ship can only jump to connected waypoints
 pub async fn jump_ship(
     configuration: &configuration::Configuration,
-    ship_symbol: &str,
+    ship_symbol: &ShipSymbol,
     jump_ship_request: models::JumpShipRequest,
 ) -> Result<models::JumpShip200Response, Error<JumpShipError>> {
     let local_var_configuration = configuration;
@@ -1319,7 +1320,7 @@ pub async fn jump_ship(
 /// Navigate to a target destination. The ship must be in orbit to use this function. The destination waypoint must be within the same system as the ship's current location. Navigating will consume the necessary fuel from the ship's manifest based on the distance to the target waypoint.  The returned response will detail the route information including the expected time of arrival. Most ship actions are unavailable until the ship has arrived at it's destination.  To travel between systems, see the ship's Warp or Jump actions.
 pub async fn navigate_ship(
     configuration: &configuration::Configuration,
-    ship_symbol: &str,
+    ship_symbol: &ShipSymbol,
     navigate_ship_request: models::NavigateShipRequest,
 ) -> Result<models::NavigateShip200Response, Error<NavigateShipError>> {
     let local_var_configuration = configuration;
@@ -1370,7 +1371,7 @@ pub async fn navigate_ship(
 /// Negotiate a new contract with the HQ.  In order to negotiate a new contract, an agent must not have ongoing or offered contracts over the allowed maximum amount. Currently the maximum contracts an agent can have at a time is 1.  Once a contract is negotiated, it is added to the list of contracts offered to the agent, which the agent can then accept.   The ship must be present at any waypoint with a faction present to negotiate a contract with that faction.
 pub async fn negotiate_contract(
     configuration: &configuration::Configuration,
-    ship_symbol: &str,
+    ship_symbol: &ShipSymbol,
 ) -> Result<models::NegotiateContract201Response, Error<NegotiateContractError>> {
     let local_var_configuration = configuration;
 
@@ -1419,7 +1420,7 @@ pub async fn negotiate_contract(
 /// Attempt to move your ship into orbit at its current location. The request will only succeed if your ship is capable of moving into orbit at the time of the request.  Orbiting ships are able to do actions that require the ship to be above surface such as navigating or extracting, but cannot access elements in their current waypoint, such as the market or a shipyard.  The endpoint is idempotent - successive calls will succeed even if the ship is already in orbit.
 pub async fn orbit_ship(
     configuration: &configuration::Configuration,
-    ship_symbol: &str,
+    ship_symbol: &ShipSymbol,
 ) -> Result<models::OrbitShip200Response, Error<OrbitShipError>> {
     let local_var_configuration = configuration;
 
@@ -1468,7 +1469,7 @@ pub async fn orbit_ship(
 /// Update the nav configuration of a ship.  Currently only supports configuring the Flight Mode of the ship, which affects its speed and fuel consumption.
 pub async fn patch_ship_nav(
     configuration: &configuration::Configuration,
-    ship_symbol: &str,
+    ship_symbol: &ShipSymbol,
     patch_ship_nav_request: Option<models::PatchShipNavRequest>,
 ) -> Result<models::PatchShipNav200Response, Error<PatchShipNavError>> {
     let local_var_configuration = configuration;
@@ -1519,7 +1520,7 @@ pub async fn patch_ship_nav(
 /// Purchase cargo from a market.  The ship must be docked in a waypoint that has `Marketplace` trait, and the market must be selling a good to be able to purchase it.  The maximum amount of units of a good that can be purchased in each transaction are denoted by the `tradeVolume` value of the good, which can be viewed by using the Get Market action.  Purchased goods are added to the ship's cargo hold.
 pub async fn purchase_cargo(
     configuration: &configuration::Configuration,
-    ship_symbol: &str,
+    ship_symbol: &ShipSymbol,
     purchase_cargo_request: models::PurchaseCargoRequest,
 ) -> Result<models::PurchaseCargo201Response, Error<PurchaseCargoError>> {
     let local_var_configuration = configuration;
@@ -1616,7 +1617,7 @@ pub async fn purchase_ship(
 /// Refuel your ship by buying fuel from the local market.  Requires the ship to be docked in a waypoint that has the `Marketplace` trait, and the market must be selling fuel in order to refuel.  Each fuel bought from the market replenishes 100 units in your ship's fuel.  Ships will always be refuel to their frame's maximum fuel capacity when using this action.
 pub async fn refuel_ship(
     configuration: &configuration::Configuration,
-    ship_symbol: &str,
+    ship_symbol: &ShipSymbol,
     refuel_ship_request: Option<models::RefuelShipRequest>,
 ) -> Result<models::RefuelShip200Response, Error<RefuelShipError>> {
     let local_var_configuration = configuration;
@@ -1667,7 +1668,7 @@ pub async fn refuel_ship(
 /// Remove a mount from a ship.  The ship must be docked in a waypoint that has the `Shipyard` trait, and must have the desired mount that it wish to remove installed.  A removal fee will be deduced from the agent by the Shipyard.
 pub async fn remove_mount(
     configuration: &configuration::Configuration,
-    ship_symbol: &str,
+    ship_symbol: &ShipSymbol,
     remove_mount_request: models::RemoveMountRequest,
 ) -> Result<models::RemoveMount201Response, Error<RemoveMountError>> {
     let local_var_configuration = configuration;
@@ -1718,7 +1719,7 @@ pub async fn remove_mount(
 /// Remove a module from a ship. The module will be placed in cargo.
 pub async fn remove_ship_module(
     configuration: &configuration::Configuration,
-    ship_symbol: &str,
+    ship_symbol: &ShipSymbol,
     remove_ship_module_request: models::RemoveShipModuleRequest,
 ) -> Result<models::RemoveShipModule201Response, Error<RemoveShipModuleError>> {
     let local_var_configuration = configuration;
@@ -1769,7 +1770,7 @@ pub async fn remove_ship_module(
 /// Repair a ship, restoring the ship to maximum condition. The ship must be docked at a waypoint that has the `Shipyard` trait in order to use this function. To preview the cost of repairing the ship, use the Get action.
 pub async fn repair_ship(
     configuration: &configuration::Configuration,
-    ship_symbol: &str,
+    ship_symbol: &ShipSymbol,
 ) -> Result<models::RepairShip200Response, Error<RepairShipError>> {
     let local_var_configuration = configuration;
 
@@ -1818,7 +1819,7 @@ pub async fn repair_ship(
 /// Scrap a ship, removing it from the game and receiving a portion of the ship's value back in credits. The ship must be docked in a waypoint that has the `Shipyard` trait to be scrapped.
 pub async fn scrap_ship(
     configuration: &configuration::Configuration,
-    ship_symbol: &str,
+    ship_symbol: &ShipSymbol,
 ) -> Result<models::ScrapShip200Response, Error<ScrapShipError>> {
     let local_var_configuration = configuration;
 
@@ -1867,7 +1868,7 @@ pub async fn scrap_ship(
 /// Sell cargo in your ship to a market that trades this cargo. The ship must be docked in a waypoint that has the `Marketplace` trait in order to use this function.
 pub async fn sell_cargo(
     configuration: &configuration::Configuration,
-    ship_symbol: &str,
+    ship_symbol: &ShipSymbol,
     sell_cargo_request: models::SellCargoRequest,
 ) -> Result<models::SellCargo201Response, Error<SellCargoError>> {
     let local_var_configuration = configuration;
@@ -1918,7 +1919,7 @@ pub async fn sell_cargo(
 /// Attempt to refine the raw materials on your ship. The request will only succeed if your ship is capable of refining at the time of the request. In order to be able to refine, a ship must have goods that can be refined and have installed a `Refinery` module that can refine it.  When refining, 100 basic goods will be converted into 10 processed goods.
 pub async fn ship_refine(
     configuration: &configuration::Configuration,
-    ship_symbol: &str,
+    ship_symbol: &ShipSymbol,
     ship_refine_request: models::ShipRefineRequest,
 ) -> Result<models::ShipRefine201Response, Error<ShipRefineError>> {
     let local_var_configuration = configuration;
@@ -1969,7 +1970,7 @@ pub async fn ship_refine(
 /// Siphon gases or other resources from gas giants.  The ship must be in orbit to be able to siphon and must have siphon mounts and a gas processor installed.
 pub async fn siphon_resources(
     configuration: &configuration::Configuration,
-    ship_symbol: &str,
+    ship_symbol: &ShipSymbol,
 ) -> Result<models::SiphonResources201Response, Error<SiphonResourcesError>> {
     let local_var_configuration = configuration;
 
@@ -2018,7 +2019,7 @@ pub async fn siphon_resources(
 /// Transfer cargo between ships.  The receiving ship must be in the same waypoint as the transferring ship, and it must able to hold the additional cargo after the transfer is complete. Both ships also must be in the same state, either both are docked or both are orbiting.  The response body's cargo shows the cargo of the transferring ship after the transfer is complete.
 pub async fn transfer_cargo(
     configuration: &configuration::Configuration,
-    ship_symbol: &str,
+    ship_symbol: &ShipSymbol,
     transfer_cargo_request: models::TransferCargoRequest,
 ) -> Result<models::TransferCargo200Response, Error<TransferCargoError>> {
     let local_var_configuration = configuration;
@@ -2069,7 +2070,7 @@ pub async fn transfer_cargo(
 /// Warp your ship to a target destination in another system. The ship must be in orbit to use this function and must have the `Warp Drive` module installed. Warping will consume the necessary fuel from the ship's manifest.  The returned response will detail the route information including the expected time of arrival. Most ship actions are unavailable until the ship has arrived at its destination.
 pub async fn warp_ship(
     configuration: &configuration::Configuration,
-    ship_symbol: &str,
+    ship_symbol: &ShipSymbol,
     navigate_ship_request: models::NavigateShipRequest,
 ) -> Result<models::NavigateShip200Response, Error<WarpShipError>> {
     let local_var_configuration = configuration;

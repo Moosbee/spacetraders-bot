@@ -9,6 +9,7 @@
  */
 
 use crate::models;
+use crate::{ShipSymbol, SystemSymbol, WaypointSymbol};
 use serde::{Deserialize, Serialize};
 
 /// SystemWaypoint : Waypoint details.
@@ -16,7 +17,7 @@ use serde::{Deserialize, Serialize};
 pub struct SystemWaypoint {
     /// The symbol of the waypoint.
     #[serde(rename = "symbol")]
-    pub symbol: String,
+    pub symbol: WaypointSymbol,
     #[serde(rename = "type")]
     pub r#type: models::WaypointType,
     /// Relative position of the waypoint on the system's x axis. This is not an absolute position in the universe.
@@ -30,13 +31,13 @@ pub struct SystemWaypoint {
     pub orbitals: Vec<models::WaypointOrbital>,
     /// The symbol of the parent waypoint, if this waypoint is in orbit around another waypoint. Otherwise this value is undefined.
     #[serde(rename = "orbits", skip_serializing_if = "Option::is_none")]
-    pub orbits: Option<String>,
+    pub orbits: Option<WaypointSymbol>,
 }
 
 impl SystemWaypoint {
     /// Waypoint details.
     pub fn new(
-        symbol: String,
+        symbol: WaypointSymbol,
         r#type: models::WaypointType,
         x: i32,
         y: i32,

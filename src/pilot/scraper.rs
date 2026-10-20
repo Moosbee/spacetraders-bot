@@ -1,3 +1,5 @@
+use space_traders_client::ShipSymbol;
+use space_traders_client::WaypointSymbol;
 use std::sync::{Arc, atomic::AtomicI32};
 
 use chrono::Utc;
@@ -13,12 +15,12 @@ use crate::{
 
 pub struct ScraperPilot {
     context: ConductorContext,
-    ship_symbol: String,
+    ship_symbol: ShipSymbol,
     count: Arc<AtomicI32>,
 }
 
 impl ScraperPilot {
-    pub fn new(context: ConductorContext, ship_symbol: String) -> Self {
+    pub fn new(context: ConductorContext, ship_symbol: ShipSymbol) -> Self {
         Self {
             context,
             ship_symbol,
@@ -66,7 +68,7 @@ impl ScraperPilot {
             } => (waypoint_symbol, date),
         };
 
-        tracing::Span::current().record("scrap_waypoint", &waypoint_symbol);
+        tracing::Span::current().record("scrap_waypoint", waypoint_symbol.as_str());
         tracing::Span::current().record("scrap_date", date.to_rfc3339());
 
         let erg = self.scrap(ship, waypoint_symbol.clone(), date).await;
@@ -85,7 +87,7 @@ impl ScraperPilot {
     async fn scrap(
         &self,
         ship: &mut ship::MyShip,
-        waypoint_symbol: String,
+        waypoint_symbol: WaypointSymbol,
         date: chrono::DateTime<chrono::Utc>,
     ) -> Result<()> {
         self.count

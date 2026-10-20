@@ -1,3 +1,4 @@
+use space_traders_client::{SystemSymbol, WaypointSymbol};
 use std::{collections::HashMap, str::FromStr, sync::Arc};
 
 use space_traders_client::models::{self};
@@ -18,14 +19,20 @@ use super::{DatabaseConnectorAsync, DbPool, PaginatedQuery, PaginatedResult, run
 )]
 #[graphql(name = "DBWaypoint")]
 pub struct Waypoint {
-    pub symbol: String,
-    pub system_symbol: String,
+    pub symbol: WaypointSymbol,
+    pub system_symbol: SystemSymbol,
     pub created_at: sqlx::types::chrono::DateTime<chrono::Utc>,
     pub x: i32,
     pub y: i32,
     pub waypoint_type: models::WaypointType,
     pub traits: Vec<models::WaypointTraitSymbol>,
     pub is_under_construction: bool,
+    // These are waypoint symbols, but sqlx's `query_as!` macro decodes `text[]`
+    // and nullable `text` columns as `Vec<String>` / `Option<String>` and then
+    // relies on `From`/`Into` conversions. `From<Vec<String>> for
+    // Vec<WaypointSymbol>` (and the `Option` equivalent) can't be implemented
+    // because of Rust's orphan rules, so the row type keeps `String` here and
+    // converts to/from `WaypointSymbol` in the `From` impls below.
     pub orbitals: Vec<String>,
     pub orbits: Option<String>,
     pub faction: Option<String>,
@@ -58,8 +65,12 @@ impl From<&models::Waypoint> for Waypoint {
             waypoint_type: value.r#type,
             traits: value.traits.iter().map(|t| t.symbol).collect(),
             is_under_construction: value.is_under_construction,
-            orbitals: value.orbitals.iter().map(|o| o.symbol.clone()).collect(),
-            orbits: value.orbits.clone(),
+            orbitals: value
+                .orbitals
+                .iter()
+                .map(|o| o.symbol.clone().into_inner())
+                .collect(),
+            orbits: value.orbits.clone().map(|o| o.into_inner()),
             faction: value.faction.as_ref().map(|f| f.symbol.to_string()),
             modifiers: value
                 .modifiers
@@ -88,8 +99,12 @@ impl From<models::SystemWaypoint> for Waypoint {
             waypoint_type: value.r#type,
             x: value.x,
             y: value.y,
-            orbitals: value.orbitals.iter().map(|o| o.symbol.clone()).collect(),
-            orbits: value.orbits,
+            orbitals: value
+                .orbitals
+                .iter()
+                .map(|o| o.symbol.clone().into_inner())
+                .collect(),
+            orbits: value.orbits.map(|o| o.into_inner()),
             ..Default::default()
         }
     }
@@ -139,9 +154,9 @@ impl From<&Waypoint> for models::Waypoint {
             orbitals: value
                 .orbitals
                 .iter()
-                .map(|o| models::WaypointOrbital::new(o.clone()))
+                .map(|o| models::WaypointOrbital::new(o.clone().into()))
                 .collect(),
-            orbits: value.orbits.clone(),
+            orbits: value.orbits.clone().map(|o| o.into()),
             faction,
             modifiers: Some(
                 value
@@ -193,19 +208,18 @@ impl WaypointSystemLoader {
     }
 }
 
-impl Loader<String> for WaypointSystemLoader {
+impl Loader<SystemSymbol> for WaypointSystemLoader {
     type Value = Vec<Waypoint>;
     type Error = Arc<crate::Error>;
 
     #[instrument(level = "trace", skip(self, keys))]
-    async fn load(&self, keys: &[String]) -> Result<HashMap<String, Self::Value>, Self::Error> {
-        let mut map: HashMap<String, Vec<Waypoint>> = HashMap::new();
+    async fn load(
+        &self,
+        keys: &[SystemSymbol],
+    ) -> Result<HashMap<SystemSymbol, Self::Value>, Self::Error> {
+        let mut map: HashMap<SystemSymbol, Vec<Waypoint>> = HashMap::new();
 
-        let waypoints = Waypoint::get_by_systems(
-            &self.0,
-            &keys.iter().map(|k| k.as_str()).collect::<Vec<_>>(),
-        )
-        .await?;
+        let waypoints = Waypoint::get_by_systems(&self.0, &keys).await?;
 
         for waypoint in waypoints {
             map.entry(waypoint.system_symbol.clone())
@@ -225,13 +239,16 @@ impl WaypointLoader {
     }
 }
 
-impl Loader<String> for WaypointLoader {
+impl Loader<WaypointSymbol> for WaypointLoader {
     type Value = Waypoint;
     type Error = Arc<crate::Error>;
 
     #[instrument(level = "trace", skip(self, keys))]
-    async fn load(&self, keys: &[String]) -> Result<HashMap<String, Self::Value>, Self::Error> {
-        let mut map: HashMap<String, Waypoint> = HashMap::new();
+    async fn load(
+        &self,
+        keys: &[WaypointSymbol],
+    ) -> Result<HashMap<WaypointSymbol, Self::Value>, Self::Error> {
+        let mut map: HashMap<WaypointSymbol, Waypoint> = HashMap::new();
 
         let waypoints = Waypoint::get_by_symbols(
             &self.0,
@@ -258,9 +275,9 @@ impl Waypoint {
 
         let mut map: HashMap<String, HashMap<String, Waypoint>> = HashMap::new();
         for waypoint in erg {
-            map.entry(waypoint.system_symbol.clone())
+            map.entry(waypoint.system_symbol.clone().into_inner())
                 .or_default()
-                .insert(waypoint.symbol.clone(), waypoint);
+                .insert(waypoint.symbol.clone().into_inner(), waypoint);
         }
 
         Ok(map)
@@ -269,8 +286,12 @@ impl Waypoint {
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_systems(
         database_pool: &DbPool,
-        system_symbols: &[&str],
+        system_symbols: &[SystemSymbol],
     ) -> crate::Result<Vec<Waypoint>> {
+        let systems = system_symbols
+            .iter()
+            .map(|s| s.as_str())
+            .collect::<Vec<_>>();
         let erg = sqlx::query_as!(
             Waypoint,
             r#"
@@ -295,7 +316,7 @@ impl Waypoint {
                 FROM waypoint
                 WHERE system_symbol = ANY($1)
             "#,
-            system_symbols as &[&str]
+            &systems as &[&str]
         )
         .fetch_all(database_pool.get_cache_pool())
         .await?;
@@ -305,7 +326,7 @@ impl Waypoint {
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_system(
         database_pool: &DbPool,
-        system_symbol: &str,
+        system_symbol: &SystemSymbol,
         query: PaginatedQuery,
     ) -> crate::Result<PaginatedResult<Waypoint>> {
         let system_symbol_page = system_symbol.to_string();
@@ -436,7 +457,7 @@ impl Waypoint {
 }
 
 impl DatabaseConnectorAsync for Waypoint {
-    type ID = String;
+    type ID = WaypointSymbol;
 
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
     async fn insert_new(database_pool: &DbPool, item: &Waypoint) -> crate::Result<Self::ID> {
@@ -494,8 +515,8 @@ impl DatabaseConnectorAsync for Waypoint {
                 has_shipyard = EXCLUDED.has_shipyard,
                 has_marketplace = EXCLUDED.has_marketplace;
             "#,
-            &item.symbol,
-            &item.system_symbol,
+            &item.symbol.as_str(),
+            &item.system_symbol.as_str(),
             &item.x,
             &item.y,
             &item.waypoint_type as &models::WaypointType,
@@ -650,7 +671,7 @@ impl DatabaseConnectorAsync for Waypoint {
                 WHERE symbol = $1
                 LIMIT 1
             "#,
-            id
+            id.as_str()
         )
         .fetch_optional(database_pool.get_cache_pool())
         .await?;
@@ -664,7 +685,7 @@ impl DatabaseConnectorAsync for Waypoint {
                 DELETE FROM waypoint
                 WHERE symbol = $1
             "#,
-            id,
+            id.as_str(),
         )
         .execute(&database_pool.database_pool)
         .await?;

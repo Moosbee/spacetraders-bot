@@ -9,6 +9,7 @@
  */
 
 use crate::models;
+use crate::{ShipSymbol, SystemSymbol, WaypointSymbol};
 use serde::{Deserialize, Serialize};
 
 /// ShipyardTransaction : Results of a transaction with a shipyard.
@@ -16,10 +17,10 @@ use serde::{Deserialize, Serialize};
 pub struct ShipyardTransaction {
     /// The symbol of the waypoint.
     #[serde(rename = "waypointSymbol")]
-    pub waypoint_symbol: String,
+    pub waypoint_symbol: WaypointSymbol,
     /// The symbol of the ship type (e.g. SHIP_MINING_DRONE) that was the subject of the transaction. Contrary to what the name implies, this is NOT the symbol of the ship that was purchased.
     #[serde(rename = "shipSymbol")]
-    pub ship_symbol: String,
+    pub ship_symbol: ShipSymbol,
     /// The symbol of the ship type (e.g. SHIP_MINING_DRONE) that was the subject of the transaction.
     #[serde(rename = "shipType")]
     pub ship_type: String,
@@ -37,8 +38,8 @@ pub struct ShipyardTransaction {
 impl ShipyardTransaction {
     /// Results of a transaction with a shipyard.
     pub fn new(
-        waypoint_symbol: String,
-        ship_symbol: String,
+        waypoint_symbol: WaypointSymbol,
+        ship_symbol: ShipSymbol,
         ship_type: String,
         price: i32,
         agent_symbol: String,

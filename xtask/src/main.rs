@@ -80,7 +80,7 @@ async fn main() -> anyhow::Result<()> {
         } => analyze_logs::run(&file, total_lines, commands)?,
         Commands::Export { command } => match command {
             ExportCommand::Waypoints { system } => {
-                exports::export_waypoints(system.as_deref()).await?
+                exports::export_waypoints(system.map(|f| f.into()).as_ref()).await?
             }
             ExportCommand::Systems => exports::export_systems().await?,
             ExportCommand::JumpConnections => exports::export_jump_connections().await?,

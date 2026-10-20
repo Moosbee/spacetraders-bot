@@ -10,6 +10,7 @@
 
 use super::{configuration, Error, ResponseContentEntity};
 use crate::{apis::ResponseContent, models};
+use crate::{SystemSymbol, WaypointSymbol};
 use reqwest;
 use serde::{Deserialize, Serialize};
 
@@ -79,8 +80,8 @@ pub enum SupplyConstructionError {
 /// Get construction details for a waypoint. Requires a waypoint with a property of `isUnderConstruction` to be true.
 pub async fn get_construction(
     configuration: &configuration::Configuration,
-    system_symbol: &str,
-    waypoint_symbol: &str,
+    system_symbol: &SystemSymbol,
+    waypoint_symbol: &WaypointSymbol,
 ) -> Result<models::GetConstruction200Response, Error<GetConstructionError>> {
     let local_var_configuration = configuration;
 
@@ -130,8 +131,8 @@ pub async fn get_construction(
 /// Get jump gate details for a waypoint. Requires a waypoint of type `JUMP_GATE` to use.  Waypoints connected to this jump gate can be found by querying the waypoints in the system.
 pub async fn get_jump_gate(
     configuration: &configuration::Configuration,
-    system_symbol: &str,
-    waypoint_symbol: &str,
+    system_symbol: &SystemSymbol,
+    waypoint_symbol: &WaypointSymbol,
 ) -> Result<models::GetJumpGate200Response, Error<GetJumpGateError>> {
     let local_var_configuration = configuration;
 
@@ -181,8 +182,8 @@ pub async fn get_jump_gate(
 /// Retrieve imports, exports and exchange data from a marketplace. Requires a waypoint that has the `Marketplace` trait to use.  Send a ship to the waypoint to access trade good prices and recent transactions. Refer to the [Market Overview page](https://docs.spacetraders.io/game-concepts/markets) to gain better a understanding of the market in the game.
 pub async fn get_market(
     configuration: &configuration::Configuration,
-    system_symbol: &str,
-    waypoint_symbol: &str,
+    system_symbol: &SystemSymbol,
+    waypoint_symbol: &WaypointSymbol,
 ) -> Result<models::GetMarket200Response, Error<GetMarketError>> {
     let local_var_configuration = configuration;
 
@@ -232,8 +233,8 @@ pub async fn get_market(
 /// Get the shipyard for a waypoint. Requires a waypoint that has the `Shipyard` trait to use. Send a ship to the waypoint to access data on ships that are currently available for purchase and recent transactions.
 pub async fn get_shipyard(
     configuration: &configuration::Configuration,
-    system_symbol: &str,
-    waypoint_symbol: &str,
+    system_symbol: &SystemSymbol,
+    waypoint_symbol: &WaypointSymbol,
 ) -> Result<models::GetShipyard200Response, Error<GetShipyardError>> {
     let local_var_configuration = configuration;
 
@@ -283,7 +284,7 @@ pub async fn get_shipyard(
 /// Get the details of a system. Requires the system to have been visited or charted.
 pub async fn get_system(
     configuration: &configuration::Configuration,
-    system_symbol: &str,
+    system_symbol: &SystemSymbol,
 ) -> Result<models::GetSystem200Response, Error<GetSystemError>> {
     let local_var_configuration = configuration;
 
@@ -332,7 +333,7 @@ pub async fn get_system(
 /// Return a paginated list of all of the waypoints for a given system.  If a waypoint is uncharted, it will return the `Uncharted` trait instead of its actual traits.
 pub async fn get_system_waypoints(
     configuration: &configuration::Configuration,
-    system_symbol: &str,
+    system_symbol: &SystemSymbol,
     page: Option<i32>,
     limit: Option<i32>,
     r#type: Option<models::WaypointType>,
@@ -455,8 +456,8 @@ pub async fn get_systems(
 /// View the details of a waypoint.  If the waypoint is uncharted, it will return the 'Uncharted' trait instead of its actual traits.
 pub async fn get_waypoint(
     configuration: &configuration::Configuration,
-    system_symbol: &str,
-    waypoint_symbol: &str,
+    system_symbol: &SystemSymbol,
+    waypoint_symbol: &WaypointSymbol,
 ) -> Result<models::GetWaypoint200Response, Error<GetWaypointError>> {
     let local_var_configuration = configuration;
 
@@ -506,8 +507,8 @@ pub async fn get_waypoint(
 /// Supply a construction site with the specified good. Requires a waypoint with a property of `isUnderConstruction` to be true.  The good must be in your ship's cargo. The good will be removed from your ship's cargo and added to the construction site's materials.
 pub async fn supply_construction(
     configuration: &configuration::Configuration,
-    system_symbol: &str,
-    waypoint_symbol: &str,
+    system_symbol: &SystemSymbol,
+    waypoint_symbol: &WaypointSymbol,
     supply_construction_request: models::SupplyConstructionRequest,
 ) -> Result<models::SupplyConstruction201Response, Error<SupplyConstructionError>> {
     let local_var_configuration = configuration;

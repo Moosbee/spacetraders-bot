@@ -1,4 +1,5 @@
 use std::sync::{Arc, atomic::AtomicBool};
+use space_traders_client::WaypointSymbol;
 use tracing::instrument;
 
 use super::messages::{ChartManagerMessage, NextChartResp};
@@ -45,7 +46,7 @@ impl ChartManagerMessanger {
     }
 
     #[instrument(skip(self, waypoint_symbol), name = "ChartManagerMessanger::fail_chart", fields(waypoint = %waypoint_symbol))]
-    pub async fn fail_chart(&self, waypoint_symbol: String) -> Result<(), crate::error::Error> {
+    pub async fn fail_chart(&self, waypoint_symbol: WaypointSymbol) -> Result<(), crate::error::Error> {
         let message = ChartManagerMessage::Fail { waypoint_symbol };
         self.sender
             .send(message)
@@ -55,7 +56,7 @@ impl ChartManagerMessanger {
     }
 
     #[instrument(skip(self, waypoint_symbol), name = "ChartManagerMessanger::complete_chart", fields(waypoint = %waypoint_symbol))]
-    pub async fn complete_chart(&self, waypoint_symbol: String) -> Result<(), crate::error::Error> {
+    pub async fn complete_chart(&self, waypoint_symbol: WaypointSymbol) -> Result<(), crate::error::Error> {
         let message = ChartManagerMessage::Success { waypoint_symbol };
         self.sender
             .send(message)

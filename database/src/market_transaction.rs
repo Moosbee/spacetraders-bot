@@ -1,3 +1,4 @@
+use space_traders_client::{ShipSymbol, SystemSymbol, WaypointSymbol};
 use std::str::FromStr;
 
 use chrono::{DateTime, Utc};
@@ -19,9 +20,9 @@ use super::{DatabaseConnectorAsync, DbPool, PaginatedQuery, PaginatedResult, run
 pub struct MarketTransaction {
     pub id: i64,
     /// The symbol of the waypoint.
-    pub waypoint_symbol: String,
+    pub waypoint_symbol: WaypointSymbol,
     /// The symbol of the ship that made the transaction.
-    pub ship_symbol: String,
+    pub ship_symbol: ShipSymbol,
     /// The symbol of the trade good.
     pub trade_symbol: models::TradeSymbol,
     /// The type of transaction.
@@ -94,7 +95,7 @@ pub struct TransactionSummary {
 pub enum TransactionReason {
     Contract(String),
     TradeRoute(i32),
-    MiningWaypoint(String),
+    MiningWaypoint(WaypointSymbol),
     Construction(i64),
     #[default]
     None,
@@ -124,7 +125,7 @@ impl MarketTransaction {
             TransactionReason::MiningWaypoint(waypoint) => MarketTransaction {
                 contract: None,
                 trade_route: None,
-                mining: Some(waypoint),
+                mining: Some(waypoint.into_inner()),
                 ..self
             },
             TransactionReason::Construction(construction) => MarketTransaction {
@@ -168,7 +169,7 @@ impl MarketTransaction {
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_waypoint_and_trade_symbol(
         database_pool: &DbPool,
-        waypoint: &str,
+        waypoint: &WaypointSymbol,
         trade_symbol: models::TradeSymbol,
         query: PaginatedQuery,
     ) -> crate::Result<PaginatedResult<MarketTransaction>> {
@@ -516,7 +517,7 @@ impl MarketTransaction {
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_waypoint(
         database_pool: &DbPool,
-        waypoint: &str,
+        waypoint: &WaypointSymbol,
         query: PaginatedQuery,
     ) -> crate::Result<PaginatedResult<Self>> {
         run_paginated_query(
@@ -688,7 +689,7 @@ impl MarketTransaction {
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_by_system(
         database_pool: &DbPool,
-        system: &str,
+        system: &SystemSymbol,
         query: PaginatedQuery,
     ) -> crate::Result<PaginatedResult<Self>> {
         let system_qr = format!("{}-%", system);
@@ -1979,7 +1980,7 @@ impl MarketTransaction {
 
     pub async fn get_transaction_summary_by_waypoint(
         database_pool: &DbPool,
-        waypoint: &str,
+        waypoint: &WaypointSymbol,
     ) -> crate::Result<TransactionSummary> {
         let erg = sqlx::query_as!(
             TransactionSummary,
@@ -2114,7 +2115,7 @@ impl MarketTransaction {
 
     pub async fn get_transaction_summary_by_waypoint_and_trade_symbol(
         database_pool: &DbPool,
-        waypoint: &str,
+        waypoint: &WaypointSymbol,
         trade_symbol: models::TradeSymbol,
     ) -> crate::Result<TransactionSummary> {
         let erg = sqlx::query_as!(
@@ -2310,8 +2311,8 @@ impl DatabaseConnectorAsync for MarketTransaction {
       total_price = EXCLUDED.total_price
       returning id
     "#,
-    item.waypoint_symbol,
-    item.ship_symbol,
+    item.waypoint_symbol.as_str(),
+    item.ship_symbol.as_str(),
     item.trade_symbol as models::TradeSymbol,
     item.r#type as models::market_transaction::Type,
     item.units,
@@ -2355,8 +2356,8 @@ impl DatabaseConnectorAsync for MarketTransaction {
         ): (Vec<_>, Vec<_>, Vec<_>, Vec<_>, Vec<_>, Vec<_>, Vec<_>) =
             itertools::multiunzip(items.iter().map(|item| {
                 (
-                    item.waypoint_symbol.clone(),
-                    item.ship_symbol.clone(),
+                    item.waypoint_symbol.clone().into_inner(),
+                    item.ship_symbol.clone().into_inner(),
                     item.trade_symbol,
                     item.r#type,
                     item.units,
