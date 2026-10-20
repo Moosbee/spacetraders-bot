@@ -68,7 +68,7 @@ impl WaypointManager {
                 .map(|waypoint| {
                     waypoint.is_minable()
                         && (waypoint.waypoint_type != models::WaypointType::EngineeredAsteroid
-                            || ignore_engineered_asteroids)
+                            || !ignore_engineered_asteroids)
                         && waypoint
                             .unstable_since
                             .map(|last| {
@@ -97,7 +97,7 @@ impl WaypointManager {
             .map(|waypoint| {
                 waypoint.is_minable()
                     && (waypoint.waypoint_type != models::WaypointType::EngineeredAsteroid
-                        || ignore_engineered_asteroids)
+                        || !ignore_engineered_asteroids)
                     && waypoint
                         .unstable_since
                         .map(|last| {
@@ -128,7 +128,7 @@ impl WaypointManager {
                     ActionType::Extract => {
                         waypoint.is_minable()
                             && (waypoint.waypoint_type != models::WaypointType::EngineeredAsteroid
-                                || ignore_engineered_asteroids)
+                                || !ignore_engineered_asteroids)
                             && waypoint
                                 .unstable_since
                                 .map(|last| {
