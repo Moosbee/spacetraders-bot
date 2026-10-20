@@ -25,6 +25,8 @@ import {
   configToEntries,
   formatConfigValue,
 } from "../features/FleetConfig/ConfigRendering";
+import FaIcon from "../features/FontAwsome/FaIcon";
+import NounIcon from "../features/FontAwsome/NounIcon";
 import MoneyDisplay from "../features/MonyDisplay";
 import PageTitle from "../features/PageTitle";
 import RoleRenderer from "../features/RoleRenderer/RoleRenderer";
@@ -316,11 +318,93 @@ function System() {
       children: system?.y,
     },
     {
+      label: "Max Range",
+      key: "maxRange",
+      children: (
+        <Popover
+          content={
+            <Flex vertical>
+              {system?.minimumSpanningTree.map((edge, index) => (
+                <Flex justify="space-between" key={index}>
+                  <span>{edge.fromSymbol}</span> {"->"}
+                  <span>{edge.toSymbol}</span>
+                  <span>{Math.round(edge.distance * 1000) / 1000}</span>
+                </Flex>
+              ))}
+            </Flex>
+          }
+        >
+          {system?.minimumSpanningTree[system?.minimumSpanningTree.length - 1]
+            ?.distance
+            ? Math.ceil(
+                system?.minimumSpanningTree[
+                  system?.minimumSpanningTree.length - 1
+                ]?.distance,
+              )
+            : "N/A"}
+        </Popover>
+      ),
+    },
+    {
+      label: "Inner System",
+      key: "innerSystem",
+      children: (
+        <span>
+          <FaIcon
+            type="solid"
+            icon="fa-earth-oceania"
+            className="text-[rgb(165,42,42)]"
+          />{" "}
+          {system?.systemAnalyzation.innerSystemPlanetCount}|
+          <FaIcon
+            type="solid"
+            icon="fa-planet-ringed"
+            className="text-[rgb(173,216,230)]"
+          />{" "}
+          {system?.systemAnalyzation.innerSystemGasGiantCount}|
+          <FaIcon
+            type="solid"
+            icon="fa-moon"
+            className="text-[rgb(128,128,128)]"
+          />{" "}
+          {system?.systemAnalyzation.innerSystemMoonCount}|
+          <span className="text-[rgb(255,255,0)]">
+            <NounIcon name="space-station" />
+          </span>{" "}
+          {system?.systemAnalyzation.innerSystemOrbitalStationCount}
+        </span>
+      ),
+    },
+    {
+      label: "Asteroids",
+      key: "asteroidAnalysis",
+      children: (
+        <span>
+          {system?.systemAnalyzation.firstAsteroidCount} (
+          {system?.systemAnalyzation.firstAsteroidBaseCount}) /{" "}
+          {system?.systemAnalyzation.secondAsteroidCount} (
+          {system?.systemAnalyzation.secondAsteroidBaseCount})
+        </span>
+      ),
+    },
+    {
       label: "Waypoints",
       key: "waypoints",
-      children: `${system?.waypoints.items.filter((wp) => wp.chartedOn).length}/${
-        system?.waypoints.items.length
-      }`,
+      children: (
+        <span>
+          {system?.waypoints.items.filter((wp) => wp.chartedOn).length}/
+          {system?.waypoints.items.length}
+          {system?.systemAnalyzation.hasJumpGate && (
+            <span>
+              <FaIcon
+                type="solid"
+                icon="fa-bullseye-pointer"
+                className="ml-2 text-[rgb(255,255,0)]"
+              />
+            </span>
+          )}
+        </span>
+      ),
     },
     {
       label: "Marketplaces",
@@ -329,7 +413,7 @@ function System() {
         system?.waypoints.items
           .filter((wp) => wp.hasMarketplace)
           .filter((wp) => wp.chartedOn).length
-      }/${system?.waypoints.items.filter((wp) => wp.hasMarketplace).length}`,
+      }/${system?.waypoints.items.filter((wp) => wp.hasMarketplace).length} (${system?.systemAnalyzation.fuelStationCount})`,
     },
     {
       label: "Shipyards",
@@ -348,6 +432,7 @@ function System() {
     {
       label: "Market Opportunities",
       key: "marketOpportunities",
+      span: 2,
       children: (
         <span>
           {totalMarketOpportunities} (Strict: {strictMarketOpportunities}) (W.

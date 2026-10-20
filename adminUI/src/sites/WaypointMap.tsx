@@ -13,6 +13,7 @@ type MapConfig = {
   highlightSelectedWaypoint: boolean;
   showShips: boolean;
   showOnlyMarkets: boolean;
+  showMst?: "ALL" | "MARKET" | "NONE";
 };
 
 const defaultConfig: MapConfig = {
@@ -21,6 +22,7 @@ const defaultConfig: MapConfig = {
   highlightSelectedWaypoint: true,
   showShips: true,
   showOnlyMarkets: false,
+  showMst: "NONE",
 };
 
 function WpMap() {
@@ -89,6 +91,15 @@ function WpMap() {
         setConfig((c) => ({ ...c, showOnlyMarkets: value })),
       ),
     },
+    {
+      key: "showMst",
+      label: `Show MST Edges: ${config.showMst || "NONE"}`,
+      children: (["ALL", "MARKET", "NONE"] as const).map((value) => ({
+        key: value,
+        label: <span style={boldIf(config.showMst === value)}>{value}</span>,
+        onClick: () => setConfig((c) => ({ ...c, showMst: value })),
+      })),
+    },
     { type: "divider" as const },
     {
       key: "reset",
@@ -122,6 +133,8 @@ function WpMap() {
                 systemWaypoints={data.system.waypoints.items}
                 systemShips={data.system.ships}
                 config={config}
+                msp={data.system.minimumSpanningTree}
+                marketMsp={data.system.marketMinimumSpanningTree}
               />
             </MapHolder>
           </div>

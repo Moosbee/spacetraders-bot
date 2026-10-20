@@ -77,23 +77,37 @@ function WaypointMap({
   systemData,
   systemWaypoints,
   systemShips,
+  msp = [],
+  marketMsp = [],
   config = {
     showAutoPilot: "SELECTED",
     highlightSelectedShip: true,
     highlightSelectedWaypoint: true,
     showShips: true,
     showOnlyMarkets: false,
+    showMst: "NONE",
   },
 }: {
   systemData: SystemData;
   systemWaypoints: SystemWaypoint[];
   systemShips: SystemShip[];
+  marketMsp?: {
+    fromSymbol: string;
+    toSymbol: string;
+    distance: number;
+  }[];
+  msp?: {
+    fromSymbol: string;
+    toSymbol: string;
+    distance: number;
+  }[];
   config?: {
     showAutoPilot: "ALL" | "SELECTED" | "NONE";
     highlightSelectedShip: boolean;
     highlightSelectedWaypoint: boolean;
     showShips: boolean;
     showOnlyMarkets: boolean;
+    showMst?: "ALL" | "MARKET" | "NONE";
   };
 }) {
   // const ships = useAppSelector(selectAllShipsArray);
@@ -143,6 +157,25 @@ function WaypointMap({
     );
   }, [shipsMp, waypointsMp, selectedShip, config.showAutoPilot]);
 
+  const mspMp = useMemo(() => {
+    if (config.showMst === "NONE") return [];
+    return (config.showMst === "MARKET" ? marketMsp : msp).map((m) => {
+      const startWaypoint = waypointsMp.find(
+        (w) => w.waypoint.symbol === m.fromSymbol,
+      );
+      const endWaypoint = waypointsMp.find(
+        (w) => w.waypoint.symbol === m.toSymbol,
+      );
+      return {
+        ...m,
+        x1: startWaypoint?.xOne ?? 0,
+        y1: startWaypoint?.yOne ?? 0,
+        x2: endWaypoint?.xOne ?? 0,
+        y2: endWaypoint?.yOne ?? 0,
+      };
+    });
+  }, [config.showMst, marketMsp, msp, waypointsMp]);
+
   useEffect(() => {
     const intervalId = setInterval(() => {
       setShipsMp(createShipMapPoints(ships, waypointsMp, directions));
@@ -175,6 +208,7 @@ function WaypointMap({
       >
         {renderWaypointOrbits(waypointsMp, size)}
         {renderShipOrbits(shipsMp, size)}
+        {renderMstEdges(mspMp, size)}
         {renderRoutes(routesMp, size)}
       </svg>
       <div className={classes.waypointMapIn}>
@@ -297,6 +331,33 @@ function renderShipOrbits(shipsMp: ShipMapPoint[], size: number) {
       posOrbitCenter={s.posOrbitCenter}
       line={s.line}
       mode={s.mode}
+    />
+  ));
+}
+
+function renderMstEdges(
+  mspMp: {
+    x1: number;
+    y1: number;
+    x2: number;
+    y2: number;
+    fromSymbol: string;
+    toSymbol: string;
+    distance: number;
+  }[],
+  size: number,
+) {
+  return mspMp.map((m) => (
+    <WaypointMapRoute
+      size={size + 5 * m.distance}
+      key={m.fromSymbol + m.toSymbol + "mst"}
+      line={{
+        x1: m.x1,
+        y1: m.y1,
+        x2: m.x2,
+        y2: m.y2,
+      }}
+      mode="MSP"
     />
   ));
 }
@@ -509,6 +570,7 @@ function calculateRouteMapPoints(
       //   Math.pow(startWaypoint?.xOne ?? 0 - (endWaypoint?.xOne ?? 0), 2) +
       //     Math.pow(startWaypoint?.yOne ?? 0 - (endWaypoint?.yOne ?? 0), 2)
       // );
+      if (!startWaypoint || !endWaypoint) return [];
       const route: RouteMapPoint = {
         destination: s.ship.nav.route.destinationSymbol,
         wpSymbol: s.ship.nav.route.originSymbol,

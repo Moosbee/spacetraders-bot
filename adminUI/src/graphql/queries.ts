@@ -336,6 +336,33 @@ export const GET_SYSTEM = graphql(/* GraphQL */ `
         symbol
         count
       }
+      systemAnalyzation {
+        totalMarketCount
+        hasJumpGate
+        fuelStationCount
+        innerSystemCount
+        innerSystemPlanetCount
+        innerSystemPlanetOrbitalsCount
+        innerSystemGasGiantCount
+        innerSystemGasGiantOrbitalsCount
+        innerSystemMoonCount
+        innerSystemOrbitalStationCount
+        firstAsteroidBaseCount
+        secondAsteroidBaseCount
+        thirdAsteroidBaseCount
+        firstAsteroidCount
+        secondAsteroidCount
+        outerSystemGasGiantCount
+        outerSystemGasGiantOrbitalsCount
+        outerSystemMoonCount
+        outerSystemOrbitalStationCount
+        totalWaypointCount
+      }
+      minimumSpanningTree(onlyMarkets: true) {
+        fromSymbol
+        toSymbol
+        distance
+      }
       fleets {
         items {
           id
@@ -915,6 +942,16 @@ export const GET_SYSTEM_MAP = graphql(/* GraphQL */ `
       x
       y
       populationDisabled
+      marketMinimumSpanningTree: minimumSpanningTree(onlyMarkets: true) {
+        fromSymbol
+        toSymbol
+        distance
+      }
+      minimumSpanningTree(onlyMarkets: false) {
+        fromSymbol
+        toSymbol
+        distance
+      }
       waypoints {
         items {
           symbol

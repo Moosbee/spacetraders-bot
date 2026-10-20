@@ -22,6 +22,9 @@ export type Scalars = {
   DateTime: { input: string; output: string; }
   /** A scalar that can represent any JSON Object value. */
   JSONObject: { input: any; output: any; }
+  ShipSymbol: { input: string; output: string; }
+  SystemSymbol: { input: string; output: string; }
+  WaypointSymbol: { input: string; output: string; }
 };
 
 /**
@@ -40,7 +43,7 @@ export type Agent = {
   accountId?: Maybe<Scalars['String']['output']>;
   createdAt: Scalars['DateTime']['output'];
   credits: Scalars['Int']['output'];
-  headquarters: Scalars['String']['output'];
+  headquarters: Scalars['WaypointSymbol']['output'];
   headquartersSystem?: Maybe<System>;
   headquartersWaypoint?: Maybe<Waypoint>;
   history: Array<Agent>;
@@ -62,7 +65,7 @@ export enum AssignLevel {
 export type AssignedShip = {
   __typename?: 'AssignedShip';
   level: AssignLevel;
-  shipSymbol: Scalars['String']['output'];
+  shipSymbol: Scalars['ShipSymbol']['output'];
 };
 
 export type AssignmentStatus = ChartingStatus | ConstructionStatus | ContractStatus | ManuelStatus | MiningStatus | ScraperStatus | TraderStatus | TransferStatus;
@@ -93,15 +96,15 @@ export type AutopilotState = {
   __typename?: 'AutopilotState';
   arrival: Scalars['DateTime']['output'];
   departureTime: Scalars['DateTime']['output'];
-  destinationSymbol: Scalars['String']['output'];
+  destinationSymbol: Scalars['WaypointSymbol']['output'];
   destinationSystem?: Maybe<System>;
-  destinationSystemSymbol: Scalars['String']['output'];
+  destinationSystemSymbol: Scalars['SystemSymbol']['output'];
   destinationWaypoint?: Maybe<Waypoint>;
   distance: Scalars['Float']['output'];
   fuelCost: Scalars['Int']['output'];
-  originSymbol: Scalars['String']['output'];
+  originSymbol: Scalars['WaypointSymbol']['output'];
   originSystem?: Maybe<System>;
-  originSystemSymbol: Scalars['String']['output'];
+  originSystemSymbol: Scalars['SystemSymbol']['output'];
   originWaypoint?: Maybe<Waypoint>;
   route: AutopilotRoute;
   travelTime: Scalars['Float']['output'];
@@ -153,14 +156,14 @@ export type ChartTransaction = {
   id: Scalars['Int']['output'];
   ship?: Maybe<Ship>;
   /** The symbol of the ship. */
-  shipSymbol: Scalars['String']['output'];
+  shipSymbol: Scalars['ShipSymbol']['output'];
   /** The timestamp of the transaction. */
   timestamp: Scalars['DateTime']['output'];
   /** The total price of the transaction. */
   totalPrice: Scalars['Int']['output'];
   waypoint?: Maybe<Waypoint>;
   /** The symbol of the waypoint. */
-  waypointSymbol: Scalars['String']['output'];
+  waypointSymbol: Scalars['WaypointSymbol']['output'];
 };
 
 export type ChartTransactionPage = {
@@ -182,7 +185,7 @@ export type ChartingStatus = {
   cycle?: Maybe<Scalars['Int']['output']>;
   waitingForManager: Scalars['Boolean']['output'];
   waypoint?: Maybe<Waypoint>;
-  waypointSymbol?: Maybe<Scalars['String']['output']>;
+  waypointSymbol?: Maybe<Scalars['WaypointSymbol']['output']>;
 };
 
 export type ConcreteConnection = JumpConnection | NavigateConnection | WarpConnection;
@@ -245,7 +248,7 @@ export type ConstructionMaterial = {
   tradeSymbolInfo: TradeSymbolInfo;
   updatedAt: Scalars['DateTime']['output'];
   waypoint?: Maybe<Waypoint>;
-  waypointSymbol: Scalars['String']['output'];
+  waypointSymbol: Scalars['WaypointSymbol']['output'];
 };
 
 
@@ -277,7 +280,7 @@ export enum ConstructionMode {
 
 export type ConstructionShipment = {
   __typename?: 'ConstructionShipment';
-  constructionSiteWaypoint: Scalars['String']['output'];
+  constructionSiteWaypoint: Scalars['WaypointSymbol']['output'];
   constructionWaypoint?: Maybe<Waypoint>;
   createdAt: Scalars['DateTime']['output'];
   id: Scalars['Int']['output'];
@@ -286,12 +289,12 @@ export type ConstructionShipment = {
   material?: Maybe<ConstructionMaterial>;
   materialId: Scalars['Int']['output'];
   purchaseMarketTradeGood?: Maybe<MarketTradeGood>;
-  purchaseSiteWaypoint: Scalars['String']['output'];
+  purchaseSiteWaypoint: Scalars['WaypointSymbol']['output'];
   purchaseWaypoint?: Maybe<Waypoint>;
   reservation?: Maybe<ReservedFund>;
   reservedFund?: Maybe<Scalars['Int']['output']>;
   ship?: Maybe<Ship>;
-  shipSymbol: Scalars['String']['output'];
+  shipSymbol: Scalars['ShipSymbol']['output'];
   status: ShipmentStatus;
   tradeSymbol: TradeSymbol;
   tradeSymbolInfo: TradeSymbolInfo;
@@ -381,7 +384,7 @@ export type ContractDelivery = {
   contract?: Maybe<Contract>;
   contractId: Scalars['String']['output'];
   contractShipment: ContractShipmentPage;
-  destinationSymbol: Scalars['String']['output'];
+  destinationSymbol: Scalars['WaypointSymbol']['output'];
   tradeSymbol: TradeSymbol;
   tradeSymbolInfo: TradeSymbolInfo;
   unitsFulfilled: Scalars['Int']['output'];
@@ -428,14 +431,14 @@ export type ContractShipment = {
   contract?: Maybe<Contract>;
   contractId: Scalars['String']['output'];
   createdAt: Scalars['DateTime']['output'];
-  destinationSymbol: Scalars['String']['output'];
+  destinationSymbol: Scalars['WaypointSymbol']['output'];
   destinationWaypoint?: Maybe<Waypoint>;
   id: Scalars['Int']['output'];
   purchaseMarketTradeGood?: Maybe<MarketTradeGood>;
-  purchaseSymbol: Scalars['String']['output'];
+  purchaseSymbol: Scalars['WaypointSymbol']['output'];
   purchaseWaypoint?: Maybe<Waypoint>;
   ship?: Maybe<Ship>;
-  shipSymbol: Scalars['String']['output'];
+  shipSymbol: Scalars['ShipSymbol']['output'];
   status: ShipmentStatus;
   tradeSymbol: TradeSymbol;
   tradeSymbolInfo: TradeSymbolInfo;
@@ -495,13 +498,13 @@ export type Extraction = {
   ship?: Maybe<Ship>;
   shipInfoAfter: Scalars['Int']['output'];
   shipInfoBefore: Scalars['Int']['output'];
-  shipSymbol: Scalars['String']['output'];
+  shipSymbol: Scalars['ShipSymbol']['output'];
   siphon: Scalars['Boolean']['output'];
   survey?: Maybe<Survey>;
   survey_signature?: Maybe<Scalars['String']['output']>;
   tradeSymbolInfo: TradeSymbolInfo;
   waypoint?: Maybe<Waypoint>;
-  waypointSymbol: Scalars['String']['output'];
+  waypointSymbol: Scalars['WaypointSymbol']['output'];
   yieldSymbol: TradeSymbol;
   yieldUnits: Scalars['Int']['output'];
 };
@@ -526,7 +529,7 @@ export type ExtractorAssignment = {
   __typename?: 'ExtractorAssignment';
   extractions?: Maybe<Scalars['Int']['output']>;
   state: ExtractorState;
-  waypointSymbol?: Maybe<Scalars['String']['output']>;
+  waypointSymbol?: Maybe<Scalars['WaypointSymbol']['output']>;
 };
 
 export enum ExtractorState {
@@ -574,7 +577,7 @@ export type Fleet = {
   id: Scalars['Int']['output'];
   ships: Array<Ship>;
   system?: Maybe<System>;
-  systemSymbol: Scalars['String']['output'];
+  systemSymbol: Scalars['SystemSymbol']['output'];
   tempShips: Array<Ship>;
   updatedAt: Scalars['DateTime']['output'];
 };
@@ -646,9 +649,9 @@ export type GateConn = {
   fromA: Scalars['Boolean']['output'];
   fromB: Scalars['Boolean']['output'];
   pointA?: Maybe<Waypoint>;
-  pointASymbol: Scalars['String']['output'];
+  pointASymbol: Scalars['WaypointSymbol']['output'];
   pointB?: Maybe<Waypoint>;
-  pointBSymbol: Scalars['String']['output'];
+  pointBSymbol: Scalars['WaypointSymbol']['output'];
   underConstructionA: Scalars['Boolean']['output'];
   underConstructionB: Scalars['Boolean']['output'];
 };
@@ -821,21 +824,21 @@ export type JumpConnection = {
   cooldownTime: Scalars['Float']['output'];
   distance: Scalars['Float']['output'];
   end?: Maybe<Waypoint>;
-  endSymbol: Scalars['String']['output'];
+  endSymbol: Scalars['WaypointSymbol']['output'];
   endSystem?: Maybe<System>;
   start?: Maybe<Waypoint>;
-  startSymbol: Scalars['String']['output'];
+  startSymbol: Scalars['WaypointSymbol']['output'];
   startSystem?: Maybe<System>;
 };
 
 export type JumpGateConnection = {
   __typename?: 'JumpGateConnection';
   createdAt: Scalars['DateTime']['output'];
-  from: Scalars['String']['output'];
+  from: Scalars['WaypointSymbol']['output'];
   id: Scalars['Int']['output'];
   systemFrom?: Maybe<System>;
   systemTo?: Maybe<System>;
-  to: Scalars['String']['output'];
+  to: Scalars['WaypointSymbol']['output'];
   updatedAt: Scalars['DateTime']['output'];
   waypointFrom?: Maybe<Waypoint>;
   waypointTo?: Maybe<Waypoint>;
@@ -876,7 +879,7 @@ export type MarketTrade = {
   tradeSymbolInfo: TradeSymbolInfo;
   type: MarketTradeGoodType;
   waypoint?: Maybe<Waypoint>;
-  waypointSymbol: Scalars['String']['output'];
+  waypointSymbol: Scalars['WaypointSymbol']['output'];
 };
 
 
@@ -914,7 +917,7 @@ export type MarketTradeGood = {
   tradeVolume: Scalars['Int']['output'];
   type: MarketTradeGoodType;
   waypoint?: Maybe<Waypoint>;
-  waypointSymbol: Scalars['String']['output'];
+  waypointSymbol: Scalars['WaypointSymbol']['output'];
 };
 
 
@@ -983,7 +986,7 @@ export type MarketTransaction = {
   pricePerUnit: Scalars['Int']['output'];
   ship?: Maybe<Ship>;
   /** The symbol of the ship that made the transaction. */
-  shipSymbol: Scalars['String']['output'];
+  shipSymbol: Scalars['ShipSymbol']['output'];
   /** The timestamp of the transaction. */
   timestamp: Scalars['DateTime']['output'];
   /** The total price of the transaction. */
@@ -999,7 +1002,7 @@ export type MarketTransaction = {
   units: Scalars['Int']['output'];
   waypoint?: Maybe<Waypoint>;
   /** The symbol of the waypoint. */
-  waypointSymbol: Scalars['String']['output'];
+  waypointSymbol: Scalars['WaypointSymbol']['output'];
 };
 
 export type MarketTransactionBy =
@@ -1031,7 +1034,7 @@ export type MiningAssignment = {
   __typename?: 'MiningAssignment';
   assignedShips: Array<AssignedShip>;
   lastUpdated: Scalars['DateTime']['output'];
-  waypointSymbol: Scalars['String']['output'];
+  waypointSymbol: Scalars['WaypointSymbol']['output'];
 };
 
 export type MiningConfig = {
@@ -1226,13 +1229,13 @@ export type NavigateConnection = {
   distance: Scalars['Float']['output'];
   end?: Maybe<Waypoint>;
   endIsMarketplace: Scalars['Boolean']['output'];
-  endSymbol: Scalars['String']['output'];
+  endSymbol: Scalars['WaypointSymbol']['output'];
   endSystem?: Maybe<System>;
   navMode: ShipNavFlightMode;
   refuel: Refuel;
   start?: Maybe<Waypoint>;
   startIsMarketplace: Scalars['Boolean']['output'];
-  startSymbol: Scalars['String']['output'];
+  startSymbol: Scalars['WaypointSymbol']['output'];
   startSystem?: Maybe<System>;
   travelTime: Scalars['Float']['output'];
 };
@@ -1244,9 +1247,9 @@ export type NavigationState = {
   route: RouteState;
   status: ShipNavStatus;
   system?: Maybe<System>;
-  systemSymbol: Scalars['String']['output'];
+  systemSymbol: Scalars['SystemSymbol']['output'];
   waypoint?: Maybe<Waypoint>;
-  waypointSymbol: Scalars['String']['output'];
+  waypointSymbol: Scalars['WaypointSymbol']['output'];
 };
 
 export type QueryRoot = {
@@ -1598,11 +1601,11 @@ export type RepairTransaction = {
   __typename?: 'RepairTransaction';
   id: Scalars['Int']['output'];
   ship?: Maybe<Ship>;
-  shipSymbol: Scalars['String']['output'];
+  shipSymbol: Scalars['ShipSymbol']['output'];
   timestamp: Scalars['DateTime']['output'];
   totalPrice: Scalars['Int']['output'];
   waypoint?: Maybe<Waypoint>;
-  waypointSymbol: Scalars['String']['output'];
+  waypointSymbol: Scalars['WaypointSymbol']['output'];
 };
 
 export type RepairTransactionPage = {
@@ -1656,7 +1659,7 @@ export type Route = {
   __typename?: 'Route';
   createdAt: Scalars['DateTime']['output'];
   distance: Scalars['Float']['output'];
-  from: Scalars['String']['output'];
+  from: Scalars['WaypointSymbol']['output'];
   fuelCost: Scalars['Int']['output'];
   id: Scalars['Int']['output'];
   navMode: Scalars['String']['output'];
@@ -1665,8 +1668,8 @@ export type Route = {
   shipInfoBefore?: Maybe<Scalars['Int']['output']>;
   shipStateAfter?: Maybe<ShipState>;
   shipStateBefore?: Maybe<ShipState>;
-  shipSymbol: Scalars['String']['output'];
-  to: Scalars['String']['output'];
+  shipSymbol: Scalars['ShipSymbol']['output'];
+  to: Scalars['WaypointSymbol']['output'];
   travelTime: Scalars['Float']['output'];
   waypointFrom?: Maybe<Waypoint>;
   waypointTo?: Maybe<Waypoint>;
@@ -1676,7 +1679,7 @@ export type RouteLock = {
   __typename?: 'RouteLock';
   isEnd: Scalars['Boolean']['output'];
   symbol: TradeSymbol;
-  wpSymbol: Scalars['String']['output'];
+  wpSymbol: Scalars['WaypointSymbol']['output'];
 };
 
 export type RoutePage = {
@@ -1691,13 +1694,13 @@ export type RouteState = {
   __typename?: 'RouteState';
   arrival: Scalars['DateTime']['output'];
   departureTime: Scalars['DateTime']['output'];
-  destinationSymbol: Scalars['String']['output'];
+  destinationSymbol: Scalars['WaypointSymbol']['output'];
   destinationSystem?: Maybe<System>;
-  destinationSystemSymbol: Scalars['String']['output'];
+  destinationSystemSymbol: Scalars['SystemSymbol']['output'];
   destinationWaypoint?: Maybe<Waypoint>;
-  originSymbol: Scalars['String']['output'];
+  originSymbol: Scalars['WaypointSymbol']['output'];
   originSystem?: Maybe<System>;
-  originSystemSymbol: Scalars['String']['output'];
+  originSystemSymbol: Scalars['SystemSymbol']['output'];
   originWaypoint?: Maybe<Waypoint>;
 };
 
@@ -1705,7 +1708,7 @@ export type RunInfo = {
   __typename?: 'RunInfo';
   agent?: Maybe<Agent>;
   agentSymbol: Scalars['String']['output'];
-  headquarters: Scalars['String']['output'];
+  headquarters: Scalars['WaypointSymbol']['output'];
   headquartersSystem?: Maybe<System>;
   headquartersWaypoint?: Maybe<Waypoint>;
   nextResetDate: Scalars['DateTime']['output'];
@@ -1719,18 +1722,18 @@ export type RunInfo = {
 export type ScrapInfo = {
   __typename?: 'ScrapInfo';
   date: Scalars['DateTime']['output'];
-  waypointSymbol: Scalars['String']['output'];
+  waypointSymbol: Scalars['WaypointSymbol']['output'];
 };
 
 export type ScrapTransaction = {
   __typename?: 'ScrapTransaction';
   id: Scalars['Int']['output'];
   ship?: Maybe<Ship>;
-  shipSymbol: Scalars['String']['output'];
+  shipSymbol: Scalars['ShipSymbol']['output'];
   timestamp: Scalars['DateTime']['output'];
   totalPrice: Scalars['Int']['output'];
   waypoint?: Maybe<Waypoint>;
-  waypointSymbol: Scalars['String']['output'];
+  waypointSymbol: Scalars['WaypointSymbol']['output'];
 };
 
 export type ScrapTransactionPage = {
@@ -1747,7 +1750,7 @@ export type ScraperStatus = {
   scrapDate?: Maybe<Scalars['DateTime']['output']>;
   waitingForManager: Scalars['Boolean']['output'];
   waypoint?: Maybe<Waypoint>;
-  waypointSymbol?: Maybe<Scalars['String']['output']>;
+  waypointSymbol?: Maybe<Scalars['WaypointSymbol']['output']>;
 };
 
 export type ScrapingConfig = {
@@ -1811,7 +1814,7 @@ export type Ship = {
   shipStates: ShipStatePage;
   status: ShipStatus;
   surveys: SurveyPage;
-  symbol: Scalars['String']['output'];
+  symbol: Scalars['ShipSymbol']['output'];
   tradeRoutes: TradeRoutePage;
 };
 
@@ -1962,7 +1965,7 @@ export type ShipInfo = {
   purchaseId?: Maybe<Scalars['Int']['output']>;
   purchaseTransaction?: Maybe<ShipyardTransaction>;
   ship?: Maybe<Ship>;
-  symbol: Scalars['String']['output'];
+  symbol: Scalars['ShipSymbol']['output'];
   tempAssignment?: Maybe<ShipAssignment>;
   tempAssignmentId?: Maybe<Scalars['Int']['output']>;
 };
@@ -1978,15 +1981,15 @@ export type ShipInfoPage = {
 export type ShipJump = {
   __typename?: 'ShipJump';
   distance: Scalars['Int']['output'];
-  from: Scalars['String']['output'];
+  from: Scalars['WaypointSymbol']['output'];
   id: Scalars['Int']['output'];
   ship?: Maybe<Ship>;
   shipAfter: Scalars['Int']['output'];
   shipBefore: Scalars['Int']['output'];
   shipStateAfter?: Maybe<ShipState>;
   shipStateBefore?: Maybe<ShipState>;
-  shipSymbol: Scalars['String']['output'];
-  to: Scalars['String']['output'];
+  shipSymbol: Scalars['ShipSymbol']['output'];
+  to: Scalars['WaypointSymbol']['output'];
   waypointFrom?: Maybe<Waypoint>;
   waypointTo?: Maybe<Waypoint>;
 };
@@ -2003,13 +2006,13 @@ export type ShipModificationTransaction = {
   __typename?: 'ShipModificationTransaction';
   id: Scalars['Int']['output'];
   ship?: Maybe<Ship>;
-  shipSymbol: Scalars['String']['output'];
+  shipSymbol: Scalars['ShipSymbol']['output'];
   timestamp: Scalars['DateTime']['output'];
   totalPrice: Scalars['Int']['output'];
   tradeSymbol: TradeSymbol;
   tradeSymbolInfo: TradeSymbolInfo;
   waypoint?: Maybe<Waypoint>;
-  waypointSymbol: Scalars['String']['output'];
+  waypointSymbol: Scalars['WaypointSymbol']['output'];
 };
 
 export type ShipModificationTransactionPage = {
@@ -2102,7 +2105,6 @@ export enum ShipNavStatus {
 export type ShipProcurementManagerInfo = {
   __typename?: 'ShipProcurementManagerInfo';
   busy: Scalars['Boolean']['output'];
-  channelState: ChannelInfo;
   shouldRegenJumpGate: Scalars['Boolean']['output'];
 };
 
@@ -2183,7 +2185,7 @@ export type ShipState = {
   routeOriginSymbol?: Maybe<Waypoint>;
   routeOriginSystem?: Maybe<System>;
   ship?: Maybe<Ship>;
-  symbol: Scalars['String']['output'];
+  symbol: Scalars['ShipSymbol']['output'];
   systemSymbol?: Maybe<System>;
   waypointSymbol?: Maybe<Waypoint>;
 };
@@ -2260,7 +2262,7 @@ export type Shipyard = {
   shipyardShips: ShipyardShipPage;
   shipyardTransactions: ShipyardTransactionPage;
   waypoint?: Maybe<Waypoint>;
-  waypointSymbol: Scalars['String']['output'];
+  waypointSymbol: Scalars['WaypointSymbol']['output'];
 };
 
 
@@ -2321,7 +2323,7 @@ export type ShipyardShip = {
   supply: SupplyLevel;
   tradeSymbolInfo: TradeSymbolInfo;
   waypoint?: Maybe<Waypoint>;
-  waypointSymbol: Scalars['String']['output'];
+  waypointSymbol: Scalars['WaypointSymbol']['output'];
 };
 
 
@@ -2379,7 +2381,7 @@ export type ShipyardTransaction = {
   timestamp: Scalars['DateTime']['output'];
   tradeSymbolInfo: TradeSymbolInfo;
   waypoint?: Maybe<Waypoint>;
-  waypointSymbol: Scalars['String']['output'];
+  waypointSymbol: Scalars['WaypointSymbol']['output'];
 };
 
 export type ShipyardTransactionBy =
@@ -2400,7 +2402,7 @@ export type SiphonerAssignment = {
   __typename?: 'SiphonerAssignment';
   extractions?: Maybe<Scalars['Int']['output']>;
   state: ExtractorState;
-  waypointSymbol?: Maybe<Scalars['String']['output']>;
+  waypointSymbol?: Maybe<Scalars['WaypointSymbol']['output']>;
 };
 
 /**
@@ -2428,12 +2430,12 @@ export type Survey = {
   shipInfoBefore: Scalars['Int']['output'];
   shipStateAfter?: Maybe<ShipState>;
   shipStateBefore?: Maybe<ShipState>;
-  shipSymbol: Scalars['String']['output'];
+  shipSymbol: Scalars['ShipSymbol']['output'];
   signature: Scalars['String']['output'];
   size: SurveySize;
   updatedAt: Scalars['DateTime']['output'];
   waypoint?: Maybe<Waypoint>;
-  waypointSymbol: Scalars['String']['output'];
+  waypointSymbol: Scalars['WaypointSymbol']['output'];
 };
 
 
@@ -2476,7 +2478,7 @@ export enum SurveySize {
 export type SurveyorAssignment = {
   __typename?: 'SurveyorAssignment';
   surveys?: Maybe<Scalars['Int']['output']>;
-  waypointSymbol?: Maybe<Scalars['String']['output']>;
+  waypointSymbol?: Maybe<Scalars['WaypointSymbol']['output']>;
 };
 
 export type System = {
@@ -2504,7 +2506,7 @@ export type System = {
   shipyardShips: ShipyardShipPage;
   shipyardTransactions: ShipyardTransactionPage;
   surveys: SurveyPage;
-  symbol: Scalars['String']['output'];
+  symbol: Scalars['SystemSymbol']['output'];
   systemAnalyzation: SystemAnalyzation;
   systemType: SystemType;
   tradeRouteCandidates: TradeRouteCandidatePage;
@@ -2689,9 +2691,9 @@ export type SystemSpanningTreeEdge = {
   __typename?: 'SystemSpanningTreeEdge';
   distance: Scalars['Float']['output'];
   from?: Maybe<Waypoint>;
-  fromSymbol: Scalars['String']['output'];
+  fromSymbol: Scalars['WaypointSymbol']['output'];
   to?: Maybe<Waypoint>;
-  toSymbol: Scalars['String']['output'];
+  toSymbol: Scalars['WaypointSymbol']['output'];
 };
 
 /**
@@ -2727,8 +2729,8 @@ export enum TradeMode {
 
 export type TradeRoute = {
   __typename?: 'TradeRoute';
-  PurchaseWaypointSymbol: Scalars['String']['output'];
-  SellWaypointSymbol: Scalars['String']['output'];
+  PurchaseWaypointSymbol: Scalars['WaypointSymbol']['output'];
+  SellWaypointSymbol: Scalars['WaypointSymbol']['output'];
   assignment?: Maybe<ShipAssignment>;
   assignmentId?: Maybe<Scalars['Int']['output']>;
   createdAt: Scalars['DateTime']['output'];
@@ -2748,7 +2750,7 @@ export type TradeRoute = {
   sellTradeGoodId?: Maybe<Scalars['Int']['output']>;
   sellWaypoint?: Maybe<Waypoint>;
   ship?: Maybe<Ship>;
-  shipSymbol: Scalars['String']['output'];
+  shipSymbol: Scalars['ShipSymbol']['output'];
   status: ShipmentStatus;
   symbol: TradeSymbol;
   tradeMode: TradeMode;
@@ -3065,14 +3067,14 @@ export type TransferStatus = {
   __typename?: 'TransferStatus';
   assignmentId: Scalars['Int']['output'];
   fleetId: Scalars['Int']['output'];
-  systemSymbol: Scalars['String']['output'];
+  systemSymbol: Scalars['SystemSymbol']['output'];
 };
 
 export type TransporterAssignment = {
   __typename?: 'TransporterAssignment';
   cycles?: Maybe<Scalars['Int']['output']>;
   state: TransporterState;
-  waypointSymbol?: Maybe<Scalars['String']['output']>;
+  waypointSymbol?: Maybe<Scalars['WaypointSymbol']['output']>;
 };
 
 export enum TransporterState {
@@ -3094,13 +3096,13 @@ export type WarpConnection = {
   distance: Scalars['Float']['output'];
   end?: Maybe<Waypoint>;
   endIsMarketplace: Scalars['Boolean']['output'];
-  endSymbol: Scalars['String']['output'];
+  endSymbol: Scalars['WaypointSymbol']['output'];
   endSystem?: Maybe<System>;
   navMode: ShipNavFlightMode;
   refuel: Refuel;
   start?: Maybe<Waypoint>;
   startIsMarketplace: Scalars['Boolean']['output'];
-  startSymbol: Scalars['String']['output'];
+  startSymbol: Scalars['WaypointSymbol']['output'];
   startSystem?: Maybe<System>;
   travelTime: Scalars['Float']['output'];
 };
@@ -3142,9 +3144,9 @@ export type Waypoint = {
   shipyardShips: ShipyardShipPage;
   shipyardTransactions: ShipyardTransactionPage;
   surveys: SurveyPage;
-  symbol: Scalars['String']['output'];
+  symbol: Scalars['WaypointSymbol']['output'];
   system?: Maybe<System>;
-  systemSymbol: Scalars['String']['output'];
+  systemSymbol: Scalars['SystemSymbol']['output'];
   tradeRoutes: TradeRoutePage;
   tradeRoutesFrom: TradeRoutePage;
   tradeRoutesTo: TradeRoutePage;
@@ -3470,7 +3472,7 @@ export type GetSystemQueryVariables = Exact<{
 }>;
 
 
-export type GetSystemQuery = { __typename?: 'QueryRoot', system: { __typename?: 'System', symbol: string, sectorSymbol: string, constellation?: string | null, systemType: SystemType, x: number, y: number, populationDisabled: boolean, seenAgents: Array<{ __typename?: 'KnownAgent', symbol: string, count: number }>, fleets: { __typename?: 'FleetPage', items: Array<{ __typename?: 'Fleet', id: number, fleetType: FleetType, active: boolean, createdAt: string, updatedAt: string, assignments: { __typename?: 'ShipAssignmentPage', items: Array<{ __typename?: 'ShipAssignment', id: number, siphon: boolean, warpDrive: boolean, fleetId: number, priority: number, maxPurchasePrice: number, creditsThreshold: number, disabled: boolean, rangeMin: number, cargoMin: number, survey: boolean, extractor: boolean, ship: Array<{ __typename?: 'Ship', symbol: string }> }> }, config:
+export type GetSystemQuery = { __typename?: 'QueryRoot', system: { __typename?: 'System', symbol: string, sectorSymbol: string, constellation?: string | null, systemType: SystemType, x: number, y: number, populationDisabled: boolean, seenAgents: Array<{ __typename?: 'KnownAgent', symbol: string, count: number }>, systemAnalyzation: { __typename?: 'SystemAnalyzation', totalMarketCount: number, hasJumpGate: boolean, fuelStationCount: number, innerSystemCount: number, innerSystemPlanetCount: number, innerSystemPlanetOrbitalsCount: number, innerSystemGasGiantCount: number, innerSystemGasGiantOrbitalsCount: number, innerSystemMoonCount: number, innerSystemOrbitalStationCount: number, firstAsteroidBaseCount: number, secondAsteroidBaseCount: number, thirdAsteroidBaseCount: number, firstAsteroidCount: number, secondAsteroidCount: number, outerSystemGasGiantCount: number, outerSystemGasGiantOrbitalsCount: number, outerSystemMoonCount: number, outerSystemOrbitalStationCount: number, totalWaypointCount: number }, minimumSpanningTree: Array<{ __typename?: 'SystemSpanningTreeEdge', fromSymbol: string, toSymbol: string, distance: number }>, fleets: { __typename?: 'FleetPage', items: Array<{ __typename?: 'Fleet', id: number, fleetType: FleetType, active: boolean, createdAt: string, updatedAt: string, assignments: { __typename?: 'ShipAssignmentPage', items: Array<{ __typename?: 'ShipAssignment', id: number, siphon: boolean, warpDrive: boolean, fleetId: number, priority: number, maxPurchasePrice: number, creditsThreshold: number, disabled: boolean, rangeMin: number, cargoMin: number, survey: boolean, extractor: boolean, ship: Array<{ __typename?: 'Ship', symbol: string }> }> }, config:
           | { __typename: 'ChartingConfig', chartingProbeCount: number, chartOnlyJumpGates: boolean }
           | { __typename: 'ConstructionConfig', constructionShipCount: number, constructionWaypoint: string, constructionMode: ConstructionMode }
           | { __typename: 'ContractConfig', contractShipCount: number }
@@ -3534,7 +3536,7 @@ export type GetSystemMapQueryVariables = Exact<{
 }>;
 
 
-export type GetSystemMapQuery = { __typename?: 'QueryRoot', system: { __typename?: 'System', symbol: string, sectorSymbol: string, constellation?: string | null, systemType: SystemType, x: number, y: number, populationDisabled: boolean, waypoints: { __typename?: 'WaypointPage', items: Array<{ __typename?: 'Waypoint', symbol: string, faction?: string | null, modifiers: Array<WaypointModifierSymbol>, chartedBy?: string | null, chartedOn?: string | null, hasShipyard: boolean, hasMarketplace: boolean, x: number, y: number, lastScrap?: string | null, nextScrap?: string | null, waypointType: WaypointType, traits: Array<WaypointTraitSymbol>, isUnderConstruction: boolean, orbitals: Array<string>, orbits?: string | null, marketTrades: { __typename?: 'MarketTradePage', items: Array<{ __typename?: 'MarketTrade', symbol: TradeSymbol, type: MarketTradeGoodType, tradeSymbolInfo: { __typename?: 'TradeSymbolInfo', symbol: TradeSymbol, requires: { __typename?: 'TradeSymbolInfoPage', items: Array<{ __typename?: 'TradeSymbolInfo', symbol: TradeSymbol }> }, requiredBy: { __typename?: 'TradeSymbolInfoPage', items: Array<{ __typename?: 'TradeSymbolInfo', symbol: TradeSymbol }> } }, marketTradeGood?: { __typename?: 'MarketTradeGood', tradeVolume: number, supply: SupplyLevel, activity?: ActivityLevel | null, purchasePrice: number, sellPrice: number } | null }> }, shipyardShips: { __typename?: 'ShipyardShipPage', items: Array<{ __typename?: 'ShipyardShip', shipType: ShipType, supply: SupplyLevel, activity?: ActivityLevel | null, purchasePrice: number }> } }> }, ships: Array<{ __typename?: 'Ship', symbol: string, status: { __typename?: 'ShipStatus', waitingForManager: boolean, waitingForApi: boolean, status:
+export type GetSystemMapQuery = { __typename?: 'QueryRoot', system: { __typename?: 'System', symbol: string, sectorSymbol: string, constellation?: string | null, systemType: SystemType, x: number, y: number, populationDisabled: boolean, marketMinimumSpanningTree: Array<{ __typename?: 'SystemSpanningTreeEdge', fromSymbol: string, toSymbol: string, distance: number }>, minimumSpanningTree: Array<{ __typename?: 'SystemSpanningTreeEdge', fromSymbol: string, toSymbol: string, distance: number }>, waypoints: { __typename?: 'WaypointPage', items: Array<{ __typename?: 'Waypoint', symbol: string, faction?: string | null, modifiers: Array<WaypointModifierSymbol>, chartedBy?: string | null, chartedOn?: string | null, hasShipyard: boolean, hasMarketplace: boolean, x: number, y: number, lastScrap?: string | null, nextScrap?: string | null, waypointType: WaypointType, traits: Array<WaypointTraitSymbol>, isUnderConstruction: boolean, orbitals: Array<string>, orbits?: string | null, marketTrades: { __typename?: 'MarketTradePage', items: Array<{ __typename?: 'MarketTrade', symbol: TradeSymbol, type: MarketTradeGoodType, tradeSymbolInfo: { __typename?: 'TradeSymbolInfo', symbol: TradeSymbol, requires: { __typename?: 'TradeSymbolInfoPage', items: Array<{ __typename?: 'TradeSymbolInfo', symbol: TradeSymbol }> }, requiredBy: { __typename?: 'TradeSymbolInfoPage', items: Array<{ __typename?: 'TradeSymbolInfo', symbol: TradeSymbol }> } }, marketTradeGood?: { __typename?: 'MarketTradeGood', tradeVolume: number, supply: SupplyLevel, activity?: ActivityLevel | null, purchasePrice: number, sellPrice: number } | null }> }, shipyardShips: { __typename?: 'ShipyardShipPage', items: Array<{ __typename?: 'ShipyardShip', shipType: ShipType, supply: SupplyLevel, activity?: ActivityLevel | null, purchasePrice: number }> } }> }, ships: Array<{ __typename?: 'Ship', symbol: string, status: { __typename?: 'ShipStatus', waitingForManager: boolean, waitingForApi: boolean, status:
           | { __typename: 'ChartingStatus' }
           | { __typename: 'ConstructionStatus' }
           | { __typename: 'ContractStatus' }
@@ -3770,10 +3772,10 @@ export const GetSystemMapDataDocument = {"kind":"Document","definitions":[{"kind
 export const GetAllAgentsDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"GetAllAgents"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"agents"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"credits"}},{"kind":"Field","name":{"kind":"Name","value":"shipCount"}},{"kind":"Field","name":{"kind":"Name","value":"startingFaction"}},{"kind":"Field","name":{"kind":"Name","value":"headquarters"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}}]}}]}}]} as unknown as DocumentNode<GetAllAgentsQuery, GetAllAgentsQueryVariables>;
 export const GetAgentHistoryDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"GetAgentHistory"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"agentSymbol"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"agent"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"symbol"},"value":{"kind":"Variable","name":{"kind":"Name","value":"agentSymbol"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"credits"}},{"kind":"Field","name":{"kind":"Name","value":"shipCount"}},{"kind":"Field","name":{"kind":"Name","value":"accountId"}},{"kind":"Field","name":{"kind":"Name","value":"startingFaction"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}},{"kind":"Field","name":{"kind":"Name","value":"headquarters"}},{"kind":"Field","name":{"kind":"Name","value":"history"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"credits"}},{"kind":"Field","name":{"kind":"Name","value":"shipCount"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}}]}}]}}]}}]} as unknown as DocumentNode<GetAgentHistoryQuery, GetAgentHistoryQueryVariables>;
 export const GetAllSurveysDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"GetAllSurveys"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"surveys"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"shipInfoBefore"}},{"kind":"Field","name":{"kind":"Name","value":"updatedAt"}},{"kind":"Field","name":{"kind":"Name","value":"shipInfoAfter"}},{"kind":"Field","name":{"kind":"Name","value":"signature"}},{"kind":"Field","name":{"kind":"Name","value":"signature"}},{"kind":"Field","name":{"kind":"Name","value":"size"}},{"kind":"Field","name":{"kind":"Name","value":"waypointSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"deposits"}},{"kind":"Field","name":{"kind":"Name","value":"exhaustedSince"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}},{"kind":"Field","name":{"kind":"Name","value":"expiration"}}]}}]}}]}}]} as unknown as DocumentNode<GetAllSurveysQuery, GetAllSurveysQueryVariables>;
-export const GetSystemDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"GetSystem"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"systemSymbol"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"system"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"symbol"},"value":{"kind":"Variable","name":{"kind":"Name","value":"systemSymbol"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"sectorSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"constellation"}},{"kind":"Field","name":{"kind":"Name","value":"systemType"}},{"kind":"Field","name":{"kind":"Name","value":"x"}},{"kind":"Field","name":{"kind":"Name","value":"y"}},{"kind":"Field","name":{"kind":"Name","value":"populationDisabled"}},{"kind":"Field","name":{"kind":"Name","value":"seenAgents"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"count"}}]}},{"kind":"Field","name":{"kind":"Name","value":"fleets"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"fleetType"}},{"kind":"Field","name":{"kind":"Name","value":"active"}},{"kind":"Field","name":{"kind":"Name","value":"assignments"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"siphon"}},{"kind":"Field","name":{"kind":"Name","value":"warpDrive"}},{"kind":"Field","name":{"kind":"Name","value":"fleetId"}},{"kind":"Field","name":{"kind":"Name","value":"priority"}},{"kind":"Field","name":{"kind":"Name","value":"maxPurchasePrice"}},{"kind":"Field","name":{"kind":"Name","value":"creditsThreshold"}},{"kind":"Field","name":{"kind":"Name","value":"disabled"}},{"kind":"Field","name":{"kind":"Name","value":"rangeMin"}},{"kind":"Field","name":{"kind":"Name","value":"cargoMin"}},{"kind":"Field","name":{"kind":"Name","value":"survey"}},{"kind":"Field","name":{"kind":"Name","value":"extractor"}},{"kind":"Field","name":{"kind":"Name","value":"ship"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}}]}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"config"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"__typename"}},{"kind":"InlineFragment","typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"MiningConfig"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"miningEjectList"}},{"kind":"Field","name":{"kind":"Name","value":"miningTransportersPerWaypoint"}},{"kind":"Field","name":{"kind":"Name","value":"minTransporterCargoSpace"}},{"kind":"Field","name":{"kind":"Name","value":"minMiningCargoSpace"}},{"kind":"Field","name":{"kind":"Name","value":"minSiphonCargoSpace"}},{"kind":"Field","name":{"kind":"Name","value":"miningPreferList"}},{"kind":"Field","name":{"kind":"Name","value":"ignoreEngineeredAsteroids"}},{"kind":"Field","name":{"kind":"Name","value":"stopAllUnstable"}},{"kind":"Field","name":{"kind":"Name","value":"unstableSinceTimeout"}},{"kind":"Field","name":{"kind":"Name","value":"miningWaypoints"}},{"kind":"Field","name":{"kind":"Name","value":"syphonWaypoints"}},{"kind":"Field","name":{"kind":"Name","value":"minersPerWaypoint"}},{"kind":"Field","name":{"kind":"Name","value":"siphonersPerWaypoint"}},{"kind":"Field","name":{"kind":"Name","value":"surveyersPerWaypoint"}}]}},{"kind":"InlineFragment","typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"TradingConfig"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"marketBlacklist"}},{"kind":"Field","name":{"kind":"Name","value":"marketPreferList"}},{"kind":"Field","name":{"kind":"Name","value":"purchaseMultiplier"}},{"kind":"Field","name":{"kind":"Name","value":"tradeMode"}},{"kind":"Field","name":{"kind":"Name","value":"tradeProfitThreshold"}},{"kind":"Field","name":{"kind":"Name","value":"shipMarketRatio"}},{"kind":"Field","name":{"kind":"Name","value":"minCargoSpace"}}]}},{"kind":"InlineFragment","typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"ScrapingConfig"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"shipMarketRatio"}},{"kind":"Field","name":{"kind":"Name","value":"allowedRequests"}},{"kind":"Field","name":{"kind":"Name","value":"notifyOnShipyard"}}]}},{"kind":"InlineFragment","typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"ChartingConfig"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"chartingProbeCount"}},{"kind":"Field","name":{"kind":"Name","value":"chartOnlyJumpGates"}}]}},{"kind":"InlineFragment","typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"ConstructionConfig"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"constructionShipCount"}},{"kind":"Field","name":{"kind":"Name","value":"constructionWaypoint"}},{"kind":"Field","name":{"kind":"Name","value":"constructionMode"}}]}},{"kind":"InlineFragment","typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"ContractConfig"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"contractShipCount"}}]}},{"kind":"InlineFragment","typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"ManuelConfig"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"config"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}},{"kind":"Field","name":{"kind":"Name","value":"updatedAt"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"chartTransactions"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"waypointSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"shipSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"totalPrice"}},{"kind":"Field","name":{"kind":"Name","value":"timestamp"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"shipyardShips"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"reactorQuality"}},{"kind":"Field","name":{"kind":"Name","value":"engineType"}},{"kind":"Field","name":{"kind":"Name","value":"engineQuality"}},{"kind":"Field","name":{"kind":"Name","value":"modules"}},{"kind":"Field","name":{"kind":"Name","value":"mounts"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}},{"kind":"Field","name":{"kind":"Name","value":"waypointSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"shipType"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"supply"}},{"kind":"Field","name":{"kind":"Name","value":"activity"}},{"kind":"Field","name":{"kind":"Name","value":"purchasePrice"}},{"kind":"Field","name":{"kind":"Name","value":"frameType"}},{"kind":"Field","name":{"kind":"Name","value":"frameQuality"}},{"kind":"Field","name":{"kind":"Name","value":"reactorType"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"marketTrades"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"waypointSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}},{"kind":"Field","name":{"kind":"Name","value":"type"}},{"kind":"Field","name":{"kind":"Name","value":"tradeSymbolInfo"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"requires"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"requiredBy"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}}]}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"marketTradeGood"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"waypointSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"type"}},{"kind":"Field","name":{"kind":"Name","value":"tradeVolume"}},{"kind":"Field","name":{"kind":"Name","value":"supply"}},{"kind":"Field","name":{"kind":"Name","value":"activity"}},{"kind":"Field","name":{"kind":"Name","value":"purchasePrice"}},{"kind":"Field","name":{"kind":"Name","value":"sellPrice"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}}]}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"constructionMaterials"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"waypointSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"tradeSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"required"}},{"kind":"Field","name":{"kind":"Name","value":"fulfilled"}},{"kind":"Field","name":{"kind":"Name","value":"updatedAt"}},{"kind":"Field","name":{"kind":"Name","value":"marketTransactionSummary"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"allExpenses"}},{"kind":"Field","name":{"kind":"Name","value":"allPurchaseUnits"}},{"kind":"Field","name":{"kind":"Name","value":"allPurchaseTransactions"}}]}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"jumpGateConnections"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"from"}},{"kind":"Field","name":{"kind":"Name","value":"to"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"waypoints"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"systemSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"faction"}},{"kind":"Field","name":{"kind":"Name","value":"modifiers"}},{"kind":"Field","name":{"kind":"Name","value":"chartedBy"}},{"kind":"Field","name":{"kind":"Name","value":"chartedOn"}},{"kind":"Field","name":{"kind":"Name","value":"hasShipyard"}},{"kind":"Field","name":{"kind":"Name","value":"hasMarketplace"}},{"kind":"Field","name":{"kind":"Name","value":"x"}},{"kind":"Field","name":{"kind":"Name","value":"y"}},{"kind":"Field","name":{"kind":"Name","value":"lastScrap"}},{"kind":"Field","name":{"kind":"Name","value":"nextScrap"}},{"kind":"Field","name":{"kind":"Name","value":"waypointType"}},{"kind":"Field","name":{"kind":"Name","value":"traits"}},{"kind":"Field","name":{"kind":"Name","value":"isUnderConstruction"}},{"kind":"Field","name":{"kind":"Name","value":"orbitals"}},{"kind":"Field","name":{"kind":"Name","value":"orbits"}},{"kind":"Field","name":{"kind":"Name","value":"marketTrades"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"type"}},{"kind":"Field","name":{"kind":"Name","value":"tradeSymbolInfo"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"requires"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"requiredBy"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}}]}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"marketTradeGood"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"tradeVolume"}},{"kind":"Field","name":{"kind":"Name","value":"supply"}},{"kind":"Field","name":{"kind":"Name","value":"activity"}},{"kind":"Field","name":{"kind":"Name","value":"purchasePrice"}},{"kind":"Field","name":{"kind":"Name","value":"sellPrice"}}]}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"shipyardShips"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"shipType"}},{"kind":"Field","name":{"kind":"Name","value":"supply"}},{"kind":"Field","name":{"kind":"Name","value":"activity"}},{"kind":"Field","name":{"kind":"Name","value":"purchasePrice"}}]}}]}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"shipyardTransactions"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"waypointSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"shipType"}},{"kind":"Field","name":{"kind":"Name","value":"price"}},{"kind":"Field","name":{"kind":"Name","value":"agentSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"timestamp"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"contractDeliveries"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"contractId"}},{"kind":"Field","name":{"kind":"Name","value":"tradeSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"destinationSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"unitsRequired"}},{"kind":"Field","name":{"kind":"Name","value":"unitsFulfilled"}},{"kind":"Field","name":{"kind":"Name","value":"contract"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}},{"kind":"Field","name":{"kind":"Name","value":"factionSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"contractType"}},{"kind":"Field","name":{"kind":"Name","value":"accepted"}},{"kind":"Field","name":{"kind":"Name","value":"onFulfilled"}},{"kind":"Field","name":{"kind":"Name","value":"onAccepted"}},{"kind":"Field","name":{"kind":"Name","value":"deadline"}},{"kind":"Field","name":{"kind":"Name","value":"marketTransactionSummary"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"allExpenses"}}]}}]}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"tradeRoutes"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"marketTransactionSummary"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"allExpenses"}},{"kind":"Field","name":{"kind":"Name","value":"allIncome"}}]}},{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"shipSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"PurchaseWaypointSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"SellWaypointSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"tradeMode"}},{"kind":"Field","name":{"kind":"Name","value":"purchaseMarketTradeGood"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"tradeVolume"}},{"kind":"Field","name":{"kind":"Name","value":"supply"}},{"kind":"Field","name":{"kind":"Name","value":"activity"}},{"kind":"Field","name":{"kind":"Name","value":"purchasePrice"}},{"kind":"Field","name":{"kind":"Name","value":"sellPrice"}}]}},{"kind":"Field","name":{"kind":"Name","value":"sellMarketTradeGood"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"tradeVolume"}},{"kind":"Field","name":{"kind":"Name","value":"supply"}},{"kind":"Field","name":{"kind":"Name","value":"activity"}},{"kind":"Field","name":{"kind":"Name","value":"purchasePrice"}},{"kind":"Field","name":{"kind":"Name","value":"sellPrice"}}]}},{"kind":"Field","name":{"kind":"Name","value":"estimatedFuel"}},{"kind":"Field","name":{"kind":"Name","value":"status"}},{"kind":"Field","name":{"kind":"Name","value":"tradeVolume"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"ships"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"engineSpeed"}},{"kind":"Field","name":{"kind":"Name","value":"nav"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"waypointSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"status"}}]}},{"kind":"Field","name":{"kind":"Name","value":"fuel"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"capacity"}}]}},{"kind":"Field","name":{"kind":"Name","value":"cargo"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"capacity"}},{"kind":"Field","name":{"kind":"Name","value":"units"}},{"kind":"Field","name":{"kind":"Name","value":"inventory"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"units"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"status"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"assignmentId"}},{"kind":"Field","name":{"kind":"Name","value":"tempAssignmentId"}},{"kind":"Field","name":{"kind":"Name","value":"fleetId"}},{"kind":"Field","name":{"kind":"Name","value":"tempFleetId"}},{"kind":"Field","name":{"kind":"Name","value":"waitingForApi"}},{"kind":"Field","name":{"kind":"Name","value":"waitingForManager"}},{"kind":"Field","name":{"kind":"Name","value":"status"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"__typename"}},{"kind":"InlineFragment","typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"ChartingStatus"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"cycle"}},{"kind":"Field","name":{"kind":"Name","value":"waitingForManager"}},{"kind":"Field","name":{"kind":"Name","value":"waypointSymbol"}}]}},{"kind":"InlineFragment","typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"ConstructionStatus"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"cycle"}},{"kind":"Field","name":{"kind":"Name","value":"shipmentId"}},{"kind":"Field","name":{"kind":"Name","value":"shippingStatus"}},{"kind":"Field","name":{"kind":"Name","value":"waitingForManager"}}]}},{"kind":"InlineFragment","typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"ContractStatus"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"contractId"}},{"kind":"Field","name":{"kind":"Name","value":"runId"}},{"kind":"Field","name":{"kind":"Name","value":"cycle"}},{"kind":"Field","name":{"kind":"Name","value":"shippingStatus"}},{"kind":"Field","name":{"kind":"Name","value":"waitingForManager"}}]}},{"kind":"InlineFragment","typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"ManuelStatus"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"controlled"}}]}},{"kind":"InlineFragment","typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"MiningStatus"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"assignment"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"__typename"}},{"kind":"InlineFragment","typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"ExtractorAssignment"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"extractions"}},{"kind":"Field","name":{"kind":"Name","value":"state"}},{"kind":"Field","name":{"kind":"Name","value":"waypointSymbol"}}]}},{"kind":"InlineFragment","typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"SiphonerAssignment"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"extractions"}},{"kind":"Field","name":{"kind":"Name","value":"state"}},{"kind":"Field","name":{"kind":"Name","value":"waypointSymbol"}}]}},{"kind":"InlineFragment","typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"TransporterAssignment"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"cycles"}},{"kind":"Field","name":{"kind":"Name","value":"waypointSymbol"}}]}},{"kind":"InlineFragment","typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"SurveyorAssignment"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"surveys"}},{"kind":"Field","name":{"kind":"Name","value":"waypointSymbol"}}]}},{"kind":"InlineFragment","typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"IdleAssignment"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"controlled"}}]}},{"kind":"InlineFragment","typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"UselessAssignment"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"controlled"}}]}}]}}]}},{"kind":"InlineFragment","typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"ScraperStatus"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"cycle"}},{"kind":"Field","name":{"kind":"Name","value":"waitingForManager"}},{"kind":"Field","name":{"kind":"Name","value":"waypointSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"scrapDate"}}]}},{"kind":"InlineFragment","typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"TraderStatus"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"cycle"}},{"kind":"Field","name":{"kind":"Name","value":"shipmentId"}},{"kind":"Field","name":{"kind":"Name","value":"shippingStatus"}},{"kind":"Field","name":{"kind":"Name","value":"waitingForManager"}},{"kind":"Field","name":{"kind":"Name","value":"onSleep"}}]}},{"kind":"InlineFragment","typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"TransferStatus"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"assignmentId"}},{"kind":"Field","name":{"kind":"Name","value":"fleetId"}},{"kind":"Field","name":{"kind":"Name","value":"systemSymbol"}}]}}]}}]}}]}}]}}]}}]} as unknown as DocumentNode<GetSystemQuery, GetSystemQueryVariables>;
+export const GetSystemDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"GetSystem"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"systemSymbol"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"system"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"symbol"},"value":{"kind":"Variable","name":{"kind":"Name","value":"systemSymbol"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"sectorSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"constellation"}},{"kind":"Field","name":{"kind":"Name","value":"systemType"}},{"kind":"Field","name":{"kind":"Name","value":"x"}},{"kind":"Field","name":{"kind":"Name","value":"y"}},{"kind":"Field","name":{"kind":"Name","value":"populationDisabled"}},{"kind":"Field","name":{"kind":"Name","value":"seenAgents"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"count"}}]}},{"kind":"Field","name":{"kind":"Name","value":"systemAnalyzation"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalMarketCount"}},{"kind":"Field","name":{"kind":"Name","value":"hasJumpGate"}},{"kind":"Field","name":{"kind":"Name","value":"fuelStationCount"}},{"kind":"Field","name":{"kind":"Name","value":"innerSystemCount"}},{"kind":"Field","name":{"kind":"Name","value":"innerSystemPlanetCount"}},{"kind":"Field","name":{"kind":"Name","value":"innerSystemPlanetOrbitalsCount"}},{"kind":"Field","name":{"kind":"Name","value":"innerSystemGasGiantCount"}},{"kind":"Field","name":{"kind":"Name","value":"innerSystemGasGiantOrbitalsCount"}},{"kind":"Field","name":{"kind":"Name","value":"innerSystemMoonCount"}},{"kind":"Field","name":{"kind":"Name","value":"innerSystemOrbitalStationCount"}},{"kind":"Field","name":{"kind":"Name","value":"firstAsteroidBaseCount"}},{"kind":"Field","name":{"kind":"Name","value":"secondAsteroidBaseCount"}},{"kind":"Field","name":{"kind":"Name","value":"thirdAsteroidBaseCount"}},{"kind":"Field","name":{"kind":"Name","value":"firstAsteroidCount"}},{"kind":"Field","name":{"kind":"Name","value":"secondAsteroidCount"}},{"kind":"Field","name":{"kind":"Name","value":"outerSystemGasGiantCount"}},{"kind":"Field","name":{"kind":"Name","value":"outerSystemGasGiantOrbitalsCount"}},{"kind":"Field","name":{"kind":"Name","value":"outerSystemMoonCount"}},{"kind":"Field","name":{"kind":"Name","value":"outerSystemOrbitalStationCount"}},{"kind":"Field","name":{"kind":"Name","value":"totalWaypointCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"minimumSpanningTree"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"onlyMarkets"},"value":{"kind":"BooleanValue","value":true}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"fromSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"toSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"distance"}}]}},{"kind":"Field","name":{"kind":"Name","value":"fleets"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"fleetType"}},{"kind":"Field","name":{"kind":"Name","value":"active"}},{"kind":"Field","name":{"kind":"Name","value":"assignments"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"siphon"}},{"kind":"Field","name":{"kind":"Name","value":"warpDrive"}},{"kind":"Field","name":{"kind":"Name","value":"fleetId"}},{"kind":"Field","name":{"kind":"Name","value":"priority"}},{"kind":"Field","name":{"kind":"Name","value":"maxPurchasePrice"}},{"kind":"Field","name":{"kind":"Name","value":"creditsThreshold"}},{"kind":"Field","name":{"kind":"Name","value":"disabled"}},{"kind":"Field","name":{"kind":"Name","value":"rangeMin"}},{"kind":"Field","name":{"kind":"Name","value":"cargoMin"}},{"kind":"Field","name":{"kind":"Name","value":"survey"}},{"kind":"Field","name":{"kind":"Name","value":"extractor"}},{"kind":"Field","name":{"kind":"Name","value":"ship"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}}]}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"config"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"__typename"}},{"kind":"InlineFragment","typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"MiningConfig"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"miningEjectList"}},{"kind":"Field","name":{"kind":"Name","value":"miningTransportersPerWaypoint"}},{"kind":"Field","name":{"kind":"Name","value":"minTransporterCargoSpace"}},{"kind":"Field","name":{"kind":"Name","value":"minMiningCargoSpace"}},{"kind":"Field","name":{"kind":"Name","value":"minSiphonCargoSpace"}},{"kind":"Field","name":{"kind":"Name","value":"miningPreferList"}},{"kind":"Field","name":{"kind":"Name","value":"ignoreEngineeredAsteroids"}},{"kind":"Field","name":{"kind":"Name","value":"stopAllUnstable"}},{"kind":"Field","name":{"kind":"Name","value":"unstableSinceTimeout"}},{"kind":"Field","name":{"kind":"Name","value":"miningWaypoints"}},{"kind":"Field","name":{"kind":"Name","value":"syphonWaypoints"}},{"kind":"Field","name":{"kind":"Name","value":"minersPerWaypoint"}},{"kind":"Field","name":{"kind":"Name","value":"siphonersPerWaypoint"}},{"kind":"Field","name":{"kind":"Name","value":"surveyersPerWaypoint"}}]}},{"kind":"InlineFragment","typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"TradingConfig"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"marketBlacklist"}},{"kind":"Field","name":{"kind":"Name","value":"marketPreferList"}},{"kind":"Field","name":{"kind":"Name","value":"purchaseMultiplier"}},{"kind":"Field","name":{"kind":"Name","value":"tradeMode"}},{"kind":"Field","name":{"kind":"Name","value":"tradeProfitThreshold"}},{"kind":"Field","name":{"kind":"Name","value":"shipMarketRatio"}},{"kind":"Field","name":{"kind":"Name","value":"minCargoSpace"}}]}},{"kind":"InlineFragment","typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"ScrapingConfig"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"shipMarketRatio"}},{"kind":"Field","name":{"kind":"Name","value":"allowedRequests"}},{"kind":"Field","name":{"kind":"Name","value":"notifyOnShipyard"}}]}},{"kind":"InlineFragment","typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"ChartingConfig"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"chartingProbeCount"}},{"kind":"Field","name":{"kind":"Name","value":"chartOnlyJumpGates"}}]}},{"kind":"InlineFragment","typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"ConstructionConfig"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"constructionShipCount"}},{"kind":"Field","name":{"kind":"Name","value":"constructionWaypoint"}},{"kind":"Field","name":{"kind":"Name","value":"constructionMode"}}]}},{"kind":"InlineFragment","typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"ContractConfig"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"contractShipCount"}}]}},{"kind":"InlineFragment","typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"ManuelConfig"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"config"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}},{"kind":"Field","name":{"kind":"Name","value":"updatedAt"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"chartTransactions"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"waypointSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"shipSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"totalPrice"}},{"kind":"Field","name":{"kind":"Name","value":"timestamp"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"shipyardShips"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"reactorQuality"}},{"kind":"Field","name":{"kind":"Name","value":"engineType"}},{"kind":"Field","name":{"kind":"Name","value":"engineQuality"}},{"kind":"Field","name":{"kind":"Name","value":"modules"}},{"kind":"Field","name":{"kind":"Name","value":"mounts"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}},{"kind":"Field","name":{"kind":"Name","value":"waypointSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"shipType"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"supply"}},{"kind":"Field","name":{"kind":"Name","value":"activity"}},{"kind":"Field","name":{"kind":"Name","value":"purchasePrice"}},{"kind":"Field","name":{"kind":"Name","value":"frameType"}},{"kind":"Field","name":{"kind":"Name","value":"frameQuality"}},{"kind":"Field","name":{"kind":"Name","value":"reactorType"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"marketTrades"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"waypointSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}},{"kind":"Field","name":{"kind":"Name","value":"type"}},{"kind":"Field","name":{"kind":"Name","value":"tradeSymbolInfo"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"requires"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"requiredBy"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}}]}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"marketTradeGood"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"waypointSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"type"}},{"kind":"Field","name":{"kind":"Name","value":"tradeVolume"}},{"kind":"Field","name":{"kind":"Name","value":"supply"}},{"kind":"Field","name":{"kind":"Name","value":"activity"}},{"kind":"Field","name":{"kind":"Name","value":"purchasePrice"}},{"kind":"Field","name":{"kind":"Name","value":"sellPrice"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}}]}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"constructionMaterials"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"waypointSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"tradeSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"required"}},{"kind":"Field","name":{"kind":"Name","value":"fulfilled"}},{"kind":"Field","name":{"kind":"Name","value":"updatedAt"}},{"kind":"Field","name":{"kind":"Name","value":"marketTransactionSummary"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"allExpenses"}},{"kind":"Field","name":{"kind":"Name","value":"allPurchaseUnits"}},{"kind":"Field","name":{"kind":"Name","value":"allPurchaseTransactions"}}]}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"jumpGateConnections"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"from"}},{"kind":"Field","name":{"kind":"Name","value":"to"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"waypoints"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"systemSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"faction"}},{"kind":"Field","name":{"kind":"Name","value":"modifiers"}},{"kind":"Field","name":{"kind":"Name","value":"chartedBy"}},{"kind":"Field","name":{"kind":"Name","value":"chartedOn"}},{"kind":"Field","name":{"kind":"Name","value":"hasShipyard"}},{"kind":"Field","name":{"kind":"Name","value":"hasMarketplace"}},{"kind":"Field","name":{"kind":"Name","value":"x"}},{"kind":"Field","name":{"kind":"Name","value":"y"}},{"kind":"Field","name":{"kind":"Name","value":"lastScrap"}},{"kind":"Field","name":{"kind":"Name","value":"nextScrap"}},{"kind":"Field","name":{"kind":"Name","value":"waypointType"}},{"kind":"Field","name":{"kind":"Name","value":"traits"}},{"kind":"Field","name":{"kind":"Name","value":"isUnderConstruction"}},{"kind":"Field","name":{"kind":"Name","value":"orbitals"}},{"kind":"Field","name":{"kind":"Name","value":"orbits"}},{"kind":"Field","name":{"kind":"Name","value":"marketTrades"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"type"}},{"kind":"Field","name":{"kind":"Name","value":"tradeSymbolInfo"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"requires"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"requiredBy"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}}]}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"marketTradeGood"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"tradeVolume"}},{"kind":"Field","name":{"kind":"Name","value":"supply"}},{"kind":"Field","name":{"kind":"Name","value":"activity"}},{"kind":"Field","name":{"kind":"Name","value":"purchasePrice"}},{"kind":"Field","name":{"kind":"Name","value":"sellPrice"}}]}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"shipyardShips"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"shipType"}},{"kind":"Field","name":{"kind":"Name","value":"supply"}},{"kind":"Field","name":{"kind":"Name","value":"activity"}},{"kind":"Field","name":{"kind":"Name","value":"purchasePrice"}}]}}]}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"shipyardTransactions"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"waypointSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"shipType"}},{"kind":"Field","name":{"kind":"Name","value":"price"}},{"kind":"Field","name":{"kind":"Name","value":"agentSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"timestamp"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"contractDeliveries"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"contractId"}},{"kind":"Field","name":{"kind":"Name","value":"tradeSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"destinationSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"unitsRequired"}},{"kind":"Field","name":{"kind":"Name","value":"unitsFulfilled"}},{"kind":"Field","name":{"kind":"Name","value":"contract"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}},{"kind":"Field","name":{"kind":"Name","value":"factionSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"contractType"}},{"kind":"Field","name":{"kind":"Name","value":"accepted"}},{"kind":"Field","name":{"kind":"Name","value":"onFulfilled"}},{"kind":"Field","name":{"kind":"Name","value":"onAccepted"}},{"kind":"Field","name":{"kind":"Name","value":"deadline"}},{"kind":"Field","name":{"kind":"Name","value":"marketTransactionSummary"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"allExpenses"}}]}}]}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"tradeRoutes"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"marketTransactionSummary"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"allExpenses"}},{"kind":"Field","name":{"kind":"Name","value":"allIncome"}}]}},{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"shipSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"PurchaseWaypointSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"SellWaypointSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"tradeMode"}},{"kind":"Field","name":{"kind":"Name","value":"purchaseMarketTradeGood"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"tradeVolume"}},{"kind":"Field","name":{"kind":"Name","value":"supply"}},{"kind":"Field","name":{"kind":"Name","value":"activity"}},{"kind":"Field","name":{"kind":"Name","value":"purchasePrice"}},{"kind":"Field","name":{"kind":"Name","value":"sellPrice"}}]}},{"kind":"Field","name":{"kind":"Name","value":"sellMarketTradeGood"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"tradeVolume"}},{"kind":"Field","name":{"kind":"Name","value":"supply"}},{"kind":"Field","name":{"kind":"Name","value":"activity"}},{"kind":"Field","name":{"kind":"Name","value":"purchasePrice"}},{"kind":"Field","name":{"kind":"Name","value":"sellPrice"}}]}},{"kind":"Field","name":{"kind":"Name","value":"estimatedFuel"}},{"kind":"Field","name":{"kind":"Name","value":"status"}},{"kind":"Field","name":{"kind":"Name","value":"tradeVolume"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"ships"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"engineSpeed"}},{"kind":"Field","name":{"kind":"Name","value":"nav"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"waypointSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"status"}}]}},{"kind":"Field","name":{"kind":"Name","value":"fuel"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"capacity"}}]}},{"kind":"Field","name":{"kind":"Name","value":"cargo"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"capacity"}},{"kind":"Field","name":{"kind":"Name","value":"units"}},{"kind":"Field","name":{"kind":"Name","value":"inventory"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"units"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"status"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"assignmentId"}},{"kind":"Field","name":{"kind":"Name","value":"tempAssignmentId"}},{"kind":"Field","name":{"kind":"Name","value":"fleetId"}},{"kind":"Field","name":{"kind":"Name","value":"tempFleetId"}},{"kind":"Field","name":{"kind":"Name","value":"waitingForApi"}},{"kind":"Field","name":{"kind":"Name","value":"waitingForManager"}},{"kind":"Field","name":{"kind":"Name","value":"status"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"__typename"}},{"kind":"InlineFragment","typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"ChartingStatus"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"cycle"}},{"kind":"Field","name":{"kind":"Name","value":"waitingForManager"}},{"kind":"Field","name":{"kind":"Name","value":"waypointSymbol"}}]}},{"kind":"InlineFragment","typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"ConstructionStatus"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"cycle"}},{"kind":"Field","name":{"kind":"Name","value":"shipmentId"}},{"kind":"Field","name":{"kind":"Name","value":"shippingStatus"}},{"kind":"Field","name":{"kind":"Name","value":"waitingForManager"}}]}},{"kind":"InlineFragment","typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"ContractStatus"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"contractId"}},{"kind":"Field","name":{"kind":"Name","value":"runId"}},{"kind":"Field","name":{"kind":"Name","value":"cycle"}},{"kind":"Field","name":{"kind":"Name","value":"shippingStatus"}},{"kind":"Field","name":{"kind":"Name","value":"waitingForManager"}}]}},{"kind":"InlineFragment","typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"ManuelStatus"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"controlled"}}]}},{"kind":"InlineFragment","typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"MiningStatus"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"assignment"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"__typename"}},{"kind":"InlineFragment","typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"ExtractorAssignment"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"extractions"}},{"kind":"Field","name":{"kind":"Name","value":"state"}},{"kind":"Field","name":{"kind":"Name","value":"waypointSymbol"}}]}},{"kind":"InlineFragment","typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"SiphonerAssignment"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"extractions"}},{"kind":"Field","name":{"kind":"Name","value":"state"}},{"kind":"Field","name":{"kind":"Name","value":"waypointSymbol"}}]}},{"kind":"InlineFragment","typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"TransporterAssignment"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"cycles"}},{"kind":"Field","name":{"kind":"Name","value":"waypointSymbol"}}]}},{"kind":"InlineFragment","typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"SurveyorAssignment"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"surveys"}},{"kind":"Field","name":{"kind":"Name","value":"waypointSymbol"}}]}},{"kind":"InlineFragment","typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"IdleAssignment"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"controlled"}}]}},{"kind":"InlineFragment","typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"UselessAssignment"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"controlled"}}]}}]}}]}},{"kind":"InlineFragment","typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"ScraperStatus"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"cycle"}},{"kind":"Field","name":{"kind":"Name","value":"waitingForManager"}},{"kind":"Field","name":{"kind":"Name","value":"waypointSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"scrapDate"}}]}},{"kind":"InlineFragment","typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"TraderStatus"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"cycle"}},{"kind":"Field","name":{"kind":"Name","value":"shipmentId"}},{"kind":"Field","name":{"kind":"Name","value":"shippingStatus"}},{"kind":"Field","name":{"kind":"Name","value":"waitingForManager"}},{"kind":"Field","name":{"kind":"Name","value":"onSleep"}}]}},{"kind":"InlineFragment","typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"TransferStatus"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"assignmentId"}},{"kind":"Field","name":{"kind":"Name","value":"fleetId"}},{"kind":"Field","name":{"kind":"Name","value":"systemSymbol"}}]}}]}}]}}]}}]}}]}}]} as unknown as DocumentNode<GetSystemQuery, GetSystemQueryVariables>;
 export const GetSystemMarketsDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"GetSystemMarkets"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"systemSymbol"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"system"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"symbol"},"value":{"kind":"Variable","name":{"kind":"Name","value":"systemSymbol"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"fleets"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"fleetType"}},{"kind":"Field","name":{"kind":"Name","value":"active"}},{"kind":"Field","name":{"kind":"Name","value":"assignments"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"siphon"}},{"kind":"Field","name":{"kind":"Name","value":"warpDrive"}},{"kind":"Field","name":{"kind":"Name","value":"fleetId"}},{"kind":"Field","name":{"kind":"Name","value":"priority"}},{"kind":"Field","name":{"kind":"Name","value":"maxPurchasePrice"}},{"kind":"Field","name":{"kind":"Name","value":"creditsThreshold"}},{"kind":"Field","name":{"kind":"Name","value":"disabled"}},{"kind":"Field","name":{"kind":"Name","value":"rangeMin"}},{"kind":"Field","name":{"kind":"Name","value":"cargoMin"}},{"kind":"Field","name":{"kind":"Name","value":"survey"}},{"kind":"Field","name":{"kind":"Name","value":"extractor"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"config"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"__typename"}},{"kind":"InlineFragment","typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"TradingConfig"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"tradeMode"}},{"kind":"Field","name":{"kind":"Name","value":"marketBlacklist"}},{"kind":"Field","name":{"kind":"Name","value":"marketPreferList"}},{"kind":"Field","name":{"kind":"Name","value":"purchaseMultiplier"}},{"kind":"Field","name":{"kind":"Name","value":"tradeProfitThreshold"}},{"kind":"Field","name":{"kind":"Name","value":"shipMarketRatio"}},{"kind":"Field","name":{"kind":"Name","value":"minCargoSpace"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}},{"kind":"Field","name":{"kind":"Name","value":"updatedAt"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"ships"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"nav"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"waypointSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"status"}}]}},{"kind":"Field","name":{"kind":"Name","value":"fuel"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"capacity"}}]}},{"kind":"Field","name":{"kind":"Name","value":"cargo"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"capacity"}}]}},{"kind":"Field","name":{"kind":"Name","value":"engineSpeed"}},{"kind":"Field","name":{"kind":"Name","value":"status"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"assignmentId"}},{"kind":"Field","name":{"kind":"Name","value":"fleetId"}},{"kind":"Field","name":{"kind":"Name","value":"tempAssignmentId"}},{"kind":"Field","name":{"kind":"Name","value":"tempFleetId"}},{"kind":"Field","name":{"kind":"Name","value":"status"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"__typename"}}]}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"marketTrades"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"waypointSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}},{"kind":"Field","name":{"kind":"Name","value":"type"}},{"kind":"Field","name":{"kind":"Name","value":"tradeSymbolInfo"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"requires"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"requiredBy"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}}]}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"marketTradeGood"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"waypointSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"type"}},{"kind":"Field","name":{"kind":"Name","value":"tradeVolume"}},{"kind":"Field","name":{"kind":"Name","value":"supply"}},{"kind":"Field","name":{"kind":"Name","value":"activity"}},{"kind":"Field","name":{"kind":"Name","value":"purchasePrice"}},{"kind":"Field","name":{"kind":"Name","value":"sellPrice"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}}]}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"tradeRoutes"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"marketTransactionSummary"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"allExpenses"}},{"kind":"Field","name":{"kind":"Name","value":"allIncome"}}]}},{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"shipSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"PurchaseWaypointSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"SellWaypointSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"tradeMode"}},{"kind":"Field","name":{"kind":"Name","value":"purchaseMarketTradeGood"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"tradeVolume"}},{"kind":"Field","name":{"kind":"Name","value":"supply"}},{"kind":"Field","name":{"kind":"Name","value":"activity"}},{"kind":"Field","name":{"kind":"Name","value":"purchasePrice"}},{"kind":"Field","name":{"kind":"Name","value":"sellPrice"}}]}},{"kind":"Field","name":{"kind":"Name","value":"sellMarketTradeGood"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"tradeVolume"}},{"kind":"Field","name":{"kind":"Name","value":"supply"}},{"kind":"Field","name":{"kind":"Name","value":"activity"}},{"kind":"Field","name":{"kind":"Name","value":"purchasePrice"}},{"kind":"Field","name":{"kind":"Name","value":"sellPrice"}}]}},{"kind":"Field","name":{"kind":"Name","value":"estimatedFuel"}},{"kind":"Field","name":{"kind":"Name","value":"status"}},{"kind":"Field","name":{"kind":"Name","value":"tradeVolume"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}}]}}]}}]}}]}}]} as unknown as DocumentNode<GetSystemMarketsQuery, GetSystemMarketsQueryVariables>;
 export const GetSystemTradeRouteCandidatesDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"GetSystemTradeRouteCandidates"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"systemSymbol"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"source"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"ShipNavStatsSource"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"purchaseMultiplier"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"Float"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"system"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"symbol"},"value":{"kind":"Variable","name":{"kind":"Name","value":"systemSymbol"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"tradeRouteCandidates"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"purchase"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"waypointSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"type"}}]}},{"kind":"Field","name":{"kind":"Name","value":"sell"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"waypointSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"type"}}]}},{"kind":"Field","name":{"kind":"Name","value":"tradeRouteProposal"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"source"},"value":{"kind":"Variable","name":{"kind":"Name","value":"source"}}},{"kind":"Argument","name":{"kind":"Name","value":"purchaseMultiplier"},"value":{"kind":"Variable","name":{"kind":"Name","value":"purchaseMultiplier"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"travelCost"}},{"kind":"Field","name":{"kind":"Name","value":"goodCost"}},{"kind":"Field","name":{"kind":"Name","value":"totalCost"}},{"kind":"Field","name":{"kind":"Name","value":"goodTotalSellPrice"}},{"kind":"Field","name":{"kind":"Name","value":"goodProfit"}},{"kind":"Field","name":{"kind":"Name","value":"totalProfit"}},{"kind":"Field","name":{"kind":"Name","value":"tripsPerHour"}},{"kind":"Field","name":{"kind":"Name","value":"profitPerHour"}},{"kind":"Field","name":{"kind":"Name","value":"profitPerApiRequest"}},{"kind":"Field","name":{"kind":"Name","value":"fuelUnits"}},{"kind":"Field","name":{"kind":"Name","value":"time"}},{"kind":"Field","name":{"kind":"Name","value":"distance"}},{"kind":"Field","name":{"kind":"Name","value":"apiRequests"}},{"kind":"Field","name":{"kind":"Name","value":"tradeVolume"}},{"kind":"Field","name":{"kind":"Name","value":"purchaseGood"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"tradeVolume"}},{"kind":"Field","name":{"kind":"Name","value":"supply"}},{"kind":"Field","name":{"kind":"Name","value":"activity"}},{"kind":"Field","name":{"kind":"Name","value":"purchasePrice"}},{"kind":"Field","name":{"kind":"Name","value":"sellPrice"}}]}},{"kind":"Field","name":{"kind":"Name","value":"sellGood"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"tradeVolume"}},{"kind":"Field","name":{"kind":"Name","value":"supply"}},{"kind":"Field","name":{"kind":"Name","value":"activity"}},{"kind":"Field","name":{"kind":"Name","value":"purchasePrice"}},{"kind":"Field","name":{"kind":"Name","value":"sellPrice"}}]}}]}}]}}]}}]}}]}}]} as unknown as DocumentNode<GetSystemTradeRouteCandidatesQuery, GetSystemTradeRouteCandidatesQueryVariables>;
-export const GetSystemMapDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"GetSystemMap"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"systemSymbol"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"system"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"symbol"},"value":{"kind":"Variable","name":{"kind":"Name","value":"systemSymbol"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"sectorSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"constellation"}},{"kind":"Field","name":{"kind":"Name","value":"systemType"}},{"kind":"Field","name":{"kind":"Name","value":"x"}},{"kind":"Field","name":{"kind":"Name","value":"y"}},{"kind":"Field","name":{"kind":"Name","value":"populationDisabled"}},{"kind":"Field","name":{"kind":"Name","value":"waypoints"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"faction"}},{"kind":"Field","name":{"kind":"Name","value":"modifiers"}},{"kind":"Field","name":{"kind":"Name","value":"chartedBy"}},{"kind":"Field","name":{"kind":"Name","value":"chartedOn"}},{"kind":"Field","name":{"kind":"Name","value":"hasShipyard"}},{"kind":"Field","name":{"kind":"Name","value":"hasMarketplace"}},{"kind":"Field","name":{"kind":"Name","value":"x"}},{"kind":"Field","name":{"kind":"Name","value":"y"}},{"kind":"Field","name":{"kind":"Name","value":"lastScrap"}},{"kind":"Field","name":{"kind":"Name","value":"nextScrap"}},{"kind":"Field","name":{"kind":"Name","value":"waypointType"}},{"kind":"Field","name":{"kind":"Name","value":"traits"}},{"kind":"Field","name":{"kind":"Name","value":"isUnderConstruction"}},{"kind":"Field","name":{"kind":"Name","value":"orbitals"}},{"kind":"Field","name":{"kind":"Name","value":"orbits"}},{"kind":"Field","name":{"kind":"Name","value":"marketTrades"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"type"}},{"kind":"Field","name":{"kind":"Name","value":"tradeSymbolInfo"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"requires"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"requiredBy"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}}]}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"marketTradeGood"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"tradeVolume"}},{"kind":"Field","name":{"kind":"Name","value":"supply"}},{"kind":"Field","name":{"kind":"Name","value":"activity"}},{"kind":"Field","name":{"kind":"Name","value":"purchasePrice"}},{"kind":"Field","name":{"kind":"Name","value":"sellPrice"}}]}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"shipyardShips"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"shipType"}},{"kind":"Field","name":{"kind":"Name","value":"supply"}},{"kind":"Field","name":{"kind":"Name","value":"activity"}},{"kind":"Field","name":{"kind":"Name","value":"purchasePrice"}}]}}]}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"ships"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"status"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"waitingForManager"}},{"kind":"Field","name":{"kind":"Name","value":"waitingForApi"}},{"kind":"Field","name":{"kind":"Name","value":"status"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"__typename"}},{"kind":"InlineFragment","typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"ScraperStatus"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"scrapDate"}}]}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"nav"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"waypointSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"status"}},{"kind":"Field","name":{"kind":"Name","value":"flightMode"}},{"kind":"Field","name":{"kind":"Name","value":"route"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"destinationSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"originSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"departureTime"}},{"kind":"Field","name":{"kind":"Name","value":"arrival"}}]}},{"kind":"Field","name":{"kind":"Name","value":"autoPilot"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"destinationSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"originSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"route"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"connections"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"InlineFragment","typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"NavigateConnection"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"startSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"endSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"navMode"}}]}}]}}]}}]}}]}}]}}]}}]}}]} as unknown as DocumentNode<GetSystemMapQuery, GetSystemMapQueryVariables>;
+export const GetSystemMapDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"GetSystemMap"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"systemSymbol"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"system"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"symbol"},"value":{"kind":"Variable","name":{"kind":"Name","value":"systemSymbol"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"sectorSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"constellation"}},{"kind":"Field","name":{"kind":"Name","value":"systemType"}},{"kind":"Field","name":{"kind":"Name","value":"x"}},{"kind":"Field","name":{"kind":"Name","value":"y"}},{"kind":"Field","name":{"kind":"Name","value":"populationDisabled"}},{"kind":"Field","alias":{"kind":"Name","value":"marketMinimumSpanningTree"},"name":{"kind":"Name","value":"minimumSpanningTree"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"onlyMarkets"},"value":{"kind":"BooleanValue","value":true}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"fromSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"toSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"distance"}}]}},{"kind":"Field","name":{"kind":"Name","value":"minimumSpanningTree"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"onlyMarkets"},"value":{"kind":"BooleanValue","value":false}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"fromSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"toSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"distance"}}]}},{"kind":"Field","name":{"kind":"Name","value":"waypoints"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"faction"}},{"kind":"Field","name":{"kind":"Name","value":"modifiers"}},{"kind":"Field","name":{"kind":"Name","value":"chartedBy"}},{"kind":"Field","name":{"kind":"Name","value":"chartedOn"}},{"kind":"Field","name":{"kind":"Name","value":"hasShipyard"}},{"kind":"Field","name":{"kind":"Name","value":"hasMarketplace"}},{"kind":"Field","name":{"kind":"Name","value":"x"}},{"kind":"Field","name":{"kind":"Name","value":"y"}},{"kind":"Field","name":{"kind":"Name","value":"lastScrap"}},{"kind":"Field","name":{"kind":"Name","value":"nextScrap"}},{"kind":"Field","name":{"kind":"Name","value":"waypointType"}},{"kind":"Field","name":{"kind":"Name","value":"traits"}},{"kind":"Field","name":{"kind":"Name","value":"isUnderConstruction"}},{"kind":"Field","name":{"kind":"Name","value":"orbitals"}},{"kind":"Field","name":{"kind":"Name","value":"orbits"}},{"kind":"Field","name":{"kind":"Name","value":"marketTrades"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"type"}},{"kind":"Field","name":{"kind":"Name","value":"tradeSymbolInfo"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"requires"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"requiredBy"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}}]}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"marketTradeGood"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"tradeVolume"}},{"kind":"Field","name":{"kind":"Name","value":"supply"}},{"kind":"Field","name":{"kind":"Name","value":"activity"}},{"kind":"Field","name":{"kind":"Name","value":"purchasePrice"}},{"kind":"Field","name":{"kind":"Name","value":"sellPrice"}}]}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"shipyardShips"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"shipType"}},{"kind":"Field","name":{"kind":"Name","value":"supply"}},{"kind":"Field","name":{"kind":"Name","value":"activity"}},{"kind":"Field","name":{"kind":"Name","value":"purchasePrice"}}]}}]}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"ships"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"status"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"waitingForManager"}},{"kind":"Field","name":{"kind":"Name","value":"waitingForApi"}},{"kind":"Field","name":{"kind":"Name","value":"status"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"__typename"}},{"kind":"InlineFragment","typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"ScraperStatus"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"scrapDate"}}]}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"nav"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"waypointSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"status"}},{"kind":"Field","name":{"kind":"Name","value":"flightMode"}},{"kind":"Field","name":{"kind":"Name","value":"route"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"destinationSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"originSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"departureTime"}},{"kind":"Field","name":{"kind":"Name","value":"arrival"}}]}},{"kind":"Field","name":{"kind":"Name","value":"autoPilot"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"destinationSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"originSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"route"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"connections"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"InlineFragment","typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"NavigateConnection"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"startSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"endSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"navMode"}}]}}]}}]}}]}}]}}]}}]}}]}}]} as unknown as DocumentNode<GetSystemMapQuery, GetSystemMapQueryVariables>;
 export const GetWaypointDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"GetWaypoint"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"waypointSymbol"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"waypoint"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"symbol"},"value":{"kind":"Variable","name":{"kind":"Name","value":"waypointSymbol"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"systemSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"waypointType"}},{"kind":"Field","name":{"kind":"Name","value":"traits"}},{"kind":"Field","name":{"kind":"Name","value":"faction"}},{"kind":"Field","name":{"kind":"Name","value":"chartedBy"}},{"kind":"Field","name":{"kind":"Name","value":"chartedOn"}},{"kind":"Field","name":{"kind":"Name","value":"unstableSince"}},{"kind":"Field","name":{"kind":"Name","value":"x"}},{"kind":"Field","name":{"kind":"Name","value":"y"}},{"kind":"Field","name":{"kind":"Name","value":"lastScrap"}},{"kind":"Field","name":{"kind":"Name","value":"nextScrap"}},{"kind":"Field","name":{"kind":"Name","value":"orbitals"}},{"kind":"Field","name":{"kind":"Name","value":"orbits"}},{"kind":"Field","name":{"kind":"Name","value":"isUnderConstruction"}},{"kind":"Field","name":{"kind":"Name","value":"hasMarketplace"}},{"kind":"Field","name":{"kind":"Name","value":"hasShipyard"}},{"kind":"Field","name":{"kind":"Name","value":"modifiers"}},{"kind":"Field","name":{"kind":"Name","value":"jumpGateConnections"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"from"}},{"kind":"Field","name":{"kind":"Name","value":"to"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"marketTrades"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"type"}},{"kind":"Field","name":{"kind":"Name","value":"tradeSymbolInfo"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"requires"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"requiredBy"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}}]}}]}}]}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"marketTradeGoods"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"tradeVolume"}},{"kind":"Field","name":{"kind":"Name","value":"supply"}},{"kind":"Field","name":{"kind":"Name","value":"activity"}},{"kind":"Field","name":{"kind":"Name","value":"purchasePrice"}},{"kind":"Field","name":{"kind":"Name","value":"sellPrice"}},{"kind":"Field","name":{"kind":"Name","value":"type"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"constructionMaterials"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"tradeSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"required"}},{"kind":"Field","name":{"kind":"Name","value":"fulfilled"}},{"kind":"Field","name":{"kind":"Name","value":"updatedAt"}},{"kind":"Field","name":{"kind":"Name","value":"marketTransactionSummary"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"allExpenses"}},{"kind":"Field","name":{"kind":"Name","value":"allPurchaseUnits"}},{"kind":"Field","name":{"kind":"Name","value":"allPurchaseTransactions"}}]}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"marketTransactions"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"waypointSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"shipSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"tradeSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"type"}},{"kind":"Field","name":{"kind":"Name","value":"units"}},{"kind":"Field","name":{"kind":"Name","value":"pricePerUnit"}},{"kind":"Field","name":{"kind":"Name","value":"totalPrice"}},{"kind":"Field","name":{"kind":"Name","value":"timestamp"}},{"kind":"Field","name":{"kind":"Name","value":"contract_id"}},{"kind":"Field","name":{"kind":"Name","value":"trade_route_id"}},{"kind":"Field","name":{"kind":"Name","value":"mining_waypoint_symbol"}},{"kind":"Field","name":{"kind":"Name","value":"construction_shipment_id"}},{"kind":"Field","name":{"kind":"Name","value":"isFuel"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"shipyard"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"waypointSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"modificationsFee"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}}]}},{"kind":"Field","name":{"kind":"Name","value":"shipyardShipTypes"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"shipType"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"shipyardShips"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"shipType"}},{"kind":"Field","name":{"kind":"Name","value":"supply"}},{"kind":"Field","name":{"kind":"Name","value":"activity"}},{"kind":"Field","name":{"kind":"Name","value":"purchasePrice"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"shipyardTransactions"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"shipType"}},{"kind":"Field","name":{"kind":"Name","value":"price"}},{"kind":"Field","name":{"kind":"Name","value":"agentSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"timestamp"}}]}}]}}]}}]}}]} as unknown as DocumentNode<GetWaypointQuery, GetWaypointQueryVariables>;
 export const GetWaypointHistoryDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"GetWaypointHistory"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"waypointSymbol"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"waypoint"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"symbol"},"value":{"kind":"Variable","name":{"kind":"Name","value":"waypointSymbol"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"marketTrades"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"type"}},{"kind":"Field","name":{"kind":"Name","value":"tradeSymbolInfo"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"requires"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"requiredBy"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}}]}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"marketTradeGood"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"history"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"createdAt"}},{"kind":"Field","name":{"kind":"Name","value":"purchasePrice"}},{"kind":"Field","name":{"kind":"Name","value":"sellPrice"}},{"kind":"Field","name":{"kind":"Name","value":"tradeVolume"}},{"kind":"Field","name":{"kind":"Name","value":"supply"}},{"kind":"Field","name":{"kind":"Name","value":"activity"}}]}}]}}]}}]}}]}}]}}]}}]} as unknown as DocumentNode<GetWaypointHistoryQuery, GetWaypointHistoryQueryVariables>;
 export const GetChartTransactionsDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"GetChartTransactions"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"chartTransactions"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"waypointSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"shipSymbol"}},{"kind":"Field","name":{"kind":"Name","value":"totalPrice"}},{"kind":"Field","name":{"kind":"Name","value":"timestamp"}},{"kind":"Field","name":{"kind":"Name","value":"waypoint"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"symbol"}},{"kind":"Field","name":{"kind":"Name","value":"waypointType"}},{"kind":"Field","name":{"kind":"Name","value":"traits"}}]}}]}}]}}]}}]} as unknown as DocumentNode<GetChartTransactionsQuery, GetChartTransactionsQueryVariables>;

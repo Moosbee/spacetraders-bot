@@ -11,6 +11,9 @@ const config: CodegenConfig = {
       config: {
         scalars: {
           DateTime: "string",
+          WaypointSymbol: "string",
+          SystemSymbol: "string",
+          ShipSymbol: "string",
         },
       },
     },

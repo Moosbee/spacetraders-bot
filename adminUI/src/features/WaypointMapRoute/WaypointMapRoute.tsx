@@ -15,9 +15,9 @@ function WaypointMapRoute({
     y2: number;
   };
   size: number;
-  mode: ShipNavFlightMode;
+  mode: ShipNavFlightMode | "MSP";
 }) {
-  const theme = useAppSelector(selectDarkMode);
+  const darkMode = useAppSelector(selectDarkMode);
 
   return (
     <line
@@ -25,13 +25,17 @@ function WaypointMapRoute({
         {
           "--stroke-width": `${Math.min(0.2, 200 / size)}px`,
           color:
-            mode === "BURN"
-              ? theme
-                ? "yellow"
-                : "#7D00FF"
-              : mode === "DRIFT"
-              ? "red"
-              : "green",
+            mode === "MSP"
+              ? darkMode
+                ? "oklch(55.4% 0.046 257.417)"
+                : "oklch(44.6% 0.043 257.281)"
+              : mode === "BURN"
+                ? darkMode
+                  ? "yellow"
+                  : "#7D00FF"
+                : mode === "DRIFT"
+                  ? "red"
+                  : "green",
         } as React.CSSProperties
       }
       x1={line.x1}
