@@ -1,13 +1,14 @@
 import { useQuery } from "@apollo/client/react";
-import { Button, Divider, Space } from "antd";
+import { Button, Divider, Space, Switch } from "antd";
 import { useState } from "react";
 import PageTitle from "../features/PageTitle";
 import TransactionTable from "../features/TransactionTable/TransactionTable";
 import { GET_MARKET_TRANSACTIONS } from "../graphql/queries";
 
 function MarketTransactions() {
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(100);
+  const [page, setPage] = useState<number | undefined>(1);
+  const [pageSize, setPageSize] = useState<number | undefined>(100);
+  const [clientPagination, setClientPagination] = useState(false);
 
   const { loading, error, data, previousData, refetch } = useQuery(
     GET_MARKET_TRANSACTIONS,
@@ -35,6 +36,17 @@ function MarketTransactions() {
           Market Transactions {totalCount}
         </h1>
         <Button onClick={() => refetch()}>Refresh</Button>
+        Client Pagination{" "}
+        <Switch
+          checked={clientPagination}
+          onChange={(checked) => {
+            setClientPagination(checked);
+            if (checked) {
+              setPage(undefined);
+              setPageSize(undefined);
+            }
+          }}
+        />
       </Space>
       <Divider />
       <TransactionTable
@@ -43,12 +55,13 @@ function MarketTransactions() {
         pagination={{
           current: page,
           pageSize,
-          total: totalCount,
+          total: clientPagination ? undefined : totalCount,
           showSizeChanger: true,
           pageSizeOptions: ["10", "20", "50", "100", "200", "500", "1000"],
           showTotal: (total, range) => `${range[0]}-${range[1]} of ${total}`,
         }}
         onChange={(pagination) => {
+          if (clientPagination) return;
           setPage(pagination.current ?? 1);
           setPageSize(pagination.pageSize ?? 100);
         }}

@@ -29,6 +29,14 @@ function TransactionTable({
   TableProps<Partial<MarketTransaction>>,
   "columns" | "dataSource" | "rowKey"
 >) {
+  // Ship symbols are "AGENTSYMBOL-HEXID", and the agent symbol itself may
+  // contain dashes, so the agent symbol is everything before the last dash.
+  const shipPrefix = (shipSymbol?: string) => {
+    if (!shipSymbol) return "";
+    const lastDash = shipSymbol.lastIndexOf("-");
+    return lastDash >= 0 ? shipSymbol.slice(0, lastDash) : shipSymbol;
+  };
+
   const columns: TableProps<Partial<MarketTransaction>>["columns"] = [
     {
       title: "Waypoint",
@@ -57,13 +65,13 @@ function TransactionTable({
       key: "shipSymbol",
       render: (symbol: string) => <Link to={`/ships/${symbol}`}>{symbol}</Link>,
       sorter: (a, b) => (a.shipSymbol || "").localeCompare(b.shipSymbol || ""),
-      filters: [...new Set(transactions.map((t) => t.shipSymbol || ""))].map(
-        (t) => ({
-          text: t,
-          value: t,
+      filters: [...new Set(transactions.map((t) => shipPrefix(t.shipSymbol)))].map(
+        (prefix) => ({
+          text: prefix,
+          value: prefix,
         }),
       ),
-      onFilter: (value, record) => record.shipSymbol === value,
+      onFilter: (value, record) => shipPrefix(record.shipSymbol) === value,
     },
     {
       title: "Trade Symbol",
