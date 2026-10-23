@@ -1,0 +1,38 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                INSERT INTO ship_transfers (\n                    ship_symbol,\n                    state,\n                    fleet_id,\n                    assignment_id,\n                    start_system_symbol,\n                    end_system_symbol,\n                    reservation_id\n                )\n                VALUES ($1, $2::ship_transfer_state, $3, $4, $5, $6, $7)\n                RETURNING id\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Varchar",
+        {
+          "Custom": {
+            "name": "ship_transfer_state",
+            "kind": {
+              "Enum": [
+                "ON_GOING",
+                "COMPLETED"
+              ]
+            }
+          }
+        },
+        "Int4",
+        "Int8",
+        "Varchar",
+        "Varchar",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "a6204f087bf4c8722386993b155b1aa6a32c0862ddba26d62b6f313bc546b901"
+}

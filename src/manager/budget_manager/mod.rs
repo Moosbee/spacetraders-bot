@@ -130,6 +130,45 @@ impl BudgetManager {
             });
         }
 
+        let funds = Self::create_funds_and_insert(database_pool, amount).await?;
+
+        reserved_funds.insert(funds.id, funds.clone());
+        Ok(funds)
+    }
+
+    /// either both funds are reserved, or none are reserved
+    pub async fn reserve_two_funds_with_remain(
+        &self,
+        database_pool: &database::DbPool,
+        first_amount: i64,
+        second_amount: i64,
+        remain: i64,
+    ) -> Result<(ReservedFund, ReservedFund), crate::error::Error> {
+        let total_amount = first_amount + second_amount;
+        tracing::debug!(first_amount = %first_amount, second_amount = %second_amount, remain = %remain, "Attempting to reserve funds");
+        let mut reserved_funds = self.reserved_funds.lock().await;
+        let reserved_amount = Self::get_still_reserved_funds(reserved_funds.clone());
+        let spendable = self.current_funds.load(Ordering::SeqCst) - remain - reserved_amount;
+        if spendable < total_amount {
+            return Err(crate::error::Error::NotEnoughFunds {
+                remaining_funds: spendable,
+                required_funds: total_amount,
+            });
+        }
+
+        let first_funds = Self::create_funds_and_insert(database_pool, first_amount).await?;
+        reserved_funds.insert(first_funds.id, first_funds.clone());
+
+        let second_funds = Self::create_funds_and_insert(database_pool, second_amount).await?;
+        reserved_funds.insert(second_funds.id, second_funds.clone());
+
+        Ok((first_funds, second_funds))
+    }
+
+    async fn create_funds_and_insert(
+        database_pool: &database::DbPool,
+        amount: i64,
+    ) -> Result<ReservedFund, crate::error::Error> {
         let mut funds = ReservedFund {
             id: 0,
             amount,
@@ -143,7 +182,6 @@ impl BudgetManager {
 
         funds.id = reserved_fund_id;
 
-        reserved_funds.insert(funds.id, funds.clone());
         Ok(funds)
     }
 

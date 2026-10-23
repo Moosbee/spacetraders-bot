@@ -1,0 +1,31 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                UPDATE ship_transfers\n                SET\n                    ship_symbol = $1,\n                    state = $2::ship_transfer_state,\n                    fleet_id = $3,\n                    assignment_id = $4,\n                    start_system_symbol = $5,\n                    end_system_symbol = $6,\n                    reservation_id = $7,\n                    updated_at = NOW()\n                WHERE id = $8\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Varchar",
+        {
+          "Custom": {
+            "name": "ship_transfer_state",
+            "kind": {
+              "Enum": [
+                "ON_GOING",
+                "COMPLETED"
+              ]
+            }
+          }
+        },
+        "Int4",
+        "Int8",
+        "Varchar",
+        "Varchar",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "e2327bd11b260b9ccc6ec1d6c0bee82f71755dde6cbcb07bda6543130c1fa977"
+}

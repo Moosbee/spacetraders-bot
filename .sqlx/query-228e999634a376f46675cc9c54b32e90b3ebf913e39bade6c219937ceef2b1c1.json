@@ -1,0 +1,31 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                INSERT INTO ship_transfers (\n                    id,\n                    ship_symbol,\n                    state,\n                    fleet_id,\n                    assignment_id,\n                    start_system_symbol,\n                    end_system_symbol,\n                    reservation_id\n                )\n                VALUES ($1, $2, $3::ship_transfer_state, $4, $5, $6, $7, $8)\n                ON CONFLICT (id) DO UPDATE SET\n                    ship_symbol = EXCLUDED.ship_symbol,\n                    state = EXCLUDED.state,\n                    fleet_id = EXCLUDED.fleet_id,\n                    assignment_id = EXCLUDED.assignment_id,\n                    start_system_symbol = EXCLUDED.start_system_symbol,\n                    end_system_symbol = EXCLUDED.end_system_symbol,\n                    reservation_id = EXCLUDED.reservation_id,\n                    updated_at = NOW()\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Varchar",
+        {
+          "Custom": {
+            "name": "ship_transfer_state",
+            "kind": {
+              "Enum": [
+                "ON_GOING",
+                "COMPLETED"
+              ]
+            }
+          }
+        },
+        "Int4",
+        "Int8",
+        "Varchar",
+        "Varchar",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "228e999634a376f46675cc9c54b32e90b3ebf913e39bade6c219937ceef2b1c1"
+}

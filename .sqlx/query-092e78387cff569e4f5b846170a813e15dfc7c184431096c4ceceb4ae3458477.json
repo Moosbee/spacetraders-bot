@@ -1,0 +1,37 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                INSERT INTO ship_transfers (\n                    ship_symbol,\n                    state,\n                    fleet_id,\n                    assignment_id,\n                    start_system_symbol,\n                    end_system_symbol,\n                    reservation_id\n                )\n                SELECT * FROM UNNEST(\n                    $1::character varying[],\n                    $2::ship_transfer_state[],\n                    $3::integer[],\n                    $4::bigint[],\n                    $5::character varying[],\n                    $6::character varying[],\n                    $7::bigint[]\n                )\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "VarcharArray",
+        {
+          "Custom": {
+            "name": "ship_transfer_state[]",
+            "kind": {
+              "Array": {
+                "Custom": {
+                  "name": "ship_transfer_state",
+                  "kind": {
+                    "Enum": [
+                      "ON_GOING",
+                      "COMPLETED"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "Int4Array",
+        "Int8Array",
+        "VarcharArray",
+        "VarcharArray",
+        "Int8Array"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "092e78387cff569e4f5b846170a813e15dfc7c184431096c4ceceb4ae3458477"
+}
