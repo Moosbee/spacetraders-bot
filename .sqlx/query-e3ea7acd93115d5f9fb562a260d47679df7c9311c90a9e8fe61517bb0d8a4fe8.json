@@ -1,0 +1,37 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                INSERT INTO ship_purchase_reservations (\n                    shipyard_ship_id,\n                    assignment_id,\n                    fleet_id,\n                    reservation_id,\n                    state\n                )\n                VALUES ($1, $2, $3, $4, $5::ship_purchase_reservation_state)\n                RETURNING id\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int4",
+        "Int8",
+        {
+          "Custom": {
+            "name": "ship_purchase_reservation_state",
+            "kind": {
+              "Enum": [
+                "RESERVED",
+                "USED",
+                "CANCELLED"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "e3ea7acd93115d5f9fb562a260d47679df7c9311c90a9e8fe61517bb0d8a4fe8"
+}

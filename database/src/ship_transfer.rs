@@ -31,6 +31,9 @@ pub enum ShipTransferState {
     #[graphql(name = "COMPLETED")]
     #[sqlx(rename = "COMPLETED")]
     Completed,
+    #[graphql(name = "CANCELLED")]
+    #[sqlx(rename = "CANCELLED")]
+    Cancelled,
 }
 
 impl DatabaseConnectorAsync for ShipTransfer {

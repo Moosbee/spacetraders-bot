@@ -1,0 +1,36 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                INSERT INTO ship_purchase_reservations (\n                    shipyard_ship_id,\n                    assignment_id,\n                    fleet_id,\n                    reservation_id,\n                    state\n                )\n                SELECT * FROM UNNEST(\n                    $1::bigint[],\n                    $2::bigint[],\n                    $3::integer[],\n                    $4::bigint[],\n                    $5::ship_purchase_reservation_state[]\n                )\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8Array",
+        "Int8Array",
+        "Int4Array",
+        "Int8Array",
+        {
+          "Custom": {
+            "name": "ship_purchase_reservation_state[]",
+            "kind": {
+              "Array": {
+                "Custom": {
+                  "name": "ship_purchase_reservation_state",
+                  "kind": {
+                    "Enum": [
+                      "RESERVED",
+                      "USED",
+                      "CANCELLED"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "fc74bec0b1c4f95f1d2028fe231e47135ece957ee76105db7522279b47ae0eb9"
+}

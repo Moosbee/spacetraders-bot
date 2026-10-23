@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                DELETE FROM ship_purchase_reservations\n                WHERE id = $1\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b0a9a4fd40387e941f7e06e2cf7f3cd42809f098b6b68c3c762b11f3325d5f45"
+}

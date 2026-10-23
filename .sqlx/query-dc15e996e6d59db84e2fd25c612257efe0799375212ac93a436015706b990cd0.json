@@ -1,0 +1,20 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                        SELECT COUNT(*) as \"count!\"\n                        FROM ship_purchase_reservations\n                    ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "count!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "dc15e996e6d59db84e2fd25c612257efe0799375212ac93a436015706b990cd0"
+}

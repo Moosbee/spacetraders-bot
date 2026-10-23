@@ -1,0 +1,30 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                INSERT INTO ship_purchase_reservations (\n                    id,\n                    shipyard_ship_id,\n                    assignment_id,\n                    fleet_id,\n                    reservation_id,\n                    state\n                )\n                VALUES ($1, $2, $3, $4, $5, $6::ship_purchase_reservation_state)\n                ON CONFLICT (id) DO UPDATE SET\n                    shipyard_ship_id = EXCLUDED.shipyard_ship_id,\n                    assignment_id = EXCLUDED.assignment_id,\n                    fleet_id = EXCLUDED.fleet_id,\n                    reservation_id = EXCLUDED.reservation_id,\n                    state = EXCLUDED.state,\n                    updated_at = NOW()\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int4",
+        "Int8",
+        {
+          "Custom": {
+            "name": "ship_purchase_reservation_state",
+            "kind": {
+              "Enum": [
+                "RESERVED",
+                "USED",
+                "CANCELLED"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "0ce7b8b14be6189cab4c164b63967191413db3554458950a6677a2413c7d45f0"
+}

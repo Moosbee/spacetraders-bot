@@ -1,0 +1,75 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                SELECT\n                    id,\n                    shipyard_ship_id,\n                    assignment_id,\n                    fleet_id,\n                    reservation_id,\n                    state as \"state: ShipPurchaseReservationState\",\n                    created_at,\n                    updated_at\n                FROM ship_purchase_reservations\n                WHERE id = $1\n                LIMIT 1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "shipyard_ship_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "assignment_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "fleet_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "reservation_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 5,
+        "name": "state: ShipPurchaseReservationState",
+        "type_info": {
+          "Custom": {
+            "name": "ship_purchase_reservation_state",
+            "kind": {
+              "Enum": [
+                "RESERVED",
+                "USED",
+                "CANCELLED"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 7,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "637ec394cbdf7170d77f672a41f193ded73733725783b27609464d19cabcce5e"
+}

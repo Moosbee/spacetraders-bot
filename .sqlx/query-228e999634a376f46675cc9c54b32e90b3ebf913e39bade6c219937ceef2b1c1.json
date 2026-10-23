@@ -13,7 +13,8 @@
             "kind": {
               "Enum": [
                 "ON_GOING",
-                "COMPLETED"
+                "COMPLETED",
+                "CANCELLED"
               ]
             }
           }

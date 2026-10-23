@@ -1,0 +1,30 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                UPDATE ship_purchase_reservations\n                SET\n                    shipyard_ship_id = $1,\n                    assignment_id = $2,\n                    fleet_id = $3,\n                    reservation_id = $4,\n                    state = $5::ship_purchase_reservation_state,\n                    updated_at = NOW()\n                WHERE id = $6\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int4",
+        "Int8",
+        {
+          "Custom": {
+            "name": "ship_purchase_reservation_state",
+            "kind": {
+              "Enum": [
+                "RESERVED",
+                "USED",
+                "CANCELLED"
+              ]
+            }
+          }
+        },
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "2b15a34777683fd4b63f6cc708b3c53acf25f1f9cf67fd9126657bd63abf1e55"
+}
