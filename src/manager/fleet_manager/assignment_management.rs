@@ -407,7 +407,7 @@ async fn generate_scraping_fleet_assignments(
     scraping_config: &database::ScrapingFleetConfig,
     context: &ConductorContext,
 ) -> crate::error::Result<Vec<ShipAssignment>> {
-    let waypoint_counts = database::Waypoint::get_by_system(
+    let (market_count, shipyard_count) = database::Waypoint::get_by_system(
         &context.database_pool,
         &fleet.system_symbol,
         database::PaginatedQuery::unpaged(),
@@ -415,8 +415,18 @@ async fn generate_scraping_fleet_assignments(
     .await?
     .items
     .into_iter()
-    .filter(|wp| wp.is_marketplace() || wp.is_shipyard())
-    .count();
+    .fold(
+        (0u32, 0u32),
+        |(mut market_count, mut shipyard_count), wp| {
+            if wp.is_marketplace() {
+                market_count += 1;
+            }
+            if wp.is_shipyard() {
+                shipyard_count += 1;
+            }
+            (market_count, shipyard_count)
+        },
+    );
 
     let market_trades = database::MarketTrade::get_last_by_system(
         &context.database_pool,
@@ -439,9 +449,9 @@ async fn generate_scraping_fleet_assignments(
     );
 
     let ship_counts = if trading_ship_counts > 0 {
-        (waypoint_counts as f64 * scraping_config.ship_market_ratio).floor() as u32
+        (market_count as f64 * scraping_config.ship_market_ratio).floor() as u32
     } else {
-        1.min(waypoint_counts as u32)
+        1.min(market_count) + shipyard_count
     };
     let quarter_ships = (ship_counts as f64 / 4.0).floor() as u32;
 
