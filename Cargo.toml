@@ -15,16 +15,16 @@ utils = { path = "./utils" }
 database = { path = "./database" }
 ship = { path = "./ship" }
 reqwest = { version = "^0.12", features = ["json", "multipart"] }
-tokio = { version = "^1.47", features = ["full", "rt-multi-thread"] }
+tokio = { version = "^1.54", features = ["full", "rt-multi-thread"] }
 dotenvy = "0.15.7"
-serde = { version = "1.0.215", features = ["derive"] }
-serde_json = "1.0.133"
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
 anyhow = "^1.0"
-chrono = { version = "0.4.38", features = ["serde"] }
-log = "0.4.22"
-async-recursion = "1.1.1"
+chrono = { version = "0.4.45", features = ["serde"] }
+log = "0.4.34"
+async-recursion = "1.2.0"
 governor = "0.7"
-dashmap = { version = "6.1", features = ["raw-api"] }
+dashmap = { version = "6.2", features = ["raw-api"] }
 # tokio + native-tls
 sqlx = { version = "0.8", features = [
     "runtime-tokio",
@@ -33,24 +33,24 @@ sqlx = { version = "0.8", features = [
     "chrono",
 ] }
 strum = "0.26"
-priority-queue = "2.1.1"
-rand = "0.8.5"
-lazy_static = "1.5.0"
+priority-queue = "2.7.0"
+rand = "0.8.8"
+lazy_static = "1.5.1"
 tokio-util = "^0.7"
 warp = "0.3.7"
-futures = "0.3.31"
-tokio-stream = { version = "0.1.16", features = ["sync"] }
-serde_with = { version = "3.11.0", features = ["chrono_0_4"] }
-rsntp = { version = "4.0.0", features = ["tokio"] }
+futures = "0.3.34"
+tokio-stream = { version = "0.1.19", features = ["sync"] }
+serde_with = { version = "3.24.0", features = ["chrono_0_4"] }
+rsntp = { version = "4.1.2", features = ["tokio"] }
 lockable = "0.1.1"
-moka = { version = "0.12.8", features = ["future"] }
-thiserror = "2.0.6"
-reqwest-middleware = { version = "0.4.1", features = ["json", "multipart"] }
+moka = { version = "0.12.16", features = ["future"] }
+thiserror = "2.0.21"
+reqwest-middleware = { version = "0.4.2", features = ["json", "multipart"] }
 itertools = "0.14.0"
 toml_edit = { version = "^0.23", features = ["serde"] }
 # openssl = { version = "0.10", features = ["vendored"] }
-tracing = "0.1.37"
-tracing-subscriber = { version = "0.3.20", features = ["env-filter", "json"] }
+tracing = "0.1.44"
+tracing-subscriber = { version = "0.3.23", features = ["env-filter", "json"] }
 # console-subscriber = "0.4.1"
 
 tracing-opentelemetry = "0.19.0"
@@ -59,10 +59,10 @@ opentelemetry-otlp = { version = "0.12.0", features = ["tonic", "metrics"] }
 opentelemetry-semantic-conventions = { version = "0.11.0" }
 
 tracing-tracy = "0.11.4"
-async-graphql = { version = "7.0.17", features = ["chrono", "dataloader"] }
-async-graphql-warp = "7.0.17"
-pathfinding = "4.14.0"
-ordered-float = "5.1.0"
+async-graphql = { version = "7.2.1", features = ["chrono", "dataloader"] }
+async-graphql-warp = "7.2.1"
+pathfinding = "4.16.0"
+ordered-float = "5.5.0"
 
 [dev-dependencies]
 test-log = "0.2.21"
