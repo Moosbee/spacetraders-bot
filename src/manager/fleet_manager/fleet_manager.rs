@@ -199,7 +199,7 @@ impl FleetManager {
 
         // filter assignments based on ship capabilities (e.g. required cargo space, required fuel, required equipment, ...)
 
-        let mut open_possible_assignments = open_assignments
+        let open_possible_assignments = open_assignments
             .into_iter()
             .filter(|assignment| ShipCapabilities::can_assign_ship(ship_clone, assignment))
             .collect::<Vec<_>>();
@@ -235,19 +235,14 @@ impl FleetManager {
         let mut price_getter =
             ship::autopilot::TravelPriceCache::new(self.context.database_pool.clone());
         for assignment_system in target_systems {
-            let route = ship::autopilot::JumpGateRouter::get_route(
-                &tree,
-                &assignment_system,
-                start_system,
-            );
+            let route =
+                ship::autopilot::JumpGateRouter::get_route(&tree, &assignment_system, start_system);
             let mut total_cost = 0;
             let mut total_distance = 0.0;
             let mut total_jumps = 0;
             for conn in route {
                 let start_waypoint = conn.conn.get_other_system(&conn.end_system).0;
-                let cost: i32 = price_getter
-                    .get_antimatter_price(&start_waypoint)
-                    .await?;
+                let cost: i32 = price_getter.get_antimatter_price(&start_waypoint).await?;
                 total_cost += cost as i64;
                 total_distance += conn.conn.distance;
                 total_jumps += 1;
@@ -262,33 +257,75 @@ impl FleetManager {
         debug!(travel_costs=?travel_costs,"Calculated all connections");
 
         // sort them based on priority, distance to system and "fitness" i.e. a ship with 130 cargo should be better assigned the one which needs 100 cargo than the one which needs 40 cargo
-
-        open_possible_assignments.sort_by(|a, b| {
-            let fleet_a = &fleets.get(&a.fleet_id);
-            let fleet_b = &fleets.get(&b.fleet_id);
-            let priority_a = a.priority;
-            let priority_b = b.priority;
-            let distance_a = travel_costs
-                .get(&fleet_a.unwrap().system_symbol)
-                .map(|(cost, _, _)| *cost as f64)
-                .unwrap_or(f64::MAX);
-            let distance_b = travel_costs
-                .get(&fleet_b.unwrap().system_symbol)
-                .map(|(cost, _, _)| *cost as f64)
-                .unwrap_or(f64::MAX);
-            priority_a.cmp(&priority_b).then_with(|| {
-                distance_a
-                    .partial_cmp(&distance_b)
-                    .unwrap_or(std::cmp::Ordering::Equal)
-            })
-        });
-
         // pick the best assignment
 
-        let best_assignment = open_possible_assignments.first().cloned();
+        let best_assignment = open_possible_assignments
+            .iter()
+            .min_by(|a, b| {
+                let fleet_a = &fleets.get(&a.fleet_id);
+                let fleet_b = &fleets.get(&b.fleet_id);
+                let priority_a = a.priority;
+                let priority_b = b.priority;
+                let travel_cost_a = travel_costs
+                    .get(&fleet_a.unwrap().system_symbol)
+                    .map(|(cost, _, _)| *cost as f64)
+                    .unwrap_or(f64::MAX);
+                let travel_cost_b = travel_costs
+                    .get(&fleet_b.unwrap().system_symbol)
+                    .map(|(cost, _, _)| *cost as f64)
+                    .unwrap_or(f64::MAX);
+                priority_a.cmp(&priority_b).then_with(|| {
+                    travel_cost_a
+                        .partial_cmp(&travel_cost_b)
+                        .unwrap_or(std::cmp::Ordering::Equal)
+                })
+            })
+            .cloned();
 
         // assign it to the ship
         if let Some(best_assignment) = best_assignment {
+            let ongoing = database::ShipTransfer::get_on_going_by_ship_and_fleet_and_assignment(
+                &self.context.database_pool,
+                &ship_clone.symbol,
+                best_assignment.fleet_id,
+                best_assignment.id,
+            )
+            .await?;
+
+            if ongoing.is_empty() {
+                let fleet = fleets.get(&best_assignment.fleet_id).unwrap();
+
+                let travel_cost = travel_costs.get(&fleet.system_symbol).ok_or_else(|| {
+                    crate::error::Error::General(format!(
+                        "No travel cost found for fleet {}",
+                        fleet.system_symbol
+                    ))
+                })?;
+
+                let travel_reservation = self
+                    .context
+                    .budget_manager
+                    .reserve_funds(&self.context.database_pool, travel_cost.0)
+                    .await?;
+
+                let transfer_request = database::ShipTransfer {
+                    ship_symbol: ship_clone.symbol.clone(),
+                    assignment_id: best_assignment.id,
+                    fleet_id: best_assignment.fleet_id,
+                    start_system_symbol: ship_clone.nav.system_symbol.clone(),
+                    end_system_symbol: fleet.system_symbol.clone(),
+                    reservation_id: travel_reservation.id,
+                    state: database::ShipTransferState::OnGoing,
+                    ..Default::default()
+                };
+
+                let _id = database::ShipTransfer::insert_new(
+                    &self.context.database_pool,
+                    &transfer_request,
+                )
+                .await?;
+            }
+
             // assign it to the ship
             let mut ship_info =
                 database::ShipInfo::get_by_id(&self.context.database_pool, &ship_clone.symbol)

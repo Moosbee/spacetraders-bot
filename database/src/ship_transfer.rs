@@ -13,9 +13,10 @@ pub struct ShipTransfer {
 
     pub fleet_id: i32,
     pub assignment_id: i64,
+    pub reservation_id: i64,
+
     pub start_system_symbol: SystemSymbol,
     pub end_system_symbol: SystemSymbol,
-    pub reservation_id: i64,
 
     pub created_at: chrono::DateTime<chrono::Utc>,
     pub updated_at: chrono::DateTime<chrono::Utc>,
@@ -34,6 +35,39 @@ pub enum ShipTransferState {
     #[graphql(name = "CANCELLED")]
     #[sqlx(rename = "CANCELLED")]
     Cancelled,
+}
+
+impl ShipTransfer {
+    pub async fn get_on_going_by_ship_and_fleet_and_assignment(
+        database_pool: &super::DbPool,
+        ship_symbol: &ShipSymbol,
+        fleet_id: i32,
+        assignment_id: i64,
+    ) -> crate::Result<Vec<ShipTransfer>> {
+        let transfers = sqlx::query_as!(
+            ShipTransfer,
+            r#"
+                SELECT 
+                    id,
+                    ship_symbol,
+                    state as "state: ShipTransferState",
+                    fleet_id,
+                    assignment_id,
+                    start_system_symbol,
+                    end_system_symbol,
+                    reservation_id,
+                    created_at,
+                    updated_at
+                FROM ship_transfers
+                WHERE ship_symbol = $1 AND fleet_id = $2 AND assignment_id = $3 AND state = 'ON_GOING'
+                ORDER BY id ASC
+            "#,
+            ship_symbol.as_str(),
+            fleet_id,
+            assignment_id,
+        ).fetch_all(database_pool.get_cache_pool()).await?;
+        Ok(transfers)
+    }
 }
 
 impl DatabaseConnectorAsync for ShipTransfer {

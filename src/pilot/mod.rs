@@ -11,6 +11,7 @@ use contract::ContractPilot;
 use database::DatabaseConnectorAsync;
 use mining::MiningPilot;
 use scraper::ScraperPilot;
+use ship::autopilot::TravelPriceCalc;
 use tokio_util::sync::CancellationToken;
 use tracing::debug;
 use tracing::instrument;
@@ -331,6 +332,71 @@ impl Pilot {
         assignment: &database::ShipAssignment,
         system_symbol: SystemSymbol,
     ) -> crate::error::Result<()> {
+        // check if transferRequests already exist in db, the request must be OnGoing, for the ship, fleet and assignment.
+        let transfer_requests =
+            database::ShipTransfer::get_on_going_by_ship_and_fleet_and_assignment(
+                &self.context.database_pool,
+                &self.ship_symbol,
+                fleet.id,
+                assignment.id,
+            )
+            .await?;
+
+        let mut transfer_request = if transfer_requests.is_empty() {
+            let connections =
+                ship::autopilot::generate_all_connections(&self.context.database_pool).await?;
+            let mut jump_gate_router = ship::autopilot::JumpGateRouterCache::new(
+                ship::autopilot::JumpGateRouter::new(connections.0, connections.1),
+            );
+
+            let route = jump_gate_router
+                .find_jump_route(&ship.nav.system_symbol, &system_symbol, true)
+                .ok_or(Error::General("No route found".to_string()))?;
+
+            let mut total_cost = 0;
+            // let mut total_distance = 0.0;
+            // let mut total_jumps = 0;
+            let mut price_getter =
+                ship::autopilot::TravelPriceCache::new(self.context.database_pool.clone());
+            for conn in route {
+                let start_waypoint = conn.conn.get_other_system(&conn.end_system).0;
+                let cost: i32 = price_getter.get_antimatter_price(&start_waypoint).await?;
+                total_cost += cost as i64;
+                // total_distance += conn.conn.distance;
+                // total_jumps += 1;
+            }
+
+            let travel_reservation = self
+                .context
+                .budget_manager
+                .reserve_funds(&self.context.database_pool, total_cost)
+                .await?;
+
+            let mut transfer_request = database::ShipTransfer {
+                ship_symbol: ship.symbol.clone(),
+                assignment_id: assignment.id,
+                fleet_id: assignment.fleet_id,
+                start_system_symbol: ship.nav.system_symbol.clone(),
+                end_system_symbol: system_symbol.clone(),
+                reservation_id: travel_reservation.id,
+                state: database::ShipTransferState::OnGoing,
+                ..Default::default()
+            };
+
+            let id =
+                database::ShipTransfer::insert_new(&self.context.database_pool, &transfer_request)
+                    .await?;
+
+            transfer_request.id = id;
+
+            transfer_request
+        } else {
+            if transfer_requests.len() > 1 {
+                tracing::warn!(ship_symbol = %self.ship_symbol, fleet_id = fleet.id, assignment_id = assignment.id, "Multiple transfer requests found for ship, fleet and assignment, using first one");
+            }
+            transfer_requests[0].clone()
+        };
+
         ship.status.status = ship::AssignmentStatus::Transfer {
             fleet_id: fleet.id,
             assignment_id: assignment.id,
@@ -357,12 +423,23 @@ impl Pilot {
         ship.nav_to(
             &jump_gate.symbol,
             true,
-            database::TransactionReason::None,
+            database::TransactionReason::None, // todo update with the right id
             &self.context.database_pool,
             &self.context.api,
             update_funds_fn,
         )
         .await?;
+
+        // finish transfer request and release budget reservation
+        transfer_request.state = database::ShipTransferState::Completed;
+
+        database::ShipTransfer::update(&self.context.database_pool, &transfer_request).await?;
+
+        self.context
+            .budget_manager
+            .complete_reservation(&self.context.database_pool, transfer_request.reservation_id)
+            .await?;
+
         Ok(())
     }
 }
