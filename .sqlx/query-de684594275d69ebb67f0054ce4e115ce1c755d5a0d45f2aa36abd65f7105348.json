@@ -1,0 +1,89 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                SELECT \n                    id,\n                    ship_symbol,\n                    state as \"state: ShipTransferState\",\n                    fleet_id,\n                    assignment_id,\n                    start_system_symbol,\n                    end_system_symbol,\n                    reservation_id,\n                    created_at,\n                    updated_at\n                FROM ship_transfers\n                WHERE ship_symbol = $1 AND fleet_id = $2 AND assignment_id = $3 AND state = 'ON_GOING'\n                ORDER BY id ASC\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "ship_symbol",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "state: ShipTransferState",
+        "type_info": {
+          "Custom": {
+            "name": "ship_transfer_state",
+            "kind": {
+              "Enum": [
+                "ON_GOING",
+                "COMPLETED",
+                "CANCELLED"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "fleet_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "assignment_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 5,
+        "name": "start_system_symbol",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 6,
+        "name": "end_system_symbol",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 7,
+        "name": "reservation_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 8,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 9,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Int4",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "de684594275d69ebb67f0054ce4e115ce1c755d5a0d45f2aa36abd65f7105348"
+}

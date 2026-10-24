@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n          select \n          id,\n          waypoint_symbol,\n          ship_symbol,\n          trade_symbol as \"trade_symbol: models::TradeSymbol\",\n          \"type\" as \"type: models::market_transaction::Type\",\n          units,\n          price_per_unit,\n          total_price,\n          \"timestamp\",\n          is_fuel,\n          contract,\n          trade_route,\n          mining,\n          construction\n          from market_transaction\n          where \"type\" = $1\n          order by \"timestamp\"\n        ",
+  "query": "\n          select \n          id,\n          waypoint_symbol,\n          ship_symbol,\n          trade_symbol as \"trade_symbol: models::TradeSymbol\",\n          \"type\" as \"type: models::market_transaction::Type\",\n          units,\n          price_per_unit,\n          total_price,\n          \"timestamp\",\n          is_fuel,\n          contract,\n          trade_route,\n          mining,\n          construction,\n          ship_transfer\n          from market_transaction\n          where mining = $1\n          order by \"timestamp\"\n          LIMIT $2 OFFSET $3\n        ",
   "describe": {
     "columns": [
       {
@@ -235,21 +235,18 @@
         "ordinal": 13,
         "name": "construction",
         "type_info": "Int8"
+      },
+      {
+        "ordinal": 14,
+        "name": "ship_transfer",
+        "type_info": "Int8"
       }
     ],
     "parameters": {
       "Left": [
-        {
-          "Custom": {
-            "name": "market_transaction_type",
-            "kind": {
-              "Enum": [
-                "PURCHASE",
-                "SELL"
-              ]
-            }
-          }
-        }
+        "Text",
+        "Int8",
+        "Int8"
       ]
     },
     "nullable": [
@@ -266,8 +263,9 @@
       true,
       true,
       true,
+      true,
       true
     ]
   },
-  "hash": "cd90a4935a893eb09031372e3144bd3d56d7160f3069b2173b879f165b5b3dc2"
+  "hash": "ee533f3c50ae231518245ca6f958c8132f04c66796b21ae9b87bc3448ad785bc"
 }

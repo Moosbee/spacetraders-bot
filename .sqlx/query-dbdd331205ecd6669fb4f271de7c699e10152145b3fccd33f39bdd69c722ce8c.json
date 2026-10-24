@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n          select \n          id,\n          waypoint_symbol,\n          ship_symbol,\n          trade_symbol as \"trade_symbol: models::TradeSymbol\",\n          \"type\" as \"type: models::market_transaction::Type\",\n          units,\n          price_per_unit,\n          total_price,\n          \"timestamp\",\n          is_fuel,\n          contract,\n          trade_route,\n          mining,\n          construction\n          from market_transaction\n          where construction = $1\n          order by \"timestamp\"\n        ",
+  "query": "\n      select \n      id,\n      waypoint_symbol,\n      ship_symbol,\n      trade_symbol as \"trade_symbol: models::TradeSymbol\",\n      \"type\" as \"type: models::market_transaction::Type\",\n      units,\n      price_per_unit,\n      total_price,\n      \"timestamp\",\n      is_fuel,\n      contract,\n      trade_route,\n      mining,\n      construction,\n      ship_transfer\n      from market_transaction\n      where id = $1\n      LIMIT 1\n    ",
   "describe": {
     "columns": [
       {
@@ -235,6 +235,11 @@
         "ordinal": 13,
         "name": "construction",
         "type_info": "Int8"
+      },
+      {
+        "ordinal": 14,
+        "name": "ship_transfer",
+        "type_info": "Int8"
       }
     ],
     "parameters": {
@@ -256,8 +261,9 @@
       true,
       true,
       true,
+      true,
       true
     ]
   },
-  "hash": "0e3fed4990298dbfe955bd5a277c89459a76be63adaeb4374bd1a1f6f9a3291e"
+  "hash": "dbdd331205ecd6669fb4f271de7c699e10152145b3fccd33f39bdd69c722ce8c"
 }

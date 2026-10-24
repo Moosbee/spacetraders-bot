@@ -47,6 +47,8 @@ pub struct MarketTransaction {
     pub mining: Option<String>,
     #[graphql(name = "construction_shipment_id")]
     pub construction: Option<i64>,
+    #[graphql(name = "ship_transfer_id")]
+    pub ship_transfer: Option<i64>,
 }
 
 #[derive(
@@ -97,6 +99,7 @@ pub enum TransactionReason {
     TradeRoute(i32),
     MiningWaypoint(WaypointSymbol),
     Construction(i64),
+    ShipTransfer(i64),
     #[default]
     None,
 }
@@ -108,24 +111,32 @@ impl MarketTransaction {
                 contract: Some(contract),
                 trade_route: None,
                 mining: None,
+                construction: None,
+                ship_transfer: None,
                 ..self
             },
             TransactionReason::None => MarketTransaction {
                 contract: None,
                 trade_route: None,
                 mining: None,
+                construction: None,
+                ship_transfer: None,
                 ..self
             },
             TransactionReason::TradeRoute(route) => MarketTransaction {
                 contract: None,
                 trade_route: Some(route),
                 mining: None,
+                construction: None,
+                ship_transfer: None,
                 ..self
             },
             TransactionReason::MiningWaypoint(waypoint) => MarketTransaction {
                 contract: None,
                 trade_route: None,
                 mining: Some(waypoint.into_inner()),
+                construction: None,
+                ship_transfer: None,
                 ..self
             },
             TransactionReason::Construction(construction) => MarketTransaction {
@@ -133,6 +144,15 @@ impl MarketTransaction {
                 trade_route: None,
                 mining: None,
                 construction: Some(construction),
+                ship_transfer: None,
+                ..self
+            },
+            TransactionReason::ShipTransfer(ship_transfer) => MarketTransaction {
+                contract: None,
+                trade_route: None,
+                mining: None,
+                construction: None,
+                ship_transfer: Some(ship_transfer),
                 ..self
             },
         }
@@ -162,6 +182,9 @@ impl MarketTransaction {
             }
             TransactionReason::Construction(construction) => {
                 MarketTransaction::get_by_construction(database_pool, construction, query).await
+            }
+            TransactionReason::ShipTransfer(ship_transfer) => {
+                MarketTransaction::get_by_ship_transfer(database_pool, ship_transfer, query).await
             }
         }
     }
@@ -193,7 +216,8 @@ impl MarketTransaction {
           contract,
           trade_route,
           mining,
-          construction
+          construction,
+          ship_transfer
           from market_transaction
           where waypoint_symbol = $1 and trade_symbol = $2
           order by "timestamp"
@@ -226,7 +250,8 @@ impl MarketTransaction {
           contract,
           trade_route,
           mining,
-          construction
+          construction,
+          ship_transfer
           from market_transaction
           where waypoint_symbol = $1 and trade_symbol = $2
           order by "timestamp"
@@ -282,7 +307,8 @@ impl MarketTransaction {
           contract,
           trade_route,
           mining,
-          construction
+          construction,
+          ship_transfer
           from market_transaction
           where contract = $1
           order by "timestamp"
@@ -314,7 +340,8 @@ impl MarketTransaction {
           contract,
           trade_route,
           mining,
-          construction
+          construction,
+          ship_transfer
           from market_transaction
           where contract = $1
           order by "timestamp"
@@ -368,7 +395,8 @@ impl MarketTransaction {
           contract,
           trade_route,
           mining,
-          construction
+          construction,
+          ship_transfer
           from market_transaction
           where trade_route = $1
           order by "timestamp"
@@ -400,7 +428,8 @@ impl MarketTransaction {
           contract,
           trade_route,
           mining,
-          construction
+          construction,
+          ship_transfer
           from market_transaction
           where trade_route = $1
           order by "timestamp"
@@ -454,7 +483,8 @@ impl MarketTransaction {
           contract,
           trade_route,
           mining,
-          construction
+          construction,
+          ship_transfer
           from market_transaction
           where mining = $1
           order by "timestamp"
@@ -486,7 +516,8 @@ impl MarketTransaction {
           contract,
           trade_route,
           mining,
-          construction
+          construction,
+          ship_transfer
           from market_transaction
           where mining = $1
           order by "timestamp"
@@ -540,7 +571,8 @@ impl MarketTransaction {
           contract,
           trade_route,
           mining,
-          construction
+          construction,
+          ship_transfer
           from market_transaction
           where waypoint_symbol = $1
           order by "timestamp"
@@ -572,7 +604,8 @@ impl MarketTransaction {
           contract,
           trade_route,
           mining,
-          construction
+          construction,
+          ship_transfer
           from market_transaction
           where waypoint_symbol = $1
           order by "timestamp"
@@ -626,7 +659,8 @@ impl MarketTransaction {
           contract,
           trade_route,
           mining,
-          construction
+          construction,
+          ship_transfer
           from market_transaction
           where construction = $1
           order by "timestamp"
@@ -658,7 +692,8 @@ impl MarketTransaction {
           contract,
           trade_route,
           mining,
-          construction
+          construction,
+          ship_transfer
           from market_transaction
           where construction = $1
           order by "timestamp"
@@ -677,6 +712,94 @@ impl MarketTransaction {
             WHERE construction = $1
             "#,
                     construction
+                )
+                .fetch_one(database_pool.get_cache_pool())
+                .await?;
+                Ok(count.count)
+            },
+        )
+        .await
+    }
+
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
+    pub async fn get_by_ship_transfer(
+        database_pool: &DbPool,
+        ship_transfer: i64,
+        query: PaginatedQuery,
+    ) -> crate::Result<PaginatedResult<MarketTransaction>> {
+        run_paginated_query(
+            query,
+            |page_size, offset| async move {
+                let items = sqlx::query_as!(
+                    MarketTransaction,
+                    r#"
+          select 
+          id,
+          waypoint_symbol,
+          ship_symbol,
+          trade_symbol as "trade_symbol: models::TradeSymbol",
+          "type" as "type: models::market_transaction::Type",
+          units,
+          price_per_unit,
+          total_price,
+          "timestamp",
+          is_fuel,
+          contract,
+          trade_route,
+          mining,
+          construction,
+          ship_transfer
+          from market_transaction
+          where ship_transfer = $1
+          order by "timestamp"
+          LIMIT $2 OFFSET $3
+        "#,
+                    ship_transfer,
+                    page_size,
+                    offset
+                )
+                .fetch_all(database_pool.get_cache_pool())
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let items = sqlx::query_as!(
+                    MarketTransaction,
+                    r#"
+          select 
+          id,
+          waypoint_symbol,
+          ship_symbol,
+          trade_symbol as "trade_symbol: models::TradeSymbol",
+          "type" as "type: models::market_transaction::Type",
+          units,
+          price_per_unit,
+          total_price,
+          "timestamp",
+          is_fuel,
+          contract,
+          trade_route,
+          mining,
+          construction,
+          ship_transfer
+          from market_transaction
+          where ship_transfer = $1
+          order by "timestamp"
+        "#,
+                    ship_transfer
+                )
+                .fetch_all(database_pool.get_cache_pool())
+                .await?;
+                Ok(items)
+            },
+            || async move {
+                let count = sqlx::query!(
+                    r#"
+            SELECT COUNT(*) as "count!"
+            FROM market_transaction
+            WHERE ship_transfer = $1
+            "#,
+                    ship_transfer
                 )
                 .fetch_one(database_pool.get_cache_pool())
                 .await?;
@@ -716,7 +839,8 @@ impl MarketTransaction {
           contract,
           trade_route,
           mining,
-          construction
+          construction,
+          ship_transfer
           from market_transaction
           where waypoint_symbol like $1
           order by "timestamp"
@@ -748,7 +872,8 @@ impl MarketTransaction {
           contract,
           trade_route,
           mining,
-          construction
+          construction,
+          ship_transfer
           from market_transaction
           where waypoint_symbol like $1
           order by "timestamp"
@@ -802,7 +927,8 @@ impl MarketTransaction {
           contract,
           trade_route,
           mining,
-          construction
+          construction,
+          ship_transfer
           from market_transaction
           where ship_symbol = $1
           order by "timestamp"
@@ -834,7 +960,8 @@ impl MarketTransaction {
           contract,
           trade_route,
           mining,
-          construction
+          construction,
+          ship_transfer
           from market_transaction
           where ship_symbol = $1
           order by "timestamp"
@@ -888,7 +1015,8 @@ impl MarketTransaction {
           contract,
           trade_route,
           mining,
-          construction
+          construction,
+          ship_transfer
           from market_transaction
           where trade_symbol = $1
           order by "timestamp"
@@ -920,7 +1048,8 @@ impl MarketTransaction {
           contract,
           trade_route,
           mining,
-          construction
+          construction,
+          ship_transfer
           from market_transaction
           where trade_symbol = $1
           order by "timestamp"
@@ -974,7 +1103,8 @@ impl MarketTransaction {
           contract,
           trade_route,
           mining,
-          construction
+          construction,
+          ship_transfer
           from market_transaction
           where "type" = $1
           order by "timestamp"
@@ -1006,7 +1136,8 @@ impl MarketTransaction {
           contract,
           trade_route,
           mining,
-          construction
+          construction,
+          ship_transfer
           from market_transaction
           where "type" = $1
           order by "timestamp"
@@ -2289,6 +2420,7 @@ impl TryFrom<models::MarketTransaction> for MarketTransaction {
             trade_route: None,
             mining: None,
             construction: None,
+            ship_transfer: None,
         })
     }
 }
@@ -2303,8 +2435,8 @@ impl DatabaseConnectorAsync for MarketTransaction {
     ) -> crate::Result<Self::ID> {
         let erg = sqlx::query!(
     r#"
-      INSERT INTO market_transaction (waypoint_symbol, ship_symbol, trade_symbol, "type", units, price_per_unit, total_price, is_fuel, "timestamp", contract, trade_route, mining, construction)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+      INSERT INTO market_transaction (waypoint_symbol, ship_symbol, trade_symbol, "type", units, price_per_unit, total_price, is_fuel, "timestamp", contract, trade_route, mining, construction, ship_transfer)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
       ON CONFLICT (waypoint_symbol, ship_symbol, trade_symbol, "timestamp") DO UPDATE
       SET units = EXCLUDED.units,
       price_per_unit = EXCLUDED.price_per_unit,
@@ -2323,7 +2455,8 @@ impl DatabaseConnectorAsync for MarketTransaction {
     item.contract,
     item.trade_route,
     item.mining,
-    item.construction
+    item.construction,
+    item.ship_transfer
   )
   .fetch_one(&database_pool.database_pool)
   .await?;
@@ -2367,14 +2500,15 @@ impl DatabaseConnectorAsync for MarketTransaction {
             }));
 
         #[allow(clippy::type_complexity)]
-        let (t_is_fuel, t_timestamp, t_contract, t_trade_route, t_mining, t_construction):(
-            Vec<_>,
-            Vec<_>,
-            Vec<_>,
-            Vec<_>,
-            Vec<_>,
-            Vec<_>,
-        ) =
+        let (
+            t_is_fuel,
+            t_timestamp,
+            t_contract,
+            t_trade_route,
+            t_mining,
+            t_construction,
+            t_ship_transfer,
+        ): (Vec<_>, Vec<_>, Vec<_>, Vec<_>, Vec<_>, Vec<_>, Vec<_>) =
             itertools::multiunzip(items.iter().map(|item| {
                 (
                     item.is_fuel,
@@ -2383,12 +2517,13 @@ impl DatabaseConnectorAsync for MarketTransaction {
                     item.trade_route,
                     item.mining.clone(),
                     item.construction,
+                    item.ship_transfer,
                 )
             }));
 
         sqlx::query!(
         r#"
-            INSERT INTO market_transaction (waypoint_symbol, ship_symbol,trade_symbol, "type", units, price_per_unit, total_price, is_fuel, "timestamp", contract, trade_route, mining, construction)
+            INSERT INTO market_transaction (waypoint_symbol, ship_symbol,trade_symbol, "type", units, price_per_unit, total_price, is_fuel, "timestamp", contract, trade_route, mining, construction, ship_transfer)
               SELECT * FROM UNNEST(
                 $1::character varying[],
                 $2::character varying[],
@@ -2402,7 +2537,8 @@ impl DatabaseConnectorAsync for MarketTransaction {
                 $10::character varying[],
                 $11::integer[],
                 $12::character varying[],
-                $13::bigint[]
+                $13::bigint[],
+                $14::bigint[]
             )
             ON CONFLICT (waypoint_symbol, ship_symbol, trade_symbol, "timestamp") DO UPDATE
             SET units = EXCLUDED.units,
@@ -2421,7 +2557,8 @@ impl DatabaseConnectorAsync for MarketTransaction {
         &t_contract as &[Option<String>],
         &t_trade_route as &[Option<i32>],
         &t_mining as &[Option<String>],
-        &t_construction as &[Option<i64>]
+        &t_construction as &[Option<i64>],
+        &t_ship_transfer as &[Option<i64>]
 
     )
     .execute(&database_pool.database_pool)
@@ -2455,7 +2592,8 @@ impl DatabaseConnectorAsync for MarketTransaction {
           contract,
           trade_route,
           mining,
-          construction
+          construction,
+          ship_transfer
           from market_transaction
           order by "timestamp"
           LIMIT $1 OFFSET $2
@@ -2485,7 +2623,8 @@ impl DatabaseConnectorAsync for MarketTransaction {
           contract,
           trade_route,
           mining,
-          construction
+          construction,
+          ship_transfer
           from market_transaction
           order by "timestamp"
         "#,
@@ -2528,7 +2667,8 @@ impl DatabaseConnectorAsync for MarketTransaction {
       contract,
       trade_route,
       mining,
-      construction
+      construction,
+      ship_transfer
       from market_transaction
       where id = $1
       LIMIT 1

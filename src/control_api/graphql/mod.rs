@@ -117,6 +117,14 @@ impl QueryRoot {
                     )
                     .await
                 }
+                MarketTransactionBy::ShipTransfer(ship_transfer_id) => {
+                    database::MarketTransaction::get_by_ship_transfer(
+                        &context.database_pool,
+                        ship_transfer_id,
+                        query,
+                    )
+                    .await
+                }
                 MarketTransactionBy::Waypoint(waypoint_symbol) => {
                     database::MarketTransaction::get_by_waypoint(
                         &context.database_pool,
@@ -1412,6 +1420,7 @@ enum MarketTransactionBy {
     TradeRoute(i32),
     Mining(String),
     Construction(i64),
+    ShipTransfer(i64),
     Waypoint(String),
     System(String),
     ShipSymbol(String),

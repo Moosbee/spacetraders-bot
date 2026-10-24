@@ -418,7 +418,7 @@ impl Pilot {
         ship.nav_to(
             &jump_gate.symbol,
             true,
-            database::TransactionReason::None, // todo update with the right id
+            database::TransactionReason::ShipTransfer(transfer_request.id), // todo update with the right id
             &self.context.database_pool,
             &self.context.api,
             jump_gate_router,

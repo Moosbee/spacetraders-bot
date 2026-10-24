@@ -911,6 +911,7 @@ type MarketTransaction {
 	trade_route_id: Int
 	mining_waypoint_symbol: String
 	construction_shipment_id: Int
+	ship_transfer_id: Int
 	waypoint: Waypoint
 	ship: Ship
 	contract: Contract
@@ -926,6 +927,7 @@ input MarketTransactionBy @oneOf {
 	tradeRoute: Int
 	mining: String
 	construction: Int
+	shipTransfer: Int
 	waypoint: String
 	system: String
 	shipSymbol: String

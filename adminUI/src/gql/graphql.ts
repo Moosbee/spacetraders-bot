@@ -987,6 +987,7 @@ export type MarketTransaction = {
   ship?: Maybe<Ship>;
   /** The symbol of the ship that made the transaction. */
   shipSymbol: Scalars['ShipSymbol']['output'];
+  ship_transfer_id?: Maybe<Scalars['Int']['output']>;
   /** The timestamp of the transaction. */
   timestamp: Scalars['DateTime']['output'];
   /** The total price of the transaction. */
@@ -1006,15 +1007,16 @@ export type MarketTransaction = {
 };
 
 export type MarketTransactionBy =
-  { construction: Scalars['Int']['input']; contract?: never; mining?: never; shipSymbol?: never; system?: never; tradeRoute?: never; tradeSymbol?: never; type?: never; waypoint?: never; }
-  |  { construction?: never; contract: Scalars['String']['input']; mining?: never; shipSymbol?: never; system?: never; tradeRoute?: never; tradeSymbol?: never; type?: never; waypoint?: never; }
-  |  { construction?: never; contract?: never; mining: Scalars['String']['input']; shipSymbol?: never; system?: never; tradeRoute?: never; tradeSymbol?: never; type?: never; waypoint?: never; }
-  |  { construction?: never; contract?: never; mining?: never; shipSymbol: Scalars['String']['input']; system?: never; tradeRoute?: never; tradeSymbol?: never; type?: never; waypoint?: never; }
-  |  { construction?: never; contract?: never; mining?: never; shipSymbol?: never; system: Scalars['String']['input']; tradeRoute?: never; tradeSymbol?: never; type?: never; waypoint?: never; }
-  |  { construction?: never; contract?: never; mining?: never; shipSymbol?: never; system?: never; tradeRoute: Scalars['Int']['input']; tradeSymbol?: never; type?: never; waypoint?: never; }
-  |  { construction?: never; contract?: never; mining?: never; shipSymbol?: never; system?: never; tradeRoute?: never; tradeSymbol: TradeSymbol; type?: never; waypoint?: never; }
-  |  { construction?: never; contract?: never; mining?: never; shipSymbol?: never; system?: never; tradeRoute?: never; tradeSymbol?: never; type: MarketTransactionType; waypoint?: never; }
-  |  { construction?: never; contract?: never; mining?: never; shipSymbol?: never; system?: never; tradeRoute?: never; tradeSymbol?: never; type?: never; waypoint: Scalars['String']['input']; };
+  { construction: Scalars['Int']['input']; contract?: never; mining?: never; shipSymbol?: never; shipTransfer?: never; system?: never; tradeRoute?: never; tradeSymbol?: never; type?: never; waypoint?: never; }
+  |  { construction?: never; contract: Scalars['String']['input']; mining?: never; shipSymbol?: never; shipTransfer?: never; system?: never; tradeRoute?: never; tradeSymbol?: never; type?: never; waypoint?: never; }
+  |  { construction?: never; contract?: never; mining: Scalars['String']['input']; shipSymbol?: never; shipTransfer?: never; system?: never; tradeRoute?: never; tradeSymbol?: never; type?: never; waypoint?: never; }
+  |  { construction?: never; contract?: never; mining?: never; shipSymbol: Scalars['String']['input']; shipTransfer?: never; system?: never; tradeRoute?: never; tradeSymbol?: never; type?: never; waypoint?: never; }
+  |  { construction?: never; contract?: never; mining?: never; shipSymbol?: never; shipTransfer: Scalars['Int']['input']; system?: never; tradeRoute?: never; tradeSymbol?: never; type?: never; waypoint?: never; }
+  |  { construction?: never; contract?: never; mining?: never; shipSymbol?: never; shipTransfer?: never; system: Scalars['String']['input']; tradeRoute?: never; tradeSymbol?: never; type?: never; waypoint?: never; }
+  |  { construction?: never; contract?: never; mining?: never; shipSymbol?: never; shipTransfer?: never; system?: never; tradeRoute: Scalars['Int']['input']; tradeSymbol?: never; type?: never; waypoint?: never; }
+  |  { construction?: never; contract?: never; mining?: never; shipSymbol?: never; shipTransfer?: never; system?: never; tradeRoute?: never; tradeSymbol: TradeSymbol; type?: never; waypoint?: never; }
+  |  { construction?: never; contract?: never; mining?: never; shipSymbol?: never; shipTransfer?: never; system?: never; tradeRoute?: never; tradeSymbol?: never; type: MarketTransactionType; waypoint?: never; }
+  |  { construction?: never; contract?: never; mining?: never; shipSymbol?: never; shipTransfer?: never; system?: never; tradeRoute?: never; tradeSymbol?: never; type?: never; waypoint: Scalars['String']['input']; };
 
 export type MarketTransactionPage = {
   __typename?: 'MarketTransactionPage';

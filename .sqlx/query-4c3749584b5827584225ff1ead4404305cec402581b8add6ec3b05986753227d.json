@@ -1,19 +1,27 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n      INSERT INTO market_transaction (waypoint_symbol, ship_symbol, trade_symbol, \"type\", units, price_per_unit, total_price, is_fuel, \"timestamp\", contract, trade_route, mining, construction)\n      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)\n      ON CONFLICT (waypoint_symbol, ship_symbol, trade_symbol, \"timestamp\") DO UPDATE\n      SET units = EXCLUDED.units,\n      price_per_unit = EXCLUDED.price_per_unit,\n      total_price = EXCLUDED.total_price\n      returning id\n    ",
+  "query": "\n          select \n          id,\n          waypoint_symbol,\n          ship_symbol,\n          trade_symbol as \"trade_symbol: models::TradeSymbol\",\n          \"type\" as \"type: models::market_transaction::Type\",\n          units,\n          price_per_unit,\n          total_price,\n          \"timestamp\",\n          is_fuel,\n          contract,\n          trade_route,\n          mining,\n          construction,\n          ship_transfer\n          from market_transaction\n          where ship_symbol = $1\n          order by \"timestamp\"\n        ",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
         "name": "id",
         "type_info": "Int8"
-      }
-    ],
-    "parameters": {
-      "Left": [
-        "Varchar",
-        "Varchar",
-        {
+      },
+      {
+        "ordinal": 1,
+        "name": "waypoint_symbol",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "ship_symbol",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "trade_symbol: models::TradeSymbol",
+        "type_info": {
           "Custom": {
             "name": "trade_symbol",
             "kind": {
@@ -166,8 +174,12 @@
               ]
             }
           }
-        },
-        {
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "type: models::market_transaction::Type",
+        "type_info": {
           "Custom": {
             "name": "market_transaction_type",
             "kind": {
@@ -177,21 +189,81 @@
               ]
             }
           }
-        },
-        "Int4",
-        "Int4",
-        "Int4",
-        "Bool",
-        "Timestamptz",
-        "Varchar",
-        "Int4",
-        "Varchar",
-        "Int8"
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "units",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 6,
+        "name": "price_per_unit",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 7,
+        "name": "total_price",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 8,
+        "name": "timestamp",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 9,
+        "name": "is_fuel",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 10,
+        "name": "contract",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 11,
+        "name": "trade_route",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 12,
+        "name": "mining",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 13,
+        "name": "construction",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 14,
+        "name": "ship_transfer",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
       ]
     },
     "nullable": [
-      false
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true
     ]
   },
-  "hash": "ba9ca9649894f2c2c71af8eb4fed41bcade5d572655069b5d15ceb2c31fb10af"
+  "hash": "4c3749584b5827584225ff1ead4404305cec402581b8add6ec3b05986753227d"
 }
