@@ -83,9 +83,15 @@ impl ShipProcurementManager {
                         .budget_manager
                         .cancel_reservation(
                             &self.context.database_pool,
-                            purchase_reservation.reservation.id,
+                            purchase_reservation.ship_reservation.id,
                         )
                         .await?;
+                    if let Some(travel_reservation) = purchase_reservation.travel_reservation {
+                        self.context
+                            .budget_manager
+                            .cancel_reservation(&self.context.database_pool, travel_reservation.id)
+                            .await?;
+                    }
                     continue;
                 }
                 let worked = self.purchase_ship(purchase_reservation).await;
@@ -202,25 +208,49 @@ impl ShipProcurementManager {
         let mut reservations: Vec<ShipPurchaseReservation> = Vec::new();
 
         for ship_purchase_info in ships_to_purchase {
-            let reservation = self
-                .context
-                .budget_manager
-                .reserve_funds_with_remain(
-                    &self.context.database_pool,
-                    ship_purchase_info.total_price,
-                    ship_purchase_info.assignment.credits_threshold as i64,
-                )
-                .await;
-            if let Err(error) = reservation {
-                if let crate::error::Error::NotEnoughFunds { .. } = error {
-                    tracing::debug!("failed to reserve funds for ship: {}", error);
-                    continue;
-                } else {
-                    return Err(error);
+            let (ship_reservation, travel_reservation) = if ship_purchase_info.travel_cost > 0 {
+                let reservation = self
+                    .context
+                    .budget_manager
+                    .reserve_two_funds_with_remain(
+                        &self.context.database_pool,
+                        ship_purchase_info.shipyard_ship.purchase_price as i64,
+                        ship_purchase_info.travel_cost,
+                        ship_purchase_info.assignment.credits_threshold as i64,
+                    )
+                    .await;
+                if let Err(error) = reservation {
+                    if let crate::error::Error::NotEnoughFunds { .. } = error {
+                        tracing::debug!("failed to reserve funds for ship: {}", error);
+                        continue;
+                    } else {
+                        return Err(error);
+                    }
                 }
-            }
 
-            let reservation = reservation.unwrap();
+                let reservation = reservation.unwrap();
+
+                (reservation.0, Some(reservation.1))
+            } else {
+                let reservation = self
+                    .context
+                    .budget_manager
+                    .reserve_funds_with_remain(
+                        &self.context.database_pool,
+                        ship_purchase_info.total_price,
+                        ship_purchase_info.assignment.credits_threshold as i64,
+                    )
+                    .await;
+                if let Err(error) = reservation {
+                    if let crate::error::Error::NotEnoughFunds { .. } = error {
+                        tracing::debug!("failed to reserve funds for ship: {}", error);
+                        continue;
+                    } else {
+                        return Err(error);
+                    }
+                }
+                (reservation.unwrap(), None)
+            };
 
             let waypoint_reservation = reserved_waypoints
                 .get(&ship_purchase_info.shipyard_ship.waypoint_symbol)
@@ -228,7 +258,9 @@ impl ShipProcurementManager {
                 .clone();
 
             let ship_reservation = ShipPurchaseReservation {
-                reservation,
+                ship_reservation,
+                travel_reservation,
+                fleet: ship_purchase_info.fleet.clone(),
                 shipyard_ship: ship_purchase_info.shipyard_ship.clone(),
                 assignment: ship_purchase_info.assignment.clone(),
                 waypoint_reservation,
@@ -285,7 +317,7 @@ impl ShipProcurementManager {
     async fn purchase_ship(&self, ship_reservation: ShipPurchaseReservation<'_>) -> Result<()> {
         let shipyard_ship = ship_reservation.shipyard_ship;
         let assignment = ship_reservation.assignment;
-        let reservation = ship_reservation.reservation;
+        let purchase_reservation = ship_reservation.ship_reservation;
         let waypoint_reservation = ship_reservation.waypoint_reservation;
 
         let purchase_ship_response = self
@@ -307,7 +339,7 @@ impl ShipProcurementManager {
             .budget_manager
             .use_reservation(
                 &self.context.database_pool,
-                reservation.id,
+                purchase_reservation.id,
                 purchase_ship_response.data.transaction.price as i64,
             )
             .await?;
@@ -343,6 +375,21 @@ impl ShipProcurementManager {
 
         ship_i.notify(true).await;
 
+        if let Some(travel_reservation) = ship_reservation.travel_reservation {
+            // ship needs to travel to it's destination
+            let ship_transfer = database::ShipTransfer {
+                ship_symbol: ship_info.symbol.clone(),
+                assignment_id: assignment.id,
+                fleet_id: assignment.fleet_id,
+                start_system_symbol: ship_i.nav.system_symbol.clone(),
+                end_system_symbol: ship_reservation.fleet.system_symbol.clone(),
+                reservation_id: travel_reservation.id,
+                state: database::ShipTransferState::OnGoing,
+                ..Default::default()
+            };
+            database::ShipTransfer::insert_new(&self.context.database_pool, &ship_transfer).await?;
+        }
+
         ship::ShipManager::add_ship(&self.context.ship_manager, ship_i).await;
 
         {
@@ -355,7 +402,7 @@ impl ShipProcurementManager {
 
         self.context
             .budget_manager
-            .complete_reservation(&self.context.database_pool, reservation.id)
+            .complete_reservation(&self.context.database_pool, purchase_reservation.id)
             .await?;
 
         self.context.ship_tasks.start_ship(ship_info.clone()).await;
@@ -487,7 +534,9 @@ impl<'a> GroupKey<'a> {
 struct ShipPurchaseReservation<'a> {
     shipyard_ship: database::ShipyardShip,
     assignment: database::ShipAssignment,
-    reservation: database::ReservedFund,
+    fleet: database::Fleet,
+    ship_reservation: database::ReservedFund,
+    travel_reservation: Option<database::ReservedFund>,
     waypoint_reservation: super::WaypointReservation<'a>,
 }
 
