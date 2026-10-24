@@ -188,8 +188,7 @@ impl ShipProcurementManager {
             })
             .collect::<Vec<_>>();
 
-        let ship_purchase_percentile =
-            { self.context.config.read().await.ship_purchase_percentile };
+        let ship_purchase_percentile = self.context.config.load().ship_purchase_percentile;
 
         let reserved_waypoints = shipyard_ship_reservation.reserve_all().await?;
 

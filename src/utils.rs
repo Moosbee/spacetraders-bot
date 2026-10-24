@@ -1,11 +1,11 @@
 use std::sync::Arc;
 
+use arc_swap::ArcSwap;
 use database::DbPool;
 use serde::{Deserialize, Serialize};
 use ship::ShipManager;
 use ship::status::ShipStatus;
 use space_traders_client::models;
-use tokio::sync::RwLock;
 use tokio_util::sync::CancellationToken;
 
 use crate::manager::budget_manager::BudgetManager;
@@ -36,8 +36,8 @@ pub struct ConductorContext {
     pub shipyard_ship_reservation: Arc<ShipyardShipReservation>,
     pub chart_manager: ChartManagerMessanger,
     pub budget_manager: Arc<BudgetManager>,
-    pub run_info: Arc<RwLock<RunInfo>>,
-    pub config: Arc<RwLock<Config>>,
+    pub run_info: Arc<ArcSwap<RunInfo>>,
+    pub config: Arc<ArcSwap<Config>>,
     pub cancellation_tokens: Arc<CancellationTokens>,
     pub supply_chain_mapping: Arc<SupplyChainMapping>,
 }

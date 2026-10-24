@@ -55,7 +55,7 @@ impl ScrappingManager {
     )]
     async fn run_scrapping_worker(&mut self) -> Result<()> {
         tokio::time::sleep(Duration::from_millis({
-            self.context.config.read().await.scrapper_start_sleep
+            self.context.config.load().scrapper_start_sleep
         }))
         .await;
 
@@ -106,7 +106,7 @@ impl ScrappingManager {
         tokio::task::JoinHandle<std::result::Result<(), crate::error::Error>>,
         tokio::task::JoinHandle<std::result::Result<(), crate::error::Error>>,
     )> {
-        let erg = { self.context.config.read().await.scrap_agents };
+        let erg = self.context.config.load().scrap_agents;
         let agent_join_handle = if erg {
             let api = self.context.api.clone();
             let database_pool = self.context.database_pool.clone();
@@ -131,7 +131,7 @@ impl ScrappingManager {
             tokio::spawn(async move { Ok(()) })
         };
 
-        let erg = { self.context.config.read().await.update_all_systems };
+        let erg = self.context.config.load().update_all_systems;
 
         let system_count = database::System::get_all(
             &self.context.database_pool,
@@ -146,10 +146,8 @@ impl ScrappingManager {
         .await?
         .total_count as i32;
 
-        let has_no_left = { self.context.run_info.read().await.total_systems } == system_count && {
-            self.context.run_info.read().await.total_waypoints
-        }
-            == waypoint_count;
+        let has_no_left = self.context.run_info.load().total_systems == system_count
+            && self.context.run_info.load().total_waypoints == waypoint_count;
 
         tracing::info!(
             has_no_left = has_no_left,
@@ -352,7 +350,7 @@ impl ScrappingManager {
                 continue;
             }
 
-            let max_update_interval = { self.context.config.read().await.max_update_interval };
+            let max_update_interval = self.context.config.load().max_update_interval;
 
             let next_time = priority_calculator::get_waypoint_time(
                 market_trade_goods

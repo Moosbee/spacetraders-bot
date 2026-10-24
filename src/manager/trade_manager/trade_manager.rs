@@ -1,8 +1,8 @@
 use std::collections::HashSet;
 
 use database::{DatabaseConnectorAsync, PaginatedQuery};
-use space_traders_client::models;
 use space_traders_client::SystemSymbol;
+use space_traders_client::models;
 use tokio::select;
 use tracing::debug;
 
@@ -284,7 +284,7 @@ impl TradeManager {
             &trading_config.market_blacklist,
         );
 
-        let config = self.context.config.read().await.clone();
+        let config = self.context.config.load_full();
 
         let trade_route_proposals = trade_route_calculator::gen_trade_route_proposals(
             &self.context.database_pool,

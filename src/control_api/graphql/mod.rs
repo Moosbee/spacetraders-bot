@@ -28,7 +28,7 @@ pub struct QueryRoot;
 impl QueryRoot {
     async fn run_info<'ctx>(&self, ctx: &async_graphql::Context<'ctx>) -> Result<RunInfo> {
         let context = ctx.data::<ConductorContext>()?;
-        let info = context.run_info.read().await.clone();
+        let info = (*context.run_info.load_full()).clone();
         Ok(info)
     }
 
@@ -43,7 +43,7 @@ impl QueryRoot {
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<crate::utils::Config> {
         let context = ctx.data::<ConductorContext>()?;
-        let config = context.config.read().await.clone();
+        let config = (*context.config.load_full()).clone();
         Ok(config)
     }
 

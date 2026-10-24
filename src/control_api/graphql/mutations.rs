@@ -22,8 +22,7 @@ impl MutationRoot {
     ) -> super::Result<crate::utils::Config> {
         let context = ctx.data::<ConductorContext>()?;
         {
-            let mut w = context.config.write().await;
-            let mut cfg = w.clone();
+            let mut cfg = (*context.config.load_full()).clone();
 
             if let Some(v) = input.control_start_sleep {
                 cfg.control_start_sleep = v;
@@ -78,14 +77,14 @@ impl MutationRoot {
                 cfg.iron_reserve = v;
             }
 
-            *w = cfg.clone();
+            context.config.swap(std::sync::Arc::new(cfg));
         }
 
         let old_string = tokio::fs::read_to_string("config.toml")
             .await
             .map_err(|e| GraphiQLError::IO(e.to_string()))?;
 
-        let info = { context.config.read().await.clone() };
+        let info = context.config.load_full();
 
         let mut toml_edit_doc = old_string
             .parse::<toml_edit::DocumentMut>()
@@ -101,7 +100,7 @@ impl MutationRoot {
             .await
             .map_err(|e| GraphiQLError::IO(e.to_string()))?;
 
-        Ok(info)
+        Ok((*info).clone())
     }
 
     /// Add a new fleet for a given system. Returns the created DB fleet.

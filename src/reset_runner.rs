@@ -1,10 +1,10 @@
 use std::{collections::HashSet, num::NonZeroU32, str::FromStr, sync::Arc};
 
+use arc_swap::ArcSwap;
 use database::DatabaseConnectorAsync;
 use ship::ShipManager;
 use space_traders_client::SystemSymbol;
 use space_traders_client::models::{self};
-use tokio::sync::RwLock;
 use tokio_util::sync::CancellationToken;
 use tracing::instrument;
 use utils::WaypointCan;
@@ -145,10 +145,7 @@ pub async fn run_control_api_only(
     // Always serve the control API in this mode, regardless of control_active.
     config.control_active = true;
 
-    {
-        let mut write_config = context.config.write().await;
-        *write_config = config;
-    }
+    context.config.swap(Arc::new(config));
 
     // Populate the context with agent and ship data from the database.
     let context = populate_context_from_db(context).await?;
@@ -204,12 +201,9 @@ async fn populate_context_from_db(
             total_waypoints: 0,
         };
 
-        {
-            let mut write_run_info = context.run_info.write().await;
-            *write_run_info = run_info;
-        }
+        context.run_info.swap(Arc::new(run_info));
 
-        let iron_reserve = context.config.read().await.iron_reserve;
+        let iron_reserve = context.config.load().iron_reserve;
         let mut budget_manager = (*context.budget_manager).duplicate().await;
         budget_manager
             .load(&context.database_pool, agent.credits, iron_reserve)
@@ -368,7 +362,7 @@ async fn analyze_run(
     context: &ConductorContext,
     _manager: &ManagerManager,
 ) -> Result<ResetSummary, anyhow::Error> {
-    let run_info = context.run_info.read().await;
+    let run_info = context.run_info.load_full();
     let money = context.budget_manager.get_budget_info().await;
 
     Ok(ResetSummary {
@@ -439,14 +433,10 @@ async fn populate_context(
     let config: crate::utils::Config =
         toml_edit::de::from_str(&std::fs::read_to_string("config.toml").unwrap()).unwrap();
 
-    let mut write_config = context.config.write().await;
     let iron_reserve = config.iron_reserve;
-    *write_config = config.clone();
-    drop(write_config);
+    context.config.swap(Arc::new(config));
 
-    let mut write_run_info = context.run_info.write().await;
-    *write_run_info = run_info.clone();
-    drop(write_run_info);
+    context.run_info.swap(Arc::new(run_info));
 
     let mut budget_manager = (*context.budget_manager).duplicate().await;
     budget_manager
@@ -494,12 +484,7 @@ async fn populate_database(
 
 #[instrument(skip(context))]
 async fn ensure_main_system_fleets(context: &ConductorContext) -> Result<(), anyhow::Error> {
-    let main_system = context
-        .run_info
-        .read()
-        .await
-        .headquarters
-        .get_system_symbol();
+    let main_system = context.run_info.load().headquarters.get_system_symbol();
 
     if manager::fleet_manager::fleet_population::is_system_populated(
         &context.database_pool,
@@ -658,8 +643,8 @@ async fn init_min_context(
         ship_procurement_manager: ShipProcurementMessanger::new(),
         chart_manager: chart_manager.1,
         budget_manager: Arc::new(budget_manager),
-        run_info: Arc::new(RwLock::new(RunInfo::default())),
-        config: Arc::new(RwLock::new(crate::utils::Config::default())),
+        run_info: Arc::new(ArcSwap::new(Arc::new(RunInfo::default()))),
+        config: Arc::new(ArcSwap::new(Arc::new(crate::utils::Config::default()))),
         cancellation_tokens: Arc::new(cancellation_tokens),
         supply_chain_mapping: Arc::new(SupplyChainMapping::new(&[])),
         shipyard_ship_reservation: Arc::new(ShipyardShipReservation::new()),
@@ -721,7 +706,7 @@ async fn init_managers(
         context.clone(),
         manager_receivers.mining_manager,
         manager_receivers.transfer_manager,
-        context.config.read().await.max_miners_per_waypoint,
+        context.config.load().max_miners_per_waypoint,
     );
     let scrapping_manager = ScrappingManager::new(
         fast_manager_cancel_token.child_token(),

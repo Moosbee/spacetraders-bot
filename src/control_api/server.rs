@@ -57,12 +57,14 @@ impl ControlApiServer {
         skip(self)
     )]
     async fn run_server(&mut self) -> anyhow::Result<()> {
-        let config = { self.context.config.read().await.clone() };
-        if !config.control_active {
+        if !self.context.config.load().control_active {
             return Ok(());
         }
 
-        tokio::time::sleep(Duration::from_millis(config.control_start_sleep)).await;
+        tokio::time::sleep(Duration::from_millis(
+            self.context.config.load().control_start_sleep,
+        ))
+        .await;
         let context = self.context.clone();
         let database_pool = self.context.database_pool.clone();
 

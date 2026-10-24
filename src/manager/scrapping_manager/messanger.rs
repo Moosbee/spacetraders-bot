@@ -1,4 +1,5 @@
 use super::message::ScrappingManagerMessage;
+use arc_swap::ArcSwap;
 use space_traders_client::WaypointSymbol;
 use std::sync::{
     Arc,
@@ -12,7 +13,7 @@ pub struct ScrappingManagerMessanger {
     agent_scrapper_busy: Arc<AtomicBool>,
     agent_scrapper_count: Arc<AtomicU32>,
     agent_scrapper_active: Arc<AtomicBool>,
-    system_scrapper_state: Arc<tokio::sync::RwLock<SystemScrapperState>>,
+    system_scrapper_state: Arc<ArcSwap<SystemScrapperState>>,
 }
 
 impl ScrappingManagerMessanger {
@@ -23,9 +24,7 @@ impl ScrappingManagerMessanger {
             agent_scrapper_busy: Arc::new(AtomicBool::new(false)),
             agent_scrapper_count: Arc::new(AtomicU32::new(0)),
             agent_scrapper_active: Arc::new(AtomicBool::new(false)),
-            system_scrapper_state: Arc::new(tokio::sync::RwLock::new(
-                SystemScrapperState::Inactive,
-            )),
+            system_scrapper_state: Arc::new(ArcSwap::new(Arc::new(SystemScrapperState::Inactive))),
         }
     }
 
@@ -144,18 +143,17 @@ impl ScrappingManagerMessanger {
     }
 
     pub async fn is_system_scrapper_active(&self) -> bool {
-        let state = self.system_scrapper_state.read().await;
-        !matches!(&*state, SystemScrapperState::Inactive)
+        let state = self.system_scrapper_state.load();
+        !matches!(**state, SystemScrapperState::Inactive)
     }
 
     pub async fn get_system_scrapper_state(&self) -> SystemScrapperState {
-        let state = self.system_scrapper_state.read().await;
-        (*state).clone()
+        let state = self.system_scrapper_state.load();
+        (**state).clone()
     }
 
     pub async fn set_system_scrapper_state(&self, state: SystemScrapperState) -> bool {
-        let mut current = self.system_scrapper_state.write().await;
-        *current = state;
+        self.system_scrapper_state.swap(Arc::new(state));
         true
     }
 }

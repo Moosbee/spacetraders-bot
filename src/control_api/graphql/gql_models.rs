@@ -3945,7 +3945,7 @@ impl GQLWaypoint {
         )
         .await?
         .items;
-        let max_update_interval = { context.config.read().await.max_update_interval };
+        let max_update_interval = { context.config.load().max_update_interval };
 
         let next_time = crate::manager::scrapping_manager::priority_calculator::get_waypoint_time(
             market_trade_goods

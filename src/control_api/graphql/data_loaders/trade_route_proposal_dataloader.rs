@@ -87,7 +87,7 @@ impl Loader<TradeRouteProposalConfig> for TradeRouteProposalLoader {
                 .map_err(|e| Arc::new(e.into()))?;
         }
 
-        let config = self.context.config.read().await.clone();
+        let config = self.context.config.load_full();
         let fallback_purchase_price = config.default_purchase_price;
         let fallback_sell_price = config.default_sell_price;
 

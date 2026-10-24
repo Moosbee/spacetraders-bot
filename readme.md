@@ -42,11 +42,8 @@ sequenceDiagram
 ```
 
 ## Todo
-- update budgeting system to include ship transfers
 - rework Manuel control
 - update mining transfer system
-- speed up ShipProcurementManager, rewrite it to no longer block scrappers on shipyards
-- use https://docs.rs/arc-swap/latest/arc_swap/index.html
 - add a static scrapping for shipyards
 - connect transactions with fleets
 - rewrite database provider to properly use inversion of control

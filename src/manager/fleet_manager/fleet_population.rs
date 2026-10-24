@@ -192,14 +192,14 @@ async fn generate_system_fleets(
     .await?
     .items;
 
-    let headquarters_waypoint = { context.run_info.read().await.headquarters.clone() };
+    let headquarters_waypoint = { context.run_info.load().headquarters.clone() };
 
     let is_headquarters_system = waypoints.iter().any(|f| f.symbol == headquarters_waypoint);
 
     let has_uncharted_waypoints = waypoints.iter().any(|w| !w.is_charted());
 
-    let use_exploration_fleet = context.config.read().await.use_exploration_fleet;
-    let max_miners_per_waypoint = context.config.read().await.max_miners_per_waypoint;
+    let use_exploration_fleet = context.config.load().use_exploration_fleet;
+    let max_miners_per_waypoint = context.config.load().max_miners_per_waypoint;
 
     let has_uncharted_marketplace_waypoints = waypoints
         .iter()
