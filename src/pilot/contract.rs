@@ -1,5 +1,5 @@
-use std::sync::{Arc, atomic::AtomicI32};
 use space_traders_client::ShipSymbol;
+use std::sync::{Arc, atomic::AtomicI32};
 
 use tracing::debug;
 use tracing::instrument;
@@ -175,6 +175,7 @@ impl ContractPilot {
             database::TransactionReason::Contract(shipment.contract_id.clone()),
             &self.context.database_pool,
             &self.context.api,
+            self.context.jump_gate_router.load_full(),
             update_funds_fn.clone(),
         )
         .await?;
@@ -258,6 +259,7 @@ impl ContractPilot {
             database::TransactionReason::Contract(shipment.contract_id.clone()),
             &self.context.database_pool,
             &self.context.api,
+            self.context.jump_gate_router.load_full(),
             update_funds_fn,
         )
         .await?;

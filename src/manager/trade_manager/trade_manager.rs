@@ -285,9 +285,11 @@ impl TradeManager {
         );
 
         let config = self.context.config.load_full();
+        let jump_gate_router = self.context.jump_gate_router.load_full();
 
         let trade_route_proposals = trade_route_calculator::gen_trade_route_proposals(
             &self.context.database_pool,
+            &jump_gate_router,
             trade_route_candidates_filtered,
             &trade_systems,
             &ship_clone.get_nav_stats(),

@@ -40,6 +40,7 @@ pub struct ConductorContext {
     pub config: Arc<ArcSwap<Config>>,
     pub cancellation_tokens: Arc<CancellationTokens>,
     pub supply_chain_mapping: Arc<SupplyChainMapping>,
+    pub jump_gate_router: Arc<ArcSwap<ship::autopilot::JumpGateRouter>>,
 }
 
 #[derive(Debug, Clone)]

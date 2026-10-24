@@ -1,5 +1,5 @@
-use std::sync::{Arc, atomic::AtomicI32};
 use space_traders_client::ShipSymbol;
+use std::sync::{Arc, atomic::AtomicI32};
 
 use space_traders_client::models;
 use tracing::debug;
@@ -174,6 +174,7 @@ impl ConstructionPilot {
             database::TransactionReason::Construction(shipment.id),
             &self.context.database_pool,
             &self.context.api,
+            self.context.jump_gate_router.load_full(),
             update_funds_fn.clone(),
         )
         .await?;
@@ -249,6 +250,7 @@ impl ConstructionPilot {
             database::TransactionReason::Construction(shipment.id),
             &self.context.database_pool,
             &self.context.api,
+            self.context.jump_gate_router.load_full(),
             update_funds_fn,
         )
         .await?;

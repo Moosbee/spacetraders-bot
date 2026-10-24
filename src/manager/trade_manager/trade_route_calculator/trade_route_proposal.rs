@@ -69,6 +69,7 @@ impl From<&TradeRouteProposal> for crate::manager::trade_manager::routes_tracker
 
 pub async fn gen_trade_route_proposal(
     database_pool: &database::DbPool,
+    jump_gate_router: &ship::autopilot::JumpGateRouter,
     trade_route_candidate: super::TradeRouteCandidate,
     ship_stats: &ship::autopilot::ShipNavStats,
     purchase_multiplier: f64,
@@ -84,6 +85,7 @@ pub async fn gen_trade_route_proposal(
             &trade_route_candidate.purchase.waypoint_symbol,
             &trade_route_candidate.sell.waypoint_symbol,
             ship_stats,
+            jump_gate_router,
         )
         .await?;
     if route.is_none() {

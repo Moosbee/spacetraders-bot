@@ -108,6 +108,7 @@ impl ChartPilot {
             database::TransactionReason::None,
             &self.context.database_pool,
             &self.context.api,
+            self.context.jump_gate_router.load_full(),
             update_funds_fn,
         )
         .await?;

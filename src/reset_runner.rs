@@ -648,6 +648,9 @@ async fn init_min_context(
         cancellation_tokens: Arc::new(cancellation_tokens),
         supply_chain_mapping: Arc::new(SupplyChainMapping::new(&[])),
         shipyard_ship_reservation: Arc::new(ShipyardShipReservation::new()),
+        jump_gate_router: Arc::new(ArcSwap::new(Arc::new(
+            ship::autopilot::JumpGateRouter::default(),
+        ))),
     };
 
     let manager_receiver = ManagerReceiver {

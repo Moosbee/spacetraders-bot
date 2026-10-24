@@ -5,14 +5,13 @@ use tracing::instrument;
 
 use crate::autopilot::{
     ShipNavStats,
-    jump_gate_router::{JumpGateRouter, JumpGateRouterCache},
+    jump_gate_router::JumpGateRouter,
     system_router::{SystemRouter, SystemRouterCache},
 };
 
 #[derive(Debug, Default)]
 pub struct NavigatorCache {
     system_routers: HashMap<SystemSymbol, SystemRouterCache>,
-    jump_gate_router: Option<JumpGateRouterCache>,
 }
 impl NavigatorCache {
     pub async fn preload_system_routers(
@@ -24,20 +23,13 @@ impl NavigatorCache {
         Ok(())
     }
 
-    pub async fn preload_jump_gate_router(
-        &mut self,
-        database_pool: &database::DbPool,
-    ) -> crate::error::Result<()> {
-        get_jump_gate_router(database_pool, &mut self.jump_gate_router).await?;
-        Ok(())
-    }
-
     pub async fn get_route(
         &mut self,
         database_pool: &database::DbPool,
         start_waypoint_symbol: &WaypointSymbol,
         end_waypoint_symbol: &WaypointSymbol,
         ship_stats: &ShipNavStats,
+        jump_gate_router: &JumpGateRouter,
     ) -> crate::error::Result<Option<Vec<super::SimpleConnection>>> {
         let route = get_route(
             database_pool,
@@ -45,7 +37,7 @@ impl NavigatorCache {
             end_waypoint_symbol,
             ship_stats,
             &mut self.system_routers,
-            &mut self.jump_gate_router,
+            jump_gate_router,
         )
         .await?;
         Ok(route)
@@ -59,7 +51,7 @@ pub async fn get_route(
     end_waypoint_symbol: &WaypointSymbol,
     ship_stats: &ShipNavStats,
     system_routers: &mut HashMap<SystemSymbol, SystemRouterCache>,
-    jump_gate_router: &mut Option<JumpGateRouterCache>,
+    jump_gate_router: &JumpGateRouter,
 ) -> crate::error::Result<Option<Vec<super::SimpleConnection>>> {
     let start_system = start_waypoint_symbol.get_system_symbol();
     let end_system = end_waypoint_symbol.get_system_symbol();
@@ -78,8 +70,6 @@ pub async fn get_route(
     } else {
         tracing::debug!(start = %start_waypoint_symbol, end = %end_waypoint_symbol, "Different system starting");
         let mut route = Vec::new();
-        // get jump gate router
-        let jump_gate_router = get_jump_gate_router(database_pool, jump_gate_router).await?;
         // get jump gate of start system
         let start_jump_gate = jump_gate_router.get_jump_gate(&start_system);
         if start_jump_gate.is_none() {
@@ -151,21 +141,6 @@ pub async fn get_route(
 
         Ok(Some(route))
     }
-}
-
-async fn get_jump_gate_router<'a>(
-    database_pool: &database::DbPool,
-    jump_gate_router_option: &'a mut Option<JumpGateRouterCache>,
-) -> crate::error::Result<&'a mut JumpGateRouterCache> {
-    if jump_gate_router_option.is_none() {
-        let connections = super::jump_gate_router::generate_all_connections(database_pool).await?;
-        let jump_gate_router =
-            JumpGateRouterCache::new(JumpGateRouter::new(connections.0, connections.1));
-        *jump_gate_router_option = Some(jump_gate_router);
-    }
-    Ok(jump_gate_router_option
-        .as_mut()
-        .ok_or("No jump gate router")?)
 }
 
 #[instrument(

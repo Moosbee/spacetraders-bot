@@ -1,9 +1,9 @@
 use ::utils::WaypointCan;
-use space_traders_client::{SystemSymbol, WaypointSymbol};
 use chrono::{DateTime, Utc};
 use database::DatabaseConnectorAsync;
 use database::TransactionReason;
 use space_traders_client::models;
+use space_traders_client::{SystemSymbol, WaypointSymbol};
 
 use std::fmt::Debug;
 
@@ -26,7 +26,6 @@ pub use connection::WarpConnection;
 pub use connection::assemble_route;
 
 pub use jump_gate_router::JumpGateRouter;
-pub use jump_gate_router::JumpGateRouterCache;
 pub use jump_gate_router::generate_all_connections;
 pub use nav_mode::NavMode;
 pub use pathfinder::NavigatorCache;
@@ -51,6 +50,7 @@ impl<T: Clone + Send + Sync> RustShip<T, Mutable> {
         reason: TransactionReason,
         database_pool: &database::DbPool,
         api: &space_traders_client::Api,
+        jump_gate_router: std::sync::Arc<JumpGateRouter>,
         update_funds_fn: impl Fn(i64) + Clone,
     ) -> Result<()> {
         self.nav_to_prepare(
@@ -60,6 +60,7 @@ impl<T: Clone + Send + Sync> RustShip<T, Mutable> {
             false,
             database_pool,
             api,
+            jump_gate_router,
             update_funds_fn,
         )
         .await
@@ -73,6 +74,7 @@ impl<T: Clone + Send + Sync> RustShip<T, Mutable> {
         prepare: bool, // prepare to have enough fuel to leave the waypoint without a marketplace
         database_pool: &database::DbPool,
         api: &space_traders_client::Api,
+        jump_gate_router: std::sync::Arc<JumpGateRouter>,
         update_funds_fn: impl Fn(i64) + Clone,
     ) -> Result<()> {
         let mut pathfinder = pathfinder::NavigatorCache::default();
@@ -82,6 +84,7 @@ impl<T: Clone + Send + Sync> RustShip<T, Mutable> {
                 &self.nav.waypoint_symbol,
                 waypoint,
                 &self.get_nav_stats(),
+                &jump_gate_router,
             )
             .await?
             .ok_or(crate::error::Error::NoRouteFound {
@@ -90,6 +93,8 @@ impl<T: Clone + Send + Sync> RustShip<T, Mutable> {
                 to: waypoint.clone(),
                 nav_stats: self.get_nav_stats(),
             })?;
+
+        drop(jump_gate_router);
 
         let mut price_calc = travel_price::TravelPriceCache::new(database_pool.clone());
 

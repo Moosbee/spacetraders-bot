@@ -8,8 +8,6 @@ use database::DatabaseConnectorAsync;
 use priority_queue::PriorityQueue;
 use space_traders_client::{SystemSymbol, WaypointSymbol};
 
-use tracing::instrument;
-
 use crate::error::Result;
 
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
@@ -102,84 +100,7 @@ impl Hash for JumpConnection {
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct JumpGateRouterCache {
-    cache: HashMap<(SystemSymbol, SystemSymbol, bool), Vec<JumpConnection>>,
-    router: JumpGateRouter,
-}
-
-impl JumpGateRouterCache {
-    pub fn new(router: JumpGateRouter) -> Self {
-        Self {
-            cache: HashMap::new(),
-            router,
-        }
-    }
-
-    #[instrument(
-        level = "debug",
-        name = "ship::autopilot::jump_gate_router::find_jump_route",
-        skip(self)
-    )]
-    pub fn find_jump_route<'a>(
-        &'a mut self,
-        from_system: &SystemSymbol,
-        to_system: &SystemSymbol,
-        no_under_construction: bool,
-        // ) -> Option<&'a [JumpConnection]> {
-    ) -> Option<Vec<JumpConnection>> {
-        return self
-            .router
-            .find_jump_route(from_system, to_system, no_under_construction);
-
-        // if !self.cache.contains_key(&(
-        //     from_system.to_string(),
-        //     to_system.to_string(),
-        //     no_under_construction,
-        // )) {
-        //     debug!(
-        //         key = ?(from_system.to_string(), to_system.to_string(), no_under_construction),
-        //         "Jump Route Cache miss"
-        //     );
-        //     let route = self
-        //         .router
-        //         .find_jump_route(from_system, to_system, no_under_construction);
-        //     let route = route?;
-        //     self.cache.insert(
-        //         (
-        //             from_system.to_string(),
-        //             to_system.to_string(),
-        //             no_under_construction,
-        //         ),
-        //         route,
-        //     );
-        // }
-
-        // Some(self.cache
-        //     .get(&(from_system.to_string(), to_system.to_string(), no_under_construction))
-        //     .unwrap_or_else(|| {
-        //         panic!(
-        //             "We should have importet the route in the cache(find_cached_route) key: {:?}",
-        //             (from_system.to_string(), to_system.to_string())
-        //         )
-        //     }))
-    }
-
-    pub fn generate_jump_tree(
-        &self,
-        from_system: &SystemSymbol,
-        no_under_construction: bool,
-    ) -> HashMap<SystemSymbol, JumpConnection> {
-        self.router
-            .generate_jump_tree(from_system, |_| false, no_under_construction)
-    }
-
-    pub(crate) fn get_jump_gate(&self, start_system: &SystemSymbol) -> Option<WaypointSymbol> {
-        self.router.get_jump_gate(start_system)
-    }
-}
-
-#[derive(Debug, Clone)]
+#[derive(Debug, Default, Clone)]
 pub struct JumpGateRouter {
     all_connections: Vec<GateConnection>,
     pub system_to_gate_mapping: HashMap<SystemSymbol, WaypointSymbol>,
@@ -190,6 +111,10 @@ impl JumpGateRouter {
         all_connections: Vec<GateConnection>,
         system_to_gate_mapping: HashMap<SystemSymbol, WaypointSymbol>,
     ) -> Self {
+        // works in conjunction with
+        // let connections = super::jump_gate_router::generate_all_connections(database_pool).await?;
+        // let jump_gate_router =
+        //     JumpGateRouterCache::new(JumpGateRouter::new(connections.0, connections.1));
         Self {
             all_connections,
             system_to_gate_mapping,
@@ -413,7 +338,7 @@ mod tests {
     use tracing::info;
     use utils::tests::{GateConnections, get_jump_gate_connections};
 
-    use super::{GateConnection, JumpGateRouter, JumpGateRouterCache};
+    use super::{GateConnection, JumpGateRouter};
 
     fn sys(symbol: &str) -> SystemSymbol {
         SystemSymbol::from(symbol)
@@ -442,7 +367,10 @@ mod tests {
         assert_eq!(conn.end_system, "X1-VX7");
         assert_eq!(
             conn.conn.get_other_system(&sys("X1-GP63")),
-            (WaypointSymbol::from("X1-VX7-Z19D"), SystemSymbol::from("X1-VX7"))
+            (
+                WaypointSymbol::from("X1-VX7-Z19D"),
+                SystemSymbol::from("X1-VX7")
+            )
         );
     }
 
@@ -543,20 +471,5 @@ mod tests {
             Some("X1-JP44-I60")
         );
         assert_eq!(router.get_jump_gate(&sys("unknown-system")), None);
-    }
-
-    #[test]
-    fn cache_returns_route_and_hits_cache_on_second_call() {
-        let mut cache = JumpGateRouterCache::new(router());
-
-        let first = cache
-            .find_jump_route(&sys("X1-GP63"), &sys("X1-MU84"), false)
-            .expect("route should exist")
-            .to_vec();
-        let second = cache
-            .find_jump_route(&sys("X1-GP63"), &sys("X1-MU84"), false)
-            .expect("cached route should exist");
-
-        assert_eq!(first.as_slice(), second);
     }
 }

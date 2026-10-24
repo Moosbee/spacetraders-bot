@@ -342,13 +342,8 @@ impl Pilot {
             )
             .await?;
 
+        let jump_gate_router = self.context.jump_gate_router.load_full();
         let mut transfer_request = if transfer_requests.is_empty() {
-            let connections =
-                ship::autopilot::generate_all_connections(&self.context.database_pool).await?;
-            let mut jump_gate_router = ship::autopilot::JumpGateRouterCache::new(
-                ship::autopilot::JumpGateRouter::new(connections.0, connections.1),
-            );
-
             let route = jump_gate_router
                 .find_jump_route(&ship.nav.system_symbol, &system_symbol, true)
                 .ok_or(Error::General("No route found".to_string()))?;
@@ -426,6 +421,7 @@ impl Pilot {
             database::TransactionReason::None, // todo update with the right id
             &self.context.database_pool,
             &self.context.api,
+            jump_gate_router,
             update_funds_fn,
         )
         .await?;

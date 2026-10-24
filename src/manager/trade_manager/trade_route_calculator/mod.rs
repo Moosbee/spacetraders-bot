@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use futures::future;
+use ship::autopilot::JumpGateRouter;
 use space_traders_client::models;
 use space_traders_client::{SystemSymbol, WaypointSymbol};
 
@@ -123,6 +124,7 @@ pub(crate) fn filter_trade_route_candidates(
 
 pub(crate) async fn gen_trade_route_proposals(
     database_pool: &database::DbPool,
+    jump_gate_router: &JumpGateRouter,
     trade_route_candidates_filtered: Vec<TradeRouteCandidate>,
     trade_systems: &[SystemSymbol],
     ship_stats: &ship::autopilot::ShipNavStats,
@@ -143,14 +145,10 @@ pub(crate) async fn gen_trade_route_proposals(
             .preload_system_prices(system_symbol)
             .await?;
     }
-    if trade_systems.len() > 1 {
-        navigator_cache
-            .preload_jump_gate_router(database_pool)
-            .await?;
-    }
     for trade_route_candidate in trade_route_candidates_filtered {
         let proposal = trade_route_proposal::gen_trade_route_proposal(
             database_pool,
+            jump_gate_router,
             trade_route_candidate,
             ship_stats,
             purchase_multiplier,

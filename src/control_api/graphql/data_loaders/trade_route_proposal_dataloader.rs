@@ -80,22 +80,18 @@ impl Loader<TradeRouteProposalConfig> for TradeRouteProposalLoader {
                 .await
                 .map_err(|e| Arc::new(e.into()))?;
         }
-        if trade_systems.len() > 1 {
-            navigator_cache
-                .preload_jump_gate_router(&self.context.database_pool)
-                .await
-                .map_err(|e| Arc::new(e.into()))?;
-        }
 
         let config = self.context.config.load_full();
         let fallback_purchase_price = config.default_purchase_price;
         let fallback_sell_price = config.default_sell_price;
+        let jump_gate_router = self.context.jump_gate_router.load_full();
 
         let mut proposals = HashMap::with_capacity(keys.len());
 
         for trade_route_candidate_config in keys {
             let proposal = gen_trade_route_proposal(
                 &self.context.database_pool,
+                &jump_gate_router,
                 trade_route_candidate_config.trade_route_candidate.clone(),
                 &trade_route_candidate_config.ship_stats,
                 trade_route_candidate_config.purchase_multiplier,

@@ -59,6 +59,7 @@ impl SurveyPilot {
             database::TransactionReason::MiningWaypoint(waypoint.clone()),
             &self.context.database_pool,
             &self.context.api,
+            self.context.jump_gate_router.load_full(),
             update_funds_fn,
         )
         .await?;

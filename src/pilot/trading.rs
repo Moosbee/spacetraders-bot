@@ -1,5 +1,5 @@
-use std::sync::{Arc, atomic::AtomicI32};
 use space_traders_client::ShipSymbol;
+use std::sync::{Arc, atomic::AtomicI32};
 
 use tokio::select;
 use tracing::debug;
@@ -171,6 +171,7 @@ impl TradingPilot {
                 database::TransactionReason::TradeRoute(route.id),
                 &self.context.database_pool,
                 &self.context.api,
+                self.context.jump_gate_router.load_full(),
                 update_funds_fn.clone(),
             )
             .await?;
@@ -279,6 +280,7 @@ impl TradingPilot {
             database::TransactionReason::TradeRoute(route.id),
             &self.context.database_pool,
             &self.context.api,
+            self.context.jump_gate_router.load_full(),
             update_funds_fn.clone(),
         )
         .await?;

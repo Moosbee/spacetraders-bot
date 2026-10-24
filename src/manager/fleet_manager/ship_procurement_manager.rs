@@ -21,7 +21,6 @@ pub struct ShipProcurementManager {
     fast_cancel_token: tokio_util::sync::CancellationToken,
     slow_cancel_token: tokio_util::sync::CancellationToken,
     context: ConductorContext,
-    jump_gate: Option<ship::autopilot::JumpGateRouterCache>,
 }
 
 impl ShipProcurementManager {
@@ -35,7 +34,6 @@ impl ShipProcurementManager {
             fast_cancel_token,
             slow_cancel_token,
             context,
-            jump_gate: None,
         }
     }
 
@@ -151,12 +149,12 @@ impl ShipProcurementManager {
         let travel_costs: HashMap<(SystemSymbol, SystemSymbol), (i64, i32, f64)> = {
             let mut price_getter =
                 ship::autopilot::TravelPriceCache::new(self.context.database_pool.clone());
-            let jump_gate_nav = self.get_jump_navigator().await?;
+            let jump_gate_nav = self.context.jump_gate_router.load_full();
 
             Self::calculate_travel_cost(
                 &assignment_system_symbols,
                 &shipyard_system_symbols,
-                jump_gate_nav,
+                &jump_gate_nav,
                 &mut price_getter,
             )
             .await?
@@ -274,14 +272,14 @@ impl ShipProcurementManager {
     async fn calculate_travel_cost(
         assignment_system_symbols: &HashSet<SystemSymbol>,
         shipyard_system_symbols: &HashSet<SystemSymbol>, // is smaller
-        jump_gate_nav: &mut ship::autopilot::JumpGateRouterCache,
+        jump_gate_nav: &JumpGateRouter,
         price_getter: &mut impl ship::autopilot::TravelPriceCalc,
     ) -> Result<HashMap<(SystemSymbol, SystemSymbol), (i64, i32, f64)>> {
         let mut travel_costs: HashMap<(SystemSymbol, SystemSymbol), (i64, i32, f64)> =
             HashMap::new();
 
         for shipyard_system in shipyard_system_symbols {
-            let tree = jump_gate_nav.generate_jump_tree(shipyard_system, true);
+            let tree = jump_gate_nav.generate_jump_tree(shipyard_system, |_| false, true);
 
             for assignment_system in assignment_system_symbols {
                 let route = JumpGateRouter::get_route(&tree, assignment_system, shipyard_system);
@@ -407,27 +405,6 @@ impl ShipProcurementManager {
         self.context.ship_tasks.start_ship(ship_info.clone()).await;
 
         Ok(())
-    }
-
-    async fn get_jump_navigator(&mut self) -> Result<&mut ship::autopilot::JumpGateRouterCache> {
-        if self.jump_gate.is_none() || self.context.ship_procurement_manager.get_regen_jump_gates()
-        {
-            let connections =
-                ship::autopilot::generate_all_connections(&self.context.database_pool).await?;
-            let jump_gate_router = ship::autopilot::JumpGateRouterCache::new(
-                ship::autopilot::JumpGateRouter::new(connections.0, connections.1),
-            );
-
-            self.jump_gate = Some(jump_gate_router);
-            self.context
-                .ship_procurement_manager
-                .set_regen_jump_gates(false);
-        }
-        if let Some(navigator) = &mut self.jump_gate {
-            Ok(navigator)
-        } else {
-            Err("No jump_gate after thing".into())
-        }
     }
 
     fn get_ships_to_purchase<'a>(

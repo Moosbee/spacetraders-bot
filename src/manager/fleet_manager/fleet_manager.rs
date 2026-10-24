@@ -20,7 +20,6 @@ pub struct FleetManager {
     slow_cancel_token: tokio_util::sync::CancellationToken,
     receiver: FleetManagerReceiver,
     context: ConductorContext,
-    jump_gate: Option<ship::autopilot::JumpGateRouterCache>,
 }
 
 impl FleetManager {
@@ -43,7 +42,6 @@ impl FleetManager {
             slow_cancel_token,
             context,
             receiver,
-            jump_gate: None,
         }
     }
 
@@ -217,7 +215,7 @@ impl FleetManager {
 
         debug!(open_possible_assignments=?open_possible_assignments,"possible assignments");
 
-        let jump_gate = self.get_jump_navigator().await?;
+        let jump_gate_router = self.context.jump_gate_router.load_full();
 
         debug!(fleets=?fleets,"fleets and created jump gate navigator");
 
@@ -230,7 +228,7 @@ impl FleetManager {
 
         let mut travel_costs = HashMap::new();
 
-        let tree = jump_gate.generate_jump_tree(start_system, true);
+        let tree = jump_gate_router.generate_jump_tree(start_system, |_| false, true);
 
         let mut price_getter =
             ship::autopilot::TravelPriceCache::new(self.context.database_pool.clone());
@@ -348,23 +346,6 @@ impl FleetManager {
         }
     }
 
-    async fn get_jump_navigator(&mut self) -> Result<&mut ship::autopilot::JumpGateRouterCache> {
-        if self.jump_gate.is_none() {
-            let connections =
-                ship::autopilot::generate_all_connections(&self.context.database_pool).await?;
-            let jump_gate_router = ship::autopilot::JumpGateRouterCache::new(
-                ship::autopilot::JumpGateRouter::new(connections.0, connections.1),
-            );
-
-            self.jump_gate = Some(jump_gate_router);
-        }
-        if let Some(navigator) = &mut self.jump_gate {
-            Ok(navigator)
-        } else {
-            Err("No jump_gate after thing".into())
-        }
-    }
-
     async fn re_generate_assignments(&mut self, by: RegenFleetBy) -> Result<()> {
         let fleets = match by {
             RegenFleetBy::All => {
@@ -423,10 +404,15 @@ impl FleetManager {
         &mut self,
         jump_gate_symbol: &WaypointSymbol,
     ) -> Result<()> {
-        self.jump_gate = None;
-        self.context
-            .ship_procurement_manager
-            .set_regen_jump_gates(true);
+        {
+            let connections =
+                ship::autopilot::generate_all_connections(&self.context.database_pool).await?;
+            let jump_gate_router =
+                ship::autopilot::JumpGateRouter::new(connections.0, connections.1);
+            self.context
+                .jump_gate_router
+                .swap(std::sync::Arc::new(jump_gate_router));
+        }
 
         let waypoint =
             database::Waypoint::get_by_id(&self.context.database_pool, &jump_gate_symbol).await?;
