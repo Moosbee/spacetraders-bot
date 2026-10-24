@@ -521,6 +521,7 @@ type Fleet {
 	allShips: [Ship!]!
 	ships: [Ship!]!
 	tempShips: [Ship!]!
+	shipTransfers(page: Int, pageSize: Int): ShipTransferPage!
 }
 
 input FleetBy @oneOf {
@@ -918,6 +919,7 @@ type MarketTransaction {
 	tradeRoute: TradeRoute
 	miningWaypoint: Waypoint
 	constructionShipment: ConstructionShipment
+	shipTransfer: ShipTransfer
 	marketTradeGood: MarketTradeGood
 	tradeSymbolInfo: TradeSymbolInfo!
 }
@@ -1139,6 +1141,8 @@ type QueryRoot {
 	fleet(id: Int!): Fleet!
 	shipAssignments(by: ShipAssignmentBy, page: Int, pageSize: Int): ShipAssignmentPage!
 	reservedFunds(page: Int, pageSize: Int): ReservedFundPage!
+	shipTransfer(id: Int!): ShipTransfer!
+	shipTransfers(by: ShipTransferBy, page: Int, pageSize: Int): ShipTransferPage!
 	surveys(by: SurveyBy, page: Int, pageSize: Int): SurveyPage!
 	survey(signature: String!): Survey!
 	tradeRoutes(page: Int, pageSize: Int): TradeRoutePage!
@@ -1226,6 +1230,7 @@ type ReservedFund {
 	contract(page: Int, pageSize: Int): ContractPage!
 	tradeRoute(page: Int, pageSize: Int): TradeRoutePage!
 	constructionShipment(page: Int, pageSize: Int): ConstructionShipmentPage!
+	shipTransfers(page: Int, pageSize: Int): ShipTransferPage!
 }
 
 type ReservedFundPage {
@@ -1376,6 +1381,7 @@ type Ship {
 	frameInfo: FrameInfo!
 	reactorInfo: ReactorInfo!
 	shipStates(page: Int, pageSize: Int): ShipStatePage!
+	shipTransfers(page: Int, pageSize: Int): ShipTransferPage!
 	nav: NavigationState!
 	mounts: Mounts!
 	modules: Modules!
@@ -1398,6 +1404,7 @@ type ShipAssignment {
 	ship: [Ship!]!
 	permanentShip: Ship
 	tempShip: Ship
+	shipTransfers(page: Int, pageSize: Int): ShipTransferPage!
 }
 
 input ShipAssignmentBy @oneOf {
@@ -1705,6 +1712,46 @@ type ShipStatus {
 }
 
 scalar ShipSymbol
+
+type ShipTransfer {
+	id: Int!
+	shipSymbol: ShipSymbol!
+	state: ShipTransferState!
+	fleetId: Int!
+	assignmentId: Int!
+	reservationId: Int!
+	startSystemSymbol: SystemSymbol!
+	endSystemSymbol: SystemSymbol!
+	createdAt: DateTime!
+	updatedAt: DateTime!
+	ship: Ship
+	fleet: Fleet
+	assignment: ShipAssignment
+	reservation: ReservedFund
+	startSystem: System
+	endSystem: System
+}
+
+input ShipTransferBy @oneOf {
+	shipSymbol: String
+	fleet: Int
+	assignment: Int
+	reservation: Int
+	state: ShipTransferState
+}
+
+type ShipTransferPage {
+	items: [ShipTransfer!]!
+	totalCount: Int!
+	page: Int!
+	pageSize: Int
+}
+
+enum ShipTransferState {
+	ON_GOING
+	COMPLETED
+	CANCELLED
+}
 
 """
 ShipType : Type of ship

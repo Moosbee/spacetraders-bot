@@ -804,6 +804,26 @@ impl GQLFleet {
             .collect::<Vec<_>>();
         Ok(ships.into_iter().map(|s| s.into()).collect())
     }
+
+    async fn ship_transfers<'ctx>(
+        &self,
+        ctx: &async_graphql::Context<'ctx>,
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<GQLShipTransferPage> {
+        let database_pool = ctx.data::<database::DbPool>().unwrap();
+        let transfers = database::ShipTransfer::get_all(
+            database_pool,
+            database::PaginatedQuery::unpaged(),
+        )
+        .await?
+        .items;
+        let transfers = transfers
+            .into_iter()
+            .filter(|t| t.fleet_id == self.fleet.id)
+            .collect();
+        Ok(database::paginate_items(paginated_query(page, page_size), transfers)?.into())
+    }
 }
 
 #[derive(Debug, Clone, async_graphql::SimpleObject)]
@@ -1264,6 +1284,19 @@ impl GQLMarketTransaction {
         Ok(into_gql(construction_shipment))
     }
 
+    pub async fn ship_transfer<'ctx>(
+        &self,
+        ctx: &async_graphql::Context<'ctx>,
+    ) -> Result<Option<GQLShipTransfer>> {
+        let database_pool = ctx.data::<database::DbPool>().unwrap();
+        let ship_transfer = if let Some(ship_transfer_id) = self.market_transaction.ship_transfer {
+            database::ShipTransfer::get_by_id(database_pool, &ship_transfer_id).await?
+        } else {
+            None
+        };
+        Ok(into_gql(ship_transfer))
+    }
+
     pub async fn market_trade_good<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
@@ -1465,6 +1498,26 @@ impl GQLReservedFund {
         .await?;
         Ok(construction_shipments.into())
     }
+
+    async fn ship_transfers<'ctx>(
+        &self,
+        ctx: &async_graphql::Context<'ctx>,
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<GQLShipTransferPage> {
+        let database_pool = ctx.data::<database::DbPool>().unwrap();
+        let transfers = database::ShipTransfer::get_all(
+            database_pool,
+            database::PaginatedQuery::unpaged(),
+        )
+        .await?
+        .items;
+        let transfers = transfers
+            .into_iter()
+            .filter(|t| t.reservation_id == self.reserved_fund.id)
+            .collect();
+        Ok(database::paginate_items(paginated_query(page, page_size), transfers)?.into())
+    }
 }
 
 paginated_gql_object!(
@@ -1473,6 +1526,97 @@ paginated_gql_object!(
     database::ReservedFund,
     GQLReservedFund
 );
+
+#[derive(Debug, Clone, async_graphql::SimpleObject)]
+#[graphql(name = "ShipTransfer")]
+#[graphql(complex)]
+pub struct GQLShipTransfer {
+    #[graphql(flatten)]
+    ship_transfer: database::ShipTransfer,
+}
+
+impl From<database::ShipTransfer> for GQLShipTransfer {
+    fn from(value: database::ShipTransfer) -> Self {
+        GQLShipTransfer {
+            ship_transfer: value,
+        }
+    }
+}
+
+paginated_gql_object!(
+    GQLShipTransferPage,
+    "ShipTransferPage",
+    database::ShipTransfer,
+    GQLShipTransfer
+);
+
+#[async_graphql::ComplexObject]
+impl GQLShipTransfer {
+    async fn ship<'ctx>(&self, ctx: &async_graphql::Context<'ctx>) -> Result<Option<GQLShip>> {
+        let context = ctx.data::<crate::utils::ConductorContext>().unwrap();
+        let ship = context
+            .ship_manager
+            .get_clone(&self.ship_transfer.ship_symbol)
+            .await;
+        Ok(ship.map(|f| f.into()))
+    }
+
+    async fn fleet<'ctx>(&self, ctx: &async_graphql::Context<'ctx>) -> Result<Option<GQLFleet>> {
+        let data_loader = ctx.data::<DataLoader<database::FleetLoader>>().unwrap();
+        let erg = data_loader
+            .load_one(self.ship_transfer.fleet_id)
+            .await?;
+        Ok(into_gql(erg))
+    }
+
+    async fn assignment<'ctx>(
+        &self,
+        ctx: &async_graphql::Context<'ctx>,
+    ) -> Result<Option<GQLShipAssignment>> {
+        let data_loader = ctx
+            .data::<DataLoader<database::ShipAssignmentLoader>>()
+            .unwrap();
+        let erg = data_loader
+            .load_one(self.ship_transfer.assignment_id)
+            .await?;
+        Ok(into_gql(erg))
+    }
+
+    async fn reservation<'ctx>(
+        &self,
+        ctx: &async_graphql::Context<'ctx>,
+    ) -> Result<Option<GQLReservedFund>> {
+        let data_loader = ctx
+            .data::<DataLoader<database::ReservedFundLoader>>()
+            .unwrap();
+        let erg = data_loader
+            .load_one(self.ship_transfer.reservation_id)
+            .await?;
+        Ok(into_gql(erg))
+    }
+
+    async fn start_system<'ctx>(
+        &self,
+        ctx: &async_graphql::Context<'ctx>,
+    ) -> Result<Option<GQLSystem>> {
+        let data_loader = ctx.data::<DataLoader<database::SystemLoader>>().unwrap();
+        let erg = data_loader
+            .load_one(self.ship_transfer.start_system_symbol.clone())
+            .await?;
+        Ok(into_gql(erg))
+    }
+
+    async fn end_system<'ctx>(
+        &self,
+        ctx: &async_graphql::Context<'ctx>,
+    ) -> Result<Option<GQLSystem>> {
+        let data_loader = ctx.data::<DataLoader<database::SystemLoader>>().unwrap();
+        let erg = data_loader
+            .load_one(self.ship_transfer.end_system_symbol.clone())
+            .await?;
+        Ok(into_gql(erg))
+    }
+}
 
 #[derive(Debug, Clone, async_graphql::SimpleObject)]
 #[graphql(name = "Route")]
@@ -1658,6 +1802,26 @@ impl GQLShipAssignment {
             .into_values()
             .find(|ship| ship.status.temp_assignment_id == Some(self.ship_assignment.id));
         Ok(ship.map(|f| f.into()))
+    }
+
+    async fn ship_transfers<'ctx>(
+        &self,
+        ctx: &async_graphql::Context<'ctx>,
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<GQLShipTransferPage> {
+        let database_pool = ctx.data::<database::DbPool>().unwrap();
+        let transfers = database::ShipTransfer::get_all(
+            database_pool,
+            database::PaginatedQuery::unpaged(),
+        )
+        .await?
+        .items;
+        let transfers = transfers
+            .into_iter()
+            .filter(|t| t.assignment_id == self.ship_assignment.id)
+            .collect();
+        Ok(database::paginate_items(paginated_query(page, page_size), transfers)?.into())
     }
 }
 
@@ -4315,6 +4479,26 @@ impl GQLShip {
         )
         .await?;
         Ok(reg.into())
+    }
+
+    async fn ship_transfers<'ctx>(
+        &self,
+        ctx: &async_graphql::Context<'ctx>,
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<GQLShipTransferPage> {
+        let database_pool = ctx.data::<database::DbPool>().unwrap();
+        let transfers = database::ShipTransfer::get_all(
+            database_pool,
+            database::PaginatedQuery::unpaged(),
+        )
+        .await?
+        .items;
+        let transfers = transfers
+            .into_iter()
+            .filter(|t| t.ship_symbol == self.ship.symbol)
+            .collect();
+        Ok(database::paginate_items(paginated_query(page, page_size), transfers)?.into())
     }
 
     async fn nav(&self) -> Result<GQLNavigationState> {

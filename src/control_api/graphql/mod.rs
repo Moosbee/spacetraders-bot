@@ -702,6 +702,66 @@ impl QueryRoot {
         Ok(reserved_funds.into())
     }
 
+    async fn ship_transfer<'ctx>(
+        &self,
+        ctx: &async_graphql::Context<'ctx>,
+        id: i64,
+    ) -> Result<gql_models::GQLShipTransfer> {
+        let context = ctx.data::<ConductorContext>()?;
+        let ship_transfer = database::ShipTransfer::get_by_id(&context.database_pool, &id)
+            .await?
+            .ok_or(GraphiQLError::NotFound)?;
+        Ok(ship_transfer.into())
+    }
+
+    async fn ship_transfers<'ctx>(
+        &self,
+        ctx: &async_graphql::Context<'ctx>,
+        by: Option<ShipTransferBy>,
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<gql_models::GQLShipTransferPage> {
+        let context = ctx.data::<ConductorContext>()?;
+        let transfers = database::ShipTransfer::get_all(
+            &context.database_pool,
+            database::PaginatedQuery::unpaged(),
+        )
+        .await?
+        .items;
+
+        let transfers = if let Some(by) = by {
+            match by {
+                ShipTransferBy::ShipSymbol(ship_symbol) => {
+                    let ship_symbol = ShipSymbol::from(ship_symbol.as_str());
+                    transfers
+                        .into_iter()
+                        .filter(|t| t.ship_symbol == ship_symbol)
+                        .collect()
+                }
+                ShipTransferBy::Fleet(fleet_id) => transfers
+                    .into_iter()
+                    .filter(|t| t.fleet_id == fleet_id)
+                    .collect(),
+                ShipTransferBy::Assignment(assignment_id) => transfers
+                    .into_iter()
+                    .filter(|t| t.assignment_id == assignment_id)
+                    .collect(),
+                ShipTransferBy::Reservation(reservation_id) => transfers
+                    .into_iter()
+                    .filter(|t| t.reservation_id == reservation_id)
+                    .collect(),
+                ShipTransferBy::State(state) => transfers
+                    .into_iter()
+                    .filter(|t| t.state == state)
+                    .collect(),
+            }
+        } else {
+            transfers
+        };
+
+        Ok(database::paginate_items(paginated_query(page, page_size), transfers)?.into())
+    }
+
     async fn surveys<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
@@ -1389,6 +1449,15 @@ enum FleetBy {
 enum ShipAssignmentBy {
     Fleet(i32),
     Open(bool),
+}
+
+#[derive(Debug, Clone, async_graphql::OneofObject)]
+enum ShipTransferBy {
+    ShipSymbol(String),
+    Fleet(i32),
+    Assignment(i64),
+    Reservation(i64),
+    State(database::ShipTransferState),
 }
 
 #[derive(Debug, Clone, async_graphql::OneofObject)]
