@@ -333,14 +333,8 @@ impl TradeManager {
         if let Some(v) = trade_route_db.as_mut() {
             v.trade_mode = trading_config.trade_mode;
             v.ship_symbol = ship_clone.symbol.clone();
-            v.assignment_id = ship_clone
-                .status
-                .temp_assignment_id
-                .or(ship_clone.status.assignment_id);
-            v.fleet_id = ship_clone
-                .status
-                .temp_fleet_id
-                .or(ship_clone.status.fleet_id);
+            v.assignment_id = ship_clone.status.current_assignment_id;
+            v.fleet_id = ship_clone.status.current_fleet_id;
         }
 
         Ok(trade_route_db.map(|tr_db| (tr_db, expenses)))

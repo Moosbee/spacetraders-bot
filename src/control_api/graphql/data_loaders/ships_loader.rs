@@ -82,15 +82,11 @@ impl async_graphql::dataloader::Loader<i64> for ShipsAssignmentLoader {
         let all_ships = self.0.ship_manager.get_all_clone().await;
 
         for ship in all_ships.into_values() {
-            let assignment_id = ship.status.assignment_id.unwrap_or(0);
-            let temp_assignment_id = ship.status.temp_assignment_id.unwrap_or(0);
-            if keys.contains(&assignment_id) || keys.contains(&temp_assignment_id) {
+            let assignment_id = ship.status.current_assignment_id.unwrap_or(0);
+            if keys.contains(&assignment_id) {
                 map.entry(assignment_id)
                     .or_insert_with(Vec::new)
                     .push(ship.clone());
-                map.entry(temp_assignment_id)
-                    .or_insert_with(Vec::new)
-                    .push(ship);
             }
         }
 

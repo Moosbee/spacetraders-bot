@@ -235,8 +235,10 @@ async fn populate_context_from_db(
         ship.display_name = ship_info.display_name.clone();
         ship.purchase_id = ship_info.purchase_id;
 
-        ship.status.assignment_id = ship_info.assignment_id;
-        ship.status.temp_assignment_id = ship_info.temp_assignment_id;
+        ship.status.current_assignment_id = ship_info.assignment_id;
+        if ship_info.temp_assignment_id.is_some() {
+            ship.status.current_assignment_id = ship_info.temp_assignment_id;
+        }
 
         if let Some(state) = latest_state {
             ship.engine_speed = state.engine_speed;
@@ -285,7 +287,7 @@ async fn populate_context_from_db(
             if let Some(assignment) =
                 database::ShipAssignment::get_by_id(&context.database_pool, assignment_id).await?
             {
-                ship.status.temp_fleet_id = Some(assignment.fleet_id);
+                ship.status.current_fleet_id = Some(assignment.fleet_id);
                 if let Some(fleet) =
                     database::Fleet::get_by_id(&context.database_pool, assignment.fleet_id).await?
                 {
@@ -296,7 +298,7 @@ async fn populate_context_from_db(
             if let Some(assignment) =
                 database::ShipAssignment::get_by_id(&context.database_pool, assignment_id).await?
             {
-                ship.status.fleet_id = Some(assignment.fleet_id);
+                ship.status.current_fleet_id = Some(assignment.fleet_id);
                 if let Some(fleet) =
                     database::Fleet::get_by_id(&context.database_pool, assignment.fleet_id).await?
                 {

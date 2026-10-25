@@ -30,12 +30,12 @@ impl GQLShipStatus {
         self.ship_status.status.clone().into()
     }
 
-    async fn assignment<'ctx>(
+    async fn current_assignment<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Option<gql_models::GQLShipAssignment>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        if let Some(assignment) = self.ship_status.assignment_id {
+        if let Some(assignment) = self.ship_status.current_assignment_id {
             let erg = database::ShipAssignment::get_by_id(database_pool, assignment).await?;
             Ok(erg.map(|f| f.into()))
         } else {
@@ -43,38 +43,12 @@ impl GQLShipStatus {
         }
     }
 
-    async fn temp_assignment<'ctx>(
-        &self,
-        ctx: &async_graphql::Context<'ctx>,
-    ) -> Result<Option<gql_models::GQLShipAssignment>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        if let Some(assignment) = self.ship_status.temp_assignment_id {
-            let erg = database::ShipAssignment::get_by_id(database_pool, assignment).await?;
-            Ok(erg.map(|f| f.into()))
-        } else {
-            Ok(None)
-        }
-    }
-
-    async fn fleet<'ctx>(
+    async fn current_fleet_id<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Option<gql_models::GQLFleet>> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        if let Some(fleet) = self.ship_status.fleet_id {
-            let erg = database::Fleet::get_by_id(database_pool, fleet).await?;
-            Ok(erg.map(|f| f.into()))
-        } else {
-            Ok(None)
-        }
-    }
-
-    async fn temp_fleet<'ctx>(
-        &self,
-        ctx: &async_graphql::Context<'ctx>,
-    ) -> Result<Option<gql_models::GQLFleet>> {
-        let database_pool = ctx.data::<database::DbPool>().unwrap();
-        if let Some(fleet) = self.ship_status.temp_fleet_id {
+        if let Some(fleet) = self.ship_status.current_fleet_id {
             let erg = database::Fleet::get_by_id(database_pool, fleet).await?;
             Ok(erg.map(|f| f.into()))
         } else {

@@ -289,13 +289,9 @@ impl Pilot {
             .value_mut()
             .ok_or(Error::General("Ship not found".to_string()))?;
 
-        if is_temp {
-            ship.status.temp_assignment_id = Some(assignment.id);
-            ship.status.temp_fleet_id = Some(fleet.id);
-        } else {
-            ship.status.assignment_id = Some(assignment.id);
-            ship.status.fleet_id = Some(fleet.id);
-        }
+        ship.status.current_assignment_id = Some(assignment.id);
+        ship.status.current_fleet_id = Some(fleet.id);
+        ship.status.temp_assignment = is_temp;
 
         ship.notify(true).await;
 

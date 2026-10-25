@@ -766,22 +766,6 @@ impl GQLFleet {
         Ok(database::paginate_items(paginated_query(page, page_size), assignments)?.into())
     }
 
-    async fn all_ships<'ctx>(&self, ctx: &async_graphql::Context<'ctx>) -> Result<Vec<GQLShip>> {
-        // let context = ctx.data::<crate::utils::ConductorContext>().unwrap();
-        // let all_ships = context.ship_manager.get_all_clone().await;
-        let ship_loader = ctx
-            .data::<DataLoader<super::data_loaders::AllShipLoader>>()
-            .unwrap();
-        let all_ships = ship_loader.load_one(()).await?.unwrap();
-        let ships = all_ships
-            .into_values()
-            .filter(|ship| {
-                ship.status.fleet_id == Some(self.fleet.id)
-                    || ship.status.temp_fleet_id == Some(self.fleet.id)
-            })
-            .collect::<Vec<_>>();
-        Ok(ships.into_iter().map(|s| s.into()).collect())
-    }
     async fn ships<'ctx>(&self, ctx: &async_graphql::Context<'ctx>) -> Result<Vec<GQLShip>> {
         let ship_loader = ctx
             .data::<DataLoader<super::data_loaders::AllShipLoader>>()
@@ -789,18 +773,7 @@ impl GQLFleet {
         let all_ships = ship_loader.load_one(()).await?.unwrap();
         let ships = all_ships
             .into_values()
-            .filter(|ship| ship.status.fleet_id == Some(self.fleet.id))
-            .collect::<Vec<_>>();
-        Ok(ships.into_iter().map(|s| s.into()).collect())
-    }
-    async fn temp_ships<'ctx>(&self, ctx: &async_graphql::Context<'ctx>) -> Result<Vec<GQLShip>> {
-        let ship_loader = ctx
-            .data::<DataLoader<super::data_loaders::AllShipLoader>>()
-            .unwrap();
-        let all_ships = ship_loader.load_one(()).await?.unwrap();
-        let ships = all_ships
-            .into_values()
-            .filter(|ship| ship.status.temp_fleet_id == Some(self.fleet.id))
+            .filter(|ship| ship.status.current_fleet_id == Some(self.fleet.id))
             .collect::<Vec<_>>();
         Ok(ships.into_iter().map(|s| s.into()).collect())
     }
@@ -812,12 +785,10 @@ impl GQLFleet {
         page_size: Option<i64>,
     ) -> Result<GQLShipTransferPage> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let transfers = database::ShipTransfer::get_all(
-            database_pool,
-            database::PaginatedQuery::unpaged(),
-        )
-        .await?
-        .items;
+        let transfers =
+            database::ShipTransfer::get_all(database_pool, database::PaginatedQuery::unpaged())
+                .await?
+                .items;
         let transfers = transfers
             .into_iter()
             .filter(|t| t.fleet_id == self.fleet.id)
@@ -1506,12 +1477,10 @@ impl GQLReservedFund {
         page_size: Option<i64>,
     ) -> Result<GQLShipTransferPage> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let transfers = database::ShipTransfer::get_all(
-            database_pool,
-            database::PaginatedQuery::unpaged(),
-        )
-        .await?
-        .items;
+        let transfers =
+            database::ShipTransfer::get_all(database_pool, database::PaginatedQuery::unpaged())
+                .await?
+                .items;
         let transfers = transfers
             .into_iter()
             .filter(|t| t.reservation_id == self.reserved_fund.id)
@@ -1563,9 +1532,7 @@ impl GQLShipTransfer {
 
     async fn fleet<'ctx>(&self, ctx: &async_graphql::Context<'ctx>) -> Result<Option<GQLFleet>> {
         let data_loader = ctx.data::<DataLoader<database::FleetLoader>>().unwrap();
-        let erg = data_loader
-            .load_one(self.ship_transfer.fleet_id)
-            .await?;
+        let erg = data_loader.load_one(self.ship_transfer.fleet_id).await?;
         Ok(into_gql(erg))
     }
 
@@ -1779,31 +1746,6 @@ impl GQLShipAssignment {
         Ok(into_gql_vec(all_ships))
     }
 
-    async fn permanent_ship<'ctx>(
-        &self,
-        ctx: &async_graphql::Context<'ctx>,
-    ) -> Result<Option<GQLShip>> {
-        let ship_loader = ctx
-            .data::<DataLoader<super::data_loaders::AllShipLoader>>()
-            .unwrap();
-        let all_ships = ship_loader.load_one(()).await?.unwrap();
-        let ship = all_ships
-            .into_values()
-            .find(|ship| ship.status.assignment_id == Some(self.ship_assignment.id));
-        Ok(ship.map(|f| f.into()))
-    }
-
-    async fn temp_ship<'ctx>(&self, ctx: &async_graphql::Context<'ctx>) -> Result<Option<GQLShip>> {
-        let ship_loader = ctx
-            .data::<DataLoader<super::data_loaders::AllShipLoader>>()
-            .unwrap();
-        let all_ships = ship_loader.load_one(()).await?.unwrap();
-        let ship = all_ships
-            .into_values()
-            .find(|ship| ship.status.temp_assignment_id == Some(self.ship_assignment.id));
-        Ok(ship.map(|f| f.into()))
-    }
-
     async fn ship_transfers<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
@@ -1811,12 +1753,10 @@ impl GQLShipAssignment {
         page_size: Option<i64>,
     ) -> Result<GQLShipTransferPage> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let transfers = database::ShipTransfer::get_all(
-            database_pool,
-            database::PaginatedQuery::unpaged(),
-        )
-        .await?
-        .items;
+        let transfers =
+            database::ShipTransfer::get_all(database_pool, database::PaginatedQuery::unpaged())
+                .await?
+                .items;
         let transfers = transfers
             .into_iter()
             .filter(|t| t.assignment_id == self.ship_assignment.id)
@@ -4488,12 +4428,10 @@ impl GQLShip {
         page_size: Option<i64>,
     ) -> Result<GQLShipTransferPage> {
         let database_pool = ctx.data::<database::DbPool>().unwrap();
-        let transfers = database::ShipTransfer::get_all(
-            database_pool,
-            database::PaginatedQuery::unpaged(),
-        )
-        .await?
-        .items;
+        let transfers =
+            database::ShipTransfer::get_all(database_pool, database::PaginatedQuery::unpaged())
+                .await?
+                .items;
         let transfers = transfers
             .into_iter()
             .filter(|t| t.ship_symbol == self.ship.symbol)

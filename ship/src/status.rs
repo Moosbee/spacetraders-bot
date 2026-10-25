@@ -16,10 +16,9 @@ pub enum ShippingStatus {
 pub struct ShipStatus {
     pub waiting_for_manager: bool,
     pub waiting_for_api: bool,
-    pub fleet_id: Option<i32>,
-    pub temp_fleet_id: Option<i32>,
-    pub assignment_id: Option<i64>,
-    pub temp_assignment_id: Option<i64>,
+    pub current_fleet_id: Option<i32>,
+    pub current_assignment_id: Option<i64>,
+    pub temp_assignment: bool,
     #[graphql(skip)]
     pub status: AssignmentStatus,
 }
