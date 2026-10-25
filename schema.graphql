@@ -518,9 +518,7 @@ type Fleet {
 	config: FleetConfig!
 	system: System
 	assignments(page: Int, pageSize: Int): ShipAssignmentPage!
-	allShips: [Ship!]!
 	ships: [Ship!]!
-	tempShips: [Ship!]!
 	shipTransfers(page: Int, pageSize: Int): ShipTransferPage!
 }
 
@@ -1402,8 +1400,6 @@ type ShipAssignment {
 	warpDrive: Boolean!
 	fleet: Fleet
 	ship: [Ship!]!
-	permanentShip: Ship
-	tempShip: Ship
 	shipTransfers(page: Int, pageSize: Int): ShipTransferPage!
 }
 
@@ -1700,15 +1696,12 @@ type ShipStatePage {
 type ShipStatus {
 	waitingForManager: Boolean!
 	waitingForApi: Boolean!
-	fleetId: Int
-	tempFleetId: Int
-	assignmentId: Int
-	tempAssignmentId: Int
+	currentFleetId: Int
+	currentAssignmentId: Int
+	tempAssignment: Boolean!
 	status: AssignmentStatus!
-	assignment: ShipAssignment
-	tempAssignment: ShipAssignment
-	fleet: Fleet
-	tempFleet: Fleet
+	currentAssignment: ShipAssignment
+	currentFleet: Fleet
 }
 
 scalar ShipSymbol

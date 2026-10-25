@@ -217,7 +217,9 @@ function SystemMarkets() {
 
   const tradingShips = (data?.system.ships || []).filter((s) =>
     tradingFleets.some(
-      (f) => f.id === s.status.fleetId || f.id === s.status.tempFleetId,
+      (f) =>
+        f.id === s.shipInfo?.assignment?.fleetId ||
+        f.id === s.shipInfo?.tempAssignment?.fleetId,
     ),
   );
 
@@ -693,18 +695,19 @@ function SystemMarkets() {
                   title: "Fleet (tmp)",
                   key: "fleet",
                   render: (_, record) =>
-                    `${record.status.fleetId}${record.status.tempFleetId ? ` (${record.status.tempFleetId})` : ""}`,
+                    `${record.shipInfo?.assignment?.fleetId}${record.shipInfo?.tempAssignment?.fleetId ? ` (${record.shipInfo.tempAssignment.fleetId})` : ""}`,
                   sorter: (a, b) =>
-                    (a.status?.fleetId || 0) - (b.status?.fleetId || 0),
+                    (a.shipInfo?.assignment?.fleetId || 0) -
+                    (b.shipInfo?.assignment?.fleetId || 0),
                 },
                 {
                   title: "Assignment (tmp)",
                   key: "assignment",
                   render: (_, record) =>
-                    `${record.status.assignmentId}${record.status.tempAssignmentId ? ` (${record.status.tempAssignmentId})` : ""}`,
+                    `${record.shipInfo?.assignment?.id}${record.shipInfo?.tempAssignment?.id ? ` (${record.shipInfo.tempAssignment.id})` : ""}`,
                   sorter: (a, b) =>
-                    (a.status?.assignmentId || 0) -
-                    (b.status?.assignmentId || 0),
+                    (a.shipInfo?.assignment?.id || 0) -
+                    (b.shipInfo?.assignment?.id || 0),
                 },
               ]}
             />

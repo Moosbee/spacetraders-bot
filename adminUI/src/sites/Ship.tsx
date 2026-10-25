@@ -47,6 +47,8 @@ import {
 import { cn } from "../utils/utils";
 
 type ShipData = GetShipQuery["ship"];
+type ShipAssignmentData = NonNullable<ShipData["shipInfo"]>["assignment"];
+type ShipFleetData = NonNullable<ShipAssignmentData>["fleet"];
 
 function Ship() {
   const { shipID } = useParams();
@@ -442,7 +444,7 @@ function ShipDetails({ ship }: { ship: ShipData }) {
     },
   ];
 
-  const renderAssignment = (assignment: ShipData["status"]["assignment"]) =>
+  const renderAssignment = (assignment: ShipAssignmentData) =>
     assignment ? (
       <span>
         disabled: {assignment.disabled ? "Yes" : "No"}
@@ -463,7 +465,7 @@ function ShipDetails({ ship }: { ship: ShipData }) {
       "None"
     );
 
-  const renderFleet = (fleet: ShipData["status"]["fleet"]) =>
+  const renderFleet = (fleet: ShipFleetData) =>
     fleet ? (
       <span>
         {fleet.fleetType} · active: {fleet.active ? "Yes" : "No"} · system:{" "}
@@ -477,8 +479,10 @@ function ShipDetails({ ship }: { ship: ShipData }) {
     {
       key: "fleet",
       label: "Fleet",
-      children: ship.status.fleetId ? (
-        <Link to={`/fleet/${ship.status.fleetId}`}>{ship.status.fleetId}</Link>
+      children: ship.shipInfo?.assignment?.fleetId ? (
+        <Link to={`/fleet/${ship.shipInfo.assignment.fleetId}`}>
+          {ship.shipInfo.assignment.fleetId}
+        </Link>
       ) : (
         "None"
       ),
@@ -487,25 +491,25 @@ function ShipDetails({ ship }: { ship: ShipData }) {
       key: "fleetDetails",
       label: "Fleet Details",
       span: 3,
-      children: renderFleet(ship.status.fleet),
+      children: renderFleet(ship.shipInfo?.assignment?.fleet),
     },
     {
       key: "assignment",
       label: "Assignment",
-      children: ship.status.assignmentId ?? "None",
+      children: ship.shipInfo?.assignmentId ?? "None",
     },
     {
       key: "assignmentDetails",
       label: "Assignment Details",
       span: 3,
-      children: renderAssignment(ship.status.assignment),
+      children: renderAssignment(ship.shipInfo?.assignment),
     },
     {
       key: "tempFleet",
       label: "Temp Fleet",
-      children: ship.status.tempFleetId ? (
-        <Link to={`/fleet/${ship.status.tempFleetId}`}>
-          {ship.status.tempFleetId}
+      children: ship.shipInfo?.tempAssignment?.fleetId ? (
+        <Link to={`/fleet/${ship.shipInfo.tempAssignment.fleetId}`}>
+          {ship.shipInfo.tempAssignment.fleetId}
         </Link>
       ) : (
         "None"
@@ -515,18 +519,18 @@ function ShipDetails({ ship }: { ship: ShipData }) {
       key: "tempFleetDetails",
       label: "Temp Fleet Details",
       span: 3,
-      children: renderFleet(ship.status.tempFleet),
+      children: renderFleet(ship.shipInfo?.tempAssignment?.fleet),
     },
     {
       key: "tempAssignment",
       label: "Temp Assignment",
-      children: ship.status.tempAssignmentId ?? "None",
+      children: ship.shipInfo?.tempAssignmentId ?? "None",
     },
     {
       key: "tempAssignmentDetails",
       label: "Temp Assignment Details",
       span: 3,
-      children: renderAssignment(ship.status.tempAssignment),
+      children: renderAssignment(ship.shipInfo?.tempAssignment),
     },
   ];
 

@@ -511,8 +511,7 @@ function Main() {
                           data.ships.filter((s) => {
                             return (
                               !s.status ||
-                              (s.status.assignmentId === null &&
-                                s.status.tempAssignmentId === null)
+                              s.status.currentAssignmentId === null
                             );
                           }).length
                         }

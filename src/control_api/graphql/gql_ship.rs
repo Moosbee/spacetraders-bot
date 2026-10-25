@@ -43,7 +43,7 @@ impl GQLShipStatus {
         }
     }
 
-    async fn current_fleet_id<'ctx>(
+    async fn current_fleet<'ctx>(
         &self,
         ctx: &async_graphql::Context<'ctx>,
     ) -> Result<Option<gql_models::GQLFleet>> {

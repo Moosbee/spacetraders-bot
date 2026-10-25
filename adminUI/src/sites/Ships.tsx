@@ -129,7 +129,7 @@ function Ships() {
         ...[
           ...new Set(
             ships
-              .map((ship) => ship.status?.fleetId)
+              .map((ship) => ship.status?.currentFleetId)
               .filter((id) => !!id)
               .map((id) => id as unknown as number),
           ),
@@ -137,13 +137,15 @@ function Ships() {
           .toSorted((a, b) => a - b)
           .map((id) => ({ text: id, value: id })),
       ],
-      onFilter: (value, record) => record.status?.fleetId === value,
+      onFilter: (value, record) =>
+        record.status?.currentFleetId === value,
       render: (_role, record) => (
         <span>
-          {record.status?.fleetId} ({record.status.assignmentId})
+          {record.status?.currentFleetId} ({record.status.currentAssignmentId})
         </span>
       ),
-      sorter: (a, b) => (a.status?.fleetId || 0) - (b.status?.fleetId || 0),
+      sorter: (a, b) =>
+        (a.status?.currentFleetId || 0) - (b.status?.currentFleetId || 0),
     },
     {
       title: "Registration Role",

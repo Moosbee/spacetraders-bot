@@ -75,8 +75,7 @@ export const GET_MAIN_SITE_DATA = graphql(/* GraphQL */ `
       symbol
       registrationRole
       status {
-        assignmentId
-        tempAssignmentId
+        currentAssignmentId
         status {
           __typename
         }
@@ -662,10 +661,9 @@ export const GET_SYSTEM = graphql(/* GraphQL */ `
           }
         }
         status {
-          assignmentId
-          tempAssignmentId
-          fleetId
-          tempFleetId
+          currentAssignmentId
+          currentFleetId
+          tempAssignment
           waitingForApi
           waitingForManager
           status {
@@ -799,11 +797,20 @@ export const GET_SYSTEM_MARKETS = graphql(/* GraphQL */ `
           capacity
         }
         engineSpeed
+        shipInfo {
+          active
+          assignment {
+            id
+            fleetId
+          }
+          tempAssignment {
+            id
+            fleetId
+          }
+        }
         status {
-          assignmentId
-          fleetId
-          tempAssignmentId
-          tempFleetId
+          currentAssignmentId
+          currentFleetId
           status {
             __typename
           }
@@ -1351,11 +1358,20 @@ export const GET_ALL_SHIPS = graphql(/* GraphQL */ `
         }
       }
       cooldownExpiration
+      shipInfo {
+        active
+        assignment {
+          id
+          fleetId
+        }
+        tempAssignment {
+          id
+          fleetId
+        }
+      }
       status {
-        assignmentId
-        tempAssignmentId
-        fleetId
-        tempFleetId
+        currentAssignmentId
+        currentFleetId
         waitingForApi
         waitingForManager
         status {
@@ -1440,9 +1456,6 @@ export const GET_SHIP = graphql(/* GraphQL */ `
       symbol
       registrationRole
       engineSpeed
-      shipInfo {
-        active
-      }
       nav {
         status
         systemSymbol
@@ -1534,25 +1547,54 @@ export const GET_SHIP = graphql(/* GraphQL */ `
         }
       }
       cooldownExpiration
-      status {
+      shipInfo {
+        active
         assignmentId
-        assignment {
-          __typename
-          id
-          siphon
-          warpDrive
-          fleetId
-          priority
-          maxPurchasePrice
-          creditsThreshold
-          disabled
-          rangeMin
-          cargoMin
-          survey
-          extractor
-        }
         tempAssignmentId
+        assignment {
+          id
+          siphon
+          warpDrive
+          fleetId
+          priority
+          maxPurchasePrice
+          creditsThreshold
+          disabled
+          rangeMin
+          cargoMin
+          survey
+          extractor
+          fleet {
+            id
+            fleetType
+            active
+            systemSymbol
+          }
+        }
         tempAssignment {
+          id
+          siphon
+          warpDrive
+          fleetId
+          priority
+          maxPurchasePrice
+          creditsThreshold
+          disabled
+          rangeMin
+          cargoMin
+          survey
+          extractor
+          fleet {
+            id
+            fleetType
+            active
+            systemSymbol
+          }
+        }
+      }
+      status {
+        currentAssignmentId
+        currentAssignment {
           __typename
           id
           siphon
@@ -1567,15 +1609,8 @@ export const GET_SHIP = graphql(/* GraphQL */ `
           survey
           extractor
         }
-        fleetId
-        fleet {
-          id
-          fleetType
-          active
-          systemSymbol
-        }
-        tempFleetId
-        tempFleet {
+        currentFleetId
+        currentFleet {
           id
           fleetType
           active
@@ -2612,7 +2647,7 @@ export const GET_FLEETS = graphql(/* GraphQL */ `
             }
           }
         }
-        allShips {
+        ships {
           symbol
         }
       }
@@ -2694,7 +2729,7 @@ export const GET_FLEET = graphql(/* GraphQL */ `
           }
         }
       }
-      allShips {
+      ships {
         symbol
         nav {
           waypointSymbol
@@ -2708,10 +2743,9 @@ export const GET_FLEET = graphql(/* GraphQL */ `
         }
         engineSpeed
         status {
-          assignmentId
-          fleetId
-          tempAssignmentId
-          tempFleetId
+          currentAssignmentId
+          currentFleetId
+          tempAssignment
           status {
             __typename
           }

@@ -25,7 +25,7 @@ import { GET_FLEET } from "../graphql/queries";
 
 type FleetData = GetFleetQuery["fleet"];
 type Assignment = FleetData["assignments"]["items"][number];
-type FleetShip = FleetData["allShips"][number];
+type FleetShip = FleetData["ships"][number];
 
 const assignmentColumns: TableProps<Assignment>["columns"] = [
   {
@@ -278,9 +278,9 @@ function FleetDetails({ fleet }: { fleet: FleetData }) {
         </Col>
         <Col span={9}>
           <Table
-            title={() => `Ships (${fleet.allShips.length})`}
+            title={() => `Ships (${fleet.ships.length})`}
             size="small"
-            dataSource={fleet.allShips}
+            dataSource={fleet.ships}
             columns={shipColumns}
             rowKey={(record) => record.symbol}
             pagination={false}
