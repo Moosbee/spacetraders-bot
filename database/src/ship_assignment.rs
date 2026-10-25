@@ -79,6 +79,117 @@ pub struct ShipAssignment {
     // pub refinery: bool,
 }
 
+/// Builder for constructing a [`ShipAssignment`] with sensible defaults.
+///
+/// Only `fleet_id` is required; all other fields default to values commonly
+/// used when generating assignments (see `assignment_generation.rs`).
+#[derive(Debug, Clone)]
+pub struct ShipAssignmentBuilder {
+    id: i64,
+    fleet_id: i32,
+    priority: i32,
+    max_purchase_price: i32,
+    credits_threshold: i32,
+    disabled: bool,
+    range_min: i32,
+    cargo_min: i32,
+    survey: bool,
+    extractor: bool,
+    siphon: bool,
+    warp_drive: bool,
+}
+
+impl ShipAssignmentBuilder {
+    pub fn new(fleet_id: i32) -> Self {
+        Self {
+            id: 0,
+            fleet_id,
+            priority: 100,
+            max_purchase_price: 1_000_000,
+            credits_threshold: 100_000,
+            disabled: false,
+            range_min: 0,
+            cargo_min: 0,
+            survey: false,
+            extractor: false,
+            siphon: false,
+            warp_drive: false,
+        }
+    }
+
+    pub fn id(mut self, id: i64) -> Self {
+        self.id = id;
+        self
+    }
+
+    pub fn priority(mut self, priority: i32) -> Self {
+        self.priority = priority;
+        self
+    }
+
+    pub fn max_purchase_price(mut self, max_purchase_price: i32) -> Self {
+        self.max_purchase_price = max_purchase_price;
+        self
+    }
+
+    pub fn credits_threshold(mut self, credits_threshold: i32) -> Self {
+        self.credits_threshold = credits_threshold;
+        self
+    }
+
+    pub fn disabled(mut self, disabled: bool) -> Self {
+        self.disabled = disabled;
+        self
+    }
+
+    pub fn range_min(mut self, range_min: i32) -> Self {
+        self.range_min = range_min;
+        self
+    }
+
+    pub fn cargo_min(mut self, cargo_min: i32) -> Self {
+        self.cargo_min = cargo_min;
+        self
+    }
+
+    pub fn survey(mut self, survey: bool) -> Self {
+        self.survey = survey;
+        self
+    }
+
+    pub fn extractor(mut self, extractor: bool) -> Self {
+        self.extractor = extractor;
+        self
+    }
+
+    pub fn siphon(mut self, siphon: bool) -> Self {
+        self.siphon = siphon;
+        self
+    }
+
+    pub fn warp_drive(mut self, warp_drive: bool) -> Self {
+        self.warp_drive = warp_drive;
+        self
+    }
+
+    pub fn build(self) -> ShipAssignment {
+        ShipAssignment {
+            id: self.id,
+            fleet_id: self.fleet_id,
+            priority: self.priority,
+            max_purchase_price: self.max_purchase_price,
+            credits_threshold: self.credits_threshold,
+            disabled: self.disabled,
+            range_min: self.range_min,
+            cargo_min: self.cargo_min,
+            survey: self.survey,
+            extractor: self.extractor,
+            siphon: self.siphon,
+            warp_drive: self.warp_drive,
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct SimpleShipRequirement {
     pub max_purchase_price: i32,
@@ -110,6 +221,11 @@ impl From<ShipAssignment> for SimpleShipRequirement {
 }
 
 impl ShipAssignment {
+    /// Convenience constructor for [`ShipAssignmentBuilder`].
+    pub fn builder(fleet_id: i32) -> ShipAssignmentBuilder {
+        ShipAssignmentBuilder::new(fleet_id)
+    }
+
     /// assignments can merge, ie updated without invalidation assigned ships when:
     /// - they belong to the same fleet
     /// - survey is the same
