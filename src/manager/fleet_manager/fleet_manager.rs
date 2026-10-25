@@ -282,46 +282,57 @@ impl FleetManager {
 
         // assign it to the ship
         if let Some(best_assignment) = best_assignment {
-            let ongoing = database::ShipTransfer::get_on_going_by_ship_and_fleet_and_assignment(
-                &self.context.database_pool,
-                &ship_clone.symbol,
-                best_assignment.fleet_id,
-                best_assignment.id,
-            )
-            .await?;
-
-            if ongoing.is_empty() {
-                let fleet = fleets.get(&best_assignment.fleet_id).unwrap();
-
-                let travel_cost = travel_costs.get(&fleet.system_symbol).ok_or_else(|| {
-                    crate::error::Error::General(format!(
-                        "No travel cost found for fleet {}",
-                        fleet.system_symbol
-                    ))
-                })?;
-
-                let travel_reservation = self
-                    .context
-                    .budget_manager
-                    .reserve_funds(&self.context.database_pool, travel_cost.0)
+            if fleets.get(&best_assignment.fleet_id).unwrap().system_symbol
+                != ship_clone.nav.system_symbol
+            {
+                let ongoing =
+                    database::ShipTransfer::get_on_going_by_ship_and_fleet_and_assignment(
+                        &self.context.database_pool,
+                        &ship_clone.symbol,
+                        best_assignment.fleet_id,
+                        best_assignment.id,
+                    )
                     .await?;
 
-                let transfer_request = database::ShipTransfer {
-                    ship_symbol: ship_clone.symbol.clone(),
-                    assignment_id: best_assignment.id,
-                    fleet_id: best_assignment.fleet_id,
-                    start_system_symbol: ship_clone.nav.system_symbol.clone(),
-                    end_system_symbol: fleet.system_symbol.clone(),
-                    reservation_id: travel_reservation.id,
-                    state: database::ShipTransferState::OnGoing,
-                    ..Default::default()
-                };
+                if ongoing.is_empty() {
+                    let fleet = fleets.get(&best_assignment.fleet_id).unwrap();
 
-                let _id = database::ShipTransfer::insert_new(
-                    &self.context.database_pool,
-                    &transfer_request,
-                )
-                .await?;
+                    let travel_cost = travel_costs.get(&fleet.system_symbol).ok_or_else(|| {
+                        crate::error::Error::General(format!(
+                            "No travel cost found for fleet {}",
+                            fleet.system_symbol
+                        ))
+                    })?;
+
+                    let possible_travel_reservation = self
+                        .context
+                        .budget_manager
+                        .reserve_funds(&self.context.database_pool, travel_cost.0)
+                        .await;
+
+                    let travel_reservation = match possible_travel_reservation {
+                        Ok(reservation) => reservation,
+                        Err(crate::error::Error::NotEnoughFunds { .. }) => return Ok(None),
+                        Err(err) => return Err(err),
+                    };
+
+                    let transfer_request = database::ShipTransfer {
+                        ship_symbol: ship_clone.symbol.clone(),
+                        assignment_id: best_assignment.id,
+                        fleet_id: best_assignment.fleet_id,
+                        start_system_symbol: ship_clone.nav.system_symbol.clone(),
+                        end_system_symbol: fleet.system_symbol.clone(),
+                        reservation_id: travel_reservation.id,
+                        state: database::ShipTransferState::OnGoing,
+                        ..Default::default()
+                    };
+
+                    let _id = database::ShipTransfer::insert_new(
+                        &self.context.database_pool,
+                        &transfer_request,
+                    )
+                    .await?;
+                }
             }
 
             // assign it to the ship
