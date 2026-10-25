@@ -270,12 +270,14 @@ async fn generate_trading_fleet_assignments(
 
     let min_cargo = trading_config.min_cargo_space; // todo get cargo according to the current trade volume
 
+    let is_early = fleet.id < 10;
+
     let ships = (0..ship_counts)
         .map(|i| ShipAssignment {
             id: 0, // This should be set appropriately
             fleet_id: fleet.id,
             max_purchase_price: 1_000_000,
-            credits_threshold: 100_000,
+            credits_threshold: if is_early { 100_000 } else { 1_000_000 },
             priority: if i == 0 {
                 DEFAULT_PRIORITY - 5 - (ship_counts as i32) * 2 // first ship has higher priority, ensure at least one ship is always active
             } else {
@@ -455,12 +457,14 @@ async fn generate_scraping_fleet_assignments(
     };
     let quarter_ships = (ship_counts as f64 / 4.0).floor() as u32;
 
+    let is_early = fleet.id < 10;
+
     let ships = (0..ship_counts)
         .map(|i| ShipAssignment {
             id: 0, // This should be set appropriately
             fleet_id: fleet.id,
             max_purchase_price: 1_000_000,
-            credits_threshold: 50_000,
+            credits_threshold: if is_early { 50_000 } else { 1_000_000 },
             priority: if i < quarter_ships {
                 DEFAULT_PRIORITY - 5 - (max_trading_ship_counts as i32) * 2 // first quarter ships have higher priority
             } else {
@@ -504,12 +508,14 @@ async fn generate_charting_fleet_assignments(
         DEFAULT_PRIORITY - 20
     };
 
+    let is_early = fleet.id < 20;
+
     let ships = (0..ship_count)
         .map(|_i| ShipAssignment {
             id: 0, // This should be set appropriately
             fleet_id: fleet.id,
             max_purchase_price: 1_000_000,
-            credits_threshold: 100_000,
+            credits_threshold: if is_early { 100_000 } else { 500_000 },
             priority,
             disabled: false,
             range_min: -1, // need infinite range for charting
