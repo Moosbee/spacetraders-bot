@@ -6,9 +6,8 @@ use space_traders_client::SystemSymbol;
 use space_traders_client::models;
 use utils::WaypointCan;
 
-use crate::manager::fleet_manager::assignment_management::{
-    calculate_market_opportunities, calculate_trade_ship_counts,
-};
+use crate::manager::fleet_manager::assignment_generation::calculate_market_opportunities;
+use crate::manager::fleet_manager::assignment_generation::calculate_trade_ship_counts;
 
 struct SystemFleets {
     exploration_fleet: Option<database::Fleet>, // exists if there are >1 uncharted jump gates
@@ -166,7 +165,7 @@ pub async fn populate_system(
         .await?
         .items;
         let new_assignments =
-            super::assignment_management::generate_fleet_assignments(&fleet, context).await?;
+            super::assignment_generation::generate_fleet_assignments(&fleet, context).await?;
 
         let assignments = super::assignment_management::fix_fleet_assignments(
             current_assignments,

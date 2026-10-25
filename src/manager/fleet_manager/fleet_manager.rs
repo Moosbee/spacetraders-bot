@@ -384,7 +384,7 @@ impl FleetManager {
             .await?
             .items;
             let new_assignments =
-                super::assignment_management::generate_fleet_assignments(&fleet, &self.context)
+                super::assignment_generation::generate_fleet_assignments(&fleet, &self.context)
                     .await?;
 
             let assignments = super::assignment_management::fix_fleet_assignments(

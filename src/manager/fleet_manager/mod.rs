@@ -1,3 +1,4 @@
+mod assignment_generation;
 pub mod assignment_management;
 mod fleet_manager;
 pub mod fleet_population;
