@@ -408,7 +408,7 @@ async fn generate_system_fleets(
 
         let trade_mode = database::TradeMode::MarketBalanced;
 
-        let trade_profit_threshold = -2000;
+        let trade_profit_threshold = -4000;
 
         let market_blacklist = if system_fleets.construction_fleet.is_some() {
             let goods = open_construction_site

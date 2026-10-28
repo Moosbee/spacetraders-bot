@@ -113,11 +113,14 @@ pub fn gen_all_trade_route_candidates(
 pub(crate) fn filter_trade_route_candidates(
     trade_route_candidates_all: Vec<TradeRouteCandidate>,
     blacklist: &[models::TradeSymbol],
+    trade_mode: &database::TradeMode,
 ) -> Vec<TradeRouteCandidate> {
     trade_route_candidates_all
         .into_iter()
         .filter(|trade_route_candidate| {
-            trade_route_candidate.is_valid(blacklist) && !trade_route_candidate.def_unprofitable()
+            trade_route_candidate.is_valid(blacklist)
+                && (trade_mode == &database::TradeMode::MarketBalanced
+                    || !trade_route_candidate.def_unprofitable())
         })
         .collect()
 }

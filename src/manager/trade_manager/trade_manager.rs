@@ -282,6 +282,7 @@ impl TradeManager {
         let trade_route_candidates_filtered = trade_route_calculator::filter_trade_route_candidates(
             trade_route_candidates_all,
             &trading_config.market_blacklist,
+            &trading_config.trade_mode,
         );
 
         let config = self.context.config.load_full();
