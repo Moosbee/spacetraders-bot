@@ -15,6 +15,7 @@ function TransactionTable({
     trade_route_id: true,
     mining: true,
     construction_shipment_id: true,
+    ship_transfer_id: true,
   },
   ...tableProps
 }: {
@@ -24,6 +25,7 @@ function TransactionTable({
     trade_route_id: boolean;
     mining: boolean;
     construction_shipment_id: boolean;
+    ship_transfer_id: boolean;
   };
 } & Omit<
   TableProps<Partial<MarketTransaction>>,
@@ -287,6 +289,41 @@ function TransactionTable({
             ) =>
               (value === "No" && !record.construction_shipment_id) ||
               (value === "Yes" && !!record.construction_shipment_id),
+          },
+        ]
+      : []),
+    ...(reasons?.ship_transfer_id
+      ? [
+          {
+            title: "Ship Transfer",
+            dataIndex: "ship_transfer_id",
+            key: "ship_transfer_id",
+            render: (value: number | null) =>
+              value !== null ? (
+                <Link to={`/shipTransfers/${value}`}>{value}</Link>
+              ) : (
+                "N/A"
+              ),
+            sorter: (
+              a: Partial<MarketTransaction>,
+              b: Partial<MarketTransaction>,
+            ) => (a.ship_transfer_id ?? 0) - (b.ship_transfer_id ?? 0),
+            filters: [
+              {
+                text: "Yes",
+                value: "Yes",
+              },
+              {
+                text: "No",
+                value: "No",
+              },
+            ],
+            onFilter: (
+              value: boolean | React.Key,
+              record: Partial<MarketTransaction>,
+            ) =>
+              (value === "No" && !record.ship_transfer_id) ||
+              (value === "Yes" && !!record.ship_transfer_id),
           },
         ]
       : []),

@@ -281,6 +281,7 @@ function Contract() {
             trade_route_id: false,
             mining: false,
             construction_shipment_id: false,
+            ship_transfer_id: false,
           }}
         />
       </Flex>

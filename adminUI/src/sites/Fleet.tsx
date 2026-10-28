@@ -26,6 +26,7 @@ import { GET_FLEET } from "../graphql/queries";
 type FleetData = GetFleetQuery["fleet"];
 type Assignment = FleetData["assignments"]["items"][number];
 type FleetShip = FleetData["ships"][number];
+type FleetShipTransfer = FleetData["shipTransfers"]["items"][number];
 
 const assignmentColumns: TableProps<Assignment>["columns"] = [
   {
@@ -158,6 +159,73 @@ const shipColumns: TableProps<FleetShip>["columns"] = [
   },
 ];
 
+const shipTransferColumns: TableProps<FleetShipTransfer>["columns"] = [
+  {
+    title: "ID",
+    dataIndex: "id",
+    key: "id",
+    render: (id: number) => <Link to={`/shipTransfers/${id}`}>{id}</Link>,
+    sorter: (a, b) => a.id - b.id,
+    defaultSortOrder: "descend",
+  },
+  {
+    title: "Ship",
+    dataIndex: "shipSymbol",
+    key: "shipSymbol",
+    render: (symbol: string) => <Link to={`/ships/${symbol}`}>{symbol}</Link>,
+    sorter: (a, b) => a.shipSymbol.localeCompare(b.shipSymbol),
+  },
+  {
+    title: "State",
+    dataIndex: "state",
+    key: "state",
+    sorter: (a, b) => a.state.localeCompare(b.state),
+  },
+  {
+    title: "Assignment",
+    dataIndex: "assignmentId",
+    key: "assignmentId",
+    sorter: (a, b) => a.assignmentId - b.assignmentId,
+  },
+  {
+    title: "Reservation",
+    dataIndex: "reservationId",
+    key: "reservationId",
+    render: (id: number) => <Link to="/reservedFunds">{id}</Link>,
+    sorter: (a, b) => a.reservationId - b.reservationId,
+  },
+  {
+    title: "Start System",
+    dataIndex: "startSystemSymbol",
+    key: "startSystemSymbol",
+    render: (symbol: string) => <Link to={`/system/${symbol}`}>{symbol}</Link>,
+    sorter: (a, b) => a.startSystemSymbol.localeCompare(b.startSystemSymbol),
+  },
+  {
+    title: "End System",
+    dataIndex: "endSystemSymbol",
+    key: "endSystemSymbol",
+    render: (symbol: string) => <Link to={`/system/${symbol}`}>{symbol}</Link>,
+    sorter: (a, b) => a.endSystemSymbol.localeCompare(b.endSystemSymbol),
+  },
+  {
+    title: "Created At",
+    dataIndex: "createdAt",
+    key: "createdAt",
+    render: (value: string) => new Date(value).toLocaleString(),
+    sorter: (a, b) =>
+      new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+  },
+  {
+    title: "Updated At",
+    dataIndex: "updatedAt",
+    key: "updatedAt",
+    render: (value: string) => new Date(value).toLocaleString(),
+    sorter: (a, b) =>
+      new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime(),
+  },
+];
+
 function Fleet() {
   const { fleetID } = useParams();
 
@@ -287,6 +355,15 @@ function FleetDetails({ fleet }: { fleet: FleetData }) {
           />
         </Col>
       </Row>
+      <Divider />
+      <Table
+        size="small"
+        title={() => `Ship Transfers (${fleet.shipTransfers.items.length})`}
+        dataSource={fleet.shipTransfers.items}
+        columns={shipTransferColumns}
+        rowKey={(record) => record.id}
+        pagination={false}
+      />
     </>
   );
 }

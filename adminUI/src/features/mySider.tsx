@@ -14,6 +14,7 @@ import {
   RocketOutlined,
   SettingOutlined,
   ShoppingCartOutlined,
+  SwapOutlined,
   TeamOutlined,
 } from "@ant-design/icons";
 import type { MenuProps } from "antd";
@@ -57,6 +58,11 @@ const items: MenuItem[] = [
         label: <Link to="/fleets">Fleets</Link>,
         key: "fleets",
         icon: <DatabaseOutlined />,
+      },
+      {
+        label: <Link to="/shipTransfers">Ship Transfers</Link>,
+        key: "shipTransfers",
+        icon: <SwapOutlined />,
       },
       {
         label: <Link to="/shipsToPurchase">Ships To Purchase</Link>,

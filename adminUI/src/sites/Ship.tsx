@@ -1319,6 +1319,75 @@ function ShipDetails({ ship }: { ship: ShipData }) {
     },
   ];
 
+  const shipTransferColumns: TableProps<
+    ShipData["shipTransfers"]["items"][number]
+  >["columns"] = [
+    {
+      title: "ID",
+      dataIndex: "id",
+      key: "id",
+      render: (id: number) => <Link to={`/shipTransfers/${id}`}>{id}</Link>,
+      sorter: (a, b) => a.id - b.id,
+      defaultSortOrder: "descend",
+    },
+    {
+      title: "State",
+      dataIndex: "state",
+      key: "state",
+      sorter: (a, b) => a.state.localeCompare(b.state),
+    },
+    {
+      title: "Fleet",
+      dataIndex: "fleetId",
+      key: "fleetId",
+      render: (id: number) => <Link to={`/fleets/${id}`}>{id}</Link>,
+      sorter: (a, b) => a.fleetId - b.fleetId,
+    },
+    {
+      title: "Assignment",
+      dataIndex: "assignmentId",
+      key: "assignmentId",
+      sorter: (a, b) => a.assignmentId - b.assignmentId,
+    },
+    {
+      title: "Reservation",
+      dataIndex: "reservationId",
+      key: "reservationId",
+      render: (id: number) => <Link to="/reservedFunds">{id}</Link>,
+      sorter: (a, b) => a.reservationId - b.reservationId,
+    },
+    {
+      title: "Start System",
+      dataIndex: "startSystemSymbol",
+      key: "startSystemSymbol",
+      render: (symbol: string) => <Link to={`/system/${symbol}`}>{symbol}</Link>,
+      sorter: (a, b) => a.startSystemSymbol.localeCompare(b.startSystemSymbol),
+    },
+    {
+      title: "End System",
+      dataIndex: "endSystemSymbol",
+      key: "endSystemSymbol",
+      render: (symbol: string) => <Link to={`/system/${symbol}`}>{symbol}</Link>,
+      sorter: (a, b) => a.endSystemSymbol.localeCompare(b.endSystemSymbol),
+    },
+    {
+      title: "Created At",
+      dataIndex: "createdAt",
+      key: "createdAt",
+      render: (value: string) => new Date(value).toLocaleString(),
+      sorter: (a, b) =>
+        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+    },
+    {
+      title: "Updated At",
+      dataIndex: "updatedAt",
+      key: "updatedAt",
+      render: (value: string) => new Date(value).toLocaleString(),
+      sorter: (a, b) =>
+        new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime(),
+    },
+  ];
+
   return (
     <>
       <Row gutter={[8, 8]}>
@@ -1555,6 +1624,21 @@ function ShipDetails({ ship }: { ship: ShipData }) {
           />
         </Col>
       </Row>
+
+      <Divider />
+      <Table
+        size="small"
+        title={() => "Ship Transfers"}
+        columns={shipTransferColumns}
+        dataSource={ship.shipTransfers.items}
+        rowKey={(record) => record.id}
+        pagination={{
+          showSizeChanger: true,
+          pageSizeOptions: ["10", "20", "50", "100"],
+          defaultPageSize: 10,
+          showTotal: (total, range) => `${range[0]}-${range[1]} of ${total}`,
+        }}
+      />
     </>
   );
 }

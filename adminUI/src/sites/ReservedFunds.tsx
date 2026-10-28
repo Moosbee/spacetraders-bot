@@ -95,6 +95,23 @@ export default function ReservedFunds() {
       },
     },
     {
+      title: "Ship Transfers",
+      key: "shipTransfers",
+      render: (_, record) => {
+        const transfers = record.shipTransfers?.items ?? [];
+        if (transfers.length === 0) return "N/A";
+        return (
+          <Space size={4} wrap>
+            {transfers.map((transfer) => (
+              <Link key={transfer.id} to={`/shipTransfers/${transfer.id}`}>
+                {transfer.id}
+              </Link>
+            ))}
+          </Space>
+        );
+      },
+    },
+    {
       title: "Created At",
       dataIndex: "createdAt",
       key: "createdAt",
@@ -162,6 +179,9 @@ export default function ReservedFunds() {
           Reserved Funds
         </h1>
         <Button onClick={() => refetch()}>Refresh</Button>
+        <Link to="/shipTransfers">
+          <Button>Ship Transfers</Button>
+        </Link>
       </Space>
       <Divider />
       <Flex gap={12} vertical>

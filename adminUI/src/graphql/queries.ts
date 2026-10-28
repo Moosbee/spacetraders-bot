@@ -1148,6 +1148,7 @@ export const GET_WAYPOINT = graphql(/* GraphQL */ `
           trade_route_id
           mining_waypoint_symbol
           construction_shipment_id
+          ship_transfer_id
           isFuel
         }
       }
@@ -1166,6 +1167,25 @@ export const GET_WAYPOINT = graphql(/* GraphQL */ `
       shipyardShips {
         items {
           shipType
+          engineQuality
+          engineInfo {
+            symbol
+            speed
+          }
+          modules
+          mounts
+          frameQuality
+          frameInfo {
+            symbol
+            moduleSlots
+            mountingPoints
+            fuelCapacity
+          }
+          reactorQuality
+          reactorInfo {
+            symbol
+            powerOutput
+          }
           supply
           activity
           purchasePrice
@@ -1268,6 +1288,7 @@ export const GET_MARKET_TRANSACTIONS = graphql(/* GraphQL */ `
         trade_route_id
         mining_waypoint_symbol
         construction_shipment_id
+        ship_transfer_id
         isFuel
       }
     }
@@ -1892,6 +1913,20 @@ export const GET_SHIP = graphql(/* GraphQL */ `
           totalPrice
         }
       }
+      shipTransfers {
+        items {
+          id
+          shipSymbol
+          state
+          fleetId
+          assignmentId
+          reservationId
+          startSystemSymbol
+          endSystemSymbol
+          createdAt
+          updatedAt
+        }
+      }
       cooldown
       engine
     }
@@ -2123,6 +2158,7 @@ export const GET_TRADE_ROUTE = graphql(/* GraphQL */ `
           trade_route_id
           mining_waypoint_symbol
           construction_shipment_id
+          ship_transfer_id
           isFuel
         }
       }
@@ -2349,6 +2385,7 @@ export const GET_CONTRACT = graphql(/* GraphQL */ `
           contract_id
           trade_route_id
           mining_waypoint_symbol
+          ship_transfer_id
         }
       }
     }
@@ -2448,6 +2485,11 @@ export const GET_RESERVED_FUNDS = graphql(/* GraphQL */ `
           }
         }
         constructionShipment {
+          items {
+            id
+          }
+        }
+        shipTransfers {
           items {
             id
           }
@@ -2751,6 +2793,20 @@ export const GET_FLEET = graphql(/* GraphQL */ `
           }
         }
       }
+      shipTransfers {
+        items {
+          id
+          shipSymbol
+          state
+          fleetId
+          assignmentId
+          reservationId
+          startSystemSymbol
+          endSystemSymbol
+          createdAt
+          updatedAt
+        }
+      }
     }
   }
 `);
@@ -2893,6 +2949,73 @@ export const GET_ALL_LATEST_SHIPYARD_SHIPS = graphql(/* GraphQL */ `
         mounts
         crewCapacity
         crewRequirement
+      }
+    }
+  }
+`);
+
+export const GET_SHIP_TRANSFERS = graphql(/* GraphQL */ `
+  query GetShipTransfers($page: Int, $pageSize: Int) {
+    shipTransfers(page: $page, pageSize: $pageSize) {
+      page
+      pageSize
+      totalCount
+      items {
+        id
+        shipSymbol
+        state
+        fleetId
+        assignmentId
+        reservationId
+        startSystemSymbol
+        endSystemSymbol
+        createdAt
+        updatedAt
+      }
+    }
+  }
+`);
+
+export const GET_SHIP_TRANSFER = graphql(/* GraphQL */ `
+  query GetShipTransfer($shipTransferId: Int!) {
+    shipTransfer(id: $shipTransferId) {
+      id
+      shipSymbol
+      state
+      fleetId
+      assignmentId
+      reservationId
+      startSystemSymbol
+      endSystemSymbol
+      createdAt
+      updatedAt
+      ship {
+        symbol
+      }
+      fleet {
+        id
+        fleetType
+        systemSymbol
+      }
+      assignment {
+        id
+        fleetId
+        priority
+        disabled
+      }
+      reservation {
+        id
+        amount
+        status
+        actualAmount
+        createdAt
+        updatedAt
+      }
+      startSystem {
+        symbol
+      }
+      endSystem {
+        symbol
       }
     }
   }

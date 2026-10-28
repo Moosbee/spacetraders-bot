@@ -23,6 +23,8 @@ import PossibleTrades from "./sites/PossibleTrades";
 import ReservedFunds from "./sites/ReservedFunds";
 import Ship from "./sites/Ship";
 import ShipRoutes from "./sites/ShipRoutes";
+import ShipTransfer from "./sites/ShipTransfer";
+import ShipTransfers from "./sites/ShipTransfers";
 import Ships from "./sites/Ships";
 import ShipsToPurchase from "./sites/ShipsToPurchase";
 import ShipyardShips from "./sites/ShipyardShips";
@@ -104,6 +106,14 @@ function MyApp() {
                       element={<WpMap></WpMap>}
                     />
                     <Route path="/ships/:shipID" element={<Ship />} />
+                    <Route
+                      path="/shipTransfers"
+                      element={<ShipTransfers />}
+                    />
+                    <Route
+                      path="/shipTransfers/:shipTransferID"
+                      element={<ShipTransfer />}
+                    />
                     <Route path="/bulk" element={<BulkActions />} />
                     <Route path="/contracts" element={<Contracts />} />
                     <Route

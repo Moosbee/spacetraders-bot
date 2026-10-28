@@ -1,13 +1,15 @@
 import { Button, List, Table, TableProps, Tooltip } from "antd";
-import { GetWaypointQuery } from "../../gql/graphql";
 import {
   ActivityLevel,
-  ShipEngineSymbolEnum,
-  ShipModuleSymbolEnum,
-  ShipMountSymbolEnum,
+  GetWaypointQuery,
+  ShipEngineSymbol,
+  ShipFrameSymbol,
+  ShipModuleSymbol,
+  ShipMountSymbol,
+  ShipReactorSymbol,
   ShipType,
   SupplyLevel,
-} from "../../models/api";
+} from "../../gql/graphql";
 import MoneyDisplay from "../MonyDisplay";
 
 type ShipyardShip =
@@ -63,76 +65,92 @@ function ShipyardShipTable({ ships }: { ships: ShipyardShip[] }) {
     },
     {
       title: "Engine Type",
-      dataIndex: "engine_type",
       key: "engine_type",
-      render: (engine: ShipEngineSymbolEnum, record) => (
-        <Tooltip title={`Quality: ${record.engine_type}`}>{engine}</Tooltip>
+      render: (_, record) => (
+        <Tooltip
+          title={`Quality: ${record.engineQuality}\nSpeed: ${record.engineInfo.speed}`}
+        >
+          {record.engineInfo.symbol} ({record.engineInfo.speed})
+        </Tooltip>
       ),
-      sorter: (a, b) => a.engine_type.localeCompare(b.engine_type),
-      filters: Object.values(ShipEngineSymbolEnum).map((engine) => ({
+      sorter: (a, b) => a.engineInfo.symbol.localeCompare(b.engineInfo.symbol),
+      filters: Object.values(ShipEngineSymbol).map((engine) => ({
         text: engine,
         value: engine,
       })),
+      onFilter: (value, record) => record.engineInfo.symbol === value,
     },
     {
       title: "Frame Type",
-      dataIndex: "frame_type",
       key: "frame_type",
-      render: (frame: ShipEngineSymbolEnum, record) => (
-        <Tooltip title={`Quality: ${record.frame_quality}`}>{frame}</Tooltip>
+      render: (_, record) => (
+        <Tooltip
+          title={`Quality: ${record.frameQuality}\nFuel: ${record.frameInfo.fuelCapacity}\nModules: ${record.frameInfo.moduleSlots}\nMounts: ${record.frameInfo.mountingPoints}`}
+        >
+          {record.frameInfo.symbol} ({record.frameInfo.fuelCapacity})
+        </Tooltip>
       ),
-      sorter: (a, b) => a.frame_type.localeCompare(b.frame_type),
-      filters: Object.values(ShipEngineSymbolEnum).map((frame) => ({
+      sorter: (a, b) => a.frameInfo.symbol.localeCompare(b.frameInfo.symbol),
+      filters: Object.values(ShipFrameSymbol).map((frame) => ({
         text: frame,
         value: frame,
       })),
 
-      onFilter: (value, record) => record.frame_type === value,
+      onFilter: (value, record) => record.frameInfo.symbol === value,
     },
     {
       title: "Reactor Type",
       dataIndex: "reactor_type",
       key: "reactor_type",
-      render: (reactor: ShipEngineSymbolEnum, record) => (
-        <Tooltip title={`Quality: ${record.reactor_quality}`}>
-          {reactor}
+      render: (_, record) => (
+        <Tooltip
+          title={`Quality: ${record.reactorQuality}\nPower Output: ${record.reactorInfo.powerOutput}`}
+        >
+          {record.reactorInfo.symbol} ({record.reactorInfo.powerOutput})
         </Tooltip>
       ),
-      sorter: (a, b) => a.reactor_type.localeCompare(b.reactor_type),
-      filters: Object.values(ShipEngineSymbolEnum).map((reactor) => ({
+      sorter: (a, b) =>
+        a.reactorInfo.symbol.localeCompare(b.reactorInfo.symbol),
+      filters: Object.values(ShipReactorSymbol).map((reactor) => ({
         text: reactor,
         value: reactor,
       })),
-      onFilter: (value, record) => record.reactor_type === value,
+      onFilter: (value, record) => record.reactorInfo.symbol === value,
     },
     {
       title: "Modules",
       dataIndex: "modules",
       key: "modules",
-      render: (modules: ShipModuleSymbolEnum[]) => (
-        <List
-          size="small"
-          dataSource={modules}
-          renderItem={(item) => <List.Item>{item}</List.Item>}
-        />
-      ),
+      render: (modules: ShipModuleSymbol[]) =>
+        modules.length > 0 ? (
+          <List
+            size="small"
+            dataSource={modules}
+            renderItem={(item) => <List.Item>{item}</List.Item>}
+          />
+        ) : (
+          "No modules"
+        ),
     },
     {
       title: "Mounts",
       dataIndex: "mounts",
       key: "mounts",
-      render: (mounts: ShipMountSymbolEnum[]) => (
-        <List
-          size="small"
-          dataSource={mounts}
-          renderItem={(item) => <List.Item>{item}</List.Item>}
-        />
-      ),
+      render: (mounts: ShipMountSymbol[]) =>
+        mounts.length > 0 ? (
+          <List
+            size="small"
+            dataSource={mounts}
+            renderItem={(item) => <List.Item>{item}</List.Item>}
+          />
+        ) : (
+          "No mounts"
+        ),
     },
     {
       title: "Created At",
-      dataIndex: "created_at",
-      key: "created_at",
+      dataIndex: "createdAt",
+      key: "createdAt",
       render: (date: string) => <span>{new Date(date).toLocaleString()}</span>,
     },
   ];

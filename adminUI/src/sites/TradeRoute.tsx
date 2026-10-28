@@ -535,10 +535,11 @@ function TradeRouteDetails({ tradeRoute }: { tradeRoute: TradeRouteData }) {
       <TransactionTable
         transactions={tradeRoute.transactions.items}
         reasons={{
-          contract: true,
+          contract: false,
           trade_route_id: false,
-          mining: true,
-          construction_shipment_id: true,
+          mining: false,
+          construction_shipment_id: false,
+          ship_transfer_id: false,
         }}
       />
     </Flex>

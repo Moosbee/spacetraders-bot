@@ -733,6 +733,7 @@ function Waypoint() {
           trade_route_id: true,
           mining: true,
           construction_shipment_id: true,
+          ship_transfer_id: true,
         }}
       />
       {(waypoint?.shipyard || waypoint?.shipyardShips) && <Divider />}
