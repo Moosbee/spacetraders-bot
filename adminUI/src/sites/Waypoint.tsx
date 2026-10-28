@@ -238,6 +238,16 @@ function Waypoint() {
       children: <p>{waypoint?.hasMarketplace ? "Yes" : "No"}</p>,
     },
     {
+      key: "stale_market",
+      label: "Stale Market",
+      children: <p>{waypoint?.staleMarket}</p>,
+    },
+    {
+      key: "stale_shipyard",
+      label: "Stale Shipyard",
+      children: <p>{waypoint?.staleShipyard}</p>,
+    },
+    {
       key: "lastScrap",
       label: "Last Scrap",
       children: (

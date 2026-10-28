@@ -42,5 +42,7 @@ pub async fn update_shipyard(
         database::ShipyardTransaction::insert_bulk(database_pool, &shipyard_transactions).await?
     }
 
+    database::Waypoint::reset_stale_shipyard(database_pool, &sql_shipyard.waypoint_symbol).await?;
+
     Ok(())
 }

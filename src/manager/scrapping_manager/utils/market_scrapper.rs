@@ -130,6 +130,10 @@ pub async fn update_markets(
     database::MarketTradeGood::insert_bulk(&database_pool, &market_goods).await?;
     database::MarketTransaction::insert_bulk(&database_pool, &market_transactions).await?;
 
+    for market in markets {
+        database::Waypoint::reset_stale_market(&database_pool, &market.symbol).await?;
+    }
+
     Ok(())
 }
 
@@ -194,6 +198,10 @@ pub async fn update_market(market: models::Market, database_pool: &database::DbP
     .cloned()
     .collect::<Vec<_>>();
     database::MarketTrade::insert_bulk(database_pool, &market_trades)
+        .await
+        .unwrap();
+
+    database::Waypoint::reset_stale_market(database_pool, &market.symbol)
         .await
         .unwrap();
 }

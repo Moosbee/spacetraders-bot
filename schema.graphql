@@ -2436,6 +2436,8 @@ type Waypoint {
 	unstableSince: DateTime
 	hasShipyard: Boolean!
 	hasMarketplace: Boolean!
+	staleMarket: Int!
+	staleShipyard: Int!
 	distanceToHome: Float!
 	system: System
 	ships: [Ship!]!

@@ -359,6 +359,8 @@ impl ScrappingManager {
                     .collect::<Vec<_>>()
                     .as_slice(),
                 max_update_interval,
+                wp.stale_market,
+                wp.stale_shipyard,
             )?;
 
             waypoints.push((wp, next_time));

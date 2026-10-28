@@ -22,6 +22,10 @@ pub fn get_waypoint_time(
     market_trade: &[database::MarketTrade],
     // market_trade_goods: &[database::MarketTradeGood],
     max_update_interval: i32, // in seconds
+    // number of market trades done by me since last scrapper query
+    stale_market: i32,
+    // number of shipyard purchases done by me since last scrapper query
+    stale_shipyard: i32,
 ) -> Result<chrono::DateTime<chrono::Utc>> {
     get_waypoint_time_with_weights(
         market_trade,
@@ -29,6 +33,8 @@ pub fn get_waypoint_time(
         EXPORT_WEIGHT,
         IMPORT_WEIGHT,
         EXCHANGE_WEIGHT,
+        stale_market,
+        stale_shipyard,
     )
 }
 
@@ -40,6 +46,8 @@ pub fn get_waypoint_time_with_weights(
     export_weight: f64,
     import_weight: f64,
     exchange_weight: f64,
+    stale_market: i32,
+    stale_shipyard: i32,
 ) -> Result<chrono::DateTime<chrono::Utc>> {
     let last_date = market_trade
         .iter()
@@ -81,6 +89,9 @@ pub fn get_waypoint_time_with_weights(
 
     let interval_duration =
         chrono::Duration::seconds((interval_percent * max_update_interval as f64) as i64);
+
+    let trade_divider = 1.0 + (stale_market as f64 * 0.5) + (stale_shipyard as f64 * 2.0);
+    let interval_duration = interval_duration / trade_divider as i32;
 
     let nextscrap = last_date + interval_duration;
 

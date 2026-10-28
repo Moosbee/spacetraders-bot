@@ -293,20 +293,22 @@ impl Waypoint {
         database_pool: &DbPool,
         waypoint_symbol: &WaypointSymbol,
         amount: i32,
-    ) -> crate::Result<()> {
-        sqlx::query!(
+    ) -> crate::Result<i32> {
+        let new_stale_market = sqlx::query!(
             r#"
                 UPDATE waypoint
                 SET stale_market = stale_market + $2
                 WHERE symbol = $1
+                RETURNING stale_market
             "#,
             waypoint_symbol.as_str(),
             amount
         )
-        .execute(&database_pool.database_pool)
-        .await?;
+        .fetch_one(&database_pool.database_pool)
+        .await?
+        .stale_market;
 
-        Ok(())
+        Ok(new_stale_market)
     }
 
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
@@ -333,20 +335,22 @@ impl Waypoint {
         database_pool: &DbPool,
         waypoint_symbol: &WaypointSymbol,
         amount: i32,
-    ) -> crate::Result<()> {
-        sqlx::query!(
+    ) -> crate::Result<i32> {
+        let new_stale_shipyard = sqlx::query!(
             r#"
                 UPDATE waypoint
                 SET stale_shipyard = stale_shipyard + $2
                 WHERE symbol = $1
+                RETURNING stale_shipyard
             "#,
             waypoint_symbol.as_str(),
             amount
         )
-        .execute(&database_pool.database_pool)
-        .await?;
+        .fetch_one(&database_pool.database_pool)
+        .await?
+        .stale_shipyard;
 
-        Ok(())
+        Ok(new_stale_shipyard)
     }
 
     #[instrument(level = "trace", skip(database_pool), err(Debug))]

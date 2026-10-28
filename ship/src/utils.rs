@@ -65,5 +65,7 @@ pub async fn update_market(
     .collect::<Vec<_>>();
     database::MarketTrade::insert_bulk(database_pool, &market_trades).await?;
 
+    database::Waypoint::reset_stale_market(database_pool, &market.symbol).await?;
+
     Ok(())
 }

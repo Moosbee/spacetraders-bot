@@ -190,7 +190,17 @@ impl ShipProcurementManager {
 
         let reserved_waypoints = shipyard_ship_reservation.reserve_all().await?;
 
-        let waypoints = reserved_waypoints.keys().cloned().collect::<HashSet<_>>();
+        let wp_symbols = reserved_waypoints.keys().cloned().collect::<Vec<_>>();
+
+        let waypoints: HashMap<WaypointSymbol, database::Waypoint> =
+            database::Waypoint::get_by_symbols(
+                &self.context.database_pool,
+                &wp_symbols.iter().map(|k| k.as_str()).collect::<Vec<_>>(),
+            )
+            .await?
+            .into_iter()
+            .map(|wp| (wp.symbol.clone(), wp))
+            .collect::<HashMap<_, _>>();
 
         let ships_to_purchase = Self::get_ships_to_purchase(
             &open_assignments,
@@ -353,6 +363,13 @@ impl ShipProcurementManager {
         )
         .await?;
 
+        database::Waypoint::increase_stale_shipyard(
+            &self.context.database_pool,
+            &shipyard_ship.waypoint_symbol,
+            1,
+        )
+        .await?;
+
         ship::MyShip::update_info_db(
             (*purchase_ship_response.data.ship).clone(),
             &self.context.database_pool,
@@ -412,7 +429,7 @@ impl ShipProcurementManager {
         all_shipyard_ships: &'a [(database::ShipyardShip, ShipCapabilities)],
         fleets: &'a HashMap<i32, database::Fleet>,
         travel_costs: &'_ HashMap<(SystemSymbol, SystemSymbol), (i64, i32, f64)>,
-        waypoints: &'_ HashSet<WaypointSymbol>,
+        waypoints: &'_ HashMap<WaypointSymbol, database::Waypoint>,
         ship_purchase_percentile: f64,
         purchase_limit: usize, // how many ships can be purchased from one shipyard_ship
     ) -> Vec<ShipWorth<'a>> {
@@ -421,7 +438,12 @@ impl ShipProcurementManager {
         let mut available_ships: HashMap<usize, usize> = all_shipyard_ships
             .iter()
             .enumerate()
-            .filter(|(_, (s, _))| waypoints.contains(&s.waypoint_symbol))
+            .filter(|(_, (s, _))| {
+                waypoints
+                    .get(&s.waypoint_symbol)
+                    .map(|wp| wp.stale_shipyard < purchase_limit as i32)
+                    .unwrap_or(false)
+            })
             .map(|(i, _)| (i, purchase_limit))
             .collect();
 

@@ -216,6 +216,9 @@ impl<T: Clone + Send + Sync> RustShip<T, Mutable> {
 
         database::Agent::upsert(database_pool, &database::Agent::from(*trade_data.agent)).await?;
 
+        database::Waypoint::increase_stale_market(database_pool, &self.nav.waypoint_symbol, 1)
+            .await?;
+
         let transaction: database::MarketTransaction =
             database::MarketTransaction::try_from(trade_data.transaction.as_ref().clone())?
                 .with(reason)

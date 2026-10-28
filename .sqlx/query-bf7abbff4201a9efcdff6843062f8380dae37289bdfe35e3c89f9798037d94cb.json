@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                UPDATE waypoint\n                SET stale_shipyard = stale_shipyard + $2\n                WHERE symbol = $1\n                RETURNING stale_shipyard\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "stale_shipyard",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "bf7abbff4201a9efcdff6843062f8380dae37289bdfe35e3c89f9798037d94cb"
+}

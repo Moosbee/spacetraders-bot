@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                UPDATE waypoint\n                SET stale_market = stale_market + $2\n                WHERE symbol = $1\n                RETURNING stale_market\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "stale_market",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "d77bb9fa5d32dc0442ee2afeeda94fb80d7aba8b8d44ee330ff6d91ae8b2ec55"
+}

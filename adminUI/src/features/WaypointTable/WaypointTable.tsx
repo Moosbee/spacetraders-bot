@@ -259,6 +259,20 @@ function WaypointTable({
       onFilter: (value, record) => record.hasShipyard === value,
     },
     {
+      title: "Stale Market",
+      dataIndex: "staleMarket",
+      key: "staleMarket",
+      align: "right",
+      sorter: (a, b) => a.staleMarket - b.staleMarket,
+    },
+    {
+      title: "Stale Shipyard",
+      dataIndex: "staleShipyard",
+      key: "staleShipyard",
+      align: "right",
+      sorter: (a, b) => a.staleShipyard - b.staleShipyard,
+    },
+    {
       title: "Shipyard Ships",
       dataIndex: "shipyardShips",
       key: "shipyardShips",

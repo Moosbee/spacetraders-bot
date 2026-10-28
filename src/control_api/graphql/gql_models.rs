@@ -4058,6 +4058,8 @@ impl GQLWaypoint {
                 .collect::<Vec<_>>()
                 .as_slice(),
             max_update_interval,
+            self.waypoint.stale_market,
+            self.waypoint.stale_shipyard,
         )?;
 
         Ok(Some(next_time))

@@ -533,6 +533,8 @@ export const GET_SYSTEM = graphql(/* GraphQL */ `
           chartedOn
           hasShipyard
           hasMarketplace
+          staleMarket
+          staleShipyard
           x
           y
           lastScrap
@@ -1080,6 +1082,8 @@ export const GET_WAYPOINT = graphql(/* GraphQL */ `
       isUnderConstruction
       hasMarketplace
       hasShipyard
+      staleMarket
+      staleShipyard
       modifiers
       jumpGateConnections {
         items {
@@ -2038,6 +2042,8 @@ export const GET_TRADE_ROUTE = graphql(/* GraphQL */ `
         chartedOn
         hasShipyard
         hasMarketplace
+        staleMarket
+        staleShipyard
         x
         y
         lastScrap
@@ -2091,6 +2097,8 @@ export const GET_TRADE_ROUTE = graphql(/* GraphQL */ `
         chartedOn
         hasShipyard
         hasMarketplace
+        staleMarket
+        staleShipyard
         x
         y
         lastScrap
