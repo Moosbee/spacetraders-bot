@@ -477,6 +477,34 @@ function ShipDetails({ ship }: { ship: ShipData }) {
 
   const assignmentItems: DescriptionsProps["items"] = [
     {
+      key: "currentFleet",
+      label: "Current Fleet",
+      children: ship.status?.currentFleet ? (
+        <Link to={`/fleet/${ship.status.currentFleetId}`}>
+          {ship.status.currentFleetId}
+        </Link>
+      ) : (
+        "None"
+      ),
+    },
+    {
+      key: "currentFleetDetails",
+      label: "Current Fleet Details",
+      span: 3,
+      children: renderFleet(ship.status?.currentFleet),
+    },
+    {
+      key: "currentAssignment",
+      label: "Current Assignment",
+      children: ship.status?.currentAssignmentId ?? "None",
+    },
+    {
+      key: "currentAssignmentDetails",
+      label: "Current Assignment Details",
+      span: 3,
+      children: renderAssignment(ship.status?.currentAssignment),
+    },
+    {
       key: "fleet",
       label: "Fleet",
       children: ship.shipInfo?.assignment?.fleetId ? (
