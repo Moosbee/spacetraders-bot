@@ -42,6 +42,10 @@ pub struct Waypoint {
     pub unstable_since: Option<sqlx::types::chrono::DateTime<chrono::Utc>>,
     pub has_shipyard: bool,
     pub has_marketplace: bool,
+    // number of market trades done by me since last scrapper query
+    pub stale_market: i32,
+    // number of shipyard purchases done by me since last scrapper query
+    pub stale_shipyard: i32,
 }
 
 impl From<Waypoint> for (i32, i32) {
@@ -266,6 +270,86 @@ impl Loader<WaypointSymbol> for WaypointLoader {
 
 impl Waypoint {
     #[instrument(level = "trace", skip(database_pool), err(Debug))]
+    pub async fn reset_stale_market(
+        database_pool: &DbPool,
+        waypoint_symbol: &WaypointSymbol,
+    ) -> crate::Result<()> {
+        sqlx::query!(
+            r#"
+                UPDATE waypoint
+                SET stale_market = 0
+                WHERE symbol = $1
+            "#,
+            waypoint_symbol.as_str()
+        )
+        .execute(&database_pool.database_pool)
+        .await?;
+
+        Ok(())
+    }
+
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
+    pub async fn increase_stale_market(
+        database_pool: &DbPool,
+        waypoint_symbol: &WaypointSymbol,
+        amount: i32,
+    ) -> crate::Result<()> {
+        sqlx::query!(
+            r#"
+                UPDATE waypoint
+                SET stale_market = stale_market + $2
+                WHERE symbol = $1
+            "#,
+            waypoint_symbol.as_str(),
+            amount
+        )
+        .execute(&database_pool.database_pool)
+        .await?;
+
+        Ok(())
+    }
+
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
+    pub async fn reset_stale_shipyard(
+        database_pool: &DbPool,
+        waypoint_symbol: &WaypointSymbol,
+    ) -> crate::Result<()> {
+        sqlx::query!(
+            r#"
+                UPDATE waypoint
+                SET stale_shipyard = 0
+                WHERE symbol = $1
+            "#,
+            waypoint_symbol.as_str()
+        )
+        .execute(&database_pool.database_pool)
+        .await?;
+
+        Ok(())
+    }
+
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
+    pub async fn increase_stale_shipyard(
+        database_pool: &DbPool,
+        waypoint_symbol: &WaypointSymbol,
+        amount: i32,
+    ) -> crate::Result<()> {
+        sqlx::query!(
+            r#"
+                UPDATE waypoint
+                SET stale_shipyard = stale_shipyard + $2
+                WHERE symbol = $1
+            "#,
+            waypoint_symbol.as_str(),
+            amount
+        )
+        .execute(&database_pool.database_pool)
+        .await?;
+
+        Ok(())
+    }
+
+    #[instrument(level = "trace", skip(database_pool), err(Debug))]
     pub async fn get_hash_map(
         database_pool: &DbPool,
     ) -> crate::Result<HashMap<String, HashMap<String, Waypoint>>> {
@@ -312,7 +396,9 @@ impl Waypoint {
                   charted_on,
                   unstable_since,
                   has_shipyard,
-                  has_marketplace
+                  has_marketplace,
+                  stale_market,
+                  stale_shipyard
                 FROM waypoint
                 WHERE system_symbol = ANY($1)
             "#,
@@ -356,7 +442,9 @@ impl Waypoint {
                           charted_on,
                           unstable_since,
                           has_shipyard,
-                          has_marketplace
+                          has_marketplace,
+                          stale_market,
+                          stale_shipyard
                         FROM waypoint
                         WHERE system_symbol = $1
                         ORDER BY symbol
@@ -391,7 +479,9 @@ impl Waypoint {
                           charted_on,
                           unstable_since,
                           has_shipyard,
-                          has_marketplace
+                          has_marketplace,
+                          stale_market,
+                          stale_shipyard
                         FROM waypoint
                         WHERE system_symbol = $1
                         ORDER BY symbol
@@ -444,7 +534,9 @@ impl Waypoint {
                   charted_on,
                   unstable_since,
                   has_shipyard,
-                  has_marketplace
+                  has_marketplace,
+                  stale_market,
+                  stale_shipyard
                 FROM waypoint
                 WHERE symbol = ANY($1)
             "#,
@@ -479,7 +571,9 @@ impl DatabaseConnectorAsync for Waypoint {
                   charted_on,
                   unstable_since,
                   has_shipyard,
-                  has_marketplace
+                  has_marketplace,
+                  stale_market,
+                  stale_shipyard
                 )
                 VALUES ($1,
                         $2,
@@ -496,7 +590,9 @@ impl DatabaseConnectorAsync for Waypoint {
                         $13,
                         $14,
                         $15,
-                        $16
+                        $16,
+                        $17,
+                        $18
                         )
                 ON CONFLICT (symbol) DO UPDATE SET 
                 system_symbol = EXCLUDED.system_symbol,
@@ -513,7 +609,9 @@ impl DatabaseConnectorAsync for Waypoint {
                 charted_on = EXCLUDED.charted_on,
                 unstable_since = EXCLUDED.unstable_since,
                 has_shipyard = EXCLUDED.has_shipyard,
-                has_marketplace = EXCLUDED.has_marketplace;
+                has_marketplace = EXCLUDED.has_marketplace,
+                stale_market = EXCLUDED.stale_market,
+                stale_shipyard = EXCLUDED.stale_shipyard;
             "#,
             &item.symbol.as_str(),
             &item.system_symbol.as_str(),
@@ -530,7 +628,9 @@ impl DatabaseConnectorAsync for Waypoint {
             &item.charted_on as &Option<String>,
             &item.unstable_since as &Option<sqlx::types::chrono::DateTime<chrono::Utc>>,
             &item.has_shipyard,
-            &item.has_marketplace
+            &item.has_marketplace,
+            &item.stale_market,
+            &item.stale_shipyard
         )
         .execute(&database_pool.database_pool)
         .await?;
@@ -587,7 +687,9 @@ impl DatabaseConnectorAsync for Waypoint {
                           charted_on,
                           unstable_since,
                           has_shipyard,
-                          has_marketplace
+                          has_marketplace,
+                          stale_market,
+                          stale_shipyard
                         FROM waypoint
                         ORDER BY symbol
                         LIMIT $1 OFFSET $2
@@ -620,7 +722,9 @@ impl DatabaseConnectorAsync for Waypoint {
                           charted_on,
                           unstable_since,
                           has_shipyard,
-                          has_marketplace
+                          has_marketplace,
+                          stale_market,
+                          stale_shipyard
                         FROM waypoint
                         ORDER BY symbol
                     "#
@@ -666,7 +770,9 @@ impl DatabaseConnectorAsync for Waypoint {
                   charted_on,
                   unstable_since,
                   has_shipyard,
-                  has_marketplace
+                  has_marketplace,
+                  stale_market,
+                  stale_shipyard
                 FROM waypoint
                 WHERE symbol = $1
                 LIMIT 1

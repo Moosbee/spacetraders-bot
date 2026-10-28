@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n                        SELECT \n                          symbol,\n                          system_symbol,\n                          created_at,\n                          x,\n                          y,\n                          type as \"waypoint_type: models::WaypointType\",\n                          traits as \"traits: Vec<models::WaypointTraitSymbol>\",\n                          is_under_construction,\n                          orbitals,\n                          orbits,\n                          faction,\n                          modifiers as \"modifiers: Vec<models::WaypointModifierSymbol>\",\n                          charted_by,\n                          charted_on,\n                          unstable_since,\n                          has_shipyard,\n                          has_marketplace\n                        FROM waypoint\n                        WHERE system_symbol = $1\n                        ORDER BY symbol\n                        LIMIT $2 OFFSET $3\n                    ",
+  "query": "\n                        SELECT \n                          symbol,\n                          system_symbol,\n                          created_at,\n                          x,\n                          y,\n                          type as \"waypoint_type: models::WaypointType\",\n                          traits as \"traits: Vec<models::WaypointTraitSymbol>\",\n                          is_under_construction,\n                          orbitals,\n                          orbits,\n                          faction,\n                          modifiers as \"modifiers: Vec<models::WaypointModifierSymbol>\",\n                          charted_by,\n                          charted_on,\n                          unstable_since,\n                          has_shipyard,\n                          has_marketplace,\n                          stale_market,\n                          stale_shipyard\n                        FROM waypoint\n                        WHERE system_symbol = $1\n                        ORDER BY symbol\n                    ",
   "describe": {
     "columns": [
       {
@@ -213,13 +213,21 @@
         "ordinal": 16,
         "name": "has_marketplace",
         "type_info": "Bool"
+      },
+      {
+        "ordinal": 17,
+        "name": "stale_market",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 18,
+        "name": "stale_shipyard",
+        "type_info": "Int4"
       }
     ],
     "parameters": {
       "Left": [
-        "Text",
-        "Int8",
-        "Int8"
+        "Text"
       ]
     },
     "nullable": [
@@ -239,8 +247,10 @@
       true,
       true,
       false,
+      false,
+      false,
       false
     ]
   },
-  "hash": "49544ee5c2cd31b4abe6ec104a9a4b1d82f700b53ec1ccc26e89ac467ec2c8bb"
+  "hash": "31df0b78ef8020889cddc5893d054e519e85749dec9f9549866dffd21b80bce5"
 }

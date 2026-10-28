@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n                SELECT \n                  symbol,\n                  system_symbol,\n                  created_at,\n                  x,\n                  y,\n                  type as \"waypoint_type: models::WaypointType\",\n                  traits as \"traits: Vec<models::WaypointTraitSymbol>\",\n                  is_under_construction,\n                  orbitals,\n                  orbits,\n                  faction,\n                  modifiers as \"modifiers: Vec<models::WaypointModifierSymbol>\",\n                  charted_by,\n                  charted_on,\n                  unstable_since,\n                  has_shipyard,\n                  has_marketplace\n                FROM waypoint\n                WHERE symbol = ANY($1)\n            ",
+  "query": "\n                SELECT \n                  symbol,\n                  system_symbol,\n                  created_at,\n                  x,\n                  y,\n                  type as \"waypoint_type: models::WaypointType\",\n                  traits as \"traits: Vec<models::WaypointTraitSymbol>\",\n                  is_under_construction,\n                  orbitals,\n                  orbits,\n                  faction,\n                  modifiers as \"modifiers: Vec<models::WaypointModifierSymbol>\",\n                  charted_by,\n                  charted_on,\n                  unstable_since,\n                  has_shipyard,\n                  has_marketplace,\n                  stale_market,\n                  stale_shipyard\n                FROM waypoint\n                WHERE system_symbol = ANY($1)\n            ",
   "describe": {
     "columns": [
       {
@@ -213,6 +213,16 @@
         "ordinal": 16,
         "name": "has_marketplace",
         "type_info": "Bool"
+      },
+      {
+        "ordinal": 17,
+        "name": "stale_market",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 18,
+        "name": "stale_shipyard",
+        "type_info": "Int4"
       }
     ],
     "parameters": {
@@ -237,8 +247,10 @@
       true,
       true,
       false,
+      false,
+      false,
       false
     ]
   },
-  "hash": "21c1f52194b8bb45511bedd0fc5fe4e68b9255f8cd985056374282b8a0833a37"
+  "hash": "fbb14e126125ae38d12bc96359a0180e8fb17a57aad0936fec08368c3945970a"
 }

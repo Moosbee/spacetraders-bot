@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n                        SELECT \n                          symbol,\n                          system_symbol,\n                          created_at,\n                          x,\n                          y,\n                          type as \"waypoint_type: models::WaypointType\",\n                          traits as \"traits: Vec<models::WaypointTraitSymbol>\",\n                          is_under_construction,\n                          orbitals,\n                          orbits,\n                          faction,\n                          modifiers as \"modifiers: Vec<models::WaypointModifierSymbol>\",\n                          charted_by,\n                          charted_on,\n                          unstable_since,\n                          has_shipyard,\n                          has_marketplace\n                        FROM waypoint\n                        ORDER BY symbol\n                    ",
+  "query": "\n                SELECT \n                  symbol,\n                  system_symbol,\n                  created_at,\n                  x,\n                  y,\n                  type as \"waypoint_type: models::WaypointType\",\n                  traits as \"traits: Vec<models::WaypointTraitSymbol>\",\n                  is_under_construction,\n                  orbitals,\n                  orbits,\n                  faction,\n                  modifiers as \"modifiers: Vec<models::WaypointModifierSymbol>\",\n                  charted_by,\n                  charted_on,\n                  unstable_since,\n                  has_shipyard,\n                  has_marketplace,\n                  stale_market,\n                  stale_shipyard\n                FROM waypoint\n                WHERE symbol = ANY($1)\n            ",
   "describe": {
     "columns": [
       {
@@ -213,10 +213,22 @@
         "ordinal": 16,
         "name": "has_marketplace",
         "type_info": "Bool"
+      },
+      {
+        "ordinal": 17,
+        "name": "stale_market",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 18,
+        "name": "stale_shipyard",
+        "type_info": "Int4"
       }
     ],
     "parameters": {
-      "Left": []
+      "Left": [
+        "TextArray"
+      ]
     },
     "nullable": [
       false,
@@ -235,8 +247,10 @@
       true,
       true,
       false,
+      false,
+      false,
       false
     ]
   },
-  "hash": "3041c8e703135a2b607d3e994022845b78875ac1774f2ee675c12224df128f3e"
+  "hash": "65ba58c6d4441d2343a20e8d56082489ce62acf3826e894020a507e2fb523182"
 }

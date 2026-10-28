@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                UPDATE waypoint\n                SET stale_market = 0\n                WHERE symbol = $1\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "2fbf2151c6b1380c6cc30b8d6b6f4958e192e3f2d0742a3702de64bb80471fac"
+}

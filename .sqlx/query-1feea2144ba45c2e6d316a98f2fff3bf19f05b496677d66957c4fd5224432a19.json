@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                UPDATE waypoint\n                SET stale_shipyard = stale_shipyard + $2\n                WHERE symbol = $1\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "1feea2144ba45c2e6d316a98f2fff3bf19f05b496677d66957c4fd5224432a19"
+}
