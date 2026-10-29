@@ -192,13 +192,16 @@ async fn generate_scraping_fleet_assignments(
     let quarter_ships = (ship_counts as f64 / 4.0).floor() as u32;
 
     let is_early = fleet.id < EARLY_FLEET_MAX_ID;
-    let credits_threshold = if is_early { 90_000 } else { 1_000_000 };
     let trading_priority_base = DEFAULT_PRIORITY - (max_trading_ship_counts as i32) * 2;
 
     let ships = (0..ship_counts)
         .map(|i| {
             ShipAssignment::builder(fleet.id)
-                .credits_threshold(credits_threshold)
+                .credits_threshold(if is_early {
+                    if i < quarter_ships { 90_000 } else { 200_000 }
+                } else {
+                    1_000_000
+                })
                 .priority(if i < quarter_ships {
                     // first quarter ships have higher priority
                     trading_priority_base - 5

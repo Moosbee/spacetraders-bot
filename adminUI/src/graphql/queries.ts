@@ -2272,8 +2272,8 @@ export const GET_TRADE_ROUTE = graphql(/* GraphQL */ `
 `);
 
 export const GET_OPEN_ASSIGNMENTS = graphql(/* GraphQL */ `
-  query GetOpenAssignments {
-    shipAssignments(by: { open: true }) {
+  query GetOpenAssignments($onlyOpen: Boolean!) {
+    shipAssignments(by: { open: $onlyOpen }) {
       items {
         id
         siphon
@@ -2283,6 +2283,19 @@ export const GET_OPEN_ASSIGNMENTS = graphql(/* GraphQL */ `
           fleetType
           active
           systemSymbol
+        }
+        ship {
+          symbol
+          # status {
+          #   status {
+          #     __typename
+          #   }
+          # }
+          # shipInfo {
+          #   active
+          #   assignmentId
+          #   tempAssignmentId
+          # }
         }
         fleetId
         priority

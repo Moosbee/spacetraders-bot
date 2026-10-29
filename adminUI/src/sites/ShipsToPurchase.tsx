@@ -1,5 +1,6 @@
 import { useQuery } from "@apollo/client/react";
-import { Button, Result, Space, Spin, Table, TableProps } from "antd";
+import { Button, Result, Space, Spin, Switch, Table, TableProps, Tooltip } from "antd";
+import { useState } from "react";
 import MoneyDisplay from "../features/MonyDisplay";
 import PageTitle from "../features/PageTitle";
 import { FleetType, GetOpenAssignmentsQuery } from "../gql/graphql";
@@ -15,18 +16,21 @@ const boolFilters = [
 const renderBool = (value: boolean) => (value ? "Yes" : "No");
 
 export default function ShipsToPurchase() {
+  const [onlyOpen, setOnlyOpen] = useState(true);
   const { loading, error, data, dataState, refetch } = useQuery(
     GET_OPEN_ASSIGNMENTS,
-    {},
+    {
+      variables: { onlyOpen },
+    },
   );
 
   if (error) {
     return (
       <div style={{ width: "100%", height: "100%", position: "relative" }}>
-        <PageTitle title={`Systems Map`} />
+        <PageTitle title={`Ship Assignments`} />
         <Result
           status="error"
-          title="System Map Error"
+          title="Ship Assignments Error"
           subTitle={`Error: ${error.message}`}
           extra={[
             <Button key="tryAgain" type="primary" onClick={() => refetch()}>
@@ -55,6 +59,15 @@ export default function ShipsToPurchase() {
       key: "id",
       sorter: (a, b) => a.id - b.id,
       defaultSortOrder: "descend",
+    },
+    {
+      title: "Ships",
+      dataIndex: "ship",
+      key: "ships",
+      render: (_, record) => (
+        <Tooltip title={record.ship.join(", ")}>{record.ship.length}</Tooltip>
+      ),
+      sorter: (a, b) => a.ship.length - b.ship.length,
     },
     {
       title: "Fleet ID",
@@ -175,9 +188,11 @@ export default function ShipsToPurchase() {
 
   return (
     <div style={{ padding: "24px 24px" }}>
-      <PageTitle title="Ships to Purchase" />
+      <PageTitle title="Ship Assignments" />
       <Space>
-        <h1>Ships to Purchase {items.length}</h1>
+        <h1 className="scroll-m-20 text-center text-3xl font-bold tracking-tight text-balance">
+          Ship Assignments {items.length}
+        </h1>
         <Button
           onClick={() => {
             refetch();
@@ -185,6 +200,14 @@ export default function ShipsToPurchase() {
         >
           Refresh
         </Button>
+        <Switch
+          checked={onlyOpen}
+          onChange={(checked) => {
+            setOnlyOpen(checked);
+          }}
+          checkedChildren="Only Open"
+          unCheckedChildren="All"
+        />
         <Spin spinning={loading || dataState != "complete"} />
       </Space>
       <Table<Assignment>

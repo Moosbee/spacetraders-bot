@@ -12,10 +12,7 @@ impl ShipAssignmentLoader {
         Self(database_pool)
     }
 
-    async fn get_by_ids(
-        database_pool: &DbPool,
-        ids: &[i64],
-    ) -> crate::Result<Vec<ShipAssignment>> {
+    async fn get_by_ids(database_pool: &DbPool, ids: &[i64]) -> crate::Result<Vec<ShipAssignment>> {
         let erg = sqlx::query_as!(
             ShipAssignment,
             r#"
@@ -106,7 +103,7 @@ impl ShipAssignmentBuilder {
             fleet_id,
             priority: 100,
             max_purchase_price: 1_000_000,
-            credits_threshold: 100_000,
+            credits_threshold: 500_000,
             disabled: false,
             range_min: 0,
             cargo_min: 0,

@@ -82,7 +82,15 @@ export default function ReservedFunds() {
       render: (_, record) => {
         const routes = record.tradeRoute?.items ?? [];
         if (routes.length === 0) return "N/A";
-        return routes.map((route) => route.id).join(", ");
+        return (
+          <p>
+            {routes.map((route) => (
+              <Link key={route.id} to={`/tradeRoutes/${route.id}`}>
+                {route.id}
+              </Link>
+            ))}
+          </p>
+        );
       },
     },
     {

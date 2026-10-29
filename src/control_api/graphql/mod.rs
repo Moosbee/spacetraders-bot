@@ -666,23 +666,15 @@ impl QueryRoot {
     ) -> Result<gql_models::GQLShipAssignmentPage> {
         let context = ctx.data::<ConductorContext>()?;
         let query = paginated_query(page, page_size);
-        let ship_assignments = if let Some(by) = by {
-            match by {
-                ShipAssignmentBy::Fleet(fleet_id) => {
-                    database::ShipAssignment::get_by_fleet_id(
-                        &context.database_pool,
-                        fleet_id,
-                        query,
-                    )
+        let ship_assignments = match by {
+            Some(ShipAssignmentBy::Fleet(fleet_id)) => {
+                database::ShipAssignment::get_by_fleet_id(&context.database_pool, fleet_id, query)
                     .await
-                }
-                ShipAssignmentBy::Open(_assigned) => {
-                    database::ShipAssignment::get_open_assignments(&context.database_pool, query)
-                        .await
-                }
             }
-        } else {
-            database::ShipAssignment::get_all(&context.database_pool, query).await
+            Some(ShipAssignmentBy::Open(true)) => {
+                database::ShipAssignment::get_open_assignments(&context.database_pool, query).await
+            }
+            _ => database::ShipAssignment::get_all(&context.database_pool, query).await,
         }?;
         Ok(ship_assignments.into())
     }
@@ -750,10 +742,9 @@ impl QueryRoot {
                     .into_iter()
                     .filter(|t| t.reservation_id == reservation_id)
                     .collect(),
-                ShipTransferBy::State(state) => transfers
-                    .into_iter()
-                    .filter(|t| t.state == state)
-                    .collect(),
+                ShipTransferBy::State(state) => {
+                    transfers.into_iter().filter(|t| t.state == state).collect()
+                }
             }
         } else {
             transfers
