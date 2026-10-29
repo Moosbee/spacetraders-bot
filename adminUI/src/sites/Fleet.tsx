@@ -331,7 +331,7 @@ function FleetDetails({ fleet }: { fleet: FleetData }) {
       <Descriptions bordered size="small" column={4} items={infoItems} />
       <Divider />
 
-      <FleetConfigDetails config={fleet.config} />
+      <FleetConfigDetails config={fleet.config} fleetId={fleet.id} />
       <Divider />
       <Row gutter={[8, 8]}>
         <Col span={15}>
