@@ -29,3 +29,21 @@ export const EDIT_FLEET = graphql(/* GraphQL */ `
     }
   }
 `);
+
+export const FORCE_ASSIGN_SHIP = graphql(/* GraphQL */ `
+  mutation ForceAssignShip(
+    $shipSymbol: String!
+    $assignmentId: Int!
+    $temp: Boolean!
+  ) {
+    forceAssignShip(
+      shipSymbol: $shipSymbol
+      assignmentId: $assignmentId
+      temp: $temp
+    ) {
+      symbol
+      assignmentId
+      tempAssignmentId
+    }
+  }
+`);
