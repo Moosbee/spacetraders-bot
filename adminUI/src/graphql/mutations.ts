@@ -47,3 +47,30 @@ export const FORCE_ASSIGN_SHIP = graphql(/* GraphQL */ `
     }
   }
 `);
+
+export const SHUTDOWN = graphql(/* GraphQL */ `
+  mutation Shutdown(
+    $global: Boolean!
+    $run: Boolean!
+    $slowManagers: Boolean!
+    $fastManagers: Boolean!
+    $slowShips: Boolean!
+    $fastShips: Boolean!
+  ) {
+    shutdown(
+      global: $global
+      run: $run
+      slowManagers: $slowManagers
+      fastManagers: $fastManagers
+      slowShips: $slowShips
+      fastShips: $fastShips
+    ) {
+      globalCancelToken
+      runCancelToken
+      fastManagerCancelToken
+      slowManagerCancelToken
+      fastShipCancelToken
+      slowShipCancelToken
+    }
+  }
+`);

@@ -10,6 +10,7 @@ import {
   GlobalOutlined,
   HomeOutlined,
   InfoCircleOutlined,
+  PoweroffOutlined,
   ReconciliationOutlined,
   RocketOutlined,
   SettingOutlined,
@@ -19,6 +20,7 @@ import {
 } from "@ant-design/icons";
 import type { MenuProps } from "antd";
 import { Menu } from "antd";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import type { AntSiderSider } from "../MyApp";
 import { useAppDispatch, useAppSelector } from "../redux/hooks";
@@ -27,6 +29,7 @@ import {
   setSliderCollapsed,
 } from "../redux/slices/configSlice";
 import FaIcon from "./FontAwsome/FaIcon";
+import ShutdownModal from "./ShutdownModal";
 
 type MenuItem = Required<MenuProps>["items"][number];
 
@@ -210,24 +213,42 @@ const items: MenuItem[] = [
       },
     ],
   },
+  {
+    label: "Shutdown",
+    key: "shutdown",
+    icon: <PoweroffOutlined />,
+    danger: true,
+  },
 ];
 
 function MySider({ Slider }: { Slider: typeof AntSiderSider }) {
-  // const [collapsed, setCollapsed] = useState(false);
+  const [shutdownOpen, setShutdownOpen] = useState(false);
 
   const collapsed = useAppSelector(selectSliderCollapsed);
   const dispatch = useAppDispatch();
 
+  const handleMenuClick: MenuProps["onClick"] = ({ key }) => {
+    if (key === "shutdown") {
+      setShutdownOpen(true);
+    }
+  };
+
   return (
-    <Slider
-      collapsible
-      collapsed={collapsed}
-      onCollapse={(value) => dispatch(setSliderCollapsed(value))}
-      theme="light"
-      width={240}
-    >
-      <Menu mode="inline" items={items}></Menu>
-    </Slider>
+    <>
+      <Slider
+        collapsible
+        collapsed={collapsed}
+        onCollapse={(value) => dispatch(setSliderCollapsed(value))}
+        theme="light"
+        width={240}
+      >
+        <Menu mode="inline" items={items} onClick={handleMenuClick}></Menu>
+      </Slider>
+      <ShutdownModal
+        open={shutdownOpen}
+        onClose={() => setShutdownOpen(false)}
+      />
+    </>
   );
 }
 
