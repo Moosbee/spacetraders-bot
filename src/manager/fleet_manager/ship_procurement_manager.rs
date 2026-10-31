@@ -69,6 +69,10 @@ impl ShipProcurementManager {
 
             lim.until_ready().await;
 
+            while self.context.config.load().ship_purchase_stop {
+                lim.until_ready().await;
+            }
+
             let shipyard_ship_reservation = self.context.shipyard_ship_reservation.clone();
 
             let purchase_reservations = self.handle_procurement(&shipyard_ship_reservation).await?;

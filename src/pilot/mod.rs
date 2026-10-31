@@ -162,8 +162,17 @@ impl Pilot {
     }
 
     async fn wait_for_activation(&self) -> Result<()> {
-        debug!("Waiting for activation");
-        todo!()
+        loop {
+            let ship_info =
+                database::ShipInfo::get_by_id(&self.context.database_pool, &self.ship_symbol)
+                    .await?
+                    .ok_or(Error::General("Ship not found".to_string()))?;
+            if ship_info.active {
+                break;
+            }
+            tokio::time::sleep(std::time::Duration::from_millis(1000)).await;
+        }
+        Ok(())
     }
 
     #[instrument(level = "info", name = "spacetraders::pilot::pilot_circle", skip(self), fields(self.ship_symbol = %self.ship_symbol), err(Debug))]
