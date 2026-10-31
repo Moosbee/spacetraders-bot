@@ -15,9 +15,15 @@ pub async fn update_fleet_assignments(
     context: &ConductorContext,
     result: AssignmentResult,
 ) -> crate::error::Result<()> {
-    for assignment in result.non_merged_old_assignments {
-        database::ShipAssignment::delete_by_id(&context.database_pool, assignment.id).await?;
-        info!(assignment_id = assignment.id, "Deleted old ship assignment");
+    for mut assignment in result.non_merged_old_assignments {
+        // database::ShipAssignment::delete_by_id(&context.database_pool, assignment.id).await?;
+        // info!(assignment_id = assignment.id, "Deleted old ship assignment");
+        assignment.disabled = true;
+        database::ShipAssignment::upsert(&context.database_pool, &assignment).await?;
+        info!(
+            assignment_id = assignment.id,
+            "Disabled old ship assignment"
+        )
     }
 
     for assignment in result.non_merged_new_assignments {
@@ -107,7 +113,6 @@ pub async fn fix_fleet_assignments(
     )
     .unwrap();
 
-    // TODO will panic if more rows than columns, so more current assignments than new assignments
     let (cash_flow, assignments) = pathfinding::prelude::kuhn_munkres_min(&weights);
 
     debug!(
