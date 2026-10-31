@@ -351,7 +351,7 @@ impl MutationRoot {
         &self,
         ctx: &Context<'ctx>,
         ship_symbol: String,
-        assignment_id: i64,
+        assignment_id: Option<i64>,
         temp: bool,
     ) -> super::Result<GQLShipInfo> {
         let context = ctx.data::<ConductorContext>()?;
@@ -360,9 +360,9 @@ impl MutationRoot {
             .await?
             .ok_or(super::GraphiQLError::NotFound)?;
         if temp {
-            ship.temp_assignment_id = Some(assignment_id);
+            ship.temp_assignment_id = assignment_id;
         } else {
-            ship.assignment_id = Some(assignment_id);
+            ship.assignment_id = assignment_id;
         }
         database::ShipInfo::upsert(&context.database_pool, &ship).await?;
         Ok(ship.into())

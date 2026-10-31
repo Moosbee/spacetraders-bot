@@ -170,7 +170,10 @@ impl Pilot {
             if ship_info.active {
                 break;
             }
-            tokio::time::sleep(std::time::Duration::from_millis(1000)).await;
+            tokio::time::sleep(std::time::Duration::from_millis(
+                60_000 + rand::random::<u64>() % 10_000,
+            ))
+            .await;
         }
         Ok(())
     }
@@ -191,13 +194,13 @@ impl Pilot {
             if assignment.disabled {
                 debug!(assignment_id = assignment.id, ship_symbol = %self.ship_symbol, "Assignment is disabled, unassigning ship");
                 if is_temp {
-                    database::ShipInfo::unassign_ship(
+                    database::ShipInfo::unassign_temp_ship(
                         &self.context.database_pool,
                         &self.ship_symbol,
                     )
                     .await?;
                 } else {
-                    database::ShipInfo::unassign_temp_ship(
+                    database::ShipInfo::unassign_ship(
                         &self.context.database_pool,
                         &self.ship_symbol,
                     )
@@ -206,7 +209,7 @@ impl Pilot {
                 return Ok(());
             }
 
-            if !ship_info.active || !fleet.active {
+            if !fleet.active {
                 debug!(ship_symbol = %self.ship_symbol, fleet_id = fleet.id, "Ship or fleet is inactive, waiting");
                 self.wait_for_activation().await?;
                 return Ok(());
