@@ -449,6 +449,12 @@ async fn populate_context(
 
     context.supply_chain_mapping = Arc::new(SupplyChainMapping::new(&import_exports));
 
+    let connections = ship::autopilot::generate_all_connections(&context.database_pool).await?;
+    let jump_gate_router = ship::autopilot::JumpGateRouter::new(connections.0, connections.1);
+    context
+        .jump_gate_router
+        .swap(std::sync::Arc::new(jump_gate_router));
+
     Ok(context)
 }
 

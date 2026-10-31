@@ -1059,7 +1059,7 @@ type MutationRoot {
 	"""
 	Force assign a ship a new assignment from the fleet manager.
 	"""
-	forceAssignShip(shipSymbol: String!, assignmentId: Int!, temp: Boolean!): ShipInfo!
+	forceAssignShip(shipSymbol: String!, assignmentId: Int, temp: Boolean!): ShipInfo!
 	"""
 	Pause a ship (set active=false in ship_info)
 	"""
