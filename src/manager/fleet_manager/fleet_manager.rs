@@ -197,9 +197,11 @@ impl FleetManager {
 
         // filter assignments based on ship capabilities (e.g. required cargo space, required fuel, required equipment, ...)
 
+        let ship_capability = ShipCapabilities::get_ship_capabilities(ship_clone);
+
         let open_possible_assignments = open_assignments
             .into_iter()
-            .filter(|assignment| ShipCapabilities::can_assign_ship(ship_clone, assignment))
+            .filter(|assignment| ship_capability.capable(assignment))
             .collect::<Vec<_>>();
 
         // get fleets from the database and calculate the distance from the ship_system to the fleet system
@@ -272,11 +274,14 @@ impl FleetManager {
                     .get(&fleet_b.unwrap().system_symbol)
                     .map(|(cost, _, _)| *cost as f64)
                     .unwrap_or(f64::MAX);
-                priority_a.cmp(&priority_b).then_with(|| {
-                    travel_cost_a
-                        .partial_cmp(&travel_cost_b)
-                        .unwrap_or(std::cmp::Ordering::Equal)
-                })
+                priority_a
+                    .cmp(&priority_b)
+                    .then_with(|| ship_capability.compare_assignment(a, b))
+                    .then_with(|| {
+                        travel_cost_a
+                            .partial_cmp(&travel_cost_b)
+                            .unwrap_or(std::cmp::Ordering::Equal)
+                    })
             })
             .cloned();
 

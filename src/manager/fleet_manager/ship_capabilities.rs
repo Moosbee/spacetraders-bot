@@ -12,6 +12,8 @@ pub struct ShipCapabilities {
     warp_drive: i32,
 }
 
+const INF_RANGE: i64 = 5001; // above the max finite range (5000)
+
 impl ShipCapabilities {
     pub fn can_assign_ship(
         ship_clone: &ship::MyShipCopy,
@@ -20,6 +22,69 @@ impl ShipCapabilities {
         let capabilities = Self::get_ship_capabilities(ship_clone);
 
         capabilities.capable(assignment)
+    }
+
+    pub fn capable(&self, assignment: &database::ShipAssignment) -> bool {
+        let has_range = if assignment.range_min == -1 {
+            self.fuel == 0
+        } else {
+            self.fuel >= assignment.range_min
+        };
+
+        self.cargo >= assignment.cargo_min
+            && has_range
+            && self.survey >= if assignment.survey { 1 } else { 0 }
+            && self.extractor >= if assignment.extractor { 1 } else { 0 }
+            && self.siphon >= if assignment.siphon { 1 } else { 0 }
+            && self.warp_drive >= if assignment.warp_drive { 1 } else { 0 }
+    }
+
+    /// Lower key = better fit. Field order IS the priority order.
+    fn fit_key(&self, a: &database::ShipAssignment) -> (bool, i64, i64, i64, i64, i64, i64) {
+        let ship_range = if self.fuel == 0 {
+            INF_RANGE
+        } else {
+            self.fuel as i64
+        };
+        let req_range = if a.range_min == -1 {
+            INF_RANGE
+        } else {
+            a.range_min as i64
+        };
+
+        let range_excess = ship_range - req_range;
+        let cargo_excess = (self.cargo - a.cargo_min) as i64;
+
+        // module helpers: (feasible, wasted)
+        let module = |have: i32, need: bool| (have > 0 || !need, have > 0 && !need);
+        let (survey_ok, survey_waste) = module(self.survey, a.survey);
+        let (extractor_ok, extractor_waste) = module(self.extractor, a.extractor);
+        let (siphon_ok, siphon_waste) = module(self.siphon, a.siphon);
+        let (warp_ok, warp_waste) = module(self.warp_drive, a.warp_drive);
+
+        let infeasible = range_excess < 0
+            || cargo_excess < 0
+            || !(survey_ok && extractor_ok && siphon_ok && warp_ok);
+
+        (
+            infeasible,             // false < true, so feasible always sorts first
+            warp_waste as i64,      // 1. don't burn a warp ship on a job that doesn't need it
+            siphon_waste as i64,    // 2.
+            extractor_waste as i64, // 3.
+            survey_waste as i64,    // 4.
+            cargo_excess,           // 5. closest cargo match
+            range_excess,           // 6. closest range match
+        )
+    }
+
+    pub fn compare_assignment(
+        &self,
+        a: &database::ShipAssignment,
+        b: &database::ShipAssignment,
+    ) -> std::cmp::Ordering {
+        let ka = self.fit_key(a);
+        let kb = self.fit_key(b);
+        ka.cmp(&kb)
     }
 
     pub fn get_shipyard_ship_capabilities(
@@ -47,22 +112,7 @@ impl ShipCapabilities {
         }
     }
 
-    pub fn capable(&self, assignment: &database::ShipAssignment) -> bool {
-        let has_range = if assignment.range_min == -1 {
-            self.fuel == 0
-        } else {
-            self.fuel >= assignment.range_min
-        };
-
-        self.cargo >= assignment.cargo_min
-            && has_range
-            && self.survey >= if assignment.survey { 1 } else { 0 }
-            && self.extractor >= if assignment.extractor { 1 } else { 0 }
-            && self.siphon >= if assignment.siphon { 1 } else { 0 }
-            && self.warp_drive >= if assignment.warp_drive { 1 } else { 0 }
-    }
-
-    fn get_ship_capabilities(ship_clone: &ship::MyShipCopy) -> ShipCapabilities {
+    pub fn get_ship_capabilities(ship_clone: &ship::MyShipCopy) -> ShipCapabilities {
         let cargo = Self::cargo_from_modules(&ship_clone.modules.modules);
         let fuel = ship_clone.fuel.capacity;
         let survey = Self::survey_from_mounts(&ship_clone.mounts.mounts);
