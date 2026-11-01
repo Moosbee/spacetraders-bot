@@ -36,12 +36,9 @@ function ForceAssignShipControls({ ship }: { ship: ShipData }) {
         onChange={(value) => setAssignmentId(value)}
       />
       <Button
-        disabled={assignmentId === null || forceAssignLoading}
+        disabled={forceAssignLoading}
         loading={forceAssignLoading}
         onClick={() => {
-          if (assignmentId === null) {
-            return;
-          }
           forceAssignShip({
             variables: {
               shipSymbol: ship.symbol,
@@ -51,7 +48,7 @@ function ForceAssignShipControls({ ship }: { ship: ShipData }) {
           });
         }}
       >
-        Force Assign
+        {assignmentId == null ? "Unassign" : "Force Assign"}
       </Button>
       <Checkbox checked={temp} onChange={() => setTemp(!temp)}>
         Temp
