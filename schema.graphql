@@ -1717,6 +1717,7 @@ type ShipTransfer {
 	endSystemSymbol: SystemSymbol!
 	createdAt: DateTime!
 	updatedAt: DateTime!
+	marketTransactionSummary: TransactionSummary!
 	ship: Ship
 	fleet: Fleet
 	assignment: ShipAssignment

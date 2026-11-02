@@ -2992,6 +2992,10 @@ export const GET_SHIP_TRANSFERS = graphql(/* GraphQL */ `
         endSystemSymbol
         createdAt
         updatedAt
+        marketTransactionSummary {
+          allExpenses
+          allIncome
+        }
       }
     }
   }
@@ -3037,6 +3041,11 @@ export const GET_SHIP_TRANSFER = graphql(/* GraphQL */ `
       }
       endSystem {
         symbol
+      }
+      marketTransactionSummary {
+        allExpenses
+        allIncome
+        allSum
       }
     }
   }

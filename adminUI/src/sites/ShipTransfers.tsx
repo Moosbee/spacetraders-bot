@@ -2,6 +2,7 @@ import { useQuery } from "@apollo/client/react";
 import { Button, Divider, Space, Switch, Table, TableProps } from "antd";
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import MoneyDisplay from "../features/MonyDisplay";
 import PageTitle from "../features/PageTitle";
 import { GetShipTransfersQuery, ShipTransferState } from "../gql/graphql";
 import { GET_SHIP_TRANSFERS } from "../graphql/queries";
@@ -80,14 +81,18 @@ function ShipTransfers() {
       title: "Start System",
       dataIndex: "startSystemSymbol",
       key: "startSystemSymbol",
-      render: (symbol: string) => <Link to={`/system/${symbol}`}>{symbol}</Link>,
+      render: (symbol: string) => (
+        <Link to={`/system/${symbol}`}>{symbol}</Link>
+      ),
       sorter: (a, b) => a.startSystemSymbol.localeCompare(b.startSystemSymbol),
     },
     {
       title: "End System",
       dataIndex: "endSystemSymbol",
       key: "endSystemSymbol",
-      render: (symbol: string) => <Link to={`/system/${symbol}`}>{symbol}</Link>,
+      render: (symbol: string) => (
+        <Link to={`/system/${symbol}`}>{symbol}</Link>
+      ),
       sorter: (a, b) => a.endSystemSymbol.localeCompare(b.endSystemSymbol),
     },
     {
@@ -105,6 +110,49 @@ function ShipTransfers() {
       render: (date: string) => new Date(date).toLocaleString(),
       sorter: (a, b) =>
         new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime(),
+    },
+    {
+      title: "Expenses",
+      dataIndex: ["marketTransactionSummary", "allExpenses"],
+      key: "expenses",
+      render: (_, record) => (
+        <MoneyDisplay
+          amount={record.marketTransactionSummary?.allExpenses ?? 0}
+        />
+      ),
+      sorter: (a, b) =>
+        (a.marketTransactionSummary?.allExpenses ?? 0) -
+        (b.marketTransactionSummary?.allExpenses ?? 0),
+    },
+    {
+      title: "Income",
+      dataIndex: ["marketTransactionSummary", "allIncome"],
+      key: "income",
+      render: (_, record) => (
+        <MoneyDisplay
+          amount={record.marketTransactionSummary?.allIncome ?? 0}
+        />
+      ),
+      sorter: (a, b) =>
+        (a.marketTransactionSummary?.allIncome ?? 0) -
+        (b.marketTransactionSummary?.allIncome ?? 0),
+    },
+    {
+      title: "Profit",
+      key: "profit",
+      render: (_, record) => (
+        <MoneyDisplay
+          amount={
+            (record.marketTransactionSummary?.allIncome ?? 0) -
+            (record.marketTransactionSummary?.allExpenses ?? 0)
+          }
+        />
+      ),
+      sorter: (a, b) =>
+        (a.marketTransactionSummary?.allIncome ?? 0) -
+        (a.marketTransactionSummary?.allExpenses ?? 0) -
+        ((b.marketTransactionSummary?.allIncome ?? 0) -
+          (b.marketTransactionSummary?.allExpenses ?? 0)),
     },
   ];
 

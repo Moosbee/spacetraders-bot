@@ -1521,6 +1521,19 @@ paginated_gql_object!(
 
 #[async_graphql::ComplexObject]
 impl GQLShipTransfer {
+    async fn market_transaction_summary<'ctx>(
+        &self,
+        ctx: &async_graphql::Context<'ctx>,
+    ) -> Result<GQLTransactionSummary> {
+        let database_pool = ctx.data::<database::DbPool>().unwrap();
+        let erg = database::MarketTransaction::get_transaction_summary_by_ship_transfer(
+            database_pool,
+            self.ship_transfer.id,
+        )
+        .await?;
+        Ok(GQLTransactionSummary::from(erg))
+    }
+
     async fn ship<'ctx>(&self, ctx: &async_graphql::Context<'ctx>) -> Result<Option<GQLShip>> {
         let context = ctx.data::<crate::utils::ConductorContext>().unwrap();
         let ship = context

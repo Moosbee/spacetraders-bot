@@ -96,8 +96,13 @@ function ShipTransfer() {
                     <Link to="/reservedFunds">{transfer.reservationId}</Link>
                     {transfer.reservation && (
                       <span>
-                        <MoneyDisplay amount={transfer.reservation.amount} /> ·{" "}
-                        {transfer.reservation.status}
+                        <MoneyDisplay
+                          amount={transfer.reservation.actualAmount}
+                        />
+                        /
+                        <MoneyDisplay
+                          amount={transfer.reservation.amount}
+                        /> · {transfer.reservation.status}
                       </span>
                     )}
                   </Space>
@@ -130,6 +135,15 @@ function ShipTransfer() {
                 key: "updatedAt",
                 label: "Updated At",
                 children: new Date(transfer.updatedAt).toLocaleString(),
+              },
+              {
+                key: "expenses",
+                label: "Expenses",
+                children: (
+                  <MoneyDisplay
+                    amount={transfer.marketTransactionSummary.allExpenses ?? 0}
+                  />
+                ),
               },
             ]}
           />

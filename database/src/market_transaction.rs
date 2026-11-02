@@ -2109,6 +2109,141 @@ impl MarketTransaction {
         Ok(erg)
     }
 
+    pub async fn get_transaction_summary_by_ship_transfer(
+        database_pool: &DbPool,
+        ship_transfer: i64,
+    ) -> crate::Result<TransactionSummary> {
+        let erg = sqlx::query_as!(
+            TransactionSummary,
+            r#"
+            select 
+              sum(market_transaction.total_price) as "all_sum: i32",
+              sum(
+                  CASE
+                    WHEN market_transaction.type = 'PURCHASE' THEN market_transaction.total_price
+                    ELSE 0
+                  END
+                ) as "all_expenses: i32",
+              sum(
+                  CASE
+                    WHEN market_transaction.type = 'PURCHASE' THEN 0
+                    ELSE market_transaction.total_price
+                  END
+                ) as "all_income: i32",
+              sum(market_transaction.units) as "all_units: i32",
+              sum(
+                  CASE
+                    WHEN market_transaction.type = 'PURCHASE' THEN market_transaction.units
+                    ELSE 0
+                  END
+                ) as "all_purchase_units: i32",
+              sum(
+                  CASE
+                    WHEN market_transaction.type = 'SELL' THEN market_transaction.units
+                    ELSE 0
+                  END
+                ) as "all_sell_units: i32",
+              count(market_transaction.id) as "all_transactions: i32",
+              count(
+                  CASE
+                    WHEN market_transaction.type = 'PURCHASE' THEN market_transaction.id
+                    ELSE NULL
+                  END
+                ) as "all_purchase_transactions: i32",
+              count(
+                  CASE
+                    WHEN market_transaction.type = 'SELL' THEN market_transaction.id
+                    ELSE NULL
+                  END
+              ) as "all_sell_transactions: i32",
+              sum(market_transaction.total_price) FILTER (WHERE market_transaction.is_fuel) as "fuel_sum: i32",
+              sum(
+                  CASE
+                    WHEN market_transaction.type = 'PURCHASE' THEN market_transaction.total_price
+                    ELSE 0
+                  END
+                ) FILTER (WHERE market_transaction.is_fuel) as "fuel_expenses: i32",
+              sum(
+                  CASE
+                    WHEN market_transaction.type = 'PURCHASE' THEN 0
+                    ELSE market_transaction.total_price
+                  END
+                ) FILTER (WHERE market_transaction.is_fuel) as "fuel_income: i32",
+              sum(market_transaction.units) FILTER (WHERE market_transaction.is_fuel) as "fuel_units: i32",
+              sum(
+                  CASE
+                    WHEN market_transaction.type = 'PURCHASE' THEN market_transaction.units
+                    ELSE 0
+                  END
+                ) FILTER (WHERE market_transaction.is_fuel) as "fuel_purchase_units: i32",
+              sum(
+                  CASE
+                    WHEN market_transaction.type = 'SELL' THEN market_transaction.units
+                    ELSE 0
+                  END
+                ) FILTER (WHERE market_transaction.is_fuel) as "fuel_sell_units: i32",
+              count(market_transaction.id) FILTER (WHERE market_transaction.is_fuel) as "fuel_transactions: i32",
+              count(
+                  CASE
+                    WHEN market_transaction.type = 'PURCHASE' THEN market_transaction.id
+                    ELSE NULL
+                  END
+                ) FILTER (WHERE market_transaction.is_fuel) as "fuel_purchase_transactions: i32",
+              count(
+                  CASE
+                    WHEN market_transaction.type = 'SELL' THEN market_transaction.id
+                    ELSE NULL
+                  END
+              ) FILTER (WHERE market_transaction.is_fuel) as "fuel_sell_transactions: i32",
+              sum(market_transaction.total_price) FILTER (WHERE NOT market_transaction.is_fuel) as "sum: i32",
+              sum(
+                  CASE
+                    WHEN market_transaction.type = 'PURCHASE' THEN market_transaction.total_price
+                    ELSE 0
+                  END
+                ) FILTER (WHERE NOT market_transaction.is_fuel) as "expenses: i32",
+              sum(
+                  CASE
+                    WHEN market_transaction.type = 'PURCHASE' THEN 0
+                    ELSE market_transaction.total_price
+                  END
+                ) FILTER (WHERE NOT market_transaction.is_fuel) as "income: i32",
+              sum(market_transaction.units) FILTER (WHERE NOT market_transaction.is_fuel) as "units: i32",
+              sum(
+                  CASE
+                    WHEN market_transaction.type = 'PURCHASE' THEN market_transaction.units
+                    ELSE 0
+                  END
+                ) FILTER (WHERE NOT market_transaction.is_fuel) as "purchase_units: i32",
+              sum(
+                  CASE
+                    WHEN market_transaction.type = 'SELL' THEN market_transaction.units
+                    ELSE 0
+                  END
+                ) FILTER (WHERE NOT market_transaction.is_fuel) as "sell_units: i32",
+              count(market_transaction.id) FILTER (WHERE NOT market_transaction.is_fuel) as "transactions: i32",
+              count(
+                  CASE
+                    WHEN market_transaction.type = 'PURCHASE' THEN market_transaction.id
+                    ELSE NULL
+                  END
+                ) FILTER (WHERE NOT market_transaction.is_fuel) as "purchase_transactions: i32",
+              count(
+                  CASE
+                    WHEN market_transaction.type = 'SELL' THEN market_transaction.id
+                    ELSE NULL
+                  END
+              ) FILTER (WHERE NOT market_transaction.is_fuel) as "sell_transactions: i32"
+            from market_transaction
+            where ship_transfer = $1
+            "#,
+            ship_transfer
+        )
+        .fetch_one(database_pool.get_cache_pool())
+        .await?;
+        Ok(erg)
+    }
+
     pub async fn get_transaction_summary_by_waypoint(
         database_pool: &DbPool,
         waypoint: &WaypointSymbol,
