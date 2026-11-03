@@ -345,7 +345,7 @@ impl ScrappingManager {
             .await?
             .items;
 
-            if !wp.is_charted() || market_trade_goods.is_empty() {
+            if !market_trade_goods.is_empty() {
                 waypoints.push((wp, chrono::DateTime::<chrono::Utc>::MIN_UTC));
                 continue;
             }

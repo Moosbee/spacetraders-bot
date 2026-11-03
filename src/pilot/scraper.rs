@@ -154,6 +154,63 @@ impl ScraperPilot {
                 waypoint_symbol: waypoint_symbol.clone(),
             })?;
 
+        if !waypoint.is_charted() {
+            let symbol = ship.symbol.clone();
+
+            let erg = self.context.api.create_chart(&symbol).await;
+
+            let (waypoint, agent_info) = match erg {
+                Ok(data) => (
+                    *data.data.waypoint,
+                    Some((*data.data.agent, *data.data.transaction)),
+                ),
+                Err(space_traders_client::apis::Error::ResponseError(error)) => {
+                    if error
+                        .entity
+                        .as_ref()
+                        .map(|e| {
+                            e.error.code
+                                == space_traders_client::models::error_codes::WAYPOINT_CHARTED_ERROR
+                        })
+                        .unwrap_or(false)
+                    {
+                        (
+                            *self
+                                .context
+                                .api
+                                .get_waypoint(&ship.nav.system_symbol, &ship.nav.waypoint_symbol)
+                                .await?
+                                .data,
+                            None,
+                        )
+                    } else {
+                        return Err(space_traders_client::apis::Error::ResponseError(error).into());
+                    }
+                }
+                Err(err) => {
+                    return Err(err.into());
+                }
+            };
+
+            if let Some((agent, transaction)) = agent_info {
+                let sql_agent = database::Agent::from(agent);
+
+                self.context
+                    .budget_manager
+                    .set_current_funds(sql_agent.credits);
+
+                database::Agent::upsert(&self.context.database_pool, &sql_agent).await?;
+
+                let sql_transaction = database::ChartTransaction::try_from(transaction)?;
+                database::ChartTransaction::upsert(&self.context.database_pool, &sql_transaction)
+                    .await?;
+            }
+
+            let sql_waypoint = (&waypoint).into();
+
+            database::Waypoint::upsert(&self.context.database_pool, &sql_waypoint).await?;
+        }
+
         if waypoint.is_marketplace() {
             let market_resp = self
                 .context
